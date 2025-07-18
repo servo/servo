@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::net::TcpStream;
-
 use serde::Serialize;
 
 use crate::protocol::JsonPacketStream;
@@ -24,22 +22,22 @@ pub(crate) struct ResourceAvailableReply<T: Serialize> {
 pub(crate) trait ResourceAvailable {
     fn actor_name(&self) -> String;
 
-    fn resource_array<T: Serialize>(
+    fn resource_array<T: Serialize, S: JsonPacketStream>(
         &self,
         resource: T,
         resource_type: String,
         array_type: ResourceArrayType,
-        stream: &mut TcpStream,
+        stream: &mut S,
     ) {
         self.resources_array(vec![resource], resource_type, array_type, stream);
     }
 
-    fn resources_array<T: Serialize>(
+    fn resources_array<T: Serialize, S: JsonPacketStream>(
         &self,
         resources: Vec<T>,
         resource_type: String,
         array_type: ResourceArrayType,
-        stream: &mut TcpStream,
+        stream: &mut S,
     ) {
         let msg = ResourceAvailableReply::<T> {
             from: self.actor_name(),

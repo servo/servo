@@ -74,7 +74,7 @@ impl Serializable {
 
 /// Message for communication between the constellation and a global managing broadcast channels.
 #[derive(Debug, Deserialize, Serialize)]
-pub struct BroadcastMsg {
+pub struct BroadcastChannelMsg {
     /// The origin of this message.
     pub origin: ImmutableOrigin,
     /// The name of the channel.
@@ -83,9 +83,9 @@ pub struct BroadcastMsg {
     pub data: StructuredSerializedData,
 }
 
-impl Clone for BroadcastMsg {
-    fn clone(&self) -> BroadcastMsg {
-        BroadcastMsg {
+impl Clone for BroadcastChannelMsg {
+    fn clone(&self) -> BroadcastChannelMsg {
+        BroadcastChannelMsg {
             data: self.data.clone_for_broadcast(),
             origin: self.origin.clone(),
             channel_name: self.channel_name.clone(),

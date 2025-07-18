@@ -11,7 +11,7 @@ use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use pixels::{CorsStatus, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
-use script_bindings::error::Error;
+use script_bindings::error::{Error, Fallible};
 use script_bindings::realms::{AlreadyInRealm, InRealm};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapMethods, ImageBitmapOptions, ImageBitmapSource, ImageOrientation, PremultiplyAlpha,
     ResizeQuality,
 };
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
@@ -28,7 +28,6 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::Promise;
 use crate::script_runtime::CanGc;
-use crate::test::TrustedPromise;
 
 #[dom_struct]
 pub(crate) struct ImageBitmap {
@@ -199,10 +198,10 @@ impl ImageBitmap {
         pixels::copy_rgba8_image(
             input.size(),
             input_rect_cropped.cast(),
-            input.data(),
+            input.as_raw_bytes(),
             source.size(),
             source_rect_cropped.cast(),
-            source.data_mut(),
+            source.as_raw_bytes_mut(),
         );
 
         // Step 7. Scale output to the size specified by outputWidth and outputHeight.
@@ -214,9 +213,12 @@ impl ImageBitmap {
                 ResizeQuality::High => pixels::FilterQuality::High,
             };
 
-            let Some(output_data) =
-                pixels::scale_rgba8_image(source.size(), source.data(), output_size, quality)
-            else {
+            let Some(output_data) = pixels::scale_rgba8_image(
+                source.size(),
+                source.as_raw_bytes(),
+                output_size,
+                quality,
+            ) else {
                 log::warn!(
                     "Failed to scale the bitmap of size {:?} to required size {:?}",
                     source.size(),
@@ -241,7 +243,7 @@ impl ImageBitmap {
         // output must be flipped vertically, disregarding any image orientation metadata
         // of the source (such as EXIF metadata), if any.
         if options.imageOrientation == ImageOrientation::FlipY {
-            pixels::flip_y_rgba8_image_inplace(output.size(), output.data_mut());
+            pixels::flip_y_rgba8_image_inplace(output.size(), output.as_raw_bytes_mut());
         }
 
         // TODO: Step 9. If image is an img element or a Blob object, let val be the value
@@ -359,36 +361,12 @@ impl ImageBitmap {
                     return p;
                 }
 
-                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
-                let Some(img) = image.image_data() else {
+                // If no ImageBitmap object can be constructed, then the promise
+                // is rejected instead.
+                let Some(snapshot) = image.get_raster_image_data() else {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 };
-
-                // TODO: Support vector HTMLImageElement.
-                let Some(img) = img.as_raster_image() else {
-                    p.reject_error(Error::InvalidState, can_gc);
-                    return p;
-                };
-
-                let size = Size2D::new(img.metadata.width, img.metadata.height);
-                let format = match img.format {
-                    PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
-                    PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
-                    pixel_format => {
-                        unimplemented!("unsupported pixel format ({:?})", pixel_format)
-                    },
-                };
-                let alpha_mode = SnapshotAlphaMode::Transparent {
-                    premultiplied: false,
-                };
-
-                let snapshot = Snapshot::from_vec(
-                    size.cast(),
-                    format,
-                    alpha_mode,
-                    img.first_frame().bytes.to_vec(),
-                );
 
                 // Step 6.3. Set imageBitmap's bitmap data to a copy of image's media data,
                 // cropped to the source rectangle with formatting.
@@ -652,14 +630,16 @@ impl Serializable for ImageBitmap {
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:serialization-steps>
     fn serialize(&self) -> Result<(ImageBitmapId, Self::Data), ()> {
-        // Step 1. If value's origin-clean flag is not set, then throw a "DataCloneError" DOMException.
-        if !self.origin_is_clean() {
+        // <https://html.spec.whatwg.org/multipage/#structuredserializeinternal>
+        // Step 19.1. If value has a [[Detached]] internal slot whose value is
+        // true, then throw a "DataCloneError" DOMException.
+        if self.is_detached() {
             return Err(());
         }
 
-        // If value has a [[Detached]] internal slot whose value is true,
-        // then throw a "DataCloneError" DOMException.
-        if self.is_detached() {
+        // Step 1. If value's origin-clean flag is not set, then throw a
+        // "DataCloneError" DOMException.
+        if !self.origin_is_clean() {
             return Err(());
         }
 
@@ -695,45 +675,41 @@ impl Transferable for ImageBitmap {
     type Index = ImageBitmapIndex;
     type Data = SerializableImageBitmap;
 
-    fn can_transfer(&self) -> bool {
-        if !self.origin_is_clean() || self.is_detached() {
-            return false;
-        }
-        true
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-steps>
-    fn transfer(&self) -> Result<(ImageBitmapId, SerializableImageBitmap), ()> {
-        // Step 1. If value's origin-clean flag is not set, then throw a "DataCloneError" DOMException.
-        if !self.origin_is_clean() {
-            return Err(());
+    fn transfer(&self) -> Fallible<(ImageBitmapId, SerializableImageBitmap)> {
+        // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+        // Step 5.2. If transferable has a [[Detached]] internal slot and
+        // transferable.[[Detached]] is true, then throw a "DataCloneError"
+        // DOMException.
+        if self.is_detached() {
+            return Err(Error::DataClone(None));
         }
 
-        // If value has a [[Detached]] internal slot whose value is true,
-        // then throw a "DataCloneError" DOMException.
-        if self.is_detached() {
-            return Err(());
+        // Step 1. If value's origin-clean flag is not set, then throw a
+        // "DataCloneError" DOMException.
+        if !self.origin_is_clean() {
+            return Err(Error::DataClone(None));
         }
 
         // Step 2. Set dataHolder.[[BitmapData]] to value's bitmap data.
         // Step 3. Unset value's bitmap data.
-        let serialized = SerializableImageBitmap {
+        let transferred = SerializableImageBitmap {
             bitmap_data: self.bitmap_data.borrow_mut().take().unwrap(),
         };
 
-        Ok((ImageBitmapId::new(), serialized))
+        Ok((ImageBitmapId::new(), transferred))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-receiving-steps>
     fn transfer_receive(
         owner: &GlobalScope,
         _: ImageBitmapId,
-        serialized: SerializableImageBitmap,
+        transferred: SerializableImageBitmap,
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
         Ok(ImageBitmap::new(
             owner,
-            serialized.bitmap_data,
+            transferred.bitmap_data,
             CanGc::note(),
         ))
     }

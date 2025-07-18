@@ -18,6 +18,7 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::cell::DomRefCell;
@@ -41,7 +42,6 @@ use crate::dom::writablestreamdefaultcontroller::{
     UnderlyingSinkType, WritableStreamDefaultController,
 };
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
-use crate::js::conversions::ToJSValConvertible;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -1191,7 +1191,6 @@ impl CrossRealmTransformWritable {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
     /// Add a handler for port’s messageerror event with the following steps:
-    #[allow(unsafe_code)]
     pub(crate) fn handle_error(
         &self,
         cx: SafeJSContext,
@@ -1203,7 +1202,7 @@ impl CrossRealmTransformWritable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
         rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
+        error.safe_to_jsval(cx, rooted_error.handle_mut());
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(rooted_error.handle(), can_gc);
@@ -1222,11 +1221,12 @@ impl Transferable for WritableStream {
     type Index = MessagePortIndex;
     type Data = MessagePortImpl;
 
-    /// <https://streams.spec.whatwg.org/#ref-for-writablestream%E2%91%A0%E2%91%A4>
-    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
-        // If ! IsWritableStreamLocked(value) is true, throw a "DataCloneError" DOMException.
+    /// <https://streams.spec.whatwg.org/#ref-for-transfer-steps①>
+    fn transfer(&self) -> Fallible<(MessagePortId, MessagePortImpl)> {
+        // Step 1. If ! IsWritableStreamLocked(value) is true, throw a
+        // "DataCloneError" DOMException.
         if self.is_locked() {
-            return Err(());
+            return Err(Error::DataClone(None));
         }
 
         let global = self.global();
@@ -1235,34 +1235,34 @@ impl Transferable for WritableStream {
         let cx = GlobalScope::get_cx();
         let can_gc = CanGc::note();
 
-        // Let port1 be a new MessagePort in the current Realm.
+        // Step 2. Let port1 be a new MessagePort in the current Realm.
         let port_1 = MessagePort::new(&global, can_gc);
         global.track_message_port(&port_1, None);
 
-        // Let port2 be a new MessagePort in the current Realm.
+        // Step 3. Let port2 be a new MessagePort in the current Realm.
         let port_2 = MessagePort::new(&global, can_gc);
         global.track_message_port(&port_2, None);
 
-        // Entangle port1 and port2.
+        // Step 4. Entangle port1 and port2.
         global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
 
-        // Let readable be a new ReadableStream in the current Realm.
+        // Step 5. Let readable be a new ReadableStream in the current Realm.
         let readable = ReadableStream::new_with_proto(&global, None, can_gc);
 
-        // Perform ! SetUpCrossRealmTransformReadable(readable, port1).
+        // Step 6. Perform ! SetUpCrossRealmTransformReadable(readable, port1).
         readable.setup_cross_realm_transform_readable(cx, &port_1, can_gc);
 
-        // Let promise be ! ReadableStreamPipeTo(readable, value, false, false, false).
+        // Step 7. Let promise be ! ReadableStreamPipeTo(readable, value, false, false, false).
         let promise = readable.pipe_to(cx, &global, self, false, false, false, None, comp, can_gc);
 
-        // Set promise.[[PromiseIsHandled]] to true.
+        // Step 8. Set promise.[[PromiseIsHandled]] to true.
         promise.set_promise_is_handled();
 
-        // Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
+        // Step 9. Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
         port_2.transfer()
     }
 
-    /// <https://streams.spec.whatwg.org/#ref-for-writablestream%E2%91%A0%E2%91%A4>
+    /// <https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps①>
     fn transfer_receive(
         owner: &GlobalScope,
         id: MessagePortId,
@@ -1275,13 +1275,15 @@ impl Transferable for WritableStream {
         // Note: dataHolder is used in `structuredclone.rs`, and value is created here.
         let value = WritableStream::new_with_proto(owner, None, can_gc);
 
-        // Let deserializedRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[port]], the current Realm).
+        // Step 1. Let deserializedRecord be !
+        // StructuredDeserializeWithTransfer(dataHolder.[[port]], the current
+        // Realm).
         // Done with the `Deserialize` derive of `MessagePortImpl`.
 
-        // Let port be deserializedRecord.[[Deserialized]].
+        // Step 2. Let port be deserializedRecord.[[Deserialized]].
         let transferred_port = MessagePort::transfer_receive(owner, id, port_impl)?;
 
-        // Perform ! SetUpCrossRealmTransformWritable(value, port).
+        // Step 3. Perform ! SetUpCrossRealmTransformWritable(value, port).
         value.setup_cross_realm_transform_writable(cx, &transferred_port, can_gc);
         Ok(value)
     }

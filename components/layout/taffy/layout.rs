@@ -16,15 +16,12 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
-};
+use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::{
-    LazySize, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
-    SizeConstraint, Sizes,
+    LazySize, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, SizeConstraint,
 };
 use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
@@ -123,19 +120,13 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         let mut child = (*self.source_child_nodes[usize::from(node_id)]).borrow_mut();
         let child = &mut *child;
 
-        fn option_f32_to_size(input: Option<f32>) -> Size<Au> {
-            match input {
-                None => Size::Initial,
-                Some(length) => Size::Numeric(Au::from_f32_px(length)),
-            }
-        }
-
         with_independant_formatting_context(
             &mut child.taffy_level_box,
             |independent_context| -> taffy::LayoutOutput {
                 // TODO: re-evaluate sizing constraint conversions in light of recent layout changes
                 let containing_block = &self.content_box_size_override;
                 let style = independent_context.style();
+                let writing_mode = style.writing_mode;
 
                 // Adjust known_dimensions from border box to content box
                 let pbm = independent_context
@@ -154,142 +145,91 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         .height
                         .map(|height| height - pb_sum.block),
                 };
+                let preferred_aspect_ratio =
+                    independent_context.preferred_aspect_ratio(&pbm.padding_border_sums);
 
-                match &independent_context.contents {
-                    IndependentFormattingContextContents::Replaced(replaced) => {
-                        let content_box_size = replaced
-                            .used_size_as_if_inline_element_from_content_box_sizes(
-                                containing_block,
-                                style,
-                                independent_context
-                                    .preferred_aspect_ratio(&pbm.padding_border_sums),
-                                LogicalVec2 {
-                                    block: &Sizes::new(
-                                        option_f32_to_size(content_box_known_dimensions.height),
-                                        Size::Initial,
-                                        Size::Initial,
-                                    ),
-                                    inline: &Sizes::new(
-                                        option_f32_to_size(content_box_known_dimensions.width),
-                                        Size::Initial,
-                                        Size::Initial,
-                                    ),
-                                },
-                                Size::FitContent.into(),
-                                pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
-                            )
-                            .to_physical_size(self.style.writing_mode);
+                // TODO: pass min- and max- size
+                let tentative_block_size = content_box_known_dimensions
+                    .height
+                    .map(Au::from_f32_px)
+                    .map_or_else(SizeConstraint::default, SizeConstraint::Definite);
 
-                        // Create fragments if the RunMode if PerformLayout
-                        // If the RunMode is ComputeSize then only the returned size will be used
-                        if inputs.run_mode == RunMode::PerformLayout {
-                            child.child_fragments = replaced.make_fragments(
-                                self.layout_context,
-                                style,
-                                content_box_size,
-                            );
-                        }
+                // Compute inline size
+                let inline_size = content_box_known_dimensions.width.unwrap_or_else(|| {
+                    let constraint_space = ConstraintSpace {
+                        block_size: tentative_block_size,
+                        writing_mode,
+                        preferred_aspect_ratio,
+                    };
 
-                        let computed_size = taffy::Size {
-                            width: inputs.known_dimensions.width.unwrap_or_else(|| {
-                                content_box_size.width.to_f32_px() + pb_sum.inline
-                            }),
-                            height: inputs.known_dimensions.height.unwrap_or_else(|| {
-                                content_box_size.height.to_f32_px() + pb_sum.block
-                            }),
-                        };
-                        let size = inputs.known_dimensions.unwrap_or(computed_size);
-                        taffy::LayoutOutput {
-                            size,
-                            ..taffy::LayoutOutput::DEFAULT
-                        }
+                    // TODO: pass min- and max- size
+                    let result = independent_context
+                        .inline_content_sizes(self.layout_context, &constraint_space);
+                    let adjusted_available_space = inputs
+                        .available_space
+                        .width
+                        .map_definite_value(|width| width - content_box_inset.inline);
+
+                    resolve_content_size(adjusted_available_space, result.sizes)
+                });
+
+                // Return early if only inline content sizes are requested
+                if inputs.run_mode == RunMode::ComputeSize &&
+                    inputs.axis == RequestedAxis::Horizontal
+                {
+                    return taffy::LayoutOutput::from_outer_size(taffy::Size {
+                        width: inline_size + pb_sum.inline,
+                        // If RequestedAxis is Horizontal then height will be ignored.
+                        height: 0.0,
+                    });
+                }
+
+                let content_box_size_override = ContainingBlock {
+                    size: ContainingBlockSize {
+                        inline: Au::from_f32_px(inline_size),
+                        block: tentative_block_size,
                     },
+                    style,
+                };
 
-                    IndependentFormattingContextContents::NonReplaced(non_replaced) => {
-                        // Compute inline size
-                        let inline_size = content_box_known_dimensions.width.unwrap_or_else(|| {
-                            let constraint_space = ConstraintSpace {
-                                // TODO: pass min- and max- size
-                                block_size: SizeConstraint::new(
-                                    inputs.parent_size.height.map(Au::from_f32_px),
-                                    Au::zero(),
-                                    None,
-                                ),
-                                writing_mode: self.style.writing_mode,
-                                preferred_aspect_ratio: non_replaced.preferred_aspect_ratio(),
-                            };
+                let lazy_block_size = match content_box_known_dimensions.height {
+                    // FIXME: use the correct min/max sizes.
+                    None => LazySize::intrinsic(),
+                    Some(height) => Au::from_f32_px(height).into(),
+                };
 
-                            let result = independent_context
-                                .inline_content_sizes(self.layout_context, &constraint_space);
-                            let adjusted_available_space = inputs
-                                .available_space
-                                .width
-                                .map_definite_value(|width| width - content_box_inset.inline);
+                child.positioning_context = PositioningContext::default();
+                let layout = independent_context.layout_without_caching(
+                    self.layout_context,
+                    &mut child.positioning_context,
+                    &content_box_size_override,
+                    containing_block,
+                    preferred_aspect_ratio,
+                    false, /* depends_on_block_constraints */
+                    &lazy_block_size,
+                );
 
-                            resolve_content_size(adjusted_available_space, result.sizes)
-                        });
+                child.child_fragments = layout.fragments;
+                self.child_specific_layout_infos[usize::from(node_id)] =
+                    layout.specific_layout_info;
 
-                        // Return early if only inline content sizes are requested
-                        if inputs.run_mode == RunMode::ComputeSize &&
-                            inputs.axis == RequestedAxis::Horizontal
-                        {
-                            return taffy::LayoutOutput::from_outer_size(taffy::Size {
-                                width: inline_size + pb_sum.inline,
-                                // If RequestedAxis is Horizontal then height will be ignored.
-                                height: 0.0,
-                            });
-                        }
+                let block_size = lazy_block_size
+                    .resolve(|| layout.content_block_size)
+                    .to_f32_px();
 
-                        let content_box_size_override = ContainingBlock {
-                            size: ContainingBlockSize {
-                                inline: Au::from_f32_px(inline_size),
-                                block: content_box_known_dimensions
-                                    .height
-                                    .map(Au::from_f32_px)
-                                    .map_or_else(SizeConstraint::default, SizeConstraint::Definite),
-                            },
-                            style,
-                        };
+                let computed_size = taffy::Size {
+                    width: inline_size + pb_sum.inline,
+                    height: block_size + pb_sum.block,
+                };
+                let size = inputs.known_dimensions.unwrap_or(computed_size);
 
-                        let lazy_block_size = match content_box_known_dimensions.height {
-                            // FIXME: use the correct min/max sizes.
-                            None => LazySize::intrinsic(),
-                            Some(height) => Au::from_f32_px(height).into(),
-                        };
-
-                        child.positioning_context = PositioningContext::default();
-                        let layout = non_replaced.layout_without_caching(
-                            self.layout_context,
-                            &mut child.positioning_context,
-                            &content_box_size_override,
-                            containing_block,
-                            false, /* depends_on_block_constraints */
-                            &lazy_block_size,
-                        );
-
-                        child.child_fragments = layout.fragments;
-                        self.child_specific_layout_infos[usize::from(node_id)] =
-                            layout.specific_layout_info;
-
-                        let block_size = lazy_block_size
-                            .resolve(|| layout.content_block_size)
-                            .to_f32_px();
-
-                        let computed_size = taffy::Size {
-                            width: inline_size + pb_sum.inline,
-                            height: block_size + pb_sum.block,
-                        };
-                        let size = inputs.known_dimensions.unwrap_or(computed_size);
-
-                        taffy::LayoutOutput {
-                            size,
-                            first_baselines: taffy::Point {
-                                x: None,
-                                y: layout.baselines.first.map(|au| au.to_f32_px()),
-                            },
-                            ..taffy::LayoutOutput::DEFAULT
-                        }
+                taffy::LayoutOutput {
+                    size,
+                    first_baselines: taffy::Point {
+                        x: None,
+                        y: layout.baselines.first.map(|au| au.to_f32_px()),
                     },
+                    ..taffy::LayoutOutput::DEFAULT
                 }
             },
         )
@@ -551,13 +491,12 @@ impl TaffyContainer {
                             padding,
                             border,
                             margin,
-                            None, /* clearance */
+                            child_specific_layout_info,
                         )
                         .with_baselines(Baselines {
                             first: output.first_baselines.y.map(Au::from_f32_px),
                             last: None,
-                        })
-                        .with_specific_layout_info(child_specific_layout_info);
+                        });
 
                         child.positioning_context.layout_collected_children(
                             container_ctx.layout_context,

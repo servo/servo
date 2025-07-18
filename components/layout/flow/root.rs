@@ -45,7 +45,8 @@ pub struct BoxTree {
 }
 
 impl BoxTree {
-    pub fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
+    #[servo_tracing::instrument(name = "Box Tree Construction", skip_all)]
+    pub(crate) fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
         let boxes = construct_for_root_element(context, root_element);
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
@@ -59,7 +60,7 @@ impl BoxTree {
         // > none, user agents must instead apply the overflow-* values of the first such child
         // > element to the viewport. The element from which the value is propagated must then have a
         // > used overflow value of visible.
-        let root_style = root_element.style(context.shared_context());
+        let root_style = root_element.style(&context.style_context);
 
         let mut viewport_overflow_x = root_style.clone_overflow_x();
         let mut viewport_overflow_y = root_style.clone_overflow_y();
@@ -76,7 +77,7 @@ impl BoxTree {
                     continue;
                 }
 
-                let style = child.style(context.shared_context());
+                let style = child.style(&context.style_context);
                 if !style.get_box().display.is_none() {
                     viewport_overflow_x = style.clone_overflow_x();
                     viewport_overflow_y = style.clone_overflow_y();
@@ -123,7 +124,10 @@ impl BoxTree {
     /// * how intrinsic content sizes are computed eagerly makes it hard
     ///   to update those sizes for ancestors of the node from which we
     ///   made an incremental update.
-    pub fn update(context: &LayoutContext, dirty_root_from_script: ServoLayoutNode<'_>) -> bool {
+    pub(crate) fn update(
+        context: &LayoutContext,
+        dirty_root_from_script: ServoLayoutNode<'_>,
+    ) -> bool {
         let Some(box_tree_update) = IncrementalBoxTreeUpdate::find(dirty_root_from_script) else {
             return false;
         };
@@ -136,7 +140,11 @@ fn construct_for_root_element(
     context: &LayoutContext,
     root_element: ServoLayoutNode<'_>,
 ) -> Vec<ArcRefCell<BlockLevelBox>> {
-    let info = NodeAndStyleInfo::new(root_element, root_element.style(context.shared_context()));
+    let info = NodeAndStyleInfo::new(
+        root_element,
+        root_element.style(&context.style_context),
+        root_element.take_restyle_damage(),
+    );
     let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
@@ -188,7 +196,8 @@ fn construct_for_root_element(
 }
 
 impl BoxTree {
-    pub fn layout(
+    #[servo_tracing::instrument(name = "Fragment Tree Construction", skip_all)]
+    pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
         viewport: UntypedSize2D<Au>,
@@ -293,10 +302,7 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
         }
 
         let layout_data = NodeExt::layout_data(&potential_dirty_root_node)?;
-        if layout_data.pseudo_before_box.borrow().is_some() {
-            return None;
-        }
-        if layout_data.pseudo_after_box.borrow().is_some() {
+        if !layout_data.pseudo_boxes.is_empty() {
             return None;
         }
 
@@ -373,7 +379,13 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
     fn update_from_dirty_root(&self, context: &LayoutContext) {
         let contents = ReplacedContents::for_element(self.node, context)
             .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
-        let info = NodeAndStyleInfo::new(self.node, self.primary_style.clone());
+
+        let info = NodeAndStyleInfo::new(
+            self.node,
+            self.primary_style.clone(),
+            self.node.take_restyle_damage(),
+        );
+
         let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
             AbsolutelyPositionedBox::construct(context, &info, self.display_inside, contents),
         );
@@ -405,24 +417,15 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
             },
         }
 
-        // We are going to rebuild the box tree from the update point downward, but this update
-        // point is an absolute, which means that it needs to be laid out again in the containing
-        // block for absolutes, which is established by one of its ancestors. In addition,
-        // absolutes, when laid out, can produce more absolutes (either fixed or absolutely
-        // positioned) elements, so there may be yet more layout that has to happen in this
-        // ancestor.
-        //
-        // We do not know which ancestor is the one that established the containing block for this
-        // update point, so just invalidate the fragment cache of all ancestors, meaning that even
-        // though the box tree is preserved, the fragment tree from the root to the update point and
-        // all of its descendants will need to be rebuilt. This isn't as bad as it seems, because
-        // siblings and siblings of ancestors of this path through the tree will still have cached
-        // fragments.
-        //
-        // TODO: Do better. This is still a very crude way to do incremental layout.
         let mut invalidate_start_point = self.node;
         while let Some(parent_node) = invalidate_start_point.parent_node() {
-            parent_node.invalidate_cached_fragment();
+            // Box tree reconstruction doesn't need to involve these ancestors, so their
+            // damage isn't useful for us.
+            //
+            // TODO: This isn't going to be good enough for incremental fragment tree
+            // reconstruction, as fragment tree damage might extend further up the tree.
+            parent_node.take_restyle_damage();
+
             invalidate_start_point = parent_node;
         }
     }

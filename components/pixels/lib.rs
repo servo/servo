@@ -11,9 +11,14 @@ use std::time::Duration;
 use std::{cmp, fmt, vec};
 
 use euclid::default::{Point2D, Rect, Size2D};
-use image::codecs::gif::GifDecoder;
+use image::codecs::{bmp, gif, ico, jpeg, png, webp};
+use image::error::ImageFormatHint;
 use image::imageops::{self, FilterType};
-use image::{AnimationDecoder as _, ImageBuffer, ImageFormat, Rgba};
+use image::io::Limits;
+use image::{
+    AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
+    ImageResult, Rgba,
+};
 use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -226,6 +231,42 @@ pub fn clip(
         .filter(|rect| !rect.is_empty())
 }
 
+#[derive(PartialEq)]
+pub enum EncodedImageType {
+    Png,
+    Jpeg,
+    Webp,
+}
+
+impl From<String> for EncodedImageType {
+    // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
+    // User agents must support PNG ("image/png"). User agents may support other
+    // types. If the user agent does not support the requested type, then it
+    // must create the file using the PNG format.
+    // Anything different than image/jpeg or image/webp is thus treated as PNG.
+    fn from(mime_type: String) -> Self {
+        let mime = mime_type.to_lowercase();
+        if mime == "image/jpeg" {
+            Self::Jpeg
+        } else if mime == "image/webp" {
+            Self::Webp
+        } else {
+            Self::Png
+        }
+    }
+}
+
+impl EncodedImageType {
+    pub fn as_mime_type(&self) -> String {
+        match self {
+            Self::Png => "image/png",
+            Self::Jpeg => "image/jpeg",
+            Self::Webp => "image/webp",
+        }
+        .to_owned()
+    }
+}
+
 /// Whether this response passed any CORS checks, and is thus safe to read from
 /// in cross-origin environments.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -316,35 +357,39 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
             debug!("{}", msg);
             None
         },
-        Ok(format) => match format {
-            ImageFormat::Gif => decode_gif(buffer, cors_status),
-            _ => match image::load_from_memory(buffer) {
-                Ok(image) => {
-                    let mut rgba = image.into_rgba8();
-                    rgba8_byte_swap_colors_inplace(&mut rgba);
-                    let frame = ImageFrame {
-                        delay: None,
-                        byte_range: 0..rgba.len(),
-                        width: rgba.width(),
-                        height: rgba.height(),
-                    };
-                    Some(RasterImage {
-                        metadata: ImageMetadata {
-                            width: rgba.width(),
-                            height: rgba.height(),
-                        },
-                        format: PixelFormat::BGRA8,
-                        frames: vec![frame],
-                        bytes: IpcSharedMemory::from_bytes(&rgba),
-                        id: None,
-                        cors_status,
-                    })
+        Ok(format) => {
+            let Ok(image_decoder) = make_decoder(format, buffer) else {
+                return None;
+            };
+            match image_decoder {
+                GenericImageDecoder::Png(png_decoder) => {
+                    if png_decoder.is_apng() {
+                        let apng_decoder = png_decoder.apng();
+                        decode_animated_image(cors_status, apng_decoder)
+                    } else {
+                        decode_static_image(cors_status, *png_decoder)
+                    }
                 },
-                Err(e) => {
-                    debug!("Image decoding error: {:?}", e);
-                    None
+                GenericImageDecoder::Gif(animation_decoder) => {
+                    decode_animated_image(cors_status, *animation_decoder)
                 },
-            },
+                GenericImageDecoder::Webp(webp_decoder) => {
+                    if webp_decoder.has_animation() {
+                        decode_animated_image(cors_status, *webp_decoder)
+                    } else {
+                        decode_static_image(cors_status, *webp_decoder)
+                    }
+                },
+                GenericImageDecoder::Bmp(image_decoder) => {
+                    decode_static_image(cors_status, *image_decoder)
+                },
+                GenericImageDecoder::Jpeg(image_decoder) => {
+                    decode_static_image(cors_status, *image_decoder)
+                },
+                GenericImageDecoder::Ico(image_decoder) => {
+                    decode_static_image(cors_status, *image_decoder)
+                },
+            }
         },
     }
 }
@@ -492,10 +537,74 @@ fn is_webp(buffer: &[u8]) -> bool {
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
 }
 
-fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
-    let Ok(decoded_gif) = GifDecoder::new(Cursor::new(buffer)) else {
+enum GenericImageDecoder<R: std::io::BufRead + std::io::Seek> {
+    Png(Box<png::PngDecoder<R>>),
+    Gif(Box<gif::GifDecoder<R>>),
+    Webp(Box<webp::WebPDecoder<R>>),
+    Jpeg(Box<jpeg::JpegDecoder<R>>),
+    Bmp(Box<bmp::BmpDecoder<R>>),
+    Ico(Box<ico::IcoDecoder<R>>),
+}
+
+fn make_decoder(
+    format: ImageFormat,
+    buffer: &[u8],
+) -> ImageResult<GenericImageDecoder<Cursor<&[u8]>>> {
+    let limits = Limits::default();
+    let reader = Cursor::new(buffer);
+    Ok(match format {
+        ImageFormat::Png => {
+            GenericImageDecoder::Png(Box::new(png::PngDecoder::with_limits(reader, limits)?))
+        },
+        ImageFormat::Gif => GenericImageDecoder::Gif(Box::new(gif::GifDecoder::new(reader)?)),
+        ImageFormat::WebP => GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?)),
+        ImageFormat::Jpeg => GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?)),
+        ImageFormat::Bmp => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
+        ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
+        _ => {
+            return Err(ImageError::Unsupported(
+                ImageFormatHint::Exact(format).into(),
+            ));
+        },
+    })
+}
+
+fn decode_static_image<'a>(
+    cors_status: CorsStatus,
+    image_decoder: impl ImageDecoder<'a>,
+) -> Option<RasterImage> {
+    let Ok(dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
+        debug!("Image decoding error");
         return None;
     };
+    let mut rgba = dynamic_image.into_rgba8();
+    rgba8_byte_swap_colors_inplace(&mut rgba);
+    let frame = ImageFrame {
+        delay: None,
+        byte_range: 0..rgba.len(),
+        width: rgba.width(),
+        height: rgba.height(),
+    };
+    Some(RasterImage {
+        metadata: ImageMetadata {
+            width: rgba.width(),
+            height: rgba.height(),
+        },
+        format: PixelFormat::BGRA8,
+        frames: vec![frame],
+        bytes: IpcSharedMemory::from_bytes(&rgba),
+        id: None,
+        cors_status,
+    })
+}
+
+fn decode_animated_image<'a, T>(
+    cors_status: CorsStatus,
+    animated_image_decoder: T,
+) -> Option<RasterImage>
+where
+    T: AnimationDecoder<'a>,
+{
     let mut width = 0;
     let mut height = 0;
 
@@ -504,34 +613,34 @@ fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
     // <https://github.com/image-rs/image/issues/2442>.
     let mut frame_data = vec![];
     let mut total_number_of_bytes = 0;
-    let frames: Vec<ImageFrame> = decoded_gif
+    let frames: Vec<ImageFrame> = animated_image_decoder
         .into_frames()
         .map_while(|decoded_frame| {
-            let mut gif_frame = match decoded_frame {
+            let mut animated_frame = match decoded_frame {
                 Ok(decoded_frame) => decoded_frame,
                 Err(error) => {
-                    debug!("decode GIF frame error: {error}");
+                    debug!("decode Animated frame error: {error}");
                     return None;
                 },
             };
-            rgba8_byte_swap_colors_inplace(gif_frame.buffer_mut());
+            rgba8_byte_swap_colors_inplace(animated_frame.buffer_mut());
             let frame_start = total_number_of_bytes;
-            total_number_of_bytes += gif_frame.buffer().len();
+            total_number_of_bytes += animated_frame.buffer().len();
 
             // The image size should be at least as large as the largest frame.
-            let frame_width = gif_frame.buffer().width();
-            let frame_height = gif_frame.buffer().height();
+            let frame_width = animated_frame.buffer().width();
+            let frame_height = animated_frame.buffer().height();
             width = cmp::max(width, frame_width);
             height = cmp::max(height, frame_height);
 
             let frame = ImageFrame {
                 byte_range: frame_start..total_number_of_bytes,
-                delay: Some(Duration::from(gif_frame.delay())),
+                delay: Some(Duration::from(animated_frame.delay())),
                 width: frame_width,
                 height: frame_height,
             };
 
-            frame_data.push(gif_frame);
+            frame_data.push(animated_frame);
 
             Some(frame)
         })

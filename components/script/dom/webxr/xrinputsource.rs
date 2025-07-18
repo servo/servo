@@ -4,10 +4,10 @@
 
 use dom_struct::dom_struct;
 use embedder_traits::GamepadSupportedHapticEffects;
-use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
+use script_bindings::conversions::SafeToJSValConvertible;
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
@@ -73,7 +73,6 @@ impl XRInputSource {
         }
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn new(
         window: &Window,
         session: &XRSession,
@@ -88,11 +87,12 @@ impl XRInputSource {
 
         let _ac = enter_realm(window);
         let cx = GlobalScope::get_cx();
-        unsafe {
-            rooted!(in(*cx) let mut profiles = UndefinedValue());
-            source.info.profiles.to_jsval(*cx, profiles.handle_mut());
-            source.profiles.set(profiles.get());
-        }
+        rooted!(in(*cx) let mut profiles = UndefinedValue());
+        source
+            .info
+            .profiles
+            .safe_to_jsval(cx, profiles.handle_mut());
+        source.profiles.set(profiles.get());
         source
     }
 

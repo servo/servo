@@ -16,12 +16,29 @@
 //     MLOperand input, sequence<unsigned long> repetitions, optional
 //     MLOperatorOptions options = {});
 
-
-const getTilePrecisionTolerance = () => {
-  return {metricType: 'ULP', value: 0};
-};
-
 const tileTests = [
+  {
+    'name': 'tile float32 0D scalar tensor by repetitions=[]',
+    'graph': {
+      'inputs': {
+        'tileInput': {
+          'data': [0.5],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'tile',
+        'arguments': [{'input': 'tileInput'}, {'repetitions': []}],
+        'outputs': 'tileOutput'
+      }],
+      'expectedOutputs': {
+        'tileOutput': {
+          'data': [0.5],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
   {
     'name': 'tile float32 1D constant tensor',
     'graph': {
@@ -147,8 +164,7 @@ const tileTests = [
 
 if (navigator.ml) {
   tileTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getTilePrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

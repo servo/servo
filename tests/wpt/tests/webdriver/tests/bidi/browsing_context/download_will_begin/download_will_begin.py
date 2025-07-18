@@ -1,8 +1,8 @@
 import pytest
-from tests.support.sync import AsyncPoll
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
+from tests.bidi import wait_for_bidi_events
 from ... import (any_int, any_string, recursive_compare)
 
 pytestmark = pytest.mark.asyncio
@@ -10,8 +10,7 @@ pytestmark = pytest.mark.asyncio
 DOWNLOAD_WILL_BEGIN = "browsingContext.downloadWillBegin"
 
 
-async def test_unsubscribe(bidi_session, inline, new_tab, wait_for_event,
-        wait_for_future_safe):
+async def test_unsubscribe(bidi_session, inline, new_tab):
     filename = 'some_file_name.txt'
     download_link = "data:text/plain;charset=utf-8,"
     url = inline(
@@ -40,15 +39,15 @@ async def test_unsubscribe(bidi_session, inline, new_tab, wait_for_event,
         await_promise=True,
         user_activation=True)
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 
 
-async def test_subscribe(bidi_session, subscribe_events, new_tab, inline,
-        wait_for_event, wait_for_future_safe):
+async def test_subscribe(
+    bidi_session, new_tab, inline, wait_for_event, wait_for_future_safe
+):
     filename = 'some_file_name.txt'
     download_link = "data:text/plain;charset=utf-8,"
     url = inline(

@@ -6,7 +6,6 @@ use log::warn;
 use swapchain::WGPUImageMap;
 pub use swapchain::{ContextData, WGPUExternalImages};
 use webgpu_traits::{WebGPU, WebGPUMsg};
-use webrender::RenderApiSender;
 use wgpu_thread::WGPU;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
@@ -16,16 +15,14 @@ mod wgpu_thread;
 use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 
-use compositing_traits::WebrenderExternalImageRegistry;
+use compositing_traits::{CrossProcessCompositorApi, WebrenderExternalImageRegistry};
 use ipc_channel::ipc::{self, IpcReceiver};
 use servo_config::pref;
-use webrender_api::DocumentId;
 
 pub mod swapchain;
 
 pub fn start_webgpu_thread(
-    webrender_api_sender: RenderApiSender,
-    webrender_document: DocumentId,
+    compositor_api: CrossProcessCompositorApi,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     wgpu_image_map: WGPUImageMap,
 ) -> Option<(WebGPU, IpcReceiver<WebGPUMsg>)> {
@@ -62,8 +59,7 @@ pub fn start_webgpu_thread(
                 receiver,
                 sender_clone,
                 script_sender,
-                webrender_api_sender,
-                webrender_document,
+                compositor_api,
                 external_images,
                 wgpu_image_map,
             )

@@ -21,7 +21,7 @@ import logging
 import re
 import shutil
 import subprocess
-
+from dataclasses import field
 from typing import Callable, Optional
 
 from .common import (
@@ -34,7 +34,6 @@ from .common import (
     UPSTREAMABLE_PATH,
     wpt_branch_name_from_servo_pr_number,
 )
-
 from .github import GithubRepository, PullRequest
 from .step import (
     AsyncValue,
@@ -49,7 +48,7 @@ from .step import (
 
 
 class LocalGitRepo:
-    def __init__(self, path: str, sync: WPTSync):
+    def __init__(self, path: str, sync: WPTSync) -> None:
         self.path = path
         self.sync = sync
 
@@ -57,7 +56,9 @@ class LocalGitRepo:
         # git in advance and run the subprocess by its absolute path.
         self.git_path = shutil.which("git")
 
-    def run_without_encoding(self, *args, env: dict = {}):
+    def run_without_encoding(self, *args, env: dict = {}) -> bytes:
+        if self.git_path is None:
+            raise RuntimeError("Git executable not found in PATH")
         command_line = [self.git_path] + list(args)
         logging.info("  → Execution (cwd='%s'): %s", self.path, " ".join(command_line))
 
@@ -74,7 +75,7 @@ class LocalGitRepo:
             )
             raise exception
 
-    def run(self, *args, env: dict = {}):
+    def run(self, *args, env: dict = {}) -> str:
         return self.run_without_encoding(*args, env=env).decode("utf-8", errors="surrogateescape")
 
 
@@ -93,11 +94,19 @@ class SyncRun:
             servo_pr=self.servo_pr,
         )
 
-    def add_step(self, step) -> Optional[AsyncValue]:
+    def add_step(
+        self,
+        step: ChangePRStep
+        | CommentStep
+        | CreateOrUpdateBranchForPRStep
+        | MergePRStep
+        | OpenPRStep
+        | RemoveBranchForPRStep,
+    ) -> Optional[AsyncValue]:
         self.steps.append(step)
         return step.provides()
 
-    def run(self):
+    def run(self) -> None:
         # This loop always removes the first step and runs it, because
         # individual steps can modify the list of steps. For instance, if a
         # step fails, it might clear the remaining steps and replace them with
@@ -142,7 +151,13 @@ class WPTSync:
     github_name: str
     suppress_force_push: bool = False
 
-    def __post_init__(self):
+    servo: GithubRepository = field(init=False)
+    wpt: GithubRepository = field(init=False)
+    downstream_wpt: GithubRepository = field(init=False)
+    local_servo_repo: LocalGitRepo = field(init=False)
+    local_wpt_repo: LocalGitRepo = field(init=False)
+
+    def __post_init__(self) -> None:
         self.servo = GithubRepository(self, self.servo_repo, "main")
         self.wpt = GithubRepository(self, self.wpt_repo, "master")
         self.downstream_wpt = GithubRepository(self, self.downstream_wpt_repo, "master")
@@ -194,7 +209,7 @@ class WPTSync:
             logging.error(exception, exc_info=True)
             return False
 
-    def handle_new_pull_request_contents(self, run: SyncRun, pull_data: dict):
+    def handle_new_pull_request_contents(self, run: SyncRun, pull_data: dict) -> None:
         num_commits = pull_data["commits"]
         head_sha = pull_data["head"]["sha"]
         is_upstreamable = (
@@ -243,13 +258,13 @@ class WPTSync:
             # Leave a comment to the new pull request in the original pull request.
             run.add_step(CommentStep(run.servo_pr, OPENED_NEW_UPSTREAM_PR))
 
-    def handle_edited_pull_request(self, run: SyncRun, pull_data: dict):
+    def handle_edited_pull_request(self, run: SyncRun, pull_data: dict) -> None:
         logging.info("Changing upstream PR title")
         if run.upstream_pr.has_value():
             run.add_step(ChangePRStep(run.upstream_pr.value(), "open", pull_data["title"], pull_data["body"]))
             run.add_step(CommentStep(run.servo_pr, UPDATED_TITLE_IN_EXISTING_UPSTREAM_PR))
 
-    def handle_closed_pull_request(self, run: SyncRun, pull_data: dict):
+    def handle_closed_pull_request(self, run: SyncRun, pull_data: dict) -> None:
         logging.info("Processing closed PR")
         if not run.upstream_pr.has_value():
             # If we don't recognize this PR, it never contained upstreamable changes.

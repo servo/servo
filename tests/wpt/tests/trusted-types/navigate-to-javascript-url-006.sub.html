@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Main frame does not enforce Trusted Types. -->
+<script>
+  const REMOTE_ORIGIN = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
+
+  promise_test(async _ => {
+    // Load the cross-origin subframe and waits its result.
+    let result = await new Promise(async resolve => {
+      window.addEventListener("message", event => {
+        resolve(event.data);
+      }, {once: true});
+      let iframe = document.createElement("iframe");
+      iframe.src = `${REMOTE_ORIGIN}/trusted-types/support/navigate-to-javascript-url.html?defaultpolicy=replace-js-execution&pipe=header(Content-Security-Policy,connect-src 'none',True)|header(Content-Security-Policy,require-trusted-types-for 'script',True)`;
+      document.head.appendChild(iframe);
+    });
+    assert_false(result.javaScriptExecuted, "Original JavaScript code shouldn't have been executed");
+    assert_true(result.modifiedJavaScriptExecuted, "JavaScript code modified by default policy should have been executed");
+    assert_equals(result.violations.length, 0, "No violation reported");
+    assert_equals(result.exception, null, "No exception");
+  }, "A cross-origin subframe navigating to a javascript: URL should use the CSP policy associated to its document for pre-navigation check and execute the JavaScript code modified by its default policy.");
+</script>

@@ -32,7 +32,7 @@
 //! for a static members and instance methods for regular members).
 //!
 //! The instance methods for an interface `Foo` are defined on a
-//! `dom::bindings::codegen::Bindings::FooBindings::FooMethods` trait. This
+//! `dom::bindings::codegen::Bindings::FooBinding::FooMethods` trait. This
 //! trait is then implemented for `Foo`. (All methods take an `&self`
 //! parameter, as pointers to DOM objects can be freely aliased.)
 //!
@@ -139,6 +139,7 @@ pub(crate) mod buffer_source;
 pub(crate) mod cell;
 pub(crate) mod constructor;
 pub(crate) mod conversions;
+pub(crate) mod domname;
 pub(crate) mod error;
 pub(crate) mod frozenarray;
 pub(crate) mod function;

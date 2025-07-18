@@ -135,3 +135,7 @@ object_store_get_all_test_setup(
         test.done();
       });
     }, 'Get all records with transaction.commit()');
+
+get_all_with_invalid_keys_test(
+    'getAllRecords', /*storeName=*/ 'out-of-line', /*indexName=*/ undefined,
+    /*shouldUseDictionary=*/ true, 'Get all records with invalid query keys');

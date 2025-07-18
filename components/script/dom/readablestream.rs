@@ -12,7 +12,6 @@ use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{
@@ -20,6 +19,7 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 use js::typedarray::ArrayBufferViewU8;
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
@@ -35,7 +35,7 @@ use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
+use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult, SafeFromJSValConvertible};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriter_Binding::WritableStreamDefaultWriterMethods;
 use crate::dom::writablestream::WritableStream;
@@ -58,7 +58,6 @@ use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
-use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -1595,7 +1594,6 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    #[allow(unsafe_code)]
     pub(crate) fn cancel(
         &self,
         cx: SafeJSContext,
@@ -1613,12 +1611,10 @@ impl ReadableStream {
         // If stream.[[state]] is "errored", return a promise rejected with stream.[[storedError]].
         if self.is_errored() {
             let promise = Promise::new(global, can_gc);
-            unsafe {
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                self.stored_error.to_jsval(*cx, rval.handle_mut());
-                promise.reject_native(&rval.handle(), can_gc);
-                return promise;
-            }
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            self.stored_error.safe_to_jsval(cx, rval.handle_mut());
+            promise.reject_native(&rval.handle(), can_gc);
+            return promise;
         }
         // Perform ! ReadableStreamClose(stream).
         self.close(can_gc);
@@ -2253,10 +2249,8 @@ pub(crate) unsafe fn get_type_and_value_from_message(
         .expect("Getting the value should not fail.");
 
     // Assert: type is a String.
-    let result = unsafe {
-        DOMString::from_jsval(*cx, type_.handle(), StringificationBehavior::Empty)
-            .expect("The type of the message should be a string")
-    };
+    let result = DOMString::safe_from_jsval(cx, type_.handle(), StringificationBehavior::Empty)
+        .expect("The type of the message should be a string");
     let ConversionResult::Success(type_string) = result else {
         unreachable!("The type of the message should be a string");
     };
@@ -2322,7 +2316,6 @@ impl CrossRealmTransformReadable {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
     /// Add a handler for port’s messageerror event with the following steps:
-    #[allow(unsafe_code)]
     pub(crate) fn handle_error(
         &self,
         cx: SafeJSContext,
@@ -2334,7 +2327,7 @@ impl CrossRealmTransformReadable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
         rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
+        error.safe_to_jsval(cx, rooted_error.handle_mut());
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(rooted_error.handle(), can_gc);
@@ -2361,7 +2354,7 @@ pub(crate) fn get_read_promise_done(
         rooted!(in(*cx) let object = v.to_object());
         rooted!(in(*cx) let mut done = UndefinedValue());
         match get_dictionary_property(*cx, object.handle(), "done", done.handle_mut(), can_gc) {
-            Ok(true) => match bool::from_jsval(*cx, done.handle(), ()) {
+            Ok(true) => match bool::safe_from_jsval(cx, done.handle(), ()) {
                 Ok(ConversionResult::Success(val)) => Ok(val),
                 Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
                 _ => Err(Error::Type("Unknown format for done property.".to_string())),
@@ -2389,7 +2382,11 @@ pub(crate) fn get_read_promise_bytes(
         rooted!(in(*cx) let mut bytes = UndefinedValue());
         match get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut(), can_gc) {
             Ok(true) => {
-                match Vec::<u8>::from_jsval(*cx, bytes.handle(), ConversionBehavior::EnforceRange) {
+                match Vec::<u8>::safe_from_jsval(
+                    cx,
+                    bytes.handle(),
+                    ConversionBehavior::EnforceRange,
+                ) {
                     Ok(ConversionResult::Success(val)) => Ok(val),
                     Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
                     _ => Err(Error::Type("Unknown format for bytes read.".to_string())),
@@ -2406,11 +2403,12 @@ impl Transferable for ReadableStream {
     type Index = MessagePortIndex;
     type Data = MessagePortImpl;
 
-    /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A1%E2%91%A0>
-    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
-        // If ! IsReadableStreamLocked(value) is true, throw a "DataCloneError" DOMException.
+    /// <https://streams.spec.whatwg.org/#ref-for-transfer-steps>
+    fn transfer(&self) -> Fallible<(MessagePortId, MessagePortImpl)> {
+        // Step 1. If ! IsReadableStreamLocked(value) is true, throw a
+        // "DataCloneError" DOMException.
         if self.is_locked() {
-            return Err(());
+            return Err(Error::DataClone(None));
         }
 
         let global = self.global();
@@ -2419,36 +2417,36 @@ impl Transferable for ReadableStream {
         let cx = GlobalScope::get_cx();
         let can_gc = CanGc::note();
 
-        // Let port1 be a new MessagePort in the current Realm.
+        // Step 2. Let port1 be a new MessagePort in the current Realm.
         let port_1 = MessagePort::new(&global, can_gc);
         global.track_message_port(&port_1, None);
 
-        // Let port2 be a new MessagePort in the current Realm.
+        // Step 3. Let port2 be a new MessagePort in the current Realm.
         let port_2 = MessagePort::new(&global, can_gc);
         global.track_message_port(&port_2, None);
 
-        // Entangle port1 and port2.
+        // Step 4. Entangle port1 and port2.
         global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
 
-        // Let writable be a new WritableStream in the current Realm.
+        // Step 5. Let writable be a new WritableStream in the current Realm.
         let writable = WritableStream::new_with_proto(&global, None, can_gc);
 
-        // Perform ! SetUpCrossRealmTransformWritable(writable, port1).
+        // Step 6. Perform ! SetUpCrossRealmTransformWritable(writable, port1).
         writable.setup_cross_realm_transform_writable(cx, &port_1, can_gc);
 
-        // Let promise be ! ReadableStreamPipeTo(value, writable, false, false, false).
+        // Step 7. Let promise be ! ReadableStreamPipeTo(value, writable, false, false, false).
         let promise = self.pipe_to(
             cx, &global, &writable, false, false, false, None, comp, can_gc,
         );
 
-        // Set promise.[[PromiseIsHandled]] to true.
+        // Step 8. Set promise.[[PromiseIsHandled]] to true.
         promise.set_promise_is_handled();
 
-        // Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
+        // Step 9. Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
         port_2.transfer()
     }
 
-    /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A1%E2%91%A0>
+    /// <https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps>
     fn transfer_receive(
         owner: &GlobalScope,
         id: MessagePortId,
@@ -2461,13 +2459,15 @@ impl Transferable for ReadableStream {
         // Note: dataHolder is used in `structuredclone.rs`, and value is created here.
         let value = ReadableStream::new_with_proto(owner, None, can_gc);
 
-        // Let deserializedRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[port]], the current Realm).
+        // Step 1. Let deserializedRecord be !
+        // StructuredDeserializeWithTransfer(dataHolder.[[port]], the current
+        // Realm).
         // Done with the `Deserialize` derive of `MessagePortImpl`.
 
-        // Let port be deserializedRecord.[[Deserialized]].
+        // Step 2. Let port be deserializedRecord.[[Deserialized]].
         let transferred_port = MessagePort::transfer_receive(owner, id, port_impl)?;
 
-        // Perform ! SetUpCrossRealmTransformReadable(value, port).
+        // Step 3. Perform ! SetUpCrossRealmTransformReadable(value, port).
         value.setup_cross_realm_transform_readable(cx, &transferred_port, can_gc);
         Ok(value)
     }

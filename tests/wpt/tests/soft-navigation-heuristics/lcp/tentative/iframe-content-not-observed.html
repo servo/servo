@@ -46,7 +46,7 @@ Notes:
       assert_unreached("Should not have received a soft navigation entry!");
     });
     const softLcpPromise = SoftNavigationTestHelper.getPerformanceEntries(
-      /*type=*/ "largest-contentful-paint",
+      /*type=*/ "interaction-contentful-paint",
       /*includeSoftNavigationObservations=*/ true,
       /*minNumEntries=*/ 1,
     ).then((entries) => {

@@ -11,7 +11,6 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use constellation_traits::BlobImpl;
-use content_security_policy as csp;
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -33,6 +32,7 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType, trim_http_whitespace,
 };
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
 use script_traits::DocumentActivity;
 use servo_url::ServoUrl;
@@ -48,7 +48,6 @@ use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
     XMLHttpRequestMethods, XMLHttpRequestResponseType,
 };
 use crate::dom::bindings::codegen::UnionTypes::DocumentOrBlobOrArrayBufferViewOrArrayBufferOrFormDataOrStringOrURLSearchParams as DocumentOrXMLHttpRequestBodyInit;
-use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -56,6 +55,7 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use crate::dom::blob::{Blob, normalize_type_string};
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -147,9 +147,9 @@ impl FetchResponseListener for XHRContext {
         network_listener::submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        global.report_csp_violations(violations, None, None);
     }
 }
 
@@ -919,20 +919,19 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         }
     }
 
-    #[allow(unsafe_code)]
     /// <https://xhr.spec.whatwg.org/#the-response-attribute>
     fn Response(&self, cx: JSContext, can_gc: CanGc, mut rval: MutableHandleValue) {
         match self.response_type.get() {
-            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => unsafe {
+            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                 let ready_state = self.ready_state.get();
                 // Step 2
                 if ready_state == XMLHttpRequestState::Done ||
                     ready_state == XMLHttpRequestState::Loading
                 {
-                    self.text_response().to_jsval(*cx, rval);
+                    self.text_response().safe_to_jsval(cx, rval);
                 } else {
                     // Step 1
-                    "".to_jsval(*cx, rval);
+                    "".safe_to_jsval(cx, rval);
                 }
             },
             // Step 1
@@ -940,16 +939,14 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 rval.set(NullValue());
             },
             // Step 2
-            XMLHttpRequestResponseType::Document => unsafe {
-                self.document_response(can_gc).to_jsval(*cx, rval);
+            XMLHttpRequestResponseType::Document => {
+                self.document_response(can_gc).safe_to_jsval(cx, rval)
             },
             XMLHttpRequestResponseType::Json => self.json_response(cx, rval),
-            XMLHttpRequestResponseType::Blob => unsafe {
-                self.blob_response(can_gc).to_jsval(*cx, rval);
-            },
+            XMLHttpRequestResponseType::Blob => self.blob_response(can_gc).safe_to_jsval(cx, rval),
             XMLHttpRequestResponseType::Arraybuffer => {
                 match self.arraybuffer_response(cx, can_gc) {
-                    Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval) },
+                    Some(array_buffer) => array_buffer.safe_to_jsval(cx, rval),
                     None => rval.set(NullValue()),
                 }
             },

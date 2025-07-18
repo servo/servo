@@ -73,7 +73,7 @@ dictionary MediaTrackCapabilities {
   sequence<DOMString> resizeMode;
   ULongRange sampleRate;
   ULongRange sampleSize;
-  sequence<boolean> echoCancellation;
+  sequence<(boolean or DOMString)> echoCancellation;
   sequence<boolean> autoGainControl;
   sequence<boolean> noiseSuppression;
   DoubleRange latency;
@@ -96,7 +96,7 @@ dictionary MediaTrackConstraintSet {
   ConstrainDOMString resizeMode;
   ConstrainULong sampleRate;
   ConstrainULong sampleSize;
-  ConstrainBoolean echoCancellation;
+  ConstrainBooleanOrDOMString echoCancellation;
   ConstrainBoolean autoGainControl;
   ConstrainBoolean noiseSuppression;
   ConstrainDouble latency;
@@ -115,7 +115,7 @@ dictionary MediaTrackSettings {
   DOMString resizeMode;
   unsigned long sampleRate;
   unsigned long sampleSize;
-  boolean echoCancellation;
+  (boolean or DOMString) echoCancellation;
   boolean autoGainControl;
   boolean noiseSuppression;
   double latency;
@@ -135,6 +135,11 @@ enum VideoFacingModeEnum {
 enum VideoResizeModeEnum {
   "none",
   "crop-and-scale"
+};
+
+enum EchoCancellationModeEnum {
+  "all",
+  "remote-only"
 };
 
 [Exposed=Window]
@@ -234,6 +239,11 @@ dictionary ConstrainDOMStringParameters {
   (DOMString or sequence<DOMString>) ideal;
 };
 
+dictionary ConstrainBooleanOrDOMStringParameters {
+  (boolean or DOMString) exact;
+  (boolean or DOMString) ideal;
+};
+
 typedef ([Clamp] unsigned long or ConstrainULongRange) ConstrainULong;
 
 typedef (double or ConstrainDoubleRange) ConstrainDouble;
@@ -243,6 +253,8 @@ typedef (boolean or ConstrainBooleanParameters) ConstrainBoolean;
 typedef (DOMString or
 sequence<DOMString> or
 ConstrainDOMStringParameters) ConstrainDOMString;
+
+typedef (boolean or DOMString or ConstrainBooleanOrDOMStringParameters) ConstrainBooleanOrDOMString;
 
 dictionary CameraDevicePermissionDescriptor : PermissionDescriptor {
   boolean panTiltZoom = false;

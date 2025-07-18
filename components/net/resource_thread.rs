@@ -8,7 +8,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, BufReader};
+use std::io::{self, BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 use std::thread;
@@ -524,8 +524,8 @@ where
         Err(why) => panic!("couldn't create {}: {}", display, why),
         Ok(file) => file,
     };
-
-    serde_json::to_writer_pretty(&mut file, data).expect("Could not serialize to file");
+    let mut writer = BufWriter::new(&mut file);
+    serde_json::to_writer_pretty(&mut writer, data).expect("Could not serialize to file");
     trace!("successfully wrote to {display}");
 }
 

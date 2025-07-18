@@ -21,6 +21,7 @@ euclid = { workspace = true }
 font-kit = "0.14"
 fonts = { path = "../fonts" }
 ipc-channel = { workspace = true }
+kurbo = { workspace = true }
 log = { workspace = true }
 lyon_geom = "1.0.4"
 net_traits = { workspace = true }

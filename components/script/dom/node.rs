@@ -18,11 +18,13 @@ use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use embedder_traits::UntrustedNodeAddress;
+use euclid::Point2D;
 use euclid::default::{Rect, Size2D};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
+use keyboard_types::Modifiers;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
     SVGSVGData, StyleData, TrustedNodeAddress,
@@ -42,10 +44,11 @@ use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
+use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::selector_parser::{SelectorImpl, SelectorParser};
+use style::selector_parser::{PseudoElement, SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -73,16 +76,15 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::conversions::{self, DerivedFrom};
+use crate::dom::bindings::domname::namespace_from_domstring;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, ElementTypeId, EventTargetTypeId, HTMLElementTypeId, NodeTypeId,
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::{CallbackReaction, try_upgrade_element};
@@ -230,6 +232,10 @@ bitflags! {
         /// Whether this node has a weird parser insertion mode. i.e whether setting innerHTML
         /// needs extra work or not
         const HAS_WEIRD_PARSER_INSERTION_MODE = 1 << 11;
+
+        /// Whether this node resides in UA shadow DOM. Element within UA Shadow DOM
+        /// will have a different style computation behavior
+        const IS_IN_UA_WIDGET = 1 << 12;
     }
 }
 
@@ -288,6 +294,7 @@ impl Node {
         let parent_is_in_a_document_tree = self.is_in_a_document_tree();
         let parent_in_shadow_tree = self.is_in_a_shadow_tree();
         let parent_is_connected = self.is_connected();
+        let parent_is_in_ua_widget = self.is_in_ua_widget();
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
@@ -302,6 +309,7 @@ impl Node {
             );
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
+            node.set_flag(NodeFlags::IS_IN_UA_WIDGET, parent_is_in_ua_widget);
 
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
@@ -479,14 +487,10 @@ impl Node {
             EventCancelable::Cancelable,        // Step 3: cancelable
             Some(&window),                      // Step 7: view
             0,                                  // detail uninitialized
-            0,                                  // coordinates uninitialized
-            0,                                  // coordinates uninitialized
-            0,                                  // coordinates uninitialized
-            0,                                  // coordinates uninitialized
-            false,                              // ctrl_key
-            false,                              // alt_key
-            false,                              // shift_key
-            false,                              // meta_key
+            Point2D::zero(),                    // coordinates uninitialized
+            Point2D::zero(),                    // coordinates uninitialized
+            Point2D::zero(),                    // coordinates uninitialized
+            Modifiers::empty(),                 // empty modifiers
             0,                                  // button, left mouse button
             0,                                  // buttons
             None,                               // related_target
@@ -697,6 +701,14 @@ impl Node {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
     }
 
+    pub(crate) fn set_in_ua_widget(&self, in_ua_widget: bool) {
+        self.set_flag(NodeFlags::IS_IN_UA_WIDGET, in_ua_widget)
+    }
+
+    pub(crate) fn is_in_ua_widget(&self) -> bool {
+        self.flags.get().contains(NodeFlags::IS_IN_UA_WIDGET)
+    }
+
     /// Returns the type ID of this node.
     pub(crate) fn type_id(&self) -> NodeTypeId {
         match *self.eventtarget.type_id() {
@@ -783,8 +795,15 @@ impl Node {
             self.inclusive_descendants_version(),
             doc.inclusive_descendants_version(),
         ) + 1;
-        for ancestor in self.inclusive_ancestors(ShadowIncluding::No) {
-            ancestor.inclusive_descendants_version.set(version);
+
+        // This `while` loop is equivalent to iterating over the non-shadow-inclusive ancestors
+        // without creating intermediate rooted DOM objects.
+        let mut node = &MutNullableDom::new(Some(self));
+        while let Some(p) = node.if_is_some(|p| {
+            p.inclusive_descendants_version.set(version);
+            &p.parent_node
+        }) {
+            node = p
         }
         doc.inclusive_descendants_version.set(version);
     }
@@ -797,7 +816,13 @@ impl Node {
 
         match self.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
-                self.parent_node.get().unwrap().dirty(damage)
+                // For content changes in text nodes, we should accurately use
+                // [`NodeDamage::ContentOrHeritage`] to mark the parent node, thereby
+                // reducing the scope of incremental box tree construction.
+                self.parent_node
+                    .get()
+                    .unwrap()
+                    .dirty(NodeDamage::ContentOrHeritage)
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => self
@@ -1547,6 +1572,20 @@ impl Node {
             next_node: move |n| n.parent_in_flat_tree(),
         }
     }
+
+    /// We are marking this as an implemented pseudo element.
+    pub(crate) fn set_implemented_pseudo_element(&self, pseudo_element: PseudoElement) {
+        // Implemented pseudo element should exist only in the UA shadow DOM.
+        debug_assert!(self.is_in_ua_widget());
+        self.ensure_rare_data().implemented_pseudo_element = Some(pseudo_element);
+    }
+
+    pub(crate) fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
+        self.rare_data
+            .borrow()
+            .as_ref()
+            .and_then(|rare_data| rare_data.implemented_pseudo_element)
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -1566,7 +1605,8 @@ where
 /// returns it.
 #[allow(unsafe_code)]
 pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
-    DomRoot::from_ref(Node::from_untrusted_node_address(candidate))
+    let node = unsafe { Node::from_untrusted_node_address(candidate) };
+    DomRoot::from_ref(node)
 }
 
 #[allow(unsafe_code)]
@@ -1631,6 +1671,8 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(self) -> Option<PipelineId>;
     fn opaque(self) -> OpaqueNode;
+    fn implemented_pseudo_element(&self) -> Option<PseudoElement>;
+    fn is_in_ua_widget(&self) -> bool;
 }
 
 impl<'dom> LayoutDom<'dom, Node> {
@@ -1770,7 +1812,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn initialize_style_data(self) {
-        let data = self.unsafe_get().style_data.borrow_mut_for_layout();
+        let data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
         debug_assert!(data.is_none());
         *data = Some(Box::default());
     }
@@ -1778,7 +1820,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn initialize_layout_data(self, new_data: Box<GenericLayoutData>) {
-        let data = self.unsafe_get().layout_data.borrow_mut_for_layout();
+        let data = unsafe { self.unsafe_get().layout_data.borrow_mut_for_layout() };
         debug_assert!(data.is_none());
         *data = Some(new_data);
     }
@@ -1786,8 +1828,10 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn clear_style_and_layout_data(self) {
-        self.unsafe_get().style_data.borrow_mut_for_layout().take();
-        self.unsafe_get().layout_data.borrow_mut_for_layout().take();
+        unsafe {
+            self.unsafe_get().style_data.borrow_mut_for_layout().take();
+            self.unsafe_get().layout_data.borrow_mut_for_layout().take();
+        }
     }
 
     fn is_text_input(&self) -> bool {
@@ -1880,6 +1924,14 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[allow(unsafe_code)]
     fn opaque(self) -> OpaqueNode {
         unsafe { OpaqueNode(self.get_jsobject() as usize) }
+    }
+
+    fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
+        self.unsafe_get().implemented_pseudo_element()
+    }
+
+    fn is_in_ua_widget(&self) -> bool {
+        self.unsafe_get().is_in_ua_widget()
     }
 }
 
@@ -2510,10 +2562,7 @@ impl Node {
         for node in new_nodes {
             // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
             //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
-            static_node_list.extend(
-                node.traverse_preorder(ShadowIncluding::Yes)
-                    .map(|n| Trusted::new(&*n)),
-            );
+            static_node_list.extend(node.traverse_preorder(ShadowIncluding::Yes));
         }
 
         // We use a delayed task for this step to work around an awkward interaction between
@@ -2526,13 +2575,15 @@ impl Node {
         // 2) post_connection_steps from Node::insert,
         // we use a delayed task that will run as soon as Node::insert removes its
         // script/layout blocker.
-        parent_document.add_delayed_task(task!(PostConnectionSteps: move || {
-            // Step 12. For each node of staticNodeList, if node is connected, then run the
-            //          post-connection steps with node.
-            for node in static_node_list.iter().map(Trusted::root).filter(|n| n.is_connected()) {
-                vtable_for(&node).post_connection_steps();
-            }
-        }));
+        parent_document.add_delayed_task(
+            task!(PostConnectionSteps: |static_node_list: Vec<DomRoot<Node>>| {
+                // Step 12. For each node of staticNodeList, if node is connected, then run the
+                //          post-connection steps with node.
+                for node in static_node_list.iter().filter(|n| n.is_connected()) {
+                    vtable_for(node).post_connection_steps();
+                }
+            }),
+        );
 
         parent_document.remove_script_and_layout_blocker();
         from_document.remove_script_and_layout_blocker();
@@ -2715,6 +2766,27 @@ impl Node {
         parent.owner_doc().remove_script_and_layout_blocker();
     }
 
+    /// Ensure that for styles, we clone the already-parsed property declaration block.
+    /// This does two things:
+    /// 1. it uses the same fast-path as CSSStyleDeclaration
+    /// 2. it also avoids the CSP checks when cloning (it shouldn't run any when cloning
+    ///    existing valid attributes)
+    fn compute_attribute_value_with_style_fast_path(attr: &Dom<Attr>, elem: &Element) -> AttrValue {
+        if *attr.local_name() == local_name!("style") {
+            if let Some(ref pdb) = *elem.style_attribute().borrow() {
+                let document = elem.owner_document();
+                let shared_lock = document.style_shared_lock();
+                let new_pdb = pdb.read_with(&shared_lock.read()).clone();
+                return AttrValue::Declaration(
+                    (**attr.value()).to_owned(),
+                    Arc::new(shared_lock.wrap(new_pdb)),
+                );
+            }
+        }
+
+        attr.value().clone()
+    }
+
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
     pub(crate) fn clone(
         node: &Node,
@@ -2837,9 +2909,11 @@ impl Node {
                 let copy_elem = copy.downcast::<Element>().unwrap();
 
                 for attr in node_elem.attrs().iter() {
+                    let new_value =
+                        Node::compute_attribute_value_with_style_fast_path(attr, node_elem);
                     copy_elem.push_new_attribute(
                         attr.local_name().clone(),
-                        attr.value().clone(),
+                        new_value,
                         attr.name().clone(),
                         attr.namespace().clone(),
                         attr.prefix().cloned(),
@@ -2987,7 +3061,8 @@ impl Node {
         if object.is_null() {
             panic!("Attempted to create a `Node` from an invalid pointer!")
         }
-        &*(conversions::private_from_object(object) as *const Self)
+
+        unsafe { &*(conversions::private_from_object(object) as *const Self) }
     }
 
     pub(crate) fn html_serialize(
@@ -3905,6 +3980,9 @@ impl VirtualMethods for Node {
 pub(crate) enum NodeDamage {
     /// The node's `style` attribute changed.
     Style,
+    /// The node's content or heritage changed, such as the addition or removal of
+    /// children.
+    ContentOrHeritage,
     /// Other parts of a node changed; attributes, text content, etc.
     Other,
 }

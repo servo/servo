@@ -85,6 +85,7 @@
 //! See <https://github.com/servo/servo/issues/14704>
 
 use std::borrow::ToOwned;
+use std::cell::OnceCell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
@@ -99,12 +100,12 @@ use background_hang_monitor_api::{
 };
 use base::Epoch;
 use base::id::{
-    BroadcastChannelRouterId, BrowsingContextGroupId, BrowsingContextId, HistoryStateId,
-    MessagePortId, MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
-    PipelineNamespaceRequest, WebViewId,
+    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
+    PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
+use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
@@ -113,7 +114,7 @@ use compositing_traits::{
     WebrenderExternalImageRegistry,
 };
 use constellation_traits::{
-    AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, BroadcastMsg, DocumentState,
+    AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState,
     IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
     PaintMetricEvent, PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders,
@@ -129,10 +130,10 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
-    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
-    ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus,
+    FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
+    KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
+    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
+    WebDriverCommandResponse, WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -140,7 +141,6 @@ use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{Key, KeyState, Modifiers};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
@@ -164,12 +164,11 @@ use style_traits::CSSPixel;
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
-#[cfg(feature = "webgpu")]
-use webrender::RenderApi;
 use webrender::RenderApiSender;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
 
+use crate::broadcastchannel::BroadcastChannels;
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
     NewBrowsingContextInfo,
@@ -222,9 +221,6 @@ struct MessagePortInfo {
 #[cfg(feature = "webgpu")]
 /// Webrender related objects required by WebGPU threads
 struct WebrenderWGPU {
-    /// Webrender API.
-    webrender_api: RenderApi,
-
     /// List of Webrender external images
     webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
 
@@ -362,10 +358,6 @@ pub struct Constellation<STF, SWF> {
     /// memory profiler thread.
     mem_profiler_chan: mem::ProfilerChan,
 
-    /// A single WebRender document the constellation operates on.
-    #[cfg(feature = "webgpu")]
-    webrender_document: DocumentId,
-
     /// Webrender related objects required by WebGPU threads
     #[cfg(feature = "webgpu")]
     webrender_wgpu: WebrenderWGPU,
@@ -376,11 +368,8 @@ pub struct Constellation<STF, SWF> {
     /// A map of router-id to ipc-sender, to route messages to ports.
     message_port_routers: HashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
 
-    /// A map of broadcast routers to their IPC sender.
-    broadcast_routers: HashMap<BroadcastChannelRouterId, IpcSender<BroadcastMsg>>,
-
-    /// A map of origin to a map of channel-name to a list of relevant routers.
-    broadcast_channels: HashMap<ImmutableOrigin, HashMap<String, Vec<BroadcastChannelRouterId>>>,
+    /// Bookkeeping for BroadcastChannel functionnality.
+    broadcast_channels: BroadcastChannels,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
@@ -434,10 +423,8 @@ pub struct Constellation<STF, SWF> {
     /// The XR device registry
     webxr_registry: Option<webxr_api::Registry>,
 
-    /// A channel through which messages can be sent to the canvas paint thread.
-    canvas_sender: Sender<ConstellationCanvasMsg>,
-
-    canvas_ipc_sender: IpcSender<CanvasMsg>,
+    /// Lazily initialized channels for canvas paint thread.
+    canvas: OnceCell<(Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>)>,
 
     /// Navigation requests from script awaiting approval from the embedder.
     pending_approval_navigations: PendingApprovalNavigations,
@@ -593,8 +580,6 @@ where
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
         hard_fail: bool,
-        canvas_create_sender: Sender<ConstellationCanvasMsg>,
-        canvas_ipc_sender: IpcSender<CanvasMsg>,
     ) -> Sender<EmbedderToConstellationMessage> {
         let (compositor_sender, compositor_receiver) = unbounded();
 
@@ -657,7 +642,6 @@ where
 
                 #[cfg(feature = "webgpu")]
                 let webrender_wgpu = WebrenderWGPU {
-                    webrender_api: state.webrender_api_sender.create_api(),
                     webrender_external_images: state.webrender_external_images,
                     wgpu_image_map: state.wgpu_image_map,
                 };
@@ -691,8 +675,7 @@ where
                     browsing_context_group_next_id: Default::default(),
                     message_ports: HashMap::new(),
                     message_port_routers: HashMap::new(),
-                    broadcast_routers: HashMap::new(),
-                    broadcast_channels: HashMap::new(),
+                    broadcast_channels: Default::default(),
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
@@ -704,8 +687,6 @@ where
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
                     document_states: HashMap::new(),
-                    #[cfg(feature = "webgpu")]
-                    webrender_document: state.webrender_document,
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
                     shutting_down: false,
@@ -719,8 +700,7 @@ where
                     }),
                     webgl_threads: state.webgl_threads,
                     webxr_registry: state.webxr_registry,
-                    canvas_sender: canvas_create_sender,
-                    canvas_ipc_sender,
+                    canvas: OnceCell::new(),
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
                     active_keyboard_modifiers: Modifiers::empty(),
@@ -1277,17 +1257,6 @@ where
             EmbedderToConstellationMessage::Exit => {
                 self.handle_exit();
             },
-            EmbedderToConstellationMessage::GetFocusTopLevelBrowsingContext(resp_chan) => {
-                let focused_context = self
-                    .webviews
-                    .focused_webview()
-                    .filter(|(_, webview)| {
-                        self.browsing_contexts
-                            .contains_key(&webview.focused_browsing_context_id)
-                    })
-                    .map(|(id, _)| id);
-                let _ = resp_chan.send(focused_context);
-            },
             // Perform a navigation previously requested by script, if approved by the embedder.
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
@@ -1405,8 +1374,17 @@ where
                 self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
             },
             // Handle a forward or back request
-            EmbedderToConstellationMessage::TraverseHistory(webview_id, direction) => {
+            EmbedderToConstellationMessage::TraverseHistory(
+                webview_id,
+                direction,
+                traversal_id,
+            ) => {
                 self.handle_traverse_history_msg(webview_id, direction);
+                self.embedder_proxy
+                    .send(EmbedderMsg::HistoryTraversalComplete(
+                        webview_id,
+                        traversal_id,
+                    ));
             },
             EmbedderToConstellationMessage::ChangeViewportDetails(
                 webview_id,
@@ -1473,6 +1451,29 @@ where
             },
             EmbedderToConstellationMessage::CreateMemoryReport(sender) => {
                 self.mem_profiler_chan.send(ProfilerMsg::Report(sender));
+            },
+            EmbedderToConstellationMessage::SendImageKeysForPipeline(pipeline_id, image_keys) => {
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    if pipeline
+                        .event_loop
+                        .send(ScriptThreadMessage::SendImageKeysBatch(
+                            pipeline_id,
+                            image_keys,
+                        ))
+                        .is_err()
+                    {
+                        warn!("Could not send image keys to pipeline {:?}", pipeline_id);
+                    }
+                } else {
+                    warn!(
+                        "Keys were generated for a pipeline ({:?}) that was
+                            closed before the request could be fulfilled.",
+                        pipeline_id
+                    )
+                }
+            },
+            EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
+                self.webdriver.input_command_response_sender = Some(sender);
             },
         }
     }
@@ -1565,42 +1566,64 @@ where
                 response_sender,
                 origin,
             ) => {
-                self.handle_new_broadcast_channel_router(
-                    source_pipeline_id,
-                    router_id,
-                    response_sender,
-                    origin,
-                );
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
+                    .is_err()
+                {
+                    return warn!("Attempt to add broadcast router from an unexpected origin.");
+                }
+                self.broadcast_channels
+                    .new_broadcast_channel_router(router_id, response_sender);
             },
             ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(
                 router_id,
                 channel_name,
                 origin,
             ) => {
-                self.handle_new_broadcast_channel_name_in_router(
-                    source_pipeline_id,
-                    router_id,
-                    channel_name,
-                    origin,
-                );
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
+                    .is_err()
+                {
+                    return warn!("Attempt to add channel name from an unexpected origin.");
+                }
+                self.broadcast_channels
+                    .new_broadcast_channel_name_in_router(router_id, channel_name, origin);
             },
             ScriptToConstellationMessage::RemoveBroadcastChannelNameInRouter(
                 router_id,
                 channel_name,
                 origin,
             ) => {
-                self.handle_remove_broadcast_channel_name_in_router(
-                    source_pipeline_id,
-                    router_id,
-                    channel_name,
-                    origin,
-                );
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
+                    .is_err()
+                {
+                    return warn!("Attempt to remove channel name from an unexpected origin.");
+                }
+                self.broadcast_channels
+                    .remove_broadcast_channel_name_in_router(router_id, channel_name, origin);
             },
             ScriptToConstellationMessage::RemoveBroadcastChannelRouter(router_id, origin) => {
-                self.handle_remove_broadcast_channel_router(source_pipeline_id, router_id, origin);
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
+                    .is_err()
+                {
+                    return warn!("Attempt to remove broadcast router from an unexpected origin.");
+                }
+                self.broadcast_channels
+                    .remove_broadcast_channel_router(router_id);
             },
             ScriptToConstellationMessage::ScheduleBroadcast(router_id, message) => {
-                self.handle_schedule_broadcast(source_pipeline_id, router_id, message);
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &message.origin)
+                    .is_err()
+                {
+                    return warn!(
+                        "Attempt to schedule broadcast from an origin not matching the origin of the msg."
+                    );
+                }
+                self.broadcast_channels
+                    .schedule_broadcast(router_id, message);
             },
             ScriptToConstellationMessage::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy.send(embedder_msg);
@@ -1856,7 +1879,6 @@ where
                         .send(WebDriverCommandResponse { id: msg_id })
                         .unwrap_or_else(|_| {
                             warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
-                            self.webdriver.input_command_response_sender = None;
                         });
                 } else {
                     warn!("No WebDriver input_command_response_sender");
@@ -1884,151 +1906,6 @@ where
             return Ok(());
         }
         Err(())
-    }
-
-    /// Broadcast a message via routers in various event-loops.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_schedule_broadcast(
-        &self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        message: BroadcastMsg,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &message.origin)
-            .is_err()
-        {
-            return warn!(
-                "Attempt to schedule broadcast from an origin not matching the origin of the msg."
-            );
-        }
-        if let Some(channels) = self.broadcast_channels.get(&message.origin) {
-            let routers = match channels.get(&message.channel_name) {
-                Some(routers) => routers,
-                None => return warn!("Broadcast to channel name without active routers."),
-            };
-            for router in routers {
-                // Exclude the sender of the broadcast.
-                // Broadcasting locally is done at the point of sending.
-                if router == &router_id {
-                    continue;
-                }
-
-                if let Some(broadcast_ipc_sender) = self.broadcast_routers.get(router) {
-                    if broadcast_ipc_sender.send(message.clone()).is_err() {
-                        warn!("Failed to broadcast message to router: {:?}", router);
-                    }
-                } else {
-                    warn!("No sender for broadcast router: {:?}", router);
-                }
-            }
-        } else {
-            warn!(
-                "Attempt to schedule a broadcast for an origin without routers {:?}",
-                message.origin
-            );
-        }
-    }
-
-    /// Remove a channel-name for a given broadcast router.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_remove_broadcast_channel_name_in_router(
-        &mut self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        channel_name: String,
-        origin: ImmutableOrigin,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &origin)
-            .is_err()
-        {
-            return warn!("Attempt to remove channel name from an unexpected origin.");
-        }
-        if let Some(channels) = self.broadcast_channels.get_mut(&origin) {
-            let is_empty = if let Some(routers) = channels.get_mut(&channel_name) {
-                routers.retain(|router| router != &router_id);
-                routers.is_empty()
-            } else {
-                return warn!(
-                    "Multiple attempts to remove name for broadcast-channel {:?} at {:?}",
-                    channel_name, origin
-                );
-            };
-            if is_empty {
-                channels.remove(&channel_name);
-            }
-        } else {
-            warn!(
-                "Attempt to remove a channel-name for an origin without channels {:?}",
-                origin
-            );
-        }
-    }
-
-    /// Note a new channel-name relevant to a given broadcast router.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_new_broadcast_channel_name_in_router(
-        &mut self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        channel_name: String,
-        origin: ImmutableOrigin,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &origin)
-            .is_err()
-        {
-            return warn!("Attempt to add channel name from an unexpected origin.");
-        }
-        let channels = self.broadcast_channels.entry(origin).or_default();
-
-        let routers = channels.entry(channel_name).or_default();
-
-        routers.push(router_id);
-    }
-
-    /// Remove a broadcast router.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_remove_broadcast_channel_router(
-        &mut self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        origin: ImmutableOrigin,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &origin)
-            .is_err()
-        {
-            return warn!("Attempt to remove broadcast router from an unexpected origin.");
-        }
-        if self.broadcast_routers.remove(&router_id).is_none() {
-            warn!("Attempt to remove unknown broadcast-channel router.");
-        }
-    }
-
-    /// Add a new broadcast router.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_new_broadcast_channel_router(
-        &mut self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        broadcast_ipc_sender: IpcSender<BroadcastMsg>,
-        origin: ImmutableOrigin,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &origin)
-            .is_err()
-        {
-            return warn!("Attempt to add broadcast router from an unexpected origin.");
-        }
-        if self
-            .broadcast_routers
-            .insert(router_id, broadcast_ipc_sender)
-            .is_some()
-        {
-            warn!("Multple attempt to add broadcast-channel router.");
-        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -2063,8 +1940,7 @@ where
         };
         let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
             Entry::Vacant(v) => start_webgpu_thread(
-                self.webrender_wgpu.webrender_api.create_sender(),
-                self.webrender_document,
+                self.compositor_proxy.cross_process_compositor_api.clone(),
                 self.webrender_wgpu.webrender_external_images.clone(),
                 self.webrender_wgpu.wgpu_image_map.clone(),
             )
@@ -2689,14 +2565,16 @@ where
             }
         }
 
-        debug!("Exiting Canvas Paint thread.");
-        let (canvas_exit_sender, canvas_exit_receiver) = unbounded();
-        if let Err(e) = self
-            .canvas_sender
-            .send(ConstellationCanvasMsg::Exit(canvas_exit_sender))
-        {
-            warn!("Exit Canvas Paint thread failed ({})", e);
-        }
+        let canvas_exit_receiver = if let Some((canvas_sender, _)) = self.canvas.get() {
+            debug!("Exiting Canvas Paint thread.");
+            let (canvas_exit_sender, canvas_exit_receiver) = unbounded();
+            if let Err(e) = canvas_sender.send(ConstellationCanvasMsg::Exit(canvas_exit_sender)) {
+                warn!("Exit Canvas Paint thread failed ({})", e);
+            }
+            Some(canvas_exit_receiver)
+        } else {
+            None
+        };
 
         debug!("Exiting WebGPU threads.");
         #[cfg(feature = "webgpu")]
@@ -2738,7 +2616,9 @@ where
 
         // Wait for the canvas thread to exit before shutting down the font service, as
         // canvas might still be using the system font service before shutting down.
-        let _ = canvas_exit_receiver.recv();
+        if let Some(canvas_exit_receiver) = canvas_exit_receiver {
+            let _ = canvas_exit_receiver.recv();
+        }
 
         debug!("Exiting the system font service thread.");
         self.system_font_service.exit();
@@ -3137,7 +3017,10 @@ where
             .send(EmbedderMsg::WebViewClosed(webview_id));
 
         let Some(browsing_context) = browsing_context else {
-            return;
+            return warn!(
+                "fn handle_close_top_level_browsing_context {}: Closing twice",
+                browsing_context_id
+            );
         };
         // https://html.spec.whatwg.org/multipage/#bcg-remove
         let bc_group_id = browsing_context.bc_group_id;
@@ -3632,6 +3515,13 @@ where
                     return None;
                 },
             };
+
+        if let Some(ref chan) = self.devtools_sender {
+            let state = NavigationState::Start(load_data.url.clone());
+            let _ = chan.send(DevtoolsControlMsg::FromScript(
+                ScriptToDevtoolsControlMsg::Navigate(browsing_context_id, state),
+            ));
+        }
 
         match parent_pipeline_id {
             Some(parent_pipeline_id) => {
@@ -4514,8 +4404,11 @@ where
         response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
     ) {
         let (canvas_data_sender, canvas_data_receiver) = unbounded();
+        let (canvas_sender, canvas_ipc_sender) = self
+            .canvas
+            .get_or_init(|| self.create_canvas_paint_thread());
 
-        if let Err(e) = self.canvas_sender.send(ConstellationCanvasMsg::Create {
+        if let Err(e) = canvas_sender.send(ConstellationCanvasMsg::Create {
             sender: canvas_data_sender,
             size,
         }) {
@@ -4525,8 +4418,7 @@ where
             Ok(canvas_data) => canvas_data,
             Err(e) => return warn!("Create canvas paint thread id response failed ({})", e),
         };
-        if let Err(e) = response_sender.send((self.canvas_ipc_sender.clone(), canvas_id, image_key))
-        {
+        if let Err(e) = response_sender.send((canvas_ipc_sender.clone(), canvas_id, image_key)) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }
@@ -4536,101 +4428,9 @@ where
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         match msg {
-            WebDriverCommandMsg::CloseWebView(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::NewWebView(
-                originating_webview_id,
-                response_sender,
-                load_status_sender,
-            ) => {
-                let (embedder_sender, receiver) = match ipc::channel() {
-                    Ok(result) => result,
-                    Err(error) => return warn!("Failed to create channel: {error:?}"),
-                };
-                self.embedder_proxy.send(EmbedderMsg::AllowOpeningWebView(
-                    originating_webview_id,
-                    embedder_sender,
-                ));
-                let (new_webview_id, viewport_details) = match receiver.recv() {
-                    Ok(Some((new_webview_id, viewport_details))) => {
-                        (new_webview_id, viewport_details)
-                    },
-                    Ok(None) => return warn!("Embedder refused to allow opening webview"),
-                    Err(error) => return warn!("Failed to receive webview id: {error:?}"),
-                };
-                self.handle_new_top_level_browsing_context(
-                    ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),
-                    new_webview_id,
-                    viewport_details,
-                    Some(load_status_sender),
-                );
-                if let Err(error) = response_sender.send(new_webview_id) {
-                    error!(
-                        "WebDriverCommandMsg::NewWebView: IPC error when sending new_webview_id \
-                        to webdriver server: {error}"
-                    );
-                }
-            },
-            WebDriverCommandMsg::FocusWebView(webview_id) => {
-                self.handle_focus_web_view(webview_id);
-            },
-            WebDriverCommandMsg::IsWebViewOpen(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
             WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, response_sender) => {
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
                 let _ = response_sender.send(is_open);
-            },
-            WebDriverCommandMsg::GetWindowSize(webview_id, response_sender) => {
-                let browsing_context_id = BrowsingContextId::from(webview_id);
-                let size = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .map(|browsing_context| browsing_context.viewport_details.size)
-                    .unwrap_or_default();
-                let _ = response_sender.send(size);
-            },
-            WebDriverCommandMsg::SetWindowSize(webview_id, size, response_sender) => {
-                self.webdriver.resize_channel = Some(response_sender);
-                self.embedder_proxy
-                    .send(EmbedderMsg::ResizeTo(webview_id, size));
-            },
-            WebDriverCommandMsg::LoadUrl(webview_id, url, response_sender) => {
-                let load_data = LoadData::new(
-                    LoadOrigin::WebDriver,
-                    url,
-                    None,
-                    Referrer::NoReferrer,
-                    ReferrerPolicy::EmptyString,
-                    None,
-                    None,
-                    false,
-                );
-                self.load_url_for_webdriver(
-                    webview_id,
-                    load_data,
-                    response_sender,
-                    NavigationHistoryBehavior::Push,
-                );
-            },
-            WebDriverCommandMsg::Refresh(webview_id, response_sender) => {
-                let browsing_context_id = BrowsingContextId::from(webview_id);
-                let pipeline_id = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .expect("Refresh: Browsing context must exist at this point")
-                    .pipeline_id;
-                let load_data = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.load_data.clone(),
-                    None => return warn!("{}: Refresh after closure", pipeline_id),
-                };
-                self.load_url_for_webdriver(
-                    webview_id,
-                    load_data,
-                    response_sender,
-                    NavigationHistoryBehavior::Replace,
-                );
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
@@ -4648,121 +4448,31 @@ where
                     self.handle_send_error(pipeline_id, e);
                 }
             },
-            WebDriverCommandMsg::SendKeys(browsing_context_id, cmd) => {
-                let pipeline_id = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .expect("SendKeys: Browsing context must exist at this point")
-                    .pipeline_id;
-                let event_loop = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.clone(),
-                    None => return warn!("{}: SendKeys after closure", pipeline_id),
-                };
-                for event in cmd {
-                    let event = match event {
-                        WebDriverInputEvent::Keyboard(event) => ConstellationInputEvent {
-                            pressed_mouse_buttons: self.pressed_mouse_buttons,
-                            active_keyboard_modifiers: event.modifiers,
-                            hit_test_result: None,
-                            event: InputEvent::Keyboard(KeyboardEvent::new(event)),
-                        },
-                        WebDriverInputEvent::Composition(event) => ConstellationInputEvent {
-                            pressed_mouse_buttons: self.pressed_mouse_buttons,
-                            active_keyboard_modifiers: self.active_keyboard_modifiers,
-                            hit_test_result: None,
-                            event: InputEvent::Ime(ImeEvent::Composition(event)),
-                        },
-                    };
-                    let control_msg = ScriptThreadMessage::SendInputEvent(pipeline_id, event);
-                    if let Err(e) = event_loop.send(control_msg) {
-                        return self.handle_send_error(pipeline_id, e);
-                    }
-                }
-            },
-            WebDriverCommandMsg::KeyboardAction(
-                browsing_context_id,
-                key_event,
-                msg_id,
-                response_sender,
-            ) => {
-                self.webdriver.input_command_response_sender = Some(response_sender);
-
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => browsing_context.pipeline_id,
-                    None => {
-                        return warn!("{}: KeyboardAction after closure", browsing_context_id);
-                    },
-                };
-                let event_loop = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.clone(),
-                    None => return warn!("{}: KeyboardAction after closure", pipeline_id),
-                };
-                let event = InputEvent::Keyboard(KeyboardEvent::new(key_event.clone()))
-                    .with_webdriver_message_id(msg_id);
-                let control_msg = ScriptThreadMessage::SendInputEvent(
-                    pipeline_id,
-                    ConstellationInputEvent {
-                        pressed_mouse_buttons: self.pressed_mouse_buttons,
-                        active_keyboard_modifiers: key_event.modifiers,
-                        hit_test_result: None,
-                        event,
-                    },
-                );
-                if let Err(e) = event_loop.send(control_msg) {
-                    self.handle_send_error(pipeline_id, e)
-                }
-            },
-            WebDriverCommandMsg::MouseButtonAction(
-                webview_id,
-                mouse_event_type,
-                mouse_button,
-                x,
-                y,
-                msg_id,
-                response_sender,
-            ) => {
-                self.webdriver.input_command_response_sender = Some(response_sender);
-
-                self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseButtonEvent(
-                        webview_id,
-                        mouse_event_type,
-                        mouse_button,
-                        x,
-                        y,
-                        msg_id,
-                    ));
-            },
-            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, msg_id, response_sender) => {
-                self.webdriver.input_command_response_sender = Some(response_sender);
-
-                self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseMoveEvent(
-                        webview_id, x, y, msg_id,
-                    ));
-            },
-            WebDriverCommandMsg::WheelScrollAction(
-                webview_id,
-                x,
-                y,
-                delta_x,
-                delta_y,
-                msg_id,
-                response_sender,
-            ) => {
-                self.webdriver.input_command_response_sender = Some(response_sender);
-
-                self.compositor_proxy
-                    .send(CompositorMsg::WebDriverWheelScrollEvent(
-                        webview_id, x, y, delta_x, delta_y, msg_id,
-                    ));
-            },
             WebDriverCommandMsg::TakeScreenshot(webview_id, rect, response_sender) => {
                 self.compositor_proxy.send(CompositorMsg::CreatePng(
                     webview_id,
                     rect,
                     response_sender,
                 ));
+            },
+            WebDriverCommandMsg::CloseWebView(..) |
+            WebDriverCommandMsg::NewWebView(..) |
+            WebDriverCommandMsg::FocusWebView(..) |
+            WebDriverCommandMsg::IsWebViewOpen(..) |
+            WebDriverCommandMsg::GetWindowRect(..) |
+            WebDriverCommandMsg::GetViewportSize(..) |
+            WebDriverCommandMsg::SetWindowSize(..) |
+            WebDriverCommandMsg::LoadUrl(..) |
+            WebDriverCommandMsg::Refresh(..) |
+            WebDriverCommandMsg::SendKeys(..) |
+            WebDriverCommandMsg::KeyboardAction(..) |
+            WebDriverCommandMsg::MouseButtonAction(..) |
+            WebDriverCommandMsg::MouseMoveAction(..) |
+            WebDriverCommandMsg::WheelScrollAction(..) => {
+                unreachable!("This command should be send directly to the embedder.");
+            },
+            _ => {
+                warn!("Unhandled WebDriver command: {:?}", msg);
             },
         }
     }
@@ -4894,38 +4604,6 @@ where
             entries,
             current_index,
         ));
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn load_url_for_webdriver(
-        &mut self,
-        webview_id: WebViewId,
-        load_data: LoadData,
-        response_sender: IpcSender<WebDriverLoadStatus>,
-        history_handling: NavigationHistoryBehavior,
-    ) {
-        let browsing_context_id = BrowsingContextId::from(webview_id);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => {
-                return warn!(
-                    "{}: Webdriver load for closed browsing context",
-                    browsing_context_id
-                );
-            },
-        };
-
-        if let Some(new_pipeline_id) =
-            self.load_url(webview_id, pipeline_id, load_data, history_handling)
-        {
-            debug!(
-                "Setting up webdriver load notification for {:?}",
-                new_pipeline_id
-            );
-            self.webdriver.load_channel = Some((new_pipeline_id, response_sender));
-        } else {
-            let _ = response_sender.send(WebDriverLoadStatus::Canceled);
-        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -5523,7 +5201,7 @@ where
         let browsing_context = match self.browsing_contexts.remove(&browsing_context_id) {
             Some(ctx) => ctx,
             None => {
-                warn!("{browsing_context_id}: Closing twice");
+                warn!("fn close_browsing_context: {browsing_context_id}: Closing twice");
                 return None;
             },
         };
@@ -5679,7 +5357,7 @@ where
         // the pipeline.
         let pipeline = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline,
-            None => return warn!("{}: Closing twice", pipeline_id),
+            None => return warn!("fn close_pipeline: {pipeline_id}: Closing twice"),
         };
 
         // Remove this pipeline from pending changes if it hasn't loaded yet.
@@ -5859,5 +5537,13 @@ where
         )) {
             warn!("Could not sent paint metric event to pipeline: {pipeline_id:?}: {error:?}");
         }
+    }
+
+    fn create_canvas_paint_thread(&self) -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
+        CanvasPaintThread::start(
+            self.compositor_proxy.cross_process_compositor_api.clone(),
+            self.system_font_service.clone(),
+            self.public_resource_threads.clone(),
+        )
     }
 }

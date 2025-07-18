@@ -230,43 +230,40 @@
           script.src = test_case.url;
           document.body.appendChild(script);
         });
-
         let report_body = null;
-        if (test_case.policy_violation) {
-          report_body = await report_observed_promise;
-        } else {
-          const timeout_promise = new Promise(r => setTimeout(() => r('timeout'), 100));
-          const race_result = await Promise.race([report_observed_promise, timeout_promise]);
-          if (race_result !== 'timeout') {
-            report_body = race_result;
+        if (with_reporting) {
+          if (test_case.policy_violation) {
+            report_body = await report_observed_promise;
+          } else {
+            const timeout_promise = new Promise(r => setTimeout(() => r('timeout'), 100));
+            const race_result = await Promise.race([report_observed_promise, timeout_promise]);
+            if (race_result !== 'timeout') {
+              report_body = race_result;
+            }
           }
         }
         return { body: report_body, ran: window.ran };
-      }, [test_case]);
-      assert_equals(result.ran, test_case.expected.ran, "Ran");
-      if (test_case.policy_violation) {
-        assert_not_equals(result.body, null, "Expected a policy violation report");
-        let report_body = {};
-        if (with_reporting) {
-          report_body = await report_observed_promise;
-        }
-        return { body: report_body, ran: window.ran };
       }, [test_case, with_reporting]);
-      assert_equals(result.ran, test_case.expected.ran);
-      if (with_reporting && test_case.policy_violation) {
-        assert_equals(result.body.blockedURL, test_case.expected.blocked);
-        assert_true(result.body.documentURL.endsWith(iframe_url));
-        assert_equals(result.body.destination, "script");
-        assert_equals(result.body.reportOnly, !test_case.add_blocking_header);
-      } else {
-        assert_equals(result.body, null, "No policy violation report should be observed");
-      }
-      if (with_reporting && test_case.endpoints && test_case.policy_violation) {
-        if (test_case.add_blocking_header) {
-          await check_report(reporting_endpoint, reporting_uuid_1, iframe_url, test_case.url, !test_case.add_blocking_header);
-          await check_report(reporting_endpoint, reporting_uuid_2, iframe_url, test_case.url, !test_case.add_blocking_header);
+
+      assert_equals(result.ran, test_case.expected.ran, "Ran");
+      if (with_reporting) {
+        if (test_case.policy_violation) {
+          assert_not_equals(result.body, null, "Expected a policy violation report");
+          assert_equals(result.body.blockedURL, test_case.expected.blocked);
+          assert_true(result.body.documentURL.endsWith(iframe_url));
+          assert_equals(result.body.destination, "script");
+          assert_equals(result.body.reportOnly, !test_case.add_blocking_header);
+        } else {
+          assert_equals(result.body, null, "No policy violation report should be observed");
         }
-        await check_report(reporting_endpoint, reporting_uuid_3, iframe_url, test_case.url, true);
+
+        if (test_case.endpoints && test_case.policy_violation) {
+          if (test_case.add_blocking_header) {
+            await check_report(reporting_endpoint, reporting_uuid_1, iframe_url, test_case.url, !test_case.add_blocking_header);
+            await check_report(reporting_endpoint, reporting_uuid_2, iframe_url, test_case.url, !test_case.add_blocking_header);
+          }
+          await check_report(reporting_endpoint, reporting_uuid_3, iframe_url, test_case.url, true);
+        }
       }
     }, test_case.description);
   });

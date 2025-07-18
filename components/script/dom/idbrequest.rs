@@ -11,7 +11,9 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use net_traits::IpcSend;
-use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBThreadMsg, IndexedDBTxnMode};
+use net_traits::indexeddb_thread::{
+    AsyncOperation, IdbResult, IndexedDBThreadMsg, IndexedDBTxnMode,
+};
 use profile_traits::ipc;
 use stylo_atoms::Atom;
 
@@ -31,6 +33,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbtransaction::IDBTransaction;
+use crate::indexed_db::key_type_to_jsval;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -40,7 +43,7 @@ struct RequestListener {
 }
 
 impl RequestListener {
-    fn handle_async_request_finished(&self, result: Option<Vec<u8>>) {
+    fn handle_async_request_finished(&self, result: Result<Option<IdbResult>, ()>) {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
@@ -50,14 +53,21 @@ impl RequestListener {
         let _ac = enter_realm(&*request);
         rooted!(in(*cx) let mut answer = UndefinedValue());
 
-        if let Some(serialized_data) = result {
-            let data = StructuredSerializedData {
-                serialized: serialized_data,
-                ..Default::default()
-            };
+        if let Ok(Some(data)) = result {
+            match data {
+                IdbResult::Key(key) => {
+                    key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut())
+                },
+                IdbResult::Data(serialized_data) => {
+                    let data = StructuredSerializedData {
+                        serialized: serialized_data,
+                        ..Default::default()
+                    };
 
-            if structuredclone::read(&global, data, answer.handle_mut()).is_err() {
-                warn!("Error reading structuredclone data");
+                    if structuredclone::read(&global, data, answer.handle_mut()).is_err() {
+                        warn!("Error reading structuredclone data");
+                    }
+                },
             }
 
             request.set_result(answer.handle());
@@ -199,7 +209,7 @@ impl IDBRequest {
         };
 
         let (sender, receiver) =
-            ipc::channel::<std::option::Option<Vec<u8>>>(global.time_profiler_chan().clone())
+            ipc::channel::<Result<Option<IdbResult>, ()>>(global.time_profiler_chan().clone())
                 .unwrap();
 
         let response_listener = RequestListener {

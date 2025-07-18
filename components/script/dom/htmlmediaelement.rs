@@ -10,7 +10,6 @@ use std::time::{Duration, Instant};
 use std::{f64, mem};
 
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
-use content_security_policy as csp;
 use dom_struct::dom_struct;
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
@@ -57,9 +56,6 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConsta
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
-    ShadowRootMode, SlotAssignmentMode,
-};
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
@@ -74,6 +70,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
@@ -93,7 +90,6 @@ use crate::dom::mediastream::MediaStream;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
-use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
@@ -200,7 +196,7 @@ impl MediaFrameRenderer {
 
 impl VideoFrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: VideoFrame) {
-        let mut updates = vec![];
+        let mut updates = smallvec::smallvec![];
 
         if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
             updates.push(ImageUpdate::DeleteImage(old_image_key));
@@ -237,7 +233,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
             Some(current_frame) => {
                 self.old_frame = Some(current_frame.image_key);
 
-                let Some(new_image_key) = self.compositor_api.generate_image_key() else {
+                let Some(new_image_key) = self.compositor_api.generate_image_key_blocking() else {
                     return;
                 };
 
@@ -270,7 +266,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 updates.push(ImageUpdate::AddImage(new_image_key, descriptor, image_data));
             },
             None => {
-                let Some(image_key) = self.compositor_api.generate_image_key() else {
+                let Some(image_key) = self.compositor_api.generate_image_key_blocking() else {
                     return;
                 };
 
@@ -2020,17 +2016,11 @@ impl HTMLMediaElement {
             // if we are already showing the controls.
             return;
         }
-        let shadow_root = element
-            .attach_shadow(
-                IsUserAgentWidget::Yes,
-                ShadowRootMode::Closed,
-                false,
-                false,
-                false,
-                SlotAssignmentMode::Manual,
-                can_gc,
-            )
-            .unwrap();
+        // FIXME(stevennovaryo): Recheck styling of media element to avoid
+        //                       reparsing styles.
+        let shadow_root = self
+            .upcast::<Element>()
+            .attach_ua_shadow_root(false, can_gc);
         let document = self.owner_document();
         let script = HTMLScriptElement::new(
             local_name!("script"),
@@ -3167,9 +3157,9 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         network_listener::submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        global.report_csp_violations(violations, None, None);
     }
 }
 

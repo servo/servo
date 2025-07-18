@@ -5,66 +5,399 @@
 use std::default::Default;
 use std::str::FromStr;
 
+use euclid::Angle;
+use euclid::approxeq::ApproxEq;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
-use ipc_channel::ipc::{IpcBytesReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
+use kurbo::{Affine, BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::IpcSnapshot;
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
+use strum::{Display, EnumString};
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum PathSegment {
-    ClosePath,
-    MoveTo {
-        x: f32,
-        y: f32,
-    },
-    LineTo {
-        x: f32,
-        y: f32,
-    },
-    Quadratic {
-        cpx: f32,
-        cpy: f32,
-        x: f32,
-        y: f32,
-    },
-    Bezier {
-        cp1x: f32,
-        cp1y: f32,
-        cp2x: f32,
-        cp2y: f32,
-        x: f32,
-        y: f32,
-    },
-    ArcTo {
-        cp1x: f32,
-        cp1y: f32,
-        cp2x: f32,
-        cp2y: f32,
-        radius: f32,
-    },
-    Ellipse {
-        x: f32,
-        y: f32,
-        radius_x: f32,
-        radius_y: f32,
-        rotation: f32,
-        start_angle: f32,
-        end_angle: f32,
-        anticlockwise: bool,
-    },
-    SvgArc {
-        radius_x: f32,
-        radius_y: f32,
-        rotation: f32,
-        large_arc: bool,
-        sweep: bool,
-        x: f32,
-        y: f32,
-    },
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Path(pub BezPath);
+
+pub struct IndexSizeError;
+
+impl Path {
+    pub fn new() -> Self {
+        Self(BezPath::new())
+    }
+
+    pub fn from_svg(s: &str) -> Self {
+        Self(BezPath::from_svg(s).unwrap_or_default())
+    }
+
+    pub fn transform(&mut self, transform: Transform2D<f64>) {
+        self.0.apply_affine(Affine::new(transform.to_array()));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#ensure-there-is-a-subpath>
+    pub fn ensure_there_is_a_subpath(&mut self, x: f64, y: f64) {
+        // The user agent must check to see if the path has its need new subpath flag set.
+        if self.0.elements().is_empty() {
+            // If it does, then the user agent must create a new subpath with the point (x, y)
+            // as its first (and only) point,
+            // as if the moveTo() method had been called,
+            // and must then unset the path's need new subpath flag.
+            self.0.move_to((x, y));
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-closepath>
+    pub fn close_path(&mut self) {
+        // must do nothing if the object's path has no subpaths
+        if matches!(self.0.elements().last(), None | Some(PathEl::ClosePath)) {
+            return;
+        }
+        // Otherwise, it must mark the last subpath as closed,
+        // create a new subpath whose first point is the same as the previous subpath's first point,
+        // and finally add this new subpath to the path.
+        self.0.close_path();
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-moveto>
+    pub fn move_to(&mut self, x: f64, y: f64) {
+        // Step 1. If either of the arguments are infinite or NaN, then return.
+        if !(x.is_finite() && y.is_finite()) {
+            return;
+        }
+
+        // Step 2. Create a new subpath with the specified point as its first (and only) point.
+        self.0.move_to((x, y));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-lineto>
+    pub fn line_to(&mut self, x: f64, y: f64) {
+        // Step 1. If either of the arguments are infinite or NaN, then return.
+        if !(x.is_finite() && y.is_finite()) {
+            return;
+        }
+
+        // Step 2. If the object's path has no subpaths, then ensure there is a subpath for (x, y).
+        self.ensure_there_is_a_subpath(x, y);
+
+        // Step 3. Otherwise, connect the last point in the subpath to the given point (x, y) using a straight line,
+        // and then add the given point (x, y) to the subpath.
+        self.0.line_to((x, y));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto>
+    pub fn quadratic_curve_to(&mut self, cpx: f64, cpy: f64, x: f64, y: f64) {
+        // Step 1. If any of the arguments are infinite or NaN, then return.
+        if !(cpx.is_finite() && cpy.is_finite() && x.is_finite() && y.is_finite()) {
+            return;
+        }
+
+        // Step 2. Ensure there is a subpath for (cpx, cpy).
+        self.ensure_there_is_a_subpath(cpx, cpy);
+
+        // 3. Connect the last point in the subpath to the given point (x, y)
+        // using a quadratic Bézier curve with control point (cpx, cpy). [BEZIER]
+        // 4. Add the given point (x, y) to the subpath.
+        self.0.quad_to((cpx, cpy), (x, y));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-beziercurveto>
+    pub fn bezier_curve_to(&mut self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
+        // Step 1. If any of the arguments are infinite or NaN, then return.
+        if !(cp1x.is_finite() &&
+            cp1y.is_finite() &&
+            cp2x.is_finite() &&
+            cp2y.is_finite() &&
+            x.is_finite() &&
+            y.is_finite())
+        {
+            return;
+        }
+
+        // Step 2. Ensure there is a subpath for (cp1x, cp1y).
+        self.ensure_there_is_a_subpath(cp1x, cp1y);
+
+        // Step 3. Connect the last point in the subpath to the given point (x, y)
+        // using a cubic Bézier curve with control points (cp1x, cp1y) and (cp2x, cp2y). [BEZIER]
+        // Step 4. Add the point (x, y) to the subpath.
+        self.0.curve_to((cp1x, cp1y), (cp2x, cp2y), (x, y));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-arcto>
+    pub fn arc_to(
+        &mut self,
+        x1: f64,
+        y1: f64,
+        x2: f64,
+        y2: f64,
+        radius: f64,
+    ) -> Result<(), IndexSizeError> {
+        // Step 1. If any of the arguments are infinite or NaN, then return.
+        if !(x1.is_finite() &&
+            y1.is_finite() &&
+            x2.is_finite() &&
+            y2.is_finite() &&
+            radius.is_finite())
+        {
+            return Ok(());
+        }
+
+        // Step 2. Ensure there is a subpath for (x1, y1).
+        self.ensure_there_is_a_subpath(x1, y1);
+
+        // Step 3. If either radius is negative, then throw an "IndexSizeError" DOMException.
+        if radius.is_sign_negative() {
+            return Err(IndexSizeError);
+        }
+
+        // Step 4. Let the point (x0, y0) be the last point in the subpath.
+        let Point { x: x0, y: y0 } = self.last_point().unwrap();
+
+        // Step 5. If the point (x0, y0) is equal to the point (x1, y1),
+        // or if the point (x1, y1) is equal to the point (x2, y2),
+        // or if radius is zero, then add the point (x1, y1) to the subpath,
+        // and connect that point to the previous point (x0, y0) by a straight line.
+        if ((x0, y0) == (x1, y1)) || ((x1, y1) == (x2, y2)) || radius.approx_eq(&0.0) {
+            self.0.line_to((x1, y1));
+            return Ok(());
+        }
+
+        // Step 6. Otherwise, if the points (x0, y0), (x1, y1), and (x2, y2)
+        // all lie on a single straight line, then add the point (x1, y1) to the subpath,
+        // and connect that point to the previous point (x0, y0) by a straight line.
+        let direction = Triangle::from_coords((x0, y0), (x1, y1), (x2, y2)).area();
+        if direction == 0.0 {
+            self.0.line_to((x1, y1));
+            return Ok(());
+        }
+
+        // Step 7. Otherwise, let The Arc be the shortest arc given by circumference of the circle
+        // that has radius radius, and that has one point tangent to the half-infinite line
+        // that crosses the point (x0, y0) and ends at the point (x1, y1),
+        // and that has a different point tangent to the half-infinite line that ends at the point (x1, y1)
+        // and crosses the point (x2, y2).
+        // The points at which this circle touches these two lines are called the start
+        // and end tangent points respectively.
+        // Connect the point (x0, y0) to the start tangent point by a straight line,
+        // adding the start tangent point to the subpath,
+        // and then connect the start tangent point to the end tangent point by The Arc,
+        // adding the end tangent point to the subpath.
+
+        let a2 = (x0 - x1).powi(2) + (y0 - y1).powi(2);
+        let b2 = (x1 - x2).powi(2) + (y1 - y2).powi(2);
+        let d = {
+            let c2 = (x0 - x2).powi(2) + (y0 - y2).powi(2);
+            let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
+            let sinx = (1.0 - cosx.powi(2)).sqrt();
+            radius / ((1.0 - cosx) / sinx)
+        };
+
+        // first tangent point
+        let anx = (x1 - x0) / a2.sqrt();
+        let any = (y1 - y0) / a2.sqrt();
+        let tp1 = Point2D::new(x1 - anx * d, y1 - any * d);
+
+        // second tangent point
+        let bnx = (x1 - x2) / b2.sqrt();
+        let bny = (y1 - y2) / b2.sqrt();
+        let tp2 = Point2D::new(x1 - bnx * d, y1 - bny * d);
+
+        // arc center and angles
+        let anticlockwise = direction < 0.0;
+        let cx = tp1.x + any * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let cy = tp1.y - anx * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let angle_start = (tp1.y - cy).atan2(tp1.x - cx);
+        let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
+
+        self.0.line_to((tp1.x, tp2.x));
+
+        self.arc(cx, cy, radius, angle_start, angle_end, anticlockwise)
+    }
+
+    pub fn last_point(&mut self) -> Option<Point> {
+        // https://github.com/linebender/kurbo/pull/462
+        match self.0.elements().last()? {
+            PathEl::ClosePath => self
+                .0
+                .elements()
+                .iter()
+                .rev()
+                .skip(1)
+                .take_while(|el| !matches!(el, PathEl::ClosePath))
+                .last()
+                .and_then(|el| el.end_point()),
+            other => other.end_point(),
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-arc>
+    pub fn arc(
+        &mut self,
+        x: f64,
+        y: f64,
+        radius: f64,
+        start_angle: f64,
+        end_angle: f64,
+        counterclockwise: bool,
+    ) -> Result<(), IndexSizeError> {
+        // ellipse() with both radii are equal and rotation is 0.
+        self.ellipse(
+            x,
+            y,
+            radius,
+            radius,
+            0.,
+            start_angle,
+            end_angle,
+            counterclockwise,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse>
+    pub fn ellipse(
+        &mut self,
+        x: f64,
+        y: f64,
+        radius_x: f64,
+        radius_y: f64,
+        rotation_angle: f64,
+        start_angle: f64,
+        end_angle: f64,
+        counterclockwise: bool,
+    ) -> Result<(), IndexSizeError> {
+        // Step 1. If any of the arguments are infinite or NaN, then return.
+        if !(x.is_finite() &&
+            y.is_finite() &&
+            radius_x.is_finite() &&
+            radius_y.is_finite() &&
+            rotation_angle.is_finite() &&
+            start_angle.is_finite() &&
+            end_angle.is_finite())
+        {
+            return Ok(());
+        }
+
+        // Step 2. If either radiusX or radiusY are negative, then throw an "IndexSizeError" DOMException.
+        if radius_x.is_sign_negative() || radius_y.is_sign_negative() {
+            return Err(IndexSizeError);
+        }
+
+        let mut start = Angle::radians(start_angle);
+        let mut end = Angle::radians(end_angle);
+
+        // Wrap angles mod 2 * PI if necessary
+        if !counterclockwise && start > end + Angle::two_pi() ||
+            counterclockwise && end > start + Angle::two_pi()
+        {
+            start = start.positive();
+            end = end.positive();
+        }
+
+        // Calculate the total arc we're going to sweep.
+        let sweep = match counterclockwise {
+            true => {
+                if end - start == Angle::two_pi() {
+                    -Angle::two_pi()
+                } else if end > start {
+                    -(Angle::two_pi() - (end - start))
+                } else {
+                    -(start - end)
+                }
+            },
+            false => {
+                if start - end == Angle::two_pi() {
+                    Angle::two_pi()
+                } else if start > end {
+                    Angle::two_pi() - (start - end)
+                } else {
+                    end - start
+                }
+            },
+        };
+
+        let arc = kurbo::Arc::new(
+            (x, y),
+            (radius_x, radius_y),
+            start.radians,
+            sweep.radians,
+            rotation_angle,
+        );
+
+        let mut iter = arc.path_elements(0.01);
+        let kurbo::PathEl::MoveTo(start_point) = iter.next().unwrap() else {
+            unreachable!()
+        };
+
+        self.line_to(start_point.x, start_point.y);
+
+        if sweep.radians.abs() > 1e-3 {
+            self.0.extend(iter);
+        }
+
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-rect>
+    pub fn rect(&mut self, x: f64, y: f64, w: f64, h: f64) {
+        // Step 1. If any of the arguments are infinite or NaN, then return.
+        if !(x.is_finite() && y.is_finite() && w.is_finite() && h.is_finite()) {
+            return;
+        }
+
+        // Step 2. Create a new subpath containing just the four points
+        // (x, y), (x+w, y), (x+w, y+h), (x, y+h), in that order,
+        // with those four points connected by straight lines.
+        self.0.move_to((x, y));
+        self.0.line_to((x + w, y));
+        self.0.line_to((x + w, y + h));
+        self.0.line_to((x, y + h));
+
+        // Step 3. Mark the subpath as closed.
+        self.0.close_path();
+
+        // Step 4. Create a new subpath with the point (x, y) as the only point in the subpath.
+        self.0.move_to((x, y));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath>
+    pub fn is_point_in_path(&self, x: f64, y: f64, fill_rule: FillRule) -> bool {
+        let p = Point::new(x, y);
+        // Step 1. If x or y are infinite or NaN, then return false.
+        if !p.is_finite() {
+            return false;
+        }
+
+        // Step 2. If the point given by the x and y coordinates,
+        // when treated as coordinates in the canvas coordinate space unaffected by the current transformation,
+        // is inside the intended path for path as determined by the fill rule indicated by fillRule,
+        // then return true.
+        // Open subpaths must be implicitly closed when computing the area inside the path,
+        // without affecting the actual subpaths.
+        let mut path = self.clone();
+        path.close_path();
+        let winding = path.0.winding(p);
+        let is_inside = match fill_rule {
+            FillRule::Nonzero => winding != 0,
+            FillRule::Evenodd => (winding % 2) != 0,
+        };
+        if is_inside {
+            return true;
+        }
+        // Points on the path itself must be considered to be inside the path.
+        path.0
+            .segments()
+            .any(|seg| seg.nearest(p, 0.00001).distance_sq < 0.00001)
+    }
+
+    pub fn bounding_box(&self) -> Rect<f64> {
+        let rect = self.0.control_box();
+        Rect::new(
+            Point2D::new(rect.origin().x, rect.origin().y),
+            Size2D::new(rect.width(), rect.height()),
+        )
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -95,28 +428,26 @@ pub enum Canvas2dMsg {
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
     ClearRect(Rect<f32>),
     Clip,
-    ClipPath(Vec<PathSegment>),
+    ClipPath(Path),
     ClosePath,
     Ellipse(Point2D<f32>, f32, f32, f32, f32, f32, bool),
     Fill(FillOrStrokeStyle),
-    FillPath(FillOrStrokeStyle, Vec<PathSegment>),
+    FillPath(FillOrStrokeStyle, Path),
     FillText(String, f64, f64, Option<f64>, FillOrStrokeStyle, bool),
     FillRect(Rect<f32>, FillOrStrokeStyle),
     GetImageData(Rect<u32>, Size2D<u32>, IpcSender<IpcSnapshot>),
-    GetTransform(IpcSender<Transform2D<f32>>),
     IsPointInCurrentPath(f64, f64, FillRule, IpcSender<bool>),
-    IsPointInPath(Vec<PathSegment>, f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
     MeasureText(String, IpcSender<TextMetrics>),
-    PutImageData(Rect<u32>, IpcBytesReceiver),
+    PutImageData(Rect<u32>, IpcSnapshot),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,
     SaveContext,
     StrokeRect(Rect<f32>, FillOrStrokeStyle),
     Stroke(FillOrStrokeStyle),
-    StrokePath(FillOrStrokeStyle, Vec<PathSegment>),
+    StrokePath(FillOrStrokeStyle, Path),
     SetLineWidth(f32),
     SetLineCap(LineCapStyle),
     SetLineJoin(LineJoinStyle),
@@ -209,24 +540,27 @@ impl RadialGradientStyle {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SurfaceStyle {
-    pub surface_data: ByteBuf,
+    pub surface_data: IpcSnapshot,
     pub surface_size: Size2D<u32>,
     pub repeat_x: bool,
     pub repeat_y: bool,
+    pub transform: Transform2D<f32>,
 }
 
 impl SurfaceStyle {
     pub fn new(
-        surface_data: Vec<u8>,
+        surface_data: IpcSnapshot,
         surface_size: Size2D<u32>,
         repeat_x: bool,
         repeat_y: bool,
+        transform: Transform2D<f32>,
     ) -> Self {
         Self {
-            surface_data: ByteBuf::from(surface_data),
+            surface_data,
             surface_size,
             repeat_x,
             repeat_y,
+            transform,
         }
     }
 }
@@ -239,47 +573,26 @@ pub enum FillOrStrokeStyle {
     Surface(SurfaceStyle),
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Display, Deserialize, EnumString, MallocSizeOf, PartialEq, Serialize,
+)]
 pub enum LineCapStyle {
     Butt = 0,
     Round = 1,
     Square = 2,
 }
 
-impl FromStr for LineCapStyle {
-    type Err = ();
-
-    fn from_str(string: &str) -> Result<LineCapStyle, ()> {
-        match string {
-            "butt" => Ok(LineCapStyle::Butt),
-            "round" => Ok(LineCapStyle::Round),
-            "square" => Ok(LineCapStyle::Square),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Display, EnumString, MallocSizeOf, PartialEq, Serialize,
+)]
 pub enum LineJoinStyle {
     Round = 0,
     Bevel = 1,
     Miter = 2,
 }
 
-impl FromStr for LineJoinStyle {
-    type Err = ();
-
-    fn from_str(string: &str) -> Result<LineJoinStyle, ()> {
-        match string {
-            "round" => Ok(LineJoinStyle::Round),
-            "bevel" => Ok(LineJoinStyle::Bevel),
-            "miter" => Ok(LineJoinStyle::Miter),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Display, EnumString, PartialEq, Serialize)]
+#[strum(serialize_all = "kebab-case")]
 pub enum RepetitionStyle {
     Repeat,
     RepeatX,
@@ -287,79 +600,35 @@ pub enum RepetitionStyle {
     NoRepeat,
 }
 
-impl FromStr for RepetitionStyle {
-    type Err = ();
-
-    fn from_str(string: &str) -> Result<RepetitionStyle, ()> {
-        match string {
-            "repeat" => Ok(RepetitionStyle::Repeat),
-            "repeat-x" => Ok(RepetitionStyle::RepeatX),
-            "repeat-y" => Ok(RepetitionStyle::RepeatY),
-            "no-repeat" => Ok(RepetitionStyle::NoRepeat),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+/// <https://drafts.fxtf.org/compositing/#compositemode>
+#[derive(
+    Clone, Copy, Debug, Deserialize, Display, EnumString, MallocSizeOf, PartialEq, Serialize,
+)]
+#[strum(serialize_all = "kebab-case")]
 pub enum CompositionStyle {
-    SrcIn,
-    SrcOut,
-    SrcOver,
-    SrcAtop,
-    DestIn,
-    DestOut,
-    DestOver,
-    DestAtop,
-    Copy,
-    Lighter,
-    Xor,
     Clear,
+    Copy,
+    SourceOver,
+    DestinationOver,
+    SourceIn,
+    DestinationIn,
+    SourceOut,
+    DestinationOut,
+    SourceAtop,
+    DestinationAtop,
+    Xor,
+    Lighter,
+    // PlusDarker,
+    // PlusLighter,
 }
 
-impl FromStr for CompositionStyle {
-    type Err = ();
-
-    fn from_str(string: &str) -> Result<CompositionStyle, ()> {
-        match string {
-            "source-in" => Ok(CompositionStyle::SrcIn),
-            "source-out" => Ok(CompositionStyle::SrcOut),
-            "source-over" => Ok(CompositionStyle::SrcOver),
-            "source-atop" => Ok(CompositionStyle::SrcAtop),
-            "destination-in" => Ok(CompositionStyle::DestIn),
-            "destination-out" => Ok(CompositionStyle::DestOut),
-            "destination-over" => Ok(CompositionStyle::DestOver),
-            "destination-atop" => Ok(CompositionStyle::DestAtop),
-            "copy" => Ok(CompositionStyle::Copy),
-            "lighter" => Ok(CompositionStyle::Lighter),
-            "xor" => Ok(CompositionStyle::Xor),
-            "clear" => Ok(CompositionStyle::Clear),
-            _ => Err(()),
-        }
-    }
-}
-
-impl CompositionStyle {
-    pub fn to_str(&self) -> &str {
-        match *self {
-            CompositionStyle::SrcIn => "source-in",
-            CompositionStyle::SrcOut => "source-out",
-            CompositionStyle::SrcOver => "source-over",
-            CompositionStyle::SrcAtop => "source-atop",
-            CompositionStyle::DestIn => "destination-in",
-            CompositionStyle::DestOut => "destination-out",
-            CompositionStyle::DestOver => "destination-over",
-            CompositionStyle::DestAtop => "destination-atop",
-            CompositionStyle::Copy => "copy",
-            CompositionStyle::Lighter => "lighter",
-            CompositionStyle::Xor => "xor",
-            CompositionStyle::Clear => "clear",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+/// <https://drafts.fxtf.org/compositing/#ltblendmodegt>
+#[derive(
+    Clone, Copy, Debug, Deserialize, Display, EnumString, MallocSizeOf, PartialEq, Serialize,
+)]
+#[strum(serialize_all = "kebab-case")]
 pub enum BlendingStyle {
+    // Normal,
     Multiply,
     Screen,
     Overlay,
@@ -377,53 +646,6 @@ pub enum BlendingStyle {
     Luminosity,
 }
 
-impl FromStr for BlendingStyle {
-    type Err = ();
-
-    fn from_str(string: &str) -> Result<BlendingStyle, ()> {
-        match string {
-            "multiply" => Ok(BlendingStyle::Multiply),
-            "screen" => Ok(BlendingStyle::Screen),
-            "overlay" => Ok(BlendingStyle::Overlay),
-            "darken" => Ok(BlendingStyle::Darken),
-            "lighten" => Ok(BlendingStyle::Lighten),
-            "color-dodge" => Ok(BlendingStyle::ColorDodge),
-            "color-burn" => Ok(BlendingStyle::ColorBurn),
-            "hard-light" => Ok(BlendingStyle::HardLight),
-            "soft-light" => Ok(BlendingStyle::SoftLight),
-            "difference" => Ok(BlendingStyle::Difference),
-            "exclusion" => Ok(BlendingStyle::Exclusion),
-            "hue" => Ok(BlendingStyle::Hue),
-            "saturation" => Ok(BlendingStyle::Saturation),
-            "color" => Ok(BlendingStyle::Color),
-            "luminosity" => Ok(BlendingStyle::Luminosity),
-            _ => Err(()),
-        }
-    }
-}
-
-impl BlendingStyle {
-    pub fn to_str(&self) -> &str {
-        match *self {
-            BlendingStyle::Multiply => "multiply",
-            BlendingStyle::Screen => "screen",
-            BlendingStyle::Overlay => "overlay",
-            BlendingStyle::Darken => "darken",
-            BlendingStyle::Lighten => "lighten",
-            BlendingStyle::ColorDodge => "color-dodge",
-            BlendingStyle::ColorBurn => "color-burn",
-            BlendingStyle::HardLight => "hard-light",
-            BlendingStyle::SoftLight => "soft-light",
-            BlendingStyle::Difference => "difference",
-            BlendingStyle::Exclusion => "exclusion",
-            BlendingStyle::Hue => "hue",
-            BlendingStyle::Saturation => "saturation",
-            BlendingStyle::Color => "color",
-            BlendingStyle::Luminosity => "luminosity",
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CompositionOrBlending {
     Composition(CompositionStyle),
@@ -432,7 +654,7 @@ pub enum CompositionOrBlending {
 
 impl Default for CompositionOrBlending {
     fn default() -> CompositionOrBlending {
-        CompositionOrBlending::Composition(CompositionStyle::SrcOver)
+        CompositionOrBlending::Composition(CompositionStyle::SourceOver)
     }
 }
 
@@ -452,7 +674,18 @@ impl FromStr for CompositionOrBlending {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    Display,
+    EnumString,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+)]
 pub enum TextAlign {
     #[default]
     Start,
@@ -462,22 +695,18 @@ pub enum TextAlign {
     Center,
 }
 
-impl FromStr for TextAlign {
-    type Err = ();
-
-    fn from_str(string: &str) -> Result<TextAlign, ()> {
-        match string {
-            "start" => Ok(TextAlign::Start),
-            "end" => Ok(TextAlign::End),
-            "left" => Ok(TextAlign::Left),
-            "right" => Ok(TextAlign::Right),
-            "center" => Ok(TextAlign::Center),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    Display,
+    EnumString,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+)]
 pub enum TextBaseline {
     Top,
     Hanging,
@@ -488,41 +717,23 @@ pub enum TextBaseline {
     Bottom,
 }
 
-impl FromStr for TextBaseline {
-    type Err = ();
-
-    fn from_str(string: &str) -> Result<TextBaseline, ()> {
-        match string {
-            "top" => Ok(TextBaseline::Top),
-            "hanging" => Ok(TextBaseline::Hanging),
-            "middle" => Ok(TextBaseline::Middle),
-            "alphabetic" => Ok(TextBaseline::Alphabetic),
-            "ideographic" => Ok(TextBaseline::Ideographic),
-            "bottom" => Ok(TextBaseline::Bottom),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    Display,
+    EnumString,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+)]
 pub enum Direction {
     Ltr,
     Rtl,
     #[default]
     Inherit,
-}
-
-impl FromStr for Direction {
-    type Err = ();
-
-    fn from_str(string: &str) -> Result<Direction, ()> {
-        match string {
-            "ltr" => Ok(Direction::Ltr),
-            "rtl" => Ok(Direction::Rtl),
-            "inherit" => Ok(Direction::Inherit),
-            _ => Err(()),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]

@@ -1,8 +1,28 @@
 'use strict';
 
 const operatorToleranceDict = {
+  argMax: {float32: 0, float16: 0},
+  argMin: {float32: 0, float16: 0},
   batchNormalization: {float32: 6, float16: 6},
   clamp: {float32: 0, float16: 0},
+
+  // Element-wise binary operations
+  add: {float32: 1, float16: 1},
+  sub: {
+    float32: 1,
+    float16: 1,
+    int8: 0,
+    uint8: 0,
+    int32: 0,
+    uint32: 0,
+    int64: 0,
+    uint64: 0
+  },
+  mul: {float32: 1, float16: 1},
+  max: {float32: 0, float16: 0},
+  min: {float32: 0, float16: 0},
+  // Element-wise binary operations
+
   elu: {float32: 18, float16: 18},
   gelu: {float32: 18, float16: 18},
   hardSigmoid: {float32: 2, float16: 2},
@@ -11,10 +31,25 @@ const operatorToleranceDict = {
   linear: {float32: 2, float16: 2},
   prelu: {float32: 1, float16: 1},
   relu: {float32: 0, float16: 0, int8: 0, int32: 0},
-  reshape: {float32: 0, float16: 0},
   sigmoid: {float32: 34, float16: 10},
   softplus: {float32: 18, float16: 18},
   softsign: {float32: 3, float16: 3},
+  tanh: {float32: 16, float16: 16},
+};
+
+const zeroULPToleranceOperatorList = [
+  // data movement operators
+  'concat', 'expand', 'gather', 'gatherElements', 'gatherND', 'identity', 'pad',
+  'reshape', 'reverse', 'scatterElements', 'scatterND', 'slice', 'split',
+  'tile', 'transpose',
+
+  // element-wise logical operators
+  'equal', 'notEqual', 'greater', 'greaterOrEqual', 'lesser', 'lesserOrEqual',
+  'logicalNot', 'logicalAnd', 'logicalOr', 'logicalXor'
+];
+
+const getZeroULPTolerance = () => {
+  return {metricType: 'ULP', value: 0};
 };
 
 const getSoftmaxPrecisionTolerance =
@@ -66,11 +101,34 @@ const getPrecisionTolerance = (graphResources, intermediateOperands) => {
                               op, graphResources, intermediateOperands)
                               .value;
         break;
+      case 'reduceL1':
+      case 'reduceL2':
+      case 'reduceLogSum':
+      case 'reduceLogSumExp':
+      case 'reduceMax':
+      case 'reduceMean':
+      case 'reduceMin':
+      case 'reduceProduct':
+      case 'reduceSum':
+      case 'reduceSumSquare':
+        toleranceValue += getReductionOperatorsPrecisionTolerance(
+                              op, graphResources, intermediateOperands)
+                              .value;
+        break;
+      case 'resample2d':
+        toleranceValue += getResample2dPrecisionTolerance(
+                              op, graphResources, intermediateOperands)
+                              .value;
+        break;
       default:
-        const operatorTolerance =
-            operatorToleranceDict[op.name]?.[expectedDataType];
-        if (operatorTolerance !== undefined) {
-          toleranceValue += operatorTolerance;
+        if (zeroULPToleranceOperatorList.includes(op.name)) {
+          toleranceValue += getZeroULPTolerance().value;
+        } else {
+          const operatorTolerance =
+              operatorToleranceDict[op.name]?.[expectedDataType];
+          if (operatorTolerance !== undefined) {
+            toleranceValue += operatorTolerance;
+          }
         }
     }
   });
@@ -1070,27 +1128,81 @@ const getExpectedDataTypeOfSingleOutput = (expectedOutput) => {
   return dataType;
 };
 
-const getReducedElementCount =
-    (graphResources) => {
-      const args = graphResources.operators[0].arguments;
-      const inputShape = graphResources.inputs[args[0][Object.keys(args[0])[0]]]
-                             .descriptor.shape;
-      const rank = inputShape.length;
-      const options =
-          args.length === 2 ? {...args[1][Object.keys(args[1])[0]]} : {};
-      let sizes;
-
-      if (options && options.axes) {
-        sizes = options.axes.map(
-            (axis) => axis < 0 ? inputShape[axis + rank] : inputShape[axis]);
+const getReductionOperatorsPrecisionTolerance =
+    (op, graphResources, intermediateOperands) => {
+      let tolerance;
+      const operatorName = op.name;
+      if (op.name === 'reduceMax' || op.name === 'reduceMin') {
+        tolerance = 0;
       } else {
-        sizes = inputShape;
+        // other reduction operators
+        const args = op.arguments;
+        const {inputs} = graphResources;
+        let inputShape;
+        const inputIndex = args[0][Object.keys(args[0])[0]];
+        if (inputs[inputIndex]) {
+          inputShape = inputs[inputIndex].descriptor.shape;
+        } else {
+          inputShape = intermediateOperands[inputIndex].shape;
+        }
+
+        const rank = inputShape.length;
+        const options =
+            args.length === 2 ? {...args[1][Object.keys(args[1])[0]]} : {};
+        let sizes;
+
+        if (options && options.axes) {
+          sizes = options.axes.map(
+              (axis) => axis < 0 ? inputShape[axis + rank] : inputShape[axis]);
+        } else {
+          sizes = inputShape;
+        }
+
+        const elementCount = sizes.reduce(
+            (accumulator, currentValue) => accumulator * currentValue, 1);
+        tolerance = elementCount;
       }
 
-      return sizes.length ?
-          sizes.reduce(
-              (accumulator, currentValue) => accumulator * currentValue) :
-          1;
+      const toleranceDict = {
+        reduceL1: tolerance,
+        reduceL2: tolerance * 2 + 2,
+        reduceLogSum: tolerance + 18,
+        reduceLogSumExp: tolerance * 2 + 18,
+        reduceMax: tolerance,
+        reduceMean: tolerance + 2,
+        reduceMin: tolerance,
+        reduceProduct: tolerance,
+        reduceSum: tolerance,
+        reduceSumSquare: tolerance * 2
+      };
+      return {metricType: 'ULP', value: toleranceDict[operatorName]};
+    };
+
+const getResample2dPrecisionTolerance =
+    (op, graphResources, intermediateOperands) => {
+      const args = op.arguments;
+      const options =
+          args.length === 2 ? {...args[1][Object.keys(args[1])[0]]} : {};
+      const expectedOutputs = graphResources.expectedOutputs;
+      const dataType =
+          expectedOutputs[Object.keys(expectedOutputs)[0]].descriptor.dataType;
+      let tolerance;
+
+      if (options.mode && options.mode === 'linear') {
+        // interpolation mode is linear
+        if (dataType === 'float32') {
+          tolerance = 84;
+        } else if (dataType === 'float16') {
+          tolerance = 10;
+        } else {
+          tolerance = 1;
+        }
+      } else {
+        // interpolation mode is nearest-neighbor
+        tolerance = 0;
+      }
+
+      return {metricType: 'ULP', value: tolerance};
     };
 
 // `cast_to_supported_type` will check if the graph input/output is

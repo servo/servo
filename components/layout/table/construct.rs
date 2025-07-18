@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::convert::{TryFrom, TryInto};
 use std::iter::repeat;
 
 use atomic_refcell::AtomicRef;
@@ -21,12 +20,11 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox};
+use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
-    IndependentNonReplacedContents,
 };
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
@@ -122,9 +120,7 @@ impl Table {
 
         let ifc = IndependentFormattingContext {
             base: LayoutBoxBase::new((&table_info).into(), table_style),
-            contents: IndependentFormattingContextContents::NonReplaced(
-                IndependentNonReplacedContents::Table(table),
-            ),
+            contents: IndependentFormattingContextContents::Table(table),
         };
 
         (table_info, ifc)
@@ -716,12 +712,18 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
         row_builder.finish();
 
         let style = anonymous_info.style.clone();
-        self.push_table_row(ArcRefCell::new(TableTrack {
+        let table_row = ArcRefCell::new(TableTrack {
             base: LayoutBoxBase::new((&anonymous_info).into(), style.clone()),
             group_index: self.current_row_group_index,
             is_anonymous: true,
             shared_background_style: SharedStyle::new(style),
-        }));
+        });
+        self.push_table_row(table_row.clone());
+
+        self.info
+            .node
+            .pseudo_element_box_slot(PseudoElement::ServoAnonymousTableRow)
+            .set(LayoutBox::TableLevelBox(TableLevelBox::Track(table_row)))
     }
 
     fn push_table_row(&mut self, table_track: ArcRefCell<TableTrack>) {
@@ -769,11 +771,10 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
                     self.current_row_group_index = Some(new_row_group_index);
 
-                    NonReplacedContents::try_from(contents).unwrap().traverse(
-                        self.context,
-                        info,
-                        self,
-                    );
+                    let Contents::NonReplaced(non_replaced_contents) = contents else {
+                        unreachable!("Replaced should not have a LayoutInternal display type.");
+                    };
+                    non_replaced_contents.traverse(self.context, info, self);
                     self.finish_anonymous_row_if_needed();
 
                     self.current_row_group_index = None;
@@ -787,14 +788,13 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     self.finish_anonymous_row_if_needed();
 
                     let context = self.context;
-
                     let mut row_builder =
                         TableRowBuilder::new(self, info, self.current_propagated_data);
-                    NonReplacedContents::try_from(contents).unwrap().traverse(
-                        context,
-                        info,
-                        &mut row_builder,
-                    );
+
+                    let Contents::NonReplaced(non_replaced_contents) = contents else {
+                        unreachable!("Replaced should not have a LayoutInternal display type.");
+                    };
+                    non_replaced_contents.traverse(context, info, &mut row_builder);
                     row_builder.finish();
 
                     let row = ArcRefCell::new(TableTrack {
@@ -807,11 +807,17 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(row)));
                 },
                 DisplayLayoutInternal::TableColumn => {
+                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_column = old_box.and_then(|layout_box| match layout_box {
+                        LayoutBox::TableLevelBox(TableLevelBox::Track(column)) => Some(column),
+                        _ => None,
+                    });
                     let column = add_column(
                         &mut self.builder.table.columns,
                         info,
                         None,  /* group_index */
                         false, /* is_anonymous */
+                        old_column,
                     );
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
                 },
@@ -822,11 +828,10 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         columns: Vec::new(),
                     };
 
-                    NonReplacedContents::try_from(contents).unwrap().traverse(
-                        self.context,
-                        info,
-                        &mut column_group_builder,
-                    );
+                    let Contents::NonReplaced(non_replaced_contents) = contents else {
+                        unreachable!("Replaced should not have a LayoutInternal display type.");
+                    };
+                    non_replaced_contents.traverse(self.context, info, &mut column_group_builder);
 
                     let first_column = self.builder.table.columns.len();
                     if column_group_builder.columns.is_empty() {
@@ -835,6 +840,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                             info,
                             Some(column_group_index),
                             true, /* is_anonymous */
+                            None,
                         );
                     } else {
                         self.builder
@@ -855,27 +861,35 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     )));
                 },
                 DisplayLayoutInternal::TableCaption => {
-                    let contents = match contents.try_into() {
-                        Ok(non_replaced_contents) => {
-                            IndependentNonReplacedContents::Flow(BlockFormattingContext::construct(
+                    let Contents::NonReplaced(non_replaced_contents) = contents else {
+                        unreachable!("Replaced should not have a LayoutInternal display type.");
+                    };
+
+                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_caption = old_box.and_then(|layout_box| match layout_box {
+                        LayoutBox::TableLevelBox(TableLevelBox::Caption(caption)) => Some(caption),
+                        _ => None,
+                    });
+
+                    let caption = old_caption.unwrap_or_else(|| {
+                        let contents = IndependentFormattingContextContents::Flow(
+                            BlockFormattingContext::construct(
                                 self.context,
                                 info,
                                 non_replaced_contents,
                                 self.current_propagated_data,
                                 false, /* is_list_item */
-                            ))
-                        },
-                        Err(_replaced) => {
-                            unreachable!("Replaced should not have a LayoutInternal display type.");
-                        },
-                    };
+                            ),
+                        );
 
-                    let caption = ArcRefCell::new(TableCaption {
-                        context: IndependentFormattingContext {
-                            base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                            contents: IndependentFormattingContextContents::NonReplaced(contents),
-                        },
+                        ArcRefCell::new(TableCaption {
+                            context: IndependentFormattingContext {
+                                base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                                contents,
+                            },
+                        })
                     });
+
                     self.builder.table.captions.push(caption.clone());
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Caption(caption)));
                 },
@@ -968,14 +982,22 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
         }
 
         let block_container = builder.finish();
+        let new_table_cell = ArcRefCell::new(TableSlotCell {
+            base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
+            contents: BlockFormattingContext::from_block_container(block_container),
+            colspan: 1,
+            rowspan: 1,
+        });
         self.table_traversal
             .builder
-            .add_cell(ArcRefCell::new(TableSlotCell {
-                base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
-                contents: BlockFormattingContext::from_block_container(block_container),
-                colspan: 1,
-                rowspan: 1,
-            }));
+            .add_cell(new_table_cell.clone());
+
+        self.info
+            .node
+            .pseudo_element_box_slot(PseudoElement::ServoAnonymousTableCell)
+            .set(LayoutBox::TableLevelBox(TableLevelBox::Cell(
+                new_table_cell,
+            )));
     }
 }
 
@@ -997,48 +1019,54 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
         match display {
             DisplayGeneratingBox::LayoutInternal(internal) => match internal {
                 DisplayLayoutInternal::TableCell => {
-                    // This value will already have filtered out rowspan=0
-                    // in quirks mode, so we don't have to worry about that.
-                    let (rowspan, colspan) = if info.pseudo_element_type.is_none() {
-                        let node = info.node.to_threadsafe();
-                        let rowspan = node.get_rowspan().unwrap_or(1) as usize;
-                        let colspan = node.get_colspan().unwrap_or(1) as usize;
-
-                        // The HTML specification clamps value of `rowspan` to [0, 65534] and
-                        // `colspan` to [1, 1000].
-                        assert!((1..=1000).contains(&colspan));
-                        assert!((0..=65534).contains(&rowspan));
-
-                        (rowspan, colspan)
-                    } else {
-                        (1, 1)
-                    };
-
-                    let propagated_data =
-                        self.propagated_data.disallowing_percentage_table_columns();
-                    let contents = match contents.try_into() {
-                        Ok(non_replaced_contents) => {
-                            BlockFormattingContext::construct(
-                                self.table_traversal.context,
-                                info,
-                                non_replaced_contents,
-                                propagated_data,
-                                false, /* is_list_item */
-                            )
-                        },
-                        Err(_replaced) => {
-                            unreachable!("Replaced should not have a LayoutInternal display type.");
-                        },
-                    };
-
                     self.finish_current_anonymous_cell_if_needed();
 
-                    let cell = ArcRefCell::new(TableSlotCell {
-                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                        contents,
-                        colspan,
-                        rowspan,
+                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_cell = old_box.and_then(|layout_box| match layout_box {
+                        LayoutBox::TableLevelBox(TableLevelBox::Cell(cell)) => Some(cell),
+                        _ => None,
                     });
+
+                    let cell = old_cell.unwrap_or_else(|| {
+                        // This value will already have filtered out rowspan=0
+                        // in quirks mode, so we don't have to worry about that.
+                        let (rowspan, colspan) = if info.pseudo_element_type.is_none() {
+                            let node = info.node.to_threadsafe();
+                            let rowspan = node.get_rowspan().unwrap_or(1) as usize;
+                            let colspan = node.get_colspan().unwrap_or(1) as usize;
+
+                            // The HTML specification clamps value of `rowspan` to [0, 65534] and
+                            // `colspan` to [1, 1000].
+                            assert!((1..=1000).contains(&colspan));
+                            assert!((0..=65534).contains(&rowspan));
+
+                            (rowspan, colspan)
+                        } else {
+                            (1, 1)
+                        };
+
+                        let propagated_data =
+                            self.propagated_data.disallowing_percentage_table_columns();
+                        let Contents::NonReplaced(non_replaced_contents) = contents else {
+                            unreachable!("Replaced should not have a LayoutInternal display type.");
+                        };
+
+                        let contents = BlockFormattingContext::construct(
+                            self.table_traversal.context,
+                            info,
+                            non_replaced_contents,
+                            propagated_data,
+                            false, /* is_list_item */
+                        );
+
+                        ArcRefCell::new(TableSlotCell {
+                            base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                            contents,
+                            colspan,
+                            rowspan,
+                        })
+                    });
+
                     self.table_traversal.builder.add_cell(cell.clone());
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Cell(cell)));
                 },
@@ -1089,11 +1117,17 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
             ::std::mem::forget(box_slot);
             return;
         }
+        let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+        let old_column = old_box.and_then(|layout_box| match layout_box {
+            LayoutBox::TableLevelBox(TableLevelBox::Track(column)) => Some(column),
+            _ => None,
+        });
         let column = add_column(
             &mut self.columns,
             info,
             Some(self.column_group_index),
             false, /* is_anonymous */
+            old_column,
         );
         box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
     }
@@ -1116,6 +1150,7 @@ fn add_column(
     column_info: &NodeAndStyleInfo,
     group_index: Option<usize>,
     is_anonymous: bool,
+    old_column: Option<ArcRefCell<TableTrack>>,
 ) -> ArcRefCell<TableTrack> {
     let span = if column_info.pseudo_element_type.is_none() {
         column_info.node.to_threadsafe().get_span().unwrap_or(1)
@@ -1126,11 +1161,13 @@ fn add_column(
     // The HTML specification clamps value of `span` for `<col>` to [1, 1000].
     assert!((1..=1000).contains(&span));
 
-    let column = ArcRefCell::new(TableTrack {
-        base: LayoutBoxBase::new(column_info.into(), column_info.style.clone()),
-        group_index,
-        is_anonymous,
-        shared_background_style: SharedStyle::new(column_info.style.clone()),
+    let column = old_column.unwrap_or_else(|| {
+        ArcRefCell::new(TableTrack {
+            base: LayoutBoxBase::new(column_info.into(), column_info.style.clone()),
+            group_index,
+            is_anonymous,
+            shared_background_style: SharedStyle::new(column_info.style.clone()),
+        })
     });
     collection.extend(repeat(column.clone()).take(span as usize));
     column

@@ -7,149 +7,110 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
   </head>
   <body>
     <script>
-      let sampleRate = 8000;
-      let renderFrames = 8000;
 
-      let audit = Audit.createTaskRunner();
+      const sampleRate = 8000;
+      const renderFrames = 8000;
 
-      audit.define(
-          {label: 'cancel-time', description: 'handle cancelTime values'},
-          (task, should) => {
-            let context = new OfflineAudioContext({
-              numberOfChannels: 1,
-              length: renderFrames,
-              sampleRate: sampleRate
-            });
 
-            let src = new ConstantSourceNode(context);
-            src.connect(context.destination);
+      test(t => {
+        const context = new OfflineAudioContext({
+          numberOfChannels: 1,
+          length: renderFrames,
+          sampleRate: sampleRate
+        });
 
-            should(
-                () => src.offset.cancelScheduledValues(-1),
-                'cancelScheduledValues(-1)')
-                .throw(RangeError);
+        const source = new ConstantSourceNode(context);
+        source.connect(context.destination);
 
-            // These are TypeErrors because |cancelTime| is a
-            // double, not unrestricted double.
-            should(
-                () => src.offset.cancelScheduledValues(NaN),
-                'cancelScheduledValues(NaN)')
-                .throw(TypeError);
+        assert_throws_js(RangeError,
+          () => source.offset.cancelScheduledValues(-1),
+          'cancelScheduledValues(-1)');
 
-            should(
-                () => src.offset.cancelScheduledValues(Infinity),
-                'cancelScheduledValues(Infinity)')
-                .throw(TypeError);
+        // |cancelTime| is a double, so NaN and Infinity must throw TypeError.
+        assert_throws_js(TypeError,
+          () => source.offset.cancelScheduledValues(NaN),
+          'cancelScheduledValues(NaN)');
 
-            task.done();
-          });
+        assert_throws_js(TypeError,
+          () => source.offset.cancelScheduledValues(Infinity),
+          'cancelScheduledValues(Infinity)');
+      }, 'cancel‑time: handle cancelTime values');
 
-      audit.define(
-          {label: 'cancel1', description: 'cancel setValueCurve'},
-          (task, should) => {
-            let context = new OfflineAudioContext({
-              numberOfChannels: 1,
-              length: renderFrames,
-              sampleRate: sampleRate
-            });
+      promise_test(async t => {
+        const context = new OfflineAudioContext({
+          numberOfChannels: 1,
+          length: renderFrames,
+          sampleRate: sampleRate
+        });
 
-            let src = new ConstantSourceNode(context);
-            let gain = new GainNode(context);
-            src.connect(gain).connect(context.destination);
+        const source = new ConstantSourceNode(context);
+        const gain = new GainNode(context);
+        source.connect(gain).connect(context.destination);
 
-            // Initial time and value for first automation (setValue)
-            let time0 = 0;
-            let value0 = 0.5;
+        // Initial time and value for first automation (setValue)
+        const time0 = 0;
+        const value0 = 0.5;
 
-            // Time and duration of the setValueCurve. We'll also schedule a
-            // setValue at the same time.
-            let value1 = 1.5;
-            let curveStartTime = 0.25;
-            let curveDuration = 0.25;
+        // Time and duration of the setValueCurve. We'll also schedule a
+        // setValue at the same time.
+        const value1 = 1.5;
+        const curveStartTime = 0.25;
+        const curveDuration = 0.25;
 
-            // Time at which to cancel events
-            let cancelTime = 0.3;
+        // Time at which to cancel events
+        const cancelTime = 0.3;
 
-            // Time and value for event added after cancelScheduledValues has
-            // been called.
-            let time2 = curveStartTime + curveDuration / 2;
-            let value2 = 3;
+        // Time and value for event added after cancelScheduledValues has
+        // been called.
+        const time2 = curveStartTime + curveDuration / 2;
+        const value2 = 3;
 
-            // Self-consistency checks for the test.
-            should(cancelTime, 'cancelTime is after curve start')
-                .beGreaterThan(curveStartTime);
-            should(cancelTime, 'cancelTime is before curve ends')
-                .beLessThan(curveStartTime + curveDuration);
+        // Self‑consistency checks for the test.
+        assert_greater_than(cancelTime, curveStartTime,
+                            'cancelTime is after curve start');
+        assert_less_than(cancelTime, curveStartTime + curveDuration,
+                         'cancelTime is before curve ends');
 
-            // These assertions are just to show what's happening
-            should(
-                () => gain.gain.setValueAtTime(value0, time0),
-                `gain.gain.setValueAtTime(${value0}, ${time0})`)
-                .notThrow();
-            // setValue at the sime time as the curve, to test that this event
-            // wasn't rmeoved.
-            should(
-                () => gain.gain.setValueAtTime(value1, curveStartTime),
-                `gain.gain.setValueAtTime(${value1}, ${curveStartTime})`)
-                .notThrow();
+        // These assertions are just to show what's happening
+        gain.gain.setValueAtTime(value0, time0);
+        // setValue at the same time as the curve, to test that this event
+        // wasn't removed.
+        gain.gain.setValueAtTime(value1, curveStartTime);
 
-            should(
-                () => gain.gain.setValueCurveAtTime(
-                    [1, -1], curveStartTime, curveDuration),
-                `gain.gain.setValueCurveAtTime(..., ${curveStartTime}, ${
-                    curveDuration})`)
-                .notThrow();
+        gain.gain.setValueCurveAtTime([1, -1], curveStartTime, curveDuration);
 
-            // An event after the curve to verify this is removed.
-            should(
-                () => gain.gain.setValueAtTime(
-                    99, curveStartTime + curveDuration),
-                `gain.gain.setValueAtTime(99, ${
-                    curveStartTime + curveDuration})`)
-                .notThrow();
+        // An event after the curve to verify this is removed.
+        gain.gain.setValueAtTime(99, curveStartTime + curveDuration);
 
-            // Cancel events now.
-            should(
-                () => gain.gain.cancelScheduledValues(cancelTime),
-                `gain.gain.cancelScheduledValues(${cancelTime})`)
-                .notThrow();
+        // Cancel events now.
+        gain.gain.cancelScheduledValues(cancelTime);
 
-            // Simple check that the setValueCurve is gone, by scheduling
-            // something in the middle of the (now deleted) event
-            should(
-                () => gain.gain.setValueAtTime(value2, time2),
-                `gain.gain.setValueAtTime(${value2}, ${time2})`)
-                .notThrow();
+        // Simple check that the setValueCurve is gone, by scheduling
+        // something in the middle of the (now deleted) event
+        gain.gain.setValueAtTime(value2, time2);
 
-            src.start();
-            context.startRendering()
-                .then(buffer => {
-                  let audio = buffer.getChannelData(0);
+        source.start();
+        const buffer = await context.startRendering();
+        const audio = buffer.getChannelData(0);
 
-                  // After canceling events, verify that the outputs have the
-                  // desired values.
-                  let curveFrame = curveStartTime * context.sampleRate;
-                  should(
-                      audio.slice(0, curveFrame), `output[0:${curveFrame - 1}]`)
-                      .beConstantValueOf(value0);
+        const curveFrame = curveStartTime * context.sampleRate;
+        const time2Frame = time2 * context.sampleRate;
 
-                  let time2Frame = time2 * context.sampleRate;
-                  should(
-                      audio.slice(curveFrame, time2Frame),
-                      `output[${curveFrame}:${time2Frame - 1}]`)
-                      .beConstantValueOf(value1);
+        assert_constant_value(audio.slice(0, curveFrame),
+                              value0,
+                              `output[0:${curveFrame - 1}]`);
 
-                  should(audio.slice(time2Frame), `output[${time2Frame}:]`)
-                      .beConstantValueOf(value2);
-                })
-                .then(() => task.done());
-          });
+        assert_constant_value(audio.slice(curveFrame, time2Frame),
+                              value1,
+                              `output[${curveFrame}:${time2Frame - 1}]`);
 
-      audit.run();
+        assert_constant_value(audio.slice(time2Frame),
+                              value2,
+                              `output[${time2Frame}:]`);
+      }, 'cancel1: cancel setValueCurve');
     </script>
   </body>
 </html>

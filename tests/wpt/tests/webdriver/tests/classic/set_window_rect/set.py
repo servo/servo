@@ -143,7 +143,7 @@ def test_x_y_floats(session):
     response = set_window_rect(session, {"x": 150.5, "y": 250})
     value = assert_success(response)
 
-    # Wayland doesn't return correct coordinates after changing window position.
+    # Unlike X11, Wayland does not permit applications to change their window position programmatically.
     if not is_wayland():
         assert value["x"] == 150
         assert value["y"] == 250
@@ -151,7 +151,7 @@ def test_x_y_floats(session):
     response = set_window_rect(session, {"x": 150, "y": 250.5})
     value = assert_success(response, session.window.rect)
 
-    # Wayland doesn't return correct coordinates after changing window position.
+    # Unlike X11, Wayland does not permit applications to change their window position programmatically.
     if not is_wayland():
         assert value["x"] == 150
         assert value["y"] == 250
@@ -186,7 +186,14 @@ def test_width_height_floats(session):
     {"height": None, "Y": None},
 
     {"width": None, "height": None, "x": None, "y": None},
+])
+def test_with_none_values(session, rect):
+    original = session.window.rect
+    response = set_window_rect(session, rect)
+    assert_success(response, original)
 
+
+@pytest.mark.parametrize("rect", [
     {"width": 200},
     {"height": 200},
     {"x": 200},
@@ -196,10 +203,20 @@ def test_width_height_floats(session):
     {"width": 200, "y": 200},
     {"height": 200, "y": 200},
 ])
-def test_no_change(session, rect):
+def test_partial_input(session, rect):
     original = session.window.rect
     response = set_window_rect(session, rect)
-    assert_success(response, original)
+    value = assert_success(response, session.window.rect)
+
+    assert value["width"] == rect.get("width", original["width"])
+    assert value["height"] == rect.get("height", original["height"])
+    # Unlike X11, Wayland does not permit applications to change their window position programmatically.
+    if not is_wayland():
+        assert value["x"] == rect.get("x", original["x"])
+        assert value["y"] == rect.get("y", original["y"])
+    else:
+        value["x"] == original["x"]
+        value["y"] == original["y"]
 
 
 def test_set_to_available_size(
@@ -217,7 +234,7 @@ def test_set_to_available_size(
     response = set_window_rect(session, target_rect)
     value = assert_success(response, session.window.rect)
 
-    # Wayland doesn't return correct coordinates after changing window position.
+    # Unlike X11, Wayland does not permit applications to change their window position programmatically.
     if not is_wayland():
         assert value == target_rect
     else:
@@ -337,7 +354,7 @@ def test_x_y(session):
     assert value["width"] == original["width"]
     assert value["height"] == original["height"]
 
-    # Wayland doesn't return correct coordinates after changing window position.
+    # Unlike X11, Wayland does not permit applications to change their window position programmatically.
     if not is_wayland():
         assert value["x"] == original["x"] + 10
         assert value["y"] == original["y"] + 10
@@ -371,7 +388,7 @@ def test_x_as_current(session):
     assert value["width"] == original["width"]
     assert value["height"] == original["height"]
 
-    # Wayland doesn't return correct coordinates after changing window position.
+    # Unlike X11, Wayland does not permit applications to change their window position programmatically.
     if not is_wayland():
         assert value["x"] == original["x"]
         assert value["y"] == original["y"] + 10
@@ -388,7 +405,7 @@ def test_y_as_current(session):
 
     assert value["width"] == original["width"]
     assert value["height"] == original["height"]
-    # Wayland doesn't return correct coordinates after changing window position.
+    # Unlike X11, Wayland does not permit applications to change their window position programmatically.
     if not is_wayland():
         assert value["x"] == original["x"] + 10
         assert value["y"] == original["y"]
@@ -406,7 +423,7 @@ def test_negative_x_y(session, minimal_screen_position):
         assert value["width"] == original["width"]
         assert value["height"] == original["height"]
 
-        # Wayland doesn't return correct coordinates after changing window position.
+        # Unlike X11, Wayland does not permit applications to change their window position programmatically.
         if not is_wayland():
             assert value["x"] <= minimal_screen_position[0]
             assert value["y"] <= minimal_screen_position[1]

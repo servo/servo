@@ -5,8 +5,10 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use euclid::default::Point2D;
+use euclid::Point2D;
 use js::rust::HandleObject;
+use keyboard_types::Modifiers;
+use style_traits::CSSPixel;
 
 use super::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::cell::DomRefCell;
@@ -95,18 +97,14 @@ impl PointerEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
-        screen_x: i32,
-        screen_y: i32,
-        client_x: i32,
-        client_y: i32,
-        ctrl_key: bool,
-        alt_key: bool,
-        shift_key: bool,
-        meta_key: bool,
+        screen_point: Point2D<i32, CSSPixel>,
+        client_point: Point2D<i32, CSSPixel>,
+        page_point: Point2D<i32, CSSPixel>,
+        modifiers: Modifiers,
         button: i16,
         buttons: u16,
         related_target: Option<&EventTarget>,
-        point_in_target: Option<Point2D<f32>>,
+        point_in_target: Option<Point2D<f32, CSSPixel>>,
         pointer_id: i32,
         width: i32,
         height: i32,
@@ -131,14 +129,10 @@ impl PointerEvent {
             cancelable,
             view,
             detail,
-            screen_x,
-            screen_y,
-            client_x,
-            client_y,
-            ctrl_key,
-            alt_key,
-            shift_key,
-            meta_key,
+            screen_point,
+            client_point,
+            page_point,
+            modifiers,
             button,
             buttons,
             related_target,
@@ -170,18 +164,14 @@ impl PointerEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
-        screen_x: i32,
-        screen_y: i32,
-        client_x: i32,
-        client_y: i32,
-        ctrl_key: bool,
-        alt_key: bool,
-        shift_key: bool,
-        meta_key: bool,
+        screen_point: Point2D<i32, CSSPixel>,
+        client_point: Point2D<i32, CSSPixel>,
+        page_point: Point2D<i32, CSSPixel>,
+        modifiers: Modifiers,
         button: i16,
         buttons: u16,
         related_target: Option<&EventTarget>,
-        point_in_target: Option<Point2D<f32>>,
+        point_in_target: Option<Point2D<f32, CSSPixel>>,
         pointer_id: i32,
         width: i32,
         height: i32,
@@ -205,14 +195,10 @@ impl PointerEvent {
             cancelable,
             view,
             detail,
-            screen_x,
-            screen_y,
-            client_x,
-            client_y,
-            ctrl_key,
-            alt_key,
-            shift_key,
-            meta_key,
+            screen_point,
+            client_point,
+            page_point,
+            modifiers,
             button,
             buttons,
             related_target,
@@ -247,6 +233,11 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
     ) -> DomRoot<PointerEvent> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.parent.cancelable);
+        let scroll_offset = window.scroll_offset(can_gc);
+        let page_point = Point2D::new(
+            scroll_offset.x as i32 + init.parent.clientX,
+            scroll_offset.y as i32 + init.parent.clientY,
+        );
         PointerEvent::new_with_proto(
             window,
             proto,
@@ -255,14 +246,10 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
             cancelable,
             init.parent.parent.parent.view.as_deref(),
             init.parent.parent.parent.detail,
-            init.parent.screenX,
-            init.parent.screenY,
-            init.parent.clientX,
-            init.parent.clientY,
-            init.parent.parent.ctrlKey,
-            init.parent.parent.altKey,
-            init.parent.parent.shiftKey,
-            init.parent.parent.metaKey,
+            Point2D::new(init.parent.screenX, init.parent.screenY),
+            Point2D::new(init.parent.clientX, init.parent.clientY),
+            page_point,
+            init.parent.parent.modifiers(),
             init.parent.button,
             init.parent.buttons,
             init.parent.relatedTarget.as_deref(),

@@ -9,6 +9,36 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 macro_rules! task {
+    ($name:ident: |$($field:ident: $field_type:ty$(,)*)*| $body:tt) => {{
+        #[allow(non_camel_case_types)]
+        struct $name<F> {
+            $($field: $field_type,)*
+            task: F,
+        }
+        #[allow(unsafe_code)]
+        unsafe impl<F> crate::JSTraceable for $name<F> {
+            #[allow(unsafe_code)]
+            unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
+                $(self.$field.trace(tracer);)*
+                // We cannot trace the actual task closure. This is safe because
+                // all referenced values from within the closure are either borrowed
+                // or moved into fields in the struct (and therefore traced).
+            }
+        }
+        impl<F> crate::task::NonSendTaskOnce for $name<F>
+        where
+            F: ::std::ops::FnOnce($($field_type,)*),
+        {
+            fn run_once(self) {
+                (self.task)($(self.$field,)*);
+            }
+        }
+        $name {
+            $($field,)*
+            task: |$($field: $field_type,)*| $body,
+        }
+    }};
+
     ($name:ident: move || $body:tt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
@@ -28,13 +58,18 @@ macro_rules! task {
     }};
 }
 
-/// A task that can be run. The name method is for profiling purposes.
+/// A task that can be sent between threads and run.
+/// The name method is for profiling purposes.
 pub(crate) trait TaskOnce: Send {
-    #[allow(unsafe_code)]
     fn name(&self) -> &'static str {
         ::std::any::type_name::<Self>()
     }
 
+    fn run_once(self);
+}
+
+/// A task that must be run on the same thread it originated in.
+pub(crate) trait NonSendTaskOnce: crate::JSTraceable {
     fn run_once(self);
 }
 
@@ -43,6 +78,20 @@ pub(crate) trait TaskBox: Send {
     fn name(&self) -> &'static str;
 
     fn run_box(self: Box<Self>);
+}
+
+/// A boxed version of `NonSendTaskOnce`.
+pub(crate) trait NonSendTaskBox: crate::JSTraceable {
+    fn run_box(self: Box<Self>);
+}
+
+impl<T> NonSendTaskBox for T
+where
+    T: NonSendTaskOnce,
+{
+    fn run_box(self: Box<Self>) {
+        self.run_once()
+    }
 }
 
 impl<T> TaskBox for T

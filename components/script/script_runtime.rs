@@ -19,7 +19,6 @@ use std::time::{Duration, Instant};
 use std::{os, ptr, thread};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
-use content_security_policy::CheckResult;
 use js::conversions::jsstr_to_string;
 use js::glue::{
     CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JobQueueTraps,
@@ -72,6 +71,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
+use crate::dom::csp::CspReporting;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -380,25 +380,20 @@ unsafe extern "C" fn content_security_policy_allows(
     wrap_panic(&mut || {
         // SpiderMonkey provides null pointer when executing webassembly.
         let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-        let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
-        let Some(csp_list) = global.get_csp_list() else {
-            allowed = true;
-            return;
-        };
+        let global = &GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
 
-        let (is_evaluation_allowed, violations) = match runtime_code {
+        allowed = match runtime_code {
             RuntimeCode::JS => {
                 let source = match sample {
                     sample if !sample.is_null() => &jsstr_to_string(*cx, *sample),
                     _ => "",
                 };
-                csp_list.is_js_evaluation_allowed(source)
+                global
+                    .get_csp_list()
+                    .is_js_evaluation_allowed(global, source)
             },
-            RuntimeCode::WASM => csp_list.is_wasm_evaluation_allowed(),
+            RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(global),
         };
-
-        global.report_csp_violations(violations, None);
-        allowed = is_evaluation_allowed == CheckResult::Allowed;
     });
     allowed
 }
@@ -516,7 +511,6 @@ impl Runtime {
         parent: Option<ParentRuntime>,
         networking_task_source: Option<SendableTaskSource>,
     ) -> Runtime {
-        LiveDOMReferences::initialize();
         let (cx, runtime) = if let Some(parent) = parent {
             let runtime = RustRuntime::create_with_parent(parent);
             let cx = runtime.cx();

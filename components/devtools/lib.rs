@@ -28,7 +28,7 @@ use devtools_traits::{
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
-use log::trace;
+use log::{trace, warn};
 use resource::{ResourceArrayType, ResourceAvailable};
 use serde::Serialize;
 use servo_rand::RngCore;
@@ -45,6 +45,7 @@ use crate::actors::process::ProcessActor;
 use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
 use crate::actors::thread::ThreadActor;
+use crate::actors::watcher::WatcherActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::id::IdMap;
 use crate::network_handler::handle_network_event;
@@ -120,6 +121,7 @@ struct DevtoolsInstance {
     actor_workers: HashMap<WorkerId, String>,
     actor_requests: HashMap<String, String>,
     connections: HashMap<StreamId, TcpStream>,
+    next_resource_id: u64,
 }
 
 impl DevtoolsInstance {
@@ -182,6 +184,7 @@ impl DevtoolsInstance {
             actor_requests: HashMap::new(),
             actor_workers: HashMap::new(),
             connections: HashMap::new(),
+            next_resource_id: 1,
         };
 
         thread::Builder::new()
@@ -287,11 +290,7 @@ impl DevtoolsInstance {
                         connections.push(stream.try_clone().unwrap());
                     }
 
-                    let pipeline_id = match network_event {
-                        NetworkEvent::HttpResponse(ref response) => response.pipeline_id,
-                        NetworkEvent::HttpRequest(ref request) => request.pipeline_id,
-                    };
-                    self.handle_network_event(connections, pipeline_id, request_id, network_event);
+                    self.handle_network_event(connections, request_id, network_event);
                 },
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break,
             }
@@ -311,11 +310,23 @@ impl DevtoolsInstance {
 
     fn handle_navigate(&self, browsing_context_id: BrowsingContextId, state: NavigationState) {
         let actor_name = self.browsing_contexts.get(&browsing_context_id).unwrap();
-        self.actors
-            .lock()
-            .unwrap()
-            .find::<BrowsingContextActor>(actor_name)
-            .navigate(state, &mut self.id_map.lock().expect("Mutex poisoned"));
+        let actors = self.actors.lock().unwrap();
+        let actor = actors.find::<BrowsingContextActor>(actor_name);
+        let mut id_map = self.id_map.lock().expect("Mutex poisoned");
+        if let NavigationState::Start(url) = &state {
+            let mut connections = Vec::<TcpStream>::new();
+            for stream in self.connections.values() {
+                connections.push(stream.try_clone().unwrap());
+            }
+            let watcher_actor = actors.find::<WatcherActor>(&actor.watcher);
+            watcher_actor.emit_will_navigate(
+                browsing_context_id,
+                url.clone(),
+                &mut connections,
+                &mut id_map,
+            );
+        };
+        actor.navigate(state, &mut id_map);
     }
 
     // We need separate actor representations for each script global that exists;
@@ -477,31 +488,40 @@ impl DevtoolsInstance {
     fn handle_network_event(
         &mut self,
         connections: Vec<TcpStream>,
-        pipeline_id: PipelineId,
         request_id: String,
         network_event: NetworkEvent,
     ) {
-        let netevent_actor_name = self.find_network_event_actor(request_id);
+        let browsing_context_id = match &network_event {
+            NetworkEvent::HttpRequest(req) => req.browsing_context_id,
+            NetworkEvent::HttpRequestUpdate(req) => req.browsing_context_id,
+            NetworkEvent::HttpResponse(resp) => resp.browsing_context_id,
+        };
 
-        let Some(id) = self.pipelines.get(&pipeline_id) else {
+        let Some(browsing_context_actor_name) = self.browsing_contexts.get(&browsing_context_id)
+        else {
             return;
         };
-        let Some(browsing_context_actor_name) = self.browsing_contexts.get(id) else {
-            return;
-        };
+        let watcher_name = self
+            .actors
+            .lock()
+            .unwrap()
+            .find::<BrowsingContextActor>(browsing_context_actor_name)
+            .watcher
+            .clone();
+
+        let netevent_actor_name = self.find_network_event_actor(request_id, watcher_name);
 
         handle_network_event(
             Arc::clone(&self.actors),
             netevent_actor_name,
             connections,
             network_event,
-            browsing_context_actor_name.to_string(),
         )
     }
 
     // Find the name of NetworkEventActor corresponding to request_id
     // Create a new one if it does not exist, add it to the actor_requests hashmap
-    fn find_network_event_actor(&mut self, request_id: String) -> String {
+    fn find_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
         let mut actors = self.actors.lock().unwrap();
         match self.actor_requests.entry(request_id) {
             Occupied(name) => {
@@ -509,8 +529,10 @@ impl DevtoolsInstance {
                 name.into_mut().clone()
             },
             Vacant(entry) => {
+                let resource_id = self.next_resource_id;
+                self.next_resource_id += 1;
                 let actor_name = actors.new_name("netevent");
-                let actor = NetworkEventActor::new(actor_name.clone());
+                let actor = NetworkEventActor::new(actor_name.clone(), resource_id, watcher_name);
                 entry.insert(actor_name.clone());
                 actors.register(Box::new(actor));
                 actor_name
@@ -625,8 +647,8 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
 fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, stream_id: StreamId) {
     log::info!("Connection established to {}", stream.peer_addr().unwrap());
     let msg = actors.lock().unwrap().find::<RootActor>("root").encodable();
-    if let Err(e) = stream.write_json_packet(&msg) {
-        log::warn!("Error writing response: {:?}", e);
+    if let Err(error) = stream.write_json_packet(&msg) {
+        warn!("Failed to send initial packet from root actor: {error:?}");
         return;
     }
 

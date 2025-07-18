@@ -34,6 +34,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::csp::CspReporting;
 use crate::dom::document::{Document, determine_policy_for_token};
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
@@ -166,10 +167,12 @@ impl HTMLIFrameElement {
         if load_data.url.scheme() == "javascript" {
             let window_proxy = self.GetContentWindow();
             if let Some(window_proxy) = window_proxy {
-                if document
-                    .global()
-                    .should_navigation_request_be_blocked(&load_data, Some(self.upcast()))
-                {
+                let global = &document.global();
+                if global.get_csp_list().should_navigation_request_be_blocked(
+                    global,
+                    &load_data,
+                    Some(self.upcast()),
+                ) {
                     return;
                 }
                 // Important re security. See https://github.com/servo/servo/issues/23373

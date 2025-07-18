@@ -17,18 +17,14 @@ use style::values::specified::align::AlignFlags;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
-use crate::formatting_contexts::{
-    IndependentFormattingContext, IndependentFormattingContextContents,
-};
-use crate::fragment_tree::{
-    BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment, SpecificLayoutInfo,
-};
+use crate::formatting_contexts::IndependentFormattingContext;
+use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment};
 use crate::geom::{
     AuOrAuto, LazySize, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalSides1D,
     LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec, Size,
     Sizes, ToLogical, ToLogicalWithContainingBlock,
 };
-use crate::layout_box_base::LayoutBoxBase;
+use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
@@ -448,6 +444,8 @@ impl HoistedAbsolutelyPositionedBox {
         } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
         let containing_block = &containing_block.into();
         let is_table = layout_style.is_table();
+        let is_table_or_replaced = is_table || context.is_replaced();
+        let preferred_aspect_ratio = context.preferred_aspect_ratio(&pbm.padding_border_sums);
         let shared_fragment = self.fragment.borrow();
 
         // The static position rect was calculated assuming that the containing block would be
@@ -482,7 +480,7 @@ impl HoistedAbsolutelyPositionedBox {
             alignment: inline_alignment,
             flip_anchor: shared_fragment.original_parent_writing_mode.is_bidi_ltr() !=
                 containing_block_writing_mode.is_bidi_ltr(),
-            is_table,
+            is_table_or_replaced,
         };
 
         // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
@@ -504,178 +502,141 @@ impl HoistedAbsolutelyPositionedBox {
             static_position_rect_axis: static_position_rect.get_axis(Direction::Block),
             alignment: block_alignment,
             flip_anchor: false,
-            is_table,
+            is_table_or_replaced,
         };
+
+        // The block size can depend on layout results, so we only solve it tentatively,
+        // we may have to resolve it properly later on.
+        let block_automatic_size = block_axis_solver.automatic_size();
+        let block_stretch_size = Some(block_axis_solver.stretch_size());
+        let tentative_block_content_size =
+            context.tentative_block_content_size(preferred_aspect_ratio);
+        let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
+            SizeConstraint::Definite(block_axis_solver.computed_sizes.resolve(
+                Direction::Block,
+                block_automatic_size,
+                Au::zero,
+                block_stretch_size,
+                || block_content_size,
+                is_table,
+            ))
+        } else {
+            block_axis_solver.computed_sizes.resolve_extrinsic(
+                block_automatic_size,
+                Au::zero(),
+                block_stretch_size,
+            )
+        };
+
+        // The inline axis can be fully resolved, computing intrinsic sizes using the
+        // extrinsic block size.
+        let get_inline_content_size = || {
+            let constraint_space = ConstraintSpace::new(
+                tentative_block_size,
+                style.writing_mode,
+                preferred_aspect_ratio,
+            );
+            context
+                .inline_content_sizes(layout_context, &constraint_space)
+                .sizes
+        };
+        let inline_size = inline_axis_solver.computed_sizes.resolve(
+            Direction::Inline,
+            inline_axis_solver.automatic_size(),
+            Au::zero,
+            Some(inline_axis_solver.stretch_size()),
+            get_inline_content_size,
+            is_table,
+        );
+
+        let containing_block_for_children = ContainingBlock {
+            size: ContainingBlockSize {
+                inline: inline_size,
+                block: tentative_block_size,
+            },
+            style: &style,
+        };
+        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+        assert_eq!(
+            containing_block_writing_mode.is_horizontal(),
+            style.writing_mode.is_horizontal(),
+            "Mixed horizontal and vertical writing modes are not supported yet"
+        );
 
         let mut positioning_context = PositioningContext::default();
-        let mut new_fragment = {
-            let content_size: LogicalVec2<Au>;
-            let fragments;
-            let mut specific_layout_info: Option<SpecificLayoutInfo> = None;
-            match &context.contents {
-                IndependentFormattingContextContents::Replaced(replaced) => {
-                    // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-                    // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                    let inset_sums = LogicalVec2 {
-                        inline: inline_axis_solver.inset_sum(),
-                        block: block_axis_solver.inset_sum(),
-                    };
-                    let automatic_size = |alignment: AlignFlags, offsets: &LogicalSides1D<_>| {
-                        if alignment.value() == AlignFlags::STRETCH && !offsets.either_auto() {
-                            Size::Stretch
-                        } else {
-                            Size::FitContent
-                        }
-                    };
-                    content_size = replaced.used_size_as_if_inline_element_from_content_box_sizes(
-                        containing_block,
-                        &style,
-                        context.preferred_aspect_ratio(&pbm.padding_border_sums),
-                        LogicalVec2 {
-                            inline: &inline_axis_solver.computed_sizes,
-                            block: &block_axis_solver.computed_sizes,
-                        },
-                        LogicalVec2 {
-                            inline: automatic_size(
-                                inline_alignment,
-                                &inline_axis_solver.box_offsets,
-                            ),
-                            block: automatic_size(block_alignment, &block_axis_solver.box_offsets),
-                        },
-                        pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum() + inset_sums,
-                    );
-                    fragments = replaced.make_fragments(
-                        layout_context,
-                        &style,
-                        content_size.to_physical_size(containing_block_writing_mode),
-                    );
-                },
-                IndependentFormattingContextContents::NonReplaced(non_replaced) => {
-                    // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
-                    // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
+        let lazy_block_size = LazySize::new(
+            &block_axis_solver.computed_sizes,
+            Direction::Block,
+            block_automatic_size,
+            Au::zero,
+            block_stretch_size,
+            is_table,
+        );
+        let CacheableLayoutResult {
+            content_inline_size_for_table,
+            content_block_size,
+            fragments,
+            specific_layout_info,
+            ..
+        } = context.layout(
+            layout_context,
+            &mut positioning_context,
+            &containing_block_for_children,
+            containing_block,
+            preferred_aspect_ratio,
+            false, /* depends_on_block_constraints */
+            &lazy_block_size,
+        );
 
-                    // The block size can depend on layout results, so we only solve it extrinsically,
-                    // we may have to resolve it properly later on.
-                    let block_automatic_size = block_axis_solver.automatic_size();
-                    let block_stretch_size = Some(block_axis_solver.stretch_size());
-                    let extrinsic_block_size = block_axis_solver.computed_sizes.resolve_extrinsic(
-                        block_automatic_size,
-                        Au::zero(),
-                        block_stretch_size,
-                    );
+        let content_size = LogicalVec2 {
+            // Tables can become narrower than predicted due to collapsed columns.
+            inline: content_inline_size_for_table.unwrap_or(inline_size),
 
-                    // The inline axis can be fully resolved, computing intrinsic sizes using the
-                    // extrinsic block size.
-                    let get_inline_content_size = || {
-                        let ratio = context.preferred_aspect_ratio(&pbm.padding_border_sums);
-                        let constraint_space =
-                            ConstraintSpace::new(extrinsic_block_size, style.writing_mode, ratio);
-                        context
-                            .inline_content_sizes(layout_context, &constraint_space)
-                            .sizes
-                    };
-                    let inline_size = inline_axis_solver.computed_sizes.resolve(
-                        Direction::Inline,
-                        inline_axis_solver.automatic_size(),
-                        Au::zero,
-                        Some(inline_axis_solver.stretch_size()),
-                        get_inline_content_size,
-                        is_table,
-                    );
-
-                    let containing_block_for_children = ContainingBlock {
-                        size: ContainingBlockSize {
-                            inline: inline_size,
-                            block: extrinsic_block_size,
-                        },
-                        style: &style,
-                    };
-                    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-                    assert_eq!(
-                        containing_block_writing_mode.is_horizontal(),
-                        style.writing_mode.is_horizontal(),
-                        "Mixed horizontal and vertical writing modes are not supported yet"
-                    );
-
-                    let lazy_block_size = LazySize::new(
-                        &block_axis_solver.computed_sizes,
-                        Direction::Block,
-                        block_automatic_size,
-                        Au::zero,
-                        block_stretch_size,
-                        is_table,
-                    );
-                    let independent_layout = non_replaced.layout(
-                        layout_context,
-                        &mut positioning_context,
-                        &containing_block_for_children,
-                        containing_block,
-                        &context.base,
-                        false, /* depends_on_block_constraints */
-                        &lazy_block_size,
-                    );
-
-                    // Tables can become narrower than predicted due to collapsed columns
-                    let inline_size = independent_layout
-                        .content_inline_size_for_table
-                        .unwrap_or(inline_size);
-
-                    // Now we can properly solve the block size.
-                    let block_size =
-                        lazy_block_size.resolve(|| independent_layout.content_block_size);
-
-                    content_size = LogicalVec2 {
-                        inline: inline_size,
-                        block: block_size,
-                    };
-                    fragments = independent_layout.fragments;
-                    specific_layout_info = independent_layout.specific_layout_info;
-                },
-            };
-
-            let inline_margins = inline_axis_solver.solve_margins(content_size.inline);
-            let block_margins = block_axis_solver.solve_margins(content_size.block);
-            let margin = LogicalSides {
-                inline_start: inline_margins.start,
-                inline_end: inline_margins.end,
-                block_start: block_margins.start,
-                block_end: block_margins.end,
-            };
-
-            let pb = pbm.padding + pbm.border;
-            let margin_rect_size = content_size + pbm.padding_border_sums + margin.sum();
-            let inline_origin = inline_axis_solver.origin_for_margin_box(
-                margin_rect_size.inline,
-                style.writing_mode,
-                shared_fragment.original_parent_writing_mode,
-                containing_block_writing_mode,
-            );
-            let block_origin = block_axis_solver.origin_for_margin_box(
-                margin_rect_size.block,
-                style.writing_mode,
-                shared_fragment.original_parent_writing_mode,
-                containing_block_writing_mode,
-            );
-
-            let content_rect = LogicalRect {
-                start_corner: LogicalVec2 {
-                    inline: inline_origin + margin.inline_start + pb.inline_start,
-                    block: block_origin + margin.block_start + pb.block_start,
-                },
-                size: content_size,
-            };
-            BoxFragment::new(
-                context.base_fragment_info(),
-                style,
-                fragments,
-                content_rect.as_physical(Some(containing_block)),
-                pbm.padding.to_physical(containing_block_writing_mode),
-                pbm.border.to_physical(containing_block_writing_mode),
-                margin.to_physical(containing_block_writing_mode),
-                None, /* clearance */
-            )
-            .with_specific_layout_info(specific_layout_info)
+            // Now we can properly solve the block size.
+            block: lazy_block_size.resolve(|| content_block_size),
         };
+
+        let inline_margins = inline_axis_solver.solve_margins(content_size.inline);
+        let block_margins = block_axis_solver.solve_margins(content_size.block);
+        let margin = LogicalSides {
+            inline_start: inline_margins.start,
+            inline_end: inline_margins.end,
+            block_start: block_margins.start,
+            block_end: block_margins.end,
+        };
+
+        let pb = pbm.padding + pbm.border;
+        let margin_rect_size = content_size + pbm.padding_border_sums + margin.sum();
+        let inline_origin = inline_axis_solver.origin_for_margin_box(
+            margin_rect_size.inline,
+            style.writing_mode,
+            shared_fragment.original_parent_writing_mode,
+            containing_block_writing_mode,
+        );
+        let block_origin = block_axis_solver.origin_for_margin_box(
+            margin_rect_size.block,
+            style.writing_mode,
+            shared_fragment.original_parent_writing_mode,
+            containing_block_writing_mode,
+        );
+
+        let content_rect = LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: inline_origin + margin.inline_start + pb.inline_start,
+                block: block_origin + margin.block_start + pb.block_start,
+            },
+            size: content_size,
+        };
+        let mut new_fragment = BoxFragment::new(
+            context.base_fragment_info(),
+            style,
+            fragments,
+            content_rect.as_physical(Some(containing_block)),
+            pbm.padding.to_physical(containing_block_writing_mode),
+            pbm.border.to_physical(containing_block_writing_mode),
+            margin.to_physical(containing_block_writing_mode),
+            specific_layout_info,
+        );
 
         // This is an absolutely positioned element, which means it also establishes a
         // containing block for absolutes. We lay out any absolutely positioned children
@@ -733,7 +694,7 @@ struct AbsoluteAxisSolver<'a> {
     static_position_rect_axis: RectAxis,
     alignment: AlignFlags,
     flip_anchor: bool,
-    is_table: bool,
+    is_table_or_replaced: bool,
 }
 
 impl AbsoluteAxisSolver<'_> {
@@ -767,7 +728,7 @@ impl AbsoluteAxisSolver<'_> {
     fn automatic_size(&self) -> Size<Au> {
         match self.alignment.value() {
             _ if self.box_offsets.either_auto() => Size::FitContent,
-            AlignFlags::NORMAL | AlignFlags::AUTO if !self.is_table => Size::Stretch,
+            AlignFlags::NORMAL | AlignFlags::AUTO if !self.is_table_or_replaced => Size::Stretch,
             AlignFlags::STRETCH => Size::Stretch,
             _ => Size::FitContent,
         }

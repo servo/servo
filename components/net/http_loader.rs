@@ -9,7 +9,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{HistoryStateId, PipelineId};
+use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
@@ -398,6 +398,7 @@ fn prepare_devtools_request(
     connect_time: Duration,
     send_time: Duration,
     is_xhr: bool,
+    browsing_context_id: BrowsingContextId,
 ) -> ChromeToDevtoolsControlMsg {
     let started_date_time = SystemTime::now();
     let request = DevtoolsHttpRequest {
@@ -414,13 +415,14 @@ fn prepare_devtools_request(
         connect_time,
         send_time,
         is_xhr,
+        browsing_context_id,
     };
-    let net_event = NetworkEvent::HttpRequest(request);
+    let net_event = NetworkEvent::HttpRequestUpdate(request);
 
     ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
 }
 
-fn send_request_to_devtools(
+pub fn send_request_to_devtools(
     msg: ChromeToDevtoolsControlMsg,
     devtools_chan: &Sender<DevtoolsControlMsg>,
 ) {
@@ -429,23 +431,74 @@ fn send_request_to_devtools(
         .unwrap();
 }
 
-fn send_response_to_devtools(
-    devtools_chan: &Sender<DevtoolsControlMsg>,
-    request_id: String,
-    headers: Option<HeaderMap>,
-    status: HttpStatus,
-    pipeline_id: PipelineId,
+pub fn send_response_to_devtools(
+    request: &mut Request,
+    context: &FetchContext,
+    response: &Response,
 ) {
-    let response = DevtoolsHttpResponse {
-        headers,
-        status,
-        body: None,
-        pipeline_id,
-    };
-    let net_event_response = NetworkEvent::HttpResponse(response);
+    if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
+        context.devtools_chan.as_ref(),
+        request.pipeline_id,
+        request.target_webview_id,
+    ) {
+        let browsing_context_id = webview_id.0;
+        let meta = match response
+            .metadata()
+            .expect("Response metadata should exist at this stage")
+        {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+        };
+        let status = meta.status;
+        let headers = meta.headers.map(Serde::into_inner);
 
-    let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
-    let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
+        let devtoolsresponse = DevtoolsHttpResponse {
+            headers,
+            status,
+            body: None,
+            pipeline_id,
+            browsing_context_id,
+        };
+        let net_event_response = NetworkEvent::HttpResponse(devtoolsresponse);
+
+        let msg =
+            ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), net_event_response);
+
+        let _ = devtools_chan
+            .lock()
+            .unwrap()
+            .send(DevtoolsControlMsg::FromChrome(msg));
+    }
+}
+
+pub fn send_early_httprequest_to_devtools(request: &mut Request, context: &FetchContext) {
+    if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
+        context.devtools_chan.as_ref(),
+        request.target_webview_id.map(|id| id.0),
+        request.pipeline_id,
+    ) {
+        // Build the partial DevtoolsHttpRequest
+        let devtools_request = DevtoolsHttpRequest {
+            url: request.current_url().clone(),
+            method: request.method.clone(),
+            headers: request.headers.clone(),
+            body: None,
+            pipeline_id,
+            started_date_time: SystemTime::now(),
+            time_stamp: 0,
+            connect_time: Duration::from_millis(0),
+            send_time: Duration::from_millis(0),
+            is_xhr: false,
+            browsing_context_id,
+        };
+
+        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(
+            request.id.0.to_string(),
+            NetworkEvent::HttpRequest(devtools_request),
+        );
+
+        send_request_to_devtools(msg, &devtools_chan.lock().unwrap());
+    }
 }
 
 fn auth_from_cache(
@@ -536,6 +589,7 @@ async fn obtain_response(
     is_xhr: bool,
     context: &FetchContext,
     fetch_terminated: UnboundedSender<bool>,
+    browsing_context_id: Option<BrowsingContextId>,
 ) -> Result<(HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
     {
         let mut headers = request_headers.clone();
@@ -716,21 +770,27 @@ async fn obtain_response(
 
                 let msg = if let Some(request_id) = request_id {
                     if let Some(pipeline_id) = pipeline_id {
-                        Some(prepare_devtools_request(
-                            request_id,
-                            closure_url,
-                            method.clone(),
-                            headers,
-                            Some(devtools_bytes.lock().unwrap().clone()),
-                            pipeline_id,
-                            (connect_end - connect_start).unsigned_abs(),
-                            (send_end - send_start).unsigned_abs(),
-                            is_xhr,
-                        ))
-                    // TODO: ^This is not right, connect_start is taken before contructing the
-                    // request and connect_end at the end of it. send_start is takend before the
-                    // connection too. I'm not sure it's currently possible to get the time at the
-                    // point between the connection and the start of a request.
+                        if let Some(browsing_context_id) = browsing_context_id {
+                            Some(prepare_devtools_request(
+                                request_id,
+                                closure_url,
+                                method.clone(),
+                                headers,
+                                Some(devtools_bytes.lock().unwrap().clone()),
+                                pipeline_id,
+                                (connect_end - connect_start).unsigned_abs(),
+                                (send_end - send_start).unsigned_abs(),
+                                is_xhr,
+                                browsing_context_id,
+                            ))
+                        } else {
+                            debug!("Not notifying devtools (no browsing_context_id)");
+                            None
+                        }
+                        // TODO: ^This is not right, connect_start is taken before contructing the
+                        // request and connect_end at the end of it. send_start is takend before the
+                        // connection too. I'm not sure it's currently possible to get the time at the
+                        // point between the connection and the start of a request.
                     } else {
                         debug!("Not notifying devtools (no pipeline_id)");
                         None
@@ -874,6 +934,8 @@ pub async fn http_fetch(
         .try_code()
         .is_some_and(is_redirect_status)
     {
+        // Notify devtools before handling redirect
+        send_response_to_devtools(request, context, &response);
         // Substep 1.
         if response.actual_response().status != StatusCode::SEE_OTHER {
             // TODO: send RST_STREAM frame
@@ -1856,12 +1918,7 @@ async fn http_network_fetch(
 
     // Step 5
     let url = request.current_url();
-
-    let request_id = context
-        .devtools_chan
-        .as_ref()
-        .map(|_| uuid::Uuid::new_v4().simple().to_string());
-
+    let request_id = request.id.0.to_string();
     if log_enabled!(log::Level::Info) {
         info!("{:?} request for {}", request.method, url);
         for header in request.headers.iter() {
@@ -1887,6 +1944,8 @@ async fn http_network_fetch(
         let _ = fetch_terminated_sender.send(false);
     }
 
+    let browsing_context_id = request.target_webview_id.map(|id| id.0);
+
     let response_future = obtain_response(
         &context.state.client,
         &url,
@@ -1899,13 +1958,13 @@ async fn http_network_fetch(
             .map(|body| body.source_is_null())
             .unwrap_or(false),
         &request.pipeline_id,
-        request_id.as_deref(),
+        Some(&request_id),
         is_xhr,
         context,
         fetch_terminated_sender,
+        browsing_context_id,
     );
 
-    let pipeline_id = request.pipeline_id;
     // This will only get the headers, the body is read later
     let (res, msg) = match response_future.await {
         Ok(wrapped_response) => wrapped_response,
@@ -1981,17 +2040,8 @@ async fn http_network_fetch(
     // We're about to spawn a future to be waited on here
     let (done_sender, done_receiver) = unbounded_channel();
     *done_chan = Some((done_sender.clone(), done_receiver));
-    let meta = match response
-        .metadata()
-        .expect("Response metadata should exist at this stage")
-    {
-        FetchMetadata::Unfiltered(m) => m,
-        FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-    };
 
     let devtools_sender = context.devtools_chan.clone();
-    let meta_status = meta.status;
-    let meta_headers = meta.headers;
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.cancelled() {
         return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
@@ -2004,18 +2054,6 @@ async fn http_network_fetch(
         let sender = sender.lock().unwrap();
         if let Some(m) = msg {
             send_request_to_devtools(m, &sender);
-        }
-
-        // --- Tell devtools that we got a response
-        // Send an HttpResponse message to devtools with the corresponding request_id
-        if let Some(pipeline_id) = pipeline_id {
-            send_response_to_devtools(
-                &sender,
-                request_id.unwrap(),
-                meta_headers.map(Serde::into_inner),
-                meta_status,
-                pipeline_id,
-            );
         }
     }
 

@@ -19,14 +19,12 @@ use embedder_traits::{
     MouseButtonEvent, MouseMoveEvent, ScrollEvent as EmbedderScrollEvent, ShutdownState,
     TouchEvent, TouchEventResult, TouchEventType, TouchId, ViewportDetails,
 };
-use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
+use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
-use webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D,
-};
+use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
 use crate::compositor::{HitTestError, PipelineDetails, ServoRenderer};
@@ -46,8 +44,8 @@ struct ScrollEvent {
 enum ScrollZoomEvent {
     /// A pinch zoom event that magnifies the view by the given factor.
     PinchZoom(f32),
-    /// A zoom event that magnifies the view by the factor parsed from meta tag.
-    ViewportZoom(f32),
+    /// A zoom event that establishes the initial zoom from the viewport meta tag.
+    InitialViewportZoom(f32),
     /// A scroll event that scrolls the scroll node at the given location by the
     /// given amount.
     Scroll(ScrollEvent),
@@ -78,6 +76,7 @@ pub(crate) struct WebViewRenderer {
     pub webview: Box<dyn WebViewTrait>,
     /// The root [`PipelineId`] of the currently displayed page in this WebView.
     pub root_pipeline_id: Option<PipelineId>,
+    /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     pub rect: DeviceRect,
     /// Tracks details about each active pipeline that the compositor knows about.
     pub pipelines: HashMap<PipelineId, PipelineDetails>,
@@ -139,12 +138,6 @@ impl WebViewRenderer {
             webrender_frame_ready: Cell::default(),
             viewport_description: None,
         }
-    }
-
-    pub(crate) fn animations_or_animation_callbacks_running(&self) -> bool {
-        self.pipelines
-            .values()
-            .any(PipelineDetails::animations_or_animation_callbacks_running)
     }
 
     pub(crate) fn animation_callbacks_running(&self) -> bool {
@@ -339,13 +332,28 @@ impl WebViewRenderer {
     pub(crate) fn on_vsync(&mut self) {
         if let Some(fling_action) = self.touch_handler.on_vsync() {
             self.on_scroll_window_event(
-                ScrollLocation::Delta(fling_action.delta),
+                ScrollLocation::Delta(-fling_action.delta),
                 fling_action.cursor,
             );
         }
     }
 
-    pub(crate) fn dispatch_point_input_event(&mut self, mut event: InputEvent) -> bool {
+    pub(crate) fn dispatch_point_input_event(&self, event: InputEvent) -> bool {
+        self.dispatch_point_input_event_internal(event, true)
+    }
+
+    pub(crate) fn dispatch_pending_point_input_events(&self) {
+        while let Some(event) = self.pending_point_input_events.borrow_mut().pop_front() {
+            // TODO: Add multiple retry later if needed.
+            self.dispatch_point_input_event_internal(event, false);
+        }
+    }
+
+    pub(crate) fn dispatch_point_input_event_internal(
+        &self,
+        mut event: InputEvent,
+        retry_on_error: bool,
+    ) -> bool {
         // Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
         let Some(point) = event.point() else {
@@ -354,7 +362,9 @@ impl WebViewRenderer {
 
         // Delay the event if the epoch is not synchronized yet (new frame is not ready),
         // or hit test result would fail and the event is rejected anyway.
-        if !self.webrender_frame_ready.get() || !self.pending_point_input_events.borrow().is_empty()
+        if retry_on_error &&
+            (!self.webrender_frame_ready.get() ||
+                !self.pending_point_input_events.borrow().is_empty())
         {
             self.pending_point_input_events
                 .borrow_mut()
@@ -369,16 +379,14 @@ impl WebViewRenderer {
             .borrow()
             .hit_test_at_point(point, get_pipeline_details)
         {
-            Ok(hit_test_results) => hit_test_results,
-            Err(HitTestError::EpochMismatch) => {
+            Ok(hit_test_results) => Some(hit_test_results),
+            Err(HitTestError::EpochMismatch) if retry_on_error => {
                 self.pending_point_input_events
                     .borrow_mut()
-                    .push_back(event);
+                    .push_back(event.clone());
                 return false;
             },
-            _ => {
-                return false;
-            },
+            _ => None,
         };
 
         match event {
@@ -389,65 +397,24 @@ impl WebViewRenderer {
             InputEvent::MouseLeave(_) |
             InputEvent::MouseMove(_) |
             InputEvent::Wheel(_) => {
-                self.global
-                    .borrow_mut()
-                    .update_cursor_from_hittest(point, &result);
+                if let Some(ref result) = result {
+                    self.global
+                        .borrow_mut()
+                        .update_cursor_from_hittest(point, result);
+                } else {
+                    warn!("Not hit test result.");
+                }
             },
             _ => unreachable!("Unexpected input event type: {event:?}"),
         }
 
         if let Err(error) = self.global.borrow().constellation_sender.send(
-            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
+            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, result),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
             false
         } else {
             true
-        }
-    }
-
-    // TODO: This function duplicates a lot of `dispatch_point_input_event.
-    // Perhaps it should just be called here instead.
-    pub(crate) fn dispatch_pending_point_input_events(&self) {
-        while let Some(mut event) = self.pending_point_input_events.borrow_mut().pop_front() {
-            // Events that do not need to do hit testing are sent directly to the
-            // constellation to filter down.
-            let Some(point) = event.point() else {
-                continue;
-            };
-
-            // If we can't find a pipeline to send this event to, we cannot continue.
-            let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-            let Ok(result) = self
-                .global
-                .borrow()
-                .hit_test_at_point(point, get_pipeline_details)
-            else {
-                // Don't need to process pending input events in this frame any more.
-                // TODO: Add multiple retry later if needed.
-                return;
-            };
-
-            match event {
-                InputEvent::Touch(ref mut touch_event) => {
-                    touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
-                },
-                InputEvent::MouseButton(_) |
-                InputEvent::MouseLeave(_) |
-                InputEvent::MouseMove(_) |
-                InputEvent::Wheel(_) => {
-                    self.global
-                        .borrow_mut()
-                        .update_cursor_from_hittest(point, &result);
-                },
-                _ => unreachable!("Unexpected input event type: {event:?}"),
-            }
-
-            if let Err(error) = self.global.borrow().constellation_sender.send(
-                EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
-            ) {
-                warn!("Sending event to constellation failed ({error:?}).");
-            }
         }
     }
 
@@ -818,22 +785,6 @@ impl WebViewRenderer {
             }));
     }
 
-    /// Push scroll pending event when receiving wheel action from webdriver
-    pub(crate) fn on_webdriver_wheel_action(
-        &mut self,
-        scroll_delta: Vector2D<f32, DevicePixel>,
-        point: Point2D<f32, DevicePixel>,
-    ) {
-        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
-        }
-
-        let scroll_location =
-            ScrollLocation::Delta(LayoutVector2D::from_untyped(scroll_delta.to_untyped()));
-        let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
-        self.on_scroll_window_event(scroll_location, cursor)
-    }
-
     /// Process pending scroll events for this [`WebViewRenderer`]. Returns a tuple containing:
     ///
     ///  - A boolean that is true if a zoom occurred.
@@ -849,12 +800,15 @@ impl WebViewRenderer {
 
         // Batch up all scroll events into one, or else we'll do way too much painting.
         let mut combined_scroll_event: Option<ScrollEvent> = None;
+        let mut base_page_zoom = self.pinch_zoom_level().get();
         let mut combined_magnification = 1.0;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(magnification) |
-                ScrollZoomEvent::ViewportZoom(magnification) => {
+                ScrollZoomEvent::PinchZoom(magnification) => {
                     combined_magnification *= magnification
+                },
+                ScrollZoomEvent::InitialViewportZoom(magnification) => {
+                    base_page_zoom = magnification
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
                     let combined_event = match combined_scroll_event.as_mut() {
@@ -912,12 +866,11 @@ impl WebViewRenderer {
             );
         }
 
-        let pinch_zoom_result = match self
-            .set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification)
-        {
-            true => PinchZoomResult::DidPinchZoom,
-            false => PinchZoomResult::DidNotPinchZoom,
-        };
+        let pinch_zoom_result =
+            match self.set_pinch_zoom_level(base_page_zoom * combined_magnification) {
+                true => PinchZoomResult::DidPinchZoom,
+                false => PinchZoomResult::DidNotPinchZoom,
+            };
 
         (pinch_zoom_result, scroll_result)
     }
@@ -1083,33 +1036,9 @@ impl WebViewRenderer {
         old_rect != self.rect
     }
 
-    pub(crate) fn client_window_rect(
-        &self,
-        rendering_context_size: Size2D<u32, DevicePixel>,
-    ) -> Box2D<i32, DeviceIndependentPixel> {
-        let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
-        let rect = DeviceIntRect::from_origin_and_size(
-            screen_geometry.offset,
-            rendering_context_size.to_i32(),
-        )
-        .to_f32() /
-            self.hidpi_scale_factor;
-        rect.to_i32()
-    }
-
-    pub(crate) fn screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
-        let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
-        (screen_geometry.size.to_f32() / self.hidpi_scale_factor).to_i32()
-    }
-
-    pub(crate) fn available_screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
-        let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
-        (screen_geometry.available_size.to_f32() / self.hidpi_scale_factor).to_i32()
-    }
-
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
         self.pending_scroll_zoom_events
-            .push(ScrollZoomEvent::ViewportZoom(
+            .push(ScrollZoomEvent::InitialViewportZoom(
                 viewport_description
                     .clone()
                     .clamp_zoom(viewport_description.initial_scale.get()),

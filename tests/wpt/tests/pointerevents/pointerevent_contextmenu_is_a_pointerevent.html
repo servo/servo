@@ -18,6 +18,9 @@
   const target = document.getElementById("target");
   const pointer_type = location.search.substring(1);
 
+  // Prevent opening contextmenu.
+  addEventListener("contextmenu", e => e.preventDefault());
+
   function assertContextmenuProperties(contextmenu_event, pointerdown_event) {
     assert_equals(contextmenu_event.constructor, window.PointerEvent,
         "contextmenu should use a PointerEvent constructor");

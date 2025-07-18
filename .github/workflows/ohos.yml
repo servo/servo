@@ -25,18 +25,18 @@ on:
         default: "release"
         type: choice
         description: "Cargo build profile"
-        options: [ "release", "debug", "production"]
+        options: ["release", "debug", "production"]
       bencher:
         required: false
         default: false
         type: boolean
-
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
+  HITRACE_BENCH_VERSION: 0.8.2
 
 jobs:
   build:
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+        target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
     outputs:
       signed: ${{ steps.signing_config.outputs.signed }}
     steps:
@@ -138,7 +138,7 @@ jobs:
     needs: ["build"]
     strategy:
       matrix:
-        target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+        target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
     if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
@@ -166,21 +166,16 @@ jobs:
       - run: |
           git switch --detach
           git reset --hard FETCH_HEAD
+      - name: Adding test files to directory
+        run: cp -r support/hitrace-bencher/* support/openharmony/AppScope/resources/resfile/
       - name: Build for aarch64 HarmonyOS
         run: |
           ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
-      - name: Upload supprt/hitrace-bencher/runs.json
-        uses: actions/upload-artifact@v4
-        with:
-          name: runs.json
-          path: support/hitrace-bencher/runs.json
-          overwrite: true
       - uses: actions/upload-artifact@v4
         with:
           # Upload the **unsigned** artifact - We don't have the signing materials in pull request workflows
           name: servoshell-hos-${{ inputs.profile }}.hap
           path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/harmonyos/outputs/default/servoshell-default-unsigned.hap
-
 
   test-harmonyos-aarch64:
     name: Test HarmonyOS aarch64
@@ -213,7 +208,7 @@ jobs:
       - name: Test loading servo.org
         env:
           TRACE_BUFFER_SZ_KB: "524288" # 512 MB
-        run:  |
+        run: |
           mkdir test_output
           hdc shell aa force-stop org.servo.servo
           # Hitrace allows us to save application and system traces, which is useful to analyze performance.
@@ -245,19 +240,78 @@ jobs:
           [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
-      - name: Getting runs file
-        uses: actions/download-artifact@v4
+
+  bench-harmonyos-aarch64:
+    name: Benching HarmonyOS aarch64
+    continue-on-error: true
+    runs-on: hos-runner
+    needs: test-harmonyos-aarch64
+    if: github.repository == 'servo/servo'
+    steps:
+      - uses: actions/download-artifact@v4
         with:
           # Name of the artifact to download.
           # If unspecified, all artifacts for the run are downloaded.
-          name: runs.json
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 2
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Getting hitrace-bench version
+        run: echo "INSTALLED_HITRACE_BENCH_VERSION=$(hitrace-bench --version | awk '{print $2}')" >> $GITHUB_ENV
+      - name: Install hitrace-bench
+        run: cargo install --locked hitrace-bench --version $HITRACE_BENCH_VERSION
+        if: ${{ env.INSTALLED_HITRACE_BENCH_VERSION != env.HITRACE_BENCH_VERSION }}
       - name: "Run benchmark"
-        run: hitrace-bench -r runs.json
-      - name: Getting bencher
-        uses: bencherdev/bencher@main
+        run: hitrace-bench -r support/hitrace-bencher/runs.json --bencher -p ${{ inputs.profile }}
+        continue-on-error: true
+      - name: Run speedometer
+        id: BencherRun
+        run: python3 ./mach test-speedometer-ohos --bmf-output speedometer.json
+        continue-on-error: true
+      - name: Create empty speedometer.json if failed
+        run: touch speedometer.json
+        if: ${{ steps.BencherRun.outcome == 'failure' }}
       - name: Getting model name
         run: |
           echo "MODEL_NAME=$(hdc bugreport | head -n 20 | grep MarketName | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}' -)" >> $GITHUB_ENV
+      - name: Combining bencher files
+        run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
+      - uses: bencherdev/bencher@main
       - name: Uploading to bencher.dev
         run: |
-          bencher run --adapter json --file bench.json --project '${{ env.BENCHER_PROJECT }}' --token '${{ secrets.BENCHER_API_TOKEN }}' --github-actions '${{ secrets.GITHUB_TOKEN }}' --testbed="$MODEL_NAME"
+          bencher run --adapter json \
+                      --file combined-bencher.json \
+                      --project '${{ env.BENCHER_PROJECT }}' \
+                      --hash '${{ github.sha }}' \
+                      --token '${{ secrets.BENCHER_API_TOKEN }}' \
+                      --github-actions '${{ secrets.GITHUB_TOKEN }}' \
+                      --testbed="$MODEL_NAME"
+      - name: Success
+        if: ${{ !contains(steps.*.outcome, 'failure') && !contains(steps.*.outcome, 'cancelled') }}
+        run: exit 0
+      - name: Failure
+        if: contains(steps.*.outcome, 'failure') || contains(steps.*.outcome, 'cancelled')
+        run: exit 1

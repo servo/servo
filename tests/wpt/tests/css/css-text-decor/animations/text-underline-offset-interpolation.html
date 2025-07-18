@@ -134,7 +134,7 @@ test_interpolation({
   to: '200%',
 }, [
   {at: 0, expect: 'calc(0% + 16px)'},
-  {at: 0.3, expect: 'calc(120% + 11.2px)'},
+  {at: 0.3, expect: 'calc(60% + 11.2px)'},
   {at: 0.6, expect: 'calc(120% + 6.4px)'},
   {at: 1, expect: '200%'},
 ]);
@@ -200,9 +200,9 @@ test_interpolation({
   to: '32px',
 }, [
   {at: 0, expect: 'calc(100% + 0px)'},
-  {at: 0.3, expect: 'calc(100% + 9.6px)'},
-  {at: 0.6, expect: 'calc(100% + 19.2px)'},
-  {at: 1, expect: 'calc(100% + 32px)'},
+  {at: 0.3, expect: 'calc(70% + 9.6px)'},
+  {at: 0.6, expect: 'calc(40% + 19.2px)'},
+  {at: 1, expect: 'calc(0% + 32px)'},
 ]);
 
 test_interpolation({

@@ -1,9 +1,5 @@
 import pytest
 
-from webdriver.bidi.modules.network import AuthCredentials
-
-from tests.support.sync import AsyncPoll
-
 from .. import AUTH_REQUIRED_EVENT, RESPONSE_COMPLETED_EVENT, RESPONSE_STARTED_EVENT
 
 pytestmark = pytest.mark.asyncio

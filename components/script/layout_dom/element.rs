@@ -11,7 +11,7 @@ use embedder_traits::UntrustedNodeAddress;
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use layout_api::{LayoutNodeType, StyleData};
+use layout_api::{LayoutDamage, LayoutNodeType, StyleData};
 use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
@@ -26,14 +26,16 @@ use style::bloom::each_relevant_element_hash;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
-use style::properties::PropertyDeclarationBlock;
+use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{
-    AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement, SelectorImpl,
-    extended_filtering,
+    AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement, RestyleDamage,
+    SelectorImpl, extended_filtering,
 };
 use style::shared_lock::Locked as StyleLocked;
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
-use style::values::computed::Display;
+use style::values::computed::{Display, Image};
+use style::values::specified::align::AlignFlags;
+use style::values::specified::box_::{DisplayInside, DisplayOutside};
 use style::values::{AtomIdent, AtomString};
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
@@ -97,9 +99,11 @@ impl<'dom> ServoLayoutElement<'dom> {
     /// This function accesses and modifies the underlying DOM object and should
     /// not be used by more than a single thread at once.
     pub unsafe fn unset_snapshot_flags(&self) {
-        self.as_node()
-            .node
-            .set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
+        unsafe {
+            self.as_node()
+                .node
+                .set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
+        }
     }
 
     /// Unset the snapshot flags on the underlying DOM object for this element.
@@ -109,7 +113,9 @@ impl<'dom> ServoLayoutElement<'dom> {
     /// This function accesses and modifies the underlying DOM object and should
     /// not be used by more than a single thread at once.
     pub unsafe fn set_has_snapshot(&self) {
-        self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
+        unsafe {
+            self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
+        }
     }
 
     /// Returns true if this element is the body child of an html element root element.
@@ -199,6 +205,22 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
 
     fn traversal_parent(&self) -> Option<Self> {
         self.as_node().traversal_parent()
+    }
+
+    fn inheritance_parent(&self) -> Option<Self> {
+        if self.is_pseudo_element() {
+            // The inheritance parent of an implemented pseudo-element should be the
+            // originating element, except if `is_element_backed()` is true, then it should
+            // be the flat tree parent. Note `is_element_backed()` differs from the CSS term.
+            // At the current time, `is_element_backed()` is always false in Servo.
+            //
+            // FIXME: handle the cases of element-backed pseudo-elements.
+            return self.pseudo_element_originating_element();
+        }
+
+        // FIXME: By default the inheritance parent would be the Self::parent_element
+        //        but probably we should use the flattened tree parent.
+        self.parent_element()
     }
 
     fn is_html_element(&self) -> bool {
@@ -337,22 +359,43 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     unsafe fn set_handled_snapshot(&self) {
-        self.as_node()
-            .node
-            .set_flag(NodeFlags::HANDLED_SNAPSHOT, true);
+        unsafe {
+            self.as_node()
+                .node
+                .set_flag(NodeFlags::HANDLED_SNAPSHOT, true);
+        }
     }
 
     unsafe fn set_dirty_descendants(&self) {
         debug_assert!(self.as_node().is_connected());
-        self.as_node()
-            .node
-            .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
+        unsafe {
+            self.as_node()
+                .node
+                .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
+        }
     }
 
     unsafe fn unset_dirty_descendants(&self) {
-        self.as_node()
-            .node
-            .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
+        unsafe {
+            self.as_node()
+                .node
+                .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
+        }
+    }
+
+    /// Whether this element should match user and content rules.
+    /// We would like to match rules from the same tree in all cases and optimize computation.
+    /// UA Widget is an exception since we could have a pseudo element selector inside it.
+    #[inline]
+    fn matches_user_and_content_rules(&self) -> bool {
+        !self.as_node().node.is_in_ua_widget()
+    }
+
+    /// Returns the pseudo-element implemented by this element, if any. In other words,
+    /// the element will match the specified pseudo element throughout the style computation.
+    #[inline]
+    fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
+        self.as_node().node.implemented_pseudo_element()
     }
 
     fn store_children_to_process(&self, n: isize) {
@@ -373,11 +416,13 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     unsafe fn clear_data(&self) {
-        self.as_node().get_jsmanaged().clear_style_and_layout_data()
+        unsafe { self.as_node().get_jsmanaged().clear_style_and_layout_data() }
     }
 
     unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
-        self.as_node().get_jsmanaged().initialize_style_data();
+        unsafe {
+            self.as_node().get_jsmanaged().initialize_style_data();
+        };
         self.mutate_data().unwrap()
     }
 
@@ -554,6 +599,74 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             )
         }
     }
+
+    fn compute_layout_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDamage {
+        let box_tree_needs_rebuild = || {
+            let old_box = old.get_box();
+            let new_box = new.get_box();
+
+            if old_box.display != new_box.display ||
+                old_box.float != new_box.float ||
+                old_box.position != new_box.position
+            {
+                return true;
+            }
+
+            if old.get_font() != new.get_font() {
+                return true;
+            }
+
+            // NOTE: This should be kept in sync with the checks in `impl
+            // StyleExt::establishes_block_formatting_context` for `ComputedValues` in
+            // `components/layout/style_ext.rs`.
+            if new_box.display.outside() == DisplayOutside::Block &&
+                new_box.display.inside() == DisplayInside::Flow
+            {
+                let alignment_establishes_new_block_formatting_context =
+                    |style: &ComputedValues| {
+                        style.get_position().align_content.0.primary() != AlignFlags::NORMAL
+                    };
+
+                let old_column = old.get_column();
+                let new_column = new.get_column();
+                if old_box.overflow_x.is_scrollable() != new_box.overflow_x.is_scrollable() ||
+                    old_column.is_multicol() != new_column.is_multicol() ||
+                    old_column.column_span != new_column.column_span ||
+                    alignment_establishes_new_block_formatting_context(old) !=
+                        alignment_establishes_new_block_formatting_context(new)
+                {
+                    return true;
+                }
+            }
+
+            if old_box.display.is_list_item() {
+                let old_list = old.get_list();
+                let new_list = new.get_list();
+                if old_list.list_style_position != new_list.list_style_position ||
+                    old_list.list_style_image != new_list.list_style_image ||
+                    (new_list.list_style_image == Image::None &&
+                        old_list.list_style_type != new_list.list_style_type)
+                {
+                    return true;
+                }
+            }
+
+            if new.is_pseudo_style() && old.get_counters().content != new.get_counters().content {
+                return true;
+            }
+
+            false
+        };
+
+        if box_tree_needs_rebuild() {
+            RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits())
+        } else {
+            // This element needs to be laid out again, but does not have any damage to
+            // its box. In the future, we will distinguish between types of damage to the
+            // fragment as well.
+            RestyleDamage::RELAYOUT
+        }
+    }
 }
 
 impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
@@ -579,6 +692,18 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
 
     fn containing_shadow_host(&self) -> Option<Self> {
         self.containing_shadow().map(|s| s.host())
+    }
+
+    #[inline]
+    fn is_pseudo_element(&self) -> bool {
+        self.implemented_pseudo_element().is_some()
+    }
+
+    #[inline]
+    fn pseudo_element_originating_element(&self) -> Option<Self> {
+        debug_assert!(self.is_pseudo_element());
+        debug_assert!(!self.matches_user_and_content_rules());
+        self.containing_shadow_host()
     }
 
     fn prev_sibling_element(&self) -> Option<Self> {
@@ -659,18 +784,6 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
             self.element.namespace() == other.element.namespace()
     }
 
-    fn is_pseudo_element(&self) -> bool {
-        false
-    }
-
-    fn match_pseudo_element(
-        &self,
-        _pseudo: &PseudoElement,
-        _context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        false
-    }
-
     fn match_non_ts_pseudo_class(
         &self,
         pseudo_class: &NonTSPseudoClass,
@@ -727,6 +840,14 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
                 .get_state_for_layout()
                 .contains(pseudo_class.state_flag()),
         }
+    }
+
+    fn match_pseudo_element(
+        &self,
+        pseudo: &PseudoElement,
+        _context: &mut MatchingContext<Self::Impl>,
+    ) -> bool {
+        self.implemented_pseudo_element() == Some(*pseudo)
     }
 
     #[inline]
@@ -930,21 +1051,33 @@ impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
         ::selectors::OpaqueElement::new(unsafe { &*(self.as_node().opaque().0 as *const ()) })
     }
 
-    fn is_pseudo_element(&self) -> bool {
-        false
-    }
-
     fn parent_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::parent_element called");
         None
     }
 
+    #[inline]
     fn parent_node_is_shadow_root(&self) -> bool {
-        false
+        self.element.parent_node_is_shadow_root()
     }
 
+    #[inline]
     fn containing_shadow_host(&self) -> Option<Self> {
-        None
+        self.element
+            .containing_shadow_host()
+            .and_then(|element| element.as_node().to_threadsafe().as_element())
+    }
+
+    #[inline]
+    fn is_pseudo_element(&self) -> bool {
+        self.element.is_pseudo_element()
+    }
+
+    #[inline]
+    fn pseudo_element_originating_element(&self) -> Option<Self> {
+        self.element
+            .pseudo_element_originating_element()
+            .and_then(|element| element.as_node().to_threadsafe().as_element())
     }
 
     // Skips non-element nodes
@@ -989,14 +1122,6 @@ impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
             self.element.namespace() == other.element.namespace()
     }
 
-    fn match_pseudo_element(
-        &self,
-        _pseudo: &PseudoElement,
-        _context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        false
-    }
-
     fn attr_matches(
         &self,
         ns: &NamespaceConstraint<&style::Namespace>,
@@ -1024,6 +1149,14 @@ impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
         // NB: This could maybe be implemented
         warn!("ServoThreadSafeLayoutElement::match_non_ts_pseudo_class called");
         false
+    }
+
+    fn match_pseudo_element(
+        &self,
+        pseudo: &PseudoElement,
+        context: &mut MatchingContext<Self::Impl>,
+    ) -> bool {
+        self.element.match_pseudo_element(pseudo, context)
     }
 
     fn is_link(&self) -> bool {

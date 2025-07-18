@@ -38,18 +38,26 @@ promise_test(async (test) => {
   localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "audio"));
   localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "video"));
   exchangeIceCandidates(localPc, remotePc);
-  await Promise.all([
-    exchangeOfferAnswer(localPc, remotePc),
-    new Promise(r => remotePc.ontrack = e => e.track.onunmute = r)
-  ]);
+
+  async function countOutboundRtp() {
+    const stats = await localPc.getStats();
+    return [...stats.values()]
+        .filter(({ type }) => type == "outbound-rtp").length;
+  }
+
+  assert_equals(await countOutboundRtp(), 0,
+    "No outbound rtp stats before setLocalDescription");
+  await localPc.setLocalDescription();
+  const p = remotePc.setRemoteDescription(localPc.localDescription);
+  assert_equals(await countOutboundRtp(), 0,
+    "No outbound rtp stats after setLocalDescription but before setRemoteDescription");
+  await p;
+  await remotePc.setLocalDescription();
+  await localPc.setRemoteDescription(remotePc.localDescription);
+
   const start = performance.now();
   while (true) {
-    const report = await localPc.getStats();
-    const outbound =
-      [...report.values()].filter(({type}) => type == "outbound-rtp");
-    assert_true(outbound.every(({packetsSent}) => packetsSent > 0),
-      "no outbound rtp stats before packets sent");
-    if (outbound.length == 2) {
+    if (await countOutboundRtp() == 2) {
       // One outbound stat for each track is present. We're done.
       break;
     }
@@ -58,7 +66,7 @@ promise_test(async (test) => {
     }
     await new Promise(r => test.step_timeout(r, 100));
   }
-}, "No RTCOutboundRtpStreamStats exist until packets have been sent");
+}, "No RTCRtpOutboundStreamStats should exist before negotiation completes");
 
 promise_test(async (test) => {
   const localPc = createPeerConnectionWithCleanup(test);

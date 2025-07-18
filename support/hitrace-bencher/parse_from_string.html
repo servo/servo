@@ -1,0 +1,37 @@
+<html>
+<script>
+    function generateHTML(count) {
+        let html = '';
+        for (let i = 0; i < count; i++) {
+            html += `<div>
+                    <h2>Item ${i}</h2>
+                    <p>This is paragraph number ${i}</p>
+                    <ul>
+                    <li>A</li><li>B</li><li>C</li>
+                    </ul>
+                    </div>`;
+        }
+        return html;
+    }
+
+    function run() {
+        const result = document.getElementById("result");
+        const html = generateHTML(15000);
+        const parser = new DOMParser();
+
+        const start = performance.now();
+        const doc = parser.parseFromString(html, "text/html");
+        const end = performance.now();
+
+        const result_text = (end - start).toFixed(0);
+        result.textContent = `Total: ${result_text} ms`;
+        alert("TESTCASE_PROFILING: parsefromstring:" + result_text);
+    };
+</script>
+
+<body onload="run()">
+    <button id="run">Run Script</button>
+    <div id="result"></div>
+</body>
+
+</html>

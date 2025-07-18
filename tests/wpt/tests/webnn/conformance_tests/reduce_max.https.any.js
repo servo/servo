@@ -19,13 +19,6 @@
 //
 // MLOperand reduceMax(MLOperand input, optional MLReduceOptions options = {});
 
-const getReductionOperatorsPrecisionTolerance = (graphResources) => {
-  return {
-    metricType: 'ULP',
-    value: 0,
-  };
-};
-
 const reduceMaxTests = [
   {
     'name': 'reduceMax float32 0D constant tensor default options',
@@ -1002,8 +995,7 @@ const reduceMaxTests = [
 
 if (navigator.ml) {
   reduceMaxTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getReductionOperatorsPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

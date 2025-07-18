@@ -32,7 +32,6 @@ stylo = { workspace = true }
 stylo_dom = { workspace = true }
 stylo_malloc_size_of = { workspace = true }
 taffy = { workspace = true }
-thin-vec = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }

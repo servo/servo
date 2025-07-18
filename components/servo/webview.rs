@@ -14,7 +14,7 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, ViewportDetails,
+    ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
 use servo_geometry::DeviceIndependentPixel;
@@ -77,7 +77,7 @@ pub(crate) struct WebViewInner {
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
-
+    /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     rect: DeviceRect,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
@@ -416,24 +416,32 @@ impl WebView {
             .send(EmbedderToConstellationMessage::Reload(self.id()))
     }
 
-    pub fn go_back(&self, amount: usize) {
+    pub fn go_back(&self, amount: usize) -> TraversalId {
+        let traversal_id = TraversalId::new();
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Back(amount),
-            ))
+                traversal_id.clone(),
+            ));
+        traversal_id
     }
 
-    pub fn go_forward(&self, amount: usize) {
+    pub fn go_forward(&self, amount: usize) -> TraversalId {
+        let traversal_id = TraversalId::new();
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Forward(amount),
-            ))
+                traversal_id.clone(),
+            ));
+        traversal_id
     }
 
+    /// Ask the [`WebView`] to scroll web content. Note that positive scroll offsets reveal more
+    /// content on the bottom and right of the page.
     pub fn notify_scroll_event(&self, location: ScrollLocation, point: DeviceIntPoint) {
         self.inner()
             .compositor

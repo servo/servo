@@ -8,14 +8,12 @@ use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use content_security_policy as csp;
 use dom_struct::dom_struct;
 use headers::ContentType;
 use http::StatusCode;
 use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use mime::{self, Mime};
@@ -24,6 +22,7 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
     FilteredMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
+use script_bindings::conversions::SafeToJSValConvertible;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
@@ -37,6 +36,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -231,7 +231,6 @@ impl EventSourceContext {
     }
 
     // https://html.spec.whatwg.org/multipage/#dispatchMessage
-    #[allow(unsafe_code)]
     fn dispatch_event(&mut self, can_gc: CanGc) {
         let event_source = self.event_source.root();
         // Step 1
@@ -258,10 +257,8 @@ impl EventSourceContext {
         let event = {
             let _ac = enter_realm(&*event_source);
             rooted!(in(*GlobalScope::get_cx()) let mut data = UndefinedValue());
-            unsafe {
-                self.data
-                    .to_jsval(*GlobalScope::get_cx(), data.handle_mut())
-            };
+            self.data
+                .safe_to_jsval(GlobalScope::get_cx(), data.handle_mut());
             MessageEvent::new(
                 &event_source.global(),
                 type_,
@@ -474,9 +471,9 @@ impl FetchResponseListener for EventSourceContext {
         network_listener::submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        global.report_csp_violations(violations, None, None);
     }
 }
 

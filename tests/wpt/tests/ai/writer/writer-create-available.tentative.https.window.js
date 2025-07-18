@@ -84,10 +84,15 @@ promise_test(async () => {
 }, 'Writer.outputLanguage');
 
 promise_test(async (t) => {
-  promise_rejects_js(
-    t, RangeError,
-    createWriter({ expectedInputLanguages: ['en-abc-invalid'] }));
+  return promise_rejects_js(
+      t, RangeError,
+      createWriter({expectedInputLanguages: ['en-abc-invalid']}));
 }, 'Creating Writer with malformed language string');
+
+promise_test(async (t) => {
+  let writer = await createWriter({expectedInputLanguages: ['EN']});
+  assert_true(!!writer);
+}, 'Writer.create() canonicalizes language tags');
 
 promise_test(async () => {
   const writer = await createWriter({});

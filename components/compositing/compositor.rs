@@ -27,10 +27,10 @@ use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState,
-    UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
+    CompositorHitTestResult, Cursor, InputEvent, ShutdownState, UntrustedNodeAddress,
+    ViewportDetails,
 };
-use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
+use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
@@ -38,13 +38,13 @@ use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
-use servo_config::opts;
+use servo_config::{opts, pref};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
-    LayoutSize, LayoutVector2D, WorldPoint,
+    LayoutSize, WorldPoint,
 };
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
@@ -66,7 +66,6 @@ enum UnableToComposite {
 
 #[derive(Debug, PartialEq)]
 enum NotReadyToPaint {
-    AnimationsActive,
     JustNotifiedConstellation,
     WaitingOnConstellation,
 }
@@ -151,7 +150,7 @@ pub struct IOCompositor {
     /// The webrender renderer.
     webrender: Option<webrender::Renderer>,
 
-    /// The surfman instance that webrender targets
+    /// The surfman instance that webrender targets, which is the viewport.
     rendering_context: Rc<dyn RenderingContext>,
 
     /// The number of frames pending to receive from WebRender.
@@ -234,10 +233,6 @@ pub(crate) struct PipelineDetails {
 }
 
 impl PipelineDetails {
-    pub(crate) fn animations_or_animation_callbacks_running(&self) -> bool {
-        self.animations_running || self.animation_callbacks_running
-    }
-
     pub(crate) fn animation_callbacks_running(&self) -> bool {
         self.animation_callbacks_running
     }
@@ -336,11 +331,23 @@ impl ServoRenderer {
                     _ => return None,
                 }
 
+                let offset = details
+                    .scroll_tree
+                    .scroll_offset(pipeline_id.root_scroll_id())
+                    .unwrap_or_default();
+                let point_in_initial_containing_block =
+                    (item.point_in_viewport + offset).to_untyped();
+
                 let info = &details.hit_test_items[item.tag.0 as usize];
                 Some(CompositorHitTestResult {
                     pipeline_id,
-                    point_in_viewport: item.point_in_viewport.to_untyped(),
-                    point_relative_to_item: item.point_relative_to_item.to_untyped(),
+                    point_in_viewport: Point2D::from_untyped(item.point_in_viewport.to_untyped()),
+                    point_relative_to_initial_containing_block: Point2D::from_untyped(
+                        point_in_initial_containing_block,
+                    ),
+                    point_relative_to_item: Point2D::from_untyped(
+                        item.point_relative_to_item.to_untyped(),
+                    ),
                     node: UntrustedNodeAddress(info.node as *const c_void),
                     cursor: info.cursor,
                     scroll_tree_node: info.scroll_tree_node,
@@ -660,66 +667,6 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::WebDriverMouseButtonEvent(
-                webview_id,
-                action,
-                button,
-                x,
-                y,
-                message_id,
-            ) => {
-                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-                    warn!("Handling input event for unknown webview: {webview_id}");
-                    return;
-                };
-                let dppx = webview_renderer.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_point_input_event(
-                    InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
-                        .with_webdriver_message_id(message_id),
-                );
-            },
-
-            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, message_id) => {
-                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-                    warn!("Handling input event for unknown webview: {webview_id}");
-                    return;
-                };
-                let dppx = webview_renderer.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_point_input_event(
-                    InputEvent::MouseMove(MouseMoveEvent::new(point))
-                        .with_webdriver_message_id(message_id),
-                );
-            },
-
-            CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, dx, dy, message_id) => {
-                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-                    warn!("Handling input event for unknown webview: {webview_id}");
-                    return;
-                };
-                // The sign of wheel delta value definition in uievent
-                // is inverted compared to `winit`s wheel delta. Hence,
-                // here we invert the sign to mimic wheel scroll
-                // implementation in `headed_window.rs`.
-                let dx = -dx;
-                let dy = -dy;
-                let delta = WheelDelta {
-                    x: dx,
-                    y: dy,
-                    z: 0.0,
-                    mode: WheelMode::DeltaPixel,
-                };
-                let dppx = webview_renderer.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
-                let scroll_delta = dppx.transform_vector(Vector2D::new(dx as f32, dy as f32));
-                webview_renderer.dispatch_point_input_event(
-                    InputEvent::Wheel(WheelEvent::new(delta, point))
-                        .with_webdriver_message_id(message_id),
-                );
-                webview_renderer.on_webdriver_wheel_action(scroll_delta, point);
-            },
-
             CompositorMsg::SendInitialTransaction(pipeline) => {
                 let mut txn = Transaction::new();
                 txn.set_display_list(WebRenderEpoch(0), (pipeline, Default::default()));
@@ -756,7 +703,7 @@ impl IOCompositor {
                 txn.set_scroll_offsets(
                     external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset: -offset,
+                        offset,
                         generation: 0,
                     }],
                 );
@@ -886,6 +833,19 @@ impl IOCompositor {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
             },
 
+            CompositorMsg::GenerateImageKeysForPipeline(pipeline_id) => {
+                let image_keys = (0..pref!(image_key_batch_size))
+                    .map(|_| self.global.borrow().webrender_api.generate_image_key())
+                    .collect();
+                if let Err(error) = self.global.borrow().constellation_sender.send(
+                    EmbedderToConstellationMessage::SendImageKeysForPipeline(
+                        pipeline_id,
+                        image_keys,
+                    ),
+                ) {
+                    warn!("Sending Image Keys to Constellation failed with({error:?}).");
+                }
+            },
             CompositorMsg::UpdateImages(updates) => {
                 let mut txn = Transaction::new();
                 for update in updates {
@@ -929,12 +889,6 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CompositorMsg::AddImage(key, desc, data) => {
-                let mut txn = Transaction::new();
-                txn.add_image(key, desc, data.into(), None);
-                self.global.borrow_mut().send_transaction(txn);
-            },
-
             CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
@@ -952,38 +906,6 @@ impl IOCompositor {
                     })
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
-            },
-            CompositorMsg::GetClientWindowRect(webview_id, response_sender) => {
-                let client_window_rect = self
-                    .webview_renderers
-                    .get(webview_id)
-                    .map(|webview_renderer| {
-                        webview_renderer.client_window_rect(self.rendering_context.size2d())
-                    })
-                    .unwrap_or_default();
-                if let Err(error) = response_sender.send(client_window_rect) {
-                    warn!("Sending response to get client window failed ({error:?}).");
-                }
-            },
-            CompositorMsg::GetScreenSize(webview_id, response_sender) => {
-                let screen_size = self
-                    .webview_renderers
-                    .get(webview_id)
-                    .map(WebViewRenderer::screen_size)
-                    .unwrap_or_default();
-                if let Err(error) = response_sender.send(screen_size) {
-                    warn!("Sending response to get screen size failed ({error:?}).");
-                }
-            },
-            CompositorMsg::GetAvailableScreenSize(webview_id, response_sender) => {
-                let available_screen_size = self
-                    .webview_renderers
-                    .get(webview_id)
-                    .map(WebViewRenderer::available_screen_size)
-                    .unwrap_or_default();
-                if let Err(error) = response_sender.send(available_screen_size) {
-                    warn!("Sending response to get screen size failed ({error:?}).");
-                }
             },
             CompositorMsg::Viewport(webview_id, viewport_description) => {
                 if let Some(webview) = self.webview_renderers.get_mut(webview_id) {
@@ -1033,21 +955,6 @@ impl IOCompositor {
                     })
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
-            },
-            CompositorMsg::GetClientWindowRect(_, response_sender) => {
-                if let Err(error) = response_sender.send(Default::default()) {
-                    warn!("Sending response to get client window failed ({error:?}).");
-                }
-            },
-            CompositorMsg::GetScreenSize(_, response_sender) => {
-                if let Err(error) = response_sender.send(Default::default()) {
-                    warn!("Sending response to get client window failed ({error:?}).");
-                }
-            },
-            CompositorMsg::GetAvailableScreenSize(_, response_sender) => {
-                if let Err(error) = response_sender.send(Default::default()) {
-                    warn!("Sending response to get client window failed ({error:?}).");
-                }
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
                 // Subtract from the number of pending frames, but do not do any compositing.
@@ -1163,7 +1070,6 @@ impl IOCompositor {
                         continue;
                     };
 
-                    let offset = LayoutVector2D::new(-offset.x, -offset.y);
                     transaction.set_scroll_offsets(
                         external_id,
                         vec![SampledScrollOffset {
@@ -1362,13 +1268,6 @@ impl IOCompositor {
             .get(&pipeline_id)
     }
 
-    // Check if any pipelines currently have active animations or animation callbacks.
-    fn animations_or_animation_callbacks_running(&self) -> bool {
-        self.webview_renderers
-            .iter()
-            .any(WebViewRenderer::animations_or_animation_callbacks_running)
-    }
-
     /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.
     fn animation_callbacks_running(&self) -> bool {
         self.webview_renderers
@@ -1513,13 +1412,6 @@ impl IOCompositor {
         }
 
         if opts::get().wait_for_stable_image {
-            // The current image may be ready to output. However, if there are animations active,
-            // continue waiting for the image output to be stable AND all active animations to complete.
-            if self.animations_or_animation_callbacks_running() {
-                return Err(UnableToComposite::NotReadyToPaintImage(
-                    NotReadyToPaint::AnimationsActive,
-                ));
-            }
             if let Err(result) = self.is_ready_to_paint_image_output() {
                 return Err(UnableToComposite::NotReadyToPaintImage(result));
             }
@@ -1725,11 +1617,10 @@ impl IOCompositor {
                 self.send_root_pipeline_display_list_in_transaction(&mut transaction);
             }
             for update in scroll_offset_updates {
-                let offset = LayoutVector2D::new(-update.offset.x, -update.offset.y);
                 transaction.set_scroll_offsets(
                     update.external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset,
+                        offset: update.offset,
                         generation: 0,
                     }],
                 );

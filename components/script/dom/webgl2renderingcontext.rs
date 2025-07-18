@@ -11,8 +11,8 @@ use std::rc::Rc;
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    GLContextAttributes, InternalFormatParameter, WebGLCommand, WebGLContextId, WebGLResult,
-    WebGLVersion, webgl_channel,
+    AlphaTreatment, GLContextAttributes, InternalFormatParameter, TexDataType, TexFormat,
+    WebGLCommand, WebGLContextId, WebGLResult, WebGLVersion, YAxisTreatment, webgl_channel,
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -21,12 +21,14 @@ use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
-use pixels::Snapshot;
+use pixels::{Alpha, Snapshot};
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use servo_config::pref;
 use url::Host;
 use webrender_api::ImageKey;
 
+use super::webgl_validations::types::TexImageTarget;
 use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
@@ -51,6 +53,7 @@ use crate::dom::webgl_validations::WebGLValidator;
 use crate::dom::webgl_validations::tex_image_2d::{
     TexImage2DValidator, TexImage2DValidatorResult, TexStorageValidator, TexStorageValidatorResult,
 };
+use crate::dom::webgl_validations::tex_image_3d::{TexImage3DValidator, TexImage3DValidatorResult};
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
@@ -70,7 +73,6 @@ use crate::dom::webgltransformfeedback::WebGLTransformFeedback;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::window::Window;
-use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -645,7 +647,6 @@ impl WebGL2RenderingContext {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     fn get_specific_fb_attachment_param(
         &self,
         cx: JSContext,
@@ -690,11 +691,11 @@ impl WebGL2RenderingContext {
 
         if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
             match fb.attachment(attachment) {
-                Some(Renderbuffer(rb)) => unsafe {
-                    rb.to_jsval(*cx, rval);
+                Some(Renderbuffer(rb)) => {
+                    rb.safe_to_jsval(cx, rval);
                 },
-                Some(Texture(texture)) => unsafe {
-                    texture.to_jsval(*cx, rval);
+                Some(Texture(texture)) => {
+                    texture.safe_to_jsval(cx, rval);
                 },
                 _ => rval.set(NullValue()),
             }
@@ -899,6 +900,66 @@ impl WebGL2RenderingContext {
             texture.storage(target, levels, internal_format, width, height, depth)
         );
     }
+
+    #[allow(clippy::too_many_arguments)]
+    fn tex_image_3d(
+        &self,
+        texture: &WebGLTexture,
+        target: TexImageTarget,
+        data_type: TexDataType,
+        internal_format: TexFormat,
+        format: TexFormat,
+        level: u32,
+        width: u32,
+        height: u32,
+        depth: u32,
+        _border: u32,
+        unpacking_alignment: u32,
+        data: TexPixels,
+    ) {
+        handle_potential_webgl_error!(
+            self.base,
+            texture.initialize(
+                target,
+                width,
+                height,
+                depth,
+                internal_format,
+                level,
+                Some(data_type)
+            )
+        );
+
+        let internal_format = self
+            .base
+            .extension_manager()
+            .get_effective_tex_internal_format(internal_format, data_type.as_gl_constant());
+        let effective_data_type = self
+            .base
+            .extension_manager()
+            .effective_type(data_type.as_gl_constant());
+
+        self.base.send_command(WebGLCommand::TexImage3D {
+            target: target.as_gl_constant(),
+            level,
+            internal_format,
+            size: data.size(),
+            depth,
+            format,
+            data_type,
+            effective_data_type,
+            unpacking_alignment,
+            alpha_treatment: data.alpha_treatment(),
+            y_axis_treatment: data.y_axis_treatment(),
+            pixel_format: data.pixel_format(),
+            data: data.into_shared_memory().into(),
+        });
+        // TODO: Hint/tex_parameter
+
+        if let Some(fb) = self.base.bound_draw_framebuffer() {
+            fb.invalidate_texture(texture);
+        }
+    }
 }
 
 impl CanvasContext for WebGL2RenderingContext {
@@ -914,6 +975,10 @@ impl CanvasContext for WebGL2RenderingContext {
 
     fn resize(&self) {
         self.base.resize();
+    }
+
+    fn reset_bitmap(&self) {
+        self.base.reset_bitmap();
     }
 
     fn get_image_data(&self) -> Option<Snapshot> {
@@ -967,16 +1032,15 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         self.base.get_buffer_param(buffer, parameter, retval)
     }
 
-    #[allow(unsafe_code)]
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn GetParameter(&self, cx: JSContext, parameter: u32, mut rval: MutableHandleValue) {
         match parameter {
-            constants::VERSION => unsafe {
-                "WebGL 2.0".to_jsval(*cx, rval);
+            constants::VERSION => {
+                "WebGL 2.0".safe_to_jsval(cx, rval);
                 return;
             },
-            constants::SHADING_LANGUAGE_VERSION => unsafe {
-                "WebGL GLSL ES 3.00".to_jsval(*cx, rval);
+            constants::SHADING_LANGUAGE_VERSION => {
+                "WebGL GLSL ES 3.00".safe_to_jsval(cx, rval);
                 return;
             },
             constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
@@ -991,60 +1055,62 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 ));
                 return;
             },
-            constants::SAMPLER_BINDING => unsafe {
+            constants::SAMPLER_BINDING => {
                 let idx = (self.base.textures().active_unit_enum() - constants::TEXTURE0) as usize;
                 assert!(idx < self.samplers.len());
                 let sampler = self.samplers[idx].get();
-                sampler.to_jsval(*cx, rval);
+                sampler.safe_to_jsval(cx, rval);
                 return;
             },
-            constants::COPY_READ_BUFFER_BINDING => unsafe {
-                self.bound_copy_read_buffer.get().to_jsval(*cx, rval);
+            constants::COPY_READ_BUFFER_BINDING => {
+                self.bound_copy_read_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::COPY_WRITE_BUFFER_BINDING => unsafe {
-                self.bound_copy_write_buffer.get().to_jsval(*cx, rval);
+            constants::COPY_WRITE_BUFFER_BINDING => {
+                self.bound_copy_write_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::PIXEL_PACK_BUFFER_BINDING => unsafe {
-                self.bound_pixel_pack_buffer.get().to_jsval(*cx, rval);
+            constants::PIXEL_PACK_BUFFER_BINDING => {
+                self.bound_pixel_pack_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::PIXEL_UNPACK_BUFFER_BINDING => unsafe {
-                self.bound_pixel_unpack_buffer.get().to_jsval(*cx, rval);
+            constants::PIXEL_UNPACK_BUFFER_BINDING => {
+                self.bound_pixel_unpack_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING => unsafe {
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING => {
                 self.bound_transform_feedback_buffer
                     .get()
-                    .to_jsval(*cx, rval);
+                    .safe_to_jsval(cx, rval);
                 return;
             },
-            constants::UNIFORM_BUFFER_BINDING => unsafe {
-                self.bound_uniform_buffer.get().to_jsval(*cx, rval);
+            constants::UNIFORM_BUFFER_BINDING => {
+                self.bound_uniform_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::TRANSFORM_FEEDBACK_BINDING => unsafe {
-                self.current_transform_feedback.get().to_jsval(*cx, rval);
+            constants::TRANSFORM_FEEDBACK_BINDING => {
+                self.current_transform_feedback
+                    .get()
+                    .safe_to_jsval(cx, rval);
                 return;
             },
-            constants::ELEMENT_ARRAY_BUFFER_BINDING => unsafe {
+            constants::ELEMENT_ARRAY_BUFFER_BINDING => {
                 let buffer = self.current_vao().element_array_buffer().get();
-                buffer.to_jsval(*cx, rval);
+                buffer.safe_to_jsval(cx, rval);
                 return;
             },
-            constants::VERTEX_ARRAY_BINDING => unsafe {
+            constants::VERTEX_ARRAY_BINDING => {
                 let vao = self.current_vao();
                 let vao = vao.id().map(|_| &*vao);
-                vao.to_jsval(*cx, rval);
+                vao.safe_to_jsval(cx, rval);
                 return;
             },
             // NOTE: DRAW_FRAMEBUFFER_BINDING is the same as FRAMEBUFFER_BINDING, handled on the WebGL1 side
-            constants::READ_FRAMEBUFFER_BINDING => unsafe {
+            constants::READ_FRAMEBUFFER_BINDING => {
                 self.base
                     .get_read_framebuffer_slot()
                     .get()
-                    .to_jsval(*cx, rval);
+                    .safe_to_jsval(cx, rval);
                 return;
             },
             constants::READ_BUFFER => {
@@ -1968,7 +2034,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2>
-    #[allow(unsafe_code)]
     fn GetIndexedParameter(
         &self,
         cx: JSContext,
@@ -2000,8 +2065,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         };
 
         match target {
-            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING | constants::UNIFORM_BUFFER_BINDING => unsafe {
-                binding.buffer.get().to_jsval(*cx, retval)
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING | constants::UNIFORM_BUFFER_BINDING => {
+                binding.buffer.get().safe_to_jsval(cx, retval)
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_START | constants::UNIFORM_BUFFER_START => {
                 retval.set(Int32Value(binding.start.get() as _))
@@ -2340,6 +2405,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 constants::BOOL |
                 constants::UNSIGNED_INT |
                 constants::SAMPLER_2D |
+                constants::SAMPLER_2D_ARRAY |
+                constants::SAMPLER_3D |
                 constants::SAMPLER_CUBE => {},
                 _ => return Err(InvalidOperation),
             }
@@ -2988,6 +3055,136 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         self.base.Viewport(x, y, width, height)
     }
 
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6>
+    ///
+    /// Allocates and initializes the specified mipmap level of a three-dimensional or
+    /// two-dimensional array texture.
+    #[allow(unsafe_code)]
+    fn TexImage3D(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: i32,
+        width: i32,
+        height: i32,
+        depth: i32,
+        border: i32,
+        format: u32,
+        type_: u32,
+        src_data: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+    ) -> Fallible<()> {
+        // If a WebGLBuffer is bound to the PIXEL_UNPACK_BUFFER target,
+        // generates an INVALID_OPERATION error.
+        if self.bound_pixel_unpack_buffer.get().is_some() {
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
+        }
+
+        // If type is specified as FLOAT_32_UNSIGNED_INT_24_8_REV, srcData must be null;
+        // otherwise, generates an INVALID_OPERATION error.
+        if type_ == constants::FLOAT_32_UNSIGNED_INT_24_8_REV && src_data.is_some() {
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
+        }
+
+        if border != 0 {
+            self.base.webgl_error(InvalidValue);
+            return Ok(());
+        }
+
+        let Ok(TexImage3DValidatorResult {
+            width,
+            height,
+            depth,
+            level,
+            border,
+            texture,
+            target,
+            internal_format,
+            format,
+            data_type,
+        }) = TexImage3DValidator::new(
+            &self.base,
+            target,
+            level,
+            internal_format as u32,
+            width,
+            height,
+            depth,
+            border,
+            format,
+            type_,
+            &src_data,
+        )
+        .validate()
+        else {
+            return Ok(());
+        };
+
+        // TODO: If pixel store parameter constraints are not met, generates an INVALID_OPERATION error.
+
+        // If srcData is null, a buffer of sufficient size initialized to 0 is passed.
+        let unpacking_alignment = self.base.texture_unpacking_alignment();
+        let buff = match *src_data {
+            Some(ref data) => IpcSharedMemory::from_bytes(unsafe { data.as_slice() }),
+            None => {
+                let element_size = data_type.element_size();
+                let components = format.components();
+                let components_per_element = format.components();
+                // FIXME: This is copied from tex_image_2d which is apparently incorrect
+                // NOTE: width and height are positive or zero due to validate()
+                let expected_byte_len = if height == 0 {
+                    0
+                } else {
+                    // We need to be careful here to not count unpack
+                    // alignment at the end of the image, otherwise (for
+                    // example) passing a single byte for uploading a 1x1
+                    // GL_ALPHA/GL_UNSIGNED_BYTE texture would throw an error.
+                    let cpp = element_size * components / components_per_element;
+                    let stride =
+                        (width * cpp + unpacking_alignment - 1) & !(unpacking_alignment - 1);
+                    stride * (height - 1) + width * cpp
+                };
+                IpcSharedMemory::from_bytes(&vec![0u8; expected_byte_len as usize])
+            },
+        };
+        let (alpha_treatment, y_axis_treatment) =
+            self.base.get_current_unpack_state(Alpha::NotPremultiplied);
+        // If UNPACK_FLIP_Y_WEBGL or UNPACK_PREMULTIPLY_ALPHA_WEBGL is set to true, texImage3D and texSubImage3D
+        // generate an INVALID_OPERATION error if they upload data from a PIXEL_UNPACK_BUFFER or a non-null client
+        // side ArrayBufferView.
+        if let (Some(AlphaTreatment::Premultiply), YAxisTreatment::Flipped) =
+            (alpha_treatment, y_axis_treatment)
+        {
+            if src_data.is_some() {
+                self.base.webgl_error(InvalidOperation);
+                return Ok(());
+            }
+        }
+        let tex_source = TexPixels::from_array(
+            buff,
+            Size2D::new(width, height),
+            alpha_treatment,
+            y_axis_treatment,
+        );
+
+        self.tex_image_3d(
+            &texture,
+            target,
+            data_type,
+            internal_format,
+            format,
+            level,
+            width,
+            height,
+            depth,
+            border,
+            unpacking_alignment,
+            tex_source,
+        );
+        Ok(())
+    }
+
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexImage2D(
         &self,
@@ -3257,6 +3454,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         let size = Size2D::new(width, height);
 
+        let (alpha_treatment, y_axis_treatment) =
+            self.base.get_current_unpack_state(Alpha::NotPremultiplied);
+
         self.base.tex_image_2d(
             &texture,
             target,
@@ -3267,7 +3467,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             border,
             unpacking_alignment,
             size,
-            TexSource::Pixels(TexPixels::from_array(buff, size)),
+            TexSource::Pixels(TexPixels::from_array(
+                buff,
+                size,
+                alpha_treatment,
+                y_axis_treatment,
+            )),
         );
 
         Ok(())
@@ -4288,7 +4493,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
-    #[allow(unsafe_code)]
     fn GetActiveUniforms(
         &self,
         cx: JSContext,
@@ -4314,12 +4518,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::UNIFORM_BLOCK_INDEX |
             constants::UNIFORM_OFFSET |
             constants::UNIFORM_ARRAY_STRIDE |
-            constants::UNIFORM_MATRIX_STRIDE => unsafe {
-                values.to_jsval(*cx, rval);
+            constants::UNIFORM_MATRIX_STRIDE => {
+                values.safe_to_jsval(cx, rval);
             },
-            constants::UNIFORM_IS_ROW_MAJOR => unsafe {
+            constants::UNIFORM_IS_ROW_MAJOR => {
                 let values = values.iter().map(|&v| v != 0).collect::<Vec<_>>();
-                values.to_jsval(*cx, rval);
+                values.safe_to_jsval(cx, rval);
             },
             _ => unreachable!(),
         }

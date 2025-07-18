@@ -2887,7 +2887,7 @@
      ]
     ],
     "incremental_trailing_whitespace_a.html": [
-     "f59bd91d9ea23effec2a888649e345937cf0addd",
+     "eca05c4f79fb786492e81aa7881aaa0d75899811",
      [
       null,
       [
@@ -3186,7 +3186,7 @@
      ]
     ],
     "inline_block_opacity_change.html": [
-     "aa51ab444cddb381b6ca76615a30573f49f6f6c3",
+     "6df5d7466d6569a7d1969d5c49a83a7a3564ef7b",
      [
       null,
       [
@@ -3946,19 +3946,6 @@
       [
        [
         "/_mozilla/css/linear_gradients_lengths_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
-    "linear_gradients_non_square_a.html": [
-     "2edd6cbaa4638d6fdc474c6e7bec7f4c194dc721",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/linear_gradients_non_square_ref.html",
         "=="
        ]
       ],
@@ -9324,10 +9311,6 @@
      "a067067fff64d232aad7233b69b7b78e74e1f365",
      []
     ],
-    "linear_gradients_non_square_ref.html": [
-     "1ad3c75747e05768a3e79d879e535e8b3980f1a4",
-     []
-    ],
     "linear_gradients_parsing_ref.html": [
      "b4d21f1c85bfd1da96a35f2c09e73ee9d561ecd9",
      []
@@ -10754,6 +10737,50 @@
     ],
     "test.txt": [
      "9235007d960cc6c804a93c89f24881bedc3613c3",
+     []
+    ],
+    "test1.jpg": [
+     "124d70729ea649ee253254ec0f1e2ea0f926ed31",
+     []
+    ],
+    "test10.jpg": [
+     "1ff396cd08dbf8a6039f39e79af860c44859da48",
+     []
+    ],
+    "test11.jpg": [
+     "8074fffaa33a371825c7a54c9536fc22f4d8bca4",
+     []
+    ],
+    "test2.jpg": [
+     "e35589b82207d655379acbcac3932ccbef846dee",
+     []
+    ],
+    "test3.jpg": [
+     "1f135409c45ea58b4cb7b89bdf4f71b8b43d0b88",
+     []
+    ],
+    "test4.jpg": [
+     "793ded09d3e65db01ea2c55c6f9f2bbe10366b94",
+     []
+    ],
+    "test5.jpg": [
+     "3df583072e57fd6195104e8fb16be7a91b751a70",
+     []
+    ],
+    "test6.jpg": [
+     "81c68f412a27fcdcb1d961db568168b0e9ea2caf",
+     []
+    ],
+    "test7.jpg": [
+     "b6169d4a7b804b184e4677eb9eda54c67f0d2e75",
+     []
+    ],
+    "test8.jpg": [
+     "295e9c523527c584eac494298060d2631d69603d",
+     []
+    ],
+    "test9.jpg": [
+     "c82f94f0134105792bb45a3a827c2a51cc92e674",
      []
     ],
     "text-overflow-ellipsis-stacking-context-ref.html": [
@@ -13525,6 +13552,13 @@
       {}
      ]
     ],
+    "img_load_more_than_cache.html": [
+     "41f1212f8df42c9082d462d861a1ae5545ea5523",
+     [
+      null,
+      {}
+     ]
+    ],
     "img_multiple_request.html": [
      "df625a2bc338c0220808cf7a153128fe9b9d48a8",
      [
@@ -13589,14 +13623,14 @@
      ]
     ],
     "interfaces.https.html": [
-     "eee8c799727b91e00b512795756b693a5f121f86",
+     "641c5ba19d389390b7b51da7644f011b0c42f33a",
      [
       null,
       {}
      ]
     ],
     "interfaces.worker.js": [
-     "e86f34f261442aeaa7074c525fb4b1206219769d",
+     "463bfc25211014203a5094baae4b4e2d890bf9aa",
      [
       "mozilla/interfaces.worker.html",
       {}
@@ -14379,7 +14413,14 @@
      ]
     ],
     "window_resizeTo.html": [
-     "3f6c5a610d52b64bf4457d478b929e95d79e9ab8",
+     "d104be2bc840eecc7c32e27a6fdf1850d945f1e5",
+     [
+      null,
+      {}
+     ]
+    ],
+    "window_resize_event.html": [
+     "68222f978909022ae1abfbdce6c4ea1c5787c554",
      [
       null,
       {}

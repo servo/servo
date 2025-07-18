@@ -8,6 +8,7 @@ use std::ptr::NonNull;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
 use js::rust::HandleObject;
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
@@ -16,7 +17,6 @@ use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext};
 
 /// The underlying cryptographic data this key represents
@@ -135,14 +135,11 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
         NonNull::new(self.algorithm_object.get()).unwrap()
     }
 
-    #[allow(unsafe_code)]
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
     fn Usages(&self, cx: JSContext) -> NonNull<JSObject> {
-        unsafe {
-            rooted!(in(*cx) let mut usages: Value);
-            self.usages.to_jsval(*cx, usages.handle_mut());
-            NonNull::new(usages.to_object()).unwrap()
-        }
+        rooted!(in(*cx) let mut usages: Value);
+        self.usages.safe_to_jsval(cx, usages.handle_mut());
+        NonNull::new(usages.to_object()).unwrap()
     }
 }
 

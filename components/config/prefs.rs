@@ -84,7 +84,6 @@ pub struct Preferences {
     pub dom_fontface_enabled: bool,
     pub dom_fullscreen_test: bool,
     pub dom_gamepad_enabled: bool,
-    pub dom_imagebitmap_enabled: bool,
     pub dom_indexeddb_enabled: bool,
     pub dom_intersection_observer_enabled: bool,
     pub dom_microdata_testing_enabled: bool,
@@ -149,6 +148,8 @@ pub struct Preferences {
     /// Whether or not subpixel antialiasing is enabled for text rendering.
     pub gfx_subpixel_text_antialiasing_enabled: bool,
     pub gfx_texture_swizzling_enabled: bool,
+    /// The amount of image keys we request per batch for the image cache.
+    pub image_key_batch_size: i64,
     /// Whether or not the DOM inspector should show shadow roots of user-agent shadow trees
     pub inspector_show_servo_internal_shadow_roots: bool,
     pub js_asmjs_enabled: bool,
@@ -223,6 +224,8 @@ pub struct Preferences {
     pub threadpools_fallback_worker_num: i64,
     /// Maximum number of workers for the Image Cache thread pool
     pub threadpools_image_cache_workers_max: i64,
+    /// Maximum number of workers for the IndexedDB thread pool
+    pub threadpools_indexeddb_workers_max: i64,
     /// Maximum number of workers for the Networking async runtime thread pool
     pub threadpools_async_runtime_workers_max: i64,
     /// Maximum number of workers for the Core Resource Manager
@@ -258,7 +261,6 @@ impl Preferences {
             dom_fontface_enabled: false,
             dom_fullscreen_test: false,
             dom_gamepad_enabled: true,
-            dom_imagebitmap_enabled: false,
             dom_indexeddb_enabled: false,
             dom_intersection_observer_enabled: false,
             dom_microdata_testing_enabled: false,
@@ -324,6 +326,7 @@ impl Preferences {
             gfx_text_antialiasing_enabled: true,
             gfx_subpixel_text_antialiasing_enabled: true,
             gfx_texture_swizzling_enabled: true,
+            image_key_batch_size: 10,
             inspector_show_servo_internal_shadow_roots: false,
             js_asmjs_enabled: true,
             js_asyncstack: false,
@@ -391,6 +394,7 @@ impl Preferences {
             threadpools_async_runtime_workers_max: 6,
             threadpools_fallback_worker_num: 3,
             threadpools_image_cache_workers_max: 4,
+            threadpools_indexeddb_workers_max: 4,
             threadpools_resource_workers_max: 4,
             threadpools_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,

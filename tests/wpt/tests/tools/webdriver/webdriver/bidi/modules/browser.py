@@ -29,7 +29,8 @@ class Browser(BidiModule):
     @command
     def create_user_context(
         self, accept_insecure_certs: Optional[bool] = None,
-        proxy: Optional[Mapping[str, Any]] = None
+        proxy: Optional[Mapping[str, Any]] = None,
+        unhandled_prompt_behavior: Optional[Mapping[str, str]] = None,
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {}
 
@@ -38,6 +39,9 @@ class Browser(BidiModule):
 
         if proxy is not None:
             params["proxy"] = proxy
+
+        if unhandled_prompt_behavior is not None:
+            params["unhandledPromptBehavior"] = unhandled_prompt_behavior
 
         return params
 

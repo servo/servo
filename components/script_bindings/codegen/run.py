@@ -27,8 +27,8 @@ def main():
     config_file = "Bindings.conf"
 
     import WebIDL
-    from Configuration import Configuration
-    from CodegenRust import CGBindingRoot, CGConcreteBindingRoot
+    from configuration import Configuration
+    from codegen import CGBindingRoot, CGConcreteBindingRoot
 
     parser = WebIDL.Parser(make_dir(os.path.join(out_dir, "cache")))
     webidls = [name for name in os.listdir(webidls_dir) if name.endswith(".webidl")]
@@ -91,7 +91,7 @@ def make_dir(path):
 
 
 def generate(config, name, filename):
-    from CodegenRust import GlobalGenRoots
+    from codegen import GlobalGenRoots
     root = getattr(GlobalGenRoots, name)(config)
     code = root.define()
     with open(filename, "wb") as f:

@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use content_security_policy as csp;
 use headers::{ContentType, HeaderMap, HeaderMapExt};
 use net_traits::request::{
-    CredentialsMode, RequestBody, RequestId, create_request_body_with_content,
+    CredentialsMode, Destination, RequestBody, RequestId, create_request_body_with_content,
 };
 use net_traits::{
     FetchMetadata, FetchResponseListener, NetworkError, ResourceFetchTiming, ResourceTimingType,
@@ -19,12 +19,14 @@ use crate::conversions::Convert;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::csp::Violation;
 use crate::dom::csppolicyviolationreport::{
     CSPReportUriViolationReport, SecurityPolicyViolationReport,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
 use crate::fetch::create_a_potential_cors_request;
@@ -97,6 +99,9 @@ impl CSPViolationReportTask {
         for token in &report_uri_directive.value {
             // Step 3.4.2.1. Let endpoint be the result of executing the URL parser with token as the input,
             // and violation’s url as the base URL.
+            //
+            // TODO: Figure out if this should be the URL of the containing document or not in case
+            // the url points to a blob
             let Ok(endpoint) = ServoUrl::parse_with_base(Some(&global.get_url()), token) else {
                 // Step 3.4.2.2. If endpoint is not a valid URL, skip the remaining substeps.
                 continue;
@@ -110,7 +115,7 @@ impl CSPViolationReportTask {
             let request = create_a_potential_cors_request(
                 None,
                 endpoint.clone(),
-                csp::Destination::Report,
+                Destination::Report,
                 None,
                 None,
                 global.get_referrer(),
@@ -154,6 +159,24 @@ impl TaskOnce for CSPViolationReportTask {
             .find(|directive| directive.name == "report-uri")
         {
             self.post_csp_violation_to_report_uri(report_uri_directive);
+        }
+        // Step 3.5. If violation’s policy’s directive set contains a directive named "report-to" directive:
+        if let Some(report_to_directive) = self
+            .violation_policy
+            .directive_set
+            .iter()
+            .find(|directive| directive.name == "report-to")
+        {
+            // Step 3.5.1. Let body be a new CSPViolationReportBody, initialized as follows:
+            let body = self.violation_report.clone().convert();
+            // Step 3.5.2. Let settings object be violation’s global object’s relevant settings object.
+            // Step 3.5.3. Generate and queue a report with the following arguments:
+            ReportingObserver::generate_and_queue_a_report(
+                &self.global.root(),
+                "csp-violation".into(),
+                Some(body),
+                report_to_directive.value.join(" ").into(),
+            )
         }
     }
 }
@@ -204,10 +227,7 @@ impl FetchResponseListener for CSPReportUriFetchListener {
         submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
-        let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
-    }
+    fn process_csp_violations(&mut self, _request_id: RequestId, _violations: Vec<Violation>) {}
 }
 
 impl ResourceTimingListener for CSPReportUriFetchListener {

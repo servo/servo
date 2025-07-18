@@ -12,7 +12,6 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::{fmt, mem};
 
-use content_security_policy as csp;
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput, match_ignore_ascii_case};
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
@@ -24,6 +23,7 @@ use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_pr
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
+use layout_api::LayoutDamage;
 use net_traits::ReferrerPolicy;
 use net_traits::request::CorsSettings;
 use selectors::Element as SelectorsElement;
@@ -88,24 +88,24 @@ use crate::dom::bindings::codegen::UnionTypes::{
     NodeOrString, TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString, TrustedScriptURLOrUSVString,
 };
 use crate::dom::bindings::conversions::DerivedFrom;
+use crate::dom::bindings::domname::{
+    self, is_valid_attribute_local_name, namespace_from_domstring,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::{
-    matches_name_production, namespace_from_domstring, validate_and_extract,
-};
+use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
+use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
     is_valid_custom_element_name,
 };
-use crate::dom::document::{
-    Document, LayoutDocumentHelpers, ReflowTriggerCondition, determine_policy_for_token,
-};
+use crate::dom::document::{Document, LayoutDocumentHelpers, determine_policy_for_token};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
@@ -360,9 +360,18 @@ impl Element {
         // NodeStyleDamaged, but I'm preserving existing behavior.
         restyle.hint.insert(RestyleHint::RESTYLE_SELF);
 
-        if damage == NodeDamage::Other {
-            doc.note_node_with_dirty_descendants(self.upcast());
-            restyle.damage = RestyleDamage::reconstruct();
+        match damage {
+            NodeDamage::Style => {},
+            NodeDamage::ContentOrHeritage => {
+                doc.note_node_with_dirty_descendants(self.upcast());
+                restyle
+                    .damage
+                    .insert(LayoutDamage::recollect_box_tree_children());
+            },
+            NodeDamage::Other => {
+                doc.note_node_with_dirty_descendants(self.upcast());
+                restyle.damage.insert(RestyleDamage::reconstruct());
+            },
         }
     }
 
@@ -675,9 +684,45 @@ impl Element {
 
         let node = self.upcast::<Node>();
         node.dirty(NodeDamage::Other);
-        node.rev_version();
 
         Ok(shadow_root)
+    }
+
+    /// Attach a UA widget shadow root with its default parameters.
+    /// Additionally mark ShadowRoot to use styling configuration for a UA widget.
+    ///
+    /// The general trait of these elements is that it would hide the implementation.
+    /// Thus, we would make it inaccessible (i.e., closed mode, not cloneable, and
+    /// not serializable).
+    ///
+    /// With UA shadow root element being assumed as one element, any focus should
+    /// be delegated to its host.
+    ///
+    // TODO: Ideally, all of the UA shadow root should use UA widget styling, but
+    //       some of the UA widget implemented prior to the implementation of Gecko's
+    //       UA widget matching might need some tweaking.
+    // FIXME: We are yet to implement more complex focusing with that is necessary
+    //        for delegate focus, and we are using workarounds for that right now.
+    pub(crate) fn attach_ua_shadow_root(
+        &self,
+        use_ua_widget_styling: bool,
+        can_gc: CanGc,
+    ) -> DomRoot<ShadowRoot> {
+        let root = self
+            .attach_shadow(
+                IsUserAgentWidget::Yes,
+                ShadowRootMode::Closed,
+                false,
+                false,
+                false,
+                SlotAssignmentMode::Manual,
+                can_gc,
+            )
+            .expect("Attaching UA shadow root failed");
+
+        root.upcast::<Node>()
+            .set_in_ua_widget(use_ua_widget_styling);
+        root
     }
 
     pub(crate) fn detach_shadow(&self, can_gc: CanGc) {
@@ -2259,15 +2304,19 @@ impl Element {
                 } else {
                     let win = self.owner_window();
                     let source = &**attr.value();
+                    let global = &self.owner_global();
                     // However, if the Should element's inline behavior be blocked by
                     // Content Security Policy? algorithm returns "Blocked" when executed
                     // upon the attribute's element, "style attribute", and the attribute's value,
                     // then the style rules defined in the attribute's value must not be applied to the element. [CSP]
-                    if doc.should_elements_inline_type_behavior_be_blocked(
-                        self,
-                        csp::InlineCheckType::StyleAttribute,
-                        source,
-                    ) == csp::CheckResult::Blocked
+                    if global
+                        .get_csp_list()
+                        .should_elements_inline_type_behavior_be_blocked(
+                            global,
+                            self,
+                            InlineCheckType::StyleAttribute,
+                            source,
+                        )
                     {
                         return;
                     }
@@ -2614,8 +2663,17 @@ impl Element {
             TrustedHTMLOrNullIsEmptyString::TrustedHTML(_) => unreachable!(),
         }
     }
+
+    pub(crate) fn compute_source_position(&self, line_number: u32) -> SourcePosition {
+        SourcePosition {
+            source_file: self.owner_global().get_url().to_string(),
+            line_number: line_number + 2,
+            column_number: 0,
+        }
+    }
 }
 
+#[allow(non_snake_case)]
 impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-namespaceuri
     fn GetNamespaceURI(&self) -> Option<DOMString> {
@@ -2736,8 +2794,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         force: Option<bool>,
         can_gc: CanGc,
     ) -> Fallible<bool> {
-        // Step 1.
-        if !matches_name_production(&name) {
+        // Step 1. If qualifiedName is not a valid attribute local name,
+        //      then throw an "InvalidCharacterError" DOMException.
+        if !is_valid_attribute_local_name(&name) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -2779,9 +2838,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-setattribute>
     fn SetAttribute(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        // Step 1. If qualifiedName does not match the Name production in XML,
-        // then throw an "InvalidCharacterError" DOMException.
-        if !matches_name_production(&name) {
+        // Step 1. If qualifiedName is not a valid attribute local name,
+        //      then throw an "InvalidCharacterError" DOMException.
+        if !is_valid_attribute_local_name(&name) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -2810,7 +2869,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         value: DOMString,
         can_gc: CanGc,
     ) -> ErrorResult {
-        let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
+        // Step 1. Let (namespace, prefix, localName) be the result of validating and
+        //      extracting namespace and qualifiedName given "element".
+        let context = domname::Context::Element;
+        let (namespace, prefix, local_name) =
+            domname::validate_and_extract(namespace, &qualified_name, context)?;
         let qualified_name = LocalName::from(qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.set_first_matching_attribute(
@@ -4689,10 +4752,7 @@ impl Element {
             .and_then(|data| data.client_rect.as_ref())
             .and_then(|rect| rect.get().ok())
         {
-            if matches!(
-                doc.needs_reflow(),
-                None | Some(ReflowTriggerCondition::PaintPostponed)
-            ) {
+            if doc.restyle_reason().is_empty() {
                 return rect;
             }
         }

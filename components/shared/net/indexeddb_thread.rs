@@ -15,29 +15,72 @@ pub enum IndexedDBTxnMode {
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#key-type
-#[derive(Clone, Debug, Deserialize, Serialize)]
+// FIXME:(arihant2math) Ordering needs to completely be reimplemented as per https://www.w3.org/TR/IndexedDB-2/#compare-two-keys
+#[derive(Clone, Debug, Deserialize, PartialEq, PartialOrd, Serialize)]
 pub enum IndexedDBKeyType {
-    Number(Vec<u8>),
-    String(Vec<u8>),
+    Number(f64),
+    String(String),
     Binary(Vec<u8>),
+    // FIXME:(arihant2math) Date should not be stored as a Vec<u8>
     Date(Vec<u8>),
-    // FIXME:(arihant2math) implment Array(),
+    Array(Vec<IndexedDBKeyType>),
+    // FIXME:(arihant2math) implment ArrayBuffer
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#key-range
-#[derive(Clone, Debug, Deserialize, Serialize)]
+// <https://www.w3.org/TR/IndexedDB-2/#key-range>
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[allow(unused)]
-pub enum IndexedDBKeyRange {}
+pub struct IndexedDBKeyRange {
+    pub lower: Option<IndexedDBKeyType>,
+    pub upper: Option<IndexedDBKeyType>,
+    pub lower_open: bool,
+    pub upper_open: bool,
+}
 
-// Operations that are not executed instantly, but rather added to a
-// queue that is eventually run.
+impl From<IndexedDBKeyType> for IndexedDBKeyRange {
+    fn from(key: IndexedDBKeyType) -> Self {
+        IndexedDBKeyRange {
+            lower: Some(key.clone()),
+            upper: Some(key),
+            ..Default::default()
+        }
+    }
+}
+
+impl IndexedDBKeyRange {
+    // <https://www.w3.org/TR/IndexedDB-2/#in>
+    pub fn contains(&self, key: &IndexedDBKeyType) -> bool {
+        // A key is in a key range if both of the following conditions are fulfilled:
+        // The lower bound is null, or it is less than key,
+        // or it is both equal to key and the lower open flag is unset.
+        // The upper bound is null, or it is greater than key,
+        // or it is both equal to key and the upper open flag is unset
+        let lower_bound_condition = self
+            .lower
+            .as_ref()
+            .is_none_or(|lower| lower < key || (!self.lower_open && lower == key));
+        let upper_bound_condition = self
+            .upper
+            .as_ref()
+            .is_none_or(|upper| key < upper || (!self.upper_open && key == upper));
+        lower_bound_condition && upper_bound_condition
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
-pub enum AsyncOperation {
+pub enum AsyncReadOnlyOperation {
     /// Gets the value associated with the given key in the associated idb data
     GetItem(
         IndexedDBKeyType, // Key
     ),
 
+    Count(
+        IndexedDBKeyType, // Key
+    ),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum AsyncReadWriteOperation {
     /// Sets the value of the given key in the associated idb data
     PutItem(
         IndexedDBKeyType, // Key
@@ -49,15 +92,21 @@ pub enum AsyncOperation {
     RemoveItem(
         IndexedDBKeyType, // Key
     ),
+    /// Clears all key/value pairs in the associated idb data
+    Clear,
+}
 
-    Count(
-        IndexedDBKeyType, // Key
-    ),
+/// Operations that are not executed instantly, but rather added to a
+/// queue that is eventually run.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum AsyncOperation {
+    ReadOnly(AsyncReadOnlyOperation),
+    ReadWrite(AsyncReadWriteOperation),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum SyncOperation {
-    // Upgrades the version of the database
+    /// Upgrades the version of the database
     UpgradeVersion(
         IpcSender<Result<u64, ()>>,
         ImmutableOrigin,
@@ -65,7 +114,7 @@ pub enum SyncOperation {
         u64,    // Serial number for the transaction
         u64,    // Version to upgrade to
     ),
-    // Checks if an object store has a key generator, used in e.g. Put
+    /// Checks if an object store has a key generator, used in e.g. Put
     HasKeyGenerator(
         IpcSender<bool>,
         ImmutableOrigin,
@@ -73,7 +122,7 @@ pub enum SyncOperation {
         String, // Store
     ),
 
-    // Commits changes of a transaction to the database
+    /// Commits changes of a transaction to the database
     Commit(
         IpcSender<Result<(), ()>>,
         ImmutableOrigin,
@@ -81,7 +130,7 @@ pub enum SyncOperation {
         u64,    // Transaction serial number
     ),
 
-    // Creates a new store for the database
+    /// Creates a new store for the database
     CreateObjectStore(
         IpcSender<Result<(), ()>>,
         ImmutableOrigin,
@@ -110,23 +159,23 @@ pub enum SyncOperation {
         Option<u64>, // Eventual version
     ),
 
-    // Deletes the database
+    /// Deletes the database
     DeleteDatabase(
         IpcSender<Result<(), ()>>,
         ImmutableOrigin,
         String, // Database
     ),
 
-    // Returns an unique identifier that is used to be able to
-    // commit/abort transactions.
+    /// Returns an unique identifier that is used to be able to
+    /// commit/abort transactions.
     RegisterNewTxn(
         IpcSender<u64>,
         ImmutableOrigin,
         String, // Database
     ),
 
-    // Starts executing the requests of a transaction
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-start
+    /// Starts executing the requests of a transaction
+    /// <https://www.w3.org/TR/IndexedDB-2/#transaction-start>
     StartTransaction(
         IpcSender<Result<(), ()>>,
         ImmutableOrigin,
@@ -134,7 +183,7 @@ pub enum SyncOperation {
         u64,    // The serial number of the mutating transaction
     ),
 
-    // Returns the version of the database
+    /// Returns the version of the database
     Version(
         IpcSender<u64>,
         ImmutableOrigin,
@@ -145,11 +194,20 @@ pub enum SyncOperation {
     Exit(IpcSender<()>),
 }
 
+/// The set of all kinds of results that can be returned from async operations.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum IdbResult {
+    /// The key used to perform an async operation.
+    Key(IndexedDBKeyType),
+    /// A structured clone of a value retrieved from an object store.
+    Data(Vec<u8>),
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum IndexedDBThreadMsg {
     Sync(SyncOperation),
     Async(
-        IpcSender<Option<Vec<u8>>>, // Sender to send the result of the async operation
+        IpcSender<Result<Option<IdbResult>, ()>>, // Sender to send the result of the async operation
         ImmutableOrigin,
         String, // Database
         String, // ObjectStore

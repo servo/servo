@@ -19,6 +19,9 @@
   width: 100px;
   height: 100px;
   view-transition-name: shared;
+  /* Apply transform to match the layerized pixels of view transition
+     without establishing a backdrop filter root itself. */
+  transform: translateZ(0);
 }
 .filter {
   backdrop-filter: invert(1);

@@ -15,9 +15,11 @@ use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_config::pref;
-use servo::servo_geometry::DeviceIndependentPixel;
+use servo::servo_geometry::{
+    DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
+};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
@@ -33,6 +35,8 @@ use winit::event::{
 };
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
+#[cfg(target_os = "linux")]
+use winit::platform::wayland::WindowAttributesExtWayland;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 #[cfg(target_os = "macos")]
@@ -44,13 +48,15 @@ use {
 use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
-use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
+use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, PIXEL_DELTA_FACTOR, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     screen_size: Size2D<u32, DeviceIndependentPixel>,
+    /// The inner size of the window in physical pixels which excludes OS decorations.
+    /// It equals viewport size + (0, toolbar height).
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     monitor: winit::monitor::MonitorHandle,
@@ -92,7 +98,13 @@ impl Window {
             .with_transparent(no_native_titlebar)
             .with_inner_size(LogicalSize::new(window_size.width, window_size.height))
             .with_min_inner_size(LogicalSize::new(1, 1))
-            .with_visible(true);
+            // Must be invisible at startup; accesskit_winit setup needs to
+            // happen before the window is shown for the first time.
+            .with_visible(false);
+
+        // Set a name so it can be pinned to taskbars in Linux.
+        #[cfg(target_os = "linux")]
+        let window_attr = window_attr.with_name("org.servo.Servo", "Servo");
 
         #[allow(deprecated)]
         let winit_window = event_loop
@@ -392,7 +404,7 @@ impl Window {
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
-                state.new_toplevel_webview(Url::parse("servo:newtab").unwrap());
+                state.create_and_focus_toplevel_webview(Url::parse("servo:newtab").unwrap());
             })
             .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
             .otherwise(|| handled = false);
@@ -427,20 +439,22 @@ impl WindowPortsMethods for Window {
             0.0,
             (self.toolbar_height.get() * self.hidpi_scale_factor()).0,
         );
-
         let screen_size = self.screen_size.to_f32() * hidpi_factor;
+
+        // FIXME: In reality, this should subtract screen space used by the system interface
+        // elements, but it is difficult to get this value with `winit` currently. See:
+        // See https://github.com/rust-windowing/winit/issues/2494
         let available_screen_size = screen_size - toolbar_size;
 
-        // Offset the WebView origin by the toolbar so that it reflects the actual viewport and
-        // not the window origin.
-        let window_origin = self.winit_window.inner_position().unwrap_or_default();
-        let window_origin = winit_position_to_euclid_point(window_origin).to_f32();
-        let offset = window_origin + toolbar_size;
+        let window_rect = DeviceIntRect::from_origin_and_size(
+            winit_position_to_euclid_point(self.winit_window.outer_position().unwrap_or_default()),
+            winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32(),
+        );
 
         ScreenGeometry {
             size: screen_size.to_i32(),
             available_size: available_screen_size.to_i32(),
-            offset: offset.to_i32(),
+            window_rect,
         }
     }
 
@@ -464,14 +478,16 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_title(title);
     }
 
-    fn request_resize(&self, _: &WebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
-        let toolbar_height = self.toolbar_height() * self.hidpi_scale_factor();
-        let toolbar_height = toolbar_height.get().ceil() as i32;
-        let total_size = PhysicalSize::new(size.width, size.height + toolbar_height);
+    fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
+        let outer_size = self.winit_window.outer_size();
+        let inner_size = self.winit_window.inner_size();
+        let decoration_height = outer_size.height - inner_size.height;
+        let decoration_width = outer_size.width - inner_size.width;
+
         self.winit_window
             .request_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(
-                total_size.width,
-                total_size.height,
+                new_outer_size.width - decoration_width as i32,
+                new_outer_size.height - decoration_height as i32,
             ))
             .and_then(|size| {
                 Some(DeviceIntSize::new(
@@ -479,6 +495,23 @@ impl WindowPortsMethods for Window {
                     size.height.try_into().ok()?,
                 ))
             })
+    }
+
+    fn window_rect(&self) -> DeviceIndependentIntRect {
+        let outer_size = self.winit_window.outer_size();
+        let scale = self.hidpi_scale_factor();
+
+        let outer_size = winit_size_to_euclid_size(outer_size).to_i32();
+
+        let origin = self
+            .winit_window
+            .outer_position()
+            .map(winit_position_to_euclid_point)
+            .unwrap_or_default();
+        convert_rect_to_css_pixel(
+            DeviceIntRect::from_origin_and_size(origin, outer_size),
+            scale,
+        )
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
@@ -563,9 +596,7 @@ impl WindowPortsMethods for Window {
             WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(state, event),
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers_state.set(modifiers.state()),
             WindowEvent::MouseInput { state, button, .. } => {
-                if button == MouseButton::Left || button == MouseButton::Right {
-                    self.handle_mouse(&webview, button, state);
-                }
+                self.handle_mouse(&webview, button, state);
             },
             WindowEvent::CursorMoved { position, .. } => {
                 let mut point = winit_position_to_euclid_point(position).to_f32();
@@ -590,13 +621,19 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::MouseWheel { delta, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
-                    MouseScrollDelta::LineDelta(dx, dy) => {
-                        (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
-                    },
+                    MouseScrollDelta::LineDelta(dx, dy) => (
+                        (dx * LINE_WIDTH) as f64,
+                        (dy * LINE_HEIGHT) as f64,
+                        WheelMode::DeltaLine,
+                    ),
                     MouseScrollDelta::PixelDelta(position) => {
-                        let scale_factor = self.device_hidpi_scale_factor().inverse().get() as f64;
-                        let position = position.to_logical(scale_factor);
-                        (position.x, position.y, WheelMode::DeltaPixel)
+                        let position: LogicalPosition<f64> =
+                            position.to_logical(self.device_hidpi_scale_factor().get() as f64);
+                        (
+                            position.x * PIXEL_DELTA_FACTOR,
+                            position.y * PIXEL_DELTA_FACTOR,
+                            WheelMode::DeltaPixel,
+                        )
                     },
                 };
 
@@ -617,10 +654,9 @@ impl WindowPortsMethods for Window {
                     dy = 0.0;
                 }
 
-                let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
+                let scroll_location = ScrollLocation::Delta(-Vector2D::new(dx as f32, dy as f32));
                 webview.notify_scroll_event(scroll_location, point.to_i32());
             },
             WindowEvent::Touch(touch) => {

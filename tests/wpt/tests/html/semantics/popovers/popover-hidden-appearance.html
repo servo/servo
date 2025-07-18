@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel=help href="https://issues.chromium.org/issues/393947100">
+<link rel="match" href="/compat/green-ref.html">
+
+<div popover></div>
+<div id=blocker></div>
+
+<style>
+  div {
+    position: fixed;
+    inset:auto;
+    top:8px;
+    left:8px;
+    width: 100px;
+    height: 100px;
+    padding:0;
+    border:0;
+  }
+  [popover] {
+    display:block;
+    background-color:red;
+  }
+  #blocker {
+    background-color:green;
+  }
+</style>
+
+<script>
+  const popover = document.querySelector('[popover]');
+  popover.showPopover();
+  popover.hidePopover();
+  // The popover should still be display:block, but not in the top layer.
+</script>

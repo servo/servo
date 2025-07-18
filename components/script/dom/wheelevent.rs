@@ -5,7 +5,10 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use euclid::Point2D;
 use js::rust::HandleObject;
+use keyboard_types::Modifiers;
+use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::WheelEventBinding;
@@ -17,6 +20,7 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -57,6 +61,14 @@ impl WheelEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
+        screen_point: Point2D<i32, CSSPixel>,
+        client_point: Point2D<i32, CSSPixel>,
+        page_point: Point2D<i32, CSSPixel>,
+        modifiers: Modifiers,
+        button: i16,
+        buttons: u16,
+        related_target: Option<&EventTarget>,
+        point_in_target: Option<Point2D<f32, CSSPixel>>,
         delta_x: Finite<f64>,
         delta_y: Finite<f64>,
         delta_z: Finite<f64>,
@@ -64,8 +76,26 @@ impl WheelEvent {
         can_gc: CanGc,
     ) -> DomRoot<WheelEvent> {
         Self::new_with_proto(
-            window, None, type_, can_bubble, cancelable, view, detail, delta_x, delta_y, delta_z,
-            delta_mode, can_gc,
+            window,
+            None,
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            screen_point,
+            client_point,
+            page_point,
+            modifiers,
+            button,
+            buttons,
+            related_target,
+            point_in_target,
+            delta_x,
+            delta_y,
+            delta_z,
+            delta_mode,
+            can_gc,
         )
     }
 
@@ -78,6 +108,14 @@ impl WheelEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
+        screen_point: Point2D<i32, CSSPixel>,
+        client_point: Point2D<i32, CSSPixel>,
+        page_point: Point2D<i32, CSSPixel>,
+        modifiers: Modifiers,
+        button: i16,
+        buttons: u16,
+        related_target: Option<&EventTarget>,
+        point_in_target: Option<Point2D<f32, CSSPixel>>,
         delta_x: Finite<f64>,
         delta_y: Finite<f64>,
         delta_z: Finite<f64>,
@@ -85,12 +123,20 @@ impl WheelEvent {
         can_gc: CanGc,
     ) -> DomRoot<WheelEvent> {
         let ev = WheelEvent::new_unintialized(window, proto, can_gc);
-        ev.InitWheelEvent(
+        ev.intitialize_wheel_event(
             type_,
-            bool::from(can_bubble),
-            bool::from(cancelable),
+            can_bubble,
+            cancelable,
             view,
             detail,
+            screen_point,
+            client_point,
+            page_point,
+            modifiers,
+            button,
+            buttons,
+            related_target,
+            point_in_target,
             delta_x,
             delta_y,
             delta_z,
@@ -98,6 +144,52 @@ impl WheelEvent {
         );
 
         ev
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn intitialize_wheel_event(
+        &self,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+        screen_point: Point2D<i32, CSSPixel>,
+        client_point: Point2D<i32, CSSPixel>,
+        page_point: Point2D<i32, CSSPixel>,
+        modifiers: Modifiers,
+        button: i16,
+        buttons: u16,
+        related_target: Option<&EventTarget>,
+        point_in_target: Option<Point2D<f32, CSSPixel>>,
+        delta_x: Finite<f64>,
+        delta_y: Finite<f64>,
+        delta_z: Finite<f64>,
+        delta_mode: u32,
+    ) {
+        if self.upcast::<Event>().dispatching() {
+            return;
+        }
+
+        self.upcast::<MouseEvent>().initialize_mouse_event(
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            screen_point,
+            client_point,
+            page_point,
+            modifiers,
+            button,
+            buttons,
+            related_target,
+            point_in_target,
+        );
+        self.delta_x.set(delta_x);
+        self.delta_y.set(delta_y);
+        self.delta_z.set(delta_z);
+        self.delta_mode.set(delta_mode);
     }
 }
 
@@ -110,14 +202,31 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
         type_: DOMString,
         init: &WheelEventBinding::WheelEventInit,
     ) -> Fallible<DomRoot<WheelEvent>> {
+        let bubbles = EventBubbles::from(init.parent.parent.parent.parent.bubbles);
+        let cancelable = EventCancelable::from(init.parent.parent.parent.parent.cancelable);
+        let scroll_offset = window.scroll_offset(can_gc);
+
+        let page_point = Point2D::<i32, CSSPixel>::new(
+            scroll_offset.x as i32 + init.parent.clientX,
+            scroll_offset.y as i32 + init.parent.clientY,
+        );
+
         let event = WheelEvent::new_with_proto(
             window,
             proto,
             type_,
-            EventBubbles::from(init.parent.parent.parent.parent.bubbles),
-            EventCancelable::from(init.parent.parent.parent.parent.cancelable),
+            bubbles,
+            cancelable,
             init.parent.parent.parent.view.as_deref(),
             init.parent.parent.parent.detail,
+            Point2D::new(init.parent.screenX, init.parent.screenY),
+            Point2D::new(init.parent.clientX, init.parent.clientY),
+            Point2D::new(page_point.x, page_point.y),
+            init.parent.parent.modifiers(),
+            init.parent.button,
+            init.parent.buttons,
+            init.parent.relatedTarget.as_deref(),
+            None,
             init.deltaX,
             init.deltaY,
             init.deltaZ,
@@ -160,6 +269,7 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
         delta_y_arg: Finite<f64>,
         delta_z_arg: Finite<f64>,
         delta_mode_arg: u32,
+        can_gc: CanGc,
     ) {
         if self.upcast::<Event>().dispatching() {
             return;
@@ -181,6 +291,7 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
             self.mouseevent.MetaKey(),
             self.mouseevent.Button(),
             self.mouseevent.GetRelatedTarget().as_deref(),
+            can_gc,
         );
         self.delta_x.set(delta_x_arg);
         self.delta_y.set(delta_y_arg);

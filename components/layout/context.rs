@@ -4,7 +4,6 @@
 
 use std::sync::Arc;
 
-use base::id::PipelineId;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use fonts::FontContext;
@@ -26,10 +25,8 @@ use webrender_api::units::{DeviceIntSize, DeviceSize};
 
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
 
-pub struct LayoutContext<'a> {
-    pub id: PipelineId,
+pub(crate) struct LayoutContext<'a> {
     pub use_rayon: bool,
-    pub origin: ImmutableOrigin,
 
     /// Bits shared by the layout and style system.
     pub style_context: SharedStyleContext<'a>,
@@ -37,28 +34,12 @@ pub struct LayoutContext<'a> {
     /// A FontContext to be used during layout.
     pub font_context: Arc<FontContext>,
 
-    /// Reference to the script thread image cache.
-    pub image_cache: Arc<dyn ImageCache>,
-
-    /// A list of in-progress image loads to be shared with the script thread.
-    pub pending_images: Mutex<Vec<PendingImage>>,
-
-    /// A list of fully loaded vector images that need to be rasterized to a specific
-    /// size determined by layout. This will be shared with the script thread.
-    pub pending_rasterization_images: Mutex<Vec<PendingRasterizationImage>>,
-
     /// A collection of `<iframe>` sizes to send back to script.
     pub iframe_sizes: Mutex<IFrameSizes>,
 
-    // A cache that maps image resources used in CSS (e.g as the `url()` value
-    // for `background-image` or `content` property) to the final resolved image data.
-    pub resolved_images_cache:
-        Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
-
-    pub node_image_animation_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
-
-    /// The DOM node that is highlighted by the devtools inspector, if any
-    pub highlighted_dom_node: Option<OpaqueNode>,
+    /// An [`ImageResolver`] used for resolving images during box and fragment
+    /// tree construction. Later passed to display list construction.
+    pub image_resolver: Arc<ImageResolver>,
 }
 
 pub enum ResolvedImage<'a> {
@@ -69,15 +50,6 @@ pub enum ResolvedImage<'a> {
         image: CachedImage,
         size: DeviceSize,
     },
-}
-
-impl Drop for LayoutContext<'_> {
-    fn drop(&mut self) {
-        if !std::thread::panicking() {
-            assert!(self.pending_images.lock().is_empty());
-            assert!(self.pending_rasterization_images.lock().is_empty());
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -100,12 +72,44 @@ pub(crate) enum LayoutImageCacheResult {
     LoadError,
 }
 
-impl LayoutContext<'_> {
-    #[inline(always)]
-    pub fn shared_context(&self) -> &SharedStyleContext {
-        &self.style_context
-    }
+pub(crate) struct ImageResolver {
+    /// The origin of the `Document` that this [`ImageResolver`] resolves images for.
+    pub origin: ImmutableOrigin,
 
+    /// Reference to the script thread image cache.
+    pub image_cache: Arc<dyn ImageCache>,
+
+    /// A list of in-progress image loads to be shared with the script thread.
+    pub pending_images: Mutex<Vec<PendingImage>>,
+
+    /// A list of fully loaded vector images that need to be rasterized to a specific
+    /// size determined by layout. This will be shared with the script thread.
+    pub pending_rasterization_images: Mutex<Vec<PendingRasterizationImage>>,
+
+    /// A shared reference to script's map of DOM nodes with animated images. This is used
+    /// to manage image animations in script and inform the script about newly animating
+    /// nodes.
+    pub node_to_animating_image_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+
+    // A cache that maps image resources used in CSS (e.g as the `url()` value
+    // for `background-image` or `content` property) to the final resolved image data.
+    pub resolved_images_cache:
+        Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
+
+    /// The current animation timeline value used to properly initialize animating images.
+    pub animation_timeline_value: f64,
+}
+
+impl Drop for ImageResolver {
+    fn drop(&mut self) {
+        if !std::thread::panicking() {
+            assert!(self.pending_images.lock().is_empty());
+            assert!(self.pending_rasterization_images.lock().is_empty());
+        }
+    }
+}
+
+impl ImageResolver {
     pub(crate) fn get_or_request_image_or_meta(
         &self,
         node: OpaqueNode,
@@ -152,32 +156,21 @@ impl LayoutContext<'_> {
         }
     }
 
-    pub fn handle_animated_image(&self, node: OpaqueNode, image: Arc<RasterImage>) {
-        let mut store = self.node_image_animation_map.write();
+    pub(crate) fn handle_animated_image(&self, node: OpaqueNode, image: Arc<RasterImage>) {
+        let mut map = self.node_to_animating_image_map.write();
+        if !image.should_animate() {
+            map.remove(&node);
+            return;
+        }
+        let new_image_animation_state =
+            || ImageAnimationState::new(image.clone(), self.animation_timeline_value);
 
-        // 1. first check whether node previously being track for animated image.
-        if let Some(image_state) = store.get(&node) {
-            // a. if the node is not containing the same image as before.
-            if image_state.image_key() != image.id {
-                if image.should_animate() {
-                    // i. Register/Replace tracking item in image_animation_manager.
-                    store.insert(
-                        node,
-                        ImageAnimationState::new(
-                            image,
-                            self.shared_context().current_time_for_animations,
-                        ),
-                    );
-                } else {
-                    // ii. Cancel Action if the node's image is no longer animated.
-                    store.remove(&node);
-                }
-            }
-        } else if image.should_animate() {
-            store.insert(
-                node,
-                ImageAnimationState::new(image, self.shared_context().current_time_for_animations),
-            );
+        let entry = map.entry(node).or_insert_with(new_image_animation_state);
+
+        // If the entry exists, but it is for a different image id, replace it as the image
+        // has changed during this layout.
+        if entry.image.id != image.id {
+            *entry = new_image_animation_state();
         }
     }
 
@@ -222,7 +215,7 @@ impl LayoutContext<'_> {
         }
     }
 
-    pub fn rasterize_vector_image(
+    pub(crate) fn rasterize_vector_image(
         &self,
         image_id: PendingImageId,
         size: DeviceIntSize,
@@ -241,7 +234,7 @@ impl LayoutContext<'_> {
         result
     }
 
-    pub fn resolve_image<'a>(
+    pub(crate) fn resolve_image<'a>(
         &self,
         node: Option<OpaqueNode>,
         image: &'a Image,

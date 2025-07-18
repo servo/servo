@@ -17,6 +17,8 @@ mod sampler;
     ))
 ))]
 mod sampler_linux;
+#[cfg(all(feature = "sampler", target_os = "android"))]
+mod sampler_linux;
 #[cfg(all(feature = "sampler", target_os = "macos"))]
 mod sampler_mac;
 #[cfg(all(feature = "sampler", target_os = "windows"))]

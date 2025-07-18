@@ -89,7 +89,6 @@ skip = [
     "bitflags",
     "cookie",
     "futures",
-    "hermit-abi",
     "redox_syscall",
     "wayland-sys",
 
@@ -99,6 +98,10 @@ skip = [
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
     "toml",
+
+    # Duplicated by egui
+    "nix",
+    "windows-strings",
 
     # Duplicated by egui-file-dialog
     "windows",
@@ -174,6 +177,18 @@ skip = [
 
     # Stylo uses 2.0, WebRender uses 0.99
     "derive_more",
+
+    # duplicated by blurz/blurmock
+    "hex",
+
+    # duplciated by rustix
+    "linux-raw-sys",
+
+    # duplicated by async-io
+    "rustix",
+
+    # duplicated by zbus-xml
+    "quick-xml",
 ]
 
 # github.com organizations to allow git sources for

@@ -7,6 +7,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::thread;
 
+use base::id::WebViewId;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of::MallocSizeOf;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -47,10 +48,12 @@ impl StorageThreadFactory for IpcSender<StorageThreadMsg> {
     }
 }
 
+type OriginEntry = (usize, BTreeMap<String, String>);
+
 struct StorageManager {
     port: IpcReceiver<StorageThreadMsg>,
-    session_data: HashMap<String, (usize, BTreeMap<String, String>)>,
-    local_data: HashMap<String, (usize, BTreeMap<String, String>)>,
+    session_data: HashMap<WebViewId, HashMap<String, OriginEntry>>,
+    local_data: HashMap<String, OriginEntry>,
     config_dir: Option<PathBuf>,
 }
 
@@ -73,29 +76,37 @@ impl StorageManager {
     fn start(&mut self) {
         loop {
             match self.port.recv().unwrap() {
-                StorageThreadMsg::Length(sender, url, storage_type) => {
-                    self.length(sender, url, storage_type)
+                StorageThreadMsg::Length(sender, storage_type, webview_id, url) => {
+                    self.length(sender, storage_type, webview_id, url)
                 },
-                StorageThreadMsg::Key(sender, url, storage_type, index) => {
-                    self.key(sender, url, storage_type, index)
+                StorageThreadMsg::Key(sender, storage_type, webview_id, url, index) => {
+                    self.key(sender, storage_type, webview_id, url, index)
                 },
-                StorageThreadMsg::Keys(sender, url, storage_type) => {
-                    self.keys(sender, url, storage_type)
+                StorageThreadMsg::Keys(sender, storage_type, webview_id, url) => {
+                    self.keys(sender, storage_type, webview_id, url)
                 },
-                StorageThreadMsg::SetItem(sender, url, storage_type, name, value) => {
-                    self.set_item(sender, url, storage_type, name, value);
+                StorageThreadMsg::SetItem(sender, storage_type, webview_id, url, name, value) => {
+                    self.set_item(sender, storage_type, webview_id, url, name, value);
                     self.save_state()
                 },
-                StorageThreadMsg::GetItem(sender, url, storage_type, name) => {
-                    self.request_item(sender, url, storage_type, name)
+                StorageThreadMsg::GetItem(sender, storage_type, webview_id, url, name) => {
+                    self.request_item(sender, storage_type, webview_id, url, name)
                 },
-                StorageThreadMsg::RemoveItem(sender, url, storage_type, name) => {
-                    self.remove_item(sender, url, storage_type, name);
+                StorageThreadMsg::RemoveItem(sender, storage_type, webview_id, url, name) => {
+                    self.remove_item(sender, storage_type, webview_id, url, name);
                     self.save_state()
                 },
-                StorageThreadMsg::Clear(sender, url, storage_type) => {
-                    self.clear(sender, url, storage_type);
+                StorageThreadMsg::Clear(sender, storage_type, webview_id, url) => {
+                    self.clear(sender, storage_type, webview_id, url);
                     self.save_state()
+                },
+                StorageThreadMsg::Clone {
+                    sender,
+                    src: src_webview_id,
+                    dest: dest_webview_id,
+                } => {
+                    self.clone(src_webview_id, dest_webview_id);
+                    let _ = sender.send(());
                 },
                 StorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
@@ -137,53 +148,90 @@ impl StorageManager {
     fn select_data(
         &self,
         storage_type: StorageType,
-    ) -> &HashMap<String, (usize, BTreeMap<String, String>)> {
+        webview_id: WebViewId,
+        origin: &str,
+    ) -> Option<&OriginEntry> {
         match storage_type {
-            StorageType::Session => &self.session_data,
-            StorageType::Local => &self.local_data,
+            StorageType::Session => self
+                .session_data
+                .get(&webview_id)
+                .and_then(|origin_map| origin_map.get(origin)),
+            StorageType::Local => self.local_data.get(origin),
         }
     }
 
     fn select_data_mut(
         &mut self,
         storage_type: StorageType,
-    ) -> &mut HashMap<String, (usize, BTreeMap<String, String>)> {
+        webview_id: WebViewId,
+        origin: &str,
+    ) -> Option<&mut OriginEntry> {
         match storage_type {
-            StorageType::Session => &mut self.session_data,
-            StorageType::Local => &mut self.local_data,
+            StorageType::Session => self
+                .session_data
+                .get_mut(&webview_id)
+                .and_then(|origin_map| origin_map.get_mut(origin)),
+            StorageType::Local => self.local_data.get_mut(origin),
         }
     }
 
-    fn length(&self, sender: IpcSender<usize>, url: ServoUrl, storage_type: StorageType) {
+    fn ensure_data_mut(
+        &mut self,
+        storage_type: StorageType,
+        webview_id: WebViewId,
+        origin: &str,
+    ) -> &mut OriginEntry {
+        match storage_type {
+            StorageType::Session => self
+                .session_data
+                .entry(webview_id)
+                .or_default()
+                .entry(origin.to_string())
+                .or_default(),
+            StorageType::Local => self.local_data.entry(origin.to_string()).or_default(),
+        }
+    }
+
+    fn length(
+        &self,
+        sender: IpcSender<usize>,
+        storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
+    ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type);
+        let data = self.select_data(storage_type, webview_id, &origin);
         sender
-            .send(data.get(&origin).map_or(0, |(_, entry)| entry.len()))
+            .send(data.map_or(0, |(_, entry)| entry.len()))
             .unwrap();
     }
 
     fn key(
         &self,
         sender: IpcSender<Option<String>>,
-        url: ServoUrl,
         storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
         index: u32,
     ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type);
+        let data = self.select_data(storage_type, webview_id, &origin);
         let key = data
-            .get(&origin)
             .and_then(|(_, entry)| entry.keys().nth(index as usize))
             .cloned();
         sender.send(key).unwrap();
     }
 
-    fn keys(&self, sender: IpcSender<Vec<String>>, url: ServoUrl, storage_type: StorageType) {
+    fn keys(
+        &self,
+        sender: IpcSender<Vec<String>>,
+        storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
+    ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type);
-        let keys = data
-            .get(&origin)
-            .map_or(vec![], |(_, entry)| entry.keys().cloned().collect());
+        let data = self.select_data(storage_type, webview_id, &origin);
+        let keys = data.map_or(vec![], |(_, entry)| entry.keys().cloned().collect());
 
         sender.send(keys).unwrap();
     }
@@ -195,75 +243,64 @@ impl StorageManager {
     fn set_item(
         &mut self,
         sender: IpcSender<Result<(bool, Option<String>), ()>>,
-        url: ServoUrl,
         storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
         name: String,
         value: String,
     ) {
         let origin = self.origin_as_string(url);
 
         let (this_storage_size, other_storage_size) = {
-            let local_data = self.select_data(StorageType::Local);
-            let session_data = self.select_data(StorageType::Session);
-            let local_data_size = local_data.get(&origin).map_or(0, |&(total, _)| total);
-            let session_data_size = session_data.get(&origin).map_or(0, |&(total, _)| total);
+            let local_data = self.select_data(StorageType::Local, webview_id, &origin);
+            let session_data = self.select_data(StorageType::Session, webview_id, &origin);
+            let local_data_size = local_data.map_or(0, |&(total, _)| total);
+            let session_data_size = session_data.map_or(0, |&(total, _)| total);
             match storage_type {
                 StorageType::Local => (local_data_size, session_data_size),
                 StorageType::Session => (session_data_size, local_data_size),
             }
         };
 
-        let data = self.select_data_mut(storage_type);
-        if !data.contains_key(&origin) {
-            data.insert(origin.clone(), (0, BTreeMap::new()));
+        let &mut (ref mut total, ref mut entry) =
+            self.ensure_data_mut(storage_type, webview_id, &origin);
+
+        let mut new_total_size = this_storage_size + value.len();
+        if let Some(old_value) = entry.get(&name) {
+            new_total_size -= old_value.len();
+        } else {
+            new_total_size += name.len();
         }
 
-        let message = data
-            .get_mut(&origin)
-            .map(|&mut (ref mut total, ref mut entry)| {
-                let mut new_total_size = this_storage_size + value.len();
-                if let Some(old_value) = entry.get(&name) {
-                    new_total_size -= old_value.len();
-                } else {
-                    new_total_size += name.len();
-                }
-
-                if (new_total_size + other_storage_size) > QUOTA_SIZE_LIMIT {
-                    return Err(());
-                }
-
-                let message =
-                    entry
-                        .insert(name.clone(), value.clone())
-                        .map_or(Ok((true, None)), |old| {
-                            if old == value {
-                                Ok((false, None))
-                            } else {
-                                Ok((true, Some(old)))
-                            }
-                        });
-                *total = new_total_size;
-                message
-            })
-            .unwrap();
+        let message = if (new_total_size + other_storage_size) > QUOTA_SIZE_LIMIT {
+            Err(())
+        } else {
+            *total = new_total_size;
+            entry
+                .insert(name.clone(), value.clone())
+                .map_or(Ok((true, None)), |old| {
+                    if old == value {
+                        Ok((false, None))
+                    } else {
+                        Ok((true, Some(old)))
+                    }
+                })
+        };
         sender.send(message).unwrap();
     }
 
     fn request_item(
         &self,
         sender: IpcSender<Option<String>>,
-        url: ServoUrl,
         storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
         name: String,
     ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type);
+        let data = self.select_data(storage_type, webview_id, &origin);
         sender
-            .send(
-                data.get(&origin)
-                    .and_then(|(_, entry)| entry.get(&name))
-                    .cloned(),
-            )
+            .send(data.and_then(|(_, entry)| entry.get(&name)).cloned())
             .unwrap();
     }
 
@@ -271,39 +308,51 @@ impl StorageManager {
     fn remove_item(
         &mut self,
         sender: IpcSender<Option<String>>,
-        url: ServoUrl,
         storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
         name: String,
     ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data_mut(storage_type);
-        let old_value = data
-            .get_mut(&origin)
-            .and_then(|&mut (ref mut total, ref mut entry)| {
-                entry.remove(&name).inspect(|old| {
-                    *total -= name.len() + old.len();
-                })
-            });
+        let data = self.select_data_mut(storage_type, webview_id, &origin);
+        let old_value = data.and_then(|&mut (ref mut total, ref mut entry)| {
+            entry.remove(&name).inspect(|old| {
+                *total -= name.len() + old.len();
+            })
+        });
         sender.send(old_value).unwrap();
     }
 
-    fn clear(&mut self, sender: IpcSender<bool>, url: ServoUrl, storage_type: StorageType) {
+    fn clear(
+        &mut self,
+        sender: IpcSender<bool>,
+        storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
+    ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data_mut(storage_type);
+        let data = self.select_data_mut(storage_type, webview_id, &origin);
         sender
-            .send(
-                data.get_mut(&origin)
-                    .is_some_and(|&mut (ref mut total, ref mut entry)| {
-                        if !entry.is_empty() {
-                            entry.clear();
-                            *total = 0;
-                            true
-                        } else {
-                            false
-                        }
-                    }),
-            )
+            .send(data.is_some_and(|&mut (ref mut total, ref mut entry)| {
+                if !entry.is_empty() {
+                    entry.clear();
+                    *total = 0;
+                    true
+                } else {
+                    false
+                }
+            }))
             .unwrap();
+    }
+
+    fn clone(&mut self, src_webview_id: WebViewId, dest_webview_id: WebViewId) {
+        let Some(src_origin_entries) = self.session_data.get(&src_webview_id) else {
+            return;
+        };
+
+        let dest_origin_entries = src_origin_entries.clone();
+        self.session_data
+            .insert(dest_webview_id, dest_origin_entries);
     }
 
     fn origin_as_string(&self, url: ServoUrl) -> String {

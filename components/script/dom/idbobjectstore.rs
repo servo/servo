@@ -2,20 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
-
 use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
-use js::jsapi::{
-    ESClass, GetBuiltinClass, IsArrayBufferObject, JS_DeleteUCProperty,
-    JS_GetOwnUCPropertyDescriptor, JS_GetStringLength, JS_IsArrayBufferViewObject, JSObject,
-    ObjectOpResult, ObjectOpResult_SpecialCodes, PropertyDescriptor,
-};
-use js::jsval::UndefinedValue;
-use js::rust::{HandleValue, MutableHandleValue};
+use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, IndexedDBKeyType, IndexedDBThreadMsg, SyncOperation,
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
+    IndexedDBThreadMsg, SyncOperation,
 };
 use profile_traits::ipc;
 
@@ -34,6 +26,7 @@ use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbrequest::IDBRequest;
 use crate::dom::idbtransaction::IDBTransaction;
+use crate::indexed_db::{convert_value_to_key, extract_key};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -116,231 +109,6 @@ impl IDBObjectStore {
         self.transaction.get()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#valid-key-path
-    pub fn is_valid_key_path(key_path: &StrOrStringSequence) -> bool {
-        fn is_identifier(_s: &str) -> bool {
-            // FIXME: (arihant2math)
-            true
-        }
-
-        let is_valid = |path: &DOMString| {
-            path.is_empty() || is_identifier(path) || path.split(".").all(is_identifier)
-        };
-
-        match key_path {
-            StrOrStringSequence::StringSequence(paths) => {
-                if paths.is_empty() {
-                    return false;
-                }
-
-                paths.iter().all(is_valid)
-            },
-            StrOrStringSequence::String(path) => is_valid(path),
-        }
-    }
-
-    #[allow(unsafe_code)]
-    // https://www.w3.org/TR/IndexedDB-2/#convert-value-to-key
-    fn convert_value_to_key(
-        cx: SafeJSContext,
-        input: HandleValue,
-        seen: Option<Vec<HandleValue>>,
-    ) -> Result<IndexedDBKeyType, Error> {
-        // Step 1: If seen was not given, then let seen be a new empty set.
-        let _seen = seen.unwrap_or_default();
-
-        // Step 2: If seen contains input, then return invalid.
-        // FIXME:(rasviitanen)
-        // Check if we have seen this key
-        // Does not currently work with HandleValue,
-        // as it does not implement PartialEq
-
-        // Step 3
-        // FIXME:(rasviitanen) Accept buffer, array and date as well
-        if input.is_number() {
-            // FIXME:(rasviitanen) check for NaN
-            let key = structuredclone::write(cx, input, None).expect("Could not serialize key");
-            return Ok(IndexedDBKeyType::Number(key.serialized));
-        }
-
-        if input.is_string() {
-            let key = structuredclone::write(cx, input, None).expect("Could not serialize key");
-            return Ok(IndexedDBKeyType::String(key.serialized));
-        }
-
-        if input.is_object() {
-            rooted!(in(*cx) let object = input.to_object());
-            unsafe {
-                let mut built_in_class = ESClass::Other;
-
-                if !GetBuiltinClass(*cx, object.handle().into(), &mut built_in_class) {
-                    return Err(Error::Data);
-                }
-
-                if let ESClass::Date = built_in_class {
-                    // FIXME:(arihant2math) implement it the correct way
-                    let key =
-                        structuredclone::write(cx, input, None).expect("Could not serialize key");
-                    return Ok(IndexedDBKeyType::Date(key.serialized.clone()));
-                }
-
-                if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
-                    let key =
-                        structuredclone::write(cx, input, None).expect("Could not serialize key");
-                    // FIXME:(arihant2math) Return the correct type here
-                    // it doesn't really matter at the moment...
-                    return Ok(IndexedDBKeyType::Number(key.serialized.clone()));
-                }
-
-                if let ESClass::Array = built_in_class {
-                    // FIXME:(arihant2math)
-                    unimplemented!("Arrays as keys is currently unsupported");
-                }
-            }
-        }
-
-        Err(Error::Data)
-    }
-
-    // https://www.w3.org/TR/IndexedDB-2/#evaluate-a-key-path-on-a-value
-    #[allow(unsafe_code)]
-    fn evaluate_key_path_on_value(
-        cx: SafeJSContext,
-        value: HandleValue,
-        mut return_val: MutableHandleValue,
-        key_path: &KeyPath,
-    ) {
-        // The implementation is translated from gecko:
-        // https://github.com/mozilla/gecko-dev/blob/master/dom/indexedDB/KeyPath.cpp
-        return_val.set(*value);
-
-        rooted!(in(*cx) let mut target_object = ptr::null_mut::<JSObject>());
-        rooted!(in(*cx) let mut current_val = *value);
-        rooted!(in(*cx) let mut object = ptr::null_mut::<JSObject>());
-
-        let mut target_object_prop_name: Option<String> = None;
-
-        match key_path {
-            KeyPath::String(path) => {
-                // Step 3
-                let path_as_string = path.to_string();
-                let mut tokenizer = path_as_string.split('.').peekable();
-
-                while let Some(token) = tokenizer.next() {
-                    if target_object.get().is_null() {
-                        if token == "length" &&
-                            tokenizer.peek().is_none() &&
-                            current_val.is_string()
-                        {
-                            rooted!(in(*cx) let input_val = current_val.to_string());
-                            unsafe {
-                                let string_len = JS_GetStringLength(*input_val) as u64;
-                                string_len.to_jsval(*cx, return_val);
-                            }
-                            break;
-                        }
-
-                        if !current_val.is_object() {
-                            // FIXME:(rasviitanen) Return a proper error
-                            return;
-                        }
-
-                        object.handle_mut().set(current_val.to_object());
-                        rooted!(in(*cx) let mut desc = PropertyDescriptor::default());
-                        rooted!(in(*cx) let mut intermediate = UndefinedValue());
-
-                        // So rust says that this value is never read, but it is.
-                        #[allow(unused)]
-                        let mut has_prop = false;
-
-                        unsafe {
-                            let prop_name_as_utf16: Vec<u16> = token.encode_utf16().collect();
-                            let mut is_descriptor_none: bool = false;
-                            let ok = JS_GetOwnUCPropertyDescriptor(
-                                *cx,
-                                object.handle().into(),
-                                prop_name_as_utf16.as_ptr(),
-                                prop_name_as_utf16.len(),
-                                desc.handle_mut().into(),
-                                &mut is_descriptor_none,
-                            );
-
-                            if !ok {
-                                // FIXME:(arihant2math) Handle this
-                                return;
-                            }
-
-                            if desc.hasWritable_() || desc.hasValue_() {
-                                intermediate.handle_mut().set(desc.handle().value_);
-                                has_prop = true;
-                            } else {
-                                // If we get here it means the object doesn't have the property or the
-                                // property is available throuch a getter. We don't want to call any
-                                // getters to avoid potential re-entrancy.
-                                // The blob object is special since its properties are available
-                                // only through getters but we still want to support them for key
-                                // extraction. So they need to be handled manually.
-                                unimplemented!("Blob tokens are not yet supported");
-                            }
-                        }
-
-                        if has_prop {
-                            // Treat undefined as an error
-                            if intermediate.is_undefined() {
-                                // FIXME:(rasviitanen) Throw/return error
-                                return;
-                            }
-
-                            if tokenizer.peek().is_some() {
-                                // ...and walk to it if there are more steps...
-                                current_val.handle_mut().set(*intermediate);
-                            } else {
-                                // ...otherwise use it as key
-                                return_val.set(*intermediate);
-                            }
-                        } else {
-                            target_object.handle_mut().set(*object);
-                            target_object_prop_name = Some(token.to_string());
-                        }
-                    }
-
-                    if !target_object.get().is_null() {
-                        // We have started inserting new objects or are about to just insert
-                        // the first one.
-                        // FIXME:(rasviitanen) Implement this piece
-                        unimplemented!("keyPath tokens that requires insertion are not supported.");
-                    }
-                } // All tokens processed
-
-                if !target_object.get().is_null() {
-                    // If this fails, we lose, and the web page sees a magical property
-                    // appear on the object :-(
-                    unsafe {
-                        let prop_name_as_utf16: Vec<u16> =
-                            target_object_prop_name.unwrap().encode_utf16().collect();
-                        #[allow(clippy::cast_enum_truncation)]
-                        let mut succeeded = ObjectOpResult {
-                            code_: ObjectOpResult_SpecialCodes::Uninitialized as usize,
-                        };
-                        if !JS_DeleteUCProperty(
-                            *cx,
-                            target_object.handle().into(),
-                            prop_name_as_utf16.as_ptr(),
-                            prop_name_as_utf16.len(),
-                            &mut succeeded,
-                        ) {
-                            // FIXME:(rasviitanen) Throw/return error
-                            // return;
-                        }
-                    }
-                }
-            },
-            KeyPath::StringSequence(_) => {
-                unimplemented!("String sequence keyPath is currently unsupported");
-            },
-        }
-    }
-
     fn has_key_generator(&self) -> bool {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
@@ -360,29 +128,39 @@ impl IDBObjectStore {
         receiver.recv().unwrap()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#extract-a-key-from-a-value-using-a-key-path
-    fn extract_key(
-        cx: SafeJSContext,
-        input: HandleValue,
-        key_path: &KeyPath,
-        multi_entry: Option<bool>,
-    ) -> Result<IndexedDBKeyType, Error> {
-        // Step 1: Evaluate key path
-        // FIXME:(rasviitanen) Do this propertly
-        rooted!(in(*cx) let mut r = UndefinedValue());
-        IDBObjectStore::evaluate_key_path_on_value(cx, input, r.handle_mut(), key_path);
-
-        if let Some(_multi_entry) = multi_entry {
-            // FIXME:(rasviitanen) handle multi_entry cases
-            unimplemented!("multiEntry keys are not yet supported");
-        } else {
-            IDBObjectStore::convert_value_to_key(cx, r.handle(), None)
-        }
-    }
-
     // https://www.w3.org/TR/IndexedDB-2/#object-store-in-line-keys
     fn uses_inline_keys(&self) -> bool {
         self.key_path.is_some()
+    }
+
+    /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
+    fn check_transaction_active(&self) -> Fallible<()> {
+        // Let transaction be this object store handle's transaction.
+        let transaction = self.transaction.get().ok_or(Error::TransactionInactive)?;
+
+        // If transaction is not active, throw a "TransactionInactiveError" DOMException.
+        if !transaction.is_active() {
+            return Err(Error::TransactionInactive);
+        }
+
+        Ok(())
+    }
+
+    /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
+    /// it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
+    fn check_readwrite_transaction_active(&self) -> Fallible<()> {
+        // Let transaction be this object store handle's transaction.
+        let transaction = self.transaction.get().ok_or(Error::TransactionInactive)?;
+
+        // If transaction is not active, throw a "TransactionInactiveError" DOMException.
+        if !transaction.is_active() {
+            return Err(Error::TransactionInactive);
+        }
+
+        if let IDBTransactionMode::Readonly = transaction.get_mode() {
+            return Err(Error::ReadOnly);
+        }
+        Ok(())
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put
@@ -394,27 +172,15 @@ impl IDBObjectStore {
         overwrite: bool,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Let transaction be this object store handle's transaction.
-        let transaction = self
-            .transaction
-            .get()
-            .expect("No transaction in Object Store");
-
+        // Step 1: Unneeded, handled by self.check_readwrite_transaction_active()
         // Step 2: Let store be this object store handle's object store.
         // This is resolved in the `execute_async` function.
 
         // Step 3: If store has been deleted, throw an "InvalidStateError" DOMException.
         // FIXME:(rasviitanen)
 
-        // Step 4-5: If transaction is not active, throw a "TransactionInactiveError" DOMException.
-        if !transaction.is_active() {
-            return Err(Error::TransactionInactive);
-        }
-
-        // Step 5: If transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
-        if let IDBTransactionMode::Readonly = transaction.get_mode() {
-            return Err(Error::ReadOnly);
-        }
+        // Steps 4-5
+        self.check_readwrite_transaction_active()?;
 
         // Step 6: If store uses in-line keys and key was given, throw a "DataError" DOMException.
         if !key.is_undefined() && self.uses_inline_keys() {
@@ -431,10 +197,10 @@ impl IDBObjectStore {
         let serialized_key: IndexedDBKeyType;
 
         if !key.is_undefined() {
-            serialized_key = IDBObjectStore::convert_value_to_key(cx, key, None)?;
+            serialized_key = convert_value_to_key(cx, key, None)?;
         } else {
             // Step 11: We should use in-line keys instead
-            if let Ok(kpk) = IDBObjectStore::extract_key(
+            if let Ok(kpk) = extract_key(
                 cx,
                 value,
                 self.key_path.as_ref().expect("No key path"),
@@ -454,7 +220,11 @@ impl IDBObjectStore {
 
         IDBRequest::execute_async(
             self,
-            AsyncOperation::PutItem(serialized_key, serialized_value.serialized, overwrite),
+            AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem(
+                serialized_key,
+                serialized_value.serialized,
+                overwrite,
+            )),
             None,
             can_gc,
         )
@@ -484,27 +254,71 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
+        // Step 1: Unneeded, handled by self.check_readwrite_transaction_active()
+        // TODO: Step 2
+        // TODO: Step 3
+        // Steps 4-5
+        self.check_readwrite_transaction_active()?;
+        // Step 6
+        // TODO: Convert to key range instead
+        let serialized_query = convert_value_to_key(cx, query, None);
+        // Step 7
         serialized_query.and_then(|q| {
-            IDBRequest::execute_async(self, AsyncOperation::RemoveItem(q), None, CanGc::note())
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem(q)),
+                None,
+                CanGc::note(),
+            )
         })
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear
     fn Clear(&self) -> Fallible<DomRoot<IDBRequest>> {
-        unimplemented!();
+        // Step 1: Unneeded, handled by self.check_readwrite_transaction_active()
+        // TODO: Step 2
+        // TODO: Step 3
+        // Steps 4-5
+        self.check_readwrite_transaction_active()?;
+        IDBRequest::execute_async(
+            self,
+            AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear),
+            None,
+            CanGc::note(),
+        )
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
+        // Step 1: Unneeded, handled by self.check_transaction_active()
+        // TODO: Step 2
+        // TODO: Step 3
+        // Step 4
+        self.check_transaction_active()?;
+        // Step 5
+        // TODO: Convert to key range instead
+        let serialized_query = convert_value_to_key(cx, query, None);
+        // Step 6
         serialized_query.and_then(|q| {
-            IDBRequest::execute_async(self, AsyncOperation::GetItem(q), None, CanGc::note())
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem(q)),
+                None,
+                CanGc::note(),
+            )
         })
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey
     // fn GetKey(&self, _cx: SafeJSContext, _query: HandleValue) -> DomRoot<IDBRequest> {
+    //     // Step 1: Unneeded, handled by self.check_transaction_active()
+    //     // TODO: Step 2
+    //     // TODO: Step 3
+    //     // Step 4
+    //     self.check_transaction_active()?;
+    //     // Step 5
+    //     // TODO: Convert to key range instead
+    //     let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
     //     unimplemented!();
     // }
 
@@ -530,29 +344,24 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count
     fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1
-        let transaction = self.transaction.get().expect("Could not get transaction");
-
-        // Step 2
-        // FIXME(arihant2math): investigate further
-
-        // Step 3
-        // FIXME(arihant2math): Cannot tell if store has been deleted
-
-        // Step 4
-        if !transaction.is_active() {
-            return Err(Error::TransactionInactive);
-        }
+        // Step 1: Unneeded, handled by self.check_transaction_active()
+        // TODO: Step 2
+        // TODO: Step 3
+        // Steps 4
+        self.check_transaction_active()?;
 
         // Step 5
-        let _serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
+        let serialized_query = convert_value_to_key(cx, query, None);
 
         // Step 6
-        // match serialized_query {
-        //     Ok(q) => IDBRequest::execute_async(&*self, AsyncOperation::Count(q), None),
-        //     Err(e) => Err(e),
-        // }
-        Err(Error::NotSupported)
+        serialized_query.and_then(|q| {
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count(q)),
+                None,
+                CanGc::note(),
+            )
+        })
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-name

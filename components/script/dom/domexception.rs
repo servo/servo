@@ -57,6 +57,7 @@ pub(crate) enum DOMErrorName {
     NotReadableError,
     OperationError,
     NotAllowedError,
+    ConstraintError,
 }
 
 impl DOMErrorName {
@@ -92,6 +93,7 @@ impl DOMErrorName {
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
             "OperationError" => Some(DOMErrorName::OperationError),
             "NotAllowedError" => Some(DOMErrorName::NotAllowedError),
+            "ConstraintError" => Some(DOMErrorName::ConstraintError),
             _ => None,
         }
     }
@@ -155,6 +157,9 @@ impl DOMException {
             DOMErrorName::NotAllowedError => {
                 r#"The request is not allowed by the user agent or the platform in the current context,
                 possibly because the user denied permission."#
+            },
+            DOMErrorName::ConstraintError => {
+                "A mutation operation in a transaction failed because a constraint was not satisfied."
             },
         };
 

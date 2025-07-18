@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-export">
-<link rel="match" href="align-items-baseline-row-horz-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css" />
 <style>
 #target {
   display: flex;
@@ -14,21 +14,27 @@
 }
 #target > :nth-child(1) {
   background: lime;
-  font-size: 30px;
+  font: 30px/1 Ahem;
 }
 #target > :nth-child(2) {
   background: hotpink;
-  font-size: 20px;
+  font: 20px/1 Ahem;
 }
 #target > :nth-child(3) {
   background: cyan;
   writing-mode: vertical-rl;
+  font: 16px/1 Ahem;
   width: 40px;
   height: 40px;
 }
 </style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('#target > div')">
 <div id="target">
-  <div>line1<br>line2</div>
-  <div>line1<br>line2</div>
-  <div></div>
+  <div data-offset-y="32">line1<br>line2</div>
+  <div data-offset-y="40">line1<br>line2</div>
+  <div data-offset-y="16"></div>
 </div>
+</body>

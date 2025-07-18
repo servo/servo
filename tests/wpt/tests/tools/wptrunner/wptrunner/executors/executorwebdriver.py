@@ -50,7 +50,7 @@ from .protocol import (BaseProtocolPart,
                        DisplayFeaturesProtocolPart,
                        merge_dicts)
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Dict, Optional, Tuple
 from webdriver.client import Session
 from webdriver import error as webdriver_error
 from webdriver.bidi import error as webdriver_bidi_error
@@ -179,6 +179,83 @@ class WebDriverBidiBluetoothProtocolPart(BidiBluetoothProtocolPart):
             context=context,
             address=address)
 
+    async def simulate_service(self,
+            context: str,
+            address: str,
+            uuid: str,
+            type: str) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_service(
+            context=context,
+            address=address,
+            uuid=uuid,
+            type=type)
+
+    async def simulate_characteristic(self,
+            context: str,
+            address: str,
+            service_uuid: str,
+            characteristic_uuid: str,
+            characteristic_properties: Dict[str, bool],
+            type: str) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_characteristic(
+            context=context,
+            address=address,
+            service_uuid=service_uuid,
+            characteristic_uuid=characteristic_uuid,
+            characteristic_properties=characteristic_properties,
+            type=type)
+
+    async def simulate_characteristic_response(self,
+            context: str,
+            address: str,
+            service_uuid: str,
+            characteristic_uuid: str,
+            type: str,
+            code: int,
+            data: List[int]) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_characteristic_response(
+            context=context,
+            address=address,
+            service_uuid=service_uuid,
+            characteristic_uuid=characteristic_uuid,
+            type=type,
+            code=code,
+            data=data)
+
+    async def simulate_descriptor(self,
+            context: str,
+            address: str,
+            service_uuid: str,
+            characteristic_uuid: str,
+            descriptor_uuid: str,
+            type: str) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_descriptor(
+            context=context,
+            address=address,
+            service_uuid=service_uuid,
+            characteristic_uuid=characteristic_uuid,
+            descriptor_uuid=descriptor_uuid,
+            type=type)
+
+    async def simulate_descriptor_response(self,
+            context: str,
+            address: str,
+            service_uuid: str,
+            characteristic_uuid: str,
+            descriptor_uuid: str,
+            type: str,
+            code: int,
+            data: List[int]) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_descriptor_response(
+            context=context,
+            address=address,
+            service_uuid=service_uuid,
+            characteristic_uuid=characteristic_uuid,
+            descriptor_uuid=descriptor_uuid,
+            type=type,
+            code=code,
+            data=data)
+
 class WebDriverBidiBrowsingContextProtocolPart(BidiBrowsingContextProtocolPart):
     def __init__(self, parent):
         super().__init__(parent)
@@ -294,6 +371,15 @@ class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
     async def set_geolocation_override(self, coordinates, error, contexts):
         return await self.webdriver.bidi_session.emulation.set_geolocation_override(
             coordinates=coordinates, error=error, contexts=contexts)
+
+    async def set_locale_override(self, locale, contexts):
+        return await self.webdriver.bidi_session.emulation.set_locale_override(
+            locale=locale, contexts=contexts)
+
+    async def set_screen_orientation_override(self, screen_orientation,
+            contexts):
+        return await self.webdriver.bidi_session.emulation.set_screen_orientation_override(
+            screen_orientation=screen_orientation, contexts=contexts)
 
 
 class WebDriverBidiPermissionsProtocolPart(BidiPermissionsProtocolPart):

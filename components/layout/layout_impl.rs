@@ -14,6 +14,7 @@ use std::sync::{Arc, LazyLock};
 use app_units::Au;
 use base::Epoch;
 use base::id::{PipelineId, WebViewId};
+use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use compositing_traits::display_list::ScrollType;
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
@@ -25,8 +26,9 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use layout_api::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
-    ReflowRequest, ReflowResult, TrustedNodeAddress,
+    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, NodesFromPointQueryType,
+    OffsetParentResponse, QueryMsg, ReflowGoal, ReflowRequest, ReflowRequestRestyle, ReflowResult,
+    TrustedNodeAddress,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -37,7 +39,6 @@ use profile_traits::time::{
     self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::{path, time_profile};
-use rayon::ThreadPool;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
@@ -77,7 +78,7 @@ use url::Url;
 use webrender_api::units::{DevicePixel, DevicePoint, LayoutSize, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
-use crate::context::{CachedImageOrError, LayoutContext};
+use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, StackingContextTree};
 use crate::query::{
     get_the_text_steps, process_client_rect_request, process_content_box_request,
@@ -439,7 +440,7 @@ impl Layout for LayoutThread {
 
     fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult> {
         time_profile!(
-            profile_time::ProfilerCategory::LayoutPerform,
+            profile_time::ProfilerCategory::Layout,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
             || self.handle_reflow(reflow_request),
@@ -475,7 +476,6 @@ impl Layout for LayoutThread {
             .borrow_mut()
             .as_mut()
             .and_then(|tree| tree.compositor_info.scroll_tree.scroll_offset(id))
-            .map(|scroll_offset| -scroll_offset)
     }
 }
 
@@ -580,9 +580,73 @@ impl LayoutThread {
         );
     }
 
+    /// In some cases, if a restyle isn't necessary we can skip doing any work for layout
+    /// entirely. This check allows us to return early from layout without doing any work
+    /// at all.
+    fn can_skip_reflow_request_entirely(&self, reflow_request: &ReflowRequest) -> bool {
+        // If a restyle is necessary, restyle and reflow is a necessity.
+        if reflow_request.restyle.is_some() {
+            return false;
+        }
+        // We always need to at least build a fragment tree.
+        if !self.fragment_tree.borrow().is_none() {
+            return false;
+        }
+
+        // If we have a fragment tree and it's up-to-date and this reflow
+        // doesn't need more reflow results, we can skip the rest of layout.
+        let necessary_phases = ReflowPhases::necessary(&reflow_request.reflow_goal);
+        if necessary_phases.is_empty() {
+            return true;
+        }
+
+        // If only the stacking context tree is required, and it's up-to-date,
+        // layout is unnecessary, otherwise a layout is necessary.
+        if necessary_phases == ReflowPhases::StackingContextTreeConstruction {
+            return self.stacking_context_tree.borrow().is_some() &&
+                !self.need_new_stacking_context_tree.get();
+        }
+
+        // Otherwise, the only interesting thing is whether the current display
+        // list is up-to-date.
+        assert_eq!(
+            necessary_phases,
+            ReflowPhases::StackingContextTreeConstruction | ReflowPhases::DisplayListConstruction
+        );
+        !self.need_new_display_list.get()
+    }
+
+    fn maybe_print_reflow_event(&self, reflow_request: &ReflowRequest) {
+        if !self.debug.relayout_event {
+            return;
+        }
+
+        println!(
+            "**** Reflow({}) => {:?}, {:?}",
+            self.id,
+            reflow_request.reflow_goal,
+            reflow_request
+                .restyle
+                .as_ref()
+                .map(|restyle| restyle.reason)
+                .unwrap_or_default()
+        );
+    }
+
     /// The high-level routine that performs layout.
     #[servo_tracing::instrument(skip_all)]
     fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
+        self.maybe_print_reflow_event(&reflow_request);
+
+        if self.can_skip_reflow_request_entirely(&reflow_request) {
+            if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) =
+                reflow_request.reflow_goal
+            {
+                self.set_scroll_offset_from_script(external_scroll_id, offset);
+            }
+            return None;
+        }
+
         let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
         let document = document.as_document().unwrap();
         let Some(root_element) = document.root_element() else {
@@ -590,112 +654,40 @@ impl LayoutThread {
             return None;
         };
 
-        let document_shared_lock = document.style_shared_lock();
-        let author_guard = document_shared_lock.read();
-        let ua_stylesheets = &*UA_STYLESHEETS;
-        let ua_or_user_guard = ua_stylesheets.shared_lock.read();
-        let rayon_pool = STYLE_THREAD_POOL.lock();
-        let rayon_pool = rayon_pool.pool();
-        let rayon_pool = rayon_pool.as_ref();
-        let guards = StylesheetGuards {
-            author: &author_guard,
-            ua_or_user: &ua_or_user_guard,
-        };
-
-        let viewport_changed = self.viewport_did_change(reflow_request.viewport_details);
-        if self.update_device_if_necessary(&reflow_request, viewport_changed, &guards) {
-            if let Some(mut data) = root_element.mutate_data() {
-                data.hint.insert(RestyleHint::recascade_subtree());
-            }
-        }
-
-        let mut snapshot_map = SnapshotMap::new();
-        let _snapshot_setter = SnapshotSetter::new(&mut reflow_request, &mut snapshot_map);
-        self.prepare_stylist_for_reflow(
-            &reflow_request,
-            document,
-            root_element,
-            &guards,
-            ua_stylesheets,
-            &snapshot_map,
-        );
-
-        if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
-            // Need to manually force layout to build a new display list regardless of whether the box tree
-            // changed or not.
-            self.need_new_display_list.set(true);
-        }
-
-        let mut layout_context = LayoutContext {
-            id: self.id,
+        let image_resolver = Arc::new(ImageResolver {
             origin: reflow_request.origin.clone(),
-            style_context: self.build_shared_style_context(
-                guards,
-                &snapshot_map,
-                reflow_request.animation_timeline_value,
-                &reflow_request.animations,
-                match reflow_request.stylesheets_changed {
-                    true => TraversalFlags::ForCSSRuleChanges,
-                    false => TraversalFlags::empty(),
-                },
-            ),
             image_cache: self.image_cache.clone(),
-            font_context: self.font_context.clone(),
             resolved_images_cache: self.resolved_images_cache.clone(),
             pending_images: Mutex::default(),
             pending_rasterization_images: Mutex::default(),
-            node_image_animation_map: Arc::new(RwLock::new(std::mem::take(
-                &mut reflow_request.node_to_image_animation_map,
-            ))),
-            iframe_sizes: Mutex::default(),
-            use_rayon: rayon_pool.is_some(),
-            highlighted_dom_node: reflow_request.highlighted_dom_node,
-        };
+            node_to_animating_image_map: reflow_request.node_to_animating_image_map.clone(),
+            animation_timeline_value: reflow_request.animation_timeline_value,
+        });
 
-        let damage = self.restyle_and_build_trees(
-            &reflow_request,
+        let (damage, iframe_sizes) = self.restyle_and_build_trees(
+            &mut reflow_request,
+            document,
             root_element,
-            rayon_pool,
-            &mut layout_context,
-            viewport_changed,
+            &image_resolver,
         );
         self.calculate_overflow(damage);
         self.build_stacking_context_tree(&reflow_request, damage);
-        let built_display_list =
-            self.build_display_list(&reflow_request, damage, &mut layout_context);
+        let built_display_list = self.build_display_list(&reflow_request, damage, &image_resolver);
 
         if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) = reflow_request.reflow_goal
         {
             self.set_scroll_offset_from_script(external_scroll_id, offset);
         }
 
-        if self.debug.dump_scroll_tree {
-            // Print the [ScrollTree], this is done after display list build so we have
-            // the information about webrender id. Whether a scroll tree is initialized
-            // or not depends on the reflow goal.
-            if let Some(tree) = self.stacking_context_tree.borrow().as_ref() {
-                tree.compositor_info.scroll_tree.debug_print();
-            } else {
-                println!(
-                    "Scroll Tree -- reflow {:?}: scroll tree is not initialized yet.",
-                    reflow_request.reflow_goal
-                );
-            }
-        }
-
-        let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
+        let pending_images = std::mem::take(&mut *image_resolver.pending_images.lock());
         let pending_rasterization_images =
-            std::mem::take(&mut *layout_context.pending_rasterization_images.lock());
-        let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
-        let node_to_image_animation_map =
-            std::mem::take(&mut *layout_context.node_image_animation_map.write());
+            std::mem::take(&mut *image_resolver.pending_rasterization_images.lock());
 
         Some(ReflowResult {
             built_display_list,
             pending_images,
             pending_rasterization_images,
             iframe_sizes,
-            node_to_image_animation_map,
         })
     }
 
@@ -734,7 +726,7 @@ impl LayoutThread {
                 self.load_all_web_fonts_from_stylesheet_with_guard(stylesheet, guards.ua_or_user);
             }
 
-            if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
+            if self.stylist.quirks_mode() == QuirksMode::Quirks {
                 self.stylist.append_stylesheet(
                     ua_stylesheets.quirks_mode_stylesheet.clone(),
                     guards.ua_or_user,
@@ -747,7 +739,7 @@ impl LayoutThread {
             self.have_added_user_agent_stylesheets = true;
         }
 
-        if reflow_request.stylesheets_changed {
+        if reflow_request.stylesheets_changed() {
             self.stylist
                 .force_stylesheet_origins_dirty(Origin::Author.into());
         }
@@ -761,59 +753,134 @@ impl LayoutThread {
 
     #[servo_tracing::instrument(skip_all)]
     fn restyle_and_build_trees(
-        &self,
-        reflow_request: &ReflowRequest,
+        &mut self,
+        reflow_request: &mut ReflowRequest,
+        document: ServoLayoutDocument<'_>,
         root_element: ServoLayoutElement<'_>,
-        rayon_pool: Option<&ThreadPool>,
-        layout_context: &mut LayoutContext<'_>,
-        viewport_changed: bool,
-    ) -> RestyleDamage {
-        let dirty_root = unsafe {
-            ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
-                .as_element()
-                .unwrap()
+        image_resolver: &Arc<ImageResolver>,
+    ) -> (RestyleDamage, IFrameSizes) {
+        let mut snapshot_map = SnapshotMap::new();
+        let _snapshot_setter = match reflow_request.restyle.as_mut() {
+            Some(restyle) => SnapshotSetter::new(restyle, &mut snapshot_map),
+            None => return (RestyleDamage::empty(), IFrameSizes::default()),
         };
 
-        let recalc_style_traversal = RecalcStyle::new(layout_context);
-        let token = {
-            let shared =
-                DomTraversal::<ServoLayoutElement>::shared_context(&recalc_style_traversal);
-            RecalcStyle::pre_traverse(dirty_root, shared)
+        let document_shared_lock = document.style_shared_lock();
+        let author_guard = document_shared_lock.read();
+        let ua_stylesheets = &*UA_STYLESHEETS;
+        let ua_or_user_guard = ua_stylesheets.shared_lock.read();
+        let rayon_pool = STYLE_THREAD_POOL.lock();
+        let rayon_pool = rayon_pool.pool();
+        let rayon_pool = rayon_pool.as_ref();
+        let guards = StylesheetGuards {
+            author: &author_guard,
+            ua_or_user: &ua_or_user_guard,
         };
 
-        if !token.should_traverse() {
-            layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return RestyleDamage::empty();
+        let viewport_changed = self.viewport_did_change(reflow_request.viewport_details);
+        if self.update_device_if_necessary(reflow_request, viewport_changed, &guards) {
+            if let Some(mut data) = root_element.mutate_data() {
+                data.hint.insert(RestyleHint::recascade_subtree());
+            }
         }
 
-        let dirty_root: ServoLayoutNode =
-            driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node();
+        self.prepare_stylist_for_reflow(
+            reflow_request,
+            document,
+            root_element,
+            &guards,
+            ua_stylesheets,
+            &snapshot_map,
+        );
+
+        if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
+            // Need to manually force layout to build a new display list regardless of whether the box tree
+            // changed or not.
+            self.need_new_display_list.set(true);
+        }
+
+        let layout_context = LayoutContext {
+            style_context: self.build_shared_style_context(
+                guards,
+                &snapshot_map,
+                reflow_request.animation_timeline_value,
+                &reflow_request.animations,
+                match reflow_request.stylesheets_changed() {
+                    true => TraversalFlags::ForCSSRuleChanges,
+                    false => TraversalFlags::empty(),
+                },
+            ),
+            font_context: self.font_context.clone(),
+            iframe_sizes: Mutex::default(),
+            use_rayon: rayon_pool.is_some(),
+            image_resolver: image_resolver.clone(),
+        };
+
+        let restyle = reflow_request
+            .restyle
+            .as_ref()
+            .expect("Should not get here if there is not restyle.");
+
+        let recalc_style_traversal;
+        let dirty_root;
+        {
+            #[cfg(feature = "tracing")]
+            let _span = tracing::trace_span!("Styling", servo_profiling = true).entered();
+
+            let original_dirty_root = unsafe {
+                ServoLayoutNode::new(&restyle.dirty_root.unwrap())
+                    .as_element()
+                    .unwrap()
+            };
+
+            recalc_style_traversal = RecalcStyle::new(&layout_context);
+            let token = {
+                let shared =
+                    DomTraversal::<ServoLayoutElement>::shared_context(&recalc_style_traversal);
+                RecalcStyle::pre_traverse(original_dirty_root, shared)
+            };
+
+            if !token.should_traverse() {
+                layout_context.style_context.stylist.rule_tree().maybe_gc();
+                return (RestyleDamage::empty(), IFrameSizes::default());
+            }
+
+            dirty_root = driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node();
+        }
 
         let root_node = root_element.as_node();
-        let mut damage =
-            compute_damage_and_repair_style(layout_context.shared_context(), root_node);
-        if viewport_changed {
-            damage = RestyleDamage::REBUILD_BOX;
-        } else if !damage.contains(RestyleDamage::REBUILD_BOX) {
+        let damage_from_environment = viewport_changed
+            .then_some(RestyleDamage::RELAYOUT)
+            .unwrap_or_default();
+        let damage = compute_damage_and_repair_style(
+            &layout_context.style_context,
+            root_node,
+            damage_from_environment,
+        );
+
+        if !damage.contains(RestyleDamage::RELAYOUT) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return damage;
+            return (damage, IFrameSizes::default());
         }
 
         let mut box_tree = self.box_tree.borrow_mut();
         let box_tree = &mut *box_tree;
-        let mut build_box_tree = || {
-            if !BoxTree::update(recalc_style_traversal.context(), dirty_root) {
-                *box_tree = Some(Arc::new(BoxTree::construct(
-                    recalc_style_traversal.context(),
-                    root_node,
-                )));
-            }
-        };
-        if let Some(pool) = rayon_pool {
-            pool.install(build_box_tree)
-        } else {
-            build_box_tree()
-        };
+        let layout_damage: LayoutDamage = damage.into();
+        if box_tree.is_none() || layout_damage.has_box_damage() {
+            let mut build_box_tree = || {
+                if !BoxTree::update(recalc_style_traversal.context(), dirty_root) {
+                    *box_tree = Some(Arc::new(BoxTree::construct(
+                        recalc_style_traversal.context(),
+                        root_node,
+                    )));
+                }
+            };
+            if let Some(pool) = rayon_pool {
+                pool.install(build_box_tree)
+            } else {
+                build_box_tree()
+            };
+        }
 
         let viewport_size = self.stylist.device().au_viewport_size();
         let run_layout = || {
@@ -847,14 +914,17 @@ impl LayoutThread {
                 .style_context
                 .stylist
                 .rule_tree()
-                .dump_stdout(&layout_context.shared_context().guards);
+                .dump_stdout(&layout_context.style_context.guards);
         }
 
         // GC the rule tree if some heuristics are met.
         layout_context.style_context.stylist.rule_tree().maybe_gc();
-        damage
+
+        let mut iframe_sizes = layout_context.iframe_sizes.lock();
+        (damage, std::mem::take(&mut *iframe_sizes))
     }
 
+    #[servo_tracing::instrument(name = "Overflow Calculation", skip_all)]
     fn calculate_overflow(&self, damage: RestyleDamage) {
         if !damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
             return;
@@ -873,9 +943,10 @@ impl LayoutThread {
         self.need_new_stacking_context_tree.set(true);
     }
 
+    #[servo_tracing::instrument(name = "Stacking Context Tree Construction", skip_all)]
     fn build_stacking_context_tree(&self, reflow_request: &ReflowRequest, damage: RestyleDamage) {
-        if !reflow_request.reflow_goal.needs_display_list() &&
-            !reflow_request.reflow_goal.needs_display()
+        if !ReflowPhases::necessary(&reflow_request.reflow_goal)
+            .contains(ReflowPhases::StackingContextTreeConstruction)
         {
             return;
         }
@@ -927,17 +998,34 @@ impl LayoutThread {
 
         // The stacking context tree is up-to-date again.
         self.need_new_stacking_context_tree.set(false);
+
+        if self.debug.dump_scroll_tree {
+            // Print the [ScrollTree], this is done after display list build so we have
+            // the information about webrender id. Whether a scroll tree is initialized
+            // or not depends on the reflow goal.
+            if let Some(tree) = self.stacking_context_tree.borrow().as_ref() {
+                tree.compositor_info.scroll_tree.debug_print();
+            } else {
+                println!(
+                    "Scroll Tree -- reflow {:?}: scroll tree is not initialized yet.",
+                    reflow_request.reflow_goal
+                );
+            }
+        }
     }
 
     /// Build the display list for the current layout and send it to the renderer. If no display
     /// list is built, returns false.
+    #[servo_tracing::instrument(name = "Display List Construction", skip_all)]
     fn build_display_list(
         &self,
         reflow_request: &ReflowRequest,
         damage: RestyleDamage,
-        layout_context: &mut LayoutContext<'_>,
+        image_resolver: &Arc<ImageResolver>,
     ) -> bool {
-        if !reflow_request.reflow_goal.needs_display() {
+        if !ReflowPhases::necessary(&reflow_request.reflow_goal)
+            .contains(ReflowPhases::DisplayListConstruction)
+        {
             return false;
         }
         let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
@@ -962,9 +1050,11 @@ impl LayoutThread {
         stacking_context_tree.compositor_info.epoch = epoch.into();
 
         let built_display_list = DisplayListBuilder::build(
-            layout_context,
+            reflow_request,
             stacking_context_tree,
             fragment_tree,
+            image_resolver.clone(),
+            self.device().device_pixel_ratio(),
             &self.debug,
         );
         self.compositor_api.send_display_list(
@@ -1001,7 +1091,7 @@ impl LayoutThread {
             .scroll_tree
             .set_scroll_offset_for_node_with_external_scroll_id(
                 external_scroll_id,
-                -offset,
+                offset,
                 ScrollType::Script,
             )
         {
@@ -1281,12 +1371,9 @@ struct SnapshotSetter<'dom> {
 }
 
 impl SnapshotSetter<'_> {
-    fn new(reflow_request: &mut ReflowRequest, snapshot_map: &mut SnapshotMap) -> Self {
-        debug!(
-            "Draining restyles: {}",
-            reflow_request.pending_restyles.len()
-        );
-        let restyles = std::mem::take(&mut reflow_request.pending_restyles);
+    fn new(restyle: &mut ReflowRequestRestyle, snapshot_map: &mut SnapshotMap) -> Self {
+        debug!("Draining restyles: {}", restyle.pending_restyles.len());
+        let restyles = std::mem::take(&mut restyle.pending_restyles);
 
         let elements_with_snapshot: Vec<_> = restyles
             .iter()
@@ -1324,6 +1411,44 @@ impl Drop for SnapshotSetter<'_> {
     fn drop(&mut self) {
         for element in &self.elements_with_snapshot {
             unsafe { element.unset_snapshot_flags() }
+        }
+    }
+}
+
+bitflags! {
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct ReflowPhases: u8 {
+        const StackingContextTreeConstruction = 1 << 0;
+        const DisplayListConstruction = 1 << 1;
+    }
+}
+
+impl ReflowPhases {
+    /// Return the necessary phases of layout for the given [`ReflowGoal`]. Note that all
+    /// [`ReflowGoals`] need the basic restyle + box tree layout + fragment tree layout,
+    /// so [`ReflowPhases::empty()`] implies that.
+    fn necessary(reflow_goal: &ReflowGoal) -> Self {
+        match reflow_goal {
+            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => {
+                Self::StackingContextTreeConstruction | Self::DisplayListConstruction
+            },
+            ReflowGoal::LayoutQuery(query) => match query {
+                QueryMsg::NodesFromPointQuery => {
+                    Self::StackingContextTreeConstruction | Self::DisplayListConstruction
+                },
+                QueryMsg::ResolvedStyleQuery | QueryMsg::ScrollingAreaOrOffsetQuery => {
+                    Self::StackingContextTreeConstruction
+                },
+                QueryMsg::ClientRectQuery |
+                QueryMsg::ContentBox |
+                QueryMsg::ContentBoxes |
+                QueryMsg::ElementInnerOuterTextQuery |
+                QueryMsg::InnerWindowDimensionsQuery |
+                QueryMsg::OffsetParentQuery |
+                QueryMsg::ResolvedFontStyleQuery |
+                QueryMsg::TextIndexQuery |
+                QueryMsg::StyleQuery => Self::empty(),
+            },
         }
     }
 }

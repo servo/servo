@@ -45,6 +45,7 @@ class SessionManager:
         self.refresh_url = "/device-bound-session-credentials/refresh_session.py"
         self.include_site = True
         self.refresh_endpoint_unavailable = False
+        self.response_session_id_override = None
 
     def next_session_id(self):
         return len(self.session_to_key_map)
@@ -122,6 +123,10 @@ class SessionManager:
         if refresh_endpoint_unavailable is not None:
             self.refresh_endpoint_unavailable = refresh_endpoint_unavailable
 
+        response_session_id_override = configuration.get("responseSessionIdOverride")
+        if response_session_id_override is not None:
+            self.response_session_id_override = response_session_id_override
+
     def get_should_refresh_end_session(self):
         return self.should_refresh_end_session
 
@@ -172,12 +177,16 @@ class SessionManager:
         return [("Set-Cookie", header_value) for header_value in header_values]
 
     def get_session_instructions_response(self, session_id, request):
+        response_session_id = session_id
+        if self.response_session_id_override is not None:
+            response_session_id = self.response_session_id_override
+
         scope_origin = ""
         if self.scope_origin is not None:
             scope_origin = self.scope_origin
 
         response_body = {
-            "session_identifier": str(session_id),
+            "session_identifier": str(response_session_id),
             "refresh_url": self.refresh_url,
             "scope": {
                 "origin": scope_origin,

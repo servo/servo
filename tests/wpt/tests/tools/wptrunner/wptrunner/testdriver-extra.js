@@ -271,6 +271,51 @@
         });
     }
 
+    window.test_driver_internal.bidi.bluetooth.simulate_service =
+        function(params) {
+        return create_action('bidi.bluetooth.simulate_service', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
+    window.test_driver_internal.bidi.bluetooth.simulate_characteristic =
+        function(params) {
+        return create_action('bidi.bluetooth.simulate_characteristic', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
+    window.test_driver_internal.bidi.bluetooth.simulate_characteristic_response =
+        function(params) {
+        return create_action('bidi.bluetooth.simulate_characteristic_response', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
+    window.test_driver_internal.bidi.bluetooth.simulate_descriptor =
+        function(params) {
+        return create_action('bidi.bluetooth.simulate_descriptor', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
+    window.test_driver_internal.bidi.bluetooth.simulate_descriptor_response =
+        function(params) {
+        return create_action('bidi.bluetooth.simulate_descriptor_response', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
     window.test_driver_internal.bidi.bluetooth.request_device_prompt_updated.subscribe =
         function(params) {
         return subscribe(
@@ -305,6 +350,40 @@
                     'bluetooth.gattConnectionAttempted', on_event);
     };
 
+    window.test_driver_internal.bidi.bluetooth.characteristic_event_generated.subscribe =
+        function(params) {
+        return subscribe(
+            {params, events: ['bluetooth.characteristicEventGenerated']})
+    };
+
+    window.test_driver_internal.bidi.bluetooth.characteristic_event_generated.on =
+        function(callback) {
+        const on_event = (event) => {
+            callback(event.payload);
+        };
+        event_target.addEventListener(
+            'bluetooth.characteristicEventGenerated', on_event);
+        return () => event_target.removeEventListener(
+                    'bluetooth.characteristicEventGenerated', on_event);
+    };
+
+    window.test_driver_internal.bidi.bluetooth.descriptor_event_generated.subscribe =
+        function(params) {
+        return subscribe(
+            {params, events: ['bluetooth.descriptorEventGenerated']});
+    };
+
+    window.test_driver_internal.bidi.bluetooth.descriptor_event_generated.on =
+        function(callback) {
+        const on_event = (event) => {
+            callback(event.payload);
+        };
+        event_target.addEventListener(
+            'bluetooth.descriptorEventGenerated', on_event);
+        return () => event_target.removeEventListener(
+                    'bluetooth.descriptorEventGenerated', on_event);
+    };
+
     window.test_driver_internal.bidi.emulation.set_geolocation_override =
         function (params) {
             if ('coordinates' in params && 'error' in params) {
@@ -317,6 +396,24 @@
                 contexts: [window],
                 ...(params ?? {})
             });
+        }
+
+    window.test_driver_internal.bidi.emulation.set_locale_override = function (params) {
+        return create_action("bidi.emulation.set_locale_override", {
+            // Default to the current window.
+            contexts: [window],
+            ...(params ?? {})
+        });
+    };
+
+    window.test_driver_internal.bidi.emulation.set_screen_orientation_override =
+        function (params) {
+            return create_action(
+                "bidi.emulation.set_screen_orientation_override", {
+                    // Default to the current window.
+                    contexts: [window],
+                    ...(params ?? {})
+                });
         }
 
     window.test_driver_internal.bidi.log.entry_added.subscribe =

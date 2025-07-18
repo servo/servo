@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <head>
     <link rel="match" href="inline_block_opacity_change_ref.html">
     <style>
@@ -19,8 +19,13 @@
 <body>
     <span style="transition: opacity .1s ease-out;" id="a">a</span>
     <script>
+            let transitioningSpan = document.querySelector('#a');
+            transitioningSpan.addEventListener("transitionend", () => {
+              document.documentElement.classList.remove("reftest-wait");
+            });
+
             document.body.offsetWidth; // force layout
-            document.querySelector('#a').classList.add('go');
+            transitioningSpan.classList.add('go');
     </script>
 </body>
 </html>

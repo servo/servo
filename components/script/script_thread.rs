@@ -41,7 +41,6 @@ use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
     ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
 };
-use content_security_policy::{self as csp};
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
 use devtools_traits::{
@@ -50,9 +49,9 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderMsg, FocusSequenceNumber, InputEvent,
-    JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, MouseButton,
-    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    EmbedderMsg, FocusSequenceNumber, InputEvent, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, MediaSessionActionType, MouseButton, MouseButtonAction,
+    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
@@ -69,7 +68,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
-use layout_api::{LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory};
+use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
@@ -108,7 +107,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
+    ConversionResult, SafeFromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -119,6 +118,7 @@ use crate::dom::bindings::root::{
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
+use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
@@ -179,7 +179,7 @@ pub(crate) fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R)
 pub(crate) unsafe fn trace_thread(tr: *mut JSTracer) {
     with_script_thread(|script_thread| {
         trace!("tracing fields of ScriptThread");
-        script_thread.trace(tr);
+        unsafe { script_thread.trace(tr) };
     })
 }
 
@@ -295,9 +295,6 @@ pub struct ScriptThread {
     /// Print Progressive Web Metrics to console.
     print_pwm: bool,
 
-    /// Emits notifications when there is a relayout.
-    relayout_event: bool,
-
     /// Unminify Javascript.
     unminify_js: bool,
 
@@ -345,10 +342,12 @@ pub struct ScriptThread {
     #[no_trace]
     scheduled_script_thread_animation_timer: RefCell<Option<TimerId>>,
 
-    /// A flag that lets the [`ScriptThread`]'s main loop know that the
-    /// [`Self::scheduled_script_thread_animation_timer`] timer fired and it should
-    /// trigger an animation tick "update the rendering" call.
-    should_trigger_script_thread_animation_tick: Arc<AtomicBool>,
+    /// Whether an animation tick is pending. This might either be because the Servo renderer
+    /// is managing animations and the [`ScriptThread`] has received a
+    /// [`ScriptThreadMessage::TickAllAnimations`] message or because the [`ScriptThread`]
+    /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
+    /// animation tick.
+    has_pending_animation_tick: Arc<AtomicBool>,
 }
 
 struct BHMExitSignal {
@@ -597,9 +596,13 @@ impl ScriptThread {
         }
     }
 
+    pub(crate) fn set_has_pending_animation_tick(&self) {
+        self.has_pending_animation_tick
+            .store(true, Ordering::Relaxed);
+    }
+
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
     pub(crate) fn navigate(
-        browsing_context: BrowsingContextId,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
@@ -622,9 +625,10 @@ impl ScriptThread {
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
+                        let global = &trusted_global.root();
                         // Step 5: If the result of should navigation request of type be blocked by
                         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-                        if trusted_global.root().should_navigation_request_be_blocked(&load_data, None) {
+                        if global.get_csp_list().should_navigation_request_be_blocked(global, &load_data, None) {
                             return;
                         }
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
@@ -641,13 +645,6 @@ impl ScriptThread {
                     .dom_manipulation_task_source()
                     .queue(task);
             } else {
-                if let Some(ref sender) = script_thread.senders.devtools_server_sender {
-                    let _ = sender.send(ScriptToDevtoolsControlMsg::Navigate(
-                        browsing_context,
-                        NavigationState::Start(load_data.url.clone()),
-                    ));
-                }
-
                 script_thread
                     .senders
                     .pipeline_to_constellation_sender
@@ -737,7 +734,8 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn worklet_thread_pool() -> Rc<WorkletThreadPool> {
+    /// The worklet will use the given `ImageCache`.
+    pub(crate) fn worklet_thread_pool(image_cache: Arc<dyn ImageCache>) -> Rc<WorkletThreadPool> {
         with_optional_script_thread(|script_thread| {
             let script_thread = script_thread.unwrap();
             script_thread
@@ -754,9 +752,7 @@ impl ScriptThread {
                             .senders
                             .pipeline_to_constellation_sender
                             .clone(),
-                        image_cache: script_thread
-                            .image_cache
-                            .create_new_image_cache(script_thread.compositor_api.clone()),
+                        image_cache,
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                         inherited_secure_context: script_thread.inherited_secure_context,
@@ -963,7 +959,6 @@ impl ScriptThread {
             compositor_api: state.compositor_api,
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
-            relayout_event: opts.debug.relayout_event,
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
@@ -977,7 +972,7 @@ impl ScriptThread {
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
             scheduled_script_thread_animation_timer: Default::default(),
-            should_trigger_script_thread_animation_tick: Arc::new(AtomicBool::new(false)),
+            has_pending_animation_tick: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -1020,20 +1015,14 @@ impl ScriptThread {
     fn process_mouse_move_event(
         &self,
         document: &Document,
-        hit_test_result: Option<CompositorHitTestResult>,
-        pressed_mouse_buttons: u16,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         // Get the previous target temporarily
         let prev_mouse_over_target = self.topmost_mouse_over_target.get();
 
         unsafe {
-            document.handle_mouse_move_event(
-                hit_test_result,
-                pressed_mouse_buttons,
-                &self.topmost_mouse_over_target,
-                can_gc,
-            )
+            document.handle_mouse_move_event(input_event, &self.topmost_mouse_over_target, can_gc)
         }
 
         // Short-circuit if nothing changed
@@ -1108,29 +1097,15 @@ impl ScriptThread {
 
             match event.event {
                 InputEvent::MouseButton(mouse_button_event) => {
-                    document.handle_mouse_button_event(
-                        mouse_button_event,
-                        event.hit_test_result,
-                        event.pressed_mouse_buttons,
-                        can_gc,
-                    );
+                    document.handle_mouse_button_event(mouse_button_event, &event, can_gc);
                 },
                 InputEvent::MouseMove(_) => {
                     // The event itself is unecessary here, because the point in the viewport is in the hit test.
-                    self.process_mouse_move_event(
-                        &document,
-                        event.hit_test_result,
-                        event.pressed_mouse_buttons,
-                        can_gc,
-                    );
+                    self.process_mouse_move_event(&document, &event, can_gc);
                 },
                 InputEvent::MouseLeave(_) => {
                     self.topmost_mouse_over_target.take();
-                    document.handle_mouse_leave_event(
-                        event.hit_test_result,
-                        event.pressed_mouse_buttons,
-                        can_gc,
-                    );
+                    document.handle_mouse_leave_event(&event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
@@ -1158,7 +1133,7 @@ impl ScriptThread {
                     }
                 },
                 InputEvent::Wheel(wheel_event) => {
-                    document.handle_wheel_event(wheel_event, event.hit_test_result, can_gc);
+                    document.handle_wheel_event(wheel_event, &event, can_gc);
                 },
                 InputEvent::Keyboard(keyboard_event) => {
                     document.dispatch_key_event(keyboard_event, can_gc);
@@ -1197,25 +1172,16 @@ impl ScriptThread {
     ///
     /// Attempt to update the rendering and then do a microtask checkpoint if rendering was actually
     /// updated.
-    pub(crate) fn update_the_rendering(&self, requested_by_renderer: bool, can_gc: CanGc) {
+    pub(crate) fn update_the_rendering(&self, can_gc: CanGc) {
         *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
 
-        // If the ScriptThread animation timer fired, this is an animation tick.
-        let mut is_animation_tick = requested_by_renderer;
-        if self
-            .should_trigger_script_thread_animation_tick
-            .load(Ordering::Relaxed)
-        {
-            self.should_trigger_script_thread_animation_tick
+        let is_animation_tick = self.has_pending_animation_tick.load(Ordering::Relaxed);
+        if is_animation_tick {
+            self.has_pending_animation_tick
                 .store(false, Ordering::Relaxed);
-            *self.scheduled_script_thread_animation_timer.borrow_mut() = None;
-            is_animation_tick = true;
-        }
-
-        // If this is an animation tick, cancel any upcoming ScriptThread-based animation timer.
-        // This tick serves the purpose and we to limit animation ticks if some are coming from
-        // the renderer.
-        if requested_by_renderer {
+            // If this is an animation tick, cancel any upcoming ScriptThread-based animation timer.
+            // This tick serves the purpose and we to limit animation ticks if some are coming from
+            // the renderer.
             if let Some(timer_id) = self
                 .scheduled_script_thread_animation_timer
                 .borrow_mut()
@@ -1347,19 +1313,9 @@ impl ScriptThread {
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
-            // Update the rendering of those does not require a reflow.
-            // e.g. animated images.
-            document.update_animating_images();
-
-            #[cfg(feature = "webgpu")]
-            document.update_rendering_of_webgpu_canvases();
-
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            saw_any_reflows = document
-                .window()
-                .reflow(ReflowGoal::UpdateTheRendering, can_gc) ||
-                saw_any_reflows;
+            saw_any_reflows = document.update_the_rendering(can_gc) || saw_any_reflows;
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
@@ -1403,7 +1359,7 @@ impl ScriptThread {
         let Some((_, document)) = self.documents.borrow().iter().find(|(_, document)| {
             document.is_fully_active() &&
                 !document.window().layout_blocked() &&
-                document.needs_reflow().is_some()
+                !document.restyle_reason().is_empty()
         }) else {
             return;
         };
@@ -1454,8 +1410,7 @@ impl ScriptThread {
         const SCRIPT_THREAD_ANIMATION_TICK_DELAY: u64 = 30;
 
         debug!("Scheduling ScriptThread animation frame.");
-        let trigger_script_thread_animation =
-            self.should_trigger_script_thread_animation_tick.clone();
+        let trigger_script_thread_animation = self.has_pending_animation_tick.clone();
         let timer_id = self.schedule_timer(TimerEventRequest {
             callback: Box::new(move || {
                 trigger_script_thread_animation.store(true, Ordering::Relaxed);
@@ -1486,7 +1441,6 @@ impl ScriptThread {
             .receivers
             .recv(&self.task_queue, &self.timer_scheduler.borrow());
 
-        let mut compositor_requested_update_the_rendering = false;
         loop {
             debug!("Handling event: {event:?}");
 
@@ -1557,7 +1511,7 @@ impl ScriptThread {
                 MixedMessage::FromConstellation(ScriptThreadMessage::TickAllAnimations(
                     _webviews,
                 )) => {
-                    compositor_requested_update_the_rendering = true;
+                    self.set_has_pending_animation_tick();
                 },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)
@@ -1685,7 +1639,7 @@ impl ScriptThread {
         // Update the rendering whenever we receive an IPC message. This may not actually do anything if
         // we are running animations and the compositor hasn't requested a new frame yet via a TickAllAnimatons
         // message.
-        self.update_the_rendering(compositor_requested_update_the_rendering, can_gc);
+        self.update_the_rendering(can_gc);
 
         true
     }
@@ -2031,6 +1985,18 @@ impl ScriptThread {
             ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
                 self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
             },
+            ScriptThreadMessage::SendImageKeysBatch(pipeline_id, image_keys) => {
+                if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+                    window
+                        .image_cache()
+                        .fill_key_cache_with_batch_of_keys(image_keys);
+                } else {
+                    warn!(
+                        "Could not find window corresponding to an image cache to send image keys to pipeline {:?}",
+                        pipeline_id
+                    );
+                }
+            },
         }
     }
 
@@ -2276,33 +2242,6 @@ impl ScriptThread {
             WebDriverScriptCommand::DeleteCookie(name, reply) => {
                 webdriver_handlers::handle_delete_cookie(&documents, pipeline_id, name, reply)
             },
-            WebDriverScriptCommand::FindElementCSSSelector(selector, reply) => {
-                webdriver_handlers::handle_find_element_css_selector(
-                    &documents,
-                    pipeline_id,
-                    selector,
-                    reply,
-                )
-            },
-            WebDriverScriptCommand::FindElementLinkText(selector, partial, reply) => {
-                webdriver_handlers::handle_find_element_link_text(
-                    &documents,
-                    pipeline_id,
-                    selector,
-                    partial,
-                    reply,
-                    can_gc,
-                )
-            },
-            WebDriverScriptCommand::FindElementTagName(selector, reply) => {
-                webdriver_handlers::handle_find_element_tag_name(
-                    &documents,
-                    pipeline_id,
-                    selector,
-                    reply,
-                    can_gc,
-                )
-            },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
                 webdriver_handlers::handle_find_elements_css_selector(
                     &documents,
@@ -2330,34 +2269,10 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FindElementElementCSSSelector(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_element_css_selector(
+            WebDriverScriptCommand::FindElementsXpathSelector(selector, reply) => {
+                webdriver_handlers::handle_find_elements_xpath_selector(
                     &documents,
                     pipeline_id,
-                    element_id,
-                    selector,
-                    reply,
-                )
-            },
-            WebDriverScriptCommand::FindElementElementLinkText(
-                selector,
-                element_id,
-                partial,
-                reply,
-            ) => webdriver_handlers::handle_find_element_element_link_text(
-                &documents,
-                pipeline_id,
-                element_id,
-                selector,
-                partial,
-                reply,
-                can_gc,
-            ),
-            WebDriverScriptCommand::FindElementElementTagName(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_element_tag_name(
-                    &documents,
-                    pipeline_id,
-                    element_id,
                     selector,
                     reply,
                     can_gc,
@@ -2396,6 +2311,18 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::FindElementElementsXPathSelector(
+                selector,
+                element_id,
+                reply,
+            ) => webdriver_handlers::handle_find_element_elements_xpath_selector(
+                &documents,
+                pipeline_id,
+                element_id,
+                selector,
+                reply,
+                can_gc,
+            ),
             WebDriverScriptCommand::FindShadowElementsCSSSelector(
                 selector,
                 shadow_root_id,
@@ -2430,6 +2357,18 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindShadowElementsXPathSelector(
+                selector,
+                shadow_root_id,
+                reply,
+            ) => webdriver_handlers::handle_find_shadow_elements_xpath_selector(
+                &documents,
+                pipeline_id,
+                shadow_root_id,
+                selector,
+                reply,
+                can_gc,
+            ),
             WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
                 webdriver_handlers::handle_get_element_shadow_root(
                     &documents,
@@ -2523,6 +2462,9 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::GetParentFrameId(reply) => {
+                webdriver_handlers::handle_get_parent_frame_id(&documents, pipeline_id, reply)
+            },
             WebDriverScriptCommand::GetBrowsingContextId(webdriver_frame_id, reply) => {
                 webdriver_handlers::handle_get_browsing_context_id(
                     &documents,
@@ -2557,6 +2499,13 @@ impl ScriptThread {
                 reply,
                 can_gc,
             ),
+            WebDriverScriptCommand::IsDocumentReadyStateComplete(response_sender) => {
+                webdriver_handlers::handle_try_wait_for_document_navigation(
+                    &documents,
+                    pipeline_id,
+                    response_sender,
+                )
+            },
             _ => (),
         }
     }
@@ -3158,7 +3107,7 @@ impl ScriptThread {
     /// page no longer exists.
     fn handle_worklet_loaded(&self, pipeline_id: PipelineId) {
         if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-            document.set_needs_paint(true)
+            document.add_restyle_reason(RestyleReason::PaintWorkletLoaded);
         }
     }
 
@@ -3378,7 +3327,7 @@ impl ScriptThread {
 
         let image_cache = self
             .image_cache
-            .create_new_image_cache(self.compositor_api.clone());
+            .create_new_image_cache(Some(incomplete.pipeline_id), self.compositor_api.clone());
 
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
@@ -3427,7 +3376,6 @@ impl ScriptThread {
             self.webxr_registry.clone(),
             self.microtask_queue.clone(),
             self.compositor_api.clone(),
-            self.relayout_event,
             self.unminify_js,
             self.unminify_css,
             self.local_script_source.clone(),
@@ -3733,18 +3681,16 @@ impl ScriptThread {
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
-            unsafe {
-                let strval = DOMString::from_jsval(
-                    *GlobalScope::get_cx(),
-                    jsval.handle(),
-                    StringificationBehavior::Empty,
-                );
-                match strval {
-                    Ok(ConversionResult::Success(s)) => {
-                        Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
-                    },
-                    _ => None,
-                }
+            let strval = DOMString::safe_from_jsval(
+                GlobalScope::get_cx(),
+                jsval.handle(),
+                StringificationBehavior::Empty,
+            );
+            match strval {
+                Ok(ConversionResult::Success(s)) => {
+                    Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
+                },
+                _ => None,
             }
         } else {
             Some(JsEvalResult::NoContent)
@@ -3845,10 +3791,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_csp_violations(&self, id: PipelineId, _: RequestId, violations: Vec<csp::Violation>) {
+    fn handle_csp_violations(&self, id: PipelineId, _: RequestId, violations: Vec<Violation>) {
         if let Some(global) = self.documents.borrow().find_global(id) {
             // TODO(https://github.com/w3c/webappsec-csp/issues/687): Update after spec is resolved
-            global.report_csp_violations(violations, None);
+            global.report_csp_violations(violations, None, None);
         }
     }
 

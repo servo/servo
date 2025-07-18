@@ -11,8 +11,7 @@ use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, SelectableLabel, TopBottomPanel,
-    Vec2, pos2,
+    Button, CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, TopBottomPanel, Vec2, pos2,
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
@@ -29,7 +28,9 @@ use winit::window::Window;
 
 use super::app_state::RunningAppState;
 use super::egui_glue::EguiGlow;
+use super::events_loop::EventLoopProxy;
 use super::geometry::winit_position_to_euclid_point;
+use super::headed_window::Window as ServoWindow;
 
 pub struct Minibrowser {
     rendering_context: Rc<OffscreenRenderingContext>,
@@ -76,13 +77,21 @@ impl Drop for Minibrowser {
 
 impl Minibrowser {
     pub fn new(
-        rendering_context: Rc<OffscreenRenderingContext>,
+        window: &ServoWindow,
         event_loop: &ActiveEventLoop,
+        event_loop_proxy: EventLoopProxy,
         initial_url: ServoUrl,
     ) -> Self {
+        let rendering_context = window.offscreen_rendering_context();
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         #[allow(clippy::arc_with_non_send_sync)]
-        let context = EguiGlow::new(event_loop, rendering_context.glow_gl_api(), None);
+        let context = EguiGlow::new(
+            window,
+            event_loop,
+            event_loop_proxy,
+            rendering_context.glow_gl_api(),
+            None,
+        );
 
         // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
         // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.
@@ -218,7 +227,7 @@ impl Minibrowser {
         visuals.widgets.inactive.corner_radius = corner_radius;
 
         let selected = webview.focused();
-        let tab = ui.add(SelectableLabel::new(
+        let tab = ui.add(Button::selectable(
             selected,
             truncate_with_ellipsis(&label, 20),
         ));
@@ -321,10 +330,20 @@ impl Minibrowser {
                                     if location_field.changed() {
                                         location_dirty.set(true);
                                     }
+                                    // Handle adddress bar shortcut.
                                     if ui.input(|i| {
-                                        i.clone().consume_key(Modifiers::COMMAND, Key::L)
+                                        if cfg!(target_os = "macos") {
+                                            i.clone().consume_key(Modifiers::COMMAND, Key::L)
+                                        } else {
+                                            i.clone().consume_key(Modifiers::COMMAND, Key::L) ||
+                                                i.clone().consume_key(Modifiers::ALT, Key::D)
+                                        }
                                     }) {
+                                        // The focus request immediately makes gained_focus return true.
                                         location_field.request_focus();
+                                    }
+                                    // Select address bar text when it's focused (click or shortcut).
+                                    if location_field.gained_focus() {
                                         if let Some(mut state) =
                                             TextEditState::load(ui.ctx(), location_id)
                                         {
@@ -336,6 +355,7 @@ impl Minibrowser {
                                             state.store(ui.ctx(), location_id);
                                         }
                                     }
+                                    // Navigate to address when enter is pressed in the address bar.
                                     if location_field.lost_focus() &&
                                         ui.input(|i| i.clone().key_pressed(Key::Enter))
                                     {
@@ -398,13 +418,14 @@ impl Minibrowser {
                 ui.allocate_space(size);
 
                 if let Some(status_text) = &self.status_text {
-                    egui::containers::popup::show_tooltip_at(
-                        ctx,
+                    egui::Tooltip::always_open(
+                        ctx.clone(),
                         ui.layer_id(),
                         "tooltip layer".into(),
                         pos2(0.0, ctx.available_rect().max.y),
-                        |ui| ui.add(Label::new(status_text.clone()).extend()),
-                    );
+                    )
+                    .show(|ui| ui.add(Label::new(status_text.clone()).extend()))
+                    .map(|response| response.inner);
                 }
 
                 state.repaint_servo_if_necessary();
@@ -488,5 +509,25 @@ impl Minibrowser {
         self.update_location_in_toolbar(state) |
             self.update_load_status(state) |
             self.update_status_text(state)
+    }
+
+    /// Returns true if a redraw is required after handling the provided event.
+    pub(crate) fn handle_accesskit_event(&mut self, event: &accesskit_winit::WindowEvent) -> bool {
+        match event {
+            accesskit_winit::WindowEvent::InitialTreeRequested => {
+                self.context.egui_ctx.enable_accesskit();
+                true
+            },
+            accesskit_winit::WindowEvent::ActionRequested(req) => {
+                self.context
+                    .egui_winit
+                    .on_accesskit_action_request(req.clone());
+                true
+            },
+            accesskit_winit::WindowEvent::AccessibilityDeactivated => {
+                self.context.egui_ctx.disable_accesskit();
+                false
+            },
+        }
     }
 }

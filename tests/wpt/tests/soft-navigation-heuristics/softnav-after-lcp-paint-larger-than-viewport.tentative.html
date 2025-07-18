@@ -19,8 +19,6 @@
   </main>
   <script>
   (async () => {
-    const link = document.getElementById("link");
-
     // Inject a second image that takes a large part of the viewport.
     await new Promise(resolve => {
       requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -38,6 +36,10 @@
       }));
     });
     testSoftNavigation({
+      testName: "Test that an image LCP followed by a smaller soft navigation LCP"
+        + " properly queues an LCP entry, even when the soft navigation is"
+        + " detected after the LCP, even when initial paints significantly"
+        + " exceed the viewport dimensions.",
       addContent: async () => {
         // Remove the initial image, so that the text would be painted on screen.
         document.getElementById("initial_image1").remove();
@@ -57,14 +59,8 @@
         // Add a smaller element that gets us over that threshold.
         addTextParagraphToMain("dolore magna aliqua.");
       },
-      link: link,
-      test: "Test that an image LCP followed by a smaller soft navigation LCP"
-        + " properly queues an LCP entry, even when the soft navigation is"
-        + " detected after the LCP, even when initial paints significantly"
-        + " exceed the viewport dimensions."});
+    });
   })();
   </script>
 </body>
 </html>
-
-

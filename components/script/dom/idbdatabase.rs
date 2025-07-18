@@ -30,6 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::dom::idbversionchangeevent::IDBVersionChangeEvent;
+use crate::indexed_db::is_valid_key_path;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -201,7 +202,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 5
         if let Some(path) = key_path {
-            if !IDBObjectStore::is_valid_key_path(path) {
+            if !is_valid_key_path(path) {
                 return Err(Error::Syntax);
             }
         }
@@ -213,8 +214,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .iter()
             .any(|store_name| store_name.to_string() == name.to_string())
         {
-            // TODO: Add constraint as an dom exception and throw that instead
-            return Err(Error::InvalidState);
+            return Err(Error::Constraint);
         }
 
         // Step 7

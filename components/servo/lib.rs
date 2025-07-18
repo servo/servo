@@ -39,7 +39,6 @@ use base::id::{PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
-use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 pub use compositing::WebRenderDebugOption;
@@ -101,6 +100,9 @@ use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
 use servo_delegate::DefaultServoDelegate;
+use servo_geometry::{
+    DeviceIndependentIntRect, convert_rect_to_css_pixel, convert_size_to_css_pixel,
+};
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
@@ -115,7 +117,7 @@ use webview::WebViewInner;
 #[cfg(feature = "webxr")]
 pub use webxr;
 pub use {
-    background_hang_monitor, base, canvas, canvas_traits, devtools, devtools_traits, euclid, fonts,
+    background_hang_monitor, base, canvas_traits, devtools, devtools_traits, euclid, fonts,
     ipc_channel, layout_api, media, net, net_traits, profile, profile_traits, script,
     script_traits, servo_config as config, servo_config, servo_geometry, servo_url, style,
     style_traits, webrender_api,
@@ -405,8 +407,8 @@ impl Servo {
             image_handler,
         } = WebGLComm::new(
             rendering_context.clone(),
+            compositor_proxy.cross_process_compositor_api.clone(),
             webrender_api.create_sender(),
-            webrender_document,
             external_images.clone(),
             gl_type,
         );
@@ -799,6 +801,13 @@ impl Servo {
                     webview.set_load_status(load_status);
                 }
             },
+            EmbedderMsg::HistoryTraversalComplete(webview_id, traversal_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_traversal_complete(webview.clone(), traversal_id);
+                }
+            },
             EmbedderMsg::HistoryChanged(webview_id, urls, current_index) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     let urls: Vec<_> = urls.into_iter().map(ServoUrl::into_url).collect();
@@ -999,7 +1008,48 @@ impl Servo {
                     webview.delegate().show_form_control(webview, form_control);
                 }
             },
-            _ => {},
+            EmbedderMsg::GetWindowRect(webview_id, response_sender) => {
+                let window_rect = || {
+                    let Some(webview) = self.get_webview_handle(webview_id) else {
+                        return DeviceIndependentIntRect::default();
+                    };
+                    let hidpi_scale_factor = webview.hidpi_scale_factor();
+                    let Some(screen_geometry) = webview.delegate().screen_geometry(webview) else {
+                        return DeviceIndependentIntRect::default();
+                    };
+
+                    convert_rect_to_css_pixel(screen_geometry.window_rect, hidpi_scale_factor)
+                };
+
+                if let Err(error) = response_sender.send(window_rect()) {
+                    warn!("Failed to respond to GetWindowRect: {error}");
+                }
+            },
+            EmbedderMsg::GetScreenMetrics(webview_id, response_sender) => {
+                let screen_metrics = || {
+                    let Some(webview) = self.get_webview_handle(webview_id) else {
+                        return ScreenMetrics::default();
+                    };
+                    let hidpi_scale_factor = webview.hidpi_scale_factor();
+                    let Some(screen_geometry) = webview.delegate().screen_geometry(webview) else {
+                        return ScreenMetrics::default();
+                    };
+
+                    ScreenMetrics {
+                        screen_size: convert_size_to_css_pixel(
+                            screen_geometry.size,
+                            hidpi_scale_factor,
+                        ),
+                        available_size: convert_size_to_css_pixel(
+                            screen_geometry.available_size,
+                            hidpi_scale_factor,
+                        ),
+                    }
+                };
+                if let Err(error) = response_sender.send(screen_metrics()) {
+                    warn!("Failed to respond to GetScreenMetrics: {error}");
+                }
+            },
         }
     }
 
@@ -1095,12 +1145,6 @@ fn create_constellation(
         .to_proxy(),
     );
 
-    let (canvas_create_sender, canvas_ipc_sender) = CanvasPaintThread::start(
-        compositor_proxy.cross_process_compositor_api.clone(),
-        system_font_service.clone(),
-        public_resource_threads.clone(),
-    );
-
     let initial_state = InitialConstellationState {
         compositor_proxy,
         embedder_proxy,
@@ -1133,8 +1177,6 @@ fn create_constellation(
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
         opts.hard_fail,
-        canvas_create_sender,
-        canvas_ipc_sender,
     )
 }
 

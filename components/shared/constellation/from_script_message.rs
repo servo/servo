@@ -36,7 +36,7 @@ use strum_macros::IntoStaticStr;
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 use webrender_api::ImageKey;
 
-use crate::structured_data::{BroadcastMsg, StructuredSerializedData};
+use crate::structured_data::{BroadcastChannelMsg, StructuredSerializedData};
 use crate::{
     LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, TraversalDirection, WindowSizeType,
 };
@@ -214,6 +214,7 @@ pub struct SWManagerSenders {
 
 /// Messages sent to Service Worker Manager thread
 #[derive(Debug, Deserialize, Serialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum ServiceWorkerMsg {
     /// Timeout message sent by active service workers
     Timeout(ServoUrl),
@@ -505,7 +506,7 @@ pub enum ScriptToConstellationMessage {
     /// A global has started managing broadcast-channels.
     NewBroadcastChannelRouter(
         BroadcastChannelRouterId,
-        IpcSender<BroadcastMsg>,
+        IpcSender<BroadcastChannelMsg>,
         ImmutableOrigin,
     ),
     /// A global has stopped managing broadcast-channels.
@@ -516,7 +517,7 @@ pub enum ScriptToConstellationMessage {
     RemoveBroadcastChannelNameInRouter(BroadcastChannelRouterId, String, ImmutableOrigin),
     /// Broadcast a message to all same-origin broadcast channels,
     /// excluding the source of the broadcast.
-    ScheduleBroadcast(BroadcastChannelRouterId, BroadcastMsg),
+    ScheduleBroadcast(BroadcastChannelRouterId, BroadcastChannelMsg),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
     /// Broadcast a storage event to every same-origin pipeline.

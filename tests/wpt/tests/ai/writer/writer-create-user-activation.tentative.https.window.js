@@ -1,22 +1,21 @@
 // META: title=Writer Create User Activation
 // META: script=/resources/testdriver.js
-// META: script=../resources/util.js
 // META: timeout=long
 
 'use strict';
 
-// Model download state is shared between test cases of the same file when run
-// with `EchoAIManagerImpl`, so this test case needs to be on its own file.
+// Mocked model download state may be shared between test cases in the same file
+// (see e.g. `EchoAIManagerImpl`), so this test case is kept in a separate file.
+// TODO(crbug.com/390246212): Support model state controls for WPTs.
 promise_test(async t => {
-  // Creating Writer without user activation rejects with NotAllowedError.
+  // Create requires user activation when availability is 'downloadable'.
+  assert_implements_optional(await Writer.availability() == 'downloadable');
+  assert_false(navigator.userActivation.isActive);
   await promise_rejects_dom(t, 'NotAllowedError', Writer.create());
+  await test_driver.bless('Writer.create', Writer.create);
 
-  // Creating Writer with user activation succeeds.
-  await createWriter();
-
-  // Expect available after create.
+  // Create does not require user activation when availability is 'available'.
   assert_equals(await Writer.availability(), 'available');
-
-  // Now that it is available, we should no longer need user activation.
+  assert_false(navigator.userActivation.isActive);
   await Writer.create();
-}, 'Writer.create() requires user activation when availability is "downloadable"');
+}, 'Create requires user activation when availability is "downloadable"');

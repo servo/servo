@@ -109,3 +109,7 @@ object_store_get_all_keys_with_options_test(
 get_all_with_options_and_count_test(
     'getAllKeys', /*storeName=*/ 'out-of-line', /*indexName=*/ undefined,
     'Get all keys with both options and count');
+
+get_all_with_invalid_keys_test(
+    'getAllKeys', /*storeName=*/ 'out-of-line', /*indexName=*/ undefined,
+    /*shouldUseDictionary=*/ true, 'Get all keys with invalid query keys');

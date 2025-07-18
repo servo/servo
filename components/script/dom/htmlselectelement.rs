@@ -5,16 +5,16 @@
 use std::default::Default;
 use std::iter;
 
-use webrender_api::units::DeviceIntRect;
-use ipc_channel::ipc;
 use dom_struct::dom_struct;
+use embedder_traits::{EmbedderMsg, FormControl as EmbedderFormControl};
+use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
+use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, local_name};
+use ipc_channel::ipc;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
-use embedder_traits::{SelectElementOptionOrOptgroup, SelectElementOption};
-use euclid::{Size2D, Point2D, Rect};
-use embedder_traits::{FormControl as EmbedderFormControl, EmbedderMsg};
+use webrender_api::units::DeviceIntRect;
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
@@ -28,9 +28,6 @@ use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptio
 use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
-    ShadowRootMode, SlotAssignmentMode,
-};
 use crate::dom::bindings::codegen::GenericBindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement,
@@ -54,7 +51,6 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
-use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -260,18 +256,7 @@ impl HTMLSelectElement {
 
     fn create_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
-        let root = self
-            .upcast::<Element>()
-            .attach_shadow(
-                IsUserAgentWidget::Yes,
-                ShadowRootMode::Closed,
-                false,
-                false,
-                false,
-                SlotAssignmentMode::Manual,
-                can_gc,
-            )
-            .expect("Attaching UA shadow root failed");
+        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
         let select_box = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         select_box.upcast::<Element>().set_string_attribute(

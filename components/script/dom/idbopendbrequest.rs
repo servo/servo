@@ -9,6 +9,7 @@ use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
 use profile_traits::ipc;
+use script_bindings::conversions::SafeToJSValConvertible;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
@@ -25,7 +26,6 @@ use crate::dom::idbdatabase::IDBDatabase;
 use crate::dom::idbrequest::IDBRequest;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::dom::idbversionchangeevent::IDBVersionChangeEvent;
-use crate::js::conversions::ToJSValConvertible;
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 
@@ -140,7 +140,6 @@ impl IDBOpenDBRequest {
         reflect_dom_object(Box::new(IDBOpenDBRequest::new_inherited()), global, can_gc)
     }
 
-    #[allow(unsafe_code)]
     // https://www.w3.org/TR/IndexedDB-2/#run-an-upgrade-transaction
     fn upgrade_db_version(&self, connection: &IDBDatabase, version: u64, can_gc: CanGc) {
         let global = self.global();
@@ -178,9 +177,7 @@ impl IDBOpenDBRequest {
                 // Step 8.1
                 let _ac = enter_realm(&*conn);
                 rooted!(in(*cx) let mut connection_val = UndefinedValue());
-                unsafe {
-                    conn.to_jsval(*cx, connection_val.handle_mut());
-                }
+                conn.safe_to_jsval(cx, connection_val.handle_mut());
                 this.idbrequest.set_result(connection_val.handle());
 
                 // Step 8.2
@@ -328,7 +325,6 @@ impl IDBOpenDBRequest {
             .unwrap();
     }
 
-    #[allow(unsafe_code)]
     pub fn dispatch_success(&self, result: &IDBDatabase) {
         let global = self.global();
         let this = Trusted::new(self);
@@ -344,9 +340,7 @@ impl IDBOpenDBRequest {
 
                 let _ac = enter_realm(&*result);
                 rooted!(in(*cx) let mut result_val = UndefinedValue());
-                unsafe {
-                    result.to_jsval(*cx, result_val.handle_mut());
-                }
+                result.safe_to_jsval(cx, result_val.handle_mut());
                 this.set_result(result_val.handle());
 
                 let event = Event::new(

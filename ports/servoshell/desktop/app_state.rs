@@ -4,6 +4,7 @@
 
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -12,14 +13,15 @@ use euclid::Vector2D;
 use keyboard_types::{Key, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
-use servo::config::{opts, pref};
+use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    WebDriverCommandMsg, WebView, WebViewBuilder, WebViewDelegate,
+    TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -27,7 +29,7 @@ use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
-use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
+use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
@@ -35,6 +37,15 @@ pub(crate) enum AppState {
     Initializing,
     Running(Rc<RunningAppState>),
     ShuttingDown,
+}
+
+/// A collection of [`IpcSender`]s that are used to asynchronously communicate
+/// to a WebDriver server with information about application state.
+#[derive(Clone, Default)]
+struct WebDriverSenders {
+    pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
+    pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
+    pub pending_traversals: HashMap<WebViewId, (TraversalId, IpcSender<WebDriverLoadStatus>)>,
 }
 
 pub(crate) struct RunningAppState {
@@ -48,6 +59,7 @@ pub(crate) struct RunningAppState {
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+    webdriver_senders: RefCell<WebDriverSenders>,
     inner: RefCell<RunningAppStateInner>,
 }
 
@@ -99,6 +111,7 @@ impl RunningAppState {
             servo,
             servoshell_preferences,
             webdriver_receiver,
+            webdriver_senders: RefCell::default(),
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
@@ -112,7 +125,13 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
+    pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) {
+        let webview = self.create_toplevel_webview(url);
+        webview.focus();
+        webview.raise_to_top(true);
+    }
+
+    pub(crate) fn create_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
         let webview = WebViewBuilder::new(self.servo())
             .url(url)
             .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
@@ -120,10 +139,8 @@ impl RunningAppState {
             .build();
 
         webview.notify_theme_change(self.inner().window.theme());
-        webview.focus();
-        webview.raise_to_top(true);
-
-        self.add(webview);
+        self.add(webview.clone());
+        webview
     }
 
     pub(crate) fn inner(&self) -> Ref<RunningAppStateInner> {
@@ -322,6 +339,56 @@ impl RunningAppState {
             .is_some_and(|dialogs| !dialogs.is_empty())
     }
 
+    pub(crate) fn webview_has_active_dialog(&self, webview_id: WebViewId) -> bool {
+        self.inner()
+            .dialogs
+            .get(&webview_id)
+            .is_some_and(|dialogs| !dialogs.is_empty())
+    }
+
+    pub(crate) fn get_current_active_dialog_webdriver_type(
+        &self,
+        webview_id: WebViewId,
+    ) -> Option<WebDriverUserPrompt> {
+        self.inner()
+            .dialogs
+            .get(&webview_id)
+            .and_then(|dialogs| dialogs.last())
+            .map(|dialog| dialog.webdriver_diaglog_type())
+    }
+
+    pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            dialogs.drain(..).for_each(|dialog| {
+                dialog.accept();
+            });
+        }
+    }
+
+    pub(crate) fn dismiss_active_dialogs(&self, webview_id: WebViewId) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            dialogs.drain(..).for_each(|dialog| {
+                dialog.dismiss();
+            });
+        }
+    }
+
+    pub(crate) fn alert_text_of_newest_dialog(&self, webview_id: WebViewId) -> Option<String> {
+        self.inner()
+            .dialogs
+            .get(&webview_id)
+            .and_then(|dialogs| dialogs.last())
+            .and_then(|dialog| dialog.message())
+    }
+
+    pub(crate) fn set_alert_text_of_newest_dialog(&self, webview_id: WebViewId, text: String) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            if let Some(dialog) = dialogs.last_mut() {
+                dialog.set_message(text);
+            }
+        }
+    }
+
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
         let focused_id = self.inner().focused_webview_id?;
         self.webviews()
@@ -348,14 +415,14 @@ impl RunningAppState {
             .shortcut(Modifiers::empty(), Key::PageDown, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
-                    -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
+                    self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
                 webview.notify_scroll_event(scroll_location, origin);
             })
             .shortcut(Modifiers::empty(), Key::PageUp, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
-                    self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
+                    -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
                 webview.notify_scroll_event(scroll_location, origin);
             })
@@ -366,21 +433,81 @@ impl RunningAppState {
                 webview.notify_scroll_event(ScrollLocation::End, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, -1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowDown, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, 1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
-                let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(-LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
-                let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             });
+    }
+
+    pub(crate) fn set_pending_traversal(
+        &self,
+        webview_id: WebViewId,
+        traversal_id: TraversalId,
+        sender: IpcSender<WebDriverLoadStatus>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .pending_traversals
+            .insert(webview_id, (traversal_id, sender));
+    }
+
+    pub(crate) fn set_load_status_sender(
+        &self,
+        webview_id: WebViewId,
+        sender: IpcSender<WebDriverLoadStatus>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .insert(webview_id, sender);
+    }
+
+    pub(crate) fn set_script_command_interrupt_sender(
+        &self,
+        sender: Option<IpcSender<WebDriverJSResult>>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .script_evaluation_interrupt_sender = sender;
+    }
+
+    /// Interrupt any ongoing WebDriver-based script evaluation.
+    ///
+    /// From <https://w3c.github.io/webdriver/#dfn-execute-a-function-body>:
+    /// > The rules to execute a function body are as follows. The algorithm returns
+    /// > an ECMAScript completion record.
+    /// >
+    /// > If at any point during the algorithm a user prompt appears, immediately return
+    /// > Completion { Type: normal, Value: null, Target: empty }, but continue to run the
+    /// >  other steps of this algorithm in parallel.
+    fn interrupt_webdriver_script_evaluation(&self) {
+        if let Some(sender) = &self
+            .webdriver_senders
+            .borrow()
+            .script_evaluation_interrupt_sender
+        {
+            sender.send(Ok(WebDriverJSValue::Null)).unwrap_or_else(|err| {
+                info!("Notify dialog appear failed. Maybe the channel to webdriver is closed: {err}");
+            });
+        }
+    }
+
+    pub(crate) fn remove_load_status_sender(&self, webview_id: WebViewId) {
+        self.webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .remove(&webview_id);
     }
 }
 
@@ -416,19 +543,44 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
+    fn notify_traversal_complete(&self, webview: servo::WebView, traversal_id: TraversalId) {
+        let mut webdriver_state = self.webdriver_senders.borrow_mut();
+        if let Entry::Occupied(entry) = webdriver_state.pending_traversals.entry(webview.id()) {
+            if entry.get().0 == traversal_id {
+                let (_, sender) = entry.remove();
+                let _ = sender.send(WebDriverLoadStatus::Complete);
+            }
+        }
+    }
+
     fn request_move_to(&self, _: servo::WebView, new_position: DeviceIntPoint) {
         self.inner().window.set_position(new_position);
     }
 
-    fn request_resize_to(&self, webview: servo::WebView, new_size: DeviceIntSize) {
+    fn request_resize_to(&self, webview: servo::WebView, new_outer_size: DeviceIntSize) {
         let mut rect = webview.rect();
-        rect.set_size(new_size.to_f32());
+        rect.set_size(new_outer_size.to_f32());
         webview.move_resize(rect);
-        self.inner().window.request_resize(&webview, new_size);
+        self.inner().window.request_resize(&webview, new_outer_size);
     }
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
-        if self.servoshell_preferences.headless {
+        self.interrupt_webdriver_script_evaluation();
+
+        // Dialogs block the page load, so need need to notify WebDriver
+        let webview_id = webview.id();
+        if let Some(sender) = self
+            .webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .get(&webview_id)
+        {
+            let _ = sender.send(WebDriverLoadStatus::Blocked);
+        };
+
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             // TODO: Avoid copying this from the default trait impl?
             // Return the DOM-specified default value for when we **cannot show simple dialogs**.
             let _ = match dialog {
@@ -453,7 +605,9 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             return;
         }
 
@@ -476,7 +630,7 @@ impl WebViewDelegate for RunningAppState {
         // When WebDriver is enabled, do not focus and raise the WebView to the top,
         // as that is what the specification expects. Otherwise, we would like `window.open()`
         // to create a new foreground tab
-        if opts::get().webdriver_port.is_none() {
+        if self.servoshell_preferences.webdriver_port.is_none() {
             webview.focus();
             webview.raise_to_top(true);
         }
@@ -507,8 +661,19 @@ impl WebViewDelegate for RunningAppState {
         self.inner().window.set_cursor(cursor);
     }
 
-    fn notify_load_status_changed(&self, _webview: servo::WebView, _status: LoadStatus) {
+    fn notify_load_status_changed(&self, webview: servo::WebView, status: LoadStatus) {
         self.inner_mut().need_update = true;
+
+        if status == LoadStatus::Complete {
+            if let Some(sender) = self
+                .webdriver_senders
+                .borrow_mut()
+                .load_status_senders
+                .remove(&webview.id())
+            {
+                let _ = sender.send(WebDriverLoadStatus::Complete);
+            }
+        }
     }
 
     fn notify_fullscreen_state_changed(&self, _webview: servo::WebView, fullscreen_state: bool) {
@@ -540,7 +705,9 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             permission_request.deny();
             return;
         }
@@ -600,7 +767,9 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_form_control(&self, webview: WebView, form_control: FormControl) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             return;
         }
 

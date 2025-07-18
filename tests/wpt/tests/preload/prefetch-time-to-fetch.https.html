@@ -43,10 +43,10 @@ test_prefetch_change(
     'Changing a prefetch href should trigger a fetch');
 
 test_prefetch_change(
-    {href: `${REMOTE_ORIGIN}/common/square.png?pipe=header(Access-Control-Allow-Origin, *)`},
-    {href: `${REMOTE_ORIGIN}/common/square.png?pipe=header(Access-Control-Allow-Origin, *)`, crossorigin: 'anonymous'},
-    ['load', 'load'],
-    'Changing a prefetch crossorigin attribute should trigger a fetch');
+    {href: `${REMOTE_ORIGIN}/common/square.png?pipe=header(Access-Control-Allow-Origin,*)`},
+    {href: `${REMOTE_ORIGIN}/common/square.png?pipe=header(Access-Control-Allow-Origin,*)`, crossorigin: 'anonymous'},
+    ['load', 'timeout'],
+    'Changing a prefetch crossorigin attribute does not trigger a fetch');
 
 </script>
 </body>

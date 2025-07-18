@@ -344,7 +344,7 @@ pub(crate) fn create_native_html_element(
         local_name!("html") => make!(HTMLHtmlElement),
         local_name!("i") => make!(HTMLElement),
         local_name!("iframe") => make!(HTMLIFrameElement),
-        local_name!("img") => make!(HTMLImageElement),
+        local_name!("img") => make!(HTMLImageElement, creator),
         local_name!("input") => make!(HTMLInputElement),
         local_name!("ins") => make!(HTMLModElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:isindex-2

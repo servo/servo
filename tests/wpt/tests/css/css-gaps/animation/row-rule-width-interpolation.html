@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+  <title>row-rule-width interpolation</title>
+  <link rel="author" title="Javier Contreras" href="mailto:javiercon@chromium.org">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-width">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/interpolation-testcommon.js"></script>
+  <style>
+    .parent {
+      row-rule-style: solid;
+      row-rule-width: 90px;
+    }
+
+    .target {
+      display: flex;
+      row-gap: 10px;
+      row-rule: 10px solid black;
+      column-rule: 10px solid black;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    test_interpolation({
+      property: 'row-rule-width',
+      from: neutralKeyframe,
+      to: '40px',
+    }, [
+      { at: -0.3, expect: '1px' },
+      { at: 0, expect: '10px' },
+      { at: 0.3, expect: '19px' },
+      { at: 0.6, expect: '28px' },
+      { at: 1, expect: '40px' },
+      { at: 1.5, expect: '55px' },
+    ]);
+
+    test_interpolation({
+      property: 'row-rule-width',
+      from: 'initial',
+      to: '40px',
+    }, [
+      { at: -0.3, expect: '0px' },
+      { at: 0, expect: '3px' },
+      { at: 0.3, expect: '14px' },
+      { at: 0.6, expect: '25px' },
+      { at: 1, expect: '40px' },
+      { at: 1.5, expect: '58px' },
+    ]);
+
+    test_interpolation({
+      property: 'row-rule-width',
+      from: 'inherit',
+      to: '40px',
+    }, [
+      { at: -0.3, expect: '105px' },
+      { at: 0, expect: '90px' },
+      { at: 0.3, expect: '75px' },
+      { at: 0.6, expect: '60px' },
+      { at: 1, expect: '40px' },
+      { at: 1.5, expect: '15px' },
+    ]);
+
+    test_interpolation({
+      property: 'row-rule-width',
+      from: 'unset',
+      to: '40px',
+    }, [
+      { at: -0.3, expect: '0px' },
+      { at: 0, expect: '3px' },
+      { at: 0.3, expect: '14px' },
+      { at: 0.6, expect: '25px' },
+      { at: 1, expect: '40px' },
+      { at: 1.5, expect: '58px' },
+    ]);
+
+    test_interpolation({
+      property: 'row-rule-width',
+      from: '0px',
+      to: '100px'
+    }, [
+      { at: -0.3, expect: '0' }, // row-rule-width can't be negative.
+      { at: 0, expect: '0' },
+      { at: 0.3, expect: '30px' },
+      { at: 0.6, expect: '60px' },
+      { at: 1, expect: '100px' },
+      { at: 1.5, expect: '150px' },
+    ]);
+
+    test_interpolation({
+      property: 'row-rule-width',
+      from: 'thin',
+      to: '11px'
+    }, [
+      { at: -0.3, expect: '0' }, // row-rule-width can't be negative.
+      { at: 0, expect: '1px' },
+      { at: 0.3, expect: '4px' },
+      { at: 0.6, expect: '7px' },
+      { at: 1, expect: '11px' },
+      { at: 1.5, expect: '16px' },
+    ]);
+
+    test_interpolation({
+      property: 'row-rule-width',
+      from: 'thick',
+      to: '15px'
+    }, [
+      { at: -0.3, expect: '2px' },
+      { at: 0, expect: '5px' },
+      { at: 0.3, expect: '8px' },
+      { at: 0.6, expect: '11px' },
+      { at: 1, expect: '15px' },
+      { at: 1.5, expect: '20px' },
+    ]);
+  </script>
+</body>
+</html>

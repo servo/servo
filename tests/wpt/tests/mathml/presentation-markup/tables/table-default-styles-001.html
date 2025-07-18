@@ -21,6 +21,9 @@
   </math>
 </div>
 <script>
+setup({ explicit_done: true });
+
+document.fonts.load("25px Ahem").then(() => {
   test(() => assert_equals(window.getComputedStyle(mtable).mathStyle, "compact"),
        "Default math-style value on mtable");
   test(() => assert_equals(window.getComputedStyle(mtable).display, "inline-table"),
@@ -46,4 +49,7 @@
       assert_equals(mtableBox.width, referenceBox.width + 20);
       assert_equals(mtableBox.height, referenceBox.height + 20);
   }, "Bounding box is the same as mrow + mtd default padding");
+
+  done();
+});
 </script>

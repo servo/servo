@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use layout_api::LayoutDamage;
 use layout_api::wrapper_traits::LayoutNode;
 use script::layout_dom::ServoLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
@@ -20,11 +21,11 @@ pub struct RecalcStyle<'a> {
 }
 
 impl<'a> RecalcStyle<'a> {
-    pub fn new(context: &'a LayoutContext<'a>) -> Self {
+    pub(crate) fn new(context: &'a LayoutContext<'a>) -> Self {
         RecalcStyle { context }
     }
 
-    pub fn context(&self) -> &LayoutContext<'a> {
+    pub(crate) fn context(&self) -> &LayoutContext<'a> {
         self.context
     }
 }
@@ -92,50 +93,78 @@ where
     }
 }
 
+#[servo_tracing::instrument(skip_all)]
 pub(crate) fn compute_damage_and_repair_style(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
+    damage_from_environment: RestyleDamage,
 ) -> RestyleDamage {
-    compute_damage_and_repair_style_inner(context, node, RestyleDamage::empty())
+    compute_damage_and_repair_style_inner(context, node, damage_from_environment)
 }
 
 pub(crate) fn compute_damage_and_repair_style_inner(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
-    parent_restyle_damage: RestyleDamage,
+    damage_from_parent: RestyleDamage,
 ) -> RestyleDamage {
-    let original_damage;
-    let damage;
+    let mut element_damage;
+    let original_element_damage;
+    let element_data = &node
+        .style_data()
+        .expect("Should not run `compute_damage` before styling.")
+        .element_data;
 
     {
-        let mut element_data = node
-            .style_data()
-            .expect("Should not run `compute_damage` before styling.")
-            .element_data
-            .borrow_mut();
-
-        original_damage = std::mem::take(&mut element_data.damage);
-        damage = original_damage | parent_restyle_damage;
+        let mut element_data = element_data.borrow_mut();
+        original_element_damage = element_data.damage;
+        element_data.damage.insert(damage_from_parent);
+        element_damage = element_data.damage;
 
         if let Some(ref style) = element_data.styles.primary {
             if style.get_box().display == Display::None {
-                return damage;
+                return element_damage;
             }
         }
     }
 
-    let mut propagated_damage = damage;
+    // If we are reconstructing this node, then all of the children should be reconstructed as well.
+    let damage_for_children = element_damage | damage_from_parent;
+    let mut damage_from_children = RestyleDamage::empty();
     for child in iter_child_nodes(node) {
         if child.is_element() {
-            propagated_damage |= compute_damage_and_repair_style_inner(context, child, damage);
+            damage_from_children |=
+                compute_damage_and_repair_style_inner(context, child, damage_for_children);
         }
     }
 
-    if !propagated_damage.contains(RestyleDamage::REBUILD_BOX) &&
-        !original_damage.contains(RestyleDamage::REBUILD_BOX)
+    // If one of our children needed to be reconstructed, we need to recollect children
+    // during box tree construction.
+    if damage_from_children.contains(LayoutDamage::recollect_box_tree_children()) {
+        element_damage.insert(LayoutDamage::recollect_box_tree_children());
+        element_data.borrow_mut().damage.insert(element_damage);
+    }
+
+    // Only propagate up layout phases from children, as other types of damage are
+    // incorporated into `element_damage` above.
+    let damage_for_parent = element_damage | (damage_from_children & RestyleDamage::RELAYOUT);
+
+    // If we are going to potentially reuse this box tree node, then clear any cached
+    // fragment layout.
+    //
+    // TODO: If this node has `recollect_box_tree_children` damage, this is unecessary
+    // unless it's entirely above the dirty root.
+    if element_damage != RestyleDamage::reconstruct() &&
+        damage_for_parent.contains(RestyleDamage::RELAYOUT)
     {
+        node.clear_fragment_layout_cache();
+    }
+
+    // If the box will be preserved, update the box's style and also in any fragments
+    // that haven't been cleared.
+    let element_layout_damage: LayoutDamage = element_damage.into();
+    if !element_layout_damage.has_box_damage() && !original_element_damage.is_empty() {
         node.repair_style(context);
     }
 
-    propagated_damage
+    damage_for_parent
 }

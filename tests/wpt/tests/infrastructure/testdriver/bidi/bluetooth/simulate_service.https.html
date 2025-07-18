@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>TestDriver bidi.bluetooth.simulate_service method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/bidi-bluetooth-helper.js"></script>
+
+<script>
+    promise_setup(async () => {
+        await test_driver.bidi.bluetooth.request_device_prompt_updated.subscribe();
+        await test_driver.bidi.bluetooth.gatt_connection_attempted.subscribe();
+    });
+
+    bluetooth_test(async (t) => {
+        const handle_prompt_promise = selectFirstDeviceOnDevicePromptUpdated();
+        const [device] = await Promise.all([requestDeviceWithTrustedClick({
+            acceptAllDevices: true,
+            optionalServices: [HEART_RATE_SERVICE_UUID]
+        }), handle_prompt_promise]);
+
+        await createGattConnection(device);
+        await test_driver.bidi.bluetooth.simulate_service({
+            address: DEVICE_ADDRESS,
+            uuid: HEART_RATE_SERVICE_UUID,
+            type: 'add',
+        });
+        services = await device.gatt.getPrimaryServices();
+        assert_equals(
+            JSON.stringify(services.map(service => service.uuid)),
+            JSON.stringify([HEART_RATE_SERVICE_UUID])
+        );
+    }, "simulate a GATT service.");
+</script>

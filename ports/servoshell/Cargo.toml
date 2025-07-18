@@ -62,6 +62,7 @@ euclid = { workspace = true }
 getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
 image = { workspace = true }
+ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
 libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"] }
@@ -78,7 +79,6 @@ webdriver_server = { path = "../../components/webdriver_server" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15"
-ipc-channel = { workspace = true }
 jni = "0.21.1"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
@@ -87,18 +87,18 @@ backtrace = { workspace = true }
 [target.'cfg(target_env = "ohos")'.dependencies]
 env_filter = "0.1.3"
 euclid = { workspace = true }
-hilog = "0.2.0"
+hilog = "0.2.2"
 # force inprocess until we add multi-process support for ohos
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 napi-derive-ohos = "1.0.4"
 napi-ohos = "1.0.4"
 ohos-ime = "0.4.0"
-ohos-ime-sys = "0.2.0"
+ohos-ime-sys = "0.2.2"
 ohos-deviceinfo = "0.1.0"
-ohos-abilitykit-sys = { version = "0.1.0", features = ["api-14"] }
+ohos-abilitykit-sys = { version = "0.1.2", features = ["api-14"] }
 ohos-vsync = "0.1.3"
 ohos-window-manager-sys = { version = "0.1", features = ["api-14"] }
-xcomponent-sys = { version = "0.3.1", features = ["api-14", "keyboard-types"] }
+xcomponent-sys = { version = "0.3.3", features = ["api-14", "keyboard-types"] }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
 nix = { workspace = true, features = ["fs"] }
@@ -106,11 +106,12 @@ serde_json = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
+accesskit_winit = "0.27"
 dirs = "6.0"
-egui = "0.31.1"
-egui-file-dialog = "0.9.0"
-egui-winit = { version = "0.31.1", default-features = false, features = ["clipboard", "wayland"] }
-egui_glow = { version = "0.31.1", features = ["winit"] }
+egui = { version = "0.32.0", features = ["accesskit"] }
+egui-file-dialog = "0.11.0"
+egui-winit = { version = "0.32.0", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
+egui_glow = { version = "0.32.0", features = ["winit"] }
 gilrs = "0.11.0"
 glow = "0.16.0"
 headers = { workspace = true }

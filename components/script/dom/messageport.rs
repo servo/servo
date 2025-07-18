@@ -13,13 +13,14 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewObject, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, StructuredSerializeOptions,
 };
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval};
+use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -29,7 +30,6 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
@@ -219,9 +219,7 @@ impl MessagePort {
         // Let message be OrdinaryObjectCreate(null).
         rooted!(in(*cx) let mut message = unsafe { JS_NewObject(*cx, ptr::null()) });
         rooted!(in(*cx) let mut type_string = UndefinedValue());
-        unsafe {
-            type_.to_jsval(*cx, type_string.handle_mut());
-        }
+        type_.safe_to_jsval(cx, type_string.handle_mut());
 
         // Perform ! CreateDataProperty(message, "type", type).
         unsafe {
@@ -244,9 +242,7 @@ impl MessagePort {
 
         // Run the message port post message steps providing targetPort, message, and options.
         rooted!(in(*cx) let mut message_val = UndefinedValue());
-        unsafe {
-            message.to_jsval(*cx, message_val.handle_mut());
-        }
+        message.safe_to_jsval(cx, message_val.handle_mut());
         self.post_message_impl(cx, message_val.handle(), transfer)
     }
 }
@@ -256,9 +252,13 @@ impl Transferable for MessagePort {
     type Data = MessagePortImpl;
 
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
-    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
+    fn transfer(&self) -> Fallible<(MessagePortId, MessagePortImpl)> {
+        // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+        // Step 5.2. If transferable has a [[Detached]] internal slot and
+        // transferable.[[Detached]] is true, then throw a "DataCloneError"
+        // DOMException.
         if self.detached.get() {
-            return Err(());
+            return Err(Error::DataClone(None));
         }
 
         self.detached.set(true);

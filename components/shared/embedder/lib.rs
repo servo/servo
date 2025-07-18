@@ -22,7 +22,7 @@ use std::sync::Arc;
 
 use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
 use crossbeam_channel::Sender;
-use euclid::{Scale, Size2D};
+use euclid::{Point2D, Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
 use log::warn;
@@ -31,11 +31,13 @@ use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use pixels::RasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
 use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
+use uuid::Uuid;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 
 pub use crate::input_events::*;
@@ -160,6 +162,67 @@ pub enum SimpleDialog {
     },
 }
 
+impl SimpleDialog {
+    /// Returns the message of the dialog.
+    pub fn message(&self) -> &str {
+        match self {
+            SimpleDialog::Alert { message, .. } => message,
+            SimpleDialog::Confirm { message, .. } => message,
+            SimpleDialog::Prompt { message, .. } => message,
+        }
+    }
+
+    pub fn set_message(&mut self, text: String) {
+        match self {
+            SimpleDialog::Alert { message, .. } => *message = text,
+            SimpleDialog::Confirm { message, .. } => *message = text,
+            SimpleDialog::Prompt { message, .. } => *message = text,
+        }
+    }
+
+    pub fn dismiss(&self) {
+        match self {
+            SimpleDialog::Alert {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(AlertResponse::Ok);
+            },
+            SimpleDialog::Confirm {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(ConfirmResponse::Cancel);
+            },
+            SimpleDialog::Prompt {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(PromptResponse::Cancel);
+            },
+        }
+    }
+
+    pub fn accept(&self) {
+        match self {
+            SimpleDialog::Alert {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(AlertResponse::Ok);
+            },
+            SimpleDialog::Confirm {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(ConfirmResponse::Ok);
+            },
+            SimpleDialog::Prompt {
+                default,
+                response_sender,
+                ..
+            } => {
+                let _ = response_sender.send(PromptResponse::Ok(default.clone()));
+            },
+        }
+    }
+}
+
 #[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct AuthenticationResponse {
     /// Username for http request authentication
@@ -256,6 +319,25 @@ pub struct ViewportDetails {
     pub hidpi_scale_factor: Scale<f32, CSSPixel, DevicePixel>,
 }
 
+/// Unlike [`ScreenGeometry`], the data is in device-independent pixels
+/// to be used by DOM APIs
+#[derive(Default, Deserialize, Serialize)]
+pub struct ScreenMetrics {
+    pub screen_size: DeviceIndependentIntSize,
+    pub available_size: DeviceIndependentIntSize,
+}
+
+/// An opaque identifier for a single history traversal operation.
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
+pub struct TraversalId(String);
+
+impl TraversalId {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self(Uuid::new_v4().to_string())
+    }
+}
+
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -310,6 +392,12 @@ pub enum EmbedderMsg {
     NewFavicon(WebViewId, ServoUrl),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
+    /// A history traversal operation completed.
+    HistoryTraversalComplete(WebViewId, TraversalId),
+    /// Get the device independent window rectangle.
+    GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
+    /// Get the device independent screen size and available size.
+    GetScreenMetrics(WebViewId, IpcSender<ScreenMetrics>),
     /// Entered or exited fullscreen.
     NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
@@ -372,7 +460,6 @@ pub enum EmbedderMsg {
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
     ),
-    WebDriverCommand(WebDriverCommandMsg),
 }
 
 impl Debug for EmbedderMsg {
@@ -702,22 +789,26 @@ pub struct NotificationAction {
 }
 
 /// Information about a `WebView`'s screen geometry and offset. This is used
-/// for the [Screen](https://drafts.csswg.org/cssom-view/#the-screen-interface)
-/// CSSOM APIs and `window.screenLeft` / `window.screenTop`.
+/// for the [Screen](https://drafts.csswg.org/cssom-view/#the-screen-interface) CSSOM APIs
+/// and `window.screenLeft` / `window.screenX` / `window.screenTop` / `window.screenY` /
+/// `window.moveBy`/ `window.resizeBy` / `window.outerWidth` / `window.outerHeight` /
+/// `window.screen.availHeight` / `window.screen.availWidth`.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ScreenGeometry {
     /// The size of the screen in device pixels. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub size: DeviceIntSize,
-    /// The available size of the screen in device pixels. This size is the size
+    /// The available size of the screen in device pixels for the purposes of
+    /// the `window.screen.availHeight` / `window.screen.availWidth`. This is the size
     /// available for web content on the screen, and should be `size` minus any system
-    /// toolbars, docks, and interface elements of the browser. This will be converted to
+    /// toolbars, docks, and interface elements. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub available_size: DeviceIntSize,
-    /// The offset of the `WebView` in device pixels for the purposes of the `window.screenLeft`
-    /// and `window.screenTop` APIs. This will be converted to CSS pixels based on the pixel scaling
-    /// of the `WebView`.
-    pub offset: DeviceIntPoint,
+    /// The rectangle the `WebView`'s containing window (including OS decorations)
+    /// in device pixels for the purposes of the
+    /// `window.screenLeft`, `window.outerHeight` and similar APIs.
+    /// This will be converted to CSS pixels based on the pixel scaling of the `WebView`.
+    pub window_rect: DeviceIntRect,
 }
 
 impl From<SelectElementOption> for SelectElementOptionOrOptgroup {
@@ -770,10 +861,14 @@ pub struct CompositorHitTestResult {
     pub pipeline_id: PipelineId,
 
     /// The hit test point in the item's viewport.
-    pub point_in_viewport: euclid::default::Point2D<f32>,
+    pub point_in_viewport: Point2D<f32, CSSPixel>,
+
+    /// The hit test point relative to the root scroll node content origin / initial
+    /// containing block.
+    pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,
 
     /// The hit test point relative to the item itself.
-    pub point_relative_to_item: euclid::default::Point2D<f32>,
+    pub point_relative_to_item: Point2D<f32, CSSPixel>,
 
     /// The node address of the hit test result.
     pub node: UntrustedNodeAddress,

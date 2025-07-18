@@ -12,7 +12,6 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, WebViewId};
-use content_security_policy as csp;
 use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -58,6 +57,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::NoTrace;
+use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
@@ -557,10 +557,13 @@ impl FetchResponseListener for ClassicContext {
         network_listener::submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let elem = self.elem.root();
-        global.report_csp_violations(violations, Some(elem.upcast::<Element>()));
+        let source_position = elem
+            .upcast::<Element>()
+            .compute_source_position(elem.line_number as u32);
+        global.report_csp_violations(violations, Some(elem.upcast()), Some(source_position));
     }
 }
 
@@ -763,13 +766,18 @@ impl HTMLScriptElement {
             return;
         }
 
+        let global = &doc.global();
+
         // Step 19. CSP.
         if !element.has_attribute(&local_name!("src")) &&
-            doc.should_elements_inline_type_behavior_be_blocked(
-                element,
-                csp::InlineCheckType::Script,
-                &text,
-            ) == csp::CheckResult::Blocked
+            global
+                .get_csp_list()
+                .should_elements_inline_type_behavior_be_blocked(
+                    global,
+                    element,
+                    InlineCheckType::Script,
+                    &text,
+                )
         {
             warn!("Blocking inline script due to CSP");
             return;
@@ -1406,15 +1414,15 @@ impl VirtualMethods for HTMLScriptElement {
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
-            let script = Trusted::new(self);
+            let script = DomRoot::from_ref(self);
             // This method can be invoked while there are script/layout blockers present
             // as DOM mutations have not yet settled. We use a delayed task to avoid
             // running any scripts until the DOM tree is safe for interactions.
-            self.owner_document()
-                .add_delayed_task(task!(ScriptPrepare: move || {
-                    let this = script.root();
-                    this.prepare(CanGc::note());
-                }));
+            self.owner_document().add_delayed_task(
+                task!(ScriptPrepare: |script: DomRoot<HTMLScriptElement>| {
+                    script.prepare(CanGc::note());
+                }),
+            );
         }
     }
 

@@ -11,7 +11,7 @@ use std::thread;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use log::{debug, warn};
 use net_traits::indexeddb_thread::{
-    AsyncOperation, IndexedDBThreadMsg, IndexedDBTxnMode, SyncOperation,
+    AsyncOperation, IdbResult, IndexedDBThreadMsg, IndexedDBTxnMode, SyncOperation,
 };
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -88,7 +88,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     fn queue_operation(
         &mut self,
-        sender: IpcSender<Option<Vec<u8>>>,
+        sender: IpcSender<Result<Option<IdbResult>, ()>>,
         store_name: SanitizedName,
         serial_number: u64,
         mode: IndexedDBTxnMode,
@@ -135,9 +135,13 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         store_name: SanitizedName,
         auto_increment: bool,
     ) {
-        self.engine.create_store(store_name, auto_increment);
+        let result = self.engine.create_store(store_name, auto_increment);
 
-        let _ = sender.send(Ok(()));
+        if result.is_ok() {
+            let _ = sender.send(Ok(()));
+        } else {
+            let _ = sender.send(Err(()));
+        }
     }
 
     fn delete_object_store(
@@ -145,9 +149,13 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         sender: IpcSender<Result<(), ()>>,
         store_name: SanitizedName,
     ) {
-        self.engine.delete_store(store_name);
+        let result = self.engine.delete_store(store_name);
 
-        let _ = sender.send(Ok(()));
+        if result.is_ok() {
+            let _ = sender.send(Ok(()));
+        } else {
+            let _ = sender.send(Err(()));
+        }
     }
 }
 
@@ -165,14 +173,14 @@ impl IndexedDBManager {
         let thread_count = thread::available_parallelism()
             .map(|i| i.get())
             .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-            .min(pref!(threadpools_async_runtime_workers_max).max(1) as usize);
+            .min(pref!(threadpools_indexeddb_workers_max).max(1) as usize);
         IndexedDBManager {
             port,
             idb_base_dir,
             databases: HashMap::new(),
             thread_pool: Arc::new(CoreResourceThreadPool::new(
                 thread_count,
-                "ImageCache".to_string(),
+                "IndexedDB".to_string(),
             )),
         }
     }
@@ -289,11 +297,17 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::DeleteDatabase(sender, origin, db_name) => {
+                // https://w3c.github.io/IndexedDB/#delete-a-database
+                // Step 4. Let db be the database named name in storageKey,
+                // if one exists. Otherwise, return 0 (zero).
                 let idb_description = IndexedDBDescription {
                     origin,
                     name: db_name,
                 };
-                self.databases.remove(&idb_description);
+                if self.databases.remove(&idb_description).is_none() {
+                    let _ = sender.send(Ok(()));
+                    return;
+                }
 
                 // FIXME:(rasviitanen) Possible security issue?
                 // FIXME:(arihant2math) using remove_dir_all with arbitrary input ...
@@ -319,13 +333,14 @@ impl IndexedDBManager {
             },
             SyncOperation::UpgradeVersion(sender, origin, db_name, _txn, version) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.version = version;
-                };
-
-                // FIXME:(arihant2math) Get the version from the database instead
-                // We never fail as of now, so we can just return it like this
-                // for now...
-                sender.send(Ok(version)).expect("Could not upgrade version");
+                    if version > db.version {
+                        db.version = version;
+                    }
+                    // erroring out if the version is not upgraded can be and non-replicable
+                    let _ = sender.send(Ok(db.version));
+                } else {
+                    let _ = sender.send(Err(()));
+                }
             },
             SyncOperation::CreateObjectStore(
                 sender,

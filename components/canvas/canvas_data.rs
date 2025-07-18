@@ -8,156 +8,52 @@ use std::sync::Arc;
 
 use app_units::Au;
 use canvas_traits::canvas::*;
-use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
+use compositing_traits::CrossProcessCompositorApi;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
     ByteIndex, FontBaseline, FontContext, FontGroup, FontMetrics, FontRef, GlyphInfo, GlyphStore,
     LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSender;
 use log::warn;
-use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::Snapshot;
 use range::Range;
 use servo_arc::Arc as ServoArc;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
-use webrender_api::units::RectExt as RectExt_;
-use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
+use webrender_api::ImageKey;
 
 use crate::backend::{
-    Backend, DrawOptionsHelpers as _, GenericDrawTarget as _, GenericPathBuilder, PathHelpers,
-    PatternHelpers, StrokeOptionsHelpers as _,
+    Backend, DrawOptionsHelpers as _, GenericDrawTarget as _, PatternHelpers,
+    StrokeOptionsHelpers as _,
 };
 
 // Asserts on WR texture cache update for zero sized image with raw data.
 // https://github.com/servo/webrender/blob/main/webrender/src/texture_cache.rs#L1475
 const MIN_WR_IMAGE_SIZE: Size2D<u64> = Size2D::new(1, 1);
 
-fn to_path<B: Backend>(path: &[PathSegment], mut builder: B::PathBuilder) -> B::Path {
-    let mut build_ref = PathBuilderRef::<B> {
-        builder: &mut builder,
-        transform: Transform2D::identity(),
-    };
-    for &seg in path {
-        match seg {
-            PathSegment::ClosePath => build_ref.close(),
-            PathSegment::MoveTo { x, y } => build_ref.move_to(&Point2D::new(x, y)),
-            PathSegment::LineTo { x, y } => build_ref.line_to(&Point2D::new(x, y)),
-            PathSegment::Quadratic { cpx, cpy, x, y } => {
-                build_ref.quadratic_curve_to(&Point2D::new(cpx, cpy), &Point2D::new(x, y))
-            },
-            PathSegment::Bezier {
-                cp1x,
-                cp1y,
-                cp2x,
-                cp2y,
-                x,
-                y,
-            } => build_ref.bezier_curve_to(
-                &Point2D::new(cp1x, cp1y),
-                &Point2D::new(cp2x, cp2y),
-                &Point2D::new(x, y),
-            ),
-            PathSegment::ArcTo {
-                cp1x,
-                cp1y,
-                cp2x,
-                cp2y,
-                radius,
-            } => build_ref.arc_to(&Point2D::new(cp1x, cp1y), &Point2D::new(cp2x, cp2y), radius),
-            PathSegment::Ellipse {
-                x,
-                y,
-                radius_x,
-                radius_y,
-                rotation,
-                start_angle,
-                end_angle,
-                anticlockwise,
-            } => build_ref.ellipse(
-                &Point2D::new(x, y),
-                radius_x,
-                radius_y,
-                rotation,
-                start_angle,
-                end_angle,
-                anticlockwise,
-            ),
-            PathSegment::SvgArc {
-                radius_x,
-                radius_y,
-                rotation,
-                large_arc,
-                sweep,
-                x,
-                y,
-            } => build_ref.svg_arc(
-                radius_x,
-                radius_y,
-                rotation,
-                large_arc,
-                sweep,
-                &Point2D::new(x, y),
-            ),
-        }
-    }
-    builder.finish()
-}
-
-/// The canvas data stores a state machine for the current status of
-/// the path data and any relevant transformations that are
-/// applied to it. The Azure drawing API expects the path to be in
-/// userspace. However, when a path is being built but the canvas'
-/// transform changes, we choose to transform the path and perform
-/// further operations to it in device space. When it's time to
-/// draw the path, we convert it back to userspace and draw it
-/// with the correct transform applied.
-/// TODO: De-abstract now that Azure is removed?
-enum PathState<B: Backend> {
-    /// Path builder in user-space. If a transform has been applied
-    /// but no further path operations have occurred, it is stored
-    /// in the optional field.
-    UserSpacePathBuilder(B::PathBuilder, Option<Transform2D<f32>>),
-    /// Path builder in device-space.
-    DeviceSpacePathBuilder(B::PathBuilder),
-    /// Path in user-space. If a transform has been applied but
-    /// but no further path operations have occurred, it is stored
-    /// in the optional field.
-    UserSpacePath(B::Path, Option<Transform2D<f32>>),
-}
-
 /// A wrapper around a stored PathBuilder and an optional transformation that should be
 /// applied to any points to ensure they are in the matching device space.
-struct PathBuilderRef<'a, B: Backend> {
-    builder: &'a mut B::PathBuilder,
-    transform: Transform2D<f32>,
+pub(crate) struct PathBuilderRef<'a> {
+    pub(crate) builder: &'a mut Path,
+    pub(crate) transform: Transform2D<f32>,
 }
 
-impl<B: Backend> PathBuilderRef<'_, B> {
-    /// <https://html.spec.whatwg.org/multipage#ensure-there-is-a-subpath>
-    fn ensure_there_is_a_subpath(&mut self, point: &Point2D<f32>) {
-        if self.builder.get_current_point().is_none() {
-            self.builder.move_to(*point);
-        }
-    }
-
+impl PathBuilderRef<'_> {
     /// <https://html.spec.whatwg.org/multipage#dom-context-2d-lineto>
-    fn line_to(&mut self, pt: &Point2D<f32>) {
-        // 2. If the object's path has no subpaths, then ensure there is a subpath for (x, y).
-        self.ensure_there_is_a_subpath(pt);
-
-        let pt = self.transform.transform_point(*pt);
-        self.builder.line_to(pt);
+    pub(crate) fn line_to(&mut self, pt: &Point2D<f32>) {
+        let pt = self.transform.transform_point(*pt).cast();
+        self.builder.line_to(pt.x, pt.y);
     }
 
-    fn move_to(&mut self, pt: &Point2D<f32>) {
-        let pt = self.transform.transform_point(*pt);
-        self.builder.move_to(pt);
+    pub(crate) fn move_to(&mut self, pt: &Point2D<f32>) {
+        let pt = self.transform.transform_point(*pt).cast();
+        self.builder.move_to(pt.x, pt.y);
     }
 
-    fn rect(&mut self, rect: &Rect<f32>) {
+    pub(crate) fn rect(&mut self, rect: &Rect<f32>) {
         let (first, second, third, fourth) = (
             Point2D::new(rect.origin.x, rect.origin.y),
             Point2D::new(rect.origin.x + rect.size.width, rect.origin.y),
@@ -176,29 +72,28 @@ impl<B: Backend> PathBuilderRef<'_, B> {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-context-2d-quadraticcurveto>
-    fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
-        // 2. Ensure there is a subpath for (cpx, cpy).
-        self.ensure_there_is_a_subpath(cp);
-
-        self.builder.quadratic_curve_to(
-            &self.transform.transform_point(*cp),
-            &self.transform.transform_point(*endpoint),
-        )
+    pub(crate) fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
+        let cp = self.transform.transform_point(*cp).cast();
+        let endpoint = self.transform.transform_point(*endpoint).cast();
+        self.builder
+            .quadratic_curve_to(cp.x, cp.y, endpoint.x, endpoint.y)
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-context-2d-beziercurveto>
-    fn bezier_curve_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, endpoint: &Point2D<f32>) {
-        // 2. Ensure there is a subpath for (cp1x, cp1y).
-        self.ensure_there_is_a_subpath(cp1);
-
-        self.builder.bezier_curve_to(
-            &self.transform.transform_point(*cp1),
-            &self.transform.transform_point(*cp2),
-            &self.transform.transform_point(*endpoint),
-        )
+    pub(crate) fn bezier_curve_to(
+        &mut self,
+        cp1: &Point2D<f32>,
+        cp2: &Point2D<f32>,
+        endpoint: &Point2D<f32>,
+    ) {
+        let cp1 = self.transform.transform_point(*cp1).cast();
+        let cp2 = self.transform.transform_point(*cp2).cast();
+        let endpoint = self.transform.transform_point(*endpoint).cast();
+        self.builder
+            .bezier_curve_to(cp1.x, cp1.y, cp2.x, cp2.y, endpoint.x, endpoint.y)
     }
 
-    fn arc(
+    pub(crate) fn arc(
         &mut self,
         center: &Point2D<f32>,
         radius: f32,
@@ -206,17 +101,23 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         end_angle: f32,
         ccw: bool,
     ) {
-        let center = self.transform.transform_point(*center);
-        self.builder
-            .arc(center, radius, start_angle, end_angle, ccw);
+        let center = self.transform.transform_point(*center).cast();
+        let _ = self.builder.arc(
+            center.x,
+            center.y,
+            radius as f64,
+            start_angle as f64,
+            end_angle as f64,
+            ccw,
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-context-2d-arcto>
-    fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
+    pub(crate) fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
         let cp0 = if let (Some(inverse), Some(point)) =
-            (self.transform.inverse(), self.builder.get_current_point())
+            (self.transform.inverse(), self.builder.last_point())
         {
-            inverse.transform_point(Point2D::new(point.x, point.y))
+            inverse.transform_point(Point2D::new(point.x, point.y).cast())
         } else {
             *cp1
         };
@@ -289,40 +190,21 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         end_angle: f32,
         ccw: bool,
     ) {
-        let center = self.transform.transform_point(*center);
-        self.builder.ellipse(
-            center,
-            radius_x,
-            radius_y,
-            rotation_angle,
-            start_angle,
-            end_angle,
+        let center = self.transform.transform_point(*center).cast();
+        let _ = self.builder.ellipse(
+            center.x,
+            center.y,
+            radius_x as f64,
+            radius_y as f64,
+            rotation_angle as f64,
+            start_angle as f64,
+            end_angle as f64,
             ccw,
         );
     }
 
-    fn svg_arc(
-        &mut self,
-        radius_x: f32,
-        radius_y: f32,
-        rotation_angle: f32,
-        large_arc: bool,
-        sweep: bool,
-        end_point: &Point2D<f32>,
-    ) {
-        let end_point = self.transform.transform_point(*end_point);
-        self.builder.svg_arc(
-            radius_x,
-            radius_y,
-            rotation_angle,
-            large_arc,
-            sweep,
-            end_point,
-        );
-    }
-
-    fn close(&mut self) {
-        self.builder.close();
+    pub(crate) fn close(&mut self) {
+        self.builder.close_path();
     }
 }
 
@@ -405,7 +287,8 @@ pub(crate) enum Filter {
 pub(crate) struct CanvasData<'a, B: Backend> {
     backend: B,
     drawtarget: B::DrawTarget,
-    path_state: Option<PathState<B>>,
+    /// <https://html.spec.whatwg.org/multipage/#current-default-path>
+    path_state: Path,
     state: CanvasPaintState<'a, B>,
     saved_states: Vec<CanvasPaintState<'a, B>>,
     compositor_api: CrossProcessCompositorApi,
@@ -422,22 +305,14 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     ) -> CanvasData<'a, B> {
         let size = size.max(MIN_WR_IMAGE_SIZE);
         let draw_target = backend.create_drawtarget(size);
-        let image_key = compositor_api.generate_image_key().unwrap();
-        let descriptor = ImageDescriptor {
-            size: size.cast().cast_unit(),
-            stride: None,
-            format: ImageFormat::BGRA8,
-            offset: 0,
-            flags: ImageDescriptorFlags::empty(),
-        };
-        let data =
-            SerializableImageData::Raw(IpcSharedMemory::from_bytes(draw_target.bytes().as_ref()));
-        compositor_api.update_images(vec![ImageUpdate::AddImage(image_key, descriptor, data)]);
+        let image_key = compositor_api.generate_image_key_blocking().unwrap();
+        let (descriptor, data) = draw_target.image_descriptor_and_serializable_data();
+        compositor_api.add_image(image_key, descriptor, data);
         CanvasData {
             state: backend.new_paint_state(),
             backend,
             drawtarget: draw_target,
-            path_state: None,
+            path_state: Path::new(),
             saved_states: vec![],
             compositor_api,
             image_key,
@@ -451,31 +326,27 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
     pub(crate) fn draw_image(
         &mut self,
-        image_data: &[u8],
-        image_size: Size2D<u32>,
+        snapshot: Snapshot,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
-        premultiply: bool,
     ) {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
-        let image_data = if Rect::from_size(image_size.to_f64()).contains_rect(&source_rect) {
-            pixels::rgba8_get_rect(image_data, image_size, source_rect.to_u32()).into()
+        let snapshot = if Rect::from_size(snapshot.size().to_f64()).contains_rect(&source_rect) {
+            snapshot.get_rect(source_rect.to_u32())
         } else {
-            image_data.into()
+            snapshot
         };
 
         let draw_options = self.state.draw_options.clone();
         let writer = |draw_target: &mut B::DrawTarget| {
             write_image::<B>(
                 draw_target,
-                image_data,
-                source_rect.size,
+                snapshot,
                 dest_rect,
                 smoothing_enabled,
-                premultiply,
                 &draw_options,
             );
         };
@@ -575,11 +446,17 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         // > from left to right (if any), adding to the array, for each glyph, the shape of the glyph
         // > as it is in the inline box, positioned on a coordinate space using CSS pixels with its
         // > origin is at the anchor point.
-        self.drawtarget.fill_text(
-            shaped_runs,
-            start,
-            &self.state.fill_style,
-            &self.state.draw_options,
+        self.maybe_bound_shape_with_pattern(
+            self.state.fill_style.clone(),
+            &Rect::from_size(Size2D::new(total_advance, size)),
+            |self_| {
+                self_.drawtarget.fill_text(
+                    shaped_runs,
+                    start,
+                    &self_.state.fill_style,
+                    &self_.state.draw_options,
+                );
+            },
         );
     }
 
@@ -759,21 +636,21 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let draw_rect = self.state.fill_style.draw_rect(rect);
-
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&draw_rect, |new_draw_target: &mut B::DrawTarget| {
-                new_draw_target.fill_rect(
-                    &draw_rect,
-                    self.state.fill_style.clone(),
-                    &self.state.draw_options,
-                );
+            self.draw_with_shadow(rect, |new_draw_target: &mut B::DrawTarget| {
+                new_draw_target.fill_rect(rect, &self.state.fill_style, &self.state.draw_options);
             });
         } else {
-            self.drawtarget.fill_rect(
-                &draw_rect,
+            self.maybe_bound_shape_with_pattern(
                 self.state.fill_style.clone(),
-                &self.state.draw_options,
+                &rect.cast(),
+                |self_| {
+                    self_.drawtarget.fill_rect(
+                        rect,
+                        &self_.state.fill_style,
+                        &self_.state.draw_options,
+                    );
+                },
             );
         }
     }
@@ -791,94 +668,34 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             self.draw_with_shadow(rect, |new_draw_target: &mut B::DrawTarget| {
                 new_draw_target.stroke_rect(
                     rect,
-                    self.state.stroke_style.clone(),
+                    &self.state.stroke_style,
                     &self.state.stroke_opts,
                     &self.state.draw_options,
                 );
             });
-        } else if rect.size.width == 0. || rect.size.height == 0. {
-            let mut stroke_opts = self.state.stroke_opts.clone();
-            stroke_opts.set_line_cap(LineCapStyle::Butt);
-            self.drawtarget.stroke_line(
-                rect.origin,
-                rect.bottom_right(),
-                self.state.stroke_style.clone(),
-                &stroke_opts,
-                &self.state.draw_options,
-            );
         } else {
-            self.drawtarget.stroke_rect(
-                rect,
+            self.maybe_bound_shape_with_pattern(
                 self.state.stroke_style.clone(),
-                &self.state.stroke_opts,
-                &self.state.draw_options,
-            );
+                &rect.cast(),
+                |self_| {
+                    self_.drawtarget.stroke_rect(
+                        rect,
+                        &self_.state.stroke_style,
+                        &self_.state.stroke_opts,
+                        &self_.state.draw_options,
+                    );
+                },
+            )
         }
     }
 
     pub(crate) fn begin_path(&mut self) {
         // Erase any traces of previous paths that existed before this.
-        self.path_state = None;
+        self.path_state = Path::new();
     }
 
     pub(crate) fn close_path(&mut self) {
         self.path_builder().close();
-    }
-
-    /// Turn the [`Self::path_state`] into a user-space path, returning `None` if the
-    /// path transformation matrix is uninvertible.
-    fn ensure_path(&mut self) -> Option<&B::Path> {
-        // If there's no record of any path yet, create a new builder in user-space.
-        if self.path_state.is_none() {
-            self.path_state = Some(PathState::UserSpacePathBuilder(
-                self.drawtarget.create_path_builder(),
-                None,
-            ));
-        }
-
-        // If a user-space builder exists, create a finished path from it.
-        let new_state = match *self.path_state.as_mut().unwrap() {
-            PathState::UserSpacePathBuilder(ref mut builder, ref mut transform) => {
-                Some((builder.finish(), transform.take()))
-            },
-            PathState::DeviceSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
-        };
-        if let Some((path, transform)) = new_state {
-            self.path_state = Some(PathState::UserSpacePath(path, transform));
-        }
-
-        // If a user-space path exists, create a device-space builder based on it if
-        // any transform is present.
-        let new_state = match *self.path_state.as_ref().unwrap() {
-            PathState::UserSpacePath(ref path, Some(ref transform)) => {
-                Some(path.transformed_copy_to_builder(transform))
-            },
-            PathState::UserSpacePath(..) |
-            PathState::UserSpacePathBuilder(..) |
-            PathState::DeviceSpacePathBuilder(..) => None,
-        };
-        if let Some(builder) = new_state {
-            self.path_state = Some(PathState::DeviceSpacePathBuilder(builder));
-        }
-
-        // If a device-space builder is present, create a user-space path from its
-        // finished path by inverting the initial transformation.
-        let new_state = match *self.path_state.as_mut().unwrap() {
-            PathState::DeviceSpacePathBuilder(ref mut builder) => {
-                let inverse = self.drawtarget.get_transform().inverse()?;
-                let mut builder = builder.finish().transformed_copy_to_builder(&inverse);
-                Some(builder.finish())
-            },
-            PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
-        };
-        if let Some(path) = new_state {
-            self.path_state = Some(PathState::UserSpacePath(path, None));
-        }
-
-        match self.path_state.as_ref() {
-            Some(PathState::UserSpacePath(path, _)) => Some(path),
-            _ => unreachable!("Should have been able to successful build path or returned early."),
-        }
     }
 
     pub(crate) fn fill(&mut self) {
@@ -886,29 +703,28 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let Some(path) = self.ensure_path().cloned() else {
-            return; // Path is uninvertible.
-        };
+        let path = self.path_state.clone();
 
-        self.drawtarget.fill(
-            &path,
+        self.maybe_bound_shape_with_pattern(
             self.state.fill_style.clone(),
-            &self.state.draw_options.clone(),
-        );
+            &path.bounding_box(),
+            |self_| {
+                self_.drawtarget.fill(
+                    &path,
+                    &self_.state.fill_style,
+                    &self_.state.draw_options.clone(),
+                );
+            },
+        )
     }
 
-    pub(crate) fn fill_path(&mut self, path: &[PathSegment]) {
+    pub(crate) fn fill_path(&mut self, path: &Path) {
         if self.state.fill_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let path = to_path::<B>(path, self.drawtarget.create_path_builder());
-
-        self.drawtarget.fill(
-            &path,
-            self.state.fill_style.clone(),
-            &self.state.draw_options,
-        );
+        self.drawtarget
+            .fill(path, &self.state.fill_style, &self.state.draw_options);
     }
 
     pub(crate) fn stroke(&mut self) {
@@ -916,83 +732,61 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let Some(path) = self.ensure_path().cloned() else {
-            return; // Path is uninvertible.
-        };
+        let path = self.path_state.clone();
 
-        self.drawtarget.stroke(
-            &path,
+        self.maybe_bound_shape_with_pattern(
             self.state.stroke_style.clone(),
-            &self.state.stroke_opts,
-            &self.state.draw_options,
-        );
+            &path.bounding_box(),
+            |self_| {
+                self_.drawtarget.stroke(
+                    &path,
+                    &self_.state.stroke_style,
+                    &self_.state.stroke_opts,
+                    &self_.state.draw_options,
+                );
+            },
+        )
     }
 
-    pub(crate) fn stroke_path(&mut self, path: &[PathSegment]) {
+    pub(crate) fn stroke_path(&mut self, path: &Path) {
         if self.state.stroke_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let path = to_path::<B>(path, self.drawtarget.create_path_builder());
-
-        self.drawtarget.stroke(
-            &path,
+        self.maybe_bound_shape_with_pattern(
             self.state.stroke_style.clone(),
-            &self.state.stroke_opts,
-            &self.state.draw_options,
-        );
+            &path.bounding_box(),
+            |self_| {
+                self_.drawtarget.stroke(
+                    path,
+                    &self_.state.stroke_style,
+                    &self_.state.stroke_opts,
+                    &self_.state.draw_options,
+                );
+            },
+        )
     }
 
     pub(crate) fn clip(&mut self) {
-        let Some(path) = self.ensure_path().cloned() else {
-            return; // Path is uninvertible.
-        };
+        let path = &self.path_state;
 
-        self.drawtarget.push_clip(&path);
+        self.drawtarget.push_clip(path);
     }
 
-    pub(crate) fn clip_path(&mut self, path: &[PathSegment]) {
-        let path = to_path::<B>(path, self.drawtarget.create_path_builder());
-        self.drawtarget.push_clip(&path);
+    pub(crate) fn clip_path(&mut self, path: &Path) {
+        self.drawtarget.push_clip(path);
     }
 
     pub(crate) fn is_point_in_path(
         &mut self,
         x: f64,
         y: f64,
-        _fill_rule: FillRule,
+        fill_rule: FillRule,
         chan: IpcSender<bool>,
     ) {
-        self.ensure_path();
-        let result = match self.path_state.as_ref() {
-            Some(PathState::UserSpacePath(path, transform)) => {
-                let target_transform = self.drawtarget.get_transform();
-                let path_transform = transform.as_ref().unwrap_or(&target_transform);
-                path.contains_point(x, y, path_transform)
-            },
-            Some(_) | None => false,
-        };
-        chan.send(result).unwrap();
-    }
-
-    pub(crate) fn is_point_in_path_(
-        &mut self,
-        path: &[PathSegment],
-        x: f64,
-        y: f64,
-        _fill_rule: FillRule,
-        chan: IpcSender<bool>,
-    ) {
-        let path_transform = match self.path_state.as_ref() {
-            Some(PathState::UserSpacePath(_, Some(transform))) => transform,
-            Some(_) | None => &self.drawtarget.get_transform(),
-        };
-        let result = to_path::<B>(path, self.drawtarget.create_path_builder()).contains_point(
-            x,
-            y,
-            path_transform,
-        );
-        chan.send(result).unwrap();
+        let mut path = self.path_state.clone();
+        path.transform(self.get_transform().cast());
+        chan.send(path.is_point_in_path(x, y, fill_rule)).unwrap();
     }
 
     pub(crate) fn move_to(&mut self, point: &Point2D<f32>) {
@@ -1003,68 +797,10 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         self.path_builder().line_to(point);
     }
 
-    fn path_builder(&mut self) -> PathBuilderRef<B> {
-        if self.path_state.is_none() {
-            self.path_state = Some(PathState::UserSpacePathBuilder(
-                self.drawtarget.create_path_builder(),
-                None,
-            ));
-        }
-
-        // Rust is not pleased by returning a reference to a builder in some branches
-        // and overwriting path_state in other ones. The following awkward use of duplicate
-        // matches works around the resulting borrow errors.
-        let new_state = {
-            match *self.path_state.as_mut().unwrap() {
-                PathState::UserSpacePathBuilder(_, None) | PathState::DeviceSpacePathBuilder(_) => {
-                    None
-                },
-                PathState::UserSpacePathBuilder(ref mut builder, Some(ref transform)) => {
-                    let path = builder.finish();
-                    Some(PathState::DeviceSpacePathBuilder(
-                        path.transformed_copy_to_builder(transform),
-                    ))
-                },
-                PathState::UserSpacePath(ref path, Some(ref transform)) => Some(
-                    PathState::DeviceSpacePathBuilder(path.transformed_copy_to_builder(transform)),
-                ),
-                PathState::UserSpacePath(ref path, None) => Some(PathState::UserSpacePathBuilder(
-                    path.copy_to_builder(),
-                    None,
-                )),
-            }
-        };
-        match new_state {
-            // There's a new builder value that needs to be stored.
-            Some(state) => self.path_state = Some(state),
-            // There's an existing builder value that can be returned immediately.
-            None => match *self.path_state.as_mut().unwrap() {
-                PathState::UserSpacePathBuilder(ref mut builder, None) => {
-                    return PathBuilderRef {
-                        builder,
-                        transform: Transform2D::identity(),
-                    };
-                },
-                PathState::DeviceSpacePathBuilder(ref mut builder) => {
-                    return PathBuilderRef {
-                        builder,
-                        transform: self.drawtarget.get_transform(),
-                    };
-                },
-                _ => unreachable!(),
-            },
-        }
-
-        match *self.path_state.as_mut().unwrap() {
-            PathState::UserSpacePathBuilder(ref mut builder, None) => PathBuilderRef {
-                builder,
-                transform: Transform2D::identity(),
-            },
-            PathState::DeviceSpacePathBuilder(ref mut builder) => PathBuilderRef {
-                builder,
-                transform: self.drawtarget.get_transform(),
-            },
-            PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => unreachable!(),
+    fn path_builder(&mut self) -> PathBuilderRef {
+        PathBuilderRef {
+            builder: &mut self.path_state,
+            transform: Transform2D::identity(),
         }
     }
 
@@ -1073,9 +809,6 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     pub(crate) fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
-        if self.path_state.is_none() {
-            self.move_to(cp);
-        }
         self.path_builder().quadratic_curve_to(cp, endpoint);
     }
 
@@ -1085,9 +818,6 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         cp2: &Point2D<f32>,
         endpoint: &Point2D<f32>,
     ) {
-        if self.path_state.is_none() {
-            self.move_to(cp1);
-        }
         self.path_builder().bezier_curve_to(cp1, cp2, endpoint);
     }
 
@@ -1168,19 +898,12 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     pub(crate) fn set_transform(&mut self, transform: &Transform2D<f32>) {
-        // If there is an in-progress path, store the existing transformation required
-        // to move between device and user space.
-        match self.path_state.as_mut() {
-            None | Some(PathState::DeviceSpacePathBuilder(..)) => (),
-            Some(PathState::UserSpacePathBuilder(_, transform)) |
-            Some(PathState::UserSpacePath(_, transform)) => {
-                if transform.is_none() {
-                    *transform = Some(self.drawtarget.get_transform());
-                }
-            },
-        }
+        self.path_state.transform(self.get_transform().cast());
         self.state.transform = *transform;
-        self.drawtarget.set_transform(transform)
+        self.drawtarget.set_transform(transform);
+        if let Some(inverse) = transform.inverse() {
+            self.path_state.transform(inverse.cast());
+        }
     }
 
     pub(crate) fn set_global_alpha(&mut self, alpha: f32) {
@@ -1191,47 +914,44 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         self.backend.set_global_composition(op, &mut self.state);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state>
     pub(crate) fn recreate(&mut self, size: Option<Size2D<u64>>) {
         let size = size
             .unwrap_or_else(|| self.drawtarget.get_size().to_u64())
             .max(MIN_WR_IMAGE_SIZE);
+
+        // Step 1. Clear canvas's bitmap to transparent black.
         self.drawtarget = self
             .backend
             .create_drawtarget(Size2D::new(size.width, size.height));
-        self.state = self.backend.new_paint_state();
+
+        // Step 2. Empty the list of subpaths in context's current default path.
+        self.path_state = Path::new();
+
+        // Step 3. Clear the context's drawing state stack.
         self.saved_states.clear();
+
+        // Step 4. Reset everything that drawing state consists of to their
+        // initial values.
+        self.state = self.backend.new_paint_state();
+
         self.update_image_rendering();
     }
 
     /// Update image in WebRender
     pub(crate) fn update_image_rendering(&mut self) {
-        let descriptor = ImageDescriptor {
-            size: self.drawtarget.get_size().cast_unit(),
-            stride: None,
-            format: ImageFormat::BGRA8,
-            offset: 0,
-            flags: ImageDescriptorFlags::empty(),
-        };
-        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
-            self.drawtarget.bytes().as_ref(),
-        ));
+        let (descriptor, data) = self.drawtarget.image_descriptor_and_serializable_data();
 
         self.compositor_api
-            .update_images(vec![ImageUpdate::UpdateImage(
-                self.image_key,
-                descriptor,
-                data,
-            )]);
+            .update_image(self.image_key, descriptor, data);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub(crate) fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
-        assert_eq!(imagedata.len() % 4, 0);
-        assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
-        pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
+    pub(crate) fn put_image_data(&mut self, snapshot: Snapshot, rect: Rect<u32>) {
+        assert_eq!(rect.size, snapshot.size());
         let source_surface = self
             .drawtarget
-            .create_source_surface_from_data(&imagedata)
+            .create_source_surface_from_data(snapshot)
             .unwrap();
         self.drawtarget.copy_surface(
             source_surface,
@@ -1308,6 +1028,34 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         );
     }
 
+    /// Push a clip to the draw target to respect the non-repeating bound (either x, y, or both)
+    /// of the given pattern.
+    fn maybe_bound_shape_with_pattern<F>(
+        &mut self,
+        pattern: B::Pattern<'_>,
+        path_bound_box: &Rect<f64>,
+        draw_shape: F,
+    ) where
+        F: FnOnce(&mut Self),
+    {
+        let x_bound = pattern.x_bound();
+        let y_bound = pattern.y_bound();
+        // Clear operations are also unbounded.
+        if self.state.draw_options.is_clear() || (x_bound.is_none() && y_bound.is_none()) {
+            draw_shape(self);
+            return;
+        }
+        let rect = Rect::from_size(Size2D::new(
+            x_bound.unwrap_or(path_bound_box.size.width.ceil() as u32),
+            y_bound.unwrap_or(path_bound_box.size.height.ceil() as u32),
+        ))
+        .cast();
+        let rect = self.get_transform().outer_transformed_rect(&rect);
+        self.drawtarget.push_clip_rect(&rect.cast());
+        draw_shape(self);
+        self.drawtarget.pop_clip();
+    }
+
     /// It reads image data from the canvas
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
@@ -1319,36 +1067,25 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     ) -> Snapshot {
         let canvas_size = canvas_size.unwrap_or(self.drawtarget.get_size().cast());
 
-        let data = if let Some(read_rect) = read_rect {
+        if let Some(read_rect) = read_rect {
             let canvas_rect = Rect::from_size(canvas_size);
             if canvas_rect
                 .intersection(&read_rect)
                 .is_none_or(|rect| rect.is_empty())
             {
-                vec![]
+                Snapshot::empty()
             } else {
-                pixels::rgba8_get_rect(self.drawtarget.bytes().as_ref(), canvas_size, read_rect)
-                    .to_vec()
+                self.drawtarget.snapshot().get_rect(read_rect)
             }
         } else {
-            self.drawtarget.bytes().into_owned()
-        };
-
-        Snapshot::from_vec(
-            canvas_size,
-            SnapshotPixelFormat::BGRA,
-            SnapshotAlphaMode::Transparent {
-                premultiplied: true,
-            },
-            data,
-        )
+            self.drawtarget.snapshot()
+        }
     }
 }
 
 impl<B: Backend> Drop for CanvasData<'_, B> {
     fn drop(&mut self) {
-        self.compositor_api
-            .update_images(vec![ImageUpdate::DeleteImage(self.image_key)]);
+        self.compositor_api.delete_image(self.image_key);
     }
 }
 
@@ -1382,22 +1119,16 @@ pub(crate) struct CanvasPaintState<'a, B: Backend> {
 /// premultiply: Determines whenever the image data should be premultiplied or not
 fn write_image<B: Backend>(
     draw_target: &mut B::DrawTarget,
-    mut image_data: Vec<u8>,
-    image_size: Size2D<f64>,
+    snapshot: Snapshot,
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
-    premultiply: bool,
     draw_options: &B::DrawOptions,
 ) {
-    if image_data.is_empty() {
+    if snapshot.size().is_empty() {
         return;
     }
 
-    if premultiply {
-        pixels::rgba8_premultiply_inplace(&mut image_data);
-    }
-
-    let image_rect = Rect::new(Point2D::zero(), image_size);
+    let image_rect = Rect::new(Point2D::zero(), snapshot.size().cast());
 
     // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
@@ -1410,7 +1141,7 @@ fn write_image<B: Backend>(
     };
 
     let source_surface = draw_target
-        .create_source_surface_from_data(&image_data)
+        .create_source_surface_from_data(snapshot)
         .unwrap();
 
     draw_target.draw_surface(source_surface, dest_rect, image_rect, filter, draw_options);

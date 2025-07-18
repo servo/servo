@@ -8,8 +8,10 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use euclid::num::Zero;
-use euclid::{Length, Scale, Size2D};
-use servo::servo_geometry::DeviceIndependentPixel;
+use euclid::{Length, Point2D, Scale, Size2D};
+use servo::servo_geometry::{
+    DeviceIndependentIntRect, DeviceIndependentPixel, convert_size_to_css_pixel,
+};
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
 use winit::dpi::PhysicalSize;
@@ -68,7 +70,7 @@ impl WindowPortsMethods for Window {
         ScreenGeometry {
             size: self.screen_size,
             available_size: self.screen_size,
-            offset: Default::default(),
+            window_rect: self.inner_size.get().into(),
         }
     }
 
@@ -133,6 +135,16 @@ impl WindowPortsMethods for Window {
 
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
         Length::zero()
+    }
+
+    fn window_rect(&self) -> DeviceIndependentIntRect {
+        let inner_size = self.inner_size.get();
+        let scale = self.hidpi_scale_factor();
+
+        DeviceIndependentIntRect::from_origin_and_size(
+            Point2D::zero(),
+            convert_size_to_css_pixel(inner_size, scale),
+        )
     }
 
     fn set_toolbar_height(&self, _height: Length<f32, DeviceIndependentPixel>) {

@@ -19,9 +19,7 @@ use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
 use crate::dom::LayoutBox;
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
-use crate::formatting_contexts::{
-    IndependentFormattingContext, IndependentFormattingContextContents,
-};
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 
@@ -46,15 +44,22 @@ impl TaffyContainer {
             .into_iter()
             .map(|item| {
                 let box_ = match item.kind {
-                    ModernItemKind::InFlow => ArcRefCell::new(TaffyItemBox::new(
-                        TaffyItemBoxInner::InFlowBox(item.formatting_context),
-                    )),
-                    ModernItemKind::OutOfFlow => {
-                        let abs_pos_box =
-                            ArcRefCell::new(AbsolutelyPositionedBox::new(item.formatting_context));
+                    ModernItemKind::InFlow(independent_formatting_context) => {
+                        ArcRefCell::new(TaffyItemBox::new(TaffyItemBoxInner::InFlowBox(
+                            independent_formatting_context,
+                        )))
+                    },
+                    ModernItemKind::OutOfFlow(independent_formatting_context) => {
+                        let abs_pos_box = ArcRefCell::new(AbsolutelyPositionedBox::new(
+                            independent_formatting_context,
+                        ));
                         ArcRefCell::new(TaffyItemBox::new(
                             TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(abs_pos_box),
                         ))
+                    },
+                    ModernItemKind::ReusedBox(layout_box) => match layout_box {
+                        LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box,
+                        _ => unreachable!("Undamaged taffy level element should be associated with taffy level box"),
                     },
                 };
 
@@ -121,21 +126,21 @@ impl TaffyItemBox {
         }
     }
 
-    pub(crate) fn invalidate_cached_fragment(&mut self) {
+    pub(crate) fn clear_fragment_layout_cache(&mut self) {
         self.taffy_layout = Default::default();
         self.positioning_context = PositioningContext::default();
         match self.taffy_level_box {
             TaffyItemBoxInner::InFlowBox(ref independent_formatting_context) => {
                 independent_formatting_context
                     .base
-                    .invalidate_cached_fragment()
+                    .clear_fragment_layout_cache()
             },
             TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref positioned_box) => {
                 positioned_box
                     .borrow()
                     .context
                     .base
-                    .invalidate_cached_fragment()
+                    .clear_fragment_layout_cache()
             },
         }
     }
@@ -171,10 +176,7 @@ impl TaffyItemBox {
 
     fn is_in_flow_replaced(&self) -> bool {
         match &self.taffy_level_box {
-            TaffyItemBoxInner::InFlowBox(fc) => match fc.contents {
-                IndependentFormattingContextContents::NonReplaced(_) => false,
-                IndependentFormattingContextContents::Replaced(_) => true,
-            },
+            TaffyItemBoxInner::InFlowBox(fc) => fc.is_replaced(),
             TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(_) => false,
         }
     }

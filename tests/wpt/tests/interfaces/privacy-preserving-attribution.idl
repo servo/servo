@@ -1,68 +1,69 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Privacy-Preserving Attribution: Level 1 (https://w3c.github.io/ppa/)
+// Source: Attribution Level 1 (https://w3c.github.io/ppa/)
 
 partial interface Navigator {
-  [SecureContext, SameObject] readonly attribute PrivateAttribution privateAttribution;
+  [SecureContext, SameObject] readonly attribute Attribution attribution;
 };
 
-enum PrivateAttributionProtocol { "dap-12-histogram", "tee-00" };
+enum PrivateAttributionAggregationProtocol { "dap-12-histogram", "tee-00" };
 
-dictionary PrivateAttributionAggregationService {
+dictionary AttributionAggregationService {
   required DOMString protocol;
 };
 
 [SecureContext, Exposed=Window]
-interface PrivateAttributionAggregationServices {
-  readonly maplike<USVString, PrivateAttributionAggregationService>;
+interface AttributionAggregationServices {
+  readonly maplike<USVString, AttributionAggregationService>;
 };
 
 [SecureContext, Exposed=Window]
-interface PrivateAttribution {
-  readonly attribute PrivateAttributionAggregationServices aggregationServices;
+interface Attribution {
+  readonly attribute AttributionAggregationServices aggregationServices;
 };
 
-dictionary PrivateAttributionImpressionOptions {
+dictionary AttributionImpressionOptions {
   required unsigned long histogramIndex;
   unsigned long matchValue = 0;
   sequence<USVString> conversionSites = [];
+  sequence<USVString> conversionCallers = [];
   unsigned long lifetimeDays = 30;
 };
 
-dictionary PrivateAttributionImpressionResult {
+dictionary AttributionImpressionResult {
 };
 
 [SecureContext, Exposed=Window]
-partial interface PrivateAttribution {
-  Promise<PrivateAttributionImpressionResult> saveImpression(PrivateAttributionImpressionOptions options);
+partial interface Attribution {
+  Promise<AttributionImpressionResult> saveImpression(AttributionImpressionOptions options);
 };
 
-dictionary PrivateAttributionConversionOptions {
+dictionary AttributionConversionOptions {
   required USVString aggregationService;
   double epsilon = 1.0;
 
   required unsigned long histogramSize;
 
   unsigned long lookbackDays;
-  sequence<unsigned long> matchValue = [];
+  sequence<unsigned long> matchValues = [];
   sequence<USVString> impressionSites = [];
-  sequence<USVString> intermediarySites = [];
+  sequence<USVString> impressionCallers = [];
 
-  PrivateAttributionLogic logic = "last-touch";
+  AttributionLogic logic = "last-touch";
   unsigned long value = 1;
   unsigned long maxValue = 1;
 };
 
-enum PrivateAttributionLogic {
+enum AttributionLogic {
   "last-touch",
 };
 
-dictionary PrivateAttributionConversionResult {
+dictionary AttributionConversionResult {
   required Uint8Array report;
 };
 
 [SecureContext, Exposed=Window]
-partial interface PrivateAttribution {
-  Promise<PrivateAttributionConversionResult> measureConversion(PrivateAttributionConversionOptions options);
+partial interface Attribution {
+  Promise<AttributionConversionResult> measureConversion(AttributionConversionOptions options);
 };

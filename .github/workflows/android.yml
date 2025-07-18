@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        target: ['aarch64-linux-android', 'armv7-linux-androideabi', 'i686-linux-android', 'x86_64-linux-android']
+        target: ['aarch64-linux-android', 'armv7-linux-androideabi', 'x86_64-linux-android']
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -152,7 +152,7 @@ jobs:
     needs: ["build"]
     strategy:
       matrix:
-        target: ['aarch64-linux-android', 'armv7-linux-androideabi', 'i686-linux-android', 'x86_64-linux-android']
+        target: ['aarch64-linux-android', 'armv7-linux-androideabi', 'x86_64-linux-android']
     if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     name: 'Bencher (${{ matrix.target }})'
     uses: ./.github/workflows/bencher.yml
@@ -160,7 +160,7 @@ jobs:
       target: android-${{ matrix.target }}
       profile: ${{ inputs.profile }}
       compressed-file-path: ${{ inputs.profile }}-binary-android-${{ matrix.target }}/servoapp.apk
-      binary-path: lib/${{ matrix.target == 'aarch64-linux-android' && 'arm64-v8a' || matrix.target == 'armv7-linux-androideabi' && 'armeabi-v7a' || matrix.target == 'i686-linux-android' && 'x86' || matrix.target == 'x86_64-linux-android' && 'x86_64'}}/libservoshell.so
+      binary-path: lib/${{ matrix.target == 'aarch64-linux-android' && 'arm64-v8a' || matrix.target == 'armv7-linux-androideabi' && 'armeabi-v7a' || matrix.target == 'x86_64-linux-android' && 'x86_64'}}/libservoshell.so
       file-size: true
       speedometer: false
       dromaeo: false

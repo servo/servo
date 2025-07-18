@@ -12,14 +12,24 @@ use std::time::Instant;
 use std::{env, fs};
 
 use ::servo::ServoBuilder;
+use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
+use euclid::{Point2D, Vector2D};
+use ipc_channel::ipc;
+use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
+use servo::servo_geometry::convert_size_to_css_pixel;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::{EventLoopWaker, WebDriverCommandMsg};
+use servo::webrender_api::ScrollLocation;
+use servo::{
+    EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
+    WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
+    WheelMode,
+};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -27,7 +37,7 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::WindowId;
 
 use super::app_state::AppState;
-use super::events_loop::{EventsLoop, WakerEvent};
+use super::events_loop::{AppEvent, EventLoopProxy, EventsLoop};
 use super::minibrowser::{Minibrowser, MinibrowserEvent};
 use super::{headed_window, headless_window};
 use crate::desktop::app_state::RunningAppState;
@@ -45,6 +55,7 @@ pub struct App {
     suspended: Cell<bool>,
     minibrowser: Option<Minibrowser>,
     waker: Box<dyn EventLoopWaker>,
+    proxy: Option<EventLoopProxy>,
     initial_url: ServoUrl,
     t_start: Instant,
     t: Instant,
@@ -89,6 +100,7 @@ impl App {
             windows: HashMap::new(),
             minibrowser: None,
             waker: events_loop.create_event_loop_waker(),
+            proxy: events_loop.event_loop_proxy(),
             initial_url: initial_url.clone(),
             t_start: t,
             t,
@@ -103,10 +115,12 @@ impl App {
         assert_eq!(headless, event_loop.is_none());
         let window = match event_loop {
             Some(event_loop) => {
+                let proxy = self.proxy.take().expect("Must have a proxy available");
                 let window = headed_window::Window::new(&self.servoshell_preferences, event_loop);
                 self.minibrowser = Some(Minibrowser::new(
-                    window.offscreen_rendering_context(),
+                    &window,
                     event_loop,
+                    proxy,
                     self.initial_url.clone(),
                 ));
                 Rc::new(window)
@@ -156,17 +170,27 @@ impl App {
         servo.setup_logging();
 
         // Initialize WebDriver server here before `servo` is moved.
-        let webdriver_receiver = self.opts.webdriver_port.map(|port| {
+        let webdriver_receiver = self.servoshell_preferences.webdriver_port.map(|port| {
             let (embedder_sender, embedder_receiver) = unbounded();
+            let (webdriver_response_sender, webdriver_response_receiver) = ipc::channel().unwrap();
 
-            // TODO: WebDriver will no longer need this channel once all WebDriver
-            // commands are executed via the Servo API.
-            let constellation_sender_deprecated = servo.constellation_sender();
+            // Set the WebDriver response sender to constellation.
+            // TODO: consider using Servo API to notify embedder about input events completions
+            servo
+                .constellation_sender()
+                .send(EmbedderToConstellationMessage::SetWebDriverResponseSender(
+                    webdriver_response_sender,
+                ))
+                .unwrap_or_else(|_| {
+                    warn!("Failed to set WebDriver response sender in constellation");
+                });
+
             webdriver_server::start_server(
                 port,
-                constellation_sender_deprecated,
+                servo.constellation_sender(),
                 embedder_sender,
                 self.waker.clone(),
+                webdriver_response_receiver,
             );
 
             embedder_receiver
@@ -178,7 +202,7 @@ impl App {
             self.servoshell_preferences.clone(),
             webdriver_receiver,
         ));
-        running_state.new_toplevel_webview(self.initial_url.clone().into_url());
+        running_state.create_and_focus_toplevel_webview(self.initial_url.clone().into_url());
 
         if let Some(ref mut minibrowser) = self.minibrowser {
             minibrowser.update(window.winit_window().unwrap(), &running_state, "init");
@@ -238,7 +262,7 @@ impl App {
     /// continue.
     pub fn handle_events_with_headless(&mut self) -> bool {
         let now = Instant::now();
-        let event = winit::event::Event::UserEvent(WakerEvent);
+        let event = winit::event::Event::UserEvent(AppEvent::Waker);
         trace_winit_event!(
             event,
             "@{:?} (+{:?}) {event:?}",
@@ -306,7 +330,7 @@ impl App {
                 },
                 MinibrowserEvent::NewWebView => {
                     minibrowser.update_location_dirty(false);
-                    state.new_toplevel_webview(Url::parse("servo:newtab").unwrap());
+                    state.create_and_focus_toplevel_webview(Url::parse("servo:newtab").unwrap());
                 },
                 MinibrowserEvent::CloseWebView(id) => {
                     minibrowser.update_location_dirty(false);
@@ -327,29 +351,279 @@ impl App {
 
         while let Ok(msg) = webdriver_receiver.try_recv() {
             match msg {
+                WebDriverCommandMsg::SetWebDriverResponseSender(..) => {
+                    running_state.forward_webdriver_command(msg);
+                },
                 WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
                     let context = running_state.webview_by_id(webview_id);
-                    sender.send(context.is_some()).unwrap();
+
+                    if let Err(error) = sender.send(context.is_some()) {
+                        warn!("Failed to send response of IsWebViewOpein: {error}");
+                    }
                 },
-                webdriver_msg @ WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
-                    running_state.forward_webdriver_command(webdriver_msg);
+                WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
+                    running_state.forward_webdriver_command(msg);
+                },
+                WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
+                    let new_webview =
+                        running_state.create_toplevel_webview(Url::parse("about:blank").unwrap());
+
+                    if let Err(error) = response_sender.send(new_webview.id()) {
+                        warn!("Failed to send response of NewWebview: {error}");
+                    }
+
+                    running_state.set_load_status_sender(new_webview.id(), load_status_sender);
                 },
                 WebDriverCommandMsg::CloseWebView(webview_id) => {
                     running_state.close_webview(webview_id);
                 },
-                WebDriverCommandMsg::GetWindowSize(..) |
-                WebDriverCommandMsg::FocusWebView(..) |
-                WebDriverCommandMsg::LoadUrl(..) |
-                WebDriverCommandMsg::ScriptCommand(..) |
-                WebDriverCommandMsg::SendKeys(..) |
-                WebDriverCommandMsg::KeyboardAction(..) |
-                WebDriverCommandMsg::MouseButtonAction(..) |
-                WebDriverCommandMsg::MouseMoveAction(..) |
-                WebDriverCommandMsg::WheelScrollAction(..) |
-                WebDriverCommandMsg::SetWindowSize(..) |
-                WebDriverCommandMsg::TakeScreenshot(..) |
-                WebDriverCommandMsg::NewWebView(..) |
-                WebDriverCommandMsg::Refresh(..) => {
+                WebDriverCommandMsg::FocusWebView(webview_id) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.focus();
+                    }
+
+                    // TODO: send a response to the WebDriver
+                    // so it knows when the focus has finished.
+                },
+                WebDriverCommandMsg::GetWindowRect(_webview_id, response_sender) => {
+                    let window = self
+                        .windows
+                        .values()
+                        .next()
+                        .expect("Should have at least one window in servoshell");
+
+                    if let Err(error) = response_sender.send(window.window_rect()) {
+                        warn!("Failed to send response of GetWindowSize: {error}");
+                    }
+                },
+                WebDriverCommandMsg::SetWindowSize(webview_id, requested_size, size_sender) => {
+                    let Some(webview) = running_state.webview_by_id(webview_id) else {
+                        continue;
+                    };
+
+                    let window = self
+                        .windows
+                        .values()
+                        .next()
+                        .expect("Should have at least one window in servoshell");
+                    let scale = window.hidpi_scale_factor();
+
+                    let requested_physical_size =
+                        (requested_size.to_f32() * scale).round().to_i32();
+
+                    // When None is returned, it means that the request went to the display system,
+                    // and the actual size will be delivered later with the WindowEvent::Resized.
+                    let returned_size = window.request_resize(&webview, requested_physical_size);
+                    // TODO: Handle None case. For now, we assume always succeed.
+                    // In reality, the request may exceed available screen size.
+
+                    if let Err(error) = size_sender.send(
+                        returned_size
+                            .map(|size| convert_size_to_css_pixel(size, scale))
+                            .unwrap_or(requested_size),
+                    ) {
+                        warn!("Failed to send window size: {error}");
+                    }
+                },
+                WebDriverCommandMsg::GetViewportSize(_webview_id, response_sender) => {
+                    let window = self
+                        .windows
+                        .values()
+                        .next()
+                        .expect("Should have at least one window in servoshell");
+
+                    let size = window.rendering_context().size2d();
+
+                    if let Err(error) = response_sender.send(size) {
+                        warn!("Failed to send response of GetViewportSize: {error}");
+                    }
+                },
+                WebDriverCommandMsg::GetFocusedWebView(sender) => {
+                    let focused_webview = running_state.focused_webview();
+                    if let Err(error) = sender.send(focused_webview.map(|w| w.id())) {
+                        warn!("Failed to send response of GetFocusedWebView: {error}");
+                    };
+                },
+                WebDriverCommandMsg::AddLoadStatusSender(webview_id, load_status_sender) => {
+                    running_state.set_load_status_sender(webview_id, load_status_sender);
+                },
+                WebDriverCommandMsg::RemoveLoadStatusSender(webview_id) => {
+                    running_state.remove_load_status_sender(webview_id);
+                },
+                WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        running_state.set_load_status_sender(webview_id, load_status_sender);
+                        webview.load(url.into_url());
+                    }
+                },
+                WebDriverCommandMsg::Refresh(webview_id, load_status_sender) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        running_state.set_load_status_sender(webview_id, load_status_sender);
+                        webview.reload();
+                    }
+                },
+                WebDriverCommandMsg::GoBack(webview_id, load_status_sender) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        let traversal_id = webview.go_back(1);
+                        running_state.set_pending_traversal(
+                            webview_id,
+                            traversal_id,
+                            load_status_sender,
+                        );
+                    }
+                },
+                WebDriverCommandMsg::GoForward(webview_id, load_status_sender) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        let traversal_id = webview.go_forward(1);
+                        running_state.set_pending_traversal(
+                            webview_id,
+                            traversal_id,
+                            load_status_sender,
+                        );
+                    }
+                },
+                // Key events don't need hit test so can be forwarded to constellation for now
+                WebDriverCommandMsg::SendKeys(webview_id, webdriver_input_events) => {
+                    let Some(webview) = running_state.webview_by_id(webview_id) else {
+                        continue;
+                    };
+
+                    for event in webdriver_input_events {
+                        match event {
+                            WebDriverInputEvent::Keyboard(event) => {
+                                webview.notify_input_event(InputEvent::Keyboard(
+                                    KeyboardEvent::new(event),
+                                ));
+                            },
+                            WebDriverInputEvent::Composition(event) => {
+                                webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                                    event,
+                                )));
+                            },
+                        }
+                    }
+                },
+                WebDriverCommandMsg::KeyboardAction(webview_id, key_event, msg_id) => {
+                    // TODO: We should do processing like in `headed_window:handle_keyboard_input`.
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.notify_input_event(
+                            InputEvent::Keyboard(KeyboardEvent::new(key_event))
+                                .with_webdriver_message_id(msg_id),
+                        );
+                    }
+                },
+                WebDriverCommandMsg::MouseButtonAction(
+                    webview_id,
+                    mouse_event_type,
+                    mouse_button,
+                    x,
+                    y,
+                    webdriver_message_id,
+                ) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.notify_input_event(
+                            InputEvent::MouseButton(MouseButtonEvent::new(
+                                mouse_event_type,
+                                mouse_button,
+                                Point2D::new(x, y),
+                            ))
+                            .with_webdriver_message_id(webdriver_message_id),
+                        );
+                    }
+                },
+                WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, webdriver_message_id) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.notify_input_event(
+                            InputEvent::MouseMove(MouseMoveEvent::new(Point2D::new(x, y)))
+                                .with_webdriver_message_id(webdriver_message_id),
+                        );
+                    }
+                },
+                WebDriverCommandMsg::WheelScrollAction(
+                    webview_id,
+                    x,
+                    y,
+                    dx,
+                    dy,
+                    webdriver_message_id,
+                ) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        let delta = WheelDelta {
+                            x: -dx,
+                            y: -dy,
+                            z: 0.0,
+                            mode: WheelMode::DeltaPixel,
+                        };
+
+                        let point = Point2D::new(x, y);
+                        let scroll_location =
+                            ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
+
+                        webview.notify_input_event(
+                            InputEvent::Wheel(WheelEvent::new(delta, point.to_f32()))
+                                .with_webdriver_message_id(webdriver_message_id),
+                        );
+
+                        webview.notify_scroll_event(scroll_location, point.to_i32());
+                    }
+                },
+                WebDriverCommandMsg::ScriptCommand(
+                    browsing_context_id,
+                    webdriver_script_command,
+                ) => {
+                    self.handle_webdriver_script_commnd(&webdriver_script_command, running_state);
+                    running_state.forward_webdriver_command(WebDriverCommandMsg::ScriptCommand(
+                        browsing_context_id,
+                        webdriver_script_command,
+                    ));
+                },
+                WebDriverCommandMsg::CurrentUserPrompt(webview_id, response_sender) => {
+                    let current_dialog =
+                        running_state.get_current_active_dialog_webdriver_type(webview_id);
+                    if let Err(error) = response_sender.send(current_dialog) {
+                        warn!("Failed to send response of CurrentUserPrompt: {error}");
+                    };
+                },
+                WebDriverCommandMsg::HandleUserPrompt(webview_id, action, response_sender) => {
+                    let response = if running_state.webview_has_active_dialog(webview_id) {
+                        let alert_text = running_state.alert_text_of_newest_dialog(webview_id);
+
+                        match action {
+                            WebDriverUserPromptAction::Accept => {
+                                running_state.accept_active_dialogs(webview_id)
+                            },
+                            WebDriverUserPromptAction::Dismiss => {
+                                running_state.dismiss_active_dialogs(webview_id)
+                            },
+                            WebDriverUserPromptAction::Ignore => {},
+                        };
+
+                        // Return success for AcceptAlert and DismissAlert commands.
+                        Ok(alert_text)
+                    } else {
+                        // Return error for AcceptAlert and DismissAlert commands
+                        // if there is no active dialog.
+                        Err(())
+                    };
+
+                    if let Err(error) = response_sender.send(response) {
+                        warn!("Failed to send response of HandleUserPrompt: {error}");
+                    };
+                },
+                WebDriverCommandMsg::GetAlertText(webview_id, response_sender) => {
+                    let response = match running_state.alert_text_of_newest_dialog(webview_id) {
+                        Some(text) => Ok(text),
+                        None => Err(()),
+                    };
+
+                    if let Err(error) = response_sender.send(response) {
+                        warn!("Failed to send response of GetAlertText: {error}");
+                    };
+                },
+                WebDriverCommandMsg::SendAlertText(webview_id, text) => {
+                    running_state.set_alert_text_of_newest_dialog(webview_id, text);
+                },
+                WebDriverCommandMsg::TakeScreenshot(..) => {
                     warn!(
                         "WebDriverCommand {:?} is still not moved from constellation to embedder",
                         msg
@@ -358,9 +632,28 @@ impl App {
             };
         }
     }
+
+    fn handle_webdriver_script_commnd(
+        &self,
+        msg: &WebDriverScriptCommand,
+        running_state: &RunningAppState,
+    ) {
+        match msg {
+            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) |
+            WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
+                // Give embedder a chance to interrupt the script command.
+                // Webdriver only handles 1 script command at a time, so we can
+                // safely set a new interrupt sender and remove the previous one here.
+                running_state.set_script_command_interrupt_sender(Some(response_sender.clone()));
+            },
+            _ => {
+                running_state.set_script_command_interrupt_sender(None);
+            },
+        }
+    }
 }
 
-impl ApplicationHandler<WakerEvent> for App {
+impl ApplicationHandler<AppEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.init(Some(event_loop));
     }
@@ -468,7 +761,20 @@ impl ApplicationHandler<WakerEvent> for App {
         self.handle_events_with_winit(event_loop, window);
     }
 
-    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WakerEvent) {
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: AppEvent) {
+        if let AppEvent::Accessibility(ref event) = event {
+            let Some(ref mut minibrowser) = self.minibrowser else {
+                return;
+            };
+            if !minibrowser.handle_accesskit_event(&event.window_event) {
+                return;
+            }
+            if let Some(window) = self.windows.get(&event.window_id) {
+                window.winit_window().unwrap().request_redraw();
+            }
+            return;
+        }
+
         let now = Instant::now();
         let event = winit::event::Event::UserEvent(event);
         trace_winit_event!(

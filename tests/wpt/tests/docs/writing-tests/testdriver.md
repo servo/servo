@@ -314,12 +314,23 @@ The module provides access to [Web Bluetooth](https://webbluetoothcg.github.io/w
 .. js:autofunction:: test_driver.bidi.bluetooth.simulate_preconnected_peripheral
 .. js:autofunction:: test_driver.bidi.bluetooth.simulate_gatt_connection_response
 .. js:autofunction:: test_driver.bidi.bluetooth.simulate_gatt_disconnection
+.. js:autofunction:: test_driver.bidi.bluetooth.simulate_service
+.. js:autofunction:: test_driver.bidi.bluetooth.simulate_characteristic
+.. js:autofunction:: test_driver.bidi.bluetooth.simulate_characteristic_response
+.. js:autofunction:: test_driver.bidi.bluetooth.simulate_descriptor
+.. js:autofunction:: test_driver.bidi.bluetooth.simulate_descriptor_response
 .. js:autofunction:: test_driver.bidi.bluetooth.request_device_prompt_updated.subscribe
 .. js:autofunction:: test_driver.bidi.bluetooth.request_device_prompt_updated.on
 .. js:autofunction:: test_driver.bidi.bluetooth.request_device_prompt_updated.once
 .. js:autofunction:: test_driver.bidi.bluetooth.gatt_connection_attempted.subscribe
 .. js:autofunction:: test_driver.bidi.bluetooth.gatt_connection_attempted.on
 .. js:autofunction:: test_driver.bidi.bluetooth.gatt_connection_attempted.once
+.. js:autofunction:: test_driver.bidi.bluetooth.characteristic_event_generated.subscribe
+.. js:autofunction:: test_driver.bidi.bluetooth.characteristic_event_generated.on
+.. js:autofunction:: test_driver.bidi.bluetooth.characteristic_event_generated.once
+.. js:autofunction:: test_driver.bidi.bluetooth.descriptor_event_generated.subscribe
+.. js:autofunction:: test_driver.bidi.bluetooth.descriptor_event_generated.on
+.. js:autofunction:: test_driver.bidi.bluetooth.descriptor_event_generated.once
 ```
 
 ### Emulation ###
@@ -328,4 +339,6 @@ Emulation of browser APIs via [WebDriver BiDi Emulation](https://www.w3.org/TR/w
 
 ```eval_rst
 .. js:autofunction:: test_driver.bidi.emulation.set_geolocation_override
+.. js:autofunction:: test_driver.bidi.emulation.set_locale_override
+.. js:autofunction:: test_driver.bidi.emulation.set_screen_orientation_override
 ```

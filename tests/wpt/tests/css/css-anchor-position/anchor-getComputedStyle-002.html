@@ -67,6 +67,8 @@ body {
 }
 </style>
 <script>
+setup({ explicit_done: true });
+
 test(() => {
   const target = test1.querySelector('.target');
   const style = getComputedStyle(target);
@@ -98,19 +100,24 @@ test(() => {
   </div>
 </div>
 <script>
-test(() => {
-  const targets = test2.querySelectorAll('.target');
+// Ensure Ahem font has a chance to load before examining layout.
+document.fonts.ready.then(() => {
+  test(() => {
+    const targets = test2.querySelectorAll('.target');
 
-  const style1 = getComputedStyle(targets[0]);
-  assert_equals(style1.top, '20px');
-  assert_equals(style1.bottom, '0px');
-  assert_equals(style1.left, '-120px');
-  assert_equals(style1.right, '80px');
+    const style1 = getComputedStyle(targets[0]);
+    assert_equals(style1.top, '20px');
+    assert_equals(style1.bottom, '0px');
+    assert_equals(style1.left, '-120px');
+    assert_equals(style1.right, '80px');
 
-  const style2 = getComputedStyle(targets[1]);
-  assert_equals(style2.top, '20px');
-  assert_equals(style2.bottom, '0px');
-  assert_equals(style2.left, '0px');
-  assert_equals(style2.right, '0px');
-}, 'getComputedStyle() with fragmented containing block in inline layout');
+    const style2 = getComputedStyle(targets[1]);
+    assert_equals(style2.top, '20px');
+    assert_equals(style2.bottom, '0px');
+    assert_equals(style2.left, '0px');
+    assert_equals(style2.right, '0px');
+  }, 'getComputedStyle() with fragmented containing block in inline layout');
+
+  done();
+})
 </script>

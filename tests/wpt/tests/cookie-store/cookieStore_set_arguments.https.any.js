@@ -305,7 +305,7 @@ promise_test(async testCase => {
   const cookies = await cookieStore.getAll('cookie-name');
   assert_equals(cookies.length, 1);
   assert_equals(cookies[0].name, 'cookie-name');
-  assert_equals(cookies[0].value, 'cookie-new-value');
+  assert_equals(cookies[0].value, 'new-cookie-value');
 }, 'cookieStore.set can modify a cookie set by document.cookie if document is defined');
 
 promise_test(async testCase => {

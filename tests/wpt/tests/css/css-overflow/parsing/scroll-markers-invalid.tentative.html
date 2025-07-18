@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing scroll-marker-group with modes invalid values</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12122">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_invalid_value('scroll-marker-group', 'before before');
+  test_invalid_value('scroll-marker-group', 'after before');
+  test_invalid_value('scroll-marker-group', 'after tab');
+  test_invalid_value('scroll-marker-group', 'after link');
+  test_invalid_value('scroll-marker-group', 'links after');
+  test_invalid_value('scroll-marker-group', 'tabs before');
+  test_invalid_value('scroll-marker-group', 'after, tabs');
+  test_invalid_value('scroll-marker-group', 'after, links');
+</script>

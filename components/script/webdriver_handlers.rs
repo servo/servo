@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cmp;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
@@ -34,7 +33,9 @@ use webdriver::error::ErrorStatus;
 use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
+    DocumentMethods, DocumentReadyState,
+};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -43,6 +44,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelec
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
+use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
+    XPathResultConstants, XPathResultMethods,
+};
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
     get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
@@ -53,6 +57,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::domrect::DOMRect;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -215,25 +220,6 @@ fn all_matching_links(
         .query_selector_all(DOMString::from("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
         .map(|nodes| matching_links(&nodes, link_text, partial, can_gc).collect())
-}
-
-fn first_matching_link(
-    root_node: &Node,
-    link_text: String,
-    partial: bool,
-    can_gc: CanGc,
-) -> Result<Option<String>, ErrorStatus> {
-    // <https://w3c.github.io/webdriver/#dfn-find>
-    // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
-    // during the execution of the element location strategy, return error invalid selector.
-    root_node
-        .query_selector_all(DOMString::from("a"))
-        .map_err(|_| ErrorStatus::InvalidSelector)
-        .map(|nodes| {
-            matching_links(&nodes, link_text, partial, can_gc)
-                .take(1)
-                .next()
-        })
 }
 
 #[allow(unsafe_code)]
@@ -544,12 +530,17 @@ pub(crate) fn handle_execute_script(
                 Err(WebDriverJSError::JSError)
             };
 
-            reply.send(result).unwrap();
+            if reply.send(result).is_err() {
+                info!("Webdriver might already be released by embedder before reply is sent");
+            };
         },
         None => {
-            reply
+            if reply
                 .send(Err(WebDriverJSError::BrowsingContextNotFound))
-                .unwrap();
+                .is_err()
+            {
+                info!("Webdriver might already be released by embedder before reply is sent");
+            };
         },
     }
 }
@@ -586,6 +577,30 @@ pub(crate) fn handle_execute_async_script(
     }
 }
 
+/// Get BrowsingContextId for <https://w3c.github.io/webdriver/#switch-to-parent-frame>
+pub(crate) fn handle_get_parent_frame_id(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    reply: IpcSender<Result<BrowsingContextId, ErrorStatus>>,
+) {
+    // Step 2. If session's current parent browsing context is no longer open,
+    // return error with error code no such window.
+    reply
+        .send(
+            documents
+                .find_window(pipeline)
+                .and_then(|window| {
+                    window
+                        .window_proxy()
+                        .parent()
+                        .map(|parent| parent.browsing_context_id())
+                })
+                .ok_or(ErrorStatus::NoSuchWindow),
+        )
+        .unwrap();
+}
+
+/// Get the BrowsingContextId for <https://w3c.github.io/webdriver/#dfn-switch-to-frame>
 pub(crate) fn handle_get_browsing_context_id(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -594,9 +609,20 @@ pub(crate) fn handle_get_browsing_context_id(
 ) {
     reply
         .send(match webdriver_frame_id {
-            WebDriverFrameId::Short(_) => {
-                // This isn't supported yet
-                Err(ErrorStatus::UnsupportedOperation)
+            WebDriverFrameId::Short(id) => {
+                // Step 5. If id is not a supported property index of window,
+                // return error with error code no such frame.
+                documents
+                    .find_document(pipeline)
+                    .ok_or(ErrorStatus::NoSuchWindow)
+                    .and_then(|document| {
+                        document
+                            .iframes()
+                            .iter()
+                            .nth(id as usize)
+                            .and_then(|iframe| iframe.browsing_context_id())
+                            .ok_or(ErrorStatus::NoSuchFrame)
+                    })
             },
             WebDriverFrameId::Element(element_id) => {
                 get_known_element(documents, pipeline, element_id).and_then(|element| {
@@ -606,51 +632,49 @@ pub(crate) fn handle_get_browsing_context_id(
                         .ok_or(ErrorStatus::NoSuchFrame)
                 })
             },
-            WebDriverFrameId::Parent => documents
-                .find_window(pipeline)
-                .and_then(|window| {
-                    window
-                        .window_proxy()
-                        .parent()
-                        .map(|parent| parent.browsing_context_id())
-                })
-                .ok_or(ErrorStatus::NoSuchFrame),
         })
         .unwrap();
 }
 
-// https://w3c.github.io/webdriver/#dfn-center-point
+/// <https://w3c.github.io/webdriver/#dfn-center-point>
 fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<Point2D<i64>> {
-    element
-        .owner_document()
-        .GetBody()
-        .map(DomRoot::upcast::<Element>)
-        .and_then(|body| {
-            // Step 1: Let rectangle be the first element of the DOMRect sequence
-            // returned by calling getClientRects() on element.
-            element.GetClientRects(can_gc).first().map(|rectangle| {
-                let x = rectangle.X().round() as i64;
-                let y = rectangle.Y().round() as i64;
-                let width = rectangle.Width().round() as i64;
-                let height = rectangle.Height().round() as i64;
+    let doc = element.owner_document();
+    // Step 1: Let rectangle be the first element of the DOMRect sequence
+    // returned by calling getClientRects() on element.
+    element.GetClientRects(can_gc).first().map(|rectangle| {
+        let x = rectangle.X();
+        let y = rectangle.Y();
+        let width = rectangle.Width();
+        let height = rectangle.Height();
+        debug!(
+            "get_element_in_view_center_point: Element rectangle at \
+            (x: {x}, y: {y}, width: {width}, height: {height})",
+        );
+        let window = doc.window();
+        // Steps 2. Let left be max(0, min(x coordinate, x coordinate + width dimension)).
+        let left = (x.min(x + width)).max(0.0);
+        // Step 3. Let right be min(innerWidth, max(x coordinate, x coordinate + width dimension)).
+        let right = f64::min(window.InnerWidth() as f64, x.max(x + width));
+        // Step 4. Let top be max(0, min(y coordinate, y coordinate + height dimension)).
+        let top = (y.min(y + height)).max(0.0);
+        // Step 5. Let bottom be
+        // min(innerHeight, max(y coordinate, y coordinate + height dimension)).
+        let bottom = f64::min(window.InnerHeight() as f64, y.max(y + height));
+        debug!(
+            "get_element_in_view_center_point: Computed rectangle is \
+            (left: {left}, right: {right}, top: {top}, bottom: {bottom})",
+        );
+        // Step 6. Let x be floor((left + right) ÷ 2.0).
+        let center_x = ((left + right) / 2.0).floor() as i64;
+        // Step 7. Let y be floor((top + bottom) ÷ 2.0).
+        let center_y = ((top + bottom) / 2.0).floor() as i64;
 
-                let client_width = body.ClientWidth(can_gc) as i64;
-                let client_height = body.ClientHeight(can_gc) as i64;
-
-                // Steps 2 - 5
-                let left = cmp::max(0, cmp::min(x, x + width));
-                let right = cmp::min(client_width, cmp::max(x, x + width));
-                let top = cmp::max(0, cmp::min(y, y + height));
-                let bottom = cmp::min(client_height, cmp::max(y, y + height));
-
-                // Steps 6 - 7
-                let x = (left + right) / 2;
-                let y = (top + bottom) / 2;
-
-                // Step 8
-                Point2D::new(x, y)
-            })
-        })
+        debug!(
+            "get_element_in_view_center_point: Element center point at ({center_x}, {center_y})",
+        );
+        // Step 8
+        Point2D::new(center_x, center_y)
+    })
 }
 
 pub(crate) fn handle_get_element_in_view_center_point(
@@ -685,65 +709,6 @@ fn retrieve_document_and_check_root_existence(
         Err(ErrorStatus::NoSuchElement)
     } else {
         Ok(document)
-    }
-}
-
-pub(crate) fn handle_find_element_css_selector(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-) {
-    match retrieve_document_and_check_root_existence(documents, pipeline) {
-        Ok(document) => reply
-            .send(
-                document
-                    .QuerySelector(DOMString::from(selector))
-                    .map_err(|_| ErrorStatus::InvalidSelector)
-                    .map(|element| element.map(|x| x.upcast::<Node>().unique_id(pipeline))),
-            )
-            .unwrap(),
-        Err(error) => reply.send(Err(error)).unwrap(),
-    }
-}
-
-pub(crate) fn handle_find_element_link_text(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    selector: String,
-    partial: bool,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    match retrieve_document_and_check_root_existence(documents, pipeline) {
-        Ok(document) => reply
-            .send(first_matching_link(
-                document.upcast::<Node>(),
-                selector.clone(),
-                partial,
-                can_gc,
-            ))
-            .unwrap(),
-        Err(error) => reply.send(Err(error)).unwrap(),
-    }
-}
-
-pub(crate) fn handle_find_element_tag_name(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    match retrieve_document_and_check_root_existence(documents, pipeline) {
-        Ok(document) => reply
-            .send(Ok(document
-                .GetElementsByTagName(DOMString::from(selector), can_gc)
-                .elements_iter()
-                .next()
-                .map(|element| element.upcast::<Node>().unique_id(pipeline))))
-            .unwrap(),
-        Err(error) => reply.send(Err(error)).unwrap(),
     }
 }
 
@@ -811,63 +776,85 @@ pub(crate) fn handle_find_elements_tag_name(
     }
 }
 
-pub(crate) fn handle_find_element_element_css_selector(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    element_id: String,
+/// <https://w3c.github.io/webdriver/#xpath>
+fn find_elements_xpath_strategy(
+    document: &Document,
+    start_node: &Node,
     selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, element_id).and_then(|element| {
-                element
-                    .upcast::<Node>()
-                    .query_selector(DOMString::from(selector))
-                    .map_err(|_| ErrorStatus::InvalidSelector)
-                    .map(|element| element.map(|x| x.upcast::<Node>().unique_id(pipeline)))
-            }),
-        )
-        .unwrap();
+    pipeline: PipelineId,
+    can_gc: CanGc,
+) -> Result<Vec<String>, ErrorStatus> {
+    // Step 1. Let evaluateResult be the result of calling evaluate,
+    // with arguments selector, start node, null, ORDERED_NODE_SNAPSHOT_TYPE, and null.
+
+    // A snapshot is used to promote operation atomicity.
+    let evaluate_result = match document.Evaluate(
+        DOMString::from(selector),
+        start_node,
+        None,
+        XPathResultConstants::ORDERED_NODE_SNAPSHOT_TYPE,
+        None,
+        can_gc,
+    ) {
+        Ok(res) => res,
+        Err(_) => return Err(ErrorStatus::InvalidSelector),
+    };
+    // Step 2. Let index be 0. (Handled altogether in Step 5.)
+
+    // Step 3: Let length be the result of getting the property "snapshotLength"
+    // from evaluateResult.
+
+    let length = match evaluate_result.GetSnapshotLength() {
+        Ok(len) => len,
+        Err(_) => return Err(ErrorStatus::InvalidSelector),
+    };
+
+    // Step 4: Prepare result vector
+    let mut result = Vec::new();
+
+    // Step 5: Repeat, while index is less than length:
+    for index in 0..length {
+        // Step 5.1. Let node be the result of calling snapshotItem with
+        // evaluateResult as this and index as the argument.
+        let node = match evaluate_result.SnapshotItem(index) {
+            Ok(node) => node.expect(
+                "Node should always exist as ORDERED_NODE_SNAPSHOT_TYPE \
+                                gives static result and we verified the length!",
+            ),
+            Err(_) => return Err(ErrorStatus::InvalidSelector),
+        };
+
+        // Step 5.2. If node is not an element return an error with error code invalid selector.
+        if !node.is::<Element>() {
+            return Err(ErrorStatus::InvalidSelector);
+        }
+
+        // Step 5.3. Append node to result.
+        result.push(node.unique_id(pipeline));
+    }
+    // Step 6. Return success with data result.
+    Ok(result)
 }
 
-pub(crate) fn handle_find_element_element_link_text(
+pub(crate) fn handle_find_elements_xpath_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    element_id: String,
     selector: String,
-    partial: bool,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, element_id).and_then(|element| {
-                first_matching_link(element.upcast::<Node>(), selector.clone(), partial, can_gc)
-            }),
-        )
-        .unwrap();
-}
-
-pub(crate) fn handle_find_element_element_tag_name(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    element_id: String,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, element_id).map(|element| {
-                element
-                    .GetElementsByTagName(DOMString::from(selector), can_gc)
-                    .elements_iter()
-                    .next()
-                    .map(|x| x.upcast::<Node>().unique_id(pipeline))
-            }),
-        )
-        .unwrap();
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => reply
+            .send(find_elements_xpath_strategy(
+                &document,
+                document.upcast::<Node>(),
+                selector,
+                pipeline,
+                can_gc,
+            ))
+            .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
 }
 
 pub(crate) fn handle_find_element_elements_css_selector(
@@ -929,6 +916,31 @@ pub(crate) fn handle_find_element_elements_tag_name(
                     .elements_iter()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()
+            }),
+        )
+        .unwrap();
+}
+
+pub(crate) fn handle_find_element_elements_xpath_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    element_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    reply
+        .send(
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
+                find_elements_xpath_strategy(
+                    &documents
+                        .find_document(pipeline)
+                        .expect("Document existence guaranteed by `get_known_element`"),
+                    element.upcast::<Node>(),
+                    selector,
+                    pipeline,
+                    can_gc,
+                )
             }),
         )
         .unwrap();
@@ -1013,6 +1025,31 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
         .unwrap();
 }
 
+pub(crate) fn handle_find_shadow_elements_xpath_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    shadow_root_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    reply
+        .send(
+            get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
+                find_elements_xpath_strategy(
+                    &documents
+                        .find_document(pipeline)
+                        .expect("Document existence guaranteed by `get_known_shadow_root`"),
+                    shadow_root.upcast::<Node>(),
+                    selector,
+                    pipeline,
+                    can_gc,
+                )
+            }),
+        )
+        .unwrap();
+}
+
 /// <https://www.w3.org/TR/webdriver2/#dfn-get-element-shadow-root>
 pub(crate) fn handle_get_element_shadow_root(
     documents: &DocumentCollection,
@@ -1024,7 +1061,7 @@ pub(crate) fn handle_get_element_shadow_root(
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
                 element
-                    .GetShadowRoot()
+                    .shadow_root()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
             }),
         )
@@ -1317,6 +1354,33 @@ pub(crate) fn handle_get_title(
         .unwrap();
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-calculate-the-absolute-position>
+fn calculate_absolute_position(
+    documents: &DocumentCollection,
+    pipeline: &PipelineId,
+    rect: &DOMRect,
+) -> Result<(f64, f64), ErrorStatus> {
+    // Step 1
+    // We already pass the rectangle here, see `handle_get_rect`.
+
+    // Step 2
+    let document = match documents.find_document(*pipeline) {
+        Some(document) => document,
+        None => return Err(ErrorStatus::UnknownError),
+    };
+    let win = match document.GetDefaultView() {
+        Some(win) => win,
+        None => return Err(ErrorStatus::UnknownError),
+    };
+
+    // Step 3 - 5
+    let x = win.ScrollX() as f64 + rect.X();
+    let y = win.ScrollY() as f64 + rect.Y();
+
+    Ok((x, y))
+}
+
+/// <https://w3c.github.io/webdriver/#get-element-rect>
 pub(crate) fn handle_get_rect(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1327,37 +1391,17 @@ pub(crate) fn handle_get_rect(
     reply
         .send(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
-                // https://w3c.github.io/webdriver/webdriver-spec.html#dfn-calculate-the-absolute-position
-                match element.downcast::<HTMLElement>() {
-                    Some(html_element) => {
-                        // Step 1
-                        let mut x = 0;
-                        let mut y = 0;
+                // Step 4-5
+                // We pass the rect instead of element so we don't have to
+                // call `GetBoundingClientRect` twice.
+                let rect = element.GetBoundingClientRect(can_gc);
+                let (x, y) = calculate_absolute_position(documents, &pipeline, &rect)?;
 
-                        let mut offset_parent = html_element.GetOffsetParent(can_gc);
-
-                        // Step 2
-                        while let Some(element) = offset_parent {
-                            offset_parent = match element.downcast::<HTMLElement>() {
-                                Some(elem) => {
-                                    x += elem.OffsetLeft(can_gc);
-                                    y += elem.OffsetTop(can_gc);
-                                    elem.GetOffsetParent(can_gc)
-                                },
-                                None => None,
-                            };
-                        }
-                        // Step 3
-                        Ok(Rect::new(
-                            Point2D::new(x as f64, y as f64),
-                            Size2D::new(
-                                html_element.OffsetWidth(can_gc) as f64,
-                                html_element.OffsetHeight(can_gc) as f64,
-                            ),
-                        ))
-                    },
-                    None => Err(ErrorStatus::UnknownError),
-                }
+                // Step 6-7
+                Ok(Rect::new(
+                    Point2D::new(x, y),
+                    Size2D::new(rect.Width(), rect.Height()),
+                ))
             }),
         )
         .unwrap();
@@ -1674,4 +1718,21 @@ pub(crate) fn handle_is_selected(
             }),
         )
         .unwrap();
+}
+
+pub(crate) fn handle_try_wait_for_document_navigation(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    reply: IpcSender<bool>,
+) {
+    let document = match documents.find_document(pipeline) {
+        Some(document) => document,
+        None => {
+            return reply.send(false).unwrap();
+        },
+    };
+
+    let wait_for_document_ready = document.ReadyState() != DocumentReadyState::Complete;
+
+    reply.send(wait_for_document_ready).unwrap();
 }

@@ -16,38 +16,91 @@ use keyboard_types::KeyboardEvent;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use pixels::RasterImage;
 use serde::{Deserialize, Serialize};
+use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
-use webrender_api::units::DeviceIntSize;
+use webrender_api::units::DevicePixel;
 
 use crate::{MouseButton, MouseButtonAction};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum WebDriverUserPrompt {
+    Alert,
+    BeforeUnload,
+    Confirm,
+    Default,
+    File,
+    Prompt,
+    FallbackDefault,
+}
+
+impl WebDriverUserPrompt {
+    pub fn new_from_str(s: &str) -> Option<Self> {
+        match s {
+            "alert" => Some(WebDriverUserPrompt::Alert),
+            "beforeUnload" => Some(WebDriverUserPrompt::BeforeUnload),
+            "confirm" => Some(WebDriverUserPrompt::Confirm),
+            "default" => Some(WebDriverUserPrompt::Default),
+            "file" => Some(WebDriverUserPrompt::File),
+            "prompt" => Some(WebDriverUserPrompt::Prompt),
+            "fallbackDefault" => Some(WebDriverUserPrompt::FallbackDefault),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum WebDriverUserPromptAction {
+    Accept,
+    Dismiss,
+    Ignore,
+}
+
+impl WebDriverUserPromptAction {
+    pub fn new_from_str(s: &str) -> Option<Self> {
+        match s {
+            "accept" => Some(WebDriverUserPromptAction::Accept),
+            "dismiss" => Some(WebDriverUserPromptAction::Dismiss),
+            "ignore" => Some(WebDriverUserPromptAction::Ignore),
+            _ => None,
+        }
+    }
+}
+
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
-    /// Get the window size.
-    GetWindowSize(WebViewId, IpcSender<Size2D<f32, CSSPixel>>),
+    /// Used in the initialization of the WebDriver server to set the sender for sending responses
+    /// back to the WebDriver client. It is set to constellation for now
+    SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
+    /// Get the window rectangle.
+    GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
+    /// Get the viewport size.
+    GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
     LoadUrl(WebViewId, ServoUrl, IpcSender<WebDriverLoadStatus>),
     /// Refresh the top-level browsing context with the given ID.
     Refresh(WebViewId, IpcSender<WebDriverLoadStatus>),
+    /// Navigate the webview with the given ID to the previous page in the browsing context's history.
+    GoBack(WebViewId, IpcSender<WebDriverLoadStatus>),
+    /// Navigate the webview with the given ID to the next page in the browsing context's history.
+    GoForward(WebViewId, IpcSender<WebDriverLoadStatus>),
     /// Pass a webdriver command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
     /// Act as if keys were pressed in the browsing context with the given ID.
-    SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
+    SendKeys(WebViewId, Vec<WebDriverInputEvent>),
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(
-        BrowsingContextId,
+        WebViewId,
         KeyboardEvent,
         // Should never be None.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
     MouseButtonAction(
@@ -58,7 +111,6 @@ pub enum WebDriverCommandMsg {
         f32,
         // Should never be None.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse was moved in the browsing context with the given ID.
     MouseMoveAction(
@@ -68,22 +120,24 @@ pub enum WebDriverCommandMsg {
         // None if it's not the last `perform_pointer_move` since we only
         // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
     WheelScrollAction(
         WebViewId,
-        f32,
-        f32,
+        f64,
+        f64,
         f64,
         f64,
         // None if it's not the last `perform_wheel_scroll` since we only
         // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Set the window size.
-    SetWindowSize(WebViewId, DeviceIntSize, IpcSender<Size2D<f32, CSSPixel>>),
+    SetWindowSize(
+        WebViewId,
+        DeviceIndependentIntSize,
+        IpcSender<Size2D<i32, DeviceIndependentPixel>>,
+    ),
     /// Take a screenshot of the window.
     TakeScreenshot(
         WebViewId,
@@ -94,19 +148,27 @@ pub enum WebDriverCommandMsg {
     /// the provided channels to return the top level browsing context id
     /// associated with the new webview, and a notification when the initial
     /// load is complete.
-    NewWebView(
-        WebViewId,
-        IpcSender<WebViewId>,
-        IpcSender<WebDriverLoadStatus>,
-    ),
+    NewWebView(IpcSender<WebViewId>, IpcSender<WebDriverLoadStatus>),
     /// Close the webview associated with the provided id.
     CloseWebView(WebViewId),
     /// Focus the webview associated with the provided id.
     FocusWebView(WebViewId),
+    /// Get focused webview.
+    GetFocusedWebView(IpcSender<Option<WebViewId>>),
     /// Check whether top-level browsing context is open.
     IsWebViewOpen(WebViewId, IpcSender<bool>),
     /// Check whether browsing context is open.
     IsBrowsingContextOpen(BrowsingContextId, IpcSender<bool>),
+    CurrentUserPrompt(WebViewId, IpcSender<Option<WebDriverUserPrompt>>),
+    HandleUserPrompt(
+        WebViewId,
+        WebDriverUserPromptAction,
+        IpcSender<Result<Option<String>, ()>>,
+    ),
+    GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
+    SendAlertText(WebViewId, String),
+    AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
+    RemoveLoadStatusSender(WebViewId),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -123,28 +185,10 @@ pub enum WebDriverScriptCommand {
     DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
-    FindElementCSSSelector(String, IpcSender<Result<Option<String>, ErrorStatus>>),
-    FindElementLinkText(String, bool, IpcSender<Result<Option<String>, ErrorStatus>>),
-    FindElementTagName(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     FindElementsCSSSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsLinkText(String, bool, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsTagName(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
-    FindElementElementCSSSelector(
-        String,
-        String,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
-    FindElementElementLinkText(
-        String,
-        String,
-        bool,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
-    FindElementElementTagName(
-        String,
-        String,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
+    FindElementsXpathSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsLinkText(
         String,
@@ -153,6 +197,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsLinkText(
         String,
@@ -161,6 +206,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindShadowElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindShadowElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     GetElementShadowRoot(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
@@ -190,6 +236,7 @@ pub enum WebDriverScriptCommand {
         WebDriverFrameId,
         IpcSender<Result<BrowsingContextId, ErrorStatus>>,
     ),
+    GetParentFrameId(IpcSender<Result<BrowsingContextId, ErrorStatus>>),
     GetUrl(IpcSender<ServoUrl>),
     GetPageSource(IpcSender<Result<String, ErrorStatus>>),
     IsEnabled(String, IpcSender<Result<bool, ErrorStatus>>),
@@ -197,6 +244,7 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
     /// Match the element type before sending the event for webdriver `element send keys`.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
+    IsDocumentReadyStateComplete(IpcSender<bool>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -232,7 +280,6 @@ pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
 pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
-    Parent,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -245,4 +292,5 @@ pub enum WebDriverLoadStatus {
     Complete,
     Timeout,
     Canceled,
+    Blocked,
 }

@@ -5,7 +5,7 @@
 use std::collections::VecDeque;
 
 use ipc_channel::ipc::IpcSender;
-use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBTxnMode};
+use net_traits::indexeddb_thread::{AsyncOperation, IdbResult, IndexedDBTxnMode};
 use tokio::sync::oneshot;
 
 pub use self::heed::HeedEngine;
@@ -46,7 +46,7 @@ impl std::fmt::Display for SanitizedName {
 }
 
 pub struct KvsOperation {
-    pub sender: IpcSender<Option<Vec<u8>>>,
+    pub sender: IpcSender<Result<Option<IdbResult>, ()>>,
     pub store_name: SanitizedName,
     pub operation: AsyncOperation,
 }
@@ -57,12 +57,18 @@ pub struct KvsTransaction {
 }
 
 pub trait KvsEngine {
-    fn create_store(&self, store_name: SanitizedName, auto_increment: bool);
+    type Error;
 
-    fn delete_store(&self, store_name: SanitizedName);
+    fn create_store(
+        &self,
+        store_name: SanitizedName,
+        auto_increment: bool,
+    ) -> Result<(), Self::Error>;
+
+    fn delete_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
 
     #[expect(dead_code)]
-    fn close_store(&self, store_name: SanitizedName);
+    fn close_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
 
     fn process_transaction(
         &self,

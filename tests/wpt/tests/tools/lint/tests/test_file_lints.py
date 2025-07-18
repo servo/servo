@@ -243,6 +243,16 @@ def test_html_invalid_syntax():
             assert errors == [("HTML INVALID SYNTAX", "Test-file line has a non-void HTML tag with /> syntax", filename, 1)]
 
 
+def test_testdriver_internal():
+    error_map = check_with_files(b"  test_driver_internal.foo()")
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind not in {"web-strict", "python"}:
+            assert errors == [("TEST DRIVER INTERNAL", "Test-file uses test_driver_internal API", filename, 1)]
+
+
 def test_meta_timeout():
     code = b"""
 <html xmlns="http://www.w3.org/1999/xhtml">

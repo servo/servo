@@ -8,7 +8,6 @@ use std::default::Default;
 use std::str::FromStr;
 
 use base::id::WebViewId;
-use content_security_policy as csp;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -39,6 +38,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
@@ -121,6 +121,8 @@ pub(crate) struct HTMLLinkElement {
     previous_type_matched: Cell<bool>,
     /// Whether the previous media environment matched with the media query
     previous_media_environment_matched: Cell<bool>,
+    /// Line number this element was created on
+    line_number: u64,
 }
 
 impl HTMLLinkElement {
@@ -143,6 +145,7 @@ impl HTMLLinkElement {
             is_explicitly_enabled: Cell::new(false),
             previous_type_matched: Cell::new(true),
             previous_media_environment_matched: Cell::new(true),
+            line_number: creator.return_line_number(),
         }
     }
 
@@ -1016,9 +1019,13 @@ impl FetchResponseListener for PrefetchContext {
         submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        let link = self.link.root();
+        let source_position = link
+            .upcast::<Element>()
+            .compute_source_position(link.line_number as u32);
+        global.report_csp_violations(violations, None, Some(source_position));
     }
 }
 
@@ -1090,9 +1097,13 @@ impl FetchResponseListener for PreloadContext {
         submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        let link = self.link.root();
+        let source_position = link
+            .upcast::<Element>()
+            .compute_source_position(link.line_number as u32);
+        global.report_csp_violations(violations, None, Some(source_position));
     }
 }
 

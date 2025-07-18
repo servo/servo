@@ -143,7 +143,7 @@
 //! Implementing methods for a DOM object
 //! =====================================
 //!
-//! * `dom::bindings::codegen::Bindings::FooBindings::FooMethods` for methods
+//! * `dom::bindings::codegen::Bindings::FooBinding::FooMethods` for methods
 //!   defined through IDL;
 //! * `&self` public methods for public helpers;
 //! * `&self` methods for private helpers.
@@ -183,7 +183,7 @@
 //! * defining the DOM struct `Foo` with a `#[dom_struct]` attribute, a
 //!   superclass or `Reflector` member, and other members as appropriate;
 //! * implementing the
-//!   `dom::bindings::codegen::Bindings::FooBindings::FooMethods` trait for
+//!   `dom::bindings::codegen::Bindings::FooBinding::FooMethods` trait for
 //!   `Foo`;
 //! * adding/updating the match arm in create_element in
 //!   `components/script/dom/create.rs` (only applicable to new types inheriting
@@ -263,6 +263,7 @@ pub(crate) mod countqueuingstrategy;
 mod create;
 pub(crate) mod crypto;
 pub(crate) mod cryptokey;
+pub(crate) mod csp;
 pub(crate) mod csppolicyviolationreport;
 pub(crate) mod css;
 pub(crate) mod cssconditionrule;
@@ -428,6 +429,7 @@ pub(crate) mod idbtransaction;
 pub(crate) mod idbversionchangeevent;
 pub(crate) mod iirfilternode;
 pub(crate) mod imagebitmap;
+pub(crate) mod imagebitmaprenderingcontext;
 pub(crate) mod imagedata;
 pub(crate) mod inputevent;
 pub(crate) mod intersectionobserver;
@@ -516,6 +518,8 @@ pub(crate) mod readablestreambyobrequest;
 pub(crate) mod readablestreamdefaultcontroller;
 pub(crate) mod readablestreamdefaultreader;
 pub(crate) mod readablestreamgenericreader;
+pub(crate) mod reportingendpoint;
+pub(crate) mod reportingobserver;
 pub(crate) mod request;
 pub(crate) mod resizeobserver;
 pub(crate) mod resizeobserverentry;

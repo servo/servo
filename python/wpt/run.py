@@ -9,11 +9,12 @@ import multiprocessing
 import os
 import re
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
 
-from typing import List, NamedTuple, Optional, Union
+from typing import List, NamedTuple, Optional, Union, cast, Callable
 
 import mozlog
 import mozlog.formatters
@@ -31,12 +32,12 @@ TRACKER_DASHBOARD_SECRET_ENV_VAR = "INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD"
 TRACKER_DASHBOARD_MAXIMUM_OUTPUT_LENGTH = 1024
 
 
-def set_if_none(args: dict, key: str, value):
+def set_if_none(args: dict, key: str, value: bool | int | str) -> None:
     if key not in args or args[key] is None:
         args[key] = value
 
 
-def run_tests(default_binary_path: str, **kwargs):
+def run_tests(default_binary_path: str, **kwargs) -> int:
     print(f"Running WPT tests with {default_binary_path}")
 
     # By default, Rayon selects the number of worker threads based on the
@@ -93,11 +94,13 @@ def run_tests(default_binary_path: str, **kwargs):
     filter_intermittents_output = kwargs.pop("filter_intermittents", None)
     unexpected_raw_log_output_file = kwargs.pop("log_raw_unexpected", None)
     raw_log_outputs = kwargs.get("log_raw", [])
+    if filter_intermittents_output and kwargs["retry_unexpected"] <= 0:
+        kwargs["retry_unexpected"] = 1
 
     wptcommandline.check_args(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
-        ServoFormatter,
+        cast(Callable, ServoFormatter),
         "Servo's grouping output formatter",
     )
 
@@ -112,45 +115,22 @@ def run_tests(default_binary_path: str, **kwargs):
     else:
         logger = wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
 
-    handler = ServoHandler()
+    handler = ServoHandler(detect_flakes=kwargs["retry_unexpected"] >= 1)
     logger.add_handler(handler)
 
-    wptrunner.run_tests(**kwargs)
-    return_value = 0 if not handler.unexpected_results else 1
+    with tempfile.TemporaryDirectory(prefix="servo-") as config_dir:
+        kwargs["binary_args"] += ["--config-dir", config_dir]
 
-    # Filter intermittents if that was specified on the command-line.
-    if handler.unexpected_results and filter_intermittents_output:
-        # Copy the list of unexpected results from the first run, so that we
-        # can access them after the tests are rerun (which changes
-        # `handler.unexpected_results`). After rerunning some tests will be
-        # marked as flaky but otherwise the contents of this original list
-        # won't change.
-        unexpected_results = list(handler.unexpected_results)
-
-        # This isn't strictly necessary since `handler.suite_start()` clears
-        # the state, but make sure that we are starting with a fresh handler.
-        handler.reset_state()
-
-        print(80 * "=")
-        print(f"Rerunning {len(unexpected_results)} tests with unexpected results to detect flaky tests.")
-        unexpected_results_tests = [result.path for result in unexpected_results]
-        kwargs["test_list"] = unexpected_results_tests
-        kwargs["include"] = unexpected_results_tests
-        kwargs["pause_after_test"] = False
         wptrunner.run_tests(**kwargs)
 
+    return_value = int(handler.any_stable_unexpected())
+
+    # Filter intermittents if that was specified on the command-line.
+    if filter_intermittents_output:
         if github_context:
             os.environ["GITHUB_CONTEXT"] = github_context
 
-        # Use the second run to mark tests from the first run as flaky, but
-        # discard the results otherwise.
-        # TODO: It might be a good idea to send the new results to the
-        # dashboard if they were also unexpected.
-        stable_tests = [result.path for result in handler.unexpected_results]
-        for result in unexpected_results:
-            result.flaky = result.path not in stable_tests
-
-        all_filtered = filter_intermittents(unexpected_results, filter_intermittents_output)
+        all_filtered = filter_intermittents(handler.unexpected_results, filter_intermittents_output)
         return_value = 0 if all_filtered else 1
 
     # Write the unexpected-only raw log if that was specified on the command-line.
@@ -172,7 +152,7 @@ class GithubContextInformation(NamedTuple):
 
 
 class TrackerDashboardFilter:
-    def __init__(self):
+    def __init__(self) -> None:
         base_url = os.environ.get(TRACKER_API_ENV_VAR, TRACKER_API)
         self.headers = {"Content-Type": "application/json"}
         if TRACKER_DASHBOARD_SECRET_ENV_VAR in os.environ and os.environ[TRACKER_DASHBOARD_SECRET_ENV_VAR]:
@@ -227,7 +207,7 @@ class TrackerDashboardFilter:
             data["subtest"] = result.subtest
         return data
 
-    def report_failures(self, unexpected_results: List[UnexpectedResult]):
+    def report_failures(self, unexpected_results: List[UnexpectedResult]) -> None:
         attempts = []
         for result in unexpected_results:
             attempts.append(self.make_data_from_result(result))
@@ -269,12 +249,12 @@ def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path
     print(f"Filtering {len(unexpected_results)} unexpected results for known intermittents via <{dashboard.url}>")
     dashboard.report_failures(unexpected_results)
 
-    def add_result(output, text, results: List[UnexpectedResult], filter_func) -> None:
+    def add_result(output: list[str], text: str, results: List[UnexpectedResult], filter_func) -> None:
         filtered = [str(result) for result in filter(filter_func, results)]
         if filtered:
             output += [f"{text} ({len(filtered)}): ", *filtered]
 
-    def is_stable_and_unexpected(result):
+    def is_stable_and_unexpected(result: UnexpectedResult) -> bool:
         return not result.flaky and not result.issues
 
     output: List[str] = []
@@ -296,7 +276,7 @@ def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path
 
 def write_unexpected_only_raw_log(
     unexpected_results: List[UnexpectedResult], raw_log_file: str, filtered_raw_log_file: str
-):
+) -> None:
     tests = [result.path for result in unexpected_results]
     print(f"Writing unexpected-only raw log to {filtered_raw_log_file}")
 

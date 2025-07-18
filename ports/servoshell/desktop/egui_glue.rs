@@ -41,6 +41,10 @@ use egui_winit::winit;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Theme;
 
+use super::events_loop::EventLoopProxy;
+use super::headed_window::Window;
+use super::window_trait::WindowPortsMethods;
+
 /// Use [`egui`] from a [`glow`] app based on [`winit`].
 pub struct EguiGlow {
     pub egui_ctx: egui::Context,
@@ -54,7 +58,9 @@ pub struct EguiGlow {
 impl EguiGlow {
     /// For automatic shader version detection set `shader_version` to `None`.
     pub fn new(
+        window: &Window,
         event_loop: &ActiveEventLoop,
+        event_loop_proxy: EventLoopProxy,
         gl: std::sync::Arc<glow::Context>,
         shader_version: Option<ShaderVersion>,
     ) -> Self {
@@ -66,15 +72,19 @@ impl EguiGlow {
 
         let theme = event_loop.system_theme().unwrap_or(Theme::Light);
         let egui_ctx = egui::Context::default();
+        let mut egui_winit = egui_winit::State::new(
+            egui_ctx.clone(),
+            ViewportId::ROOT,
+            event_loop,
+            None,
+            Some(theme),
+            None,
+        );
+        let window = window.winit_window().unwrap();
+        egui_winit.init_accesskit(event_loop, window, event_loop_proxy);
+        window.set_visible(true);
         Self {
-            egui_winit: egui_winit::State::new(
-                egui_ctx.clone(),
-                ViewportId::ROOT,
-                event_loop,
-                None,
-                Some(theme),
-                None,
-            ),
+            egui_winit,
             egui_ctx,
             painter,
             shapes: Default::default(),

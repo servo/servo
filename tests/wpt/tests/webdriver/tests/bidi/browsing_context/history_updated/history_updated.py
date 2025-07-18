@@ -1,8 +1,6 @@
 import pytest
 
 from webdriver.bidi.modules.script import ContextTarget
-from webdriver.error import TimeoutException
-from tests.support.sync import AsyncPoll
 
 from ... import any_int, int_interval, recursive_compare
 

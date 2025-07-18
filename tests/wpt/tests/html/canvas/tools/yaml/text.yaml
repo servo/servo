@@ -510,6 +510,18 @@
   variants:
   - *load-font-variant-definition
 
+- name: 2d.text.measure.width.nullCharacter
+  desc: Null character does not take up space
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    @assert ctx.measureText('\u0000').width === 0;
+  variants:
+  - *load-font-variant-definition
+
 - name: 2d.text.drawing.style.measure.rtl.text
   desc: Measurement should follow canvas direction instead text direction
   code: |

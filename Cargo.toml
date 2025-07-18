@@ -71,34 +71,36 @@ gstreamer-video = "0.23"
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = "0.1.5"
-html5ever = "0.31"
+html5ever = "0.35"
 http = "1.3"
 http-body-util = "0.1"
 hyper = "1.6"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
-hyper-util = { version = "0.1", features = ["client", "client-legacy", "http2", "tokio"] }
+hyper-util = { version = "0.1", features = ["client-legacy", "http2", "tokio"] }
 hyper_serde = { path = "components/hyper_serde" }
 icu_locid = "1.5.0"
 icu_segmenter = "1.5.0"
 image = "0.24"
 imsz = "0.2"
-indexmap = { version = "2.9.0", features = ["std"] }
+indexmap = { version = "2.10.0", features = ["std"] }
 ipc-channel = "0.20"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 keyboard-types = "0.7"
+kurbo = "0.11"
 libc = "0.2"
 log = "0.4"
 mach2 = "0.4"
 malloc_size_of = { package = "servo_malloc_size_of", path = "components/malloc_size_of" }
 malloc_size_of_derive = "0.1"
-markup5ever = "0.16.2"
-memmap2 = "0.9.5"
+markup5ever = "0.35"
+memmap2 = "0.9.7"
 mime = "0.3.13"
 mime_guess = "2.0.5"
 mozangle = "0.5.3"
 net_traits = { path = "components/shared/net" }
 nix = "0.29"
+nom = "7.1.3"
 num-traits = "0.2"
 num_cpus = "1.17.0"
 openxr = "0.19"
@@ -120,7 +122,7 @@ rustls-pemfile = "2.0"
 rustls-pki-types = "1.12"
 layout_api = { path = "components/shared/layout" }
 script_traits = { path = "components/shared/script" }
-selectors = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
+selectors = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
 serde = "1.0.219"
 serde_bytes = "0.11"
 serde_json = "1.0"
@@ -128,25 +130,24 @@ servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo-tracing = { path = "components/servo_tracing" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
 smallbitvec = "2.6.0"
-smallvec = "1.15"
+smallvec = { version = "1.15", features = ["union", "serde"] }
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
 strum = "0.26"
 strum_macros = "0.26"
-stylo = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
-stylo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
-stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
-stylo_dom = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
-stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
+stylo = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
+stylo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
+stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
+stylo_dom = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
+stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
 surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 taffy = { version = "0.8.3", default-features = false, features = ["detailed_layout_info", "grid", "serde", "std"] }
-thin-vec = "0.2.14"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
 time = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
@@ -178,7 +179,7 @@ windows-sys = "0.59"
 wio = "0.2"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.67" }
 xi-unicode = "0.3.0"
-xml5ever = "0.22"
+xml5ever = "0.35"
 
 [profile.release]
 opt-level = 3

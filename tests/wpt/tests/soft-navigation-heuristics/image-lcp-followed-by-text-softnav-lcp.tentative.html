@@ -10,22 +10,18 @@
 <script src="resources/soft-navigation-helper.js"></script>
 </head>
 <body>
+  <a id=link>Click me!</a>
   <main id=main>
     <div>
-      <a id=link><img src="/images/lcp-256x256.png"></a>
+        <img src="/images/lcp-256x256.png">
     </div>
   </main>
   <script>
-    const link = document.getElementById("link");
     testSoftNavigation({
-      addContent: () => {
-        addTextToDivOnMain();
-      },
-      link: link,
-      test: "Test that an image LCP followup by a smaller soft navigation text LCP"
-        + " properly queues an LCP entry"});
+      testName: "Test that an image LCP followup by a smaller soft navigation text LCP"
+        + " properly queues an LCP entry",
+      addContent: () => addTextToDivOnMain(),
+    });
   </script>
 </body>
 </html>
-
-

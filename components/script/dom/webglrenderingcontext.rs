@@ -29,8 +29,8 @@ use js::typedarray::{
     ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, TypedArray,
     TypedArrayElementCreator, Uint32Array,
 };
-use net_traits::image_cache::ImageResponse;
-use pixels::{self, PixelFormat, Snapshot, SnapshotPixelFormat};
+use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
+use script_bindings::conversions::SafeToJSValConvertible;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use webrender_api::ImageKey;
@@ -49,15 +49,14 @@ use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, Float32ArrayOrUnrestrictedFloatSequence,
     HTMLCanvasElementOrOffscreenCanvas, Int32ArrayOrLongSequence,
 };
-use crate::dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
+use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::element::cors_setting_for_element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::htmlcanvaselement::{LayoutCanvasRenderingContextHelpers, utils as canvas_utils};
+use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 #[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
@@ -145,7 +144,7 @@ pub(crate) unsafe fn uniform_typed<T>(
 
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-struct TextureUnpacking(u8);
+pub(crate) struct TextureUnpacking(u8);
 
 bitflags! {
     impl TextureUnpacking: u8 {
@@ -329,6 +328,10 @@ impl WebGLRenderingContext {
         self.texture_unpacking_alignment.get()
     }
 
+    pub(crate) fn bound_draw_framebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
+        self.bound_draw_framebuffer.get()
+    }
+
     pub(crate) fn current_vao(&self) -> DomRoot<WebGLVertexArrayObjectOES> {
         self.current_vao.or_init(|| {
             DomRoot::from_ref(
@@ -507,6 +510,28 @@ impl WebGLRenderingContext {
         self.texture_packing_alignment.get()
     }
 
+    pub(crate) fn get_current_unpack_state(
+        &self,
+        premultiplied: Alpha,
+    ) -> (Option<AlphaTreatment>, YAxisTreatment) {
+        let settings = self.texture_unpacking_settings.get();
+        let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
+
+        let alpha_treatment = match (premultiplied, dest_premultiplied) {
+            (Alpha::Premultiplied, false) => Some(AlphaTreatment::Unmultiply),
+            (Alpha::NotPremultiplied, true) => Some(AlphaTreatment::Premultiply),
+            _ => None,
+        };
+
+        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
+            YAxisTreatment::Flipped
+        } else {
+            YAxisTreatment::AsIs
+        };
+
+        (alpha_treatment, y_axis_treatment)
+    }
+
     // LINEAR filtering may be forbidden when using WebGL extensions.
     // https://www.khronos.org/registry/webgl/extensions/OES_texture_float_linear/
     fn validate_filterable_texture(
@@ -552,7 +577,8 @@ impl WebGLRenderingContext {
                 IpcSharedMemory::from_bytes(&pixels),
                 size,
                 PixelFormat::RGBA8,
-                true,
+                None,
+                YAxisTreatment::AsIs,
             )),
         );
 
@@ -578,6 +604,7 @@ impl WebGLRenderingContext {
                 if !bitmap.origin_is_clean() {
                     return Err(Error::Security);
                 }
+
                 let Some(snapshot) = bitmap.bitmap_data().clone() else {
                     return Ok(None);
                 };
@@ -588,15 +615,33 @@ impl WebGLRenderingContext {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
                     SnapshotPixelFormat::BGRA => PixelFormat::BGRA8,
                 };
-                let premultiply = snapshot.alpha_mode().is_premultiplied();
-                TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
+
+                // If the TexImageSource is an ImageBitmap, the values of
+                // UNPACK_FLIP_Y, UNPACK_PREMULTIPLY_ALPHA, and
+                // UNPACK_COLORSPACE_CONVERSION are to be ignored.
+                // Set alpha and y_axis treatment parameters such that no
+                // conversions will be made.
+                // <https://registry.khronos.org/webgl/specs/latest/1.0/#6.10>
+                TexPixels::new(
+                    snapshot.to_ipc_shared_memory(),
+                    size,
+                    format,
+                    None,
+                    YAxisTreatment::AsIs,
+                )
             },
-            TexImageSource::ImageData(image_data) => TexPixels::new(
-                image_data.to_shared_memory(),
-                image_data.get_size(),
-                PixelFormat::RGBA8,
-                false,
-            ),
+            TexImageSource::ImageData(image_data) => {
+                let (alpha_treatment, y_axis_treatment) =
+                    self.get_current_unpack_state(Alpha::NotPremultiplied);
+
+                TexPixels::new(
+                    image_data.to_shared_memory(),
+                    image_data.get_size(),
+                    PixelFormat::RGBA8,
+                    alpha_treatment,
+                    y_axis_treatment,
+                )
+            },
             TexImageSource::HTMLImageElement(image) => {
                 let document = match self.canvas {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
@@ -611,48 +656,30 @@ impl WebGLRenderingContext {
                     return Err(Error::Security);
                 }
 
-                let img_url = match image.get_url() {
-                    Some(url) => url,
-                    None => return Ok(None),
+                // Vector images are not currently supported here and there are
+                // some open questions in the specification about how to handle them:
+                // See https://github.com/KhronosGroup/WebGL/issues/1503
+                let Some(snapshot) = image.get_raster_image_data() else {
+                    return Ok(None);
                 };
 
-                let window = match self.canvas {
-                    HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                        canvas.owner_window()
-                    },
-                    // This is marked as unreachable as we should have returned already
-                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => unreachable!(),
-                };
-                let cors_setting = cors_setting_for_element(image.upcast());
-
-                let img = match canvas_utils::request_image_from_cache(
-                    &window,
-                    img_url,
-                    cors_setting,
-                ) {
-                    ImageResponse::Loaded(image, _) => {
-                        match image.as_raster_image() {
-                            Some(image) => image,
-                            None => {
-                                // Vector images are not currently supported here and there are some open questions
-                                // in the specification about how to handle them:
-                                // See https://github.com/KhronosGroup/WebGL/issues/1503.
-                                warn!(
-                                    "Vector images as are not yet supported as WebGL texture source"
-                                );
-                                return Ok(None);
-                            },
-                        }
-                    },
-                    ImageResponse::PlaceholderLoaded(_, _) |
-                    ImageResponse::None |
-                    ImageResponse::MetadataLoaded(_) => return Ok(None),
+                let snapshot = snapshot.as_ipc();
+                let size = snapshot.size().cast();
+                let format: PixelFormat = match snapshot.format() {
+                    SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
+                    SnapshotPixelFormat::BGRA => PixelFormat::BGRA8,
                 };
 
-                let size = Size2D::new(img.metadata.width, img.metadata.height);
+                let (alpha_treatment, y_axis_treatment) =
+                    self.get_current_unpack_state(Alpha::NotPremultiplied);
 
-                let data = IpcSharedMemory::from_bytes(img.first_frame().bytes);
-                TexPixels::new(data, size, img.format, false)
+                TexPixels::new(
+                    snapshot.to_ipc_shared_memory(),
+                    size,
+                    format,
+                    alpha_treatment,
+                    y_axis_treatment,
+                )
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
@@ -661,18 +688,28 @@ impl WebGLRenderingContext {
                 if !canvas.origin_is_clean() {
                     return Err(Error::Security);
                 }
-                if let Some(snapshot) = canvas.get_image_data() {
-                    let snapshot = snapshot.as_ipc();
-                    let size = snapshot.size().cast();
-                    let format = match snapshot.format() {
-                        SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
-                        SnapshotPixelFormat::BGRA => PixelFormat::BGRA8,
-                    };
-                    let premultiply = snapshot.alpha_mode().is_premultiplied();
-                    TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
-                } else {
+
+                let Some(snapshot) = canvas.get_image_data() else {
                     return Ok(None);
-                }
+                };
+
+                let snapshot = snapshot.as_ipc();
+                let size = snapshot.size().cast();
+                let format = match snapshot.format() {
+                    SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
+                    SnapshotPixelFormat::BGRA => PixelFormat::BGRA8,
+                };
+
+                let (alpha_treatment, y_axis_treatment) =
+                    self.get_current_unpack_state(snapshot.alpha_mode().alpha());
+
+                TexPixels::new(
+                    snapshot.to_ipc_shared_memory(),
+                    size,
+                    format,
+                    alpha_treatment,
+                    y_axis_treatment,
+                )
             },
             TexImageSource::HTMLVideoElement(video) => {
                 if !video.origin_is_clean() {
@@ -689,8 +726,17 @@ impl WebGLRenderingContext {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
                     SnapshotPixelFormat::BGRA => PixelFormat::BGRA8,
                 };
-                let premultiply = snapshot.alpha_mode().is_premultiplied();
-                TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
+
+                let (alpha_treatment, y_axis_treatment) =
+                    self.get_current_unpack_state(snapshot.alpha_mode().alpha());
+
+                TexPixels::new(
+                    snapshot.to_ipc_shared_memory(),
+                    size,
+                    format,
+                    alpha_treatment,
+                    y_axis_treatment,
+                )
             },
         }))
     }
@@ -769,15 +815,6 @@ impl WebGLRenderingContext {
             )
         );
 
-        let settings = self.texture_unpacking_settings.get();
-        let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
-
-        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
-            YAxisTreatment::Flipped
-        } else {
-            YAxisTreatment::AsIs
-        };
-
         let internal_format = self
             .extension_manager
             .get_effective_tex_internal_format(internal_format, data_type.as_gl_constant());
@@ -788,12 +825,6 @@ impl WebGLRenderingContext {
 
         match source {
             TexSource::Pixels(pixels) => {
-                let alpha_treatment = match (pixels.premultiplied, dest_premultiplied) {
-                    (true, false) => Some(AlphaTreatment::Unmultiply),
-                    (false, true) => Some(AlphaTreatment::Premultiply),
-                    _ => None,
-                };
-
                 // TODO(emilio): convert colorspace if requested.
                 self.send_command(WebGLCommand::TexImage2D {
                     target: target.as_gl_constant(),
@@ -804,8 +835,8 @@ impl WebGLRenderingContext {
                     data_type,
                     effective_data_type,
                     unpacking_alignment,
-                    alpha_treatment,
-                    y_axis_treatment,
+                    alpha_treatment: pixels.alpha_treatment,
+                    y_axis_treatment: pixels.y_axis_treatment,
                     pixel_format: pixels.pixel_format,
                     data: pixels.data.into(),
                 });
@@ -873,21 +904,6 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        let settings = self.texture_unpacking_settings.get();
-        let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
-
-        let alpha_treatment = match (pixels.premultiplied, dest_premultiplied) {
-            (true, false) => Some(AlphaTreatment::Unmultiply),
-            (false, true) => Some(AlphaTreatment::Premultiply),
-            _ => None,
-        };
-
-        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
-            YAxisTreatment::Flipped
-        } else {
-            YAxisTreatment::AsIs
-        };
-
         let effective_data_type = self
             .extension_manager
             .effective_type(data_type.as_gl_constant());
@@ -903,8 +919,8 @@ impl WebGLRenderingContext {
             data_type,
             effective_data_type,
             unpacking_alignment,
-            alpha_treatment,
-            y_axis_treatment,
+            alpha_treatment: pixels.alpha_treatment,
+            y_axis_treatment: pixels.y_axis_treatment,
             pixel_format: pixels.pixel_format,
             data: pixels.data.into(),
         });
@@ -1581,9 +1597,7 @@ impl WebGLRenderingContext {
         }
 
         let size = Size2D::new(width, height);
-        let buff = IpcSharedMemory::from_bytes(data);
-        let pixels = TexPixels::from_array(buff, size);
-        let data = pixels.data;
+        let data = IpcSharedMemory::from_bytes(data);
 
         handle_potential_webgl_error!(
             self,
@@ -1646,9 +1660,7 @@ impl WebGLRenderingContext {
             Err(_) => return,
         };
 
-        let buff = IpcSharedMemory::from_bytes(data);
-        let pixels = TexPixels::from_array(buff, Size2D::new(width, height));
-        let data = pixels.data;
+        let data = IpcSharedMemory::from_bytes(data);
 
         self.send_command(WebGLCommand::CompressedTexSubImage2D {
             target: target.as_gl_constant(),
@@ -1673,6 +1685,8 @@ impl WebGLRenderingContext {
                 constants::BOOL |
                 constants::INT |
                 constants::SAMPLER_2D |
+                WebGL2RenderingContextConstants::SAMPLER_2D_ARRAY |
+                WebGL2RenderingContextConstants::SAMPLER_3D |
                 constants::SAMPLER_CUBE => {},
                 _ => return Err(InvalidOperation),
             }
@@ -1680,7 +1694,10 @@ impl WebGLRenderingContext {
             let val = self.uniform_vec_section_int(val, src_offset, src_length, 1, location)?;
 
             match location.type_() {
-                constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+                constants::SAMPLER_2D |
+                constants::SAMPLER_CUBE |
+                WebGL2RenderingContextConstants::SAMPLER_2D_ARRAY |
+                WebGL2RenderingContextConstants::SAMPLER_3D => {
                     for &v in val
                         .iter()
                         .take(cmp::min(location.size().unwrap_or(1) as usize, val.len()))
@@ -1967,6 +1984,10 @@ impl CanvasContext for WebGLRenderingContext {
         }
     }
 
+    fn reset_bitmap(&self) {
+        warn!("The WebGLRenderingContext 'reset_bitmap' is not implemented yet");
+    }
+
     // Used by HTMLCanvasElement.toDataURL
     //
     // This emits errors quite liberally, but the spec says that this operation
@@ -2108,48 +2129,72 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
 
         match parameter {
-            constants::ARRAY_BUFFER_BINDING => unsafe {
-                self.bound_buffer_array.get().to_jsval(*cx, retval);
+            constants::ARRAY_BUFFER_BINDING => {
+                self.bound_buffer_array.get().safe_to_jsval(cx, retval);
                 return;
             },
-            constants::CURRENT_PROGRAM => unsafe {
-                self.current_program.get().to_jsval(*cx, retval);
+            constants::CURRENT_PROGRAM => {
+                self.current_program.get().safe_to_jsval(cx, retval);
                 return;
             },
-            constants::ELEMENT_ARRAY_BUFFER_BINDING => unsafe {
+            constants::ELEMENT_ARRAY_BUFFER_BINDING => {
                 let buffer = self.current_vao().element_array_buffer().get();
-                buffer.to_jsval(*cx, retval);
+                buffer.safe_to_jsval(cx, retval);
                 return;
             },
-            constants::FRAMEBUFFER_BINDING => unsafe {
-                self.bound_draw_framebuffer.get().to_jsval(*cx, retval);
+            constants::FRAMEBUFFER_BINDING => {
+                self.bound_draw_framebuffer.get().safe_to_jsval(cx, retval);
                 return;
             },
-            constants::RENDERBUFFER_BINDING => unsafe {
-                self.bound_renderbuffer.get().to_jsval(*cx, retval);
+            constants::RENDERBUFFER_BINDING => {
+                self.bound_renderbuffer.get().safe_to_jsval(cx, retval);
                 return;
             },
-            constants::TEXTURE_BINDING_2D => unsafe {
+            constants::TEXTURE_BINDING_2D => {
                 let texture = self
                     .textures
                     .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
                     .unwrap()
                     .get();
-                texture.to_jsval(*cx, retval);
+                texture.safe_to_jsval(cx, retval);
                 return;
             },
-            constants::TEXTURE_BINDING_CUBE_MAP => unsafe {
+            WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY => {
+                let texture = self
+                    .textures
+                    .active_texture_slot(
+                        WebGL2RenderingContextConstants::TEXTURE_2D_ARRAY,
+                        self.webgl_version(),
+                    )
+                    .unwrap()
+                    .get();
+                texture.safe_to_jsval(cx, retval);
+                return;
+            },
+            WebGL2RenderingContextConstants::TEXTURE_BINDING_3D => {
+                let texture = self
+                    .textures
+                    .active_texture_slot(
+                        WebGL2RenderingContextConstants::TEXTURE_3D,
+                        self.webgl_version(),
+                    )
+                    .unwrap()
+                    .get();
+                texture.safe_to_jsval(cx, retval);
+                return;
+            },
+            constants::TEXTURE_BINDING_CUBE_MAP => {
                 let texture = self
                     .textures
                     .active_texture_slot(constants::TEXTURE_CUBE_MAP, self.webgl_version())
                     .unwrap()
                     .get();
-                texture.to_jsval(*cx, retval);
+                texture.safe_to_jsval(cx, retval);
                 return;
             },
-            OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES => unsafe {
+            OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES => {
                 let vao = self.current_vao.get().filter(|vao| vao.id().is_some());
-                vao.to_jsval(*cx, retval);
+                vao.safe_to_jsval(cx, retval);
                 return;
             },
             // In readPixels we currently support RGBA/UBYTE only.  If
@@ -2179,16 +2224,16 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     .unwrap();
                 return retval.set(ObjectValue(rval.get()));
             },
-            constants::VERSION => unsafe {
-                "WebGL 1.0".to_jsval(*cx, retval);
+            constants::VERSION => {
+                "WebGL 1.0".safe_to_jsval(cx, retval);
                 return;
             },
-            constants::RENDERER | constants::VENDOR => unsafe {
-                "Mozilla/Servo".to_jsval(*cx, retval);
+            constants::RENDERER | constants::VENDOR => {
+                "Mozilla/Servo".safe_to_jsval(cx, retval);
                 return;
             },
-            constants::SHADING_LANGUAGE_VERSION => unsafe {
-                "WebGL GLSL ES 1.0".to_jsval(*cx, retval);
+            constants::SHADING_LANGUAGE_VERSION => {
+                "WebGL GLSL ES 1.0".safe_to_jsval(cx, retval);
                 return;
             },
             constants::UNPACK_FLIP_Y_WEBGL => {
@@ -2266,10 +2311,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 self.send_command(WebGLCommand::GetParameterBool(param, sender));
                 retval.set(BooleanValue(receiver.recv().unwrap()))
             },
-            Parameter::Bool4(param) => unsafe {
+            Parameter::Bool4(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterBool4(param, sender));
-                receiver.recv().unwrap().to_jsval(*cx, retval);
+                receiver.recv().unwrap().safe_to_jsval(cx, retval);
             },
             Parameter::Int(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
@@ -3211,7 +3256,6 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         handle_potential_webgl_error!(self, program.get_attrib_location(name), -1)
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn GetFramebufferAttachmentParameter(
         &self,
@@ -3308,12 +3352,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             let fb = self.bound_draw_framebuffer.get().unwrap();
             if let Some(webgl_attachment) = fb.attachment(attachment) {
                 match webgl_attachment {
-                    WebGLFramebufferAttachmentRoot::Renderbuffer(rb) => unsafe {
-                        rb.to_jsval(*cx, retval);
+                    WebGLFramebufferAttachmentRoot::Renderbuffer(rb) => {
+                        rb.safe_to_jsval(cx, retval);
                         return;
                     },
-                    WebGLFramebufferAttachmentRoot::Texture(texture) => unsafe {
-                        texture.to_jsval(*cx, retval);
+                    WebGLFramebufferAttachmentRoot::Texture(texture) => {
+                        texture.safe_to_jsval(cx, retval);
                         return;
                     },
                 }
@@ -3596,9 +3640,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     retval.set(BooleanValue(data.normalized))
                 },
                 constants::VERTEX_ATTRIB_ARRAY_STRIDE => retval.set(Int32Value(data.stride as i32)),
-                constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => unsafe {
+                constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => {
                     if let Some(buffer) = data.buffer() {
-                        buffer.to_jsval(*cx, retval.reborrow());
+                        buffer.safe_to_jsval(cx, retval.reborrow());
                     } else {
                         retval.set(NullValue());
                     }
@@ -4025,7 +4069,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.with_location(location, |location| {
             match location.type_() {
                 constants::BOOL | constants::INT => {},
-                constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+                constants::SAMPLER_2D |
+                WebGL2RenderingContextConstants::SAMPLER_3D |
+                WebGL2RenderingContextConstants::SAMPLER_2D_ARRAY |
+                constants::SAMPLER_CUBE => {
                     if val < 0 || val as u32 >= self.limits.max_combined_texture_image_units {
                         return Err(InvalidValue);
                     }
@@ -4217,16 +4264,20 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 triple,
                 WebGLCommand::GetUniformBool,
             ))),
-            constants::BOOL_VEC2 => unsafe {
-                uniform_get(triple, WebGLCommand::GetUniformBool2).to_jsval(*cx, rval);
+            constants::BOOL_VEC2 => {
+                uniform_get(triple, WebGLCommand::GetUniformBool2).safe_to_jsval(cx, rval)
             },
-            constants::BOOL_VEC3 => unsafe {
-                uniform_get(triple, WebGLCommand::GetUniformBool3).to_jsval(*cx, rval);
+            constants::BOOL_VEC3 => {
+                uniform_get(triple, WebGLCommand::GetUniformBool3).safe_to_jsval(cx, rval)
             },
-            constants::BOOL_VEC4 => unsafe {
-                uniform_get(triple, WebGLCommand::GetUniformBool4).to_jsval(*cx, rval);
+            constants::BOOL_VEC4 => {
+                uniform_get(triple, WebGLCommand::GetUniformBool4).safe_to_jsval(cx, rval)
             },
-            constants::INT | constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+            constants::INT |
+            constants::SAMPLER_2D |
+            constants::SAMPLER_CUBE |
+            WebGL2RenderingContextConstants::SAMPLER_2D_ARRAY |
+            WebGL2RenderingContextConstants::SAMPLER_3D => {
                 rval.set(Int32Value(uniform_get(triple, WebGLCommand::GetUniformInt)))
             },
             constants::INT_VEC2 => unsafe {
@@ -4533,6 +4584,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
         let size = Size2D::new(width, height);
 
+        let (alpha_treatment, y_axis_treatment) =
+            self.get_current_unpack_state(Alpha::NotPremultiplied);
+
         self.tex_image_2d(
             &texture,
             target,
@@ -4543,7 +4597,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             border,
             unpacking_alignment,
             size,
-            TexSource::Pixels(TexPixels::from_array(buff, size)),
+            TexSource::Pixels(TexPixels::from_array(
+                buff,
+                size,
+                alpha_treatment,
+                y_axis_treatment,
+            )),
         );
 
         Ok(())
@@ -4703,6 +4762,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             };
         }
 
+        let (alpha_treatment, y_axis_treatment) =
+            self.get_current_unpack_state(Alpha::NotPremultiplied);
+
         self.tex_sub_image_2d(
             texture,
             target,
@@ -4712,7 +4774,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             format,
             data_type,
             unpacking_alignment,
-            TexPixels::from_array(buff, Size2D::new(width, height)),
+            TexPixels::from_array(
+                buff,
+                Size2D::new(width, height),
+                alpha_treatment,
+                y_axis_treatment,
+            ),
         );
         Ok(())
     }
@@ -5056,7 +5123,8 @@ pub(crate) struct TexPixels {
     data: IpcSharedMemory,
     size: Size2D<u32>,
     pixel_format: Option<PixelFormat>,
-    premultiplied: bool,
+    alpha_treatment: Option<AlphaTreatment>,
+    y_axis_treatment: YAxisTreatment,
 }
 
 impl TexPixels {
@@ -5064,27 +5132,51 @@ impl TexPixels {
         data: IpcSharedMemory,
         size: Size2D<u32>,
         pixel_format: PixelFormat,
-        premultiplied: bool,
+        alpha_treatment: Option<AlphaTreatment>,
+        y_axis_treatment: YAxisTreatment,
     ) -> Self {
         Self {
             data,
             size,
             pixel_format: Some(pixel_format),
-            premultiplied,
+            alpha_treatment,
+            y_axis_treatment,
         }
     }
 
-    pub(crate) fn from_array(data: IpcSharedMemory, size: Size2D<u32>) -> Self {
+    pub(crate) fn from_array(
+        data: IpcSharedMemory,
+        size: Size2D<u32>,
+        alpha_treatment: Option<AlphaTreatment>,
+        y_axis_treatment: YAxisTreatment,
+    ) -> Self {
         Self {
             data,
             size,
             pixel_format: None,
-            premultiplied: false,
+            alpha_treatment,
+            y_axis_treatment,
         }
     }
 
     pub(crate) fn size(&self) -> Size2D<u32> {
         self.size
+    }
+
+    pub(crate) fn pixel_format(&self) -> Option<PixelFormat> {
+        self.pixel_format
+    }
+
+    pub(crate) fn alpha_treatment(&self) -> Option<AlphaTreatment> {
+        self.alpha_treatment
+    }
+
+    pub(crate) fn y_axis_treatment(&self) -> YAxisTreatment {
+        self.y_axis_treatment
+    }
+
+    pub(crate) fn into_shared_memory(self) -> IpcSharedMemory {
+        self.data
     }
 }
 

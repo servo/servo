@@ -13,14 +13,6 @@
 //
 // MLOperand logicalNot(MLOperand a);
 
-
-const getLogicalNotPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {uint8: 0};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const logicalNotTests = [
   {
     'name': 'logicalNot uint8 0D scalar',
@@ -214,7 +206,7 @@ const logicalNotTests = [
 if (navigator.ml) {
   logicalNotTests.forEach((test) => {
     webnn_conformance_test(
-        buildAndExecuteGraph, getLogicalNotPrecisionTolerance, test,
+        buildAndExecuteGraph, getZeroULPTolerance, test,
         /*cast_to_supported_type=*/true);
   });
 } else {

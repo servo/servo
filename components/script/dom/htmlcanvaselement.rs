@@ -13,16 +13,13 @@ use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use image::codecs::jpeg::JpegEncoder;
-use image::codecs::png::PngEncoder;
-use image::codecs::webp::WebPEncoder;
-use image::{ColorType, ImageEncoder, ImageError};
 #[cfg(feature = "webgpu")]
 use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
-use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::{EncodedImageType, Snapshot};
+use script_bindings::weakref::WeakRef;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;
@@ -54,6 +51,7 @@ use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 #[cfg(not(feature = "webgpu"))]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::imagebitmaprenderingcontext::ImageBitmapRenderingContext;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::node::{Node, NodeTraits};
@@ -68,41 +66,6 @@ use crate::script_runtime::{CanGc, JSContext};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
-
-#[derive(PartialEq)]
-enum EncodedImageType {
-    Png,
-    Jpeg,
-    Webp,
-}
-
-impl From<DOMString> for EncodedImageType {
-    // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
-    // User agents must support PNG ("image/png"). User agents may support other types.
-    // If the user agent does not support the requested type, then it must create the file using the PNG format.
-    // Anything different than image/jpeg or image/webp is thus treated as PNG.
-    fn from(mime_type: DOMString) -> Self {
-        let mime = mime_type.to_string().to_lowercase();
-        if mime == "image/jpeg" {
-            Self::Jpeg
-        } else if mime == "image/webp" {
-            Self::Webp
-        } else {
-            Self::Png
-        }
-    }
-}
-
-impl EncodedImageType {
-    fn as_mime_type(&self) -> String {
-        match self {
-            Self::Png => "image/png",
-            Self::Jpeg => "image/jpeg",
-            Self::Webp => "image/webp",
-        }
-        .to_owned()
-    }
-}
 
 /// <https://html.spec.whatwg.org/multipage/#htmlcanvaselement>
 #[dom_struct]
@@ -202,6 +165,9 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                 Some(RenderingContext::Context2d(context)) => {
                     context.to_layout().canvas_data_source()
                 },
+                Some(RenderingContext::BitmapRenderer(context)) => {
+                    context.to_layout().canvas_data_source()
+                },
                 Some(RenderingContext::WebGL(context)) => context.to_layout().canvas_data_source(),
                 Some(RenderingContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
                 #[cfg(feature = "webgpu")]
@@ -242,6 +208,37 @@ impl HTMLCanvasElement {
         let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size, can_gc);
         *self.context_mode.borrow_mut() =
             Some(RenderingContext::Context2d(Dom::from_ref(&*context)));
+        Some(context)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#canvas-context-bitmaprenderer>
+    fn get_or_init_bitmaprenderer_context(
+        &self,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<ImageBitmapRenderingContext>> {
+        // Return the same object as was returned the last time the method was
+        // invoked with this same first argument.
+        if let Some(ctx) = self.context() {
+            return match *ctx {
+                RenderingContext::BitmapRenderer(ref ctx) => Some(DomRoot::from_ref(ctx)),
+                _ => None,
+            };
+        }
+
+        // Step 1. Let context be the result of running the
+        // ImageBitmapRenderingContext creation algorithm given this and
+        // options.
+        let context = ImageBitmapRenderingContext::new(
+            &self.owner_global(),
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self)),
+            can_gc,
+        );
+
+        // Step 2. Set this's context mode to bitmaprenderer.
+        *self.context_mode.borrow_mut() =
+            Some(RenderingContext::BitmapRenderer(Dom::from_ref(&*context)));
+
+        // Step 3. Return context.
         Some(context)
     }
 
@@ -384,57 +381,6 @@ impl HTMLCanvasElement {
             None
         }
     }
-
-    fn encode_for_mime_type<W: std::io::Write>(
-        &self,
-        image_type: &EncodedImageType,
-        quality: Option<f64>,
-        snapshot: &Snapshot,
-        encoder: &mut W,
-    ) -> Result<(), ImageError> {
-        // We can't use self.Width() or self.Height() here, since the size of the canvas
-        // may have changed since the snapshot was created. Truncating the dimensions to a
-        // u32 can't panic, since the data comes from a canvas which is always smaller than
-        // u32::MAX.
-        let canvas_data = snapshot.data();
-        let width = snapshot.size().width;
-        let height = snapshot.size().height;
-
-        match image_type {
-            EncodedImageType::Png => {
-                // FIXME(nox): https://github.com/image-rs/image-png/issues/86
-                // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-                PngEncoder::new(encoder).write_image(canvas_data, width, height, ColorType::Rgba8)
-            },
-            EncodedImageType::Jpeg => {
-                let jpeg_encoder = if let Some(quality) = quality {
-                    // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
-                    // expects it to be in [1..100]
-                    if (0.0..=1.0).contains(&quality) {
-                        JpegEncoder::new_with_quality(
-                            encoder,
-                            (quality * 100.0).round().clamp(1.0, 100.0) as u8,
-                        )
-                    } else {
-                        JpegEncoder::new(encoder)
-                    }
-                } else {
-                    JpegEncoder::new(encoder)
-                };
-
-                jpeg_encoder.write_image(canvas_data, width, height, ColorType::Rgba8)
-            },
-            EncodedImageType::Webp => {
-                // No quality support because of https://github.com/image-rs/image/issues/1984
-                WebPEncoder::new_lossless(encoder).write_image(
-                    canvas_data,
-                    width,
-                    height,
-                    ColorType::Rgba8,
-                )
-            },
-        }
-    }
 }
 
 impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
@@ -499,6 +445,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             "2d" => self
                 .get_or_init_2d_context(can_gc)
                 .map(RootedRenderingContext::CanvasRenderingContext2D),
+            "bitmaprenderer" => self
+                .get_or_init_bitmaprenderer_context(can_gc)
+                .map(RootedRenderingContext::ImageBitmapRenderingContext),
             "webgl" | "experimental-webgl" => self
                 .get_or_init_webgl_context(cx, options, can_gc)
                 .map(RootedRenderingContext::WebGLRenderingContext),
@@ -540,19 +489,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             return Ok(USVString("data:,".into()));
         };
 
-        let image_type = EncodedImageType::from(mime_type);
-        snapshot.transform(
-            if image_type == EncodedImageType::Jpeg {
-                SnapshotAlphaMode::AsOpaque {
-                    premultiplied: true,
-                }
-            } else {
-                SnapshotAlphaMode::Transparent {
-                    premultiplied: false,
-                }
-            },
-            SnapshotPixelFormat::RGBA,
-        );
+        let image_type = EncodedImageType::from(mime_type.to_string());
+
         let mut url = format!("data:{};base64,", image_type.as_mime_type());
 
         let mut encoder = base64::write::EncoderStringWriter::from_consumer(
@@ -560,13 +498,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             &base64::engine::general_purpose::STANDARD,
         );
 
-        if self
-            .encode_for_mime_type(
-                &image_type,
-                Self::maybe_quality(quality),
-                &snapshot,
-                &mut encoder,
-            )
+        if snapshot
+            .encode_for_mime_type(&image_type, Self::maybe_quality(quality), &mut encoder)
             .is_err()
         {
             // Step 4. If file is null, then return "data:,".
@@ -611,7 +544,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             .borrow_mut()
             .insert(callback_id, callback);
         let quality = Self::maybe_quality(quality);
-        let image_type = EncodedImageType::from(mime_type);
+        let image_type = EncodedImageType::from(mime_type.to_string());
+
         self.global()
             .task_manager()
             .canvas_blob_task_source()
@@ -626,11 +560,6 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                     return;
                 };
 
-                snapshot.transform(
-                    SnapshotAlphaMode::Transparent { premultiplied: false },
-                    SnapshotPixelFormat::RGBA
-                );
-
                 // Step 4.1: If result is non-null, then set result to a serialization of
                 // result as a file with type and quality if given.
                 // Step 4.2: Queue an element task on the canvas blob serialization task
@@ -638,7 +567,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 let mut encoded: Vec<u8> = vec![];
                 let blob_impl;
                 let blob;
-                let result = match this.encode_for_mime_type(&image_type, quality, &snapshot, &mut encoded) {
+                let result = match snapshot.encode_for_mime_type(&image_type, quality, &mut encoded) {
                    Ok(..) => {
                        // Step 4.2.1: If result is non-null, then set result to a new Blob
                        // object, created in the relevant realm of this canvas element,
@@ -675,7 +604,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             None,
             self.Width().into(),
             self.Height().into(),
-            Some(&Dom::from_ref(self)),
+            Some(WeakRef::new(self)),
             can_gc,
         );
 
@@ -745,32 +674,6 @@ impl Convert<GLContextAttributes> for WebGLContextAttributes {
             antialias: self.antialias,
             premultiplied_alpha: self.premultipliedAlpha,
             preserve_drawing_buffer: self.preserveDrawingBuffer,
-        }
-    }
-}
-
-pub(crate) mod utils {
-    use net_traits::image_cache::ImageResponse;
-    use net_traits::request::CorsSettings;
-    use servo_url::ServoUrl;
-
-    use crate::dom::window::Window;
-
-    pub(crate) fn request_image_from_cache(
-        window: &Window,
-        url: ServoUrl,
-        cors_setting: Option<CorsSettings>,
-    ) -> ImageResponse {
-        let image_cache = window.image_cache();
-        let result = image_cache.get_image(
-            url.clone(),
-            window.origin().immutable().clone(),
-            cors_setting,
-        );
-
-        match result {
-            Some(image) => ImageResponse::Loaded(image, url),
-            None => ImageResponse::None,
         }
     }
 }

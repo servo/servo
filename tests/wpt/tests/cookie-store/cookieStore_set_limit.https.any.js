@@ -61,6 +61,7 @@ for (const scenario of scenarios) {
       await cookieStore.set(scenario.cookie.name, scenario.cookie.value);
       value = (await cookieStore.get(scenario.cookie.name))?.value;
       assert_equals(value, scenario.expected.value);
+      await cookieStore.delete({ name: scenario.cookie.name });
     } catch(e) {
       assert_equals(scenario.expected, undefined);
     }

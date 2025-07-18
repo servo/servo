@@ -28,6 +28,8 @@ pub enum Transferrable {
     ImageBitmap,
     /// The `MessagePort` interface.
     MessagePort,
+    /// The `OffscreenCanvas` interface.
+    OffscreenCanvas,
     /// The `ReadableStream` interface.
     ReadableStream,
     /// The `WritableStream` interface.
@@ -184,4 +186,13 @@ impl MessagePortImpl {
         // Step 1
         self.state = MessagePortState::Detached;
     }
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A struct supporting the transfer of OffscreenCanvas, which loosely
+/// corresponds to the dataHolder in
+/// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:offscreencanvas-16>
+pub struct TransferableOffscreenCanvas {
+    pub width: u64,
+    pub height: u64,
 }

@@ -209,6 +209,11 @@
     css-color-4-rgb-5: {string: 'rgb(0, 0, 0 /)'}
     css-color-4-hsl-4: {string: 'hsl(0 100% 50% /)'}
     css-color-4-hsl-5: {string: 'hsl(0, 100%, 50% /)'}
+    # Malformed functions.
+    css-color-4-rgb-6: {string: 'rgb(from #ffffff r g b) 100%'}
+    css-color-4-rgb-7: {string: 'rgb(from #ffffff r g b) currentColor'}
+    css-color-4-hsl-6: {string: 'hsl(from #ffffff h s l) red'}
+    css-color-4-hsl-7: {string: 'hsl(from #ffffff h s l) /'}
 
 # Implemented as a negative test because we don't know what color it's meant to
 # be.
@@ -1859,6 +1864,30 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,48 == 0,255,0,255;
     @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.norepeat.outside_arc
+  images:
+  - red-16x16.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = pattern;
+    ctx.beginPath();
+    ctx.arc(0, 0, 50, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 16, 16);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 20,1 == 0,255,0,255;
+    @assert pixel 1,20 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
   expected: green
   variants: *load-image-variant-definition
 

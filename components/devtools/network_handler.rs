@@ -9,8 +9,8 @@ use devtools_traits::NetworkEvent;
 use serde::Serialize;
 
 use crate::actor::ActorRegistry;
-use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::network_event::NetworkEventActor;
+use crate::actors::watcher::WatcherActor;
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 
 #[derive(Clone, Serialize)]
@@ -26,42 +26,58 @@ pub(crate) fn handle_network_event(
     netevent_actor_name: String,
     mut connections: Vec<TcpStream>,
     network_event: NetworkEvent,
-    browsing_context_actor_name: String,
 ) {
     let mut actors = actors.lock().unwrap();
+    let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
+    let watcher_name = actor.watcher_name.clone();
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
-            // Scope mutable borrow
-            let event_actor = {
-                let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
-                actor.add_request(httprequest);
-                actor.event_actor()
-            };
+            actor.add_request(httprequest);
 
-            let browsing_context_actor =
-                actors.find::<BrowsingContextActor>(&browsing_context_actor_name);
+            let event_actor = actor.event_actor();
+            let resource_updates = actor.resource_updates();
+            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
+
             for stream in &mut connections {
-                browsing_context_actor.resource_array(
+                watcher_actor.resource_array(
                     event_actor.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Available,
                     stream,
                 );
+
+                // Also push initial resource update (request headers, cookies)
+                watcher_actor.resource_array(
+                    resource_updates.clone(),
+                    "network-event".to_string(),
+                    ResourceArrayType::Updated,
+                    stream,
+                );
+            }
+        },
+
+        NetworkEvent::HttpRequestUpdate(httprequest) => {
+            actor.add_request(httprequest);
+            let resource = actor.resource_updates();
+            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
+
+            for stream in &mut connections {
+                watcher_actor.resource_array(
+                    resource.clone(),
+                    "network-event".to_string(),
+                    ResourceArrayType::Updated,
+                    stream,
+                );
             }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
-            // Scope mutable borrow
-            let resource = {
-                let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
-                // Store the response information in the actor
-                actor.add_response(httpresponse);
-                actor.resource_updates()
-            };
+            // Store the response information in the actor
+            actor.add_response(httpresponse);
+            let resource = actor.resource_updates();
+            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
 
-            let browsing_context_actor =
-                actors.find::<BrowsingContextActor>(&browsing_context_actor_name);
             for stream in &mut connections {
-                browsing_context_actor.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
