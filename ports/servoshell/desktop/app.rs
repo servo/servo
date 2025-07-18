@@ -377,13 +377,10 @@ impl App {
                 WebDriverCommandMsg::CloseWebView(webview_id) => {
                     running_state.close_webview(webview_id);
                 },
-                WebDriverCommandMsg::FocusWebView(webview_id) => {
+                WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.focus();
+                        webview.focus_from_webdriver(response_sender);
                     }
-
-                    // TODO: send a response to the WebDriver
-                    // so it knows when the focus has finished.
                 },
                 WebDriverCommandMsg::GetWindowRect(_webview_id, response_sender) => {
                     let window = self
