@@ -134,30 +134,48 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn process_canvas_2d_message(&mut self, message: Canvas2dMsg, canvas_id: CanvasId) {
         match message {
-            Canvas2dMsg::FillText(text, x, y, max_width, style, is_rtl) => {
+            Canvas2dMsg::FillText(text, x, y, max_width, style, is_rtl, transform) => {
+                self.canvas(canvas_id).set_transform(&transform);
                 self.canvas(canvas_id).set_fill_style(style);
                 self.canvas(canvas_id)
                     .fill_text(text, x, y, max_width, is_rtl);
             },
-            Canvas2dMsg::FillRect(rect, style) => {
+            Canvas2dMsg::FillRect(rect, style, transform) => {
+                self.canvas(canvas_id).set_transform(&transform);
                 self.canvas(canvas_id).set_fill_style(style);
                 self.canvas(canvas_id).fill_rect(&rect);
             },
-            Canvas2dMsg::StrokeRect(rect, style) => {
+            Canvas2dMsg::StrokeRect(rect, style, transform) => {
+                self.canvas(canvas_id).set_transform(&transform);
                 self.canvas(canvas_id).set_stroke_style(style);
                 self.canvas(canvas_id).stroke_rect(&rect);
             },
-            Canvas2dMsg::ClearRect(ref rect) => self.canvas(canvas_id).clear_rect(rect),
-            Canvas2dMsg::FillPath(style, path) => {
+            Canvas2dMsg::ClearRect(ref rect, transform) => {
+                self.canvas(canvas_id).set_transform(&transform);
+                self.canvas(canvas_id).clear_rect(rect)
+            },
+            Canvas2dMsg::FillPath(style, path, transform) => {
+                self.canvas(canvas_id).set_transform(&transform);
                 self.canvas(canvas_id).set_fill_style(style);
                 self.canvas(canvas_id).fill_path(&path);
             },
-            Canvas2dMsg::StrokePath(style, path) => {
+            Canvas2dMsg::StrokePath(style, path, transform) => {
+                self.canvas(canvas_id).set_transform(&transform);
                 self.canvas(canvas_id).set_stroke_style(style);
                 self.canvas(canvas_id).stroke_path(&path);
             },
-            Canvas2dMsg::ClipPath(path) => self.canvas(canvas_id).clip_path(&path),
-            Canvas2dMsg::DrawImage(snapshot, dest_rect, source_rect, smoothing_enabled) => {
+            Canvas2dMsg::ClipPath(path, transform) => {
+                self.canvas(canvas_id).set_transform(&transform);
+                self.canvas(canvas_id).clip_path(&path);
+            },
+            Canvas2dMsg::DrawImage(
+                snapshot,
+                dest_rect,
+                source_rect,
+                smoothing_enabled,
+                transform,
+            ) => {
+                self.canvas(canvas_id).set_transform(&transform);
                 self.canvas(canvas_id).draw_image(
                     snapshot.to_owned(),
                     dest_rect,
@@ -165,16 +183,24 @@ impl<'a> CanvasPaintThread<'a> {
                     smoothing_enabled,
                 )
             },
-            Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => self
-                .canvas(canvas_id)
-                .draw_image(Snapshot::cleared(image_size), dest_rect, source_rect, false),
+            Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect, transform) => {
+                self.canvas(canvas_id).set_transform(&transform);
+                self.canvas(canvas_id).draw_image(
+                    Snapshot::cleared(image_size),
+                    dest_rect,
+                    source_rect,
+                    false,
+                )
+            },
             Canvas2dMsg::DrawImageInOther(
                 other_canvas_id,
                 image_size,
                 dest_rect,
                 source_rect,
                 smoothing,
+                transform,
             ) => {
+                self.canvas(other_canvas_id).set_transform(&transform);
                 let snapshot = self
                     .canvas(canvas_id)
                     .read_pixels(Some(source_rect.to_u32()), Some(image_size));
@@ -199,7 +225,6 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetLineDashOffset(offset) => {
                 self.canvas(canvas_id).set_line_dash_offset(offset)
             },
-            Canvas2dMsg::SetTransform(ref matrix) => self.canvas(canvas_id).set_transform(matrix),
             Canvas2dMsg::SetGlobalAlpha(alpha) => self.canvas(canvas_id).set_global_alpha(alpha),
             Canvas2dMsg::SetGlobalComposition(op) => {
                 self.canvas(canvas_id).set_global_composition(op)
