@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use crossbeam_channel::{self, Receiver, Sender, unbounded};
-use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::debug;
 use net_traits::clientstorage::mixed_msg::ClientStorageMixedMsg;
@@ -70,9 +70,11 @@ impl ClientStorageThread {
         match msg {
             ClientStorageThreadMsg::TestConstructor {
                 child_to_parent_receiver,
+                parent_to_child_sender,
                 sender,
             } => {
-                let id = self.recv_test_constructor(child_to_parent_receiver);
+                let id =
+                    self.recv_test_constructor(child_to_parent_receiver, parent_to_child_sender);
                 let _ = sender.send(id);
             },
 
@@ -90,6 +92,7 @@ impl ClientStorageThread {
     fn recv_test_constructor(
         self: &Rc<Self>,
         child_to_parent_receiver: IpcReceiver<ClientStorageRoutedMsg>,
+        parent_to_child_sender: IpcSender<ClientStorageRoutedMsg>,
     ) -> u64 {
         let msg_sender = self.msg_sender.clone();
 
@@ -106,7 +109,7 @@ impl ClientStorageThread {
 
         let actor = ClientStorageTestParent::new();
 
-        actor.bind(Rc::clone(self), id);
+        actor.bind(Rc::clone(self), parent_to_child_sender, id);
 
         id
     }

@@ -14,9 +14,9 @@ fn test_sync_ping() {
 
     let proxy = ClientStorageProxy::new(thread);
 
-    let (ipc_sender, id) = proxy.send_test_constructor();
+    let child = ClientStorageTestChild::new();
 
-    let child = ClientStorageTestChild::new(ipc_sender, id);
+    proxy.send_test_constructor(&child);
 
     child.send_sync_ping();
 

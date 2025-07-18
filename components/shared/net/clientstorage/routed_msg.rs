@@ -11,3 +11,9 @@ pub struct ClientStorageRoutedMsg {
     pub id: u64,
     pub data: ClientStorageMixedMsg,
 }
+
+impl ClientStorageRoutedMsg {
+    pub fn is_sync_reply(&self) -> bool {
+        self.data.is_sync_reply()
+    }
+}

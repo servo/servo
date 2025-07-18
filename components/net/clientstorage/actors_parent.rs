@@ -5,7 +5,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use ipc_channel::ipc::IpcSender;
 use log::debug;
+use net_traits::clientstorage::mixed_msg::ClientStorageMixedMsg;
+use net_traits::clientstorage::routed_msg::ClientStorageRoutedMsg;
 use net_traits::clientstorage::test_msg::ClientStorageTestMsg;
 
 use super::parent::ClientStorageParent;
@@ -13,6 +16,7 @@ use super::thread::ClientStorageThread;
 
 struct BoundState {
     thread: Rc<ClientStorageThread>,
+    ipc_sender: IpcSender<ClientStorageRoutedMsg>,
     id: u64,
 }
 
@@ -28,28 +32,62 @@ impl ClientStorageTestParent {
         })
     }
 
-    pub fn bind(self: &Rc<Self>, thread: Rc<ClientStorageThread>, id: u64) {
+    pub fn bind(
+        self: &Rc<Self>,
+        thread: Rc<ClientStorageThread>,
+        ipc_sender: IpcSender<ClientStorageRoutedMsg>,
+        id: u64,
+    ) {
         thread.register_actor(id, ClientStorageParent::ClientStorageTest(Rc::clone(self)));
 
-        self.bound_state
-            .borrow_mut()
-            .replace(BoundState { thread, id });
+        self.bound_state.borrow_mut().replace(BoundState {
+            thread,
+            ipc_sender,
+            id,
+        });
+    }
+
+    pub fn send_sync_ping_reply(self: &Rc<Self>) {
+        self.send_message(ClientStorageTestMsg::SyncPingReply);
+    }
+
+    fn send_message(&self, msg: ClientStorageTestMsg) {
+        self.send_mixed_message(ClientStorageMixedMsg::ClientStorageTest(msg));
+    }
+
+    fn send_mixed_message(&self, msg: ClientStorageMixedMsg) {
+        if let Some(bound_state) = self.bound_state.borrow().as_ref() {
+            self.send_routed_message(
+                bound_state,
+                ClientStorageRoutedMsg {
+                    id: bound_state.id,
+                    data: msg,
+                },
+            );
+        }
+    }
+
+    fn send_routed_message(&self, bound_state: &BoundState, msg: ClientStorageRoutedMsg) {
+        bound_state.ipc_sender.send(msg).unwrap();
     }
 
     pub fn recv_message(self: &Rc<Self>, msg: ClientStorageTestMsg) {
         match msg {
-            ClientStorageTestMsg::SyncPing(sender) => {
+            ClientStorageTestMsg::SyncPing => {
                 self.recv_sync_ping();
-                let _ = sender.send(());
             },
 
             ClientStorageTestMsg::Delete => {
                 self.recv_delete();
             },
+
+            _ => {},
         }
     }
 
-    fn recv_sync_ping(self: &Rc<Self>) {}
+    fn recv_sync_ping(self: &Rc<Self>) {
+        self.send_sync_ping_reply();
+    }
 
     fn recv_delete(self: &Rc<Self>) {
         if let Some(bound_state) = self.bound_state.borrow().as_ref() {

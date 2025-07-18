@@ -11,6 +11,7 @@ use super::routed_msg::ClientStorageRoutedMsg;
 pub enum ClientStorageThreadMsg {
     TestConstructor {
         child_to_parent_receiver: IpcReceiver<ClientStorageRoutedMsg>,
+        parent_to_child_sender: IpcSender<ClientStorageRoutedMsg>,
         sender: IpcSender<u64>,
     },
 

@@ -10,3 +10,11 @@ use super::test_msg::ClientStorageTestMsg;
 pub enum ClientStorageMixedMsg {
     ClientStorageTest(ClientStorageTestMsg),
 }
+
+impl ClientStorageMixedMsg {
+    pub fn is_sync_reply(&self) -> bool {
+        match self {
+            ClientStorageMixedMsg::ClientStorageTest(inner) => inner.is_sync_reply(),
+        }
+    }
+}
