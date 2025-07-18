@@ -5,6 +5,7 @@
 //! Loads resources using a mapping from well-known shortcuts to resource: urls.
 //! Recognized shortcuts:
 //! - servo:newtab
+//! - servo:preferences
 
 use std::future::Future;
 use std::pin::Pin;
@@ -34,7 +35,17 @@ impl ProtocolHandler for ServoProtocolHandler {
                 done_chan,
                 context,
                 "/newtab.html",
+                false,
             ),
+
+            "preferences" => ResourceProtocolHandler::response_for_path(
+                request,
+                done_chan,
+                context,
+                "/preferences.html",
+                true,
+            ),
+
             _ => Box::pin(std::future::ready(Response::network_internal_error(
                 "Invalid shortcut",
             ))),
