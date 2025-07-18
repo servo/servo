@@ -21,7 +21,6 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from typing import Any, Dict, List, TypedDict, LiteralString, Tuple, Callable, Iterator
-from collections.abc import Iterator, Callable
 import types
 
 import colorama
