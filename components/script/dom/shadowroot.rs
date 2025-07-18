@@ -9,7 +9,7 @@ use std::collections::hash_map::Entry;
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
 use js::rust::{HandleValue, MutableHandleValue};
-use script_bindings::error::{Error, ErrorResult};
+use script_bindings::error::ErrorResult;
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
@@ -27,7 +27,6 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
-use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertible};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -199,14 +198,18 @@ impl ShadowRoot {
             .and_then(|s| s.owner.get_cssom_object())
     }
 
-    /// Add a stylesheet owned by `owner` to the list of shadow root sheets, in the
-    /// correct tree position.
+    /// Add a stylesheet to the list of shadow root StylesheetSet. Non-constructed stylesheet has an
+    /// owning element and should follow the correct tree position, followed by constructed stylesheet
+    /// in the back.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
 
-        // TODO(stevennovayo): support constructed stylesheet for adopted stylesheet and its ordering
+        // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
+        // <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
         let insertion_point = match &owner {
+            // Non-contructed stylesheet have an owning element and should follow
+            // the correct tree order.
             StylesheetSource::Element(owner_elem) => stylesheets
                 .iter()
                 .find(|sheet_in_shadow| match sheet_in_shadow.owner {
@@ -216,6 +219,10 @@ impl ShadowRoot {
                     StylesheetSource::Constructed(_) => true,
                 })
                 .cloned(),
+
+            // Constructed stylesheet is always appended to the back. Ordering of it is in
+            // DocumentOrShadowRoot.adoptedStylesheet array order, and should be managed by
+            // it setter and getter.
             StylesheetSource::Constructed(_) => stylesheets.iter().last().cloned(),
         };
 
@@ -512,24 +519,14 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     fn SetAdoptedStyleSheets(&self, context: JSContext, val: HandleValue) -> ErrorResult {
-        let maybe_stylesheets = Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(context, val, ());
+        let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
+            context,
+            self.adopted_stylesheets.borrow_mut().as_mut(),
+            val,
+            &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
+        );
 
-        let result = match maybe_stylesheets {
-            Ok(ConversionResult::Success(stylesheets)) => {
-                rooted_vec!(let stylesheets <- stylesheets.to_owned().iter().map(|s| s.as_traced()));
-
-                DocumentOrShadowRoot::set_adopted_stylesheet(
-                    self.adopted_stylesheets.borrow_mut().as_mut(),
-                    &stylesheets,
-                    &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
-                )
-            },
-            Ok(ConversionResult::Failure(msg)) => Err(Error::Type(msg.to_string())),
-            Err(_) => Err(Error::Type(
-                "The provided value is not a sequence of 'CSSStylesheet'.".to_owned(),
-            )),
-        };
-
+        // If update is successful, clear the FrozenArray cache.
         if result.is_ok() {
             self.adopted_stylesheets_frozen_types.clear();
         }

@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cmp::min;
 use std::collections::HashSet;
 use std::fmt;
 
 use embedder_traits::UntrustedNodeAddress;
 use euclid::default::Point2D;
+use js::rust::HandleValue;
 use layout_api::{NodesFromPointQueryType, QueryMsg};
 use script_bindings::error::{Error, ErrorResult};
+use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use servo_config::pref;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
@@ -23,6 +24,7 @@ use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
+use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -357,13 +359,17 @@ impl DocumentOrShadowRoot {
         elements.insert_pre_order(element, &root);
     }
 
-    /// Inner part of adopted stylesheet. We are setting it assuming it was a FrozenArray
-    /// instead of ObservableArray. Thus, it would have a completely different workflow
+    /// Inner part of adopted stylesheet. We are setting it by, assuming it is a FrozenArray
+    /// instead of an ObservableArray. Thus, it would have a completely different workflow
     /// compared to the spec. The workflow here is actually following Gecko's implementation
-    /// of AdoptedStylesheet before the implementation of ObservableArray,
+    /// of AdoptedStylesheet before the implementation of ObservableArray.
+    ///
+    /// The main purpose from this function is to set the `&mut adopted_stylesheet` to match
+    /// `incoming_stylesheet` and update the corresponding Styleset in a Document or a ShadowRoot.
+    /// In case of duplicates, the setter will respect the last duplicates.
     ///
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    pub(crate) fn set_adopted_stylesheet(
+    fn set_adopted_stylesheet(
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_stylesheets: &[Dom<CSSStyleSheet>],
         owner: &StyleSheetListOwner,
@@ -385,49 +391,32 @@ impl DocumentOrShadowRoot {
             }
         }
 
-        let mut stylesheet_set = HashSet::with_capacity(adopted_stylesheets.len());
-        let mut common_prefix = 0;
+        // The set to check for the duplicates when removing the old stylesheets.
+        let mut stylesheet_remove_set = HashSet::with_capacity(adopted_stylesheets.len());
 
-        // Find the index at which the new array differs from the old array.
-        // We don't want to do extra work for the sheets that both arrays have.
-        let min_size = min(adopted_stylesheets.len(), incoming_stylesheets.len());
-        for i in 0..min_size {
-            if adopted_stylesheets[i] != incoming_stylesheets[i] {
-                break;
+        // Remove the old stylesheets from the StyleSet. This workflow is limited by utilities
+        // Stylo StyleSet given to us.
+        // TODO(stevennovaryo): we could optimize this by maintaining the longest common prefix
+        //                      but we should consider the implementation of ObservableArray as well.
+        for sheet_to_remove in adopted_stylesheets.iter() {
+            // Check for duplicates, only proceed with the removal if the stylesheet is not removed yet.
+            if stylesheet_remove_set.insert(sheet_to_remove) {
+                owner.remove_stylesheet(
+                    StylesheetSource::Constructed(sheet_to_remove.clone()),
+                    sheet_to_remove.style_stylesheet_arc(),
+                );
+                sheet_to_remove.remove_adopter(owner);
             }
-            common_prefix += 1;
-            stylesheet_set.insert(&incoming_stylesheets[i]);
         }
 
-        // Try to truncate the sheets to a common prefix.
-        // If the prefix contains duplicates of sheets that we are removing,
-        // we are just going to re-build everything from scratch.
-        if common_prefix != adopted_stylesheets.len() {
-            let mut remove_set = HashSet::with_capacity(adopted_stylesheets.len() - common_prefix);
-            for sheet_to_remove in &adopted_stylesheets[common_prefix..] {
-                if stylesheet_set.contains(&sheet_to_remove) {
-                    // Fixing duplicate sheets would require insertions/removals from the
-                    // style set. We may as well just rebuild the whole thing from scratch.
-                    stylesheet_set.clear();
-                    // Note that setting this to zero means we'll continue the loop until
-                    // all the sheets are cleared.
-                    common_prefix = 0;
-                }
+        // The set to check for the duplicates when adding a new stylesheet.
+        let mut stylesheet_add_set = HashSet::with_capacity(incoming_stylesheets.len());
 
-                if remove_set.insert(sheet_to_remove) {
-                    owner.remove_stylesheet(
-                        StylesheetSource::Constructed(sheet_to_remove.clone()),
-                        sheet_to_remove.style_stylesheet_arc(),
-                    );
-                    sheet_to_remove.remove_adopter(owner);
-                }
-            }
-            adopted_stylesheets.truncate(common_prefix);
-        }
-
-        // Only add sheets that are not already in the common prefix.
-        for sheet in &incoming_stylesheets[common_prefix..] {
-            if !stylesheet_set.insert(sheet) {
+        // Readd all stylesheet to the StyleSet. This workflow is limited by the utilities
+        // Stylo StyleSet given to us.
+        for sheet in incoming_stylesheets.iter() {
+            // Check for duplicates.
+            if !stylesheet_add_set.insert(sheet) {
                 // The idea is that this case is rare, so we pay the price of removing the
                 // old sheet from the styles and append it later rather than the other way
                 // around.
@@ -438,7 +427,6 @@ impl DocumentOrShadowRoot {
             } else {
                 sheet.add_adopter(owner.clone());
             }
-            adopted_stylesheets.push(sheet.clone());
 
             owner.add_stylesheet(
                 StylesheetSource::Constructed(sheet.clone()),
@@ -446,6 +434,36 @@ impl DocumentOrShadowRoot {
             );
         }
 
+        *adopted_stylesheets = incoming_stylesheets.to_vec();
+
         Ok(())
+    }
+
+    /// Set adoptedStylesheet given a js value by converting and passing the converted
+    /// values to the inner [DocumentOrShadowRoot::set_adopted_stylesheet].
+    pub(crate) fn set_adopted_stylesheet_from_jsval(
+        context: JSContext,
+        adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
+        incoming_value: HandleValue,
+        owner: &StyleSheetListOwner,
+    ) -> ErrorResult {
+        let maybe_stylesheets =
+            Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(context, incoming_value, ());
+
+        match maybe_stylesheets {
+            Ok(ConversionResult::Success(stylesheets)) => {
+                rooted_vec!(let stylesheets <- stylesheets.to_owned().iter().map(|s| s.as_traced()));
+
+                DocumentOrShadowRoot::set_adopted_stylesheet(
+                    adopted_stylesheets,
+                    &stylesheets,
+                    owner,
+                )
+            },
+            Ok(ConversionResult::Failure(msg)) => Err(Error::Type(msg.to_string())),
+            Err(_) => Err(Error::Type(
+                "The provided value is not a sequence of 'CSSStylesheet'.".to_owned(),
+            )),
+        }
     }
 }
