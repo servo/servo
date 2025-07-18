@@ -18,6 +18,6 @@ interface mixin DocumentOrShadowRoot {
 
 partial interface mixin DocumentOrShadowRoot {
   // TODO(37902): Use ObservableArray Array when available
-  [SetterThrows]
+  [Pref="dom_adoptedstylesheet_enabled", SetterThrows]
   attribute /* ObservableArray<CSSStyleSheet> */ any adoptedStyleSheets;
 };

@@ -11,6 +11,7 @@ use euclid::default::Point2D;
 use layout_api::{NodesFromPointQueryType, QueryMsg};
 use script_bindings::error::{Error, ErrorResult};
 use servo_arc::Arc;
+use servo_config::pref;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
@@ -57,6 +58,10 @@ impl StylesheetSource {
             StylesheetSource::Element(el) => el.as_stylesheet_owner().is_some(),
             StylesheetSource::Constructed(ss) => ss.is_constructed(),
         }
+    }
+
+    pub(crate) fn is_constructed(&self) -> bool {
+        matches!(self, StylesheetSource::Constructed(_))
     }
 }
 
@@ -287,6 +292,10 @@ impl DocumentOrShadowRoot {
     ) {
         debug_assert!(owner.is_a_valid_owner(), "Wat");
 
+        if owner.is_constructed() && !pref!(dom_adoptedstylesheet_enabled) {
+            return;
+        }
+
         let sheet = ServoStylesheetInDocument { sheet, owner };
 
         let guard = style_shared_lock.read();
@@ -359,6 +368,10 @@ impl DocumentOrShadowRoot {
         incoming_stylesheets: &[Dom<CSSStyleSheet>],
         owner: &StyleSheetListOwner,
     ) -> ErrorResult {
+        if !pref!(dom_adoptedstylesheet_enabled) {
+            return Ok(());
+        }
+
         let owner_doc = match owner {
             StyleSheetListOwner::Document(doc) => doc,
             StyleSheetListOwner::ShadowRoot(root) => root.owner_doc(),
