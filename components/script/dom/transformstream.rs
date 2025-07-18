@@ -623,7 +623,7 @@ impl TransformStream {
         can_gc: CanGc,
     ) {
         // Let controller be a new TransformStreamDefaultController.
-        let transformer_type = TransformerType::new_from_transformer(transformer);
+        let transformer_type = TransformerType::new_from_js_transformer(transformer);
         let controller = TransformStreamDefaultController::new(global, transformer_type, can_gc);
 
         // Let transformAlgorithm be the following steps, taking a chunk argument:
