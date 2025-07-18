@@ -1117,7 +1117,7 @@ pub(crate) fn handle_will_send_keys(
                     // InvalidArgument Error is returned if the files are not valid.
                     // Step 8.6 - 8.7
                     // Input and change event already fired in `htmlinputelement.rs`.
-                    if let Err(_) = file_input.select_files(Some(files), can_gc) {
+                    if file_input.select_files(Some(files), can_gc).is_err() {
                         return Err(ErrorStatus::InvalidArgument);
                     }
 
