@@ -78,23 +78,11 @@ pub(crate) enum TransformerType {
 }
 
 impl TransformerType {
-    pub(crate) fn new_from_transformer(transformer: &Transformer) -> TransformerType {
-        TransformerType::new_js(
-            transformer.cancel.clone(),
-            transformer.flush.clone(),
-            transformer.transform.clone(),
-        )
-    }
-
-    pub(crate) fn new_js(
-        cancel: Option<Rc<TransformerCancelCallback>>,
-        flush: Option<Rc<TransformerFlushCallback>>,
-        transform: Option<Rc<TransformerTransformCallback>>,
-    ) -> TransformerType {
+    pub(crate) fn new_from_js_transformer(transformer: &Transformer) -> TransformerType {
         TransformerType::Js {
-            cancel: RefCell::new(cancel),
-            flush: RefCell::new(flush),
-            transform: RefCell::new(transform),
+            cancel: RefCell::new(transformer.cancel.clone()),
+            flush: RefCell::new(transformer.flush.clone()),
+            transform: RefCell::new(transformer.transform.clone()),
             transform_obj: Default::default(),
         }
     }
@@ -150,6 +138,8 @@ impl TransformStreamDefaultController {
     pub(crate) fn set_transform_obj(&self, this_object: SafeHandleObject) {
         if let TransformerType::Js { transform_obj, .. } = &self.transformer_type {
             transform_obj.set(*this_object)
+        } else {
+            panic!("Non-Js transformer type should not set transform_objß")
         }
     }
 
@@ -243,15 +233,24 @@ impl TransformStreamDefaultController {
                     }
                 }
             },
-            // <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
             TransformerType::Decoder(decoder) => {
+                // <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
                 // Step 7. Let transformAlgorithm be an algorithm which takes a
                 // chunk argument and runs the decode and enqueue a chunk
                 // algorithm with this and chunk.
                 decode_and_enqueue_a_chunk(cx, global, chunk, decoder, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+                    // Step 5.1 Let result be the result of running transformAlgorithm given chunk.
+                    // Step 5.2 If result is a Promise, then return result.
+                    // Note: not applicable, the spec does NOT require deode_and_enqueue_a_chunk() to return a Promise
+                    // Step 5.3 Return a promise resolved with undefined.
                     .map(|_| Promise::new_resolved(global, cx, (), can_gc))
                     .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 5.1 If this throws an exception e, 
                         let p = Promise::new(global, can_gc);
+                        // return a promise rejected with e.
                         p.reject_error(e, can_gc);
                         p
                     })
@@ -300,11 +299,14 @@ impl TransformStreamDefaultController {
                     Promise::new_resolved(global, cx, (), can_gc)
                 }
             },
-            // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
             TransformerType::Decoder(_) => {
-                // `TextDecoderStream` does NOT specify a cancel algorithm.
-                //
-                // Step 4. Let cancelAlgorithm be an algorithm which returns a promise resolved with undefined.
+                // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason, if cancelAlgorithm was given, or null otherwise
+                // Note: `TextDecoderStream` does NOT specify a cancel algorithm.
+                // Step 7.2 If result is a Promise, then return result.
+                // Note: Not applicable.
+                // Step 7.3 Return a promise resolved with undefined.
                 Promise::new_resolved(global, cx, (), can_gc)
             },
         };
@@ -349,14 +351,23 @@ impl TransformStreamDefaultController {
                     Promise::new_resolved(global, cx, (), can_gc)
                 }
             },
-            // <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
             TransformerType::Decoder(decoder) => {
+                // <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
                 // Step 8. Let flushAlgorithm be an algorithm which takes no
                 // arguments and runs the flush and enqueue algorithm with this.
                 flush_and_enqueue(cx, global, decoder, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+                    // Step 6.1 Let result be the result of running flushAlgorithm, if flushAlgorithm was given, or null otherwise. 
+                    // Step 6.2 If result is a Promise, then return result.
+                    // Note: Not applicable. The spec does NOT require flush_and_enqueue algo to return a Promise
+                    // Step 6.3 Return a promise resolved with undefined.
                     .map(|_| Promise::new_resolved(global, cx, (), can_gc))
                     .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 6.1 If this throws an exception e,
                         let p = Promise::new(global, can_gc);
+                        // return a promise rejected with e.
                         p.reject_error(e, can_gc);
                         p
                     })
