@@ -3449,6 +3449,8 @@ impl ScriptThread {
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
         );
+        self.debugger_global
+            .fire_add_debuggee(can_gc, window.upcast());
 
         let _realm = enter_realm(&*window);
 
