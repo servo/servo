@@ -248,7 +248,7 @@ impl TransformStreamDefaultController {
                     .map(|_| Promise::new_resolved(global, cx, (), can_gc))
                     .unwrap_or_else(|e| {
                         // <https://streams.spec.whatwg.org/#transformstream-set-up>
-                        // Step 5.1 If this throws an exception e, 
+                        // Step 5.1 If this throws an exception e,
                         let p = Promise::new(global, can_gc);
                         // return a promise rejected with e.
                         p.reject_error(e, can_gc);
@@ -302,7 +302,8 @@ impl TransformStreamDefaultController {
             TransformerType::Decoder(_) => {
                 // <https://streams.spec.whatwg.org/#transformstream-set-up>
                 // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
-                // Step 7.1 Let result be the result of running cancelAlgorithm given reason, if cancelAlgorithm was given, or null otherwise
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
+                //      if cancelAlgorithm was given, or null otherwise
                 // Note: `TextDecoderStream` does NOT specify a cancel algorithm.
                 // Step 7.2 If result is a Promise, then return result.
                 // Note: Not applicable.
@@ -358,7 +359,8 @@ impl TransformStreamDefaultController {
                 flush_and_enqueue(cx, global, decoder, self, can_gc)
                     // <https://streams.spec.whatwg.org/#transformstream-set-up>
                     // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
-                    // Step 6.1 Let result be the result of running flushAlgorithm, if flushAlgorithm was given, or null otherwise. 
+                    // Step 6.1 Let result be the result of running flushAlgorithm,
+                    //      if flushAlgorithm was given, or null otherwise.
                     // Step 6.2 If result is a Promise, then return result.
                     // Note: Not applicable. The spec does NOT require flush_and_enqueue algo to return a Promise
                     // Step 6.3 Return a promise resolved with undefined.
