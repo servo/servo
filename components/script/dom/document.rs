@@ -134,7 +134,9 @@ use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
+use crate::dom::documentorshadowroot::{
+    DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource,
+};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
 use crate::dom::element::{
@@ -332,7 +334,7 @@ pub(crate) struct Document {
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     #[custom_trace]
-    stylesheets: DomRefCell<DocumentStylesheetSet<StyleSheetInDocument>>,
+    stylesheets: DomRefCell<DocumentStylesheetSet<ServoStylesheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
@@ -4889,23 +4891,29 @@ impl Document {
 
         stylesheets
             .get(Origin::Author, index)
-            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
+            .and_then(|s| s.owner.get_cssom_object())
     }
 
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
-        let insertion_point = stylesheets
-            .iter()
-            .map(|(sheet, _origin)| sheet)
-            .find(|sheet_in_doc| {
-                owner
-                    .upcast::<Node>()
-                    .is_before(sheet_in_doc.owner.upcast())
-            })
-            .cloned();
+
+        // TODO(stevennovayo): support constructed stylesheet for adopted stylesheet and its ordering
+        let insertion_point = match &owner {
+            StylesheetSource::Element(owner_elem) => stylesheets
+                .iter()
+                .map(|(sheet, _origin)| sheet)
+                .find(|sheet_in_doc| match sheet_in_doc.owner {
+                    StylesheetSource::Element(ref other_elem) => {
+                        owner_elem.upcast::<Node>().is_before(other_elem.upcast())
+                    },
+                    StylesheetSource::Constructed(_) => unreachable!(),
+                })
+                .cloned(),
+            StylesheetSource::Constructed(_) => unreachable!(),
+        };
 
         if self.has_browsing_context() {
             self.window.layout_mut().add_stylesheet(
@@ -4932,7 +4940,7 @@ impl Document {
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn remove_stylesheet(&self, owner: &Element, stylesheet: &Arc<Stylesheet>) {
+    pub(crate) fn remove_stylesheet(&self, owner: StylesheetSource, stylesheet: &Arc<Stylesheet>) {
         if self.has_browsing_context() {
             self.window
                 .layout_mut()
