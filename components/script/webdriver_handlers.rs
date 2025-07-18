@@ -1114,11 +1114,12 @@ pub(crate) fn handle_will_send_keys(
                     }
 
                     // Step 8.5
-                    // TODO: Should return invalid argument error if file doesn't exist
-
+                    // InvalidArgument Error is returned if the files are not valid.
                     // Step 8.6 - 8.7
                     // Input and change event already fired in `htmlinputelement.rs`.
-                    file_input.SelectFiles(files, can_gc);
+                    if let Err(_) = file_input.select_files(Some(files), can_gc) {
+                        return Err(ErrorStatus::InvalidArgument);
+                    }
 
                     // Step 8.8
                     return Ok(false);
