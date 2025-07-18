@@ -20,6 +20,7 @@ use style_traits::CSSPixel;
 use webrender_api::DocumentId;
 
 pub mod display_list;
+pub mod largest_contentful_paint_candidate;
 pub mod rendering_context;
 pub mod viewport_description;
 
@@ -41,6 +42,7 @@ use webrender_api::{
     ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
 };
 
+use crate::largest_contentful_paint_candidate::LCPCandidates;
 use crate::viewport_description::ViewportDescription;
 
 /// Sends messages to the compositor.
@@ -156,6 +158,8 @@ pub enum CompositorMsg {
     CollectMemoryReport(ReportsChan),
     /// A top-level frame has parsed a viewport metatag and is sending the new constraints.
     Viewport(WebViewId, ViewportDescription),
+    /// The candidate of largest-contentful-paint
+    LCPCandidate(LCPCandidates, WebRenderPipelineId),
 }
 
 impl Debug for CompositorMsg {
@@ -252,6 +256,17 @@ impl CrossProcessCompositorApi {
         if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
             warn!("Error sending display spatial tree: {error}");
         }
+    }
+
+    /// Record the candidate of largest-contentful-paint.
+    pub fn send_lcp_candidate(
+        &self,
+        lcp_candidates: LCPCandidates,
+        pipeline_id: WebRenderPipelineId,
+    ) {
+        let _ = self
+            .0
+            .send(CompositorMsg::LCPCandidate(lcp_candidates, pipeline_id));
     }
 
     /// Perform a hit test operation. Blocks until the operation is complete and

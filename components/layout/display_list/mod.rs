@@ -10,6 +10,7 @@ use base::WebRenderEpochToU16;
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
 use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNodeInfo};
+use compositing_traits::largest_contentful_paint_candidate::LCPCandidates;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
@@ -50,6 +51,7 @@ use wr::units::LayoutVector2D;
 use crate::cell::ArcRefCell;
 use crate::context::{ImageResolver, ResolvedImage};
 pub use crate::display_list::conversions::ToWebRender;
+use crate::display_list::largest_contenful_paint_collector::LargestContentfulPaintCollector;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
@@ -65,6 +67,7 @@ mod background;
 mod clip;
 mod conversions;
 mod gradient;
+mod largest_contenful_paint_collector;
 mod stacking_context;
 
 use background::BackgroundPainter;
@@ -119,6 +122,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The device pixel ratio used for this `Document`'s display list.
     device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
+
+    /// The collector for calculating Largest Contentful Paint
+    lcp_collector: LargestContentfulPaintCollector<'a>,
 }
 
 struct InspectorHighlight {
@@ -163,6 +169,7 @@ impl DisplayListBuilder<'_> {
         image_resolver: Arc<ImageResolver>,
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
         debug: &DebugOptions,
+        lcp_candidates: &mut LCPCandidates,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let compositor_info = &mut stacking_context_tree.compositor_info;
@@ -180,6 +187,14 @@ impl DisplayListBuilder<'_> {
             webrender_display_list_builder.dump_serialized_display_list();
         }
 
+        let lcp_collector = LargestContentfulPaintCollector {
+            clip_tree: &stacking_context_tree.clip_store,
+            current_scroll_node_id: compositor_info.root_reference_frame_id,
+            current_clip_id: ClipId::INVALID,
+            largerst_image: None,
+            lcp_candidates,
+        };
+
         #[cfg(feature = "tracing")]
         let _span =
             tracing::trace_span!("DisplayListBuilder::build", servo_profiling = true).entered();
@@ -196,6 +211,7 @@ impl DisplayListBuilder<'_> {
             clip_map: Default::default(),
             image_resolver,
             device_pixel_ratio,
+            lcp_collector,
         };
 
         builder.add_all_spatial_nodes();
@@ -212,6 +228,10 @@ impl DisplayListBuilder<'_> {
             .root_stacking_context
             .build_display_list(&mut builder);
         builder.paint_dom_inspector_highlight();
+
+        builder
+            .lcp_collector
+            .update_largest_contentful_paint_candiate();
 
         webrender_display_list_builder.end().1
     }
@@ -1336,6 +1356,18 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 wr::ColorF::WHITE,
                             )
                         }
+
+                        builder.lcp_collector.record_image_candidate(
+                            self.fragment
+                                .base
+                                .tag
+                                .map(|tag| tag.node.id())
+                                .unwrap_or_default(),
+                            layer.bounds,
+                            builder.compositor_info.viewport_size,
+                            &builder.compositor_info.scroll_tree,
+                            builder.compositor_info.epoch,
+                        );
                     }
                 },
             }

@@ -17,6 +17,7 @@ use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use compositing_traits::display_list::ScrollType;
+use compositing_traits::largest_contentful_paint_candidate::LCPCandidates;
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D};
@@ -1049,6 +1050,9 @@ impl LayoutThread {
         self.epoch.set(epoch);
         stacking_context_tree.compositor_info.epoch = epoch.into();
 
+        let mut lcp_candidates = LCPCandidates {
+            image_candidate: None,
+        };
         let built_display_list = DisplayListBuilder::build(
             reflow_request,
             stacking_context_tree,
@@ -1056,11 +1060,16 @@ impl LayoutThread {
             image_resolver.clone(),
             self.device().device_pixel_ratio(),
             &self.debug,
+            &mut lcp_candidates,
         );
         self.compositor_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.compositor_info,
             built_display_list,
+        );
+        self.compositor_api.send_lcp_candidate(
+            lcp_candidates,
+            stacking_context_tree.compositor_info.pipeline_id,
         );
 
         let (keys, instance_keys) = self
