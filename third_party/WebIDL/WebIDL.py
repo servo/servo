@@ -12,6 +12,7 @@ import string
 import traceback
 from collections import OrderedDict, defaultdict
 from itertools import chain
+from typing import Optional, Any
 
 from ply import lex, yacc
 
@@ -45,7 +46,7 @@ def parseInt(literal):
 
 # This is surprisingly faster than using the enum.IntEnum type (which doesn't
 # support 'base' anyway)
-def enum(*names, base=None):
+def enum(*names: str, base: Optional[Any]=None) -> Any:
     if base is not None:
         names = base.attrs + names
 
