@@ -193,13 +193,13 @@ jobs:
           name: cargo-timings-linux-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
-      - name: Build mach package
-        run: ./mach package --${{ inputs.profile }}
-      - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-${{ inputs.profile }}
-          path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
+      # - name: Build mach package
+      #   run: ./mach package --${{ inputs.profile }}
+      # - name: Upload artifact for mach package
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: linux-${{ inputs.profile }}
+      #     path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |

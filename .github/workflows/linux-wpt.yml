@@ -63,6 +63,8 @@ jobs:
           # Chunks must be non-zero. Chunk zero always exits without running any tests.
           - runner: 1
             runs-on: ubuntu-22.04
+          - runner: 1
+            runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
