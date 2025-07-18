@@ -10,7 +10,7 @@ use std::rc::Rc;
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::display_list::ScrollType;
 use compositing_traits::viewport_description::{
-    DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, ViewportDescription,
+    DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM, ViewportDescription,
 };
 use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
@@ -100,7 +100,8 @@ pub(crate) struct WebViewRenderer {
     pending_point_input_events: RefCell<VecDeque<InputEvent>>,
     /// WebRender is not ready between `SendDisplayList` and `WebRenderFrameReady` messages.
     pub webrender_frame_ready: Cell<bool>,
-    /// Viewport Description
+    /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
+    /// and initial values for zoom derived from the `viewport` meta tag in web content.
     viewport_description: Option<ViewportDescription>,
 }
 
@@ -130,8 +131,8 @@ impl WebViewRenderer {
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
-            page_zoom: Scale::new(DEFAULT_ZOOM),
-            pinch_zoom: PinchZoomFactor::new(DEFAULT_ZOOM),
+            page_zoom: DEFAULT_PAGE_ZOOM,
+            pinch_zoom: PinchZoomFactor::new(1.0),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
             pending_point_input_events: Default::default(),
@@ -964,15 +965,39 @@ impl WebViewRenderer {
         old_zoom != self.pinch_zoom
     }
 
-    pub(crate) fn set_page_zoom(&mut self, magnification: f32) {
-        self.page_zoom =
-            Scale::new((self.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM));
+    pub(crate) fn page_zoom(&mut self) -> Scale<f32, CSSPixel, DeviceIndependentPixel> {
+        self.page_zoom
     }
 
+    pub(crate) fn set_page_zoom(
+        &mut self,
+        new_page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
+    ) {
+        let new_page_zoom = new_page_zoom.clamp(MIN_PAGE_ZOOM, MAX_PAGE_ZOOM);
+        let old_zoom = std::mem::replace(&mut self.page_zoom, new_page_zoom);
+        if old_zoom != self.page_zoom {
+            self.send_window_size_message();
+        }
+    }
+
+    /// The scale to use when displaying this [`WebViewRenderer`] in WebRender
+    /// including both viewport scale (page zoom and hidpi scale) as well as any
+    /// pinch zoom applied. This is based on the latest display list received,
+    /// as page zoom changes are applied asynchronously and the rendered view
+    /// should reflect the latest display list.
     pub(crate) fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.page_zoom * self.hidpi_scale_factor * self.pinch_zoom_level()
+        let viewport_scale = self
+            .root_pipeline_id
+            .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
+            .and_then(|pipeline| pipeline.viewport_scale)
+            .unwrap_or_else(|| self.page_zoom * self.hidpi_scale_factor);
+        viewport_scale * self.pinch_zoom_level()
     }
 
+    /// The current viewport scale (hidpi scale and page zoom and not pinch
+    /// zoom) based on the current setting of the WebView. Note that this may
+    /// not be the rendered viewport zoom as that is based on the latest display
+    /// list and zoom changes are applied asynchronously.
     pub(crate) fn device_pixels_per_page_pixel_not_including_pinch_zoom(
         &self,
     ) -> Scale<f32, CSSPixel, DevicePixel> {

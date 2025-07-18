@@ -32,6 +32,7 @@ malloc_size_of_derive = { workspace = true }
 profile_traits = { path = '../profile' }
 raw-window-handle = { version = "0.6" }
 serde = { workspace = true }
+servo_geometry = { path = "../../geometry" }
 smallvec = { workspace = true }
 strum_macros = { workspace = true }
 stylo = { workspace = true }

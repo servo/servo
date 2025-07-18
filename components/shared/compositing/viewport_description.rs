@@ -7,17 +7,19 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use euclid::default::Scale;
+use euclid::Scale;
 use serde::{Deserialize, Serialize};
+use servo_geometry::DeviceIndependentPixel;
+use style_traits::CSSPixel;
 
 /// Default viewport constraints
 ///
 /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#initial-scale>
-pub const MIN_ZOOM: f32 = 0.1;
+pub const MIN_PAGE_ZOOM: Scale<f32, CSSPixel, DeviceIndependentPixel> = Scale::new(0.1);
 /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#initial-scale>
-pub const MAX_ZOOM: f32 = 10.0;
+pub const MAX_PAGE_ZOOM: Scale<f32, CSSPixel, DeviceIndependentPixel> = Scale::new(10.0);
 /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#initial-scale>
-pub const DEFAULT_ZOOM: f32 = 1.0;
+pub const DEFAULT_PAGE_ZOOM: Scale<f32, CSSPixel, DeviceIndependentPixel> = Scale::new(1.0);
 
 /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
 const SEPARATORS: [char; 2] = [',', ';']; // Comma (0x2c) and Semicolon (0x3b)
@@ -35,15 +37,15 @@ pub struct ViewportDescription {
     // TODO: height Needs to be implemented
     /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#initial-scale>
     /// the zoom level when the page is first loaded
-    pub initial_scale: Scale<f32>,
+    pub initial_scale: Scale<f32, CSSPixel, DeviceIndependentPixel>,
 
     /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#minimum_scale>
     /// how much zoom out is allowed on the page.
-    pub minimum_scale: Scale<f32>,
+    pub minimum_scale: Scale<f32, CSSPixel, DeviceIndependentPixel>,
 
     /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#maximum_scale>
     /// how much zoom in is allowed on the page
-    pub maximum_scale: Scale<f32>,
+    pub maximum_scale: Scale<f32, CSSPixel, DeviceIndependentPixel>,
 
     /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#user_scalable>
     /// whether zoom in and zoom out actions are allowed on the page
@@ -85,9 +87,9 @@ impl TryFrom<&str> for UserScalable {
 impl Default for ViewportDescription {
     fn default() -> Self {
         ViewportDescription {
-            initial_scale: Scale::new(DEFAULT_ZOOM),
-            minimum_scale: Scale::new(MIN_ZOOM),
-            maximum_scale: Scale::new(MAX_ZOOM),
+            initial_scale: DEFAULT_PAGE_ZOOM,
+            minimum_scale: MIN_PAGE_ZOOM,
+            maximum_scale: MAX_PAGE_ZOOM,
             user_scalable: UserScalable::Yes,
         }
     }
@@ -126,7 +128,9 @@ impl ViewportDescription {
     }
 
     /// Parses a viewport zoom value.
-    fn parse_viewport_value_as_zoom(value: &str) -> Option<Scale<f32>> {
+    fn parse_viewport_value_as_zoom(
+        value: &str,
+    ) -> Option<Scale<f32, CSSPixel, DeviceIndependentPixel>> {
         value
             .to_lowercase()
             .as_str()
