@@ -397,6 +397,7 @@ fn prepare_devtools_request(
     pipeline_id: PipelineId,
     connect_time: Duration,
     send_time: Duration,
+    destination: Destination,
     is_xhr: bool,
     browsing_context_id: BrowsingContextId,
 ) -> ChromeToDevtoolsControlMsg {
@@ -414,6 +415,7 @@ fn prepare_devtools_request(
             .as_secs() as i64,
         connect_time,
         send_time,
+        destination,
         is_xhr,
         browsing_context_id,
     };
@@ -488,6 +490,7 @@ pub fn send_early_httprequest_to_devtools(request: &mut Request, context: &Fetch
             time_stamp: 0,
             connect_time: Duration::from_millis(0),
             send_time: Duration::from_millis(0),
+            destination: request.destination,
             is_xhr: false,
             browsing_context_id,
         };
@@ -586,6 +589,7 @@ async fn obtain_response(
     source_is_null: bool,
     pipeline_id: &Option<PipelineId>,
     request_id: Option<&str>,
+    destination: Destination,
     is_xhr: bool,
     context: &FetchContext,
     fetch_terminated: UnboundedSender<bool>,
@@ -780,6 +784,7 @@ async fn obtain_response(
                                 pipeline_id,
                                 (connect_end - connect_start).unsigned_abs(),
                                 (send_end - send_start).unsigned_abs(),
+                                destination,
                                 is_xhr,
                                 browsing_context_id,
                             ))
@@ -1959,6 +1964,7 @@ async fn http_network_fetch(
             .unwrap_or(false),
         &request.pipeline_id,
         Some(&request_id),
+        request.destination,
         is_xhr,
         context,
         fetch_terminated_sender,
