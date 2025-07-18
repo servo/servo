@@ -13,12 +13,8 @@
     let exitButton = document.getElementById('leave');
     if (bytes.length) {
         button.onclick = function() {
-            let xhr = new XMLHttpRequest();
-            xhr.open('POST', 'chrome:allowcert');
-            xhr.onloadend = function() {
-                location.reload(true);
-            };
-            xhr.send("${secret}&${bytes}");
+            navigator.servo.allowCertOverride(bytes);
+            location.reload(true);
         };
     } else {
         button.style.display = "none";

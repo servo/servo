@@ -981,8 +981,6 @@ impl FetchResponseListener for ParserContext {
                     let page = page.replace("${reason}", &reason);
                     let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(bytes);
                     let page = page.replace("${bytes}", encoded_bytes.as_str());
-                    let page =
-                        page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
                     parser.push_string_input_chunk(page);
                     parser.parse_sync(CanGc::note());
                 },
@@ -1018,6 +1016,10 @@ impl FetchResponseListener for ParserContext {
                 parser.push_string_input_chunk(page);
                 parser.parse_sync(CanGc::note());
             },
+        }
+
+        if self.is_synthesized_document {
+            parser.document.mark_internal_content();
         }
     }
 

@@ -4,10 +4,8 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::{io, mem, str};
+use std::{mem, str};
 
-use base64::Engine as _;
-use base64::engine::general_purpose;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
@@ -15,7 +13,6 @@ use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName, RANGE};
 use http::{HeaderValue, Method, StatusCode};
-use ipc_channel::ipc;
 use log::{debug, trace, warn};
 use mime::{self, Mime};
 use net_traits::fetch::headers::extract_mime_type_as_mime;
@@ -23,16 +20,15 @@ use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
-    BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
-    InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestMode,
-    ResponseTainting, Window, is_cors_safelisted_method, is_cors_safelisted_request_header,
+    CredentialsMode, Destination, Initiator, InsecureRequestsPolicy, Origin, ParserMetadata,
+    RedirectMode, Referrer, Request, RequestMode, ResponseTainting, Window,
+    is_cors_safelisted_method, is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
     ResourceTimeValue, ResourceTimingType, set_default_accept_language,
 };
-use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
@@ -819,48 +815,6 @@ fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Respon
     response
 }
 
-/// Handle a request from the user interface to ignore validation errors for a certificate.
-fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io::Result<()> {
-    let error = |string| Err(io::Error::new(io::ErrorKind::Other, string));
-
-    let body = match request.body.as_mut() {
-        Some(body) => body,
-        None => return error("No body found"),
-    };
-
-    let stream = body.take_stream();
-    let stream = stream.lock().unwrap();
-    let (body_chan, body_port) = ipc::channel().unwrap();
-    let _ = stream.send(BodyChunkRequest::Connect(body_chan));
-    let _ = stream.send(BodyChunkRequest::Chunk);
-    let body_bytes = match body_port.recv().ok() {
-        Some(BodyChunkResponse::Chunk(bytes)) => bytes,
-        _ => return error("Certificate not sent in a single chunk"),
-    };
-
-    let split_idx = match body_bytes.iter().position(|b| *b == b'&') {
-        Some(split_idx) => split_idx,
-        None => return error("Could not find ampersand in data"),
-    };
-    let (secret, cert_base64) = body_bytes.split_at(split_idx);
-
-    let secret = str::from_utf8(secret).ok().and_then(|s| s.parse().ok());
-    if secret != Some(*net_traits::PRIVILEGED_SECRET) {
-        return error("Invalid secret sent. Ignoring request");
-    }
-
-    let cert_bytes = match general_purpose::STANDARD_NO_PAD.decode(&cert_base64[1..]) {
-        Ok(bytes) => bytes,
-        Err(_) => return error("Could not decode certificate base64"),
-    };
-
-    context
-        .state
-        .override_manager
-        .add_override(&CertificateDer::from_slice(&cert_bytes).into_owned());
-    Ok(())
-}
-
 /// [Scheme fetch](https://fetch.spec.whatwg.org#scheme-fetch)
 async fn scheme_fetch(
     fetch_params: &mut FetchParams,
@@ -879,13 +833,6 @@ async fn scheme_fetch(
     match scheme {
         "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
         "about" if url.path() == "memory" => create_about_memory(url, request.timing_type()),
-
-        "chrome" if url.path() == "allowcert" => {
-            if let Err(error) = handle_allowcert_request(request, context) {
-                warn!("Could not handle allowcert request: {error}");
-            }
-            create_blank_reply(url, request.timing_type())
-        },
 
         "http" | "https" => {
             http_fetch(

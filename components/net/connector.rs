@@ -6,6 +6,8 @@ use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
 use std::sync::{Arc, Mutex};
 
+use base64::Engine as _;
+use base64::engine::general_purpose;
 use futures::Future;
 use futures::task::{Context, Poll};
 use http::uri::{Authority, Uri as Destination};
@@ -103,8 +105,20 @@ impl CertificateErrorOverrideManager {
 
     /// Add a certificate to this manager's list of certificates for which to ignore
     /// validation errors.
-    pub fn add_override(&self, certificate: &CertificateDer<'static>) {
-        self.0.lock().unwrap().overrides.push(certificate.clone());
+    pub(crate) fn add_override_from_base64(&self, cert_base64: &[u8]) {
+        let cert_bytes = match general_purpose::STANDARD_NO_PAD.decode(cert_base64) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                warn!("Could not decode certificate base64: {e:?}");
+                return;
+            },
+        };
+        self.add_override_from_certificate_bytes(&cert_bytes)
+    }
+
+    pub fn add_override_from_certificate_bytes(&self, certificate: &[u8]) {
+        let certificate = CertificateDer::from_slice(certificate).into_owned();
+        self.0.lock().unwrap().overrides.push(certificate);
     }
 
     /// Given the a string representation of a sever host name, remove information about

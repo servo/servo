@@ -562,6 +562,8 @@ pub(crate) struct Document {
     active_keyboard_modifiers: Cell<Modifiers>,
     /// The node that is currently highlighted by the devtools
     highlighted_dom_node: MutNullableDom<Node>,
+    /// Whether this document is synthesized for engine-internal page content.
+    is_internal_content: Cell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -4247,7 +4249,16 @@ impl Document {
             intersection_observers: Default::default(),
             active_keyboard_modifiers: Cell::new(Modifiers::empty()),
             highlighted_dom_node: Default::default(),
+            is_internal_content: Default::default(),
         }
+    }
+
+    pub(crate) fn mark_internal_content(&self) {
+        self.is_internal_content.set(true);
+    }
+
+    pub(crate) fn is_internal_content(&self) -> bool {
+        self.is_internal_content.get()
     }
 
     /// Returns a policy value that should be used for fetches initiated by this document.
