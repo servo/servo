@@ -490,6 +490,7 @@ pub fn send_early_httprequest_to_devtools(request: &mut Request, context: &Fetch
             time_stamp: 0,
             connect_time: Duration::from_millis(0),
             send_time: Duration::from_millis(0),
+            destination: request.destination,
             is_xhr: false,
             browsing_context_id,
         };
