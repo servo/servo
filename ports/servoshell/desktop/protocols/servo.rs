@@ -34,6 +34,7 @@ impl ProtocolHandler for ServoProtocolHandler {
                 done_chan,
                 context,
                 "/newtab.html",
+                false,
             ),
             _ => Box::pin(std::future::ready(Response::network_internal_error(
                 "Invalid shortcut",

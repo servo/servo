@@ -16,10 +16,10 @@ use headers::{ContentType, HeaderMapExt};
 use net::fetch::methods::{DoneChannel, FetchContext};
 use net::filemanager_thread::FILE_CHUNK_SIZE;
 use net::protocols::ProtocolHandler;
-use net_traits::ResourceFetchTiming;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
+use net_traits::{PRIVILEGED_SECRET, ResourceFetchTiming};
 use tokio::sync::mpsc::unbounded_channel;
 
 #[derive(Default)]
@@ -31,6 +31,7 @@ impl ResourceProtocolHandler {
         done_chan: &mut DoneChannel,
         context: &FetchContext,
         path: &str,
+        expose_servo_internals: bool,
     ) -> Pin<Box<dyn Future<Output = Response> + Send>> {
         if path.contains("..") || !path.starts_with("/") {
             return Box::pin(std::future::ready(Response::network_internal_error(
@@ -66,6 +67,11 @@ impl ResourceProtocolHandler {
             // Set Content-Type header.
             let mime = mime_guess::from_path(file_path).first_or_octet_stream();
             response.headers.typed_insert(ContentType::from(mime));
+            if expose_servo_internals {
+                response
+                    .headers
+                    .insert("X-Servo", PRIVILEGED_SECRET.to_string().parse().unwrap());
+            }
 
             // Setup channel to receive cross-thread messages about the file fetch
             // operation.
@@ -103,6 +109,6 @@ impl ProtocolHandler for ResourceProtocolHandler {
         // TODO: Check referrer.
         //       We unexpectedly get `NoReferrer` for all requests from the newtab page.
 
-        Self::response_for_path(request, done_chan, context, url.path())
+        Self::response_for_path(request, done_chan, context, url.path(), false)
     }
 }

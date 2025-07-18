@@ -42,6 +42,7 @@ use embedder_traits::{
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::FontContext;
+use http::header::HeaderMap;
 use ipc_channel::ipc::{self, IpcSender};
 use js::glue::DumpJSStack;
 use js::jsapi::{
@@ -61,12 +62,12 @@ use layout_api::{
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
-use net_traits::ResourceThreads;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResponseMessage, ImageLoadListener, ImageResponse, PendingImageId,
     PendingImageResponse, RasterizationCompleteResponse,
 };
 use net_traits::storage_thread::StorageType;
+use net_traits::{PRIVILEGED_SECRET, ResourceThreads};
 use num_traits::ToPrimitive;
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -424,6 +425,10 @@ pub(crate) struct Window {
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-endpoints>
     #[no_trace]
     endpoints_list: DomRefCell<Vec<ReportingEndpoint>>,
+
+    /// True if the HTTP response that created this Window contained the
+    /// secret header value.
+    response_contained_servo_secret: bool,
 }
 
 impl Window {
@@ -1966,6 +1971,18 @@ impl Window {
         self.scroll_offset_query_with_external_scroll_id(self.pipeline_id().root_scroll_id())
     }
 
+    pub(crate) fn is_servo_privileged(&self) -> bool {
+        self.response_contained_servo_secret
+    }
+
+    pub(crate) fn scroll_offset(&self, can_gc: CanGc) -> Vector2D<f32, LayoutPixel> {
+        self.scroll_offset_query_with_external_scroll_id(
+            self.pipeline_id().root_scroll_id(),
+            can_gc,
+        )
+>>>>>>> 230f0209d83 (script: Support exposing navigator.servo in custom protocols.)
+    }
+
     // https://heycam.github.io/webidl/#named-properties-object
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     #[allow(unsafe_code)]
@@ -3120,6 +3137,7 @@ impl Window {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         theme: Theme,
+        header_map: &HeaderMap,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3212,6 +3230,8 @@ impl Window {
             reporting_observer_list: Default::default(),
             report_list: Default::default(),
             endpoints_list: Default::default(),
+            response_contained_servo_secret: header_map.get("X-Servo") ==
+                Some(&headers::HeaderValue::from(*PRIVILEGED_SECRET)),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
