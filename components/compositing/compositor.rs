@@ -777,6 +777,13 @@ impl IOCompositor {
                 webview_renderer.webrender_frame_ready.set(false);
 
                 let pipeline_id = display_list_info.pipeline_id;
+                let is_root_pipeline =
+                    Some(pipeline_id.into()) == webview_renderer.root_pipeline_id;
+                let scale_factor_changed = is_root_pipeline &&
+                    webview_renderer.set_most_recently_rendered_viewport_details(
+                        display_list_info.viewport_details,
+                    );
+
                 let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
                 details.most_recent_display_list_epoch = Some(display_list_info.epoch);
                 details.hit_test_items = display_list_info.hit_test_info;
@@ -795,6 +802,11 @@ impl IOCompositor {
                 }
 
                 let mut transaction = Transaction::new();
+
+                if scale_factor_changed {
+                    self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+                }
+
                 transaction
                     .set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
                 self.update_transaction_with_all_scroll_offsets(&mut transaction);
@@ -1239,9 +1251,8 @@ impl IOCompositor {
         }
 
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.set_page_zoom(1.0);
+            webview_renderer.set_page_zoom(Scale::new(1.0));
         }
-        self.send_root_pipeline_display_list();
     }
 
     pub fn on_zoom_window_event(&mut self, webview_id: WebViewId, magnification: f32) {
@@ -1249,10 +1260,14 @@ impl IOCompositor {
             return;
         }
 
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.set_page_zoom(magnification);
+        if magnification == 1.0 {
+            return;
         }
-        self.send_root_pipeline_display_list();
+
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            let current_page_zoom = webview_renderer.page_zoom_level();
+            webview_renderer.set_page_zoom(current_page_zoom * Scale::new(magnification));
+        }
     }
 
     fn details_for_pipeline(&self, pipeline_id: PipelineId) -> Option<&PipelineDetails> {

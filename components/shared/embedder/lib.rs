@@ -38,7 +38,7 @@ use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
 use uuid::Uuid;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, LayoutSize};
 
 pub use crate::input_events::*;
 pub use crate::webdriver::*;
@@ -317,6 +317,14 @@ pub struct ViewportDetails {
     /// The scale factor to use to account for HiDPI scaling. This does not take into account
     /// any page or pinch zoom applied by the compositor to the contents.
     pub hidpi_scale_factor: Scale<f32, CSSPixel, DevicePixel>,
+}
+
+impl ViewportDetails {
+    /// Convert this [`ViewportDetails`] size to a [`LayoutSize`]. This is the same numerical
+    /// value as [`Self::size`], because a `LayoutPixel` is the same as a `CSSPixel`.
+    pub fn layout_size(&self) -> LayoutSize {
+        Size2D::from_untyped(self.size.to_untyped())
+    }
 }
 
 /// Unlike [`ScreenGeometry`], the data is in device-independent pixels

@@ -65,7 +65,11 @@ impl<'a> BackgroundPainter<'a> {
         if &BackgroundAttachment::Fixed ==
             get_cyclic(&background.background_attachment.0, layer_index)
         {
-            return builder.compositor_info.viewport_size.into();
+            return builder
+                .compositor_info
+                .viewport_details
+                .layout_size()
+                .into();
         }
 
         match get_cyclic(&background.background_clip.0, layer_index) {
@@ -149,7 +153,11 @@ impl<'a> BackgroundPainter<'a> {
                 Origin::PaddingBox => *fragment_builder.padding_rect(),
                 Origin::BorderBox => fragment_builder.border_rect,
             },
-            BackgroundAttachment::Fixed => builder.compositor_info.viewport_size.into(),
+            BackgroundAttachment::Fixed => builder
+                .compositor_info
+                .viewport_details
+                .layout_size()
+                .into(),
         }
     }
 }
