@@ -3343,6 +3343,8 @@ impl ScriptThread {
             theme: incomplete.theme,
         };
 
+        let empty_headers = headers::HeaderMap::new();
+
         // Create the window and document objects.
         let window = Window::new(
             incomplete.webview_id,
@@ -3385,6 +3387,11 @@ impl ScriptThread {
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
+            metadata
+                .headers
+                .as_ref()
+                .map(|h| &**h)
+                .unwrap_or(&empty_headers),
         );
 
         let _realm = enter_realm(&*window);
