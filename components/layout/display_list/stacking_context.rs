@@ -14,6 +14,7 @@ use compositing_traits::display_list::{
     AxesScrollSensitivity, CompositorDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
     SpatialTreeNodeInfo, StickyNodeInfo,
 };
+use embedder_traits::ViewportDetails;
 use euclid::SideOffsets2D;
 use euclid::default::{Point2D, Rect, Size2D};
 use log::warn;
@@ -120,7 +121,7 @@ impl StackingContextTree {
     /// pipeline id.
     pub fn new(
         fragment_tree: &FragmentTree,
-        viewport_size: LayoutSize,
+        viewport_details: ViewportDetails,
         pipeline_id: wr::PipelineId,
         first_reflow: bool,
         debug: &DebugOptions,
@@ -131,8 +132,9 @@ impl StackingContextTree {
             scrollable_overflow.size.height.to_f32_px(),
         ));
 
+        let viewport_size = viewport_details.layout_size();
         let compositor_info = CompositorDisplayListInfo::new(
-            viewport_size,
+            viewport_details,
             scrollable_overflow,
             pipeline_id,
             // This epoch is set when the WebRender display list is built. For now use a dummy value.
@@ -145,7 +147,7 @@ impl StackingContextTree {
         let cb_for_non_fixed_descendants = ContainingBlock::new(
             fragment_tree.initial_containing_block,
             root_scroll_node_id,
-            Some(compositor_info.viewport_size),
+            Some(viewport_size),
             ClipId::INVALID,
         );
         let cb_for_fixed_descendants = ContainingBlock::new(
@@ -1504,7 +1506,10 @@ impl BoxFragment {
             Some(size) => size,
             None => {
                 // This is a direct descendant of a reference frame.
-                &stacking_context_tree.compositor_info.viewport_size
+                &stacking_context_tree
+                    .compositor_info
+                    .viewport_details
+                    .layout_size()
             },
         };
 

@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use bitflags::bitflags;
-use embedder_traits::Cursor;
+use embedder_traits::{Cursor, ViewportDetails};
 use euclid::SideOffsets2D;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -486,8 +486,9 @@ pub struct CompositorDisplayListInfo {
     /// The WebRender [PipelineId] of this display list.
     pub pipeline_id: PipelineId,
 
-    /// The size of the viewport that this display list renders into.
-    pub viewport_size: LayoutSize,
+    /// The [`ViewportDetails`] that describe the viewport in the script/layout thread at
+    /// the time this display list was created.
+    pub viewport_details: ViewportDetails,
 
     /// The size of this display list's content.
     pub content_size: LayoutSize,
@@ -526,7 +527,7 @@ impl CompositorDisplayListInfo {
     /// Create a new CompositorDisplayListInfo with the root reference frame
     /// and scroll frame already added to the scroll tree.
     pub fn new(
-        viewport_size: LayoutSize,
+        viewport_details: ViewportDetails,
         content_size: LayoutSize,
         pipeline_id: PipelineId,
         epoch: Epoch,
@@ -548,7 +549,10 @@ impl CompositorDisplayListInfo {
             SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
                 external_id: ExternalScrollId(0, pipeline_id),
                 content_rect: LayoutRect::from_origin_and_size(LayoutPoint::zero(), content_size),
-                clip_rect: LayoutRect::from_origin_and_size(LayoutPoint::zero(), viewport_size),
+                clip_rect: LayoutRect::from_origin_and_size(
+                    LayoutPoint::zero(),
+                    viewport_details.layout_size(),
+                ),
                 scroll_sensitivity: viewport_scroll_sensitivity,
                 offset: LayoutVector2D::zero(),
             }),
@@ -556,7 +560,7 @@ impl CompositorDisplayListInfo {
 
         CompositorDisplayListInfo {
             pipeline_id,
-            viewport_size,
+            viewport_details,
             content_size,
             epoch,
             hit_test_info: Default::default(),

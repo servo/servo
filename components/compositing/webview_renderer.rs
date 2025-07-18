@@ -10,7 +10,7 @@ use std::rc::Rc;
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::display_list::ScrollType;
 use compositing_traits::viewport_description::{
-    DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, ViewportDescription,
+    DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM, ViewportDescription,
 };
 use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
@@ -100,8 +100,14 @@ pub(crate) struct WebViewRenderer {
     pending_point_input_events: RefCell<VecDeque<InputEvent>>,
     /// WebRender is not ready between `SendDisplayList` and `WebRenderFrameReady` messages.
     pub webrender_frame_ready: Cell<bool>,
-    /// Viewport Description
+    /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
+    /// and initial values for zoom derived from the `viewport` meta tag in web content.
     viewport_description: Option<ViewportDescription>,
+    /// The [`ViewportDetails`] of the most recently rendered root pipeline display list.
+    /// This is used to detect situations where a new display list was made with a new
+    /// page zoom. This prevents rendering jank by allowing the renderer to delay changing
+    /// the scale of the root pipeline until the display list for it is ready.
+    pub most_recently_rendered_viewport_details: Option<ViewportDetails>,
 }
 
 impl Drop for WebViewRenderer {
@@ -130,13 +136,14 @@ impl WebViewRenderer {
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
-            page_zoom: Scale::new(1.0),
-            viewport_zoom: PinchZoomFactor::new(DEFAULT_ZOOM),
+            page_zoom: DEFAULT_PAGE_ZOOM,
+            viewport_zoom: PinchZoomFactor::new(1.0),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
             pending_point_input_events: Default::default(),
             webrender_frame_ready: Cell::default(),
             viewport_description: None,
+            most_recently_rendered_viewport_details: None,
         }
     }
 
@@ -964,9 +971,19 @@ impl WebViewRenderer {
         old_zoom != self.viewport_zoom
     }
 
-    pub(crate) fn set_page_zoom(&mut self, magnification: f32) {
-        self.page_zoom =
-            Scale::new((self.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM));
+    pub(crate) fn page_zoom_level(&mut self) -> Scale<f32, CSSPixel, DeviceIndependentPixel> {
+        self.page_zoom
+    }
+
+    pub(crate) fn set_page_zoom(
+        &mut self,
+        new_page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
+    ) {
+        let new_page_zoom = new_page_zoom.clamp(MIN_PAGE_ZOOM, MAX_PAGE_ZOOM);
+        let old_zoom = std::mem::replace(&mut self.page_zoom, new_page_zoom);
+        if old_zoom != self.page_zoom {
+            self.send_window_size_message();
+        }
     }
 
     pub(crate) fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
@@ -1044,6 +1061,19 @@ impl WebViewRenderer {
                     .clamp_zoom(viewport_description.initial_scale.get()),
             ));
         self.viewport_description = Some(viewport_description);
+    }
+
+    pub(crate) fn set_most_recently_rendered_viewport_details(
+        &mut self,
+        viewport_details: ViewportDetails,
+    ) -> bool {
+        let hidpi_scale_changed =
+            self.most_recently_rendered_viewport_details
+                .is_some_and(|old_viewport_details| {
+                    old_viewport_details.hidpi_scale_factor != viewport_details.hidpi_scale_factor
+                });
+        self.most_recently_rendered_viewport_details = Some(viewport_details);
+        hidpi_scale_changed
     }
 }
 
