@@ -16,8 +16,10 @@ use js::rust::Runtime;
 use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
+use script_bindings::utils::set_dictionary_property;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
@@ -115,5 +117,32 @@ impl DebuggerGlobalScope {
         if !self.evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc) {
             warn!("Failed to execute debugger request");
         }
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn execute_with_global(&self, can_gc: CanGc, global: &GlobalScope) {
+        let cx = Self::get_cx();
+        rooted!(in(*cx) let mut property_value = UndefinedValue());
+
+        let _realm = enter_realm(self);
+        // Convert the debuggee global’s reflector to a Value, wrapping it from its originating realm (debuggee realm)
+        // into the active realm (debugger realm) so that it can be passed across compartments.
+        global
+            .reflector()
+            .safe_to_jsval(cx, property_value.handle_mut());
+
+        // TODO: what invariants do we need to uphold for the unsafe call?
+        if let Err(()) = unsafe {
+            set_dictionary_property(
+                *cx,
+                self.global_scope.reflector().get_jsobject(),
+                "debuggee",
+                property_value.handle(),
+            )
+        } {
+            warn!("Failed to set debuggee");
+            return;
+        }
+        self.execute(can_gc);
     }
 }
