@@ -9,10 +9,11 @@
 
 import fileinput
 import re
+from re import Match
 import random
 
 
-def is_comment(line):
+def is_comment(line: str) -> Match[str] | None:
     return re.search(r"\/\/.*", line)
 
 
@@ -25,14 +26,14 @@ def init_variables(if_blocks):
     return random_index, start_counter, end_counter, lines_to_delete, line_to_mutate
 
 
-def deleteStatements(file_name, line_numbers):
+def deleteStatements(file_name, line_numbers) -> None:
     for line in fileinput.input(file_name, inplace=True):
         if fileinput.lineno() not in line_numbers:
             print(line.rstrip())
 
 
 class Strategy:
-    def __init__(self):
+    def __init__(self) -> None:
         self._strategy_name = ""
         self._replace_strategy = {}
 
@@ -53,28 +54,28 @@ class Strategy:
 
 
 class AndOr(Strategy):
-    def __init__(self):
+    def __init__(self) -> None:
         Strategy.__init__(self)
         logical_and = r"(?<=\s)&&(?=\s)"
         self._replace_strategy = {"regex": logical_and, "replaceString": "||"}
 
 
 class IfTrue(Strategy):
-    def __init__(self):
+    def __init__(self) -> None:
         Strategy.__init__(self)
         if_condition = r"(?<=if\s)\s*(?!let\s)(.*)(?=\s\{)"
         self._replace_strategy = {"regex": if_condition, "replaceString": "true"}
 
 
 class IfFalse(Strategy):
-    def __init__(self):
+    def __init__(self) -> None:
         Strategy.__init__(self)
         if_condition = r"(?<=if\s)\s*(?!let\s)(.*)(?=\s\{)"
         self._replace_strategy = {"regex": if_condition, "replaceString": "false"}
 
 
 class ModifyComparision(Strategy):
-    def __init__(self):
+    def __init__(self) -> None:
         Strategy.__init__(self)
         less_than_equals = r"(?<=\s)(\<)\=(?=\s)"
         greater_than_equals = r"(?<=\s)(\<)\=(?=\s)"
@@ -82,7 +83,7 @@ class ModifyComparision(Strategy):
 
 
 class MinusToPlus(Strategy):
-    def __init__(self):
+    def __init__(self) -> None:
         Strategy.__init__(self)
         arithmetic_minus = r"(?<=\s)\-(?=\s.+)"
         minus_in_shorthand = r"(?<=\s)\-(?=\=)"
@@ -90,7 +91,7 @@ class MinusToPlus(Strategy):
 
 
 class PlusToMinus(Strategy):
-    def __init__(self):
+    def __init__(self) -> None:
         Strategy.__init__(self)
         arithmetic_plus = r"(?<=[^\"]\s)\+(?=\s[^A-Z\'?\":\{]+)"
         plus_in_shorthand = r"(?<=\s)\+(?=\=)"
@@ -98,14 +99,14 @@ class PlusToMinus(Strategy):
 
 
 class AtomicString(Strategy):
-    def __init__(self):
+    def __init__(self) -> None:
         Strategy.__init__(self)
         string_literal = r"(?<=\").+(?=\")"
         self._replace_strategy = {"regex": string_literal, "replaceString": " "}
 
 
 class DuplicateLine(Strategy):
-    def __init__(self):
+    def __init__(self) -> None:
         Strategy.__init__(self)
         self._strategy_name = "duplicate"
         append_statement = r".+?append\(.+?\).*?;"
@@ -133,7 +134,7 @@ class DuplicateLine(Strategy):
 
 
 class DeleteIfBlock(Strategy):
-    def __init__(self):
+    def __init__(self) -> None:
         Strategy.__init__(self)
         self.if_block = r"^\s+if\s(.+)\s\{"
         self.else_block = r"\selse(.+)\{"
@@ -175,7 +176,17 @@ class DeleteIfBlock(Strategy):
             line_to_mutate += 1
 
 
-def get_strategies():
+def get_strategies() -> tuple[
+    type[AndOr],
+    type[IfTrue],
+    type[IfFalse],
+    type[ModifyComparision],
+    type[PlusToMinus],
+    type[MinusToPlus],
+    type[AtomicString],
+    type[DuplicateLine],
+    type[DeleteIfBlock],
+]:
     return (
         AndOr,
         IfTrue,
@@ -190,7 +201,7 @@ def get_strategies():
 
 
 class Mutator:
-    def __init__(self, strategy):
+    def __init__(self, strategy) -> None:
         self._strategy = strategy
 
     def mutate(self, file_name):

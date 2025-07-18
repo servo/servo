@@ -61,7 +61,7 @@ class JobConfig(object):
         self.update_name()
         return True
 
-    def update_name(self):
+    def update_name(self) -> None:
         if self.workflow is Workflow.LINUX:
             self.name = "Linux"
         elif self.workflow is Workflow.MACOS:
@@ -131,7 +131,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return None
 
 
-def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
+def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
     if config is None:
         return None
     s = s.lower()
@@ -157,13 +157,13 @@ class Encoder(json.JSONEncoder):
 
 
 class Config(object):
-    def __init__(self, s: Optional[str] = None):
+    def __init__(self, s: Optional[str] = None) -> None:
         self.fail_fast: bool = False
         self.matrix: list[JobConfig] = list()
         if s is not None:
             self.parse(s)
 
-    def parse(self, input: str):
+    def parse(self, input: str) -> None:
         input = input.lower().strip()
 
         if not input:
@@ -197,7 +197,7 @@ class Config(object):
             else:
                 self.add_or_merge_job_to_matrix(job)
 
-    def add_or_merge_job_to_matrix(self, job: JobConfig):
+    def add_or_merge_job_to_matrix(self, job: JobConfig) -> None:
         for existing_job in self.matrix:
             if existing_job.merge(job):
                 return
@@ -207,7 +207,7 @@ class Config(object):
         return json.dumps(self, cls=Encoder, **kwargs)
 
 
-def main():
+def main() -> None:
     conf = Config(" ".join(sys.argv[1:]))
     print(conf.to_json())
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
 
 
 class TestParser(unittest.TestCase):
-    def test_string(self):
+    def test_string(self) -> None:
         self.assertDictEqual(
             json.loads(Config("linux-unit-tests fail-fast").to_json()),
             {
@@ -239,7 +239,7 @@ class TestParser(unittest.TestCase):
             },
         )
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         self.assertDictEqual(
             json.loads(Config("").to_json()),
             {
@@ -321,7 +321,7 @@ class TestParser(unittest.TestCase):
             },
         )
 
-    def test_job_merging(self):
+    def test_job_merging(self) -> None:
         self.assertDictEqual(
             json.loads(Config("linux-wpt").to_json()),
             {
@@ -352,6 +352,8 @@ class TestParser(unittest.TestCase):
         a = handle_modifier(a, "linux-unit-tests")
         b = handle_preset("linux-wpt")
         b = handle_modifier(b, "linux-wpt")
+        assert a is not None
+        assert b is not None
         self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
         self.assertEqual(a, JobConfig("Linux (Unit Tests, WPT)", Workflow.LINUX, unit_tests=True, wpt=True))
 
@@ -375,14 +377,14 @@ class TestParser(unittest.TestCase):
         self.assertFalse(a.merge(b), "Should not merge jobs with different build arguments.")
         self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 
-    def test_full(self):
+    def test_full(self) -> None:
         self.assertDictEqual(json.loads(Config("full").to_json()), json.loads(Config("").to_json()))
 
-    def test_wpt_alias(self):
+    def test_wpt_alias(self) -> None:
         self.assertDictEqual(json.loads(Config("wpt").to_json()), json.loads(Config("linux-wpt").to_json()))
 
 
-def run_tests():
+def run_tests() -> bool:
     verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
     suite = unittest.TestLoader().loadTestsFromTestCase(TestParser)
     return unittest.TextTestRunner(verbosity=verbosity).run(suite).wasSuccessful()

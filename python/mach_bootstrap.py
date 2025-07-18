@@ -80,7 +80,7 @@ CATEGORIES = {
 }
 
 
-def _process_exec(args, cwd):
+def _process_exec(args: list[str], cwd) -> None:
     try:
         subprocess.check_output(args, stderr=subprocess.STDOUT, cwd=cwd)
     except subprocess.CalledProcessError as exception:
@@ -89,7 +89,7 @@ def _process_exec(args, cwd):
         sys.exit(1)
 
 
-def install_virtual_env_requirements(project_path: str, marker_path: str):
+def install_virtual_env_requirements(project_path: str, marker_path: str) -> None:
     requirements_paths = [
         os.path.join(project_path, "python", "requirements.txt"),
         os.path.join(
@@ -127,7 +127,7 @@ def install_virtual_env_requirements(project_path: str, marker_path: str):
             marker_file.write(requirements_hash)
 
 
-def _activate_virtualenv(topdir):
+def _activate_virtualenv(topdir: str) -> None:
     virtualenv_path = os.path.join(topdir, ".venv")
 
     with open(".python-version", "r") as python_version_file:
@@ -151,7 +151,7 @@ def _activate_virtualenv(topdir):
     warnings.filterwarnings("ignore", category=SyntaxWarning, module=r".*.venv")
 
 
-def _ensure_case_insensitive_if_windows():
+def _ensure_case_insensitive_if_windows() -> None:
     # The folder is called 'python'. By deliberately checking for it with the wrong case, we determine if the file
     # system is case sensitive or not.
     if _is_windows() and not os.path.exists("Python"):
@@ -160,11 +160,11 @@ def _ensure_case_insensitive_if_windows():
         sys.exit(1)
 
 
-def _is_windows():
+def _is_windows() -> bool:
     return sys.platform == "win32"
 
 
-def bootstrap_command_only(topdir):
+def bootstrap_command_only(topdir: str) -> int:
     # we should activate the venv before importing servo.boostrap
     # because the module requires non-standard python packages
     _activate_virtualenv(topdir)
@@ -188,7 +188,7 @@ def bootstrap_command_only(topdir):
     return 0
 
 
-def bootstrap(topdir):
+def bootstrap(topdir: str):
     _ensure_case_insensitive_if_windows()
 
     topdir = os.path.abspath(topdir)
@@ -215,6 +215,7 @@ def bootstrap(topdir):
     import mach.main
 
     mach = mach.main.Mach(os.getcwd())
+    # pyrefly: ignore[bad-assignment]
     mach.populate_context_handler = populate_context
 
     for category, meta in CATEGORIES.items():

@@ -25,9 +25,10 @@ def get_folders_list(path):
             folder_name = join(path, filename)
             folder_list.append(folder_name)
         return folder_list
+    return folder_list
 
 
-def mutation_test_for(mutation_path):
+def mutation_test_for(mutation_path: str) -> None:
     test_mapping_file = join(mutation_path, "test_mapping.json")
     if isfile(test_mapping_file):
         json_data = open(test_mapping_file).read()
