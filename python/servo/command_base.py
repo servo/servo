@@ -30,7 +30,7 @@ from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 from os import path
 from subprocess import PIPE, CompletedProcess
-from typing import Any, Dict, List, Optional, Union, LiteralString, cast
+from typing import Any, Dict, List, Optional, Union, LiteralString, cast, Literal
 from xml.etree.ElementTree import XML
 
 import toml
@@ -47,6 +47,8 @@ from python.servo.platform.build_target import SanitizerKind
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
 ASAN_LEAK_SUPPRESSION_FILE = "support/suppressed_leaks_for_asan.txt"
 
+BuildProfile = Literal["debug", "release", "medium", "production", "production-stripped", "profiling"]
+
 
 @dataclass
 class BuildType:
@@ -56,7 +58,7 @@ class BuildType:
         CUSTOM = 3
 
     kind: Kind
-    profile: str
+    profile: BuildProfile
 
     def dev() -> BuildType:
         return BuildType(BuildType.Kind.DEV, "debug")
@@ -67,7 +69,7 @@ class BuildType:
     def prod() -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, "production")
 
-    def custom(profile: str) -> BuildType:
+    def custom(profile: BuildProfile) -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, profile)
 
     def is_dev(self) -> bool:
@@ -722,7 +724,7 @@ class CommandBase(object):
 
         return target_configuration_decorator
 
-    def configure_build_type(self, release: bool, dev: bool, prod: bool, profile: str) -> BuildType:
+    def configure_build_type(self, release: bool, dev: bool, prod: bool, profile: BuildProfile) -> BuildType:
         option_count = release + dev + prod + (profile is not None)
 
         if option_count > 1:

@@ -126,11 +126,12 @@ class MachCommands(CommandBase):
 
     @Command("clean-nightlies", description="Clean unused nightly builds of Rust and Cargo", category="bootstrap")
     @CommandArgument("--force", "-f", action="store_true", help="Actually remove stuff")
-    @CommandArgument("--keep", default=1, help="Keep up to this many most recent nightlies")
-    def clean_nightlies(self, force=False, keep=1) -> None:
+    @CommandArgument("--keep", default="1", help="Keep up to this many most recent nightlies")
+    def clean_nightlies(self, force: bool = False, keep: str | int = "1") -> None:
         print(f"Current Rust version for Servo: {self.rust_toolchain()}")
         old_toolchains = []
-        keep = keep
+        if not isinstance(keep, int):
+            keep = int(keep)
         stdout = subprocess.check_output(["git", "log", "--format=%H", "rust-toolchain.toml"])
         for i, commit_hash in enumerate(stdout.split(), 1):
             if i > keep:
@@ -157,8 +158,8 @@ class MachCommands(CommandBase):
     @Command("clean-cargo-cache", description="Clean unused Cargo packages", category="bootstrap")
     @CommandArgument("--force", "-f", action="store_true", help="Actually remove stuff")
     @CommandArgument("--show-size", "-s", action="store_true", help="Show packages size")
-    @CommandArgument("--keep", default=1, help="Keep up to this many most recent dependencies")
-    def clean_cargo_cache(self, force=False, show_size=False, keep=1) -> None:
+    @CommandArgument("--keep", default="1", help="Keep up to this many most recent dependencies")
+    def clean_cargo_cache(self, force: bool = False, show_size: bool = False, keep: str = "1") -> None:
         def get_size(path: str) -> float:
             if os.path.isfile(path):
                 return os.path.getsize(path) / (1024 * 1024.0)
