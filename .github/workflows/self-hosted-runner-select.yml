@@ -12,11 +12,15 @@ on:
         required: false
         type: string
         default: /orgs/${{ github.repository_owner }}/actions/runners
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
       self-hosted-runner-count:
         required: false
         type: number
         default: 1
-      force-github-hosted-runner:
+      request-policy-override:
         required: false
         type: boolean
         default: false
@@ -37,8 +41,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       unique-id: ${{ steps.select.outputs.unique_id }}
+      github-hosted-runner-label: ${{ steps.select.outputs.github_hosted_runner_label }}
+      self-hosted-runner-label: ${{ steps.select.outputs.self_hosted_runner_label }}
       selected-runner-label: ${{ steps.select.outputs.selected_runner_label }}
       is-self-hosted: ${{ steps.select.outputs.is_self_hosted }}
+      self-hosted-runner-count: ${{ steps.select.outputs.self_hosted_runner_count }}
     steps:
       - name: Select and reserve best available runner
         id: select
@@ -48,7 +55,12 @@ jobs:
           self_hosted_runner_scope='${{ inputs.self-hosted-runner-scope }}'
           self_hosted_runner_count='${{ inputs.self-hosted-runner-count }}'
 
-          set -euo pipefail
+          # List of monitor servers
+          set -euo pipefail \
+            https://ci0.servo.org \
+            https://ci1.servo.org \
+            https://ci2.servo.org \
+          # End of server list (do not remove this comment)
 
           fall_back_to_github_hosted() {
             echo 'Falling back to GitHub-hosted runner'
@@ -77,14 +89,74 @@ jobs:
             fall_back_to_github_hosted
           fi
 
+          if [ '${{ inputs.request-policy-override }}' = true ]; then
+            # First request the policy overrides.
+            remaining_runner_count=$self_hosted_runner_count
+            received_runner_count=0
+            for monitor_api_base_url in "$@"; do
+              if [ $remaining_runner_count -eq 0 ]; then
+                break
+              fi
+              # Use the monitor API to request a policy override.
+              policy_override_url=$monitor_api_base_url/policy/override\?$self_hosted_image_name=$remaining_runner_count
+              result=$(mktemp)
+              echo
+              echo Requesting policy override for up to $remaining_runner_count more runners
+              echo POST "$policy_override_url"
+              if curl -sS --fail-with-body --connect-timeout 5 --max-time 30 -X POST "$policy_override_url" \
+                  -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' > $result \
+                  && jq -e . $result > /dev/null; then
+                cat $result
+                echo
+                result_count=$(jq -e --arg image $self_hosted_image_name '.profile_override_counts[$image]' $result)
+                remaining_runner_count=$((remaining_runner_count - result_count))
+                received_runner_count=$((received_runner_count + result_count))
+              else
+                cat $result
+                echo
+              fi
+            done
+
+            # We may receive fewer runners than we requested. If so, adjust our expectations accordingly.
+            self_hosted_runner_count=$received_runner_count
+
+            # Now wait for the runners to come up.
+            start_time=$(date -u +\%s)
+            while :; do
+              now=$(date -u +\%s)
+              if [ $((now - start_time)) -gt 60 ]; then
+                echo 'Timeout waiting for policy overrides to deliver!'
+                exit 1
+              fi
+              remaining_runner_count=$self_hosted_runner_count
+              for monitor_api_base_url in "$@"; do
+                if [ $remaining_runner_count -eq 0 ]; then
+                  break
+                fi
+                get_policy_override_url=$monitor_api_base_url/policy/override
+                echo GET "$get_policy_override_url"
+                if curl -sS --fail-with-body --connect-timeout 5 --max-time 30 -X POST "$get_policy_override_url" \
+                    -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' > $result \
+                    && jq -e . $result > /dev/null; then
+                  cat $result
+                  echo
+                  result_count=$(jq -e --arg image $self_hosted_image_name '.actual_runner_ids_by_profile_key[$image] | length' $result)
+                  remaining_runner_count=$((remaining_runner_count - result_count))
+                else
+                  cat $result
+                  echo
+                fi
+              done
+              if [ $remaining_runner_count -eq 0 ]; then
+                break
+              fi
+            done
+          fi
+
           # Try to reserve as many runners as possible, up to the needed count,
           # from a random server, until we have enough runners.
           remaining_runner_count=$self_hosted_runner_count
-          for monitor_api_base_url in $(printf \%s\\n \
-            https://ci0.servo.org \
-            https://ci1.servo.org \
-            https://ci2.servo.org \
-          | shuf); do
+          for monitor_api_base_url in $(printf \%s\\n "$@" | shuf); do
             if [ $remaining_runner_count -eq 0 ]; then
               break
             fi
@@ -111,8 +183,12 @@ jobs:
           echo
           echo
           if [ $remaining_runner_count -eq 0 ]; then
+            echo "github_hosted_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+            echo "self_hosted_runner_label=$self_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+            echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
             echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
             echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
+            echo "self_hosted_runner_count=$self_hosted_runner_count" | tee -a $GITHUB_OUTPUT
             exit 0
           else
             echo 'Not enough self-hosted runners available!'

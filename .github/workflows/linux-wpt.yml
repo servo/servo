@@ -39,144 +39,72 @@ jobs:
   #       with:
   #         script: |
   #           return Array.from({length: ${{ inputs.number-of-wpt-chunks }}}, (_, i) => i + 1)
-  unique-id:
+
+  # Runs the underlying job (“workload”) on a self-hosted runner if available,
+  # with the help of a `runner-select` job and a `runner-timeout` job.
+  runner-select:
+    uses: ./.github/workflows/self-hosted-runner-select.yml
+    secrets: inherit
+    with:
+      github-hosted-runner-label: ubuntu-22.04
+      self-hosted-image-name: servo-ubuntu2204
+      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+      self-hosted-runner-count: 20
+      request-policy-override: true
+  runner-timeout:
+    needs:
+      # - runner-select
+      - start-chunker
+    uses: ./.github/workflows/self-hosted-runner-timeout.yml
+    secrets: inherit
+    with:
+      unique-id: ${{ needs.runner-select.outputs.unique-id }}
+      is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+  start-chunker:
+    needs: runner-select
     runs-on: ubuntu-22.04
     outputs:
-      unique-id: ${{ steps.unique-id.outputs.unique_id }}
-      total-chunks: ${{ steps.unique-id.outputs.total_chunks }}
-      secret-token: ${{ steps.unique-id.outputs.secret_token }}
+      total-chunks: ${{ steps.start-chunker.outputs.total_chunks }}
+      secret-token: ${{ steps.start-chunker.outputs.secret_token }}
+      matrix: ${{ steps.start-chunker.outputs.matrix }}
     steps:
-      - id: unique-id
+      - id: start-chunker
         run: |
-          # Generate a unique id that allows the workload jobs to request chunks
-          # from the chunker service.
-          unique_id=$(uuidgen)
-          total_chunks=$(((20 + 16) * 6))
-          echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
+          unique_id=${{ needs.runner-select.outputs.unique-id }}
+          github_hosted_runner_count=20
+          self_hosted_runner_count=${{ needs.runner-select.outputs.self-hosted-runner-count }}
+          total_chunks=$(((github_hosted_runner_count + self_hosted_runner_count) * 6))
           echo "total_chunks=$total_chunks" | tee -a $GITHUB_OUTPUT
 
           start_url=https://ci0.servo.org/chunker/start\?unique_id=$unique_id
           start_url=$start_url\&qualified_repo=${{ github.repository }}
           start_url=$start_url\&run_id=${{ github.run_id }}
           start_url=$start_url\&total_chunks=$total_chunks
-          start_url=$start_url\&runners[1]=github-hosted
-          start_url=$start_url\&runners[2]=github-hosted
-          start_url=$start_url\&runners[3]=github-hosted
-          start_url=$start_url\&runners[4]=github-hosted
-          start_url=$start_url\&runners[5]=github-hosted
-          start_url=$start_url\&runners[6]=github-hosted
-          start_url=$start_url\&runners[7]=github-hosted
-          start_url=$start_url\&runners[8]=github-hosted
-          start_url=$start_url\&runners[9]=github-hosted
-          start_url=$start_url\&runners[10]=github-hosted
-          start_url=$start_url\&runners[11]=github-hosted
-          start_url=$start_url\&runners[12]=github-hosted
-          start_url=$start_url\&runners[13]=github-hosted
-          start_url=$start_url\&runners[14]=github-hosted
-          start_url=$start_url\&runners[15]=github-hosted
-          start_url=$start_url\&runners[16]=github-hosted
-          start_url=$start_url\&runners[17]=github-hosted
-          start_url=$start_url\&runners[18]=github-hosted
-          start_url=$start_url\&runners[19]=github-hosted
-          start_url=$start_url\&runners[20]=github-hosted
-          start_url=$start_url\&runners[21]=self-hosted
-          start_url=$start_url\&runners[22]=self-hosted
-          start_url=$start_url\&runners[23]=self-hosted
-          start_url=$start_url\&runners[24]=self-hosted
-          start_url=$start_url\&runners[25]=self-hosted
-          start_url=$start_url\&runners[26]=self-hosted
-          start_url=$start_url\&runners[27]=self-hosted
-          start_url=$start_url\&runners[28]=self-hosted
-          start_url=$start_url\&runners[29]=self-hosted
-          start_url=$start_url\&runners[30]=self-hosted
-          start_url=$start_url\&runners[31]=self-hosted
-          start_url=$start_url\&runners[32]=self-hosted
-          start_url=$start_url\&runners[33]=self-hosted
-          start_url=$start_url\&runners[34]=self-hosted
-          start_url=$start_url\&runners[35]=self-hosted
+          # Chunks must be non-zero. Chunk zero always exits without running any tests.
+          runner=1
+          matrix=
+          i=1; while [ $i -le $github_hosted_runner_count ]; do
+            start_url=$start_url\&runners[$runner]=github-hosted
+            matrix=${matrix:+,}$matrix"{runner:$runner,\"runs-on\":\"${{ needs.runner-select.outputs.github-hosted-runner-label }}\"}"
+            runner=$((runner + 1))
+          done
+          i=1; while [ $i -le $self_hosted_runner_count ]; do
+            start_url=$start_url\&runners[$runner]=self-hosted
+            matrix=${matrix:+,}$matrix"{runner:$runner,\"runs-on\":\"${{ needs.runner-select.outputs.self-hosted-runner-label }}\"}"
+            runner=$((runner + 1))
+          done
           echo "POST $start_url"
           secret_token=$(curl -gfsSX POST "$start_url")
           echo "secret_token=$secret_token" >> $GITHUB_OUTPUT
+          echo "matrix=[$matrix]" >> $GITHUB_OUTPUT
   linux-wpt:
-    name: WPT
+    name: WPT [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ matrix.runs-on }}
-    needs: unique-id
+    needs: [runner-select, start-chunker]
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Chunks must be non-zero. Chunk zero always exits without running any tests.
-          - runner: 1
-            runs-on: ubuntu-22.04
-          - runner: 2
-            runs-on: ubuntu-22.04
-          - runner: 3
-            runs-on: ubuntu-22.04
-          - runner: 4
-            runs-on: ubuntu-22.04
-          - runner: 5
-            runs-on: ubuntu-22.04
-          - runner: 6
-            runs-on: ubuntu-22.04
-          - runner: 7
-            runs-on: ubuntu-22.04
-          - runner: 8
-            runs-on: ubuntu-22.04
-          - runner: 9
-            runs-on: ubuntu-22.04
-          - runner: 10
-            runs-on: ubuntu-22.04
-          - runner: 11
-            runs-on: ubuntu-22.04
-          - runner: 12
-            runs-on: ubuntu-22.04
-          - runner: 13
-            runs-on: ubuntu-22.04
-          - runner: 14
-            runs-on: ubuntu-22.04
-          - runner: 15
-            runs-on: ubuntu-22.04
-          - runner: 16
-            runs-on: ubuntu-22.04
-          - runner: 17
-            runs-on: ubuntu-22.04
-          - runner: 18
-            runs-on: ubuntu-22.04
-          - runner: 19
-            runs-on: ubuntu-22.04
-          - runner: 20
-            runs-on: ubuntu-22.04
-          # TODO: use self-hosted-runner-select.yml to reserve runners
-          - runner: 21
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 22
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 23
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 24
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 25
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 26
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 27
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 28
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 29
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 30
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 31
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 32
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 33
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 34
-            runs-on: self-hosted-image:ubuntu2204-wpt
-          - runner: 35
-            runs-on: self-hosted-image:ubuntu2204-wpt
+        include: ${{ fromJSON(needs.start-chunker.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
         if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
@@ -232,8 +160,8 @@ jobs:
           mkdir -p wpt-full-logs/linux
           exit_status_file=$(mktemp)
           while :; do
-            chunk_url=https://ci0.servo.org/chunker/take\?unique_id=${{ needs.unique-id.outputs.unique-id }}
-            chunk_url=$chunk_url\&secret_token=${{ needs.unique-id.outputs.secret-token }}
+            chunk_url=https://ci0.servo.org/chunker/take\?unique_id=${{ needs.runner-select.outputs.unique-id }}
+            chunk_url=$chunk_url\&secret_token=${{ needs.start-chunker.outputs.secret-token }}
             chunk_url=$chunk_url\&runner=${{ matrix.runner }}
             chunk_id=$(curl -fsSX POST "$chunk_url")
             if [ "$chunk_id" = null ]; then
@@ -242,11 +170,11 @@ jobs:
             >&2 echo .
             >&2 echo .
             >&2 echo .
-            >&2 echo "Got chunk $chunk_id (of ${{ needs.unique-id.outputs.total-chunks }} chunks)"
+            >&2 echo "Got chunk $chunk_id (of ${{ needs.start-chunker.outputs.total-chunks }} chunks)"
             if ./mach test-wpt \
               $WPT_ALWAYS_SUCCEED_ARG \
               --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier $SERVO_WPT_TIMEOUT_MULTIPLIER \
-              --total-chunks ${{ needs.unique-id.outputs.total-chunks }} --this-chunk $chunk_id \
+              --total-chunks ${{ needs.start-chunker.outputs.total-chunks }} --this-chunk $chunk_id \
               --log-raw wpt-full-logs/linux/raw/$chunk_id.log \
               --log-wptreport wpt-full-logs/linux/wptreport/$chunk_id.json \
               --log-raw-unexpected wpt-filtered-logs/linux/$chunk_id.log \
