@@ -54,6 +54,12 @@ impl ClientStorageTestChild {
         }
     }
 
+    pub fn send_ping(self: &Rc<Self>) {
+        if let Some(bound_state) = self.bound_state.borrow().as_ref() {
+            self.send_message(bound_state, ClientStorageTestMsg::Ping);
+        }
+    }
+
     pub fn send_delete(&self) {
         if let Some(bound_state) = self.bound_state.borrow().as_ref() {
             self.send_message(bound_state, ClientStorageTestMsg::Delete);
@@ -79,6 +85,19 @@ impl ClientStorageTestChild {
     fn send_routed_message(&self, bound_state: &BoundState, msg: ClientStorageRoutedMsg) {
         bound_state.ipc_sender.send(msg).unwrap();
     }
+
+    pub fn recv_message(self: &Rc<Self>, msg: ClientStorageTestMsg) {
+        #[allow(clippy::single_match)]
+        match msg {
+            ClientStorageTestMsg::Pong => {
+                self.recv_pong();
+            },
+
+            _ => {},
+        }
+    }
+
+    fn recv_pong(self: &Rc<Self>) {}
 }
 
 impl Drop for ClientStorageTestChild {

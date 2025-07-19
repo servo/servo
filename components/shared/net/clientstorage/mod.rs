@@ -6,6 +6,8 @@ pub mod actors_child;
 pub mod child;
 pub mod mixed_msg;
 pub mod proxy;
+pub mod proxy_msg;
+pub mod proxy_sender;
 pub mod routed_msg;
 pub mod test_msg;
 pub mod thread_msg;

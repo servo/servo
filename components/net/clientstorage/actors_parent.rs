@@ -51,6 +51,10 @@ impl ClientStorageTestParent {
         self.send_message(ClientStorageTestMsg::SyncPingReply);
     }
 
+    pub fn send_pong(self: &Rc<Self>) {
+        self.send_message(ClientStorageTestMsg::Pong);
+    }
+
     fn send_message(&self, msg: ClientStorageTestMsg) {
         self.send_mixed_message(ClientStorageMixedMsg::ClientStorageTest(msg));
     }
@@ -77,6 +81,10 @@ impl ClientStorageTestParent {
                 self.recv_sync_ping();
             },
 
+            ClientStorageTestMsg::Ping => {
+                self.recv_ping();
+            },
+
             ClientStorageTestMsg::Delete => {
                 self.recv_delete();
             },
@@ -87,6 +95,10 @@ impl ClientStorageTestParent {
 
     fn recv_sync_ping(self: &Rc<Self>) {
         self.send_sync_ping_reply();
+    }
+
+    fn recv_ping(self: &Rc<Self>) {
+        self.send_pong();
     }
 
     fn recv_delete(self: &Rc<Self>) {

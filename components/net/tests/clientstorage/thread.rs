@@ -7,11 +7,15 @@ use net::clientstorage::thread_factory::ClientStorageThreadFactory;
 use net_traits::clientstorage::proxy::ClientStorageProxy;
 use net_traits::clientstorage::thread_msg::ClientStorageThreadMsg;
 
+use super::utils::TestClientStorageProxySender;
+
 #[test]
 fn test_exit() {
     let thread: IpcSender<ClientStorageThreadMsg> = ClientStorageThreadFactory::new(None);
 
-    let proxy = ClientStorageProxy::new(thread);
+    let msg_sender = TestClientStorageProxySender::new_boxed();
+
+    let proxy = ClientStorageProxy::new(thread, msg_sender);
 
     proxy.send_exit();
 

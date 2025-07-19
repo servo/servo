@@ -13,22 +13,30 @@ use log::debug;
 
 use super::actors_child::ClientStorageTestChild;
 use super::child::ClientStorageChild;
+use super::mixed_msg::ClientStorageMixedMsg;
+use super::proxy_msg::ClientStorageProxyMsg;
+use super::proxy_sender::ClientStorageProxySender;
 use super::routed_msg::ClientStorageRoutedMsg;
 use super::thread_msg::ClientStorageThreadMsg;
 
 pub struct ClientStorageProxy {
     ipc_sender: IpcSender<ClientStorageThreadMsg>,
+    msg_sender: Box<dyn ClientStorageProxySender>,
     sync_sender: Sender<ClientStorageRoutedMsg>,
     sync_receiver: Receiver<ClientStorageRoutedMsg>,
     actors: RefCell<HashMap<u64, ClientStorageChild>>,
 }
 
 impl ClientStorageProxy {
-    pub fn new(ipc_sender: IpcSender<ClientStorageThreadMsg>) -> Rc<ClientStorageProxy> {
+    pub fn new(
+        ipc_sender: IpcSender<ClientStorageThreadMsg>,
+        msg_sender: Box<dyn ClientStorageProxySender>,
+    ) -> Rc<ClientStorageProxy> {
         let (sync_sender, sync_receiver) = unbounded();
 
         Rc::new(ClientStorageProxy {
             ipc_sender,
+            msg_sender,
             sync_sender,
             sync_receiver,
             actors: RefCell::new(HashMap::new()),
@@ -45,6 +53,8 @@ impl ClientStorageProxy {
 
         // Messages the child receives
         let (parent_to_child_sender, parent_to_child_receiver) = ipc::channel().unwrap();
+
+        let msg_sender = self.msg_sender.clone();
 
         let sync_sender = self.sync_sender.clone();
 
@@ -65,6 +75,8 @@ impl ClientStorageProxy {
 
                 if msg.is_sync_reply() {
                     sync_sender.send(msg).unwrap();
+                } else {
+                    msg_sender.send(ClientStorageProxyMsg::Routed(msg));
                 }
             }),
         );
@@ -78,6 +90,31 @@ impl ClientStorageProxy {
             .send(ClientStorageThreadMsg::Exit(sender))
             .unwrap();
         receiver.recv().unwrap();
+    }
+
+    pub fn recv_proxy_message(self: &Rc<Self>, msg: ClientStorageProxyMsg) {
+        match msg {
+            ClientStorageProxyMsg::Routed(msg) => {
+                self.recv_routed_message(msg);
+            },
+        }
+    }
+
+    fn recv_routed_message(self: &Rc<Self>, msg: ClientStorageRoutedMsg) {
+        if let Some((actor, msg)) = {
+            let actors = self.actors.borrow();
+
+            let actor = actors.get(&msg.id).unwrap();
+
+            match (actor, msg.data) {
+                (
+                    ClientStorageChild::ClientStorageTest(actor),
+                    ClientStorageMixedMsg::ClientStorageTest(msg),
+                ) => Some((Rc::clone(actor), msg)),
+            }
+        } {
+            actor.recv_message(msg);
+        }
     }
 
     pub fn register_actor(self: &Rc<Self>, id: u64, actor: ClientStorageChild) {

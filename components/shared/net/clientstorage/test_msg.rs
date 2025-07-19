@@ -9,10 +9,14 @@ pub enum ClientStorageTestMsg {
     // child to parent:
     SyncPing,
 
+    Ping,
+
     Delete,
 
     // parent to child:
     SyncPingReply,
+
+    Pong,
 }
 
 impl ClientStorageTestMsg {
