@@ -58,10 +58,44 @@ jobs:
           start_url=https://ci0.servo.org/chunker/start\?unique_id=$unique_id
           start_url=$start_url\&qualified_repo=${{ github.repository }}
           start_url=$start_url\&run_id=${{ github.run_id }}
-          start_url=$start_url\&runners='{{runners:url}}'
           start_url=$start_url\&total_chunks=$total_chunks
+          start_url=$start_url\&runners[1]=github-hosted
+          start_url=$start_url\&runners[2]=github-hosted
+          start_url=$start_url\&runners[3]=github-hosted
+          start_url=$start_url\&runners[4]=github-hosted
+          start_url=$start_url\&runners[5]=github-hosted
+          start_url=$start_url\&runners[6]=github-hosted
+          start_url=$start_url\&runners[7]=github-hosted
+          start_url=$start_url\&runners[8]=github-hosted
+          start_url=$start_url\&runners[9]=github-hosted
+          start_url=$start_url\&runners[10]=github-hosted
+          start_url=$start_url\&runners[11]=github-hosted
+          start_url=$start_url\&runners[12]=github-hosted
+          start_url=$start_url\&runners[13]=github-hosted
+          start_url=$start_url\&runners[14]=github-hosted
+          start_url=$start_url\&runners[15]=github-hosted
+          start_url=$start_url\&runners[16]=github-hosted
+          start_url=$start_url\&runners[17]=github-hosted
+          start_url=$start_url\&runners[18]=github-hosted
+          start_url=$start_url\&runners[19]=github-hosted
+          start_url=$start_url\&runners[20]=github-hosted
+          start_url=$start_url\&runners[21]=self-hosted
+          start_url=$start_url\&runners[22]=self-hosted
+          start_url=$start_url\&runners[23]=self-hosted
+          start_url=$start_url\&runners[24]=self-hosted
+          start_url=$start_url\&runners[25]=self-hosted
+          start_url=$start_url\&runners[26]=self-hosted
+          start_url=$start_url\&runners[27]=self-hosted
+          start_url=$start_url\&runners[28]=self-hosted
+          start_url=$start_url\&runners[29]=self-hosted
+          start_url=$start_url\&runners[30]=self-hosted
+          start_url=$start_url\&runners[31]=self-hosted
+          start_url=$start_url\&runners[32]=self-hosted
+          start_url=$start_url\&runners[33]=self-hosted
+          start_url=$start_url\&runners[34]=self-hosted
+          start_url=$start_url\&runners[35]=self-hosted
           echo "POST $start_url"
-          secret_token=$(curl -fsSX POST --variable runners='{"1":"github-hosted","2":"github-hosted","3":"github-hosted","4":"github-hosted","5":"github-hosted","6":"github-hosted","7":"github-hosted","8":"github-hosted","9":"github-hosted","10":"github-hosted","11":"github-hosted","12":"github-hosted","13":"github-hosted","14":"github-hosted","15":"github-hosted","16":"github-hosted","17":"github-hosted","18":"github-hosted","19":"github-hosted","20":"github-hosted","21":"self-hosted","22":"self-hosted","23":"self-hosted","24":"self-hosted","25":"self-hosted","26":"self-hosted","27":"self-hosted","28":"self-hosted","29":"self-hosted","30":"self-hosted","31":"self-hosted","32":"self-hosted","33":"self-hosted","34":"self-hosted","35":"self-hosted"}' --expand-url "$start_url")
+          secret_token=$(curl -fsSX POST "$start_url")
           echo "secret_token=$secret_token" >> $GITHUB_OUTPUT
   linux-wpt:
     name: WPT
