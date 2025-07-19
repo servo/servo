@@ -468,10 +468,10 @@ pub trait WebViewDelegate {
     /// Whether or not to allow a [`WebView`]  to unload a `Document` in its main frame or one
     /// of its nested `<iframe>`s. By default, unloads are allowed.
     fn request_unload(&self, _webview: WebView, _unload_request: AllowOrDenyRequest) {}
-    /// Move the window to a point
+    /// Move the window to a point.
     fn request_move_to(&self, _webview: WebView, _: DeviceIntPoint) {}
-    /// Resize the window to size
-    fn request_resize_to(&self, _webview: WebView, _: DeviceIntSize) {}
+    /// Try to resize the window to outer size.
+    fn request_resize_to(&self, _webview: WebView, _requested_outer_size: DeviceIntSize) {}
     /// Whether or not to allow script to open a new `WebView`. If not handled by the
     /// embedder, these requests are automatically denied.
     fn request_open_auxiliary_webview(&self, _parent_webview: WebView) -> Option<WebView> {
