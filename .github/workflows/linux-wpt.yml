@@ -141,13 +141,26 @@ jobs:
             runs-on: self-hosted-image:ubuntu2204-wpt
     steps:
       - uses: actions/checkout@v4
-        if: github.event_name != 'pull_request_target'
+        if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
       - uses: actions/checkout@v4
-        if: github.event_name == 'pull_request_target'
+        if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
         with:
-          ref: refs/pull/${{ github.event.number }}/head
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # Faster checkout for self-hosted runner that uses prebaked repo.
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
+        run: git fetch --depth=1 origin $GITHUB_SHA
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+      - if: ${{ runner.environment == 'self-hosted' }}
+        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
+        # trees, in case the runner image was baked with a dirty working tree.
+        run: |
+          git switch --detach
+          git reset --hard FETCH_HEAD
+
       - uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-linux
