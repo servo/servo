@@ -1,5 +1,5 @@
 def main(request, response):
-    response_headers = [(b"Link", b"<%s>;rel=\"preload\";%s;as=\"script\"" %
+    response_headers = [(b"Link", b"<%s>;rel=\"preload\";%sas=\"script\"" %
                         (request.GET.first(b"href", b""),
                          request.GET.first(b"preload-policy", b"")))]
     body = ""

@@ -334,8 +334,10 @@ impl VirtualMethods for HTMLLinkElement {
                     };
                 }
 
-                let matches_media_environment =
-                    self.upcast::<Element>().matches_environment(&attr.value());
+                let matches_media_environment = self
+                    .upcast::<Element>()
+                    .owner_document()
+                    .matches_environment(&attr.value());
                 self.previous_media_environment_matched
                     .set(matches_media_environment);
             },
@@ -404,7 +406,7 @@ impl HTMLLinkElement {
         let element = self.upcast::<Element>();
         element
             .get_attribute(&ns!(), &local_name!("as"))
-            .map(|attr| translate_a_preload_destination(&attr.value()))
+            .map(|attr| LinkProcessingOptions::translate_a_preload_destination(&attr.value()))
             .unwrap_or(Destination::None)
     }
 
@@ -528,7 +530,7 @@ impl HTMLLinkElement {
             None => "",
         };
 
-        if !element.matches_environment(mq_str) {
+        if !document.matches_environment(mq_str) {
             return;
         }
 
@@ -783,18 +785,6 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
     fn GetSheet(&self, can_gc: CanGc) -> Option<DomRoot<DOMStyleSheet>> {
         self.get_cssom_stylesheet(can_gc).map(DomRoot::upcast)
-    }
-}
-
-/// <https://html.spec.whatwg.org/multipage/#translate-a-preload-destination>
-fn translate_a_preload_destination(potential_destination: &str) -> Destination {
-    match potential_destination {
-        "fetch" => Destination::None,
-        "font" => Destination::Font,
-        "image" => Destination::Image,
-        "script" => Destination::Script,
-        "track" => Destination::Track,
-        _ => Destination::None,
     }
 }
 
