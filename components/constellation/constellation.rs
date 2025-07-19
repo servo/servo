@@ -1366,8 +1366,8 @@ where
                 }
                 self.handle_panic(webview_id, error, None);
             },
-            EmbedderToConstellationMessage::FocusWebView(webview_id) => {
-                self.handle_focus_web_view(webview_id);
+            EmbedderToConstellationMessage::FocusWebView(webview_id, response_sender) => {
+                self.handle_focus_web_view(webview_id, response_sender);
             },
             EmbedderToConstellationMessage::BlurWebView => {
                 self.webviews.unfocus();
@@ -2774,13 +2774,20 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_focus_web_view(&mut self, webview_id: WebViewId) {
+    fn handle_focus_web_view(
+        &mut self,
+        webview_id: WebViewId,
+        response_sender: Option<IpcSender<bool>>,
+    ) {
         if self.webviews.get(webview_id).is_none() {
+            if let Some(response_sender) = response_sender {
+                let _ = response_sender.send(false);
+            }
             return warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
         }
         self.webviews.focus(webview_id);
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id));
+            .send(EmbedderMsg::WebViewFocused(webview_id, response_sender));
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -4152,7 +4159,7 @@ where
         // Focus the top-level browsing context.
         self.webviews.focus(webview_id);
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id));
+            .send(EmbedderMsg::WebViewFocused(webview_id, None));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused

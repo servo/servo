@@ -25,7 +25,7 @@ use webrender_api::units::{DeviceIntPoint, DevicePixel, DeviceRect};
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
-use crate::{ConstellationProxy, Servo, WebRenderDebugOption};
+use crate::{ConstellationProxy, IpcSender, Servo, WebRenderDebugOption};
 
 /// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
 /// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
@@ -308,7 +308,19 @@ impl WebView {
     pub fn focus(&self) {
         self.inner()
             .constellation_proxy
-            .send(EmbedderToConstellationMessage::FocusWebView(self.id()));
+            .send(EmbedderToConstellationMessage::FocusWebView(
+                self.id(),
+                None,
+            ));
+    }
+
+    pub fn focus_from_webdriver(&self, response_sender: IpcSender<bool>) {
+        self.inner()
+            .constellation_proxy
+            .send(EmbedderToConstellationMessage::FocusWebView(
+                self.id(),
+                Some(response_sender),
+            ));
     }
 
     pub fn blur(&self) {
