@@ -23,7 +23,7 @@ use chrono::Local;
 use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use content_security_policy::{CspList, PolicyDisposition};
 use cookie::Cookie;
-use cssparser::match_ignore_ascii_case;
+use cssparser::{Parser as CssParser, ParserInput as CssParserInput, match_ignore_ascii_case};
 use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -50,7 +50,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
-use net_traits::request::{InsecureRequestsPolicy, RequestBuilder};
+use net_traits::request::{CorsSettings, InsecureRequestsPolicy, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{FetchResponseListener, IpcSend, ReferrerPolicy};
 use percent_encoding::percent_decode;
@@ -66,12 +66,16 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
+use style::media_queries::MediaList;
+use style::parser::ParserContext as CssParserContext;
 use style::selector_parser::Snapshot;
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::{Origin, OriginSet, Stylesheet};
-use style_traits::CSSPixel;
+use style::stylesheets::{
+    CssRuleType, Origin as CssOrigin, Origin, OriginSet, Stylesheet, UrlExtraData,
+};
+use style_traits::{CSSPixel, ParsingMode as CssParsingMode};
 use stylo_atoms::Atom;
 use url::Host;
 use uuid::Uuid;
@@ -3931,6 +3935,32 @@ impl Document {
 
         Ok(())
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
+    pub(crate) fn matches_environment(&self, media_query: &str) -> bool {
+        let quirks_mode = self.quirks_mode();
+        let document_url_data = UrlExtraData(self.url().get_arc());
+        // FIXME(emilio): This should do the same that we do for other media
+        // lists regarding the rule type and such, though it doesn't really
+        // matter right now...
+        //
+        // Also, ParsingMode::all() is wrong, and should be DEFAULT.
+        let context = CssParserContext::new(
+            CssOrigin::Author,
+            &document_url_data,
+            Some(CssRuleType::Style),
+            CssParsingMode::all(),
+            quirks_mode,
+            /* namespaces = */ Default::default(),
+            None,
+            None,
+        );
+        let mut parser_input = CssParserInput::new(media_query);
+        let mut parser = CssParser::new(&mut parser_input);
+        let media_list = MediaList::parse(&context, &mut parser);
+        let result = media_list.evaluate(self.window().layout().device(), quirks_mode);
+        result
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
@@ -6735,6 +6765,14 @@ pub(crate) fn determine_policy_for_token(token: &str) -> ReferrerPolicy {
         "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
         "always" | "unsafe-url" => ReferrerPolicy::UnsafeUrl,
         _ => ReferrerPolicy::EmptyString,
+    }
+}
+
+pub(crate) fn determine_cors_settings_for_token(token: &str) -> Option<CorsSettings> {
+    match_ignore_ascii_case! { token,
+        "anonymous" => Some(CorsSettings::Anonymous),
+        "use-credentials" => Some(CorsSettings::UseCredentials),
+        _ => None,
     }
 }
 

@@ -61,11 +61,13 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::linkprocessing::LinkProcessingOptions;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
@@ -907,11 +909,12 @@ impl FetchResponseListener for ParserContext {
             .map(Serde::into_inner)
             .map(Into::into);
 
-        let (csp_list, endpoints_list) = match metadata.as_ref() {
-            None => (None, None),
+        let (csp_list, endpoints_list, link_headers) = match metadata.as_ref() {
+            None => (None, None, Vec::new()),
             Some(m) => (
                 parse_csp_list_from_metadata(&m.headers),
                 ReportingEndpoint::parse_reporting_endpoints_header(&self.url.clone(), &m.headers),
+                LinkProcessingOptions::extract_links_from_headers(&m.headers),
             ),
         };
 
@@ -926,8 +929,24 @@ impl FetchResponseListener for ParserContext {
         let _realm = enter_realm(&*parser.document);
 
         parser.document.set_csp_list(csp_list);
+        let window = parser.document.window();
         if let Some(endpoints) = endpoints_list {
-            parser.document.window().set_endpoints_list(endpoints);
+            window.set_endpoints_list(endpoints);
+        }
+        // https://html.spec.whatwg.org/multipage/#navigate-html
+        // The first task that the networking task source places on the task queue while
+        // fetching runs must process link headers given document, navigationParams's response, and "media",
+        // after the task has been processed by the HTML parser.
+        println!("Received headers: {:?}", link_headers);
+        if !link_headers.is_empty() {
+            let document = Trusted::new(&*parser.document);
+            window
+                .upcast::<GlobalScope>()
+                .task_manager()
+                .networking_task_source()
+                .queue(task!(unhandled_rejection_event: move || {
+                    LinkProcessingOptions::process_link_headers(link_headers, &document.root());
+                }));
         }
         self.parser = Some(Trusted::new(&*parser));
         self.submit_resource_timing();

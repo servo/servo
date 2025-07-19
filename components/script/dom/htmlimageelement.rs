@@ -712,7 +712,7 @@ impl HTMLImageElement {
 
             // Step 4.6
             if let Some(x) = element.get_attribute(&ns!(), &local_name!("media")) {
-                if !elem.matches_environment(&x.value()) {
+                if !elem.owner_document().matches_environment(&x.value()) {
                     continue;
                 }
             }

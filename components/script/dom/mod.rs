@@ -436,6 +436,7 @@ pub(crate) mod intersectionobserver;
 pub(crate) mod intersectionobserverentry;
 pub(crate) mod intersectionobserverrootmargin;
 pub(crate) mod keyboardevent;
+pub(crate) mod linkprocessing;
 pub(crate) mod location;
 pub(crate) mod mediadeviceinfo;
 pub(crate) mod mediadevices;
