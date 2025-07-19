@@ -41,6 +41,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
+use crate::dom::csp::Violation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 #[cfg(feature = "testbinding")]
@@ -49,7 +50,7 @@ use crate::dom::window::Window;
 use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType, WorkletTask,
 };
-use crate::fetch::load_whole_resource;
+use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, Runtime, ScriptThreadEventCategory};
@@ -433,6 +434,12 @@ struct WorkletThreadInit {
     global_init: WorkletGlobalScopeInit,
 }
 
+struct WorkletCspProcessor {}
+
+impl CspViolationsProcessor for WorkletCspProcessor {
+    fn process_csp_violations(&self, _violations: Vec<Violation>) {}
+}
+
 /// A thread for executing worklets.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WorkletThread {
@@ -671,6 +678,7 @@ impl WorkletThread {
             request,
             &resource_fetcher,
             global_scope.upcast::<GlobalScope>(),
+            &WorkletCspProcessor {},
             can_gc,
         )
         .ok()

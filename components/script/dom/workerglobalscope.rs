@@ -53,6 +53,7 @@ use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::crypto::Crypto;
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbfactory::IDBFactory;
@@ -68,7 +69,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
-use crate::fetch;
+use crate::fetch::{CspViolationsProcessor, Fetch, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, JSContextHelper, Runtime};
@@ -413,10 +414,13 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             )
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
-            let (url, source) = match fetch::load_whole_resource(
+            let (url, source) = match load_whole_resource(
                 request,
                 &global_scope.resource_threads().sender(),
                 global_scope,
+                &WorkerCspProcessor {
+                    global_scope: DomRoot::from_ref(global_scope),
+                },
                 can_gc,
             ) {
                 Err(_) => return Err(Error::Network),
@@ -582,7 +586,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        fetch::Fetch(self.upcast(), input, init, comp, can_gc)
+        Fetch(self.upcast(), input, init, comp, can_gc)
     }
 
     // https://w3c.github.io/hr-time/#the-performance-attribute
@@ -690,6 +694,10 @@ impl WorkerGlobalScope {
                     reports_chan.send(ProcessReports::new(reports));
                 });
             },
+            CommonScriptMsg::ReportCspViolations(_, violations) => {
+                self.upcast::<GlobalScope>()
+                    .report_csp_violations(violations, None, None);
+            },
         }
         true
     }
@@ -699,5 +707,16 @@ impl WorkerGlobalScope {
         self.upcast::<GlobalScope>()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
+    }
+}
+
+struct WorkerCspProcessor {
+    global_scope: DomRoot<GlobalScope>,
+}
+
+impl CspViolationsProcessor for WorkerCspProcessor {
+    fn process_csp_violations(&self, violations: Vec<Violation>) {
+        self.global_scope
+            .report_csp_violations(violations, None, None);
     }
 }

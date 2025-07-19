@@ -337,11 +337,16 @@ fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata, can_gc: CanGc) 
     r.set_redirected(m.redirected);
 }
 
+pub(crate) trait CspViolationsProcessor {
+    fn process_csp_violations(&self, violations: Vec<Violation>);
+}
+
 /// Convenience function for synchronously loading a whole resource.
 pub(crate) fn load_whole_resource(
     request: RequestBuilder,
     core_resource_thread: &CoreResourceThread,
     global: &GlobalScope,
+    csp_violations_processor: &dyn CspViolationsProcessor,
     can_gc: CanGc,
 ) -> Result<(Metadata, Vec<u8>), NetworkError> {
     let request = request.https_state(global.get_https_state());
@@ -358,9 +363,8 @@ pub(crate) fn load_whole_resource(
     let mut metadata = None;
     loop {
         match action_receiver.recv().unwrap() {
-            FetchResponseMsg::ProcessRequestBody(..) |
-            FetchResponseMsg::ProcessRequestEOF(..) |
-            FetchResponseMsg::ProcessCspViolations(..) => {},
+            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
+            },
             FetchResponseMsg::ProcessResponse(_, Ok(m)) => {
                 metadata = Some(match m {
                     FetchMetadata::Unfiltered(m) => m,
@@ -377,6 +381,9 @@ pub(crate) fn load_whole_resource(
             },
             FetchResponseMsg::ProcessResponse(_, Err(e)) |
             FetchResponseMsg::ProcessResponseEOF(_, Err(e)) => return Err(e),
+            FetchResponseMsg::ProcessCspViolations(_, violations) => {
+                csp_violations_processor.process_csp_violations(violations);
+            },
         }
     }
 }

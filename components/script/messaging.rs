@@ -27,6 +27,7 @@ use webgpu_traits::WebGPUMsg;
 
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::trace::CustomTraceable;
+use crate::dom::csp::Violation;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerScriptMsg;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
@@ -99,6 +100,10 @@ impl MixedMessage {
                     *pipeline_id
                 },
                 MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
+                MainThreadScriptMsg::Common(CommonScriptMsg::ReportCspViolations(
+                    pipeline_id,
+                    _,
+                )) => Some(*pipeline_id),
                 MainThreadScriptMsg::NavigationResponse { pipeline_id, .. } => Some(*pipeline_id),
                 MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(*pipeline_id),
                 MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(*pipeline_id),
@@ -157,6 +162,8 @@ pub(crate) enum CommonScriptMsg {
         Option<PipelineId>,
         TaskSourceName,
     ),
+    /// Report CSP violations in the script
+    ReportCspViolations(PipelineId, Vec<Violation>),
 }
 
 impl fmt::Debug for CommonScriptMsg {
@@ -166,6 +173,7 @@ impl fmt::Debug for CommonScriptMsg {
             CommonScriptMsg::Task(ref category, ref task, _, _) => {
                 f.debug_tuple("Task").field(category).field(task).finish()
             },
+            CommonScriptMsg::ReportCspViolations(..) => write!(f, "ReportCspViolations(...)"),
         }
     }
 }

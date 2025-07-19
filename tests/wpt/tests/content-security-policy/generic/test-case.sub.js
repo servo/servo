@@ -57,6 +57,12 @@ function TestCase(scenarios, sanityChecker) {
           // https://bugzilla.mozilla.org/show_bug.cgi?id=1808911
           // In Firefox sometimes violations from Worklets are delayed.
           timeout = 10;
+        } else if (scenario.subresource.startsWith('worker-') &&
+                   navigator.userAgent.includes("Servo/")) {
+          // In Servo, worker violations are also delayed, as they are
+          // sent via IPC. However, they typically arrive relatively
+          // quickly after that.
+          timeout = 1;
         }
         await new Promise(resolve => setTimeout(resolve, timeout));
 
