@@ -14,7 +14,7 @@ use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
-use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{AsHandleValue, HandleObject, MutableHandleValue};
 use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
 
 use super::bindings::trace::HashMapTracedValues;
@@ -999,7 +999,6 @@ pub(crate) enum CustomElementReaction {
 
 impl CustomElementReaction {
     /// <https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions>
-    #[allow(unsafe_code)]
     pub(crate) fn invoke(&self, element: &Element, can_gc: CanGc) {
         // Step 2.1
         match *self {
@@ -1008,10 +1007,7 @@ impl CustomElementReaction {
             },
             CustomElementReaction::Callback(ref callback, ref arguments) => {
                 // We're rooted, so it's safe to hand out a handle to objects in Heap
-                let arguments = arguments
-                    .iter()
-                    .map(|arg| unsafe { HandleValue::from_raw(arg.handle()) })
-                    .collect();
+                let arguments = arguments.iter().map(|arg| arg.as_handle_value()).collect();
                 rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
                 let _ = callback.Call_(
                     element,
