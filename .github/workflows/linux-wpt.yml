@@ -201,7 +201,7 @@ jobs:
             chunk_url=https://ci0.servo.org/chunker/take\?unique_id=${{ needs.unique-id.outputs.unique-id }}
             chunk_url=$chunk_url\&secret_token=${{ needs.unique-id.outputs.secret-token }}
             chunk_url=$chunk_url\&runner=${{ matrix.runner }}
-            chunk_id=$(curl -fsSX POST "$chunk_url")
+            chunk_id=$(curl -fgsSX POST "$chunk_url")
             if [ "$chunk_id" = null ]; then
               break
             fi
