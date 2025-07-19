@@ -77,10 +77,10 @@ impl WindowPortsMethods for Window {
     fn request_resize(
         &self,
         webview: &::servo::WebView,
-        size: DeviceIntSize,
+        outer_size: DeviceIntSize,
     ) -> Option<DeviceIntSize> {
         // Surfman doesn't support zero-sized surfaces.
-        let new_size = DeviceIntSize::new(size.width.max(1), size.height.max(1));
+        let new_size = DeviceIntSize::new(outer_size.width.max(1), outer_size.height.max(1));
         if self.inner_size.get() == new_size {
             return Some(new_size);
         }
@@ -90,7 +90,13 @@ impl WindowPortsMethods for Window {
         // Because we are managing the rendering surface ourselves, there will be no other
         // notification (such as from the display manager) that it has changed size, so we
         // must notify the compositor here.
-        webview.resize(PhysicalSize::new(size.width as u32, size.height as u32));
+        let mut rect = webview.rect();
+        rect.set_size(outer_size.to_f32());
+        webview.move_resize(rect);
+        webview.resize(PhysicalSize::new(
+            outer_size.width as u32,
+            outer_size.height as u32,
+        ));
 
         Some(new_size)
     }

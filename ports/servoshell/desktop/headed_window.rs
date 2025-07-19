@@ -91,12 +91,12 @@ impl Window {
         event_loop: &ActiveEventLoop,
     ) -> Window {
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;
-        let window_size = servoshell_preferences.initial_window_size;
+        let inner_size = servoshell_preferences.initial_window_size;
         let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
-            .with_inner_size(LogicalSize::new(window_size.width, window_size.height))
+            .with_inner_size(LogicalSize::new(inner_size.width, inner_size.height))
             .with_min_inner_size(LogicalSize::new(1, 1))
             // Must be invisible at startup; accesskit_winit setup needs to
             // happen before the window is shown for the first time.
@@ -430,6 +430,18 @@ impl Window {
             }
         }
     }
+
+    /// Update [`WindowRenderingContext`] after a resize.
+    fn update_window_rendering_context_after_resize(
+        &self,
+        res_inner_width: f32,
+        res_inner_height: f32,
+    ) {
+        self.window_rendering_context.resize(PhysicalSize::new(
+            res_inner_width as u32,
+            (res_inner_height - (self.toolbar_height() * self.hidpi_scale_factor()).0) as u32,
+        ));
+    }
 }
 
 impl WindowPortsMethods for Window {
@@ -495,11 +507,11 @@ impl WindowPortsMethods for Window {
                 new_outer_size.width - decoration_width as i32,
                 new_outer_size.height - decoration_height as i32,
             ))
-            .and_then(|size| {
-                Some(DeviceIntSize::new(
-                    size.width.try_into().ok()?,
-                    size.height.try_into().ok()?,
-                ))
+            .map(|res_inner_size| {
+                DeviceIntSize::new(
+                    (res_inner_size.width + decoration_width) as i32,
+                    (res_inner_size.height + decoration_height) as i32,
+                )
             })
     }
 
@@ -678,10 +690,14 @@ impl WindowPortsMethods for Window {
             WindowEvent::CloseRequested => {
                 state.servo().start_shutting_down();
             },
-            WindowEvent::Resized(new_size) => {
-                if self.inner_size.get() != new_size {
-                    self.window_rendering_context.resize(new_size);
-                    self.inner_size.set(new_size);
+            WindowEvent::Resized(new_inner_size) => {
+                if self.inner_size.get() != new_inner_size {
+                    self.inner_size.set(new_inner_size);
+                    // webview related compositor rect was updated in minibrowser::update
+                    self.update_window_rendering_context_after_resize(
+                        new_inner_size.width as f32,
+                        new_inner_size.height as f32,
+                    );
                 }
             },
             WindowEvent::ThemeChanged(theme) => {
@@ -755,6 +771,9 @@ impl WindowPortsMethods for Window {
     }
 
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>) {
+        if self.toolbar_height() == height {
+            return;
+        }
         self.toolbar_height.set(height);
         // Prevent the inner area from being 0 pixels wide or tall
         // this prevents a crash in the compositor due to invalid surface size
