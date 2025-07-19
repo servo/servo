@@ -127,9 +127,7 @@ impl CSSStyleOwner {
                 if changed {
                     // If this is changed, see also
                     // CSSStyleRule::SetSelectorText, which does the same thing.
-                    if let Some(owner) = rule.parent_stylesheet().get_owner() {
-                        owner.stylesheet_list_owner().invalidate_stylesheets();
-                    }
+                    rule.parent_stylesheet().notify_invalidations();
                 }
                 result
             },
