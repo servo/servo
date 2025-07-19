@@ -8,11 +8,11 @@ use ipc_channel::ipc::IpcSender;
 use net_traits::indexeddb_thread::{AsyncOperation, IdbResult, IndexedDBTxnMode};
 use tokio::sync::oneshot;
 
-pub use self::heed::HeedEngine;
+pub use self::sqlite::SqliteEngine;
 
-mod heed;
+mod sqlite;
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub struct SanitizedName {
     name: String,
 }
@@ -52,6 +52,9 @@ pub struct KvsOperation {
 }
 
 pub struct KvsTransaction {
+    // Mode could be used by a more optimal implementation of transactions
+    // that has different allocated threadpools for reading and writing
+    #[allow(unused)]
     pub mode: IndexedDBTxnMode,
     pub requests: VecDeque<KvsOperation>,
 }
@@ -69,6 +72,8 @@ pub trait KvsEngine {
 
     #[expect(dead_code)]
     fn close_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
+
+    fn delete_database(&self) -> Result<(), Self::Error>;
 
     fn process_transaction(
         &self,
