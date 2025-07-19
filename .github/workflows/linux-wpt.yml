@@ -95,7 +95,7 @@ jobs:
           start_url=$start_url\&runners[34]=self-hosted
           start_url=$start_url\&runners[35]=self-hosted
           echo "POST $start_url"
-          secret_token=$(curl -fsSX POST "$start_url")
+          secret_token=$(curl -gfsSX POST "$start_url")
           echo "secret_token=$secret_token" >> $GITHUB_OUTPUT
   linux-wpt:
     name: WPT
