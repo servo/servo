@@ -350,6 +350,7 @@ pub(crate) mod inputevent;
 pub(crate) mod intersectionobserver;
 pub(crate) mod intersectionobserverentry;
 pub(crate) mod keyboardevent;
+pub(crate) mod linkprocessingoptions;
 pub(crate) mod location;
 pub(crate) mod mediadeviceinfo;
 pub(crate) mod mediadevices;
