@@ -148,11 +148,12 @@ jobs:
             # We may receive fewer runners than we requested. If so, adjust our expectations accordingly.
             self_hosted_runner_count=$received_runner_count
 
-            # Now wait for the runners to come up.
+            # Now wait up to 60 seconds for the runners to come up.
             start_time=$(date -u +\%s)
+            wait_time_limit=60
             while :; do
               now=$(date -u +\%s)
-              if [ $((now - start_time)) -gt 60 ]; then
+              if [ $((now - start_time)) -ge $wait_time_limit ]; then
                 echo 'Timeout waiting for policy overrides to deliver!'
                 exit 1
               fi
@@ -250,11 +251,13 @@ jobs:
             start_url=$start_url\&runners[$runner]=github-hosted
             matrix=${matrix:+,}$matrix"{runner:$runner,\"runs-on\":\"${{ needs.runner-select.outputs.github-hosted-runner-label }}\"}"
             runner=$((runner + 1))
+            i=$((i + 1))
           done
           i=1; while [ $i -le $self_hosted_runner_count ]; do
             start_url=$start_url\&runners[$runner]=self-hosted
             matrix=${matrix:+,}$matrix"{runner:$runner,\"runs-on\":\"${{ needs.runner-select.outputs.self-hosted-runner-label }}\"}"
             runner=$((runner + 1))
+            i=$((i + 1))
           done
           echo "POST $start_url"
           secret_token=$(curl -gfsSX POST "$start_url")
