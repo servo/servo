@@ -179,6 +179,7 @@ jobs:
               if [ $remaining_runner_count -eq 0 ]; then
                 break
               fi
+              sleep 1
             done
           fi
 
@@ -234,6 +235,7 @@ jobs:
     steps:
       - id: start-chunker
         run: |
+          set -xeuo pipefail
           unique_id=${{ needs.runner-select.outputs.unique-id }}
           github_hosted_runner_count=20
           self_hosted_runner_count=${{ needs.runner-select.outputs.self-hosted-runner-count }}
