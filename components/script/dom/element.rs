@@ -1764,6 +1764,29 @@ impl Element {
         )
     }
 
+    /// Returns the focusable shadow host if this is a text control inner editor.
+    /// This is a workaround for the focus delegation of shadow DOM and should be
+    /// used only to delegate focusable inner editor of [HTMLInputElement] and
+    /// [HTMLTextAreaElement].
+    pub(crate) fn find_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
+        if self.is_focusable_area() {
+            Some(DomRoot::from_ref(self))
+        } else if self.upcast::<Node>().implemented_pseudo_element() ==
+            Some(PseudoElement::ServoTextControlInnerEditor)
+        {
+            let containing_shadow_host = self.containing_shadow_root().map(|root| root.Host());
+            debug_assert!(
+                containing_shadow_host
+                    .as_ref()
+                    .is_some_and(|e| e.is_focusable_area()),
+                "Containing shadow host is not focusable"
+            );
+            containing_shadow_host
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn is_actually_disabled(&self) -> bool {
         let node = self.upcast::<Node>();
         match node.type_id() {
