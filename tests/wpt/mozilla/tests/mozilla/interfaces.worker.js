@@ -110,6 +110,7 @@ test_interfaces([
   "SecurityPolicyViolationEvent",
   "ServiceWorkerContainer",
   "TextDecoder",
+  "TextDecoderStream",
   "TextEncoder",
   "TrustedHTML",
   "TrustedScript",
