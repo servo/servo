@@ -168,7 +168,7 @@ jobs:
         run: echo SERVO_WPT_TIMEOUT_MULTIPLIER=2 >> $GITHUB_ENV
       - name: Set timeout multiplier
         if: ${{ runner.environment == 'self-hosted' }}
-        run: echo SERVO_WPT_TIMEOUT_MULTIPLIER=0.75 >> $GITHUB_ENV
+        run: echo SERVO_WPT_TIMEOUT_MULTIPLIER=1 >> $GITHUB_ENV
       - name: Run tests
         shell: bash
         run: |
