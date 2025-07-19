@@ -43,6 +43,7 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       unique-id: ${{ steps.unique-id.outputs.unique_id }}
+      secret-token: ${{ steps.unique-id.outputs.secret-token }}
     steps:
       - id: unique-id
         run: |
@@ -52,6 +53,10 @@ jobs:
           # if there are multiple instances in the workflow call tree.
           unique_id=$(uuidgen)
           echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
+          start_url=https://ci0.servo.org/chunker/start\?unique_id=$unique_id\&qualified_repo=${{ github.repository }}\&run_id=${{ github.run_id }}\&total_chunks=$total_chunks
+          echo "POST $start_url"
+          secret_token=$(curl -fsSX POST "$start_url")
+          echo "secret_token=$secret_token" >> $GITHUB_OUTPUT
   linux-wpt:
     name: WPT
     runs-on: ${{ matrix.runs-on }}
@@ -174,7 +179,7 @@ jobs:
           total_chunks=$(((20 + 16) * 6))
           exit_status_file=$(mktemp)
           while :; do
-            chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=$unique_id&total_chunks=$total_chunks&runs_on=${{ matrix.runs-on }}")
+            chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=$unique_id&secret_token=${{ needs.unique-id.outputs-secret-token }}&runs_on=${{ matrix.runs-on }}")
             if [ "$chunk_id" = null ]; then
               break
             fi
