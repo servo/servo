@@ -289,6 +289,7 @@ pub(crate) mod customevent;
 pub(crate) mod datatransfer;
 pub(crate) mod datatransferitem;
 pub(crate) mod datatransferitemlist;
+pub(crate) mod debuggerglobalscope;
 pub(crate) mod dedicatedworkerglobalscope;
 pub(crate) mod defaultteereadrequest;
 pub(crate) mod defaultteeunderlyingsource;

@@ -133,6 +133,7 @@ use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::servoparser::{ParserContext, ServoParser};
+use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
@@ -1004,6 +1005,23 @@ impl ScriptThread {
     /// messages on its port.
     pub(crate) fn start(&self, can_gc: CanGc) {
         debug!("Starting script thread.");
+
+        let pipeline_id = PipelineId::new();
+        let script_to_constellation_chan = ScriptToConstellationChan {
+            sender: self.senders.pipeline_to_constellation_sender.clone(),
+            pipeline_id,
+        };
+        let debugger_global = DebuggerGlobalScope::new(
+            &self.js_runtime,
+            self.senders.memory_profiler_sender.clone(),
+            self.senders.time_profiler_sender.clone(),
+            script_to_constellation_chan,
+            self.resource_threads.clone(),
+            #[cfg(feature = "webgpu")]
+            self.gpu_id_hub.clone(),
+        );
+        debugger_global.evaluate_js("console.log('hello world')", can_gc);
+
         while self.handle_msgs(can_gc) {
             // Go on...
             debug!("Running script thread.");
