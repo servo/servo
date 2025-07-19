@@ -53,7 +53,9 @@ jobs:
           github_hosted_runner_label='${{ inputs.github-hosted-runner-label }}'
           self_hosted_image_name='${{ inputs.self-hosted-image-name }}'
           self_hosted_runner_scope='${{ inputs.self-hosted-runner-scope }}'
+          force_github_hosted_runner='${{ inputs.force-github-hosted-runner }}'
           self_hosted_runner_count='${{ inputs.self-hosted-runner-count }}'
+          request_policy_override='${{ inputs.request-policy-override }}'
 
           # List of monitor servers
           set -euo pipefail \
@@ -84,12 +86,12 @@ jobs:
             fall_back_to_github_hosted
           fi
 
-          if [ '${{ inputs.force-github-hosted-runner }}' = true ]; then
+          if [ "$force_github_hosted_runner" = true ]; then
             echo 'inputs.force-github-hosted-runner is set!'
             fall_back_to_github_hosted
           fi
 
-          if [ '${{ inputs.request-policy-override }}' = true ]; then
+          if [ "$request_policy_override" = true ]; then
             # First request the policy overrides.
             remaining_runner_count=$self_hosted_runner_count
             received_runner_count=0
