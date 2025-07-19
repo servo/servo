@@ -43,12 +43,11 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       unique-id: ${{ steps.unique-id.outputs.unique_id }}
-      total-chunks: ${{ steps.unique-id.outputs.total-chunks }}
-      secret-token: ${{ steps.unique-id.outputs.secret-token }}
+      total-chunks: ${{ steps.unique-id.outputs.total_chunks }}
+      secret-token: ${{ steps.unique-id.outputs.secret_token }}
     steps:
       - id: unique-id
         run: |
-          set -x
           # Generate a unique id that allows the workload jobs to request chunks
           # from the chunker service.
           unique_id=$(uuidgen)
@@ -156,8 +155,10 @@ jobs:
       - name: unPackage binary
         run: tar -xzf ${{ inputs.profile }}-binary-linux/target.tar.gz
       - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
+        if: ${{ runner.environment != 'self-hosted' }}
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
