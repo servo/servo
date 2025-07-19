@@ -42,7 +42,7 @@ jobs:
     outputs:
       unique-id: ${{ steps.select.outputs.unique_id }}
       github-hosted-runner-label: ${{ steps.select.outputs.github_hosted_runner_label }}
-      self-hosted-runner-label: ${{ steps.select.outputs.self_hosted_runner_label }}
+      self-hosted-image-name: ${{ steps.select.outputs.self_hosted_image_name }}
       selected-runner-label: ${{ steps.select.outputs.selected_runner_label }}
       is-self-hosted: ${{ steps.select.outputs.is_self_hosted }}
       self-hosted-runner-count: ${{ steps.select.outputs.self_hosted_runner_count }}
@@ -186,7 +186,7 @@ jobs:
           echo
           if [ $remaining_runner_count -eq 0 ]; then
             echo "github_hosted_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
-            echo "self_hosted_runner_label=$self_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+            echo "self_hosted_image_name=$self_hosted_image_name" | tee -a $GITHUB_OUTPUT
             echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
             echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
             echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT

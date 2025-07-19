@@ -212,7 +212,7 @@ jobs:
           echo
           if [ $remaining_runner_count -eq 0 ]; then
             echo "github_hosted_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
-            echo "self_hosted_runner_label=$self_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+            echo "self_hosted_image_name=$self_hosted_image_name" | tee -a $GITHUB_OUTPUT
             echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
             echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
             echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
