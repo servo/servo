@@ -1320,22 +1320,6 @@ impl ScriptThread {
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
-
-        // Perform a microtask checkpoint as the specifications says that *update the rendering*
-        // should be run in a task and a microtask checkpoint is always done when running tasks.
-        self.perform_a_microtask_checkpoint(can_gc);
-
-        // If there are pending reflows, they were probably caused by the execution of
-        // the microtask checkpoint above and we should spin the event loop one more
-        // time to resolve them.
-        self.schedule_rendering_opportunity_if_necessary();
-
-        // If this was a animation update request, then potentially schedule a new
-        // animation update in the case that the compositor might not do it due to
-        // not receiving any display lists.
-        if is_animation_tick {
-            self.schedule_script_thread_animation_tick_if_necessary(saw_any_reflows);
-        }
     }
 
     // If there are any pending reflows and we are not having rendering opportunities
@@ -1370,7 +1354,7 @@ impl ScriptThread {
         // Note: The specification says to queue a task using the navigable's active
         // window, but then updates the rendering for all documents.
         //
-        // This task is empty because any new IPC messages in the ScriptThread trigger a
+        // This task is empty because any rendering task trigger a
         // rendering update when animations are not running.
         let _realm = enter_realm(&*document);
         document
@@ -1386,11 +1370,7 @@ impl ScriptThread {
     /// not change anything and thus does not send a new display list to the renderer.
     /// If that's the case, we need to schedule a ScriptThread-based animation update
     /// (to avoid waking the renderer up).
-    fn schedule_script_thread_animation_tick_if_necessary(&self, saw_any_reflows: bool) {
-        if saw_any_reflows {
-            return;
-        }
-
+    fn schedule_script_thread_animation_tick_if_necessary(&self) {
         // Always schedule a ScriptThread-based animation tick, unless none of the
         // documents are active and have animations running and/or rAF callbacks.
         if !self.documents.borrow().iter().any(|(_, document)| {
@@ -1399,6 +1379,13 @@ impl ScriptThread {
                 (document.animations().running_animation_count() != 0 ||
                     document.has_active_request_animation_frame_callbacks())
         }) {
+            return;
+        }
+
+        let mut scheduled_script_thread_animation_timer =
+            self.scheduled_script_thread_animation_timer.borrow_mut();
+
+        if scheduled_script_thread_animation_timer.is_some() {
             return;
         }
 
@@ -1418,12 +1405,6 @@ impl ScriptThread {
             duration: Duration::from_millis(SCRIPT_THREAD_ANIMATION_TICK_DELAY),
         });
 
-        let mut scheduled_script_thread_animation_timer =
-            self.scheduled_script_thread_animation_timer.borrow_mut();
-        assert!(
-            scheduled_script_thread_animation_timer.is_none(),
-            "Should never schedule a new timer when one is already scheduled."
-        );
         *scheduled_script_thread_animation_timer = Some(timer_id);
     }
 
@@ -1441,6 +1422,8 @@ impl ScriptThread {
             .receivers
             .recv(&self.task_queue, &self.timer_scheduler.borrow());
 
+        // currently we always run update the rendering task at the end
+        let mut requested_update_the_rendering = true;
         loop {
             debug!("Handling event: {event:?}");
 
@@ -1512,6 +1495,7 @@ impl ScriptThread {
                     _webviews,
                 )) => {
                     self.set_has_pending_animation_tick();
+                    requested_update_the_rendering = true;
                 },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)
@@ -1523,8 +1507,8 @@ impl ScriptThread {
                     TaskSourceName::Rendering,
                 ))) => {
                     // Instead of interleaving any number of update the rendering tasks with other
-                    // message handling, we run those steps only once at the end of each call of
-                    // this function.
+                    // message handling, we queue just one rendering rendering task.
+                    requested_update_the_rendering = true;
                 },
                 MixedMessage::FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
@@ -1546,6 +1530,19 @@ impl ScriptThread {
                 Some(new_event) => event = new_event,
                 None => break,
             }
+        }
+
+        if requested_update_the_rendering {
+            // add single update the rendering task
+            // that will be resolved in handle_msg_from_script
+            sequential.push(MixedMessage::FromScript(MainThreadScriptMsg::Common(
+                CommonScriptMsg::Task(
+                    ScriptThreadEventCategory::Rendering,
+                    Box::new(task!(update_the_rendering: move || {})),
+                    None,
+                    TaskSourceName::Rendering,
+                ),
+            )));
         }
 
         // Process the gathered events.
@@ -1636,10 +1633,15 @@ impl ScriptThread {
             docs.clear();
         }
 
-        // Update the rendering whenever we receive an IPC message. This may not actually do anything if
-        // we are running animations and the compositor hasn't requested a new frame yet via a TickAllAnimatons
-        // message.
-        self.update_the_rendering(can_gc);
+        // If there are pending reflows, they were probably caused by the execution of
+        // the microtask checkpoint above and we should spin the event loop one more
+        // time to resolve them.
+        self.schedule_rendering_opportunity_if_necessary();
+
+        // If this was a animation update request, then potentially schedule a new
+        // animation update in the case that the compositor might not do it due to
+        // not receiving any display lists.
+        self.schedule_script_thread_animation_tick_if_necessary();
 
         true
     }
@@ -2077,6 +2079,14 @@ impl ScriptThread {
 
     fn handle_msg_from_script(&self, msg: MainThreadScriptMsg) {
         match msg {
+            MainThreadScriptMsg::Common(CommonScriptMsg::Task(
+                ScriptThreadEventCategory::Rendering,
+                _,
+                _,
+                TaskSourceName::Rendering,
+            )) => {
+                self.update_the_rendering(CanGc::note());
+            },
             MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, pipeline_id, _)) => {
                 let _realm = pipeline_id.and_then(|id| {
                     let global = self.documents.borrow().find_global(id);
