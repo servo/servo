@@ -43,16 +43,18 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       unique-id: ${{ steps.unique-id.outputs.unique_id }}
+      total-chunks: ${{ steps.unique-id.outputs.total-chunks }}
       secret-token: ${{ steps.unique-id.outputs.secret-token }}
     steps:
       - id: unique-id
         run: |
-          # Generate a unique id that allows the workload job to find the runner
-          # we are reserving for it (via runner labels), and allows the timeout
-          # job to find the workload job run (via the job’s friendly name), even
-          # if there are multiple instances in the workflow call tree.
+          # Generate a unique id that allows the workload jobs to request chunks
+          # from the chunker service.
           unique_id=$(uuidgen)
+          total_chunks=$(((20 + 16) * 6))
           echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
+          echo "total_chunks=$total_chunks" | tee -a $GITHUB_OUTPUT
+
           start_url=https://ci0.servo.org/chunker/start\?unique_id=$unique_id\&qualified_repo=${{ github.repository }}\&run_id=${{ github.run_id }}\&total_chunks=$total_chunks
           echo "POST $start_url"
           secret_token=$(curl -fsSX POST "$start_url")
@@ -175,22 +177,20 @@ jobs:
           set -euo pipefail
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
-          unique_id=${{ needs.unique-id.outputs.unique-id }}
-          total_chunks=$(((20 + 16) * 6))
           exit_status_file=$(mktemp)
           while :; do
-            chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=$unique_id&secret_token=${{ needs.unique-id.outputs-secret-token }}&runs_on=${{ matrix.runs-on }}")
+            chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=${{ needs.unique-id.outputs.unique-id }}&secret_token=${{ needs.unique-id.outputs-secret-token }}&runs_on=${{ matrix.runs-on }}")
             if [ "$chunk_id" = null ]; then
               break
             fi
             >&2 echo .
             >&2 echo .
             >&2 echo .
-            >&2 echo "Got chunk $chunk_id (of $total_chunks chunks)"
+            >&2 echo "Got chunk $chunk_id (of ${{ needs.unique-id.outputs.total-chunks }} chunks)"
             if ./mach test-wpt \
               $WPT_ALWAYS_SUCCEED_ARG \
               --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier $SERVO_WPT_TIMEOUT_MULTIPLIER \
-              --total-chunks $total_chunks --this-chunk $chunk_id \
+              --total-chunks ${{ needs.unique-id.outputs.total-chunks }} --this-chunk $chunk_id \
               --log-raw wpt-full-logs/linux/raw/$chunk_id.log \
               --log-wptreport wpt-full-logs/linux/wptreport/$chunk_id.json \
               --log-raw-unexpected wpt-filtered-logs/linux/$chunk_id.log \
