@@ -77,7 +77,7 @@ jobs:
         id: select
         run: |
           github_hosted_runner_label='ubuntu-22.04'
-          self_hosted_image_name='servo-ubuntu2204'
+          self_hosted_image_name='servo-ubuntu2204-wpt'
           self_hosted_runner_scope='/orgs/${{ github.repository_owner }}/actions/runners'
           force_github_hosted_runner='false'
           self_hosted_runner_count='20'
@@ -163,7 +163,7 @@ jobs:
                 fi
                 get_policy_override_url=$monitor_api_base_url/policy/override
                 echo GET "$get_policy_override_url"
-                if curl -sS --fail-with-body --connect-timeout 5 --max-time 30 -X POST "$get_policy_override_url" \
+                if curl -sS --fail-with-body --connect-timeout 5 --max-time 30 "$get_policy_override_url" \
                     -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' > $result \
                     && jq -e . $result > /dev/null; then
                   cat $result
