@@ -16,7 +16,10 @@ use malloc_size_of_derive::MallocSizeOf;
 
 /// A callback to pass to the [`TimerScheduler`] to be called when the timer is
 /// dispatched.
-pub type BoxedTimerCallback = Box<dyn Fn() + Send + 'static>;
+pub type BoxedTimerCallback = Box<dyn Fn() + 'static>;
+
+/// A sendable version of the timer callback.
+pub type SendableBoxedTimerCallback = Box<dyn Fn() + Send + 'static>;
 
 /// Requests a TimerEvent-Message be sent after the given duration.
 #[derive(MallocSizeOf)]

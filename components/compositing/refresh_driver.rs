@@ -14,7 +14,7 @@ use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Sender, select};
 use embedder_traits::EventLoopWaker;
 use log::warn;
-use timers::{BoxedTimerCallback, TimerEventRequest, TimerScheduler};
+use timers::{SendableBoxedTimerCallback, TimerEventRequest, TimerScheduler};
 
 use crate::compositor::RepaintReason;
 use crate::webview_renderer::WebViewRenderer;
@@ -59,7 +59,7 @@ impl RefreshDriver {
         }
     }
 
-    fn timer_callback(&self) -> BoxedTimerCallback {
+    fn timer_callback(&self) -> SendableBoxedTimerCallback {
         let waiting_for_frame_timeout = self.waiting_for_frame_timeout.clone();
         let event_loop_waker = self.event_loop_waker.clone_box();
         Box::new(move || {
@@ -161,7 +161,7 @@ impl RefreshDriver {
 }
 
 enum TimerThreadMessage {
-    Request(TimerEventRequest),
+    Request(SendableBoxedTimerCallback, Duration),
     Quit,
 }
 
@@ -194,16 +194,14 @@ impl Default for TimerThread {
             .name(String::from("CompositorTimerThread"))
             .spawn(move || {
                 let mut scheduler = TimerScheduler::default();
-
                 loop {
                     select! {
                         recv(receiver) -> message => {
-                            match message {
-                                Ok(TimerThreadMessage::Request(request)) => {
-                                    scheduler.schedule_timer(request);
-                                },
+                            let (callback, duration) = match message {
+                                Ok(TimerThreadMessage::Request(cb, dur)) => (cb, dur),
                                 _ => return,
-                            }
+                            };
+                            scheduler.schedule_timer(TimerEventRequest { callback, duration});
                         },
                         recv(scheduler.wait_channel()) -> _message => {
                             scheduler.dispatch_completed_timers();
@@ -221,12 +219,9 @@ impl Default for TimerThread {
 }
 
 impl TimerThread {
-    fn queue_timer(&self, duration: Duration, callback: BoxedTimerCallback) {
+    fn queue_timer(&self, duration: Duration, callback: SendableBoxedTimerCallback) {
         let _ = self
             .sender
-            .send(TimerThreadMessage::Request(TimerEventRequest {
-                callback,
-                duration,
-            }));
+            .send(TimerThreadMessage::Request(callback, duration));
     }
 }
