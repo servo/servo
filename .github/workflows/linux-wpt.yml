@@ -55,7 +55,11 @@ jobs:
           echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
           echo "total_chunks=$total_chunks" | tee -a $GITHUB_OUTPUT
 
-          start_url=https://ci0.servo.org/chunker/start\?unique_id=$unique_id\&qualified_repo=${{ github.repository }}\&run_id=${{ github.run_id }}\&total_chunks=$total_chunks
+          start_url=https://ci0.servo.org/chunker/start\?unique_id=$unique_id
+          start_url=$start_url\&qualified_repo=${{ github.repository }}
+          start_url=$start_url\&run_id=${{ github.run_id }}
+          start_url=$start_url\&runners='{"1":"github-hosted","2":"github-hosted","3":"github-hosted","4":"github-hosted","5":"github-hosted","6":"github-hosted","7":"github-hosted","8":"github-hosted","9":"github-hosted","10":"github-hosted","11":"github-hosted","12":"github-hosted","13":"github-hosted","14":"github-hosted","15":"github-hosted","16":"github-hosted","17":"github-hosted","18":"github-hosted","19":"github-hosted","20":"github-hosted","21":"self-hosted","22":"self-hosted","23":"self-hosted","24":"self-hosted","25":"self-hosted","26":"self-hosted","27":"self-hosted","28":"self-hosted","29":"self-hosted","30":"self-hosted","31":"self-hosted","32":"self-hosted","33":"self-hosted","34":"self-hosted","35":"self-hosted"}'
+          start_url=$start_url\&total_chunks=$total_chunks
           echo "POST $start_url"
           secret_token=$(curl -fsSX POST "$start_url")
           echo "secret_token=$secret_token" >> $GITHUB_OUTPUT
@@ -194,7 +198,10 @@ jobs:
           mkdir -p wpt-full-logs/linux
           exit_status_file=$(mktemp)
           while :; do
-            chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=${{ needs.unique-id.outputs.unique-id }}&secret_token=${{ needs.unique-id.outputs.secret-token }}&runs_on=${{ matrix.runs-on }}")
+            chunk_url=https://ci0.servo.org/chunker/take\?unique_id=${{ needs.unique-id.outputs.unique-id }}
+            chunk_url=$chunk_url\&secret_token=${{ needs.unique-id.outputs.secret-token }}
+            chunk_url=$chunk_url\&runner=${{ matrix.runner }}
+            chunk_id=$(curl -fsSX POST "$chunk_url")
             if [ "$chunk_id" = null ]; then
               break
             fi
