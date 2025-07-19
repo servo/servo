@@ -42,24 +42,184 @@ jobs:
 
   # Runs the underlying job (“workload”) on a self-hosted runner if available,
   # with the help of a `runner-select` job and a `runner-timeout` job.
+  # runner-select:
+  #   uses: ./.github/workflows/self-hosted-runner-select.yml
+  #   secrets: inherit
+  #   with:
+  #     github-hosted-runner-label: ubuntu-22.04
+  #     self-hosted-image-name: servo-ubuntu2204
+  #     force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+  #     self-hosted-runner-count: 20
+  #     request-policy-override: true
+  # runner-timeout:
+  #   needs:
+  #     # - runner-select
+  #     - start-chunker
+  #   uses: ./.github/workflows/self-hosted-runner-timeout.yml
+  #   secrets: inherit
+  #   with:
+  #     unique-id: ${{ needs.runner-select.outputs.unique-id }}
+  #     is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+
+  # FIXME inlined due to workflow call depth limit
   runner-select:
-    uses: ./.github/workflows/self-hosted-runner-select.yml
-    secrets: inherit
-    with:
-      github-hosted-runner-label: ubuntu-22.04
-      self-hosted-image-name: servo-ubuntu2204
-      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
-      self-hosted-runner-count: 20
-      request-policy-override: true
-  runner-timeout:
-    needs:
-      # - runner-select
-      - start-chunker
-    uses: ./.github/workflows/self-hosted-runner-timeout.yml
-    secrets: inherit
-    with:
-      unique-id: ${{ needs.runner-select.outputs.unique-id }}
-      is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+    name: Select Runner
+    runs-on: ubuntu-latest
+    outputs:
+      unique-id: ${{ steps.select.outputs.unique_id }}
+      github-hosted-runner-label: ${{ steps.select.outputs.github_hosted_runner_label }}
+      self-hosted-runner-label: ${{ steps.select.outputs.self_hosted_runner_label }}
+      selected-runner-label: ${{ steps.select.outputs.selected_runner_label }}
+      is-self-hosted: ${{ steps.select.outputs.is_self_hosted }}
+      self-hosted-runner-count: ${{ steps.select.outputs.self_hosted_runner_count }}
+    steps:
+      - name: Select and reserve best available runner
+        id: select
+        run: |
+          github_hosted_runner_label='${{ inputs.github-hosted-runner-label }}'
+          self_hosted_image_name='${{ inputs.self-hosted-image-name }}'
+          self_hosted_runner_scope='${{ inputs.self-hosted-runner-scope }}'
+          self_hosted_runner_count='${{ inputs.self-hosted-runner-count }}'
+
+          # List of monitor servers
+          set -euo pipefail \
+            https://ci0.servo.org \
+            https://ci1.servo.org \
+            https://ci2.servo.org \
+          # End of server list (do not remove this comment)
+
+          fall_back_to_github_hosted() {
+            echo 'Falling back to GitHub-hosted runner'
+            echo "selected_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+            echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
+            exit 0
+          }
+
+          # Generate a unique id that allows the workload job to find the runner
+          # we are reserving for it (via runner labels), and allows the timeout
+          # job to find the workload job run (via the job’s friendly name), even
+          # if there are multiple instances in the workflow call tree.
+          unique_id=$(uuidgen)
+          echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
+
+          # Disable self-hosted runners by creating a repository variable named
+          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
+          # <https://github.com/servo/servo/settings/variables/actions>
+          if [ -n '${{ vars.NO_SELF_HOSTED_RUNNERS }}' ]; then
+            echo 'NO_SELF_HOSTED_RUNNERS is set!'
+            fall_back_to_github_hosted
+          fi
+
+          if [ '${{ inputs.force-github-hosted-runner }}' = true ]; then
+            echo 'inputs.force-github-hosted-runner is set!'
+            fall_back_to_github_hosted
+          fi
+
+          if [ '${{ inputs.request-policy-override }}' = true ]; then
+            # First request the policy overrides.
+            remaining_runner_count=$self_hosted_runner_count
+            received_runner_count=0
+            for monitor_api_base_url in "$@"; do
+              if [ $remaining_runner_count -eq 0 ]; then
+                break
+              fi
+              # Use the monitor API to request a policy override.
+              policy_override_url=$monitor_api_base_url/policy/override\?$self_hosted_image_name=$remaining_runner_count
+              result=$(mktemp)
+              echo
+              echo Requesting policy override for up to $remaining_runner_count more runners
+              echo POST "$policy_override_url"
+              if curl -sS --fail-with-body --connect-timeout 5 --max-time 30 -X POST "$policy_override_url" \
+                  -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' > $result \
+                  && jq -e . $result > /dev/null; then
+                cat $result
+                echo
+                result_count=$(jq -e --arg image $self_hosted_image_name '.profile_override_counts[$image]' $result)
+                remaining_runner_count=$((remaining_runner_count - result_count))
+                received_runner_count=$((received_runner_count + result_count))
+              else
+                cat $result
+                echo
+              fi
+            done
+
+            # We may receive fewer runners than we requested. If so, adjust our expectations accordingly.
+            self_hosted_runner_count=$received_runner_count
+
+            # Now wait for the runners to come up.
+            start_time=$(date -u +\%s)
+            while :; do
+              now=$(date -u +\%s)
+              if [ $((now - start_time)) -gt 60 ]; then
+                echo 'Timeout waiting for policy overrides to deliver!'
+                exit 1
+              fi
+              remaining_runner_count=$self_hosted_runner_count
+              for monitor_api_base_url in "$@"; do
+                if [ $remaining_runner_count -eq 0 ]; then
+                  break
+                fi
+                get_policy_override_url=$monitor_api_base_url/policy/override
+                echo GET "$get_policy_override_url"
+                if curl -sS --fail-with-body --connect-timeout 5 --max-time 30 -X POST "$get_policy_override_url" \
+                    -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' > $result \
+                    && jq -e . $result > /dev/null; then
+                  cat $result
+                  echo
+                  result_count=$(jq -e --arg image $self_hosted_image_name '.actual_runner_ids_by_profile_key[$image] | length' $result)
+                  remaining_runner_count=$((remaining_runner_count - result_count))
+                else
+                  cat $result
+                  echo
+                fi
+              done
+              if [ $remaining_runner_count -eq 0 ]; then
+                break
+              fi
+            done
+          fi
+
+          # Try to reserve as many runners as possible, up to the needed count,
+          # from a random server, until we have enough runners.
+          remaining_runner_count=$self_hosted_runner_count
+          for monitor_api_base_url in $(printf \%s\\n "$@" | shuf); do
+            if [ $remaining_runner_count -eq 0 ]; then
+              break
+            fi
+            # Use the monitor API to reserve a runner. If we get an object with
+            # runner details, we succeeded. If we get null, we failed.
+            take_runner_url=$monitor_api_base_url/profile/$self_hosted_image_name/take/$remaining_runner_count\?unique_id=$unique_id\&qualified_repo=${{ github.repository }}\&run_id=${{ github.run_id }}
+            result=$(mktemp)
+            echo
+            echo Need to reserve $remaining_runner_count runners
+            echo POST "$take_runner_url"
+            if curl -sS --fail-with-body --connect-timeout 5 --max-time 30 -X POST "$take_runner_url" \
+                -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' > $result \
+                && jq -e . $result > /dev/null; then
+              cat $result
+              echo
+              result_count=$(jq -e length $result)
+              remaining_runner_count=$((remaining_runner_count - result_count))
+            else
+              cat $result
+              echo
+            fi
+          done
+
+          echo
+          echo
+          if [ $remaining_runner_count -eq 0 ]; then
+            echo "github_hosted_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+            echo "self_hosted_runner_label=$self_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+            echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
+            echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
+            echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
+            echo "self_hosted_runner_count=$self_hosted_runner_count" | tee -a $GITHUB_OUTPUT
+            exit 0
+          else
+            echo 'Not enough self-hosted runners available!'
+            fall_back_to_github_hosted
+          fi
   start-chunker:
     needs: runner-select
     runs-on: ubuntu-22.04
