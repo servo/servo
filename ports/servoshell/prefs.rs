@@ -20,6 +20,25 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use url::Url;
 
+pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
+    "dom_async_clipboard_enabled",
+    "dom_fontface_enabled",
+    "dom_intersection_observer_enabled",
+    "dom_mouse_event_which_enabled",
+    "dom_navigator_sendbeacon_enabled",
+    "dom_notification_enabled",
+    "dom_offscreen_canvas_enabled",
+    "dom_permissions_enabled",
+    "dom_resize_observer_enabled",
+    "dom_trusted_types_enabled",
+    "dom_webgl2_enabled",
+    "dom_webgpu_enabled",
+    "dom_xpath_enabled",
+    "layout_columns_enabled",
+    "layout_container_queries_enabled",
+    "layout_grid_enabled",
+];
+
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]
 #[derive(Clone)]
 pub(crate) struct ServoShellPreferences {
@@ -587,26 +606,9 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         .collect();
 
     if opt_match.opt_present("enable-experimental-web-platform-features") {
-        vec![
-            "dom_async_clipboard_enabled",
-            "dom_fontface_enabled",
-            "dom_intersection_observer_enabled",
-            "dom_mouse_event_which_enabled",
-            "dom_navigator_sendbeacon_enabled",
-            "dom_notification_enabled",
-            "dom_offscreen_canvas_enabled",
-            "dom_permissions_enabled",
-            "dom_resize_observer_enabled",
-            "dom_trusted_types_enabled",
-            "dom_webgl2_enabled",
-            "dom_webgpu_enabled",
-            "dom_xpath_enabled",
-            "layout_columns_enabled",
-            "layout_container_queries_enabled",
-            "layout_grid_enabled",
-        ]
-        .iter()
-        .for_each(|pref| preferences.set_value(pref, PrefValue::Bool(true)));
+        for pref in EXPERIMENTAL_PREFS {
+            preferences.set_value(pref, PrefValue::Bool(true));
+        }
     }
 
     // Handle all command-line preferences overrides.
