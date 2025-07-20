@@ -944,39 +944,74 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     if is_typed_array(type):
         if failureCode is None:
-            unwrapFailureCode = (f'throw_type_error(*cx, "{sourceDescription} is not a typed array.");\n'
-                                 f'{exceptionCode}')
+            unwrapFailureCode = (
+                f'throw_type_error(*cx, "{sourceDescription} is not a typed array.");\n'
+                f'{exceptionCode}'
+            )
         else:
             unwrapFailureCode = failureCode
 
-        typeName = type.unroll().name  # unroll because it may be nullable
+        # Unroll nullable types to get the base type name
+        typeName = type.unroll().name
 
-        if isMember == "Union":
+        # For unions, we must use the Heap variant (HeapArrayBuffer, HeapArrayBufferView, etc.)
+        # because only the Heap version implements `JSTraceable` and can safely be rooted.
+        is_union_member = (isMember == "Union")
+        if is_union_member:
             typeName = f"Heap{typeName}"
 
-        templateBody = fill(
-            """
-            match typedarray::${ty}::from($${val}.get().to_object()) {
-                Ok(val) => val,
-                Err(()) => {
-                    $*{failureCode}
+        if is_union_member:
+            # Union members:
+            #   - Must be rooted:
+            #   - `typedarray::HeapX::from(...)` returns Result<HeapTypedArray, ()>
+            #   - `.map(RootedTraceableBox::new)` wraps the successful value into a RootedTraceableBox
+            templateBody = fill(
+                """
+                match typedarray::${ty}::from($${val}.get().to_object())
+                    .map(RootedTraceableBox::new) {
+                    Ok(val) => val,
+                    Err(()) => {
+                        $*{failureCode}
+                    }
                 }
-            }
-            """,
-            ty=typeName,
-            failureCode=f"{unwrapFailureCode}\n",
-        )
+                """,
+                ty=typeName,
+                failureCode=f"{unwrapFailureCode}\n",
+            )
+        else:
+            #   - Do not root
+            #   - Simply return the typed array value directly
+            templateBody = fill(
+                """
+                match typedarray::${ty}::from($${val}.get().to_object()) {
+                    Ok(val) => val,
+                    Err(()) => {
+                        $*{failureCode}
+                    }
+                }
+                """,
+                ty=typeName,
+                failureCode=f"{unwrapFailureCode}\n",
+            )
 
-        if isMember == "Union":
-            templateBody = f"RootedTraceableBox::new({templateBody})"
+        if is_union_member:
+            # For unions, the final return type is RootedTraceableBox<typedarray::HeapXXX>
+            declType = CGGeneric(f"RootedTraceableBox<typedarray::{typeName}>")
+        else:
+            # For normal typed arrays, just return typedarray::XXX
+            declType = CGGeneric(f"typedarray::{typeName}")
 
-        declType = CGGeneric(f"typedarray::{typeName}")
         if type.nullable():
             templateBody = f"Some({templateBody})"
             declType = CGWrapper(declType, pre="Option<", post=">")
 
-        templateBody = wrapObjectTemplate(templateBody, "None",
-                                          isDefinitelyObject, type, failureCode)
+        templateBody = wrapObjectTemplate(
+            templateBody,
+            "None",
+            isDefinitelyObject,
+            type,
+            failureCode,
+        )
 
         return handleOptional(templateBody, declType, handleDefault("None"))
 

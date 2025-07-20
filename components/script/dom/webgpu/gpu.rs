@@ -6,7 +6,6 @@ use std::rc::Rc;
 
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
-use js::jsapi::Heap;
 use webgpu_traits::WebGPUAdapterResponse;
 use wgpu_types::PowerPreference;
 
@@ -18,6 +17,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpuadapter::GPUAdapter;
@@ -117,7 +117,7 @@ impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
                         "{} ({:?})",
                         adapter.adapter_info.name, adapter.adapter_id.0
                     )),
-                    Heap::default(),
+                    RootedTraceableBox::default(),
                     adapter.features,
                     adapter.limits,
                     adapter.adapter_info,

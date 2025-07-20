@@ -8,12 +8,13 @@ use js::jsval::JSVal;
 use js::rust::MutableHandleValue;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[derive(JSTraceable)]
 pub(crate) struct CachedFrozenArray {
-    frozen_value: DomRefCell<Option<Heap<JSVal>>>,
+    frozen_value: DomRefCell<Option<RootedTraceableBox<Heap<JSVal>>>>,
 }
 
 impl CachedFrozenArray {
@@ -39,7 +40,7 @@ impl CachedFrozenArray {
         to_frozen_array(array.as_slice(), cx, retval.reborrow(), can_gc);
 
         // Safety: need to create the Heap value in its final memory location before setting it.
-        *self.frozen_value.borrow_mut() = Some(Heap::default());
+        *self.frozen_value.borrow_mut() = Some(RootedTraceableBox::default());
         self.frozen_value
             .borrow()
             .as_ref()

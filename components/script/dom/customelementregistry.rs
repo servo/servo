@@ -1108,6 +1108,7 @@ impl CustomElementReactionStack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction>
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn enqueue_callback_reaction(
         &self,
         element: &Element,

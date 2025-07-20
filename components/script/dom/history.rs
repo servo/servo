@@ -27,6 +27,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -46,14 +47,14 @@ pub(crate) struct History {
     reflector_: Reflector,
     window: Dom<Window>,
     #[ignore_malloc_size_of = "mozjs"]
-    state: Heap<JSVal>,
+    state: RootedTraceableBox<Heap<JSVal>>,
     #[no_trace]
     state_id: Cell<Option<HistoryStateId>>,
 }
 
 impl History {
     pub(crate) fn new_inherited(window: &Window) -> History {
-        let state = Heap::default();
+        let state = RootedTraceableBox::new(Heap::default());
         state.set(NullValue());
         History {
             reflector_: Reflector::new(),
