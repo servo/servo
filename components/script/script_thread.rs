@@ -2087,6 +2087,14 @@ impl ScriptThread {
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)
             },
+            MainThreadScriptMsg::Common(CommonScriptMsg::ReportCspViolations(
+                pipeline_id,
+                violations,
+            )) => {
+                if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
+                    global.report_csp_violations(violations, None, None);
+                }
+            },
             MainThreadScriptMsg::NavigationResponse {
                 pipeline_id,
                 message,
