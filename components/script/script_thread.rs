@@ -348,6 +348,9 @@ pub struct ScriptThread {
     /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
     /// animation tick.
     has_pending_animation_tick: Arc<AtomicBool>,
+    /// A list of URLs that can access privileged internal APIs.
+    #[no_trace]
+    privileged_urls: Vec<ServoUrl>,
 }
 
 struct BHMExitSignal {
@@ -973,6 +976,7 @@ impl ScriptThread {
             relative_mouse_down_point: Cell::new(Point2D::zero()),
             scheduled_script_thread_animation_timer: Default::default(),
             has_pending_animation_tick: Arc::new(AtomicBool::new(false)),
+            privileged_urls: state.privileged_urls,
         }
     }
 
@@ -3343,8 +3347,6 @@ impl ScriptThread {
             theme: incomplete.theme,
         };
 
-        let empty_headers = headers::HeaderMap::new();
-
         // Create the window and document objects.
         let window = Window::new(
             incomplete.webview_id,
@@ -3387,11 +3389,6 @@ impl ScriptThread {
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
-            metadata
-                .headers
-                .as_ref()
-                .map(|h| &**h)
-                .unwrap_or(&empty_headers),
         );
 
         let _realm = enter_realm(&*window);
@@ -4057,6 +4054,15 @@ impl ScriptThread {
             pipeline_id,
             ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result),
         ));
+    }
+
+    pub(crate) fn is_servo_privileged(url: ServoUrl) -> bool {
+        with_script_thread(|script_thread| {
+            script_thread
+                .privileged_urls
+                .iter()
+                .any(|privileged| *privileged == url)
+        })
     }
 }
 
