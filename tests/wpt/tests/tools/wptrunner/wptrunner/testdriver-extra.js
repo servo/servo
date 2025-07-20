@@ -207,12 +207,25 @@
         return create_action(name, context_params);
     };
 
-    const subscribe = function (params) {
-        return create_action("bidi.session.subscribe", {
+    /**
+     * @returns {Promise<(function(): Promise<void>)>}: callback for
+     * unsubscribing from the created subscription.
+     */
+    const subscribe = async function (params) {
+        const action_result = await create_action("bidi.session.subscribe", {
             // Default to subscribing to the window's events.
             contexts: [window],
             ...params
         });
+        const subscription_id = action_result["subscription"];
+
+        return async ()=>{
+            console.log("!!@@## unsubscribing")
+            await create_action("bidi.session.unsubscribe", {
+                // Default to subscribing to the window's events.
+                subscriptions: [subscription_id]
+            });
+        }
     };
 
     window.test_driver_internal.in_automation = true;
@@ -319,7 +332,7 @@
     window.test_driver_internal.bidi.bluetooth.request_device_prompt_updated.subscribe =
         function(params) {
         return subscribe(
-            {params, events: ['bluetooth.requestDevicePromptUpdated']})
+            {...params, events: ['bluetooth.requestDevicePromptUpdated']})
     };
 
     window.test_driver_internal.bidi.bluetooth.request_device_prompt_updated.on =
@@ -336,7 +349,7 @@
     window.test_driver_internal.bidi.bluetooth.gatt_connection_attempted.subscribe =
         function(params) {
         return subscribe(
-            {params, events: ['bluetooth.gattConnectionAttempted']})
+            {...params, events: ['bluetooth.gattConnectionAttempted']})
     };
 
     window.test_driver_internal.bidi.bluetooth.gatt_connection_attempted.on =
@@ -353,7 +366,7 @@
     window.test_driver_internal.bidi.bluetooth.characteristic_event_generated.subscribe =
         function(params) {
         return subscribe(
-            {params, events: ['bluetooth.characteristicEventGenerated']})
+            {...params, events: ['bluetooth.characteristicEventGenerated']})
     };
 
     window.test_driver_internal.bidi.bluetooth.characteristic_event_generated.on =
@@ -370,7 +383,7 @@
     window.test_driver_internal.bidi.bluetooth.descriptor_event_generated.subscribe =
         function(params) {
         return subscribe(
-            {params, events: ['bluetooth.descriptorEventGenerated']});
+            {...params, events: ['bluetooth.descriptorEventGenerated']});
     };
 
     window.test_driver_internal.bidi.bluetooth.descriptor_event_generated.on =
@@ -419,7 +432,7 @@
     window.test_driver_internal.bidi.log.entry_added.subscribe =
         function (params) {
             return subscribe({
-                params,
+                ...params,
                 events: ["log.entryAdded"]
             })
         };

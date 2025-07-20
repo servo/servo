@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>View transitions: column-span elements in a fragmented container aren't skipped</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:mattwoodrow@apple.com">
+
+<style>
+html {
+  background: pink;
+}
+#container {
+  width: 500px;
+  height: 500px;
+  columns: 2;
+}
+#target {
+  height: 200px;
+  background: green;
+  column-span: all;
+}
+</style>
+<div id=container>
+  <div id=target></div>
+</div>

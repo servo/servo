@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>View Transition: cleanup is deferred after finished promise resolves</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+}
+::view-transition-group(*) {
+  animation-duration: 1ms;
+}
+::view-transition-old(target) {
+  background-color: rgb(0, 255, 0);
+}
+</style>
+
+<div id=target></div>
+
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "View Transitions are not supported");
+
+  const transition = document.startViewTransition(() => {});
+
+  transition.finished.then(t.step_func(() => {
+    // At this point, the transition should not be fully cleaned up yet.
+    // The pseudo-elements should still be present. Verified as view-transition being block-level.
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition").display, "block");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed");
+  }));
+
+  await transition.finished;
+
+  await new Promise(requestAnimationFrame);
+
+  // After the next frame, the cleanup should have happened. Verified as view-transition being inline-levle.
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").display, "inline");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "static");
+
+}, "View transition cleanup is deferred until after the frame where `finished` promise resolves");
+</script>

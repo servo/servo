@@ -73,8 +73,15 @@ def test_close_last_browsing_context(session):
 
     assert_success(response, [])
 
-    # With no more open top-level browsing contexts, the session is closed.
-    session.session_id = None
+    try:
+        # The session should've been deleted by closing the last context.
+        with pytest.raises(error.InvalidSessionIdException):
+            session.handles
+
+    finally:
+        # Need an explicit call to session.end() to notify the test harness
+        # that a new session needs to be created for subsequent tests.
+        session.end()
 
 
 def test_element_usage_after_closing_browsing_context(session, inline):

@@ -231,6 +231,27 @@ test(() => {
         instrument: {
           displayName: 'X',
           icon: 'https://example.test/icon.png',
+          // Details can be omitted, but if present cannot be empty.
+          details: '',
+        },
+        rpId: 'relying-party.example',
+      },
+    }], details);
+  });
+}, 'Empty instrument.details field throws exception.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          icon: 'https://example.test/icon.png',
         },
         rpId: 'domains cannot have spaces.com',
       },

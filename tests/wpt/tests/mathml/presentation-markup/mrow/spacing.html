@@ -22,7 +22,7 @@
   window.addEventListener("load", () => { loadAllFonts().then(runTests); });
   function runTests()
   {
-      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Mtd"].forEach((tag) => {
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Fenced", "A", "Mtd"].forEach((tag) => {
           test(function() {
               assert_true(MathMLFeatureDetection.has_operator_spacing());
               var mrow = document.getElementById(tag);
@@ -48,6 +48,8 @@
     <math><menclose id="Menclose" notation="box"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></menclose></math>
     <math><mpadded id="Mpadded" lspace="10px"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></mpadded></math>
     <math><unknown id="Unknown"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></unknown></math>
+    <math><mfenced id="Fenced"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></mfenced></math>
+    <math><a id="A"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></a></math>
     <math><mtable><mtr><mtd id="Mtd"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></mtd></mtr></mtable></math>
   </p>
 </body>

@@ -263,6 +263,23 @@ class BidiSessionSubscribeAction:
         return await self.protocol.bidi_events.subscribe(events, contexts)
 
 
+class BidiSessionUnsubscribeAction:
+    name = "bidi.session.unsubscribe"
+
+    def __init__(self, logger, protocol):
+        do_delayed_imports()
+        self.logger = logger
+        self.protocol = protocol
+
+    async def __call__(self, payload):
+        subscriptions = payload["subscriptions"]
+        if len(subscriptions) == 0:
+            raise ValueError("At least one subscription ID should be provided")
+
+        return await self.protocol.bidi_events.unsubscribe(
+            subscriptions=subscriptions)
+
+
 class BidiPermissionsSetPermissionAction:
     name = "bidi.permissions.set_permission"
 
@@ -296,4 +313,5 @@ async_actions = [
     BidiEmulationSetLocaleOverrideAction,
     BidiEmulationSetScreenOrientationOverrideAction,
     BidiPermissionsSetPermissionAction,
-    BidiSessionSubscribeAction]
+    BidiSessionSubscribeAction,
+    BidiSessionUnsubscribeAction]

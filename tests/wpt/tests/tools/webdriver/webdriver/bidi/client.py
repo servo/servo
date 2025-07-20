@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse
 
 from . import modules
 from .error import from_error_details
-from .transport import get_running_loop, Transport
+from .transport import Transport
 
 
 class BidiSession:
@@ -144,11 +144,10 @@ class BidiSession:
     async def start_transport(self,
                               loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         if self.transport is None:
-            if loop is None:
-                loop = get_running_loop()
-
             self.transport = Transport(self.websocket_url, self.on_message, loop=loop)
             await self.transport.start()
+        elif loop is not None and loop is not self.event_loop:
+            raise ValueError("Transport with a different event loop already exists")
 
     async def start(self,
                     loop: Optional[asyncio.AbstractEventLoop] = None) -> None:

@@ -92,7 +92,9 @@ scheme host and port.""")
     mode_group.add_argument("--list-disabled", action="store_true",
                             help="List the tests that are disabled on the current platform")
     mode_group.add_argument("--list-tests", action="store_true",
-                            help="List all tests that will run")
+                            help="List all tests included in the given test_list (whether or not they would be executed)")
+    mode_group.add_argument("--list-tests-json", action="store_true",
+                            help="List details of all tests included in the given test_list in JSON format")
     stability_group = mode_group.add_mutually_exclusive_group()
     stability_group.add_argument("--verify", action="store_true",
                                  help="Run a stability check on the selected tests")

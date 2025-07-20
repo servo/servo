@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="require-trusted-types-for 'script'">
+</head>
+<body>
+<script>
+/* This is chiefly a regression test for crbug.com/430335244, but should apply
+   to any TT implementation:
+
+   Per https://www.w3.org/TR/trusted-types/#create-a-trusted-type-algorithm
+   step 4: If a policy function does not return a value, the empty string should
+   be used.
+*/
+test(t => {
+  const policy = trustedTypes.createPolicy("emptyCreateHTML", {
+    "createHTML": _ => {},
+  });
+
+  const doc = new DOMParser().parseFromString(
+    policy.createHTML("bla"), "text/html");
+  assert_equals(doc.body.textContent, "");
+}, "createHTML with a policy that returns undefined");
+
+test(t => {
+  const policy = trustedTypes.createPolicy("emptyCreateScript", {
+    "createScript": _ => {},
+  });
+
+  const script = document.createElement("script");
+  script.textContent = policy.createScript("bla");
+  assert_equals(script.textContent, "");
+}, "createScript with a policy that returns undefined");
+
+test(t => {
+  const policy = trustedTypes.createPolicy("emptyCreateScriptURL", {
+    "createScriptURL": _ => {},
+  });
+
+  const script = document.createElement("script");
+  script.src = policy.createScriptURL("bla");
+  assert_equals(script.src, document.location.href);
+}, "createScriptURL with a policy that returns undefined");
+</script>
+</body>

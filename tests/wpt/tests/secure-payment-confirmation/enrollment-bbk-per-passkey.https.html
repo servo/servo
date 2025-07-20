@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for the 'secure-payment-confirmation' payment method authentication - browser bound key per passkey</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation/#sctn-binding-a-keypair">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src=../webauthn/resources/common-inputs.js></script>
+<script src=../webauthn/resources/utils.js></script>
+<script src="utils.sub.js"></script>
+<script src="utils-bbk.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  await window.test_driver.add_virtual_authenticator(
+    AUTHENTICATOR_OPTS)
+    .then(authenticator => {
+      t.add_cleanup(() => {
+        return window.test_driver.remove_virtual_authenticator(authenticator);
+      });
+    });
+
+  const credential1 = await createCredential();
+  const browserBoundPublicKey1 = getBrowserBoundPublicKeyFromCredential(credential1);
+
+  const credential2 = await createCredential();
+  const browserBoundPublicKey2 = getBrowserBoundPublicKeyFromCredential(credential2);
+
+  if (browserBoundPublicKey1 === undefined && browserBoundPublicKey2 === undefined) {
+    return;
+  }
+  assert_not_equals(browserBoundPublicKey1, browserBoundPublicKey2,
+    'The browser bound key must be different for different passkeys.');
+}, 'If a browser bound keys are created on enrollment then a different browser bound key is created for a different passkey');
+</script>
