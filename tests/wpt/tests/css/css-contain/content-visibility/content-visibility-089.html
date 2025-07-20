@@ -38,10 +38,18 @@ body {
 <script>
 test(() => {
   const inner = document.getElementById("inner");
-  assert_equals(inner.clientLeft, 25, "left");
-  assert_equals(inner.clientTop, 25, "top");
-  assert_equals(inner.clientWidth, 50, "width");
-  assert_equals(inner.clientHeight, 50, "height");
+
+  inner.style.borderLeftWidth = "20px";
+  assert_equals(inner.clientLeft, 20, "left");
+
+  inner.style.borderTopWidth = "20px";
+  assert_equals(inner.clientTop, 20, "top");
+
+  inner.style.width = "40px";
+  assert_equals(inner.clientWidth, 40, "width");
+
+  inner.style.height = "40px";
+  assert_equals(inner.clientHeight, 40, "height");
 });
 
 </script>

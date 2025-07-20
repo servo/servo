@@ -323,6 +323,11 @@ class WebDriverBidiEventsProtocolPart(BidiEventsProtocolPart):
         self._subscriptions.append((events, top_contexts))
         return result
 
+    async def unsubscribe(self, subscriptions):
+        self.logger.info("Unsubscribing from subscriptions %s" % subscriptions)
+        await self.webdriver.bidi_session.session.unsubscribe(
+            subscriptions=subscriptions)
+
     async def unsubscribe_all(self):
         self.logger.info("Unsubscribing from all the events")
         while self._subscriptions:
@@ -333,6 +338,12 @@ class WebDriverBidiEventsProtocolPart(BidiEventsProtocolPart):
             except webdriver_bidi_error.NoSuchFrameException:
                 # The browsing context is already removed. Nothing to do.
                 pass
+            except webdriver_bidi_error.InvalidArgumentException as e:
+                if e.message == "No subscription found":
+                    # The subscription is already removed, nothing to do.
+                    pass
+                else:
+                    raise e
             except Exception as e:
                 self.logger.error("Failed to unsubscribe from events %s in %s: %s" % (events, contexts, e))
                 # Re-raise the exception to identify regressions.

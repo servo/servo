@@ -38,7 +38,7 @@ test(function() {
 
 promise_test(function(test) {
   return validateStreamFromString(response.body.getReader(), body);
-}, "Check orginal response's body after cloning");
+}, "Check original response's body after cloning");
 
 promise_test(function(test) {
   return validateStreamFromString(clonedResponse.body.getReader(), body);
@@ -104,7 +104,7 @@ function testReadableStreamClone(initialBuffer, bufferType)
         }).then(function(data) {
             assert_false(data.done);
             if (initialBuffer instanceof ArrayBuffer) {
-              assert_true(data.value instanceof ArrayBuffer, "Cloned buffer is ArrayBufer");
+              assert_true(data.value instanceof ArrayBuffer, "Cloned buffer is ArrayBuffer");
               assert_equals(initialBuffer.byteLength, data.value.byteLength, "Length equal");
               assert_array_equals(new Uint8Array(data.value), new Uint8Array(initialBuffer), "Cloned buffer chunks have the same content");
             } else if (initialBuffer instanceof DataView) {

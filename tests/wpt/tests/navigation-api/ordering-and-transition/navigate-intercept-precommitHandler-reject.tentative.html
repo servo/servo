@@ -24,7 +24,7 @@ promise_test(async t => {
   navigation.addEventListener("navigate", e => {
     e.intercept({ async precommitHandler() {
                     recorder.record("precommitHandler start");
-                    return Promise.reject();
+                    return Promise.reject("reject reason");
                   },
                   async handler() { recorder.record("handler should not run"); }
                 });
@@ -42,6 +42,7 @@ promise_test(async t => {
     ["navigate", "", null],
     ["precommitHandler start", "", { from, navigationType: "push" }],
     ["promise microtask", "", { from, navigationType: "push" }],
+    ["AbortSignal abort", "", { from, navigationType: "push" }],
     ["navigateerror", "", { from, navigationType: "push" }],
     ["committed rejected", "", null],
     ["finished rejected", "", null],

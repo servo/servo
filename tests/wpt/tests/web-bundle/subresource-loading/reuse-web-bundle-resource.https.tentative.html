@@ -275,7 +275,7 @@
       // - Even if we move the script element back to the original Document,
       // even immediately, the resources are not loaded from the webbundle in the
       // original Document.
-    }, "append() should reuse webbundle resoruces even if the old script was moved to another document.");
+    }, "append() should reuse webbundle resources even if the old script was moved to another document.");
 
     promise_test(async (t) => {
       t.add_cleanup(cleanUp);

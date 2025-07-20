@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Values and Units Module Level 5: parsing &lt;position&gt; with valid values</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#position">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+const property = "object-position";
+
+test_valid_value(property, "10%", "10% center");
+test_valid_value(property, "right 30% top 60px");
+test_valid_value(property, "-20% -30px");
+test_valid_value(property, "30px center");
+test_valid_value(property, "40px top");
+test_valid_value(property, "bottom 10% right 20%", "right 20% bottom 10%");
+test_valid_value(property, "bottom right", "right bottom");
+test_valid_value(property, "center 50px", "center 50px");
+test_valid_value(property, "center bottom", "center bottom");
+test_valid_value(property, "center left", "left center");
+test_valid_value(property, "left", "left center");
+test_valid_value(property, "left bottom", "left bottom");
+test_valid_value(property, "left center", "left center");
+test_valid_value(property, "right 40%", "right 40%");
+test_valid_value(property, "top", "center top");
+test_valid_value(property, "top center", "center top");
+test_valid_value(property, "center", "center center");
+test_valid_value(property, "center center", "center center");
+
+test_valid_value(property, "x-start", "x-start center");
+test_valid_value(property, "x-start 10px");
+test_valid_value(property, "x-start 10% top 20px");
+test_valid_value(property, "top 20px x-start 10%", "x-start 10% top 20px");
+test_valid_value(property, "x-end", "x-end center");
+test_valid_value(property, "x-end 10%");
+test_valid_value(property, "x-end 10px top 20px");
+test_valid_value(property, "top 20px x-end 10px", "x-end 10px top 20px");
+test_valid_value(property, "y-start", "center y-start");
+test_valid_value(property, "10px y-start");
+test_valid_value(property, "left 10px y-start 20%");
+test_valid_value(property, "y-start 20px left 10px", "left 10px y-start 20px");
+test_valid_value(property, "y-end", "center y-end");
+test_valid_value(property, "10px y-end");
+test_valid_value(property, "left 10px y-end 20%");
+test_valid_value(property, "y-end 20% left 10px", "left 10px y-end 20%");
+</script>
+</body>
+</html>

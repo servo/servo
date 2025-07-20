@@ -50,3 +50,29 @@ mathfont.drawRectangleGlyph(g, mathfont.em, mathfont.em/2, 0)
 font[upDownArrowWithBase].verticalVariants = "uni21A8 v0 v1 v2 v3"
 
 mathfont.save(font)
+
+
+# Create a font to test RTL operators.
+font = mathfont.create("stretchy-text-direction-asymetrical", "Copyright (c) 2025 Igalia S.L.")
+
+# Left and right parentheses and brackets, in the following order: { ) } (
+codePoints = (0x007B, 0x0029, 0x007D, 0x0028)
+
+for i, point in enumerate(codePoints):
+    em = mathfont.em
+    width = int(em * (i + 1))
+    ascent = em
+
+    glyph = font.createChar(point)
+    mathfont.drawRectangleGlyph(glyph, width, ascent)
+
+    for size in (0, 1, 2, 3):
+        g = font.createChar(-1, "v%d%d" % (size, i))
+        mathfont.drawRectangleGlyph(g, width, (size + 1) * ascent, 0)
+
+    font[point].verticalVariants = "v0%d v1%d v2%d v3%d" % ((i,) * 4)
+    font[point].verticalComponents = \
+        (("v2%d" % i, False, 0, width, 3 * em),
+         ("v1%d" % i, True, em, width, 2 * em))
+
+mathfont.save(font)
