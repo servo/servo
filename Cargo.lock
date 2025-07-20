@@ -1377,7 +1377,6 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
- "net",
  "pixels",
  "profile_traits",
  "servo-tracing",
