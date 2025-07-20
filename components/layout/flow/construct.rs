@@ -18,7 +18,7 @@ use super::inline::{InlineFormattingContext, SharedInlineStyles};
 use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::dom::{BoxSlot, LayoutBox};
 use crate::dom_traversal::{
     Contents, NodeAndStyleInfo, NonReplacedContents, PseudoElementContentItem, TraversalHandler,
 };
@@ -155,6 +155,11 @@ pub(crate) struct BlockContainerBuilder<'dom, 'style> {
     /// ancestors that have been processed. This `Vec` allows passing those into new
     /// [`InlineFormattingContext`]s that we create.
     display_contents_shared_styles: Vec<SharedInlineStyles>,
+
+    /// The [`BlockContainerBuilder`] need to know about all `display: contents` descendent that
+    /// have been processed. This builder will help these descendent to finish collect pseudo boxes
+    /// when itself finishs.
+    display_contents_infos: Vec<NodeAndStyleInfo<'dom>>,
 }
 
 impl BlockContainer {
@@ -204,6 +209,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
             anonymous_table_content: Vec::new(),
             inline_formatting_context_builder: None,
             display_contents_shared_styles: Vec::new(),
+            display_contents_infos: Vec::new(),
         }
     }
 
@@ -243,6 +249,10 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
             // and child blocks OR this block was a single inline formatting context. In the latter case, we
             // just return the inline formatting context as the block itself.
             if self.block_level_boxes.is_empty() {
+                self.info.finish_collect_pseudo_boxes_if_not_pseudo();
+                for info in self.display_contents_infos.drain(..) {
+                    info.finish_collect_pseudo_boxes_if_not_pseudo();
+                }
                 return BlockContainer::InlineFormattingContext(inline_formatting_context);
             }
             self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
@@ -260,6 +270,11 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
                 .map(|block_level_job| block_level_job.finish(context))
                 .collect()
         };
+
+        self.info.finish_collect_pseudo_boxes_if_not_pseudo();
+        for info in self.display_contents_infos.drain(..) {
+            info.finish_collect_pseudo_boxes_if_not_pseudo();
+        }
 
         BlockContainer::BlockLevelBoxes(block_level_boxes)
     }
@@ -299,9 +314,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
                 self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
             }
 
-            let box_slot = table_info
-                .node
-                .pseudo_element_box_slot(PseudoElement::ServoAnonymousTable);
+            let box_slot = table_info.box_slot();
             self.block_level_boxes.push(BlockLevelJob {
                 info: table_info,
                 box_slot,
@@ -389,8 +402,13 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             .push_text(text, info);
     }
 
-    fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
+    fn enter_display_contents(
+        &mut self,
+        styles: SharedInlineStyles,
+        info: &NodeAndStyleInfo<'dom>,
+    ) {
         self.display_contents_shared_styles.push(styles.clone());
+        self.display_contents_infos.push(info.clone());
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
             builder.enter_display_contents(styles);
         }
@@ -416,9 +434,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         // forget about them once they are built.
         let box_slot = match container_info.pseudo_element_type {
             Some(_) => BoxSlot::dummy(),
-            None => marker_info
-                .node
-                .pseudo_element_box_slot(PseudoElement::Marker),
+            None => marker_info.box_slot(),
         };
 
         self.handle_inline_level_element(
@@ -443,9 +459,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         // forget about them once they are built.
         let box_slot = match container_info.pseudo_element_type {
             Some(_) => BoxSlot::dummy(),
-            None => marker_info
-                .node
-                .pseudo_element_box_slot(PseudoElement::Marker),
+            None => marker_info.box_slot(),
         };
 
         self.block_level_boxes.push(BlockLevelJob {
@@ -512,6 +526,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
 
         // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
         non_replaced_contents.traverse(self.context, info, self);
+        info.finish_collect_pseudo_boxes_if_not_pseudo();
 
         self.finish_anonymous_table_if_needed();
 
@@ -686,10 +701,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             })
             .clone();
 
-        let box_slot = self
-            .info
-            .node
-            .pseudo_element_box_slot(PseudoElement::ServoAnonymousBox);
+        let box_slot = info.box_slot();
         self.block_level_boxes.push(BlockLevelJob {
             info,
             box_slot,

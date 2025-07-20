@@ -9,6 +9,7 @@ use fonts::ByteIndex;
 use html5ever::{LocalName, local_name};
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{LayoutDamage, LayoutElementType, LayoutNodeType};
+use parking_lot::Mutex;
 use range::Range;
 use script::layout_dom::ServoLayoutNode;
 use selectors::Element as SelectorsElement;
@@ -19,8 +20,9 @@ use style::selector_parser::PseudoElement;
 use style::values::generics::counters::{Content, ContentItem};
 use style::values::specified::Quotes;
 
+use crate::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::dom::{BoxSlot, LayoutBox, NodeExt, PseudoLayoutData, PseudoLayoutDataVec};
 use crate::flow::inline::SharedInlineStyles;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags, Tag};
 use crate::quotes::quotes_for_lang;
@@ -35,6 +37,12 @@ pub(crate) struct NodeAndStyleInfo<'dom> {
     pub pseudo_element_type: Option<PseudoElement>,
     pub style: ServoArc<ComputedValues>,
     pub damage: LayoutDamage,
+
+    /// During box tree construction for this node, all its pseudo-element boxes are
+    /// temporarily collected into this storage. Once construction completes, they're
+    /// moved into the node's [`InnerLayoutData::pseudo_boxes`] to resolve potential
+    /// concurrency scenarios.
+    pseudo_box_slots: ServoArc<Mutex<PseudoLayoutDataVec>>,
 }
 
 impl<'dom> NodeAndStyleInfo<'dom> {
@@ -48,6 +56,7 @@ impl<'dom> NodeAndStyleInfo<'dom> {
             pseudo_element_type: None,
             style,
             damage,
+            pseudo_box_slots: Default::default(),
         }
     }
 
@@ -71,7 +80,35 @@ impl<'dom> NodeAndStyleInfo<'dom> {
             pseudo_element_type: Some(pseudo_element_type),
             style,
             damage: self.damage,
+            pseudo_box_slots: self.pseudo_box_slots.clone(),
         })
+    }
+
+    pub(crate) fn box_slot(&self) -> BoxSlot<'dom> {
+        let Some(pseudo_element_type) = self.pseudo_element_type else {
+            return self.node.element_box_slot();
+        };
+
+        let mut pseudo_boxes = self.pseudo_box_slots.lock();
+        let box_slot = ArcRefCell::new(None);
+        pseudo_boxes.push(PseudoLayoutData {
+            pseudo: pseudo_element_type,
+            box_slot: box_slot.clone(),
+        });
+
+        box_slot.into()
+    }
+
+    pub(crate) fn finish_collect_pseudo_boxes_if_not_pseudo(&self) {
+        if self.pseudo_element_type.is_some() {
+            return;
+        }
+
+        let mut pseudo_boxes = self.pseudo_box_slots.lock();
+        if !pseudo_boxes.is_empty() {
+            self.node
+                .set_all_pseudo_boxes(std::mem::take(&mut pseudo_boxes));
+        }
     }
 
     pub(crate) fn get_selected_style(&self) -> ServoArc<ComputedValues> {
@@ -181,7 +218,7 @@ pub(super) trait TraversalHandler<'dom> {
     );
 
     /// Notify the handler that we are about to recurse into a `display: contents` element.
-    fn enter_display_contents(&mut self, _: SharedInlineStyles) {}
+    fn enter_display_contents(&mut self, _: SharedInlineStyles, _: &NodeAndStyleInfo<'dom>) {}
 
     /// Notify the handler that we have finished a `display: contents` element.
     fn leave_display_contents(&mut self) {}
@@ -247,11 +284,10 @@ fn traverse_element<'dom>(
                 element.unset_all_boxes()
             } else {
                 let shared_inline_styles: SharedInlineStyles = (&info).into();
-                element
-                    .element_box_slot()
+                info.box_slot()
                     .set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
-                handler.enter_display_contents(shared_inline_styles);
+                handler.enter_display_contents(shared_inline_styles, &info);
                 traverse_children_of(&info, context, handler);
                 handler.leave_display_contents();
             }
@@ -270,7 +306,7 @@ fn traverse_element<'dom>(
                 NonReplacedContents::OfElement.into()
             };
             let display = display.used_value_for_contents(&contents);
-            let box_slot = element.element_box_slot();
+            let box_slot = info.box_slot();
             handler.handle_element(&info, display, contents, box_slot);
         },
     }
@@ -297,21 +333,17 @@ fn traverse_eager_pseudo_element<'dom>(
         Display::None => {},
         Display::Contents => {
             let items = generate_pseudo_element_content(&pseudo_element_info, context);
-            let box_slot = pseudo_element_info
-                .node
-                .pseudo_element_box_slot(pseudo_element_type);
+            let box_slot = pseudo_element_info.box_slot();
             let shared_inline_styles: SharedInlineStyles = (&pseudo_element_info).into();
             box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
-            handler.enter_display_contents(shared_inline_styles);
+            handler.enter_display_contents(shared_inline_styles, &pseudo_element_info);
             traverse_pseudo_element_contents(&pseudo_element_info, context, handler, items);
             handler.leave_display_contents();
         },
         Display::GeneratingBox(display) => {
             let items = generate_pseudo_element_content(&pseudo_element_info, context);
-            let box_slot = pseudo_element_info
-                .node
-                .pseudo_element_box_slot(pseudo_element_type);
+            let box_slot = pseudo_element_info.box_slot();
             let contents = NonReplacedContents::OfPseudoElement(items).into();
             handler.handle_element(&pseudo_element_info, display, contents, box_slot);
         },
@@ -348,8 +380,7 @@ fn traverse_pseudo_element_contents<'dom>(
                     anonymous_info,
                     display_inline,
                     Contents::Replaced(contents),
-                    info.node
-                        .pseudo_element_box_slot(PseudoElement::ServoAnonymousBox),
+                    anonymous_info.box_slot(),
                 )
             },
         }

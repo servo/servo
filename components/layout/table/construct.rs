@@ -20,7 +20,7 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::dom::{BoxSlot, LayoutBox};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
@@ -649,6 +649,11 @@ pub(crate) struct TableBuilderTraversal<'style, 'dom> {
 
     /// The index of the current row group, if there is one.
     current_row_group_index: Option<usize>,
+
+    /// The [`TableBuilderTraversal`] need to know about all `display: contents` descendent that
+    /// have been processed. It will help these descendent to finish collect pseudo boxes when
+    /// itself finishs.
+    display_contents_infos: Vec<NodeAndStyleInfo<'dom>>,
 }
 
 impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
@@ -670,11 +675,16 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
             ),
             current_anonymous_row_content: Vec::new(),
             current_row_group_index: None,
+            display_contents_infos: Vec::new(),
         }
     }
 
     pub(crate) fn finish(mut self) -> Table {
         self.finish_anonymous_row_if_needed();
+        self.info.finish_collect_pseudo_boxes_if_not_pseudo();
+        for info in self.display_contents_infos.drain(..) {
+            info.finish_collect_pseudo_boxes_if_not_pseudo();
+        }
         self.builder.finish()
     }
 
@@ -720,9 +730,8 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
         });
         self.push_table_row(table_row.clone());
 
-        self.info
-            .node
-            .pseudo_element_box_slot(PseudoElement::ServoAnonymousTableRow)
+        anonymous_info
+            .box_slot()
             .set(LayoutBox::TableLevelBox(TableLevelBox::Track(table_row)))
     }
 
@@ -826,12 +835,17 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     let mut column_group_builder = TableColumnGroupBuilder {
                         column_group_index,
                         columns: Vec::new(),
+                        display_contents_infos: Vec::new(),
                     };
 
                     let Contents::NonReplaced(non_replaced_contents) = contents else {
                         unreachable!("Replaced should not have a LayoutInternal display type.");
                     };
                     non_replaced_contents.traverse(self.context, info, &mut column_group_builder);
+                    info.finish_collect_pseudo_boxes_if_not_pseudo();
+                    for info in column_group_builder.display_contents_infos.drain(..) {
+                        info.finish_collect_pseudo_boxes_if_not_pseudo();
+                    }
 
                     let first_column = self.builder.table.columns.len();
                     if column_group_builder.columns.is_empty() {
@@ -914,6 +928,14 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
             },
         }
     }
+
+    fn enter_display_contents(
+        &mut self,
+        _: crate::flow::inline::SharedInlineStyles,
+        info: &NodeAndStyleInfo<'dom>,
+    ) {
+        self.display_contents_infos.push(info.clone());
+    }
 }
 
 struct TableRowBuilder<'style, 'builder, 'dom, 'a> {
@@ -927,6 +949,11 @@ struct TableRowBuilder<'style, 'builder, 'dom, 'a> {
 
     /// The [`PropagatedBoxTreeData`] to use for all children of this row.
     propagated_data: PropagatedBoxTreeData,
+
+    /// The [`TableRowBuilder`] need to know about all `display: contents` descendent that
+    /// have been processed. It will help these descendent to finish collect pseudo boxes when
+    /// itself finishs.
+    display_contents_infos: Vec<NodeAndStyleInfo<'dom>>,
 }
 
 impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
@@ -942,11 +969,16 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
             info,
             current_anonymous_cell_content: Vec::new(),
             propagated_data,
+            display_contents_infos: Vec::new(),
         }
     }
 
     fn finish(mut self) {
         self.finish_current_anonymous_cell_if_needed();
+        self.info.finish_collect_pseudo_boxes_if_not_pseudo();
+        for info in self.display_contents_infos.drain(..) {
+            info.finish_collect_pseudo_boxes_if_not_pseudo();
+        }
         self.table_traversal.builder.end_row();
     }
 
@@ -983,7 +1015,7 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
 
         let block_container = builder.finish();
         let new_table_cell = ArcRefCell::new(TableSlotCell {
-            base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
+            base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style.clone()),
             contents: BlockFormattingContext::from_block_container(block_container),
             colspan: 1,
             rowspan: 1,
@@ -992,9 +1024,8 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
             .builder
             .add_cell(new_table_cell.clone());
 
-        self.info
-            .node
-            .pseudo_element_box_slot(PseudoElement::ServoAnonymousTableCell)
+        anonymous_info
+            .box_slot()
             .set(LayoutBox::TableLevelBox(TableLevelBox::Cell(
                 new_table_cell,
             )));
@@ -1092,14 +1123,27 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
             },
         }
     }
+
+    fn enter_display_contents(
+        &mut self,
+        _: crate::flow::inline::SharedInlineStyles,
+        info: &NodeAndStyleInfo<'dom>,
+    ) {
+        self.display_contents_infos.push(info.clone());
+    }
 }
 
-struct TableColumnGroupBuilder {
+struct TableColumnGroupBuilder<'dom> {
     column_group_index: usize,
     columns: Vec<ArcRefCell<TableTrack>>,
+
+    /// The [`TableColumnGroupBuilder`] need to know about all `display: contents` descendent that
+    /// have been processed. It will help these descendent to finish collect pseudo boxes when
+    /// itself finishs.
+    display_contents_infos: Vec<NodeAndStyleInfo<'dom>>,
 }
 
-impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
+impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder<'dom> {
     fn handle_text(&mut self, _info: &NodeAndStyleInfo<'dom>, _text: Cow<'dom, str>) {}
     fn handle_element(
         &mut self,
@@ -1130,6 +1174,14 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
             old_column,
         );
         box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
+    }
+
+    fn enter_display_contents(
+        &mut self,
+        _: crate::flow::inline::SharedInlineStyles,
+        info: &NodeAndStyleInfo<'dom>,
+    ) {
+        self.display_contents_infos.push(info.clone());
     }
 }
 
