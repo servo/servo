@@ -341,11 +341,19 @@ pub struct ScriptThread {
     /// either be because the Servo renderer is managing animations and the [`ScriptThread`] has
     /// received a [`ScriptThreadMessage::TickAllAnimations`] message, because the [`ScriptThread`]
     /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
+<<<<<<< HEAD
     /// animation tick, or if there are no animations running and the [`ScriptThread`] has noticed a
     /// change that requires a rendering update.
     needs_rendering_update: Arc<AtomicBool>,
 
     debugger_global: Dom<DebuggerGlobalScope>,
+=======
+    /// animation tick.
+    has_pending_animation_tick: Arc<AtomicBool>,
+    /// A list of URLs that can access privileged internal APIs.
+    #[no_trace]
+    privileged_urls: Vec<ServoUrl>,
+>>>>>>> 4497d01f87c (feat: Expose embedder access to navigator.servo via static list of privileged URLs.)
 }
 
 struct BHMExitSignal {
@@ -1022,9 +1030,15 @@ impl ScriptThread {
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
+<<<<<<< HEAD
             scheduled_update_the_rendering: Default::default(),
             needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
+=======
+            scheduled_script_thread_animation_timer: Default::default(),
+            has_pending_animation_tick: Arc::new(AtomicBool::new(false)),
+            privileged_urls: state.privileged_urls,
+>>>>>>> 4497d01f87c (feat: Expose embedder access to navigator.servo via static list of privileged URLs.)
         }
     }
 
@@ -3299,8 +3313,6 @@ impl ScriptThread {
             theme: incomplete.theme,
         };
 
-        let empty_headers = headers::HeaderMap::new();
-
         // Create the window and document objects.
         let window = Window::new(
             incomplete.webview_id,
@@ -3343,11 +3355,6 @@ impl ScriptThread {
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
-            metadata
-                .headers
-                .as_ref()
-                .map(|h| &**h)
-                .unwrap_or(&empty_headers),
         );
         self.debugger_global.fire_add_debuggee(
             can_gc,
@@ -4041,6 +4048,15 @@ impl ScriptThread {
             return;
         };
         document.event_handler().handle_refresh_cursor();
+    }
+
+    pub(crate) fn is_servo_privileged(url: ServoUrl) -> bool {
+        with_script_thread(|script_thread| {
+            script_thread
+                .privileged_urls
+                .iter()
+                .any(|privileged| *privileged == url)
+        })
     }
 }
 

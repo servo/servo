@@ -21,6 +21,10 @@ use crate::desktop::protocols::resource::ResourceProtocolHandler;
 pub struct ServoProtocolHandler {}
 
 impl ProtocolHandler for ServoProtocolHandler {
+    fn privileged_paths(&self) -> &'static [&'static str] {
+        &["preferences"]
+    }
+
     fn load(
         &self,
         request: &mut Request,
@@ -35,7 +39,6 @@ impl ProtocolHandler for ServoProtocolHandler {
                 done_chan,
                 context,
                 "/newtab.html",
-                false,
             ),
 
             "preferences" => ResourceProtocolHandler::response_for_path(
@@ -43,7 +46,6 @@ impl ProtocolHandler for ServoProtocolHandler {
                 done_chan,
                 context,
                 "/preferences.html",
-                true,
             ),
 
             _ => Box::pin(std::future::ready(Response::network_internal_error(

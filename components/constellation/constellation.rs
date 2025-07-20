@@ -482,6 +482,9 @@ pub struct Constellation<STF, SWF> {
 
     /// When in single-process mode, join handles for script-threads.
     script_join_handles: HashMap<WebViewId, JoinHandle<()>>,
+
+    /// A list of URLs that can access privileged internal APIs.
+    privileged_urls: Vec<ServoUrl>,
 }
 
 /// State needed to construct a constellation.
@@ -534,6 +537,9 @@ pub struct InitialConstellationState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
+
+    /// A list of URLs that can access privileged internal APIs.
+    pub privileged_urls: Vec<ServoUrl>,
 
     /// The async runtime.
     pub async_runtime: Box<dyn AsyncRuntime>,
@@ -732,6 +738,7 @@ where
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
                     script_join_handles: Default::default(),
+                    privileged_urls: state.privileged_urls,
                 };
 
                 constellation.run();
@@ -1003,6 +1010,7 @@ where
             player_context: WindowGLContext::get(),
             rippy_data: self.rippy_data.clone(),
             user_content_manager: self.user_content_manager.clone(),
+            privileged_urls: self.privileged_urls.clone(),
         });
 
         let pipeline = match result {

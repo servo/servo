@@ -354,6 +354,8 @@ pub struct InitialScriptState {
     pub player_context: WindowGLContext,
     /// User content manager
     pub user_content_manager: UserContentManager,
+    /// A list of URLs that can access privileged internal APIs.
+    pub privileged_urls: Vec<ServoUrl>,
 }
 
 /// Errors from executing a paint worklet
