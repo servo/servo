@@ -142,18 +142,22 @@ def containsDomInterface(t, logging=False):
     if isinstance(t, IDLArgument):
         t = t.type
     if isinstance(t, IDLTypedefType):
+        # pyrefly: ignore  # missing-attribute
         t = t.innerType
     while isinstance(t, IDLNullableType) or isinstance(t, IDLWrapperType):
         t = t.inner
     if t.isEnum():
         return False
     if t.isUnion():
+        # pyrefly: ignore  # missing-attribute
         return any(map(lambda x: containsDomInterface(x), t.flatMemberTypes))
     if t.isDictionary():
+        # pyrefly: ignore  # missing-attribute
         return any(map(lambda x: containsDomInterface(x), t.members)) or (t.parent and containsDomInterface(t.parent))
     if isDomInterface(t):
         return True
     if t.isSequence():
+        # pyrefly: ignore  # missing-attribute
         return containsDomInterface(t.inner)
     return False
 
@@ -212,38 +216,68 @@ def wrapInNativeContainerType(type, inner):
 
 
 builtinNames = {
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.bool: 'bool',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int8: 'i8',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int16: 'i16',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int32: 'i32',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int64: 'i64',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.uint8: 'u8',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.uint16: 'u16',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.uint32: 'u32',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.uint64: 'u64',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.unrestricted_float: 'f32',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.float: 'Finite<f32>',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.unrestricted_double: 'f64',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.double: 'Finite<f64>',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int8array: 'Int8Array',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.uint8array: 'Uint8Array',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int16array: 'Int16Array',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.uint16array: 'Uint16Array',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int32array: 'Int32Array',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.uint32array: 'Uint32Array',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.float32array: 'Float32Array',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.float64array: 'Float64Array',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.arrayBuffer: 'ArrayBuffer',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.arrayBufferView: 'ArrayBufferView',
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.uint8clampedarray: 'Uint8ClampedArray',
 }
 
 numericTags = [
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int8, IDLType.Tags.uint8,
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int16, IDLType.Tags.uint16,
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int32, IDLType.Tags.uint32,
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.int64, IDLType.Tags.uint64,
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.unrestricted_float,
+    # pyrefly: ignore  # missing-attribute
     IDLType.Tags.unrestricted_double
 ]
 
@@ -369,7 +403,7 @@ class CGThing():
     def __init__(self) -> None:
         pass  # Nothing for now
 
-    def define(self) -> Any:
+    def define(self) -> str:
         """Produce code for a Rust file."""
         raise NotImplementedError  # Override me!
 
@@ -586,6 +620,7 @@ class CGMethodCall(CGThing):
         # overloadCGThings.append(
         #     CGGeneric('panic!("We have an always-returning default case");\n'
         #               'return false;'))
+        # pyrefly: ignore  # bad-assignment
         self.cgRoot = CGWrapper(CGList(overloadCGThings, "\n"),
                                 pre="\n")
 
@@ -827,9 +862,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 and not isinstance(defaultValue, IDLNullValue)
                 and not isinstance(defaultValue, IDLDefaultDictionaryValue)):
             tag = defaultValue.type.tag()
+            # pyrefly: ignore  # missing-attribute
             if tag is IDLType.Tags.bool:
                 boolean = "true" if defaultValue.value else "false"
                 default = f"{union_native_type(type)}::Boolean({boolean})"
+            # pyrefly: ignore  # missing-attribute
             elif tag is IDLType.Tags.usvstring:
                 default = f'{union_native_type(type)}::USVString(USVString("{defaultValue.value}".to_owned()))'
             elif defaultValue.type.isEnum():
@@ -994,6 +1031,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             assert type.nullable()
             default = "None"
         else:
+            # pyrefly: ignore  # missing-attribute
             assert defaultValue.type.tag() == IDLType.Tags.domstring
             default = f'DOMString::from("{defaultValue.value}")'
             if type.nullable():
@@ -1016,6 +1054,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             assert type.nullable()
             default = "None"
         else:
+            # pyrefly: ignore  # missing-attribute
             assert defaultValue.type.tag() in (IDLType.Tags.domstring, IDLType.Tags.usvstring)
             default = f'USVString("{defaultValue.value}".to_owned())'
             if type.nullable():
@@ -1038,6 +1077,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             assert type.nullable()
             default = "None"
         else:
+            # pyrefly: ignore  # missing-attribute
             assert defaultValue.type.tag() in (IDLType.Tags.domstring, IDLType.Tags.bytestring)
             default = f'ByteString::new(b"{defaultValue.value}".to_vec())'
             if type.nullable():
@@ -1064,6 +1104,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         template = fromJSValTemplate("()", handleInvalidEnumValueCode, exceptionCode)
 
         if defaultValue is not None:
+            # pyrefly: ignore  # missing-attribute
             assert defaultValue.type.tag() == IDLType.Tags.domstring
             default = f"{enum}::{getEnumValueName(defaultValue.value)}"
         else:
@@ -1221,11 +1262,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             defaultStr = "None"
         else:
             tag = defaultValue.type.tag()
+            # pyrefly: ignore  # missing-attribute
             if tag in [IDLType.Tags.float, IDLType.Tags.double]:
                 defaultStr = f"Finite::wrap({defaultValue.value})"
             elif tag in numericTags:
                 defaultStr = str(defaultValue.value)
             else:
+                # pyrefly: ignore  # missing-attribute
                 assert tag == IDLType.Tags.bool
                 defaultStr = toStringBool(defaultValue.value)
 
@@ -1277,16 +1320,23 @@ def convertConstIDLValueToJSVal(value):
     if isinstance(value, IDLNullValue):
         return "ConstantVal::NullVal"
     tag = value.type.tag()
+    # pyrefly: ignore  # missing-attribute
     if tag in [IDLType.Tags.int8, IDLType.Tags.uint8, IDLType.Tags.int16,
+               # pyrefly: ignore  # missing-attribute
                IDLType.Tags.uint16, IDLType.Tags.int32]:
         return f"ConstantVal::Int({value.value})"
+    # pyrefly: ignore  # missing-attribute
     if tag == IDLType.Tags.uint32:
         return f"ConstantVal::Uint({value.value})"
+    # pyrefly: ignore  # missing-attribute
     if tag in [IDLType.Tags.int64, IDLType.Tags.uint64]:
         return f"ConstantVal::Double({value.value} as f64)"
+    # pyrefly: ignore  # missing-attribute
     if tag == IDLType.Tags.bool:
         return "ConstantVal::Bool(true)" if value.value else "ConstantVal::BoolVal(false)"
+    # pyrefly: ignore  # missing-attribute
     if tag in [IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+               # pyrefly: ignore  # missing-attribute
                IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
         return f"ConstantVal::Double({value.value} as f64)"
     raise TypeError(f"Const value of unhandled type: {value.type}")
@@ -1329,6 +1379,7 @@ class CGArgumentConverter(CGThing):
                                                CGGeneric(template)).define()
                 else:
                     assert not default
+                    # pyrefly: ignore  # bad-argument-type
                     declType = CGWrapper(declType, pre="Option<", post=">")
                     template = CGIfElseWrapper(condition,
                                                CGGeneric("None"),
@@ -1353,14 +1404,17 @@ class CGArgumentConverter(CGThing):
             arg = f"arg{index}"
             if argument.type.isGeckoInterface():
                 init = f"rooted_vec!(let mut {arg})"
+                # pyrefly: ignore  # bad-argument-type
                 innerConverter.append(CGGeneric(f"{arg}.push(Dom::from_ref(&*slot));"))
             else:
                 init = f"let mut {arg} = vec![]"
+                # pyrefly: ignore  # bad-argument-type
                 innerConverter.append(CGGeneric(f"{arg}.push(slot);"))
             inner = CGIndenter(CGList(innerConverter, "\n"), 8).define()
 
             sub = "" if index == 0 else f"- {index}"
 
+            # pyrefly: ignore  # bad-assignment
             self.converter = CGGeneric(f"""
 {init};
 if {argc} > {index} {{
@@ -1413,6 +1467,7 @@ def returnTypeNeedsOutparam(type):
 def outparamTypeFromReturnType(type):
     if type.isAny():
         return "MutableHandleValue"
+    # pyrefly: ignore  # invalid-inheritance
     raise f"Don't know how to handle {type} as an outparam"
 
 
@@ -1577,11 +1632,13 @@ class PropertyDefiner:
         return f"s{self.name}"
 
     def length(self):
+        # pyrefly: ignore  # missing-attribute
         return len(self.regular)
 
     def __str__(self):
         # We only need to generate id arrays for things that will end
         # up used via ResolveProperty or EnumerateProperties.
+        # pyrefly: ignore  # missing-attribute
         return self.generateArray(self.regular, self.variableName())
 
     @staticmethod
@@ -2126,7 +2183,12 @@ class CGWrapper(CGThing):
     """
     Generic CGThing that wraps other CGThings with pre and post text.
     """
-    def __init__(self, child, pre="", post="", reindent=False):
+    child: CGThing
+    pre: str
+    post: str
+    reindent: bool
+
+    def __init__(self, child: CGThing, pre: str = "", post: str= "", reindent: bool = False):
         CGThing.__init__(self)
         self.child = child
         self.pre = pre
@@ -2678,6 +2740,7 @@ def UnionTypes(
         t = t.unroll()
         if not t.isUnion():
             continue
+        # pyrefly: ignore  # missing-attribute
         for memberType in t.flatMemberTypes:
             if memberType.isDictionary() or memberType.isEnum() or memberType.isCallback():
                 memberModule = getModuleFromObject(memberType)
@@ -2970,7 +3033,7 @@ class CGAbstractMethod(CGThing):
     def definition_epilogue(self):
         return "\n}\n"
 
-    def definition_body(self) -> Any:
+    def definition_body(self) -> CGGeneric | CGList | CGWrapper:
         raise NotImplementedError  # Override me!
 
 
@@ -3680,6 +3743,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                     """)),
                 CGGeneric("rooted!(in(*cx) let mut aliasedVal = UndefinedValue());\n\n")
             ] + [defineAliasesFor(m) for m in sorted(aliasedMembers)])
+            # pyrefly: ignore  # bad-argument-type
             code.append(defineAliases)
 
         constructors = self.descriptor.interface.legacyFactoryFunctions
@@ -3692,6 +3756,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                 length = methodLength(constructor)
                 specs.append(CGGeneric(f"({hook}::<D> as ConstructorClassHook, {name}, {length})"))
             values = CGIndenter(CGList(specs, "\n"), 4)
+            # pyrefly: ignore  # bad-argument-type
             code.append(CGWrapper(values, pre=f"{decl} = [\n", post="\n];"))
             code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
 
@@ -3719,6 +3784,7 @@ unforgeable_holder.handle_mut().set(
     JS_NewObjectWithoutMetadata(*cx, {holderClass}, {holderProto}));
 assert!(!unforgeable_holder.is_null());
 """))
+            # pyrefly: ignore  # bad-argument-type
             code.append(InitLegacyUnforgeablePropertiesOnHolder(self.descriptor, self.properties))
             code.append(CGGeneric("""\
 let val = ObjectValue(unforgeable_holder.get());
@@ -3756,6 +3822,7 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
                                          "PrototypeList::ID", pub=True)
 
+    # pyrefly: ignore  # bad-override
     def definition_body(self):
         return CGList([
             CGGeneric("""\
@@ -3774,6 +3841,7 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
                                          "PrototypeList::Constructor",
                                          pub=True)
 
+    # pyrefly: ignore  # bad-override
     def definition_body(self):
         return CGList([
             CGGeneric("""\
@@ -4051,15 +4119,18 @@ class CGPerSignatureCall(CGThing):
         if idlNode.isMethod() and idlNode.isMaplikeOrSetlikeOrIterableMethod():
             if idlNode.maplikeOrSetlikeOrIterable.isMaplike() or \
                idlNode.maplikeOrSetlikeOrIterable.isSetlike():
+                # pyrefly: ignore  # bad-argument-type
                 cgThings.append(CGMaplikeOrSetlikeMethodGenerator(descriptor,
                                                                   idlNode.maplikeOrSetlikeOrIterable,
                                                                   idlNode.identifier.name))
             else:
+                # pyrefly: ignore  # bad-argument-type
                 cgThings.append(CGIterableMethodGenerator(descriptor,
                                                           idlNode.maplikeOrSetlikeOrIterable,
                                                           idlNode.identifier.name))
         else:
             hasCEReactions = idlNode.getExtendedAttribute("CEReactions")
+            # pyrefly: ignore  # bad-argument-type
             cgThings.append(CGCallGenerator(
                 errorResult,
                 self.getArguments(), self.argsPre, returnType,
@@ -4187,6 +4258,7 @@ class CGSetterCall(CGPerSignatureCall):
         # We have no return value
         return "\ntrue"
  
+    # pyrefly: ignore  # bad-override
     def getArgc(self):
         return "1"
 
@@ -4388,6 +4460,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
         name = descriptor.binaryNameFor(method.identifier.name, True)
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
+    # pyrefly: ignore  # bad-override
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
@@ -4444,6 +4517,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
         name = f'get_{attr.identifier.name}'
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
+    # pyrefly: ignore  # bad-override
     def generate_code(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
@@ -4495,6 +4569,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
         name = f'set_{attr.identifier.name}'
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
+    # pyrefly: ignore  # bad-override
     def generate_code(self):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
                                                         self.attr)
@@ -4517,6 +4592,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
     def __init__(self, descriptor, attr):
         CGSpecializedSetter.__init__(self, descriptor, attr)
 
+    # pyrefly: ignore  # bad-override
     def definition_body(self):
         attrName = self.attr.identifier.name
         forwardToAttrName = self.attr.getExtendedAttribute("PutForwards")[0]
@@ -4545,6 +4621,7 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
     def __init__(self, descriptor, attr):
         CGSpecializedSetter.__init__(self, descriptor, attr)
 
+    # pyrefly: ignore  # bad-override
     def definition_body(self):
         assert self.attr.readonly
         name = str_to_cstr_ptr(self.attr.identifier.name)
@@ -4668,6 +4745,7 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
             if self.member.slotIndices is not None:
                 assert isAlwaysInSlot or self.member.getExtendedAttribute("Cached")
                 isLazilyCachedInSlot = not isAlwaysInSlot
+                # pyrefly: ignore  # unknown-name
                 slotIndex = memberReservedSlot(self.member)  # noqa:FIXME: memberReservedSlot is not defined
                 # We'll statically assert that this is not too big in
                 # CGUpdateMemberSlotsMethod, in the case when
@@ -4689,6 +4767,7 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
                 result += self.defineJitInfo(setterinfo, setter, "Setter",
                                              False, False, "AliasEverything",
                                              False, False, "0",
+                                             # pyrefly: ignore  # missing-attribute
                                              [BuiltinTypes[IDLBuiltinType.Types.undefined]],
                                              None)
             return result
@@ -4815,19 +4894,27 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
         if not t.isPrimitive():
             raise TypeError(f"No idea what type {t} is.")
         tag = t.tag()
+        # pyrefly: ignore  # missing-attribute
         if tag == IDLType.Tags.bool:
             return "JSVAL_TYPE_BOOLEAN"
+        # pyrefly: ignore  # missing-attribute
         if tag in [IDLType.Tags.int8, IDLType.Tags.uint8,
+                   # pyrefly: ignore  # missing-attribute
                    IDLType.Tags.int16, IDLType.Tags.uint16,
+                   # pyrefly: ignore  # missing-attribute
                    IDLType.Tags.int32]:
             return "JSVAL_TYPE_INT32"
+        # pyrefly: ignore  # missing-attribute
         if tag in [IDLType.Tags.int64, IDLType.Tags.uint64,
+                   # pyrefly: ignore  # missing-attribute
                    IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+                   # pyrefly: ignore  # missing-attribute
                    IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
             # These all use JS_NumberValue, which can return int or double.
             # But TI treats "double" as meaning "int or double", so we're
             # good to return JSVAL_TYPE_DOUBLE here.
             return "JSVAL_TYPE_DOUBLE"
+        # pyrefly: ignore  # missing-attribute
         if tag != IDLType.Tags.uint32:
             raise TypeError(f"No idea what type {t} is.")
         # uint32 is sometimes int and sometimes double.
@@ -4884,19 +4971,27 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
         if not t.isPrimitive():
             raise TypeError(f"No idea what type {t} is.")
         tag = t.tag()
+        # pyrefly: ignore  # missing-attribute
         if tag == IDLType.Tags.bool:
             return "JSJitInfo_ArgType::Boolean as i32"
+        # pyrefly: ignore  # missing-attribute
         if tag in [IDLType.Tags.int8, IDLType.Tags.uint8,
+                   # pyrefly: ignore  # missing-attribute
                    IDLType.Tags.int16, IDLType.Tags.uint16,
+                   # pyrefly: ignore  # missing-attribute
                    IDLType.Tags.int32]:
             return "JSJitInfo_ArgType::Integer as i32"
+        # pyrefly: ignore  # missing-attribute
         if tag in [IDLType.Tags.int64, IDLType.Tags.uint64,
+                   # pyrefly: ignore  # missing-attribute
                    IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+                   # pyrefly: ignore  # missing-attribute
                    IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
             # These all use JS_NumberValue, which can return int or double.
             # But TI treats "double" as meaning "int or double", so we're
             # good to return JSVAL_TYPE_DOUBLE here.
             return "JSJitInfo_ArgType::Double as i32"
+        # pyrefly: ignore  # missing-attribute
         if tag != IDLType.Tags.uint32:
             raise TypeError(f"No idea what type {t} is.")
         # uint32 is sometimes int and sometimes double.
@@ -5070,14 +5165,21 @@ impl FromJSValConvertible for super::{ident} {{
 
 def convertConstIDLValueToRust(value):
     tag = value.type.tag()
+    # pyrefly: ignore  # missing-attribute
     if tag in [IDLType.Tags.int8, IDLType.Tags.uint8,
+               # pyrefly: ignore  # missing-attribute
                IDLType.Tags.int16, IDLType.Tags.uint16,
+               # pyrefly: ignore  # missing-attribute
                IDLType.Tags.int32, IDLType.Tags.uint32,
+               # pyrefly: ignore  # missing-attribute
                IDLType.Tags.int64, IDLType.Tags.uint64,
+               # pyrefly: ignore  # missing-attribute
                IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+               # pyrefly: ignore  # missing-attribute
                IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
         return str(value.value)
 
+    # pyrefly: ignore  # missing-attribute
     if tag == IDLType.Tags.bool:
         return toStringBool(value.value)
 
@@ -5097,8 +5199,10 @@ class CGConstant(CGThing):
         const_type = builtinNames[self.constant.value.type.tag()]
         # Finite<f32> or Finite<f64> cannot be used un a constant declaration.
         # Remote the Finite type from restricted float and double tag declarations.
+        # pyrefly: ignore  # missing-attribute
         if tag == IDLType.Tags.float:
             const_type = "f32"
+        # pyrefly: ignore  # missing-attribute
         elif tag == IDLType.Tags.double:
             const_type = "f64"
 
@@ -5394,19 +5498,23 @@ class CGUnionConversionStruct(CGThing):
                     other.append(CGIfWrapper("value.get().is_number()", numericConversion[0]))
                 if numUndefinedVariants != 0:
                     other.append(CGIfWrapper("value.get().is_undefined()", undefinedConversion))
+                # pyrefly: ignore  # bad-argument-type
                 other.append(stringConversion[0])
             elif numericConversion:
                 if booleanConversion:
                     other.append(CGIfWrapper("value.get().is_boolean()", booleanConversion[0]))
                 if numUndefinedVariants != 0:
                     other.append(CGIfWrapper("value.get().is_undefined()", undefinedConversion))
+                # pyrefly: ignore  # bad-argument-type
                 other.append(numericConversion[0])
             elif booleanConversion:
                 if numUndefinedVariants != 0:
                     other.append(CGIfWrapper("value.get().is_undefined()", undefinedConversion))
+                # pyrefly: ignore  # bad-argument-type
                 other.append(booleanConversion[0])
             else:
                 assert numUndefinedVariants != 0
+                # pyrefly: ignore  # bad-argument-type
                 other.append(undefinedConversion)
             conversions.append(CGList(other, "\n\n"))
         conversions.append(CGGeneric(
@@ -5479,9 +5587,11 @@ class ClassBase(ClassItem):
     def __init__(self, name, visibility='pub'):
         ClassItem.__init__(self, name, visibility)
 
+    # pyrefly: ignore  # bad-override
     def declare(self, cgClass):
         return f'{self.visibility} {self.name}'
 
+    # pyrefly: ignore  # bad-override
     def define(self, cgClass):
         # Only in the header
         return ''
@@ -5531,6 +5641,7 @@ class ClassMethod(ClassItem):
         assert self.body is not None
         return self.body
 
+    # pyrefly: ignore  # bad-override
     def declare(self, cgClass):
 
         templateClause = f"<{', '.join(self.templateArgs)}>" if self.bodyInHeader and self.templateArgs else '<>'
@@ -5627,6 +5738,7 @@ class ClassConstructor(ClassItem):
             "ret"
         )
 
+    # pyrefly: ignore  # bad-override
     def declare(self, cgClass):
         args = ', '.join([a.declare() for a in self.args])
         body = f'    {self.getBody(cgClass)}'
@@ -5640,12 +5752,14 @@ class ClassConstructor(ClassItem):
 pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
 """
 
+    # pyrefly: ignore  # bad-override
     def define(self, cgClass):
         if self.bodyInHeader:
             return ''
 
         args = ', '.join([a.define() for a in self.args])
 
+        # pyrefly: ignore  # missing-argument
         body = f'    {self.getBody()}'
         trimmedBody = stripTrailingWhitespace(body.replace('\n', '\n    '))
         body = f'\n{trimmedBody}'
@@ -5668,9 +5782,11 @@ class ClassMember(ClassItem):
         self.body = body
         ClassItem.__init__(self, name, visibility)
 
+    # pyrefly: ignore  # bad-override
     def declare(self, cgClass):
         return f'{self.visibility} {self.name}: {self.type},\n'
 
+    # pyrefly: ignore  # bad-override
     def define(self, cgClass):
         if not self.static:
             return ''
@@ -5832,9 +5948,11 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         return args
 
     def wrap_return_value(self):
+        # pyrefly: ignore  # missing-attribute
         if not self.idlNode.isGetter() or self.templateValues is None:
             return ""
 
+        # pyrefly: ignore  # missing-argument, bad-unpacking
         wrap = CGGeneric(wrapForType(**self.templateValues))
         wrap = CGIfWrapper("let Some(result) = result", wrap)
         return f"\n{wrap.define()}"
@@ -6541,6 +6659,7 @@ class CGClassTraceHook(CGAbstractClassHook):
                                      args, doesNotPanic=True)
         self.traceGlobal = descriptor.isGlobal()
 
+    # pyrefly: ignore  # bad-override
     def generate_code(self):
         body = [CGGeneric("if this.is_null() { return; } // GC during obj creation\n"
                           f"(*this).trace({self.args[0].name});")]
@@ -6627,6 +6746,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
         CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME,
                                      'void', args)
 
+    # pyrefly: ignore  # bad-override
     def generate_code(self):
         return CGGeneric(finalizeHook(self.descriptor, self.name, self.args[0].name))
 
@@ -7685,8 +7805,10 @@ pub(crate) fn GetConstructorObject(
         curr = CGWrapper(curr, pre=f"{AUTOGENERATED_WARNING_COMMENT}{ALLOWED_WARNINGS}")
 
         # Store the final result.
+        # pyrefly: ignore  # bad-assignment
         self.root = curr
 
+    # pyrefly: ignore  # bad-override
     def define(self):
         if not self.root:
             return None
@@ -7740,21 +7862,26 @@ class CGBindingRoot(CGThing):
                 replacedType = type.replace("D::", "<D as DomTypes>::")
                 typeDefinition = f"pub type {name}{generic} = {replacedType};"
 
+            # pyrefly: ignore  # bad-argument-type
             cgthings.append(CGGeneric(typeDefinition))
 
         # Do codegen for all the dictionaries.
+        # pyrefly: ignore  # bad-argument-type
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider(), config)
                          for d in dictionaries])
 
         # Do codegen for all the callbacks.
+        # pyrefly: ignore  # bad-argument-type
         cgthings.extend(CGList([CGCallbackFunction(c, config.getDescriptorProvider()),
                                 CGCallbackFunctionImpl(c)], "\n")
                         for c in mainCallbacks)
 
         # Do codegen for all the descriptors
+        # pyrefly: ignore  # bad-argument-type
         cgthings.extend([CGDescriptor(x, config, len(descriptors) == 1) for x in descriptors])
 
         # Do codegen for all the callback interfaces.
+        # pyrefly: ignore  # bad-argument-type
         cgthings.extend(CGList([CGCallbackInterface(x),
                                 CGCallbackFunctionImpl(x.interface)], "\n")
                         for x in callbackDescriptors)
@@ -7772,8 +7899,10 @@ class CGBindingRoot(CGThing):
         curr = CGWrapper(curr, pre=f"{AUTOGENERATED_WARNING_COMMENT}{ALLOWED_WARNINGS}")
 
         # Store the final result.
+        # pyrefly: ignore  # bad-assignment
         self.root = curr
 
+    # pyrefly: ignore  # bad-override
     def define(self):
         if not self.root:
             return None
@@ -7787,19 +7916,26 @@ def type_needs_tracing(t):
         if isinstance(t, IDLWrapperType):
             return type_needs_tracing(t.inner)
 
+        # pyrefly: ignore  # missing-attribute
         if t.nullable():
+            # pyrefly: ignore  # missing-attribute
             return type_needs_tracing(t.inner)
 
+        # pyrefly: ignore  # missing-attribute
         if t.isAny():
             return True
 
+        # pyrefly: ignore  # missing-attribute
         if t.isObject():
             return True
 
+        # pyrefly: ignore  # missing-attribute
         if t.isSequence():
+            # pyrefly: ignore  # missing-attribute
             return type_needs_tracing(t.inner)
 
         if t.isUnion():
+            # pyrefly: ignore  # missing-attribute
             return any(type_needs_tracing(member) for member in t.flatMemberTypes)
 
         if is_typed_array(t):
@@ -7808,9 +7944,11 @@ def type_needs_tracing(t):
         return False
 
     if t.isDictionary():
+        # pyrefly: ignore  # missing-attribute
         if t.parent and type_needs_tracing(t.parent):
             return True
 
+        # pyrefly: ignore  # missing-attribute
         if any(type_needs_tracing(member.type) for member in t.members):
             return True
 
@@ -7828,6 +7966,7 @@ def type_needs_tracing(t):
 def is_typed_array(t):
     assert isinstance(t, IDLObject), (t, type(t))
 
+    # pyrefly: ignore  # missing-attribute
     return t.isTypedArray() or t.isArrayBuffer() or t.isArrayBufferView()
 
 
@@ -7839,6 +7978,7 @@ def type_needs_auto_root(t):
     assert isinstance(t, IDLObject), (t, type(t))
 
     if t.isType():
+        # pyrefly: ignore  # missing-attribute
         if t.isSequence() and (t.inner.isAny() or t.inner.isObject()):
             return True
         # SpiderMonkey interfaces, we currently don't support any other except typed arrays
@@ -7853,7 +7993,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
         ty, descriptorProvider, isArgument=True,
         isAutoRooted=type_needs_auto_root(ty))
     declType = info.declType
-
+    assert isinstance(declType, CGThing)
     if variadic:
         if ty.isGeckoInterface():
             declType = CGWrapper(declType, pre="&[", post="]")
@@ -8142,6 +8282,7 @@ class CallbackMember(CGNativeMember):
         # We have to do all the generation of our body now, because
         # the caller relies on us throwing if we can't manage it.
         self.exceptionCode = "return Err(JSFailed);\n"
+        # pyrefly: ignore  # bad-override
         self.body = self.getImpl()
 
     def getImpl(self):
@@ -8153,11 +8294,13 @@ class CallbackMember(CGNativeMember):
         # Newlines and semicolons are in the values
         pre = (
             f"{self.getCallSetup()}"
+            # pyrefly: ignore  # missing-attribute
             f"{self.getRvalDecl()}"
             f"{argvDecl}"
         )
         body = (
             f"{self.getArgConversions()}"
+            # pyrefly: ignore  # missing-attribute
             f"{self.getCall()}"
             f"{self.getResultConversion()}"
         )
@@ -8307,8 +8450,11 @@ class CallbackMethod(CallbackMember):
             argv = "ptr::null_mut()"
             argc = "0"
         suffix = "" if self.usingOutparam else ".handle_mut()"
+        # pyrefly: ignore  # missing-attribute
         return (f"{self.getCallableDecl()}"
+                # pyrefly: ignore  # missing-attribute
                 f"rooted!(in(*cx) let rootedThis = {self.getThisObj()});\n"
+                # pyrefly: ignore  # missing-attribute
                 f"let ok = {self.getCallGuard()}Call(\n"
                 "    *cx, rootedThis.handle(), callable.handle(),\n"
                 "    &HandleValueArray {\n"
@@ -8761,6 +8907,7 @@ impl {base} {{
                                     pre="#[derive(Copy)]\npub union TopTypeId {\n",
                                     post="\n}\n\n"))
 
+        # pyrefly: ignore  # bad-argument-type
         typeIdCode.append(CGGeneric("""\
 impl Clone for TopTypeId {
     fn clone(&self) -> Self { *self }
