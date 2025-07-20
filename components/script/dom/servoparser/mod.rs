@@ -925,7 +925,6 @@ impl FetchResponseListener for ParserContext {
 
         let _realm = enter_realm(&*parser.document);
 
-        parser.document.set_csp_list(csp_list);
         if let Some(endpoints) = endpoints_list {
             parser.document.window().set_endpoints_list(endpoints);
         }
@@ -1001,12 +1000,14 @@ impl FetchResponseListener for ParserContext {
                     parser.parse_sync(CanGc::note());
                 },
                 Some(_) => {},
-                None => {},
+                None => parser.document.set_csp_list(csp_list),
             },
             (mime::TEXT, mime::XML, _) |
             (mime::APPLICATION, mime::XML, _) |
-            (mime::APPLICATION, mime::JSON, _) => {},
-            (mime::APPLICATION, subtype, Some(mime::XML)) if subtype == "xhtml" => {},
+            (mime::APPLICATION, mime::JSON, _) => parser.document.set_csp_list(csp_list),
+            (mime::APPLICATION, subtype, Some(mime::XML)) if subtype == "xhtml" => {
+                parser.document.set_csp_list(csp_list)
+            },
             (mime_type, subtype, _) => {
                 // Show warning page for unknown mime types.
                 let page = format!(
