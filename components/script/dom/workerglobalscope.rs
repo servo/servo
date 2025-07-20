@@ -698,6 +698,13 @@ impl WorkerGlobalScope {
                 self.upcast::<GlobalScope>()
                     .report_csp_violations(violations, None, None);
             },
+            CommonScriptMsg::ClientStorageProxy(msg, _) => {
+                let global_scope = self.upcast::<GlobalScope>();
+
+                let proxy = global_scope.client_storage_proxy().unwrap();
+
+                proxy.recv_proxy_message(msg);
+            },
         }
         true
     }

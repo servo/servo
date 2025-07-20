@@ -6,8 +6,12 @@
 // web pages.
 
 [Exposed=(Window, Worker), Pref="dom_clientstorage_testing_enabled"]
-interface ClientStorageTest {
+interface ClientStorageTest : EventTarget {
    constructor();
 
    long test();
+
+   undefined ping();
+
+   attribute EventHandler onpong;
 };

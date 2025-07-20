@@ -2138,6 +2138,13 @@ impl ScriptThread {
                     global.report_csp_violations(violations, None, None);
                 }
             },
+            MainThreadScriptMsg::Common(CommonScriptMsg::ClientStorageProxy(msg, pipeline_id)) => {
+                let global = self.documents.borrow().find_global(pipeline_id).unwrap();
+
+                let proxy = global.client_storage_proxy().unwrap();
+
+                proxy.recv_proxy_message(msg);
+            },
             MainThreadScriptMsg::NavigationResponse {
                 pipeline_id,
                 message,
