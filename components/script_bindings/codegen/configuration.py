@@ -160,7 +160,7 @@ class Configuration:
             raise NoSuchDescriptorError("For " + interfaceName + " found " + str(len(descriptors)) + " matches")
         return descriptors[0]
 
-    def getDescriptorProvider(self) -> DescriptorProvider:
+    def getDescriptorProvider(self):
         """
         Gets a descriptor provider that can provide descriptors as needed.
         """
