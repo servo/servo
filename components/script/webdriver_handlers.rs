@@ -70,6 +70,7 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
+use crate::dom::textcontrol::TextControlElement;
 use crate::dom::types::ShadowRoot;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
@@ -1184,7 +1185,7 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 8 (non-typeable form control)
                 if let Some(input_element) = input_element {
-                    if !input_element.input_type().is_textual_or_password() {
+                    if !input_element.has_selectable_text() {
                         return handle_send_keys_non_typeable(input_element, &text, can_gc);
                     }
                 }

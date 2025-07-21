@@ -212,7 +212,7 @@ impl InputType {
         )
     }
 
-    pub(crate) fn is_textual_or_password(&self) -> bool {
+    fn is_textual_or_password(&self) -> bool {
         self.is_textual() || *self == InputType::Password
     }
 
