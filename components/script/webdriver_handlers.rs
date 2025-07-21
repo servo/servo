@@ -1184,7 +1184,7 @@ pub(crate) fn handle_will_send_keys(
                 // Step 8 (non-typeable form control)
                 if let Some(input_element) = input_element {
                     if !input_element.input_type().is_textual_or_password() {
-                        return handle_send_keys_non_typeable(&input_element, &text, can_gc);
+                        return handle_send_keys_non_typeable(input_element, &text, can_gc);
                     } 
                 }
 
