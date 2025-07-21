@@ -24,7 +24,9 @@ use crate::dom::bindings::constructor::{
 };
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
-use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
+use crate::dom::bindings::principals::{
+    PRINCIPALS_CALLBACKS, SYSTEM_OR_ADDON_PRINCIPALS_CALLBACKS,
+};
 use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
 use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -159,8 +161,12 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         &settings_stack::STACK
     }
 
-    fn principals_callbacks() -> &'static JSPrincipalsCallbacks {
-        &PRINCIPALS_CALLBACKS
+    fn principals_callbacks(is_system_or_addon_principal: bool) -> &'static JSPrincipalsCallbacks {
+        if is_system_or_addon_principal {
+            &SYSTEM_OR_ADDON_PRINCIPALS_CALLBACKS
+        } else {
+            &PRINCIPALS_CALLBACKS
+        }
     }
 
     fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool {

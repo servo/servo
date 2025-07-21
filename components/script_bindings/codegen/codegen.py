@@ -3213,7 +3213,9 @@ create_global_object::<D>(
     raw.as_ptr() as *const libc::c_void,
     {TRACE_HOOK_NAME}::<D>,
     obj.handle_mut(),
-    origin);
+    origin,
+    {"true" if self.descriptor.isSystemOrAddonPrincipal else "false"},
+    {"true" if self.descriptor.useSystemCompartment else "false"});
 assert!(!obj.is_null());
 
 let root = raw.reflect_with(obj.get());

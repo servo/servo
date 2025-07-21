@@ -47,7 +47,7 @@ pub trait DomHelpers<D: DomTypes> {
 
     fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
 
-    fn principals_callbacks() -> &'static JSPrincipalsCallbacks;
+    fn principals_callbacks(is_system_or_addon_principal: bool) -> &'static JSPrincipalsCallbacks;
 
     fn is_platform_object_same_origin(cx: JSContext, obj: RawHandleObject) -> bool;
 
