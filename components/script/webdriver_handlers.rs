@@ -1082,7 +1082,7 @@ fn handle_send_keys_file(
         return Err(ErrorStatus::InvalidArgument);
     }
 
-    // Step 3. Let multiple equal the result of calling 
+    // Step 3. Let multiple equal the result of calling
     // hasAttribute() with "multiple" on element.
     // Step 4. If multiple is false and the length of files
     // is not equal to 1, return ErrorStatus::InvalidArgument.
