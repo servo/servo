@@ -1467,8 +1467,7 @@ def returnTypeNeedsOutparam(type):
 def outparamTypeFromReturnType(type):
     if type.isAny():
         return "MutableHandleValue"
-    # pyrefly: ignore  # invalid-inheritance
-    raise f"Don't know how to handle {type} as an outparam"
+    raise TypeError(f"Don't know how to handle {type} as an outparam")
 
 
 # Returns a conversion behavior suitable for a type
@@ -3597,7 +3596,7 @@ assert!((*cache)[PrototypeList::Constructor::{name} as usize].is_null());
                 f"{toBindingNamespace(parentName)}::GetProtoObject::<D>(cx, global, prototype_proto.handle_mut())"
             )
 
-        code = [CGGeneric(f"""
+        code: list = [CGGeneric(f"""
 rooted!(in(*cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
 {getPrototypeProto};
 assert!(!prototype_proto.is_null());""")]
@@ -3744,7 +3743,6 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                     """)),
                 CGGeneric("rooted!(in(*cx) let mut aliasedVal = UndefinedValue());\n\n")
             ] + [defineAliasesFor(m) for m in sorted(aliasedMembers)])
-            # pyrefly: ignore  # bad-argument-type
             code.append(defineAliases)
 
         constructors = self.descriptor.interface.legacyFactoryFunctions
@@ -3757,7 +3755,6 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                 length = methodLength(constructor)
                 specs.append(CGGeneric(f"({hook}::<D> as ConstructorClassHook, {name}, {length})"))
             values = CGIndenter(CGList(specs, "\n"), 4)
-            # pyrefly: ignore  # bad-argument-type
             code.append(CGWrapper(values, pre=f"{decl} = [\n", post="\n];"))
             code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
 
@@ -3785,7 +3782,6 @@ unforgeable_holder.handle_mut().set(
     JS_NewObjectWithoutMetadata(*cx, {holderClass}, {holderProto}));
 assert!(!unforgeable_holder.is_null());
 """))
-            # pyrefly: ignore  # bad-argument-type
             code.append(InitLegacyUnforgeablePropertiesOnHolder(self.descriptor, self.properties))
             code.append(CGGeneric("""\
 let val = ObjectValue(unforgeable_holder.get());
@@ -4105,7 +4101,7 @@ class CGPerSignatureCall(CGThing):
         self.argsPre = argsPre
         self.arguments = arguments
         self.argCount = len(arguments)
-        cgThings = []
+        cgThings: list = []
         cgThings.extend([CGArgumentConverter(arguments[i], i, self.getArgs(),
                                              self.getArgc(), self.descriptor,
                                              invalidEnumValueFatal=not setter) for
@@ -4118,18 +4114,15 @@ class CGPerSignatureCall(CGThing):
         if idlNode.isMethod() and idlNode.isMaplikeOrSetlikeOrIterableMethod():
             if idlNode.maplikeOrSetlikeOrIterable.isMaplike() or \
                idlNode.maplikeOrSetlikeOrIterable.isSetlike():
-                # pyrefly: ignore  # bad-argument-type
                 cgThings.append(CGMaplikeOrSetlikeMethodGenerator(descriptor,
                                                                   idlNode.maplikeOrSetlikeOrIterable,
                                                                   idlNode.identifier.name))
             else:
-                # pyrefly: ignore  # bad-argument-type
                 cgThings.append(CGIterableMethodGenerator(descriptor,
                                                           idlNode.maplikeOrSetlikeOrIterable,
                                                           idlNode.identifier.name))
         else:
             hasCEReactions = idlNode.getExtendedAttribute("CEReactions")
-            # pyrefly: ignore  # bad-argument-type
             cgThings.append(CGCallGenerator(
                 errorResult,
                 self.getArguments(), self.argsPre, returnType,
@@ -5479,7 +5472,7 @@ class CGUnionConversionStruct(CGThing):
                 typename = get_name(memberType)
                 return CGGeneric(get_match(typename))
 
-            other = []
+            other: list = []
             stringConversion = list(map(getStringOrPrimitiveConversion, stringTypes))
             numericConversion = list(map(getStringOrPrimitiveConversion, numericTypes))
             booleanConversion = list(map(getStringOrPrimitiveConversion, booleanTypes))
@@ -5492,23 +5485,19 @@ class CGUnionConversionStruct(CGThing):
                     other.append(CGIfWrapper("value.get().is_number()", numericConversion[0]))
                 if numUndefinedVariants != 0:
                     other.append(CGIfWrapper("value.get().is_undefined()", undefinedConversion))
-                # pyrefly: ignore  # bad-argument-type
                 other.append(stringConversion[0])
             elif numericConversion:
                 if booleanConversion:
                     other.append(CGIfWrapper("value.get().is_boolean()", booleanConversion[0]))
                 if numUndefinedVariants != 0:
                     other.append(CGIfWrapper("value.get().is_undefined()", undefinedConversion))
-                # pyrefly: ignore  # bad-argument-type
                 other.append(numericConversion[0])
             elif booleanConversion:
                 if numUndefinedVariants != 0:
                     other.append(CGIfWrapper("value.get().is_undefined()", undefinedConversion))
-                # pyrefly: ignore  # bad-argument-type
                 other.append(booleanConversion[0])
             else:
                 assert numUndefinedVariants != 0
-                # pyrefly: ignore  # bad-argument-type
                 other.append(undefinedConversion)
             conversions.append(CGList(other, "\n\n"))
         conversions.append(CGGeneric(
@@ -7666,6 +7655,7 @@ class CGConcreteBindingRoot(CGThing):
     type that is used by handwritten code. Re-export all public types from
     the generic bindings with type specialization applied.
     """
+    root: CGWrapper | None
     def __init__(self, config, prefix, webIDLFile):
         descriptors = config.getDescriptors(webIDLFile=webIDLFile,
                                             hasInterfaceObject=True)
@@ -7790,7 +7780,6 @@ pub(crate) fn GetConstructorObject(
         curr = CGWrapper(curr, pre=f"{AUTOGENERATED_WARNING_COMMENT}{ALLOWED_WARNINGS}")
 
         # Store the final result.
-        # pyrefly: ignore  # bad-assignment
         self.root = curr
 
     # pyrefly: ignore  # bad-override
