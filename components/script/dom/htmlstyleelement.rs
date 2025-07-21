@@ -160,8 +160,7 @@ impl HTMLStyleElement {
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
         self.clean_stylesheet_ownership();
-        stylesheets_owner
-            .add_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), s);
+        stylesheets_owner.add_owned_stylesheet(self.upcast(), s);
     }
 
     pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {

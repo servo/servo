@@ -198,36 +198,47 @@ impl ShadowRoot {
             .and_then(|s| s.owner.get_cssom_object())
     }
 
-    /// Add a stylesheet to the list of shadow root StylesheetSet. Non-constructed stylesheet has an
-    /// owning element and should follow the correct tree position, followed by constructed stylesheet
-    /// in the back.
+    /// Add a stylesheet owned by `owning_node` to the list of shadow root sheets, in the
+    /// correct tree position.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(&self, owning_node: &Element, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
 
-        // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
-        // <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
-        let insertion_point = match &owner {
-            // Non-contructed stylesheet have an owning element and should follow
-            // the correct tree order.
-            StylesheetSource::Element(owner_elem) => stylesheets
-                .iter()
-                .find(|sheet_in_shadow| match sheet_in_shadow.owner {
-                    StylesheetSource::Element(ref other_elem) => {
-                        owner_elem.upcast::<Node>().is_before(other_elem.upcast())
+        // FIXME(stevennovaryo): This is almost identical with the one in Document::add_stylesheet.
+        let insertion_point = stylesheets
+            .iter()
+            .find(|sheet_in_shadow| {
+                match &sheet_in_shadow.owner {
+                    StylesheetSource::Element(el) => {
+                        owning_node.upcast::<Node>().is_before(el.upcast())
                     },
+                    // Non-constructed stylesheet should be ordered before owned ones.
                     StylesheetSource::Constructed(_) => true,
-                })
-                .cloned(),
-
-            // Constructed stylesheet is always appended to the back. Ordering of it is in
-            // DocumentOrShadowRoot.adoptedStylesheet array order, and should be managed by
-            // it setter and getter.
-            StylesheetSource::Constructed(_) => stylesheets.iter().last().cloned(),
-        };
+                }
+            })
+            .cloned();
 
         DocumentOrShadowRoot::add_stylesheet(
-            owner,
+            StylesheetSource::Element(Dom::from_ref(owning_node)),
+            StylesheetSetRef::Author(stylesheets),
+            sheet,
+            insertion_point,
+            self.document.style_shared_lock(),
+        );
+    }
+
+    /// Append a constructed stylesheet to the back of shadow root stylesheet set.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+        debug_assert!(cssom_stylesheet.is_constructed());
+
+        let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
+        let sheet = cssom_stylesheet.style_stylesheet_arc().clone();
+
+        let insertion_point = stylesheets.iter().last().cloned();
+
+        DocumentOrShadowRoot::add_stylesheet(
+            StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Author(stylesheets),
             sheet,
             insertion_point,
@@ -545,6 +556,8 @@ impl VirtualMethods for ShadowRoot {
             s.bind_to_tree(context, can_gc);
         }
 
+        // TODO(stevennovaryo): Handle adoptedStylesheet to deal with different
+        //                      constructor document.
         if context.tree_connected {
             let document = self.owner_document();
             document.register_shadow_root(self);

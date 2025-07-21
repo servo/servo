@@ -4904,38 +4904,29 @@ impl Document {
             .and_then(|s| s.owner.get_cssom_object())
     }
 
-    /// Add a stylesheet to the list of shadow root StylesheetSet. Non-constructed stylesheet has an
-    /// owning element and should follow the correct tree position, followed by constructed stylesheet
-    /// in the back.
+    /// Add a stylesheet owned by `owning_node` to the list of document sheets, in the
+    /// correct tree position. Additionally, the owned stylesheet is inserted before any
+    /// constructed ones.
+    ///
+    /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(&self, owning_node: &Element, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
 
         // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
-        let insertion_point = match &owner {
-            // Non-contructed stylesheet have an owning element and should follow
-            // the correct tree order.
-            StylesheetSource::Element(owner_elem) => stylesheets
-                .iter()
-                .map(|(sheet, _origin)| sheet)
-                .find(|sheet_in_doc| match sheet_in_doc.owner {
-                    StylesheetSource::Element(ref other_elem) => {
-                        owner_elem.upcast::<Node>().is_before(other_elem.upcast())
+        let insertion_point = stylesheets
+            .iter()
+            .map(|(sheet, _origin)| sheet)
+            .find(|sheet_in_doc| {
+                match &sheet_in_doc.owner {
+                    StylesheetSource::Element(el) => {
+                        owning_node.upcast::<Node>().is_before(el.upcast())
                     },
-                    // Non-constructed stylesheet always appear before constructed ones.
+                    // Non-constructed stylesheet should be ordered before owned ones.
                     StylesheetSource::Constructed(_) => true,
-                })
-                .cloned(),
-
-            // Constructed stylesheet is always appended to the back. Ordering of it is in
-            // DocumentOrShadowRoot.adoptedStylesheet array order, and should be managed by
-            // it setter and getter.
-            StylesheetSource::Constructed(_) => stylesheets
-                .iter()
-                .last()
-                .map(|(sheet, _origin)| sheet)
-                .cloned(),
-        };
+                }
+            })
+            .cloned();
 
         if self.has_browsing_context() {
             self.window.layout_mut().add_stylesheet(
@@ -4945,7 +4936,40 @@ impl Document {
         }
 
         DocumentOrShadowRoot::add_stylesheet(
-            owner,
+            StylesheetSource::Element(Dom::from_ref(owning_node)),
+            StylesheetSetRef::Document(stylesheets),
+            sheet,
+            insertion_point,
+            self.style_shared_lock(),
+        );
+    }
+
+    /// Append a constructed stylesheet to the back of document stylesheet set. Because
+    /// it would be the last element, we therefore would not mess with the ordering.
+    ///
+    /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+        debug_assert!(cssom_stylesheet.is_constructed());
+
+        let stylesheets = &mut *self.stylesheets.borrow_mut();
+        let sheet = cssom_stylesheet.style_stylesheet_arc().clone();
+
+        let insertion_point = stylesheets
+            .iter()
+            .last()
+            .map(|(sheet, _origin)| sheet)
+            .cloned();
+
+        if self.has_browsing_context() {
+            self.window.layout_mut().add_stylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+            );
+        }
+
+        DocumentOrShadowRoot::add_stylesheet(
+            StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,

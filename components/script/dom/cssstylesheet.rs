@@ -40,18 +40,28 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CSSStyleSheet {
     stylesheet: StyleSheet,
+
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-owner-node>
     owner: MutNullableDom<Element>,
+
+    /// <https://drafts.csswg.org/cssom/#ref-for-concept-css-style-sheet-css-rules>
     rulelist: MutNullableDom<CSSRuleList>,
+
+    /// The inner Stylo's [Stylesheet].
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
     style_stylesheet: Arc<StyleStyleSheet>,
+
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-origin-clean-flag>
     origin_clean: Cell<bool>,
 
     /// In which [Document] that this stylesheet was constructed.
+    ///
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-constructor-document>
     constructor_document: Option<Dom<Document>>,
 
-    /// Documents or shadow DOMs thats adopt this stylesheet, they will be
-    /// notified whenever the stylesheet is modified.
+    /// Documents or shadow DOMs thats adopt this stylesheet, they will be notified whenever
+    /// the stylesheet is modified.
     adopters: DomRefCell<Vec<StyleSheetListOwner>>,
 }
 
@@ -197,8 +207,11 @@ impl CSSStyleSheet {
         }
     }
 
+    /// Add a [StyleSheetListOwner] as an adopter to be notified whenever this stylesheet is
+    /// modified.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn add_adopter(&self, owner: StyleSheetListOwner) {
+        debug_assert!(self.is_constructed());
         self.adopters.borrow_mut().push(owner);
     }
 
@@ -209,6 +222,7 @@ impl CSSStyleSheet {
         }
     }
 
+    /// Invalidate all stylesheet set this stylesheet is a part on.
     pub(crate) fn notify_invalidations(&self) {
         if let Some(owner) = self.get_owner() {
             owner.stylesheet_list_owner().invalidate_stylesheets();

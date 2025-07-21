@@ -12,6 +12,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::documentorshadowroot::StylesheetSource;
+use crate::dom::element::Element;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
@@ -39,12 +40,23 @@ impl StyleSheetListOwner {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(&self, owning_node: &Element, sheet: Arc<Stylesheet>) {
         match *self {
-            StyleSheetListOwner::Document(ref doc) => doc.add_stylesheet(owner, sheet),
+            StyleSheetListOwner::Document(ref doc) => doc.add_owned_stylesheet(owning_node, sheet),
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
-                shadow_root.add_stylesheet(owner, sheet)
+                shadow_root.add_owned_stylesheet(owning_node, sheet)
+            },
+        }
+    }
+
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+        match *self {
+            StyleSheetListOwner::Document(ref doc) => {
+                doc.append_constructed_stylesheet(cssom_stylesheet)
+            },
+            StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
+                shadow_root.append_constructed_stylesheet(cssom_stylesheet)
             },
         }
     }
