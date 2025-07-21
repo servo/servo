@@ -7698,19 +7698,6 @@
       ]
      ]
     },
-    "image_document_ignores_csp.html": [
-     "b5ea657c350e5dbcd96385faf275e43381ccdead",
-     [
-      null,
-      [
-       [
-        "/_mozilla/mozilla/image_document_ignores_csp_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "partial_shadow_dom_layout_style.html": [
      "822e86bc07103351a5ceb2203fd9b6bee0c6367d",
      [
@@ -10458,14 +10445,6 @@
      "276791c4348ada7e1da71041f2ccd383305e209c",
      []
     ],
-    "2x2_with_csp.png": [
-     "276791c4348ada7e1da71041f2ccd383305e209c",
-     []
-    ],
-    "2x2_with_csp.png.headers": [
-     "2367396a1fe761e77b1691beb290dd695d4cca14",
-     []
-    ],
     "FileAPI": {
      "blob_url_upload_ref.html": [
       "6f95c43ac324528035901d763a02885505b49a9c",
@@ -10574,10 +10553,6 @@
     ],
     "iframe_parent1.html": [
      "146f5b7d529b4c9bf89334ac3f7a7b366a410ea5",
-     []
-    ],
-    "image_document_ignores_csp_ref.html": [
-     "b9379bccdd29719dd6b630083ed9dd36b6fd8c37",
      []
     ],
     "interfaces.js": [
