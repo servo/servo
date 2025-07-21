@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use bitflags::Flags;
 use layout_api::LayoutDamage;
 use layout_api::wrapper_traits::LayoutNode;
 use script::layout_dom::ServoLayoutNode;
@@ -117,18 +118,23 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     {
         let mut element_data = element_data.borrow_mut();
         original_element_damage = element_data.damage;
-        element_data.damage.insert(damage_from_parent);
-        element_damage = element_data.damage;
+        element_damage = original_element_damage | damage_from_parent;
 
         if let Some(ref style) = element_data.styles.primary {
             if style.get_box().display == Display::None {
+                element_data.damage = element_damage;
                 return element_damage;
             }
         }
     }
 
     // If we are reconstructing this node, then all of the children should be reconstructed as well.
-    let damage_for_children = element_damage | damage_from_parent;
+    // Otherwise, do not propagate down its box damage.
+    let mut damage_for_children = element_damage;
+    if !element_damage.contains(LayoutDamage::rebuild_box_tree()) {
+        damage_for_children.truncate();
+    }
+
     let mut damage_from_children = RestyleDamage::empty();
     for child in iter_child_nodes(node) {
         if child.is_element() {
@@ -141,7 +147,12 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     // during box tree construction.
     if damage_from_children.contains(LayoutDamage::recollect_box_tree_children()) {
         element_damage.insert(LayoutDamage::recollect_box_tree_children());
-        element_data.borrow_mut().damage.insert(element_damage);
+    }
+
+    // If this node's box will not be preserved, we need to relayout its box tree.
+    let element_layout_damage = LayoutDamage::from(element_damage);
+    if element_layout_damage.has_box_damage() {
+        element_damage.insert(RestyleDamage::RELAYOUT);
     }
 
     // Only propagate up layout phases from children, as other types of damage are
@@ -160,10 +171,18 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     }
 
     // If the box will be preserved, update the box's style and also in any fragments
-    // that haven't been cleared.
-    let element_layout_damage: LayoutDamage = element_damage.into();
-    if !element_layout_damage.has_box_damage() && !original_element_damage.is_empty() {
-        node.repair_style(context);
+    // that haven't been cleared. Meanwhile, clear the damage to avoid affecting the
+    // next reflow.
+    if !element_layout_damage.has_box_damage() {
+        if !original_element_damage.is_empty() {
+            node.repair_style(context);
+        }
+
+        element_damage = RestyleDamage::empty();
+    }
+
+    if element_damage != original_element_damage {
+        element_data.borrow_mut().damage = element_damage;
     }
 
     damage_for_parent
