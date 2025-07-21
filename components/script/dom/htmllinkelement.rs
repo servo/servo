@@ -221,7 +221,7 @@ impl HTMLLinkElement {
 
     fn clean_stylesheet_ownership(&self) {
         if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
-            cssom_stylesheet.set_owner(None);
+            cssom_stylesheet.set_owner_node(None);
         }
         self.cssom_stylesheet.set(None);
     }

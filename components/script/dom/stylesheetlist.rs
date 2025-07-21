@@ -40,11 +40,11 @@ impl StyleSheetListOwner {
         }
     }
 
-    pub(crate) fn add_owned_stylesheet(&self, owning_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
         match *self {
-            StyleSheetListOwner::Document(ref doc) => doc.add_owned_stylesheet(owning_node, sheet),
+            StyleSheetListOwner::Document(ref doc) => doc.add_owned_stylesheet(owner_node, sheet),
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
-                shadow_root.add_owned_stylesheet(owning_node, sheet)
+                shadow_root.add_owned_stylesheet(owner_node, sheet)
             },
         }
     }

@@ -42,7 +42,7 @@ pub(crate) struct CSSStyleSheet {
     stylesheet: StyleSheet,
 
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-owner-node>
-    owner: MutNullableDom<Element>,
+    owner_node: MutNullableDom<Element>,
 
     /// <https://drafts.csswg.org/cssom/#ref-for-concept-css-style-sheet-css-rules>
     rulelist: MutNullableDom<CSSRuleList>,
@@ -76,7 +76,7 @@ impl CSSStyleSheet {
     ) -> CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
-            owner: MutNullableDom::new(owner),
+            owner_node: MutNullableDom::new(owner),
             rulelist: MutNullableDom::new(None),
             style_stylesheet: stylesheet,
             origin_clean: Cell::new(true),
@@ -155,8 +155,8 @@ impl CSSStyleSheet {
         self.style_stylesheet.disabled()
     }
 
-    pub(crate) fn get_owner(&self) -> Option<DomRoot<Element>> {
-        self.owner.get()
+    pub(crate) fn owner_node(&self) -> Option<DomRoot<Element>> {
+        self.owner_node.get()
     }
 
     pub(crate) fn set_disabled(&self, disabled: bool) {
@@ -165,8 +165,8 @@ impl CSSStyleSheet {
         }
     }
 
-    pub(crate) fn set_owner(&self, value: Option<&Element>) {
-        self.owner.set(value);
+    pub(crate) fn set_owner_node(&self, value: Option<&Element>) {
+        self.owner_node.set(value);
     }
 
     pub(crate) fn shared_lock(&self) -> &SharedRwLock {
@@ -224,7 +224,7 @@ impl CSSStyleSheet {
 
     /// Invalidate all stylesheet set this stylesheet is a part on.
     pub(crate) fn notify_invalidations(&self) {
-        if let Some(owner) = self.get_owner() {
+        if let Some(owner) = self.owner_node() {
             owner.stylesheet_list_owner().invalidate_stylesheets();
         }
         for adopter in self.adopters.borrow().iter() {

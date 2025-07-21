@@ -4904,13 +4904,13 @@ impl Document {
             .and_then(|s| s.owner.get_cssom_object())
     }
 
-    /// Add a stylesheet owned by `owning_node` to the list of document sheets, in the
+    /// Add a stylesheet owned by `owner_node` to the list of document sheets, in the
     /// correct tree position. Additionally, the owned stylesheet is inserted before any
     /// constructed ones.
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(&self, owning_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
 
         // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
@@ -4919,8 +4919,8 @@ impl Document {
             .map(|(sheet, _origin)| sheet)
             .find(|sheet_in_doc| {
                 match &sheet_in_doc.owner {
-                    StylesheetSource::Element(el) => {
-                        owning_node.upcast::<Node>().is_before(el.upcast())
+                    StylesheetSource::Element(other_node) => {
+                        owner_node.upcast::<Node>().is_before(other_node.upcast())
                     },
                     // Non-constructed stylesheet should be ordered before owned ones.
                     StylesheetSource::Constructed(_) => true,
@@ -4936,7 +4936,7 @@ impl Document {
         }
 
         DocumentOrShadowRoot::add_stylesheet(
-            StylesheetSource::Element(Dom::from_ref(owning_node)),
+            StylesheetSource::Element(Dom::from_ref(owner_node)),
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
