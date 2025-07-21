@@ -589,7 +589,7 @@ impl LayoutThread {
             return false;
         }
         // We always need to at least build a fragment tree.
-        if !self.fragment_tree.borrow().is_none() {
+        if self.fragment_tree.borrow().is_none() {
             return false;
         }
 
