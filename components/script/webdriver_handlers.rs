@@ -1096,7 +1096,7 @@ fn handle_send_keys_file(
     }
 
     // Step 8.8
-    Ok(false);
+    Ok(false)
 }
 
 /// Implementing step 5 - 8 of Element Send Keys. This function will send a boolean
