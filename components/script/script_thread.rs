@@ -47,11 +47,12 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
+use embedder_traits::resources::Resource;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     EmbedderMsg, FocusSequenceNumber, InputEvent, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionActionType, MouseButton, MouseButtonAction,
-    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand, resources,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
@@ -1020,7 +1021,7 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
         );
-        debugger_global.evaluate_js("console.log('hello world')", can_gc);
+        debugger_global.evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc);
 
         while self.handle_msgs(can_gc) {
             // Go on...

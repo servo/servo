@@ -109,6 +109,8 @@ pub enum Resource {
     DirectoryListingHTML,
     /// A HTML page that is used for the about:memory url.
     AboutMemoryHTML,
+    /// RPC script for the Debugger API on behalf of devtools.
+    DebuggerJS,
 }
 
 impl Resource {
@@ -123,6 +125,7 @@ impl Resource {
             Resource::CrashHTML => "crash.html",
             Resource::DirectoryListingHTML => "directory-listing.html",
             Resource::AboutMemoryHTML => "about-memory.html",
+            Resource::DebuggerJS => "debugger.js",
         }
     }
 }
@@ -167,6 +170,7 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 Resource::AboutMemoryHTML => {
                     &include_bytes!("../../../resources/about-memory.html")[..]
                 },
+                Resource::DebuggerJS => &include_bytes!("../../../resources/debugger.js")[..],
             }
             .to_owned()
         }
