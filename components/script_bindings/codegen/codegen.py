@@ -6,7 +6,8 @@
 
 from collections import defaultdict
 from itertools import groupby
-from typing import Generator, Tuple, Optional, List, Any, overload
+from typing import Generator, Tuple, Optional, List, Any, Iterator
+from abc import abstractmethod
 
 import operator
 import os
@@ -403,6 +404,7 @@ class CGThing():
     def __init__(self) -> None:
         pass  # Nothing for now
 
+    @abstractmethod
     def define(self) -> str:
         """Produce code for a Rust file."""
         raise NotImplementedError  # Override me!
@@ -413,6 +415,7 @@ class CGMethodCall(CGThing):
     A class to generate selection of a method signature from a set of
     signatures and generation of a call to that signature.
     """
+    cgRoot: CGList | CGWrapper
     def __init__(self, argsPre, nativeMethodName, static, descriptor, method):
         CGThing.__init__(self)
 
@@ -620,7 +623,6 @@ class CGMethodCall(CGThing):
         # overloadCGThings.append(
         #     CGGeneric('panic!("We have an always-returning default case");\n'
         #               'return false;'))
-        # pyrefly: ignore  # bad-assignment
         self.cgRoot = CGWrapper(CGList(overloadCGThings, "\n"),
                                 pre="\n")
 
@@ -2188,7 +2190,7 @@ class CGWrapper(CGThing):
     post: str
     reindent: bool
 
-    def __init__(self, child: CGThing, pre: str = "", post: str= "", reindent: bool = False):
+    def __init__(self, child: CGThing | CGList, pre: str = "", post: str= "", reindent: bool = False):
         CGThing.__init__(self)
         self.child = child
         self.pre = pre
@@ -2630,7 +2632,7 @@ class CGList(CGThing):
     Generate code for a list of GCThings.  Just concatenates them together, with
     an optional joiner string.  "\n" is a common joiner.
     """
-    def __init__(self, children, joiner=""):
+    def __init__(self, children, joiner: str = "") -> None :
         CGThing.__init__(self)
         # Make a copy of the kids into a list, because if someone passes in a
         # generator we won't be able to both declare and define ourselves, or
@@ -2647,7 +2649,7 @@ class CGList(CGThing):
     def join(self, iterable):
         return self.joiner.join(s for s in iterable if len(s) > 0)
 
-    def define(self):
+    def define(self) -> str:
         return self.join(child.define() for child in self.children if child is not None)
 
     def __len__(self):
@@ -2670,7 +2672,7 @@ class CGGeneric(CGThing):
     separate string for the declaration too.
     """
     text: str
-    def __init__(self, text: str):
+    def __init__(self, text: str) -> None:
         self.text = text
 
     def define(self) -> str:
@@ -3807,7 +3809,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
         self.id = f"{idPrefix}::{MakeNativeName(self.descriptor.name)}"
         self.variant = self.id.split('::')[-2]
 
-    def definition_body(self):
+    def definition_body(self) -> CGGeneric | CGList:
         return CGGeneric(
             "get_per_interface_object_handle"
             f"(cx, global, ProtoOrIfaceIndex::{self.variant}({self.id}), CreateInterfaceObjects::<D>, rval)"
@@ -3822,7 +3824,6 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
                                          "PrototypeList::ID", pub=True)
 
-    # pyrefly: ignore  # bad-override
     def definition_body(self):
         return CGList([
             CGGeneric("""\
@@ -3841,7 +3842,6 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
                                          "PrototypeList::Constructor",
                                          pub=True)
 
-    # pyrefly: ignore  # bad-override
     def definition_body(self):
         return CGList([
             CGGeneric("""\
@@ -4257,7 +4257,7 @@ class CGSetterCall(CGPerSignatureCall):
     def wrap_return_value(self):
         # We have no return value
         return "\ntrue"
- 
+
     # pyrefly: ignore  # bad-override
     def getArgc(self):
         return "1"
@@ -4416,7 +4416,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
     def __init__(self, descriptor, method):
         assert method.isDefaultToJSON()
         CGSpecializedMethod.__init__(self, descriptor, method)
-    
+
     def definition_body(self):
         ret = dedent("""
             use crate::inheritance::HasParent;
