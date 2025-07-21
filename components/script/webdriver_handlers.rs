@@ -1069,8 +1069,8 @@ pub(crate) fn handle_get_element_shadow_root(
 }
 
 fn handle_send_keys_file(
-    text: String,
     file_input: &HTMLInputElement,
+    text: &str,
     can_gc: CanGc,
 ) -> Result<bool, ErrorStatus> {
     // Step 8.1: Let files be the result of splitting text
@@ -1139,7 +1139,7 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 8 (file input)
                 if let Some(file_input) = file_input {
-                    return handle_send_keys_file(text, file_input, can_gc);
+                    return handle_send_keys_file(file_input, &text, can_gc);
                 }
 
                 // TODO: Check non-typeable form control
