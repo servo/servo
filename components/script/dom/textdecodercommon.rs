@@ -5,10 +5,12 @@
 use std::cell::{Cell, RefCell};
 
 use encoding_rs::{Decoder, DecoderResult, Encoding};
+use js::typedarray::ArrayBufferU8;
 use script_bindings::str::DOMString;
 
-use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 /// The shared part of `TextDecoder` and `TextDecoderStream`
 ///
@@ -79,10 +81,10 @@ impl TextDecoderCommon {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
-    #[allow(unsafe_code)]
     pub(crate) fn decode(
         &self,
-        input: Option<&ArrayBufferViewOrArrayBuffer>,
+        cx: SafeJSContext,
+        input: Option<&HeapBufferSource<ArrayBufferU8>>,
         do_not_flush: bool,
     ) -> Fallible<String> {
         // Step 1. If this’s do not flush is false, then set this’s decoder to a
@@ -102,19 +104,18 @@ impl TextDecoderCommon {
         self.do_not_flush.set(do_not_flush);
 
         // Step 3. If input is given, then push a copy of input to this’s I/O queue.
-        match input {
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(a)) => {
-                self.in_stream
-                    .borrow_mut()
-                    .extend_from_slice(unsafe { a.as_slice() });
-            },
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(a)) => {
-                self.in_stream
-                    .borrow_mut()
-                    .extend_from_slice(unsafe { a.as_slice() });
-            },
-            None => {},
-        };
+        if let Some(input) = input {
+            let len = input.byte_length();
+            let mut in_stream = self.in_stream.borrow_mut();
+            let cur_len = in_stream.len();
+            let new_len = cur_len + len;
+            in_stream.resize_with(new_len, Default::default);
+            let dest = &mut in_stream[cur_len..new_len];
+
+            input
+                .copy_data_to(cx, dest, 0, len)
+                .map_err(|_| Error::Type("Copying input failed".to_owned()))?;
+        }
 
         let mut decoder = self.decoder.borrow_mut();
         let (remaining, s) = {

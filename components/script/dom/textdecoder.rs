@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use js::rust::HandleObject;
 
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::TextDecoderBinding;
 use crate::dom::bindings::codegen::Bindings::TextDecoderBinding::{
     TextDecodeOptions, TextDecoderMethods,
@@ -109,8 +110,11 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
         input: Option<ArrayBufferViewOrArrayBuffer>,
         options: &TextDecodeOptions,
     ) -> Fallible<USVString> {
+        let cx = GlobalScope::get_cx();
+        let input =
+            input.map(|value| HeapBufferSource::from_array_buffer_view_or_array_buffer(cx, &value));
         self.decoder
-            .decode(input.as_ref(), options.stream)
+            .decode(cx, input.as_ref(), options.stream)
             .map(USVString)
     }
 }

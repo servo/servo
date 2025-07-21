@@ -41,6 +41,7 @@ use js::typedarray::{
     TypedArrayElementCreator,
 };
 
+use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, Fallible};
 #[cfg(feature = "webgpu")]
 use crate::dom::globalscope::GlobalScope;
@@ -592,6 +593,29 @@ where
                     NewArrayBufferWithContents(*cx, buffer_length, buffer_data)
                 })),
             ))
+        }
+    }
+}
+
+impl HeapBufferSource<ArrayBufferU8> {
+    pub(crate) fn from_array_buffer_view_or_array_buffer(
+        cx: JSContext,
+        value: &ArrayBufferViewOrArrayBuffer,
+    ) -> HeapBufferSource<ArrayBufferU8> {
+        match value {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => {
+                let view_heap =
+                    HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
+                        Heap::boxed(unsafe { view.underlying_object().get() }),
+                    ));
+
+                view_heap.get_array_buffer_view_buffer(cx)
+            },
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buf) => {
+                HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(
+                    unsafe { buf.underlying_object().get() },
+                )))
+            },
         }
     }
 }
