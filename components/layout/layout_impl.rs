@@ -710,6 +710,7 @@ impl LayoutThread {
         (viewport_changed && had_used_viewport_units) || theme_changed
     }
 
+    #[servo_tracing::instrument(skip_all)]
     fn prepare_stylist_for_reflow<'dom>(
         &mut self,
         reflow_request: &ReflowRequest,
