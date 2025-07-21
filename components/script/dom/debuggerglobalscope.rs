@@ -11,14 +11,18 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::realms::InRealm;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
+use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext};
 
@@ -59,13 +63,17 @@ impl DebuggerGlobalScope {
                 false,
             ),
         });
-
-        unsafe {
+        let global = unsafe {
             DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
                 JSContext::from_ptr(runtime.cx()),
                 global,
             )
-        }
+        };
+
+        let realm = enter_realm(&*global);
+        define_all_exposed_interfaces(global.upcast(), InRealm::entered(&realm), CanGc::note());
+
+        global
     }
 
     /// Get the JS context.
