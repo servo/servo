@@ -4279,7 +4279,7 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor, name, "bool", args, extern=True, templateArgs=templateArgs)
         self.exposureSet = descriptor.interface.exposureSet
 
-    def definition_body(self):
+    def definition_body(self) -> CGList | CGWrapper:
         preamble = """\
 let args = CallArgs::from_vp(vp, argc);
 let global = D::GlobalScope::from_object(args.callee());
@@ -4288,7 +4288,7 @@ let global = D::GlobalScope::from_object(args.callee());
             preamble += f"let global = DomRoot::downcast::<D::{list(self.exposureSet)[0]}>(global).unwrap();\n"
         return CGList([CGGeneric(preamble), self.generate_code()])
 
-    def generate_code(self):
+    def generate_code(self) -> CGList:
         raise NotImplementedError  # Override me!
 
 
@@ -4459,7 +4459,6 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
         name = descriptor.binaryNameFor(method.identifier.name, True)
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
-    # pyrefly: ignore  # bad-override
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
@@ -4516,7 +4515,6 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
         name = f'get_{attr.identifier.name}'
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
-    # pyrefly: ignore  # bad-override
     def generate_code(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
@@ -4541,7 +4539,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                 Argument('JSJitSetterCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args, templateArgs=["D: DomTypes"])
 
-    def definition_body(self):
+    def definition_body(self) -> CGWrapper | CGGeneric:
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
                                                         self.attr)
         return CGWrapper(
@@ -4568,7 +4566,6 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
         name = f'set_{attr.identifier.name}'
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
-    # pyrefly: ignore  # bad-override
     def generate_code(self):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
                                                         self.attr)
@@ -4591,7 +4588,6 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
     def __init__(self, descriptor, attr):
         CGSpecializedSetter.__init__(self, descriptor, attr)
 
-    # pyrefly: ignore  # bad-override
     def definition_body(self):
         attrName = self.attr.identifier.name
         forwardToAttrName = self.attr.getExtendedAttribute("PutForwards")[0]
@@ -4620,7 +4616,6 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
     def __init__(self, descriptor, attr):
         CGSpecializedSetter.__init__(self, descriptor, attr)
 
-    # pyrefly: ignore  # bad-override
     def definition_body(self):
         assert self.attr.readonly
         name = str_to_cstr_ptr(self.attr.identifier.name)
@@ -5575,10 +5570,10 @@ class ClassItem:
         self.name = name
         self.visibility = visibility
 
-    def declare(self, cgClass):
+    def declare(self, cgClass) -> str | None:
         assert False
 
-    def define(self, cgClass):
+    def define(self, cgClass) -> str | None:
         assert False
 
 
@@ -5586,12 +5581,10 @@ class ClassBase(ClassItem):
     def __init__(self, name, visibility='pub'):
         ClassItem.__init__(self, name, visibility)
 
-    # pyrefly: ignore  # bad-override
     def declare(self, cgClass):
         return f'{self.visibility} {self.name}'
 
-    # pyrefly: ignore  # bad-override
-    def define(self, cgClass):
+    def define(self, cgClass) -> str:
         # Only in the header
         return ''
 
@@ -5640,7 +5633,6 @@ class ClassMethod(ClassItem):
         assert self.body is not None
         return self.body
 
-    # pyrefly: ignore  # bad-override
     def declare(self, cgClass):
 
         templateClause = f"<{', '.join(self.templateArgs)}>" if self.bodyInHeader and self.templateArgs else '<>'
@@ -5737,7 +5729,6 @@ class ClassConstructor(ClassItem):
             "ret"
         )
 
-    # pyrefly: ignore  # bad-override
     def declare(self, cgClass):
         args = ', '.join([a.declare() for a in self.args])
         body = f'    {self.getBody(cgClass)}'
@@ -5751,7 +5742,6 @@ class ClassConstructor(ClassItem):
 pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
 """
 
-    # pyrefly: ignore  # bad-override
     def define(self, cgClass):
         if self.bodyInHeader:
             return ''
@@ -5781,11 +5771,9 @@ class ClassMember(ClassItem):
         self.body = body
         ClassItem.__init__(self, name, visibility)
 
-    # pyrefly: ignore  # bad-override
     def declare(self, cgClass):
         return f'{self.visibility} {self.name}: {self.type},\n'
 
-    # pyrefly: ignore  # bad-override
     def define(self, cgClass):
         if not self.static:
             return ''
@@ -6634,7 +6622,7 @@ let this = native_from_object_static::<{self.descriptor.concreteType}>(obj).unwr
             self.generate_code(),
         ])
 
-    def generate_code(self):
+    def generate_code(self) -> CGGeneric | CGList:
         raise NotImplementedError  # Override me!
 
 
@@ -6658,7 +6646,6 @@ class CGClassTraceHook(CGAbstractClassHook):
                                      args, doesNotPanic=True)
         self.traceGlobal = descriptor.isGlobal()
 
-    # pyrefly: ignore  # bad-override
     def generate_code(self):
         body = [CGGeneric("if this.is_null() { return; } // GC during obj creation\n"
                           f"(*this).trace({self.args[0].name});")]
@@ -6745,7 +6732,6 @@ class CGClassFinalizeHook(CGAbstractClassHook):
         CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME,
                                      'void', args)
 
-    # pyrefly: ignore  # bad-override
     def generate_code(self):
         return CGGeneric(finalizeHook(self.descriptor, self.name, self.args[0].name))
 
