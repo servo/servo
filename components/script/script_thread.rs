@@ -47,12 +47,11 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use embedder_traits::resources::Resource;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     EmbedderMsg, FocusSequenceNumber, InputEvent, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionActionType, MouseButton, MouseButtonAction,
-    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand, resources,
+    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
@@ -350,6 +349,8 @@ pub struct ScriptThread {
     /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
     /// animation tick.
     has_pending_animation_tick: Arc<AtomicBool>,
+
+    debugger_global: Dom<DebuggerGlobalScope>,
 }
 
 struct BHMExitSignal {
@@ -930,6 +931,28 @@ impl ScriptThread {
             content_process_shutdown_sender: state.content_process_shutdown_sender,
         };
 
+        let microtask_queue = runtime.microtask_queue.clone();
+        let js_runtime = Rc::new(runtime);
+        #[cfg(feature = "webgpu")]
+        let gpu_id_hub = Arc::new(IdentityHub::default());
+
+        let pipeline_id = PipelineId::new();
+        let script_to_constellation_chan = ScriptToConstellationChan {
+            sender: senders.pipeline_to_constellation_sender.clone(),
+            pipeline_id,
+        };
+        let debugger_global = DebuggerGlobalScope::new(
+            &js_runtime.clone(),
+            senders.self_sender.clone(),
+            senders.memory_profiler_sender.clone(),
+            senders.time_profiler_sender.clone(),
+            script_to_constellation_chan,
+            state.resource_threads.clone(),
+            #[cfg(feature = "webgpu")]
+            gpu_id_hub.clone(),
+        );
+        debugger_global.execute(CanGc::note());
+
         ScriptThread {
             documents: DomRefCell::new(DocumentCollection::default()),
             last_render_opportunity_time: Default::default(),
@@ -944,8 +967,8 @@ impl ScriptThread {
             background_hang_monitor,
             closing,
             timer_scheduler: Default::default(),
-            microtask_queue: runtime.microtask_queue.clone(),
-            js_runtime: Rc::new(runtime),
+            microtask_queue,
+            js_runtime,
             topmost_mouse_over_target: MutNullableDom::new(Default::default()),
             closed_pipelines: DomRefCell::new(HashSet::new()),
             mutation_observer_microtask_queued: Default::default(),
@@ -969,12 +992,13 @@ impl ScriptThread {
             pipeline_to_node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
             #[cfg(feature = "webgpu")]
-            gpu_id_hub: Arc::new(IdentityHub::default()),
+            gpu_id_hub,
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
             scheduled_script_thread_animation_timer: Default::default(),
             has_pending_animation_tick: Arc::new(AtomicBool::new(false)),
+            debugger_global: debugger_global.as_traced(),
         }
     }
 
@@ -1006,24 +1030,6 @@ impl ScriptThread {
     /// messages on its port.
     pub(crate) fn start(&self, can_gc: CanGc) {
         debug!("Starting script thread.");
-
-        let pipeline_id = PipelineId::new();
-        let script_to_constellation_chan = ScriptToConstellationChan {
-            sender: self.senders.pipeline_to_constellation_sender.clone(),
-            pipeline_id,
-        };
-        let debugger_global = DebuggerGlobalScope::new(
-            &self.js_runtime,
-            self.senders.self_sender.clone(),
-            self.senders.memory_profiler_sender.clone(),
-            self.senders.time_profiler_sender.clone(),
-            script_to_constellation_chan,
-            self.resource_threads.clone(),
-            #[cfg(feature = "webgpu")]
-            self.gpu_id_hub.clone(),
-        );
-        debugger_global.evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc);
-
         while self.handle_msgs(can_gc) {
             // Go on...
             debug!("Running script thread.");
@@ -3423,6 +3429,8 @@ impl ScriptThread {
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
         );
+        self.debugger_global
+            .execute_with_global(can_gc, window.upcast());
 
         let _realm = enter_realm(&*window);
 

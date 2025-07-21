@@ -9,8 +9,9 @@ use base::id::PipelineId;
 use constellation_traits::ScriptToConstellationChan;
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
+use embedder_traits::resources::{self, Resource};
 use js::gc::HandleValue;
-use js::jsval::UndefinedValue;
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::Runtime;
 use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
@@ -18,6 +19,7 @@ use profile_traits::{mem, time};
 use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::DebuggerGlobalScopeMethods;
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
+use script_bindings::utils::set_dictionary_property;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
@@ -120,6 +122,36 @@ impl DebuggerGlobalScope {
             self.global_scope.api_base_url(),
             can_gc,
         )
+    }
+
+    pub(crate) fn execute(&self, can_gc: CanGc) {
+        if !self.evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc) {
+            warn!("Failed to execute debugger request");
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn execute_with_global(&self, can_gc: CanGc, global: &GlobalScope) {
+        let cx = Self::get_cx();
+        rooted!(in(*cx) let mut property_value = UndefinedValue());
+        property_value
+            .handle_mut()
+            .set(ObjectValue(global.reflector().get_jsobject().get()));
+
+        let realm = enter_realm(self);
+        // TODO: what invariants do we need to uphold for the unsafe call?
+        if let Err(()) = unsafe {
+            set_dictionary_property(
+                *cx,
+                self.global_scope.reflector().get_jsobject(),
+                "debuggee",
+                property_value.handle(),
+            )
+        } {
+            warn!("Failed to set debuggee");
+            return;
+        }
+        self.execute(can_gc);
     }
 }
 

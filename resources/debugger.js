@@ -1,4 +1,10 @@
-const dbg = new Debugger;
-setInterval(() => {
-    console.log(dbg.findAllGlobals());
-}, 250);
+if (!("dbg" in this)) {
+    dbg = new Debugger;
+}
+
+console.log("[debugger] Executing");
+
+if ("debuggee" in this) {
+    console.log("[debugger] Adding debuggee");
+    dbg.addDebuggee(debuggee);
+}
