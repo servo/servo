@@ -415,7 +415,7 @@ class CGMethodCall(CGThing):
     A class to generate selection of a method signature from a set of
     signatures and generation of a call to that signature.
     """
-    cgRoot: CGList | CGWrapper
+    cgRoot: Any
     def __init__(self, argsPre, nativeMethodName, static, descriptor, method):
         CGThing.__init__(self)
 
@@ -1350,6 +1350,7 @@ class CGArgumentConverter(CGThing):
     argument list, and the argv and argc strings and generates code to
     unwrap the argument to the right native type.
     """
+    converter: Any
     def __init__(self, argument, index, args, argc, descriptorProvider,
                  invalidEnumValueFatal=True):
         CGThing.__init__(self)
@@ -1381,7 +1382,7 @@ class CGArgumentConverter(CGThing):
                                                CGGeneric(template)).define()
                 else:
                     assert not default
-                    # pyrefly: ignore  # bad-argument-type
+                    assert declType is not None
                     declType = CGWrapper(declType, pre="Option<", post=">")
                     template = CGIfElseWrapper(condition,
                                                CGGeneric("None"),
@@ -1400,23 +1401,20 @@ class CGArgumentConverter(CGThing):
             variadicConversion = {
                 "val": f"HandleValue::from_raw({args}.get(variadicArg))",
             }
-            innerConverter = [instantiateJSToNativeConversionTemplate(
+            innerConverter: list = [instantiateJSToNativeConversionTemplate(
                 template, variadicConversion, declType, "slot")]
 
             arg = f"arg{index}"
             if argument.type.isGeckoInterface():
                 init = f"rooted_vec!(let mut {arg})"
-                # pyrefly: ignore  # bad-argument-type
                 innerConverter.append(CGGeneric(f"{arg}.push(Dom::from_ref(&*slot));"))
             else:
                 init = f"let mut {arg} = vec![]"
-                # pyrefly: ignore  # bad-argument-type
                 innerConverter.append(CGGeneric(f"{arg}.push(slot);"))
             inner = CGIndenter(CGList(innerConverter, "\n"), 8).define()
 
             sub = "" if index == 0 else f"- {index}"
 
-            # pyrefly: ignore  # bad-assignment
             self.converter = CGGeneric(f"""
 {init};
 if {argc} > {index} {{
@@ -1626,7 +1624,9 @@ class PropertyDefiner:
     things we're defining. They should also set self.regular to the list of
     things exposed to web pages.
     """
-    def __init__(self, descriptor, name):
+    name: str
+    regular: list
+    def __init__(self, descriptor, name: str):
         self.descriptor = descriptor
         self.name = name
 
@@ -1634,7 +1634,6 @@ class PropertyDefiner:
         return f"s{self.name}"
 
     def length(self):
-        # pyrefly: ignore  # missing-attribute
         return len(self.regular)
 
     def __str__(self):
@@ -2190,7 +2189,7 @@ class CGWrapper(CGThing):
     post: str
     reindent: bool
 
-    def __init__(self, child: CGThing | CGList, pre: str = "", post: str= "", reindent: bool = False):
+    def __init__(self, child, pre: str = "", post: str= "", reindent: bool = False):
         CGThing.__init__(self)
         self.child = child
         self.pre = pre
