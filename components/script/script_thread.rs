@@ -1014,6 +1014,7 @@ impl ScriptThread {
         };
         let debugger_global = DebuggerGlobalScope::new(
             &self.js_runtime,
+            self.senders.self_sender.clone(),
             self.senders.memory_profiler_sender.clone(),
             self.senders.time_profiler_sender.clone(),
             script_to_constellation_chan,

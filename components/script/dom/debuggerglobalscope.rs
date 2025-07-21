@@ -3,30 +3,38 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use base::id::PipelineId;
 use constellation_traits::ScriptToConstellationChan;
+use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
+use js::gc::HandleValue;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::DebuggerGlobalScopeMethods;
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
+use crate::dom::bindings::codegen::UnionTypes::StringOrFunction;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
+use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopSender};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext};
+use crate::timers::{IsInterval, TimerCallback};
 
 #[dom_struct]
 /// Global scope for interacting with the devtools Debugger API.
@@ -34,6 +42,7 @@ use crate::script_runtime::{CanGc, JSContext};
 /// <https://firefox-source-docs.mozilla.org/js/Debugger/>
 pub(crate) struct DebuggerGlobalScope {
     global_scope: GlobalScope,
+    script_chan: Sender<MainThreadScriptMsg>,
 }
 
 impl DebuggerGlobalScope {
@@ -41,6 +50,7 @@ impl DebuggerGlobalScope {
     #[allow(unsafe_code)]
     pub(crate) fn new(
         runtime: &Runtime,
+        script_chan: Sender<MainThreadScriptMsg>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
@@ -64,6 +74,7 @@ impl DebuggerGlobalScope {
                 None, // ? if needed, see script_thread:745
                 false,
             ),
+            script_chan,
         });
         let global = unsafe {
             DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
@@ -90,6 +101,14 @@ impl DebuggerGlobalScope {
         GlobalScope::get_cx()
     }
 
+    pub(crate) fn as_global_scope(&self) -> &GlobalScope {
+        self.upcast::<GlobalScope>()
+    }
+
+    pub(crate) fn event_loop_sender(&self) -> ScriptEventLoopSender {
+        ScriptEventLoopSender::MainThread(self.script_chan.clone())
+    }
+
     /// Evaluate a JS script in this global.
     pub(crate) fn evaluate_js(&self, script: &str, can_gc: CanGc) -> bool {
         debug!("Evaluating Dom in a worklet.");
@@ -101,5 +120,57 @@ impl DebuggerGlobalScope {
             self.global_scope.api_base_url(),
             can_gc,
         )
+    }
+}
+
+impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
+    fn SetTimeout(
+        &self,
+        _cx: JSContext,
+        callback: StringOrFunction,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
+        let callback = match callback {
+            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
+            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+        };
+        self.as_global_scope().set_timeout_or_interval(
+            callback,
+            args,
+            Duration::from_millis(timeout.max(0) as u64),
+            IsInterval::NonInterval,
+        )
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
+    fn ClearTimeout(&self, handle: i32) {
+        self.as_global_scope().clear_timeout_or_interval(handle);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
+    fn SetInterval(
+        &self,
+        _cx: JSContext,
+        callback: StringOrFunction,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
+        let callback = match callback {
+            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
+            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+        };
+        self.as_global_scope().set_timeout_or_interval(
+            callback,
+            args,
+            Duration::from_millis(timeout.max(0) as u64),
+            IsInterval::Interval,
+        )
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
+    fn ClearInterval(&self, handle: i32) {
+        self.ClearTimeout(handle);
     }
 }
