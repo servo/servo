@@ -1266,9 +1266,14 @@ impl Handler {
             let webview_id = *webview_id;
             session.webview_id = webview_id;
             session.browsing_context_id = BrowsingContextId::from(webview_id);
-
-            let msg = WebDriverCommandMsg::FocusWebView(webview_id);
+            let (sender, receiver) = ipc::channel().unwrap();
+            let msg = WebDriverCommandMsg::FocusWebView(webview_id, sender);
             self.send_message_to_embedder(msg)?;
+            if wait_for_script_response(receiver)? {
+                debug!("Focus new webview successfully");
+            } else {
+                debug!("Focus new webview failed, it may not exist anymore");
+            }
             Ok(WebDriverResponse::Void)
         } else {
             Err(WebDriverError::new(
