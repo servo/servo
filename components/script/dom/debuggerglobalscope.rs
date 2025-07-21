@@ -9,9 +9,11 @@ use constellation_traits::ScriptToConstellationChan;
 use dom_struct::dom_struct;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
+use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
 use script_bindings::realms::InRealm;
+use script_bindings::reflector::DomObject;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
@@ -72,6 +74,13 @@ impl DebuggerGlobalScope {
 
         let realm = enter_realm(&*global);
         define_all_exposed_interfaces(global.upcast(), InRealm::entered(&realm), CanGc::note());
+        // TODO: what invariants do we need to uphold for the unsafe call?
+        assert!(unsafe {
+            JS_DefineDebuggerObject(
+                *Self::get_cx(),
+                global.global_scope.reflector().get_jsobject(),
+            )
+        });
 
         global
     }
