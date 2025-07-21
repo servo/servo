@@ -17,6 +17,7 @@ use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
 use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::DebuggerGlobalScopeMethods;
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
 use script_bindings::utils::set_dictionary_property;
@@ -134,11 +135,14 @@ impl DebuggerGlobalScope {
     pub(crate) fn execute_with_global(&self, can_gc: CanGc, global: &GlobalScope) {
         let cx = Self::get_cx();
         rooted!(in(*cx) let mut property_value = UndefinedValue());
-        property_value
-            .handle_mut()
-            .set(ObjectValue(global.reflector().get_jsobject().get()));
 
         let realm = enter_realm(self);
+        // Convert the debuggee global’s reflector to a Value, wrapping it from its originating realm (debuggee realm)
+        // into the active realm (debugger realm) so that it can be passed across compartments.
+        global
+            .reflector()
+            .safe_to_jsval(cx, property_value.handle_mut());
+
         // TODO: what invariants do we need to uphold for the unsafe call?
         if let Err(()) = unsafe {
             set_dictionary_property(
