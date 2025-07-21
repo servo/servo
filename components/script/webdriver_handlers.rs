@@ -1110,7 +1110,7 @@ fn handle_send_keys_non_typeable(
     can_gc: CanGc,
 ) -> Result<bool, ErrorStatus> {
     // Step 1. If element does not have an own property named value,
-    // Return ErrorStatus::ElementNotInteractable. 
+    // Return ErrorStatus::ElementNotInteractable.
     // Currently, we only support HTMLInputElement for non-typeable
     // form controls. Hence, it should always have value property.
 
@@ -1121,13 +1121,15 @@ fn handle_send_keys_non_typeable(
 
     // Step 3. Set a property value to text on element.
     if input_element.SetValue(text.into(), can_gc).is_err() {
-        return Err(ErrorStatus::UnknownError)
+        return Err(ErrorStatus::UnknownError);
     }
 
     // Step 4. If element is suffering from bad input, return ErrorStatus::InvalidArgument.
-    if input_element.Validity()
+    if input_element
+        .Validity()
         .invalid_flags()
-        .contains(ValidationFlags::BAD_INPUT) {
+        .contains(ValidationFlags::BAD_INPUT)
+    {
         return Err(ErrorStatus::InvalidArgument);
     }
 
@@ -1152,8 +1154,7 @@ pub(crate) fn handle_will_send_keys(
         .send(
             // Set 5. Let element be the result of trying to get a known element.
             get_known_element(documents, pipeline, element_id).and_then(|element| {
-                let input_element = element
-                    .downcast::<HTMLInputElement>();
+                let input_element = element.downcast::<HTMLInputElement>();
 
                 // Step 6: Let file be true if element is input element
                 // in the file upload state, or false otherwise
@@ -1185,7 +1186,7 @@ pub(crate) fn handle_will_send_keys(
                 if let Some(input_element) = input_element {
                     if !input_element.input_type().is_textual_or_password() {
                         return handle_send_keys_non_typeable(input_element, &text, can_gc);
-                    } 
+                    }
                 }
 
                 // TODO: Check content editable
