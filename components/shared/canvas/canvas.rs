@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::servo_arc::Arc as ServoArc;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Path(pub BezPath);
@@ -400,7 +401,7 @@ pub enum FillRule {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CompositionOptions {
     pub alpha: f64,
     pub composition_operation: CompositionOrBlending,
@@ -412,6 +413,18 @@ pub struct ShadowOptions {
     pub offset_y: f64,
     pub blur: f64,
     pub color: AbsoluteColor,
+}
+
+impl ShadowOptions {
+    /// <https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn>
+    pub fn need_to_draw_shadow(&self) -> bool {
+        // Shadows are only drawn if the opacity component of the alpha component of the shadow color is nonzero
+        self.color.alpha != 0.0 &&
+        // and either the shadowBlur is nonzero, or the shadowOffsetX is nonzero, or the shadowOffsetY is nonzero.
+            (self.offset_x != 0.0 ||
+                self.offset_y != 0.0 ||
+                self.blur != 0.0)
+    }
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -426,7 +439,8 @@ pub struct LineOptions {
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct TextOptions {
-    pub font: Option<FontStyleStruct>,
+    #[ignore_malloc_size_of = "Arc"]
+    pub font: Option<ServoArc<FontStyleStruct>>,
     pub align: TextAlign,
     pub baseline: TextBaseline,
 }
@@ -471,6 +485,7 @@ pub enum Canvas2dMsg {
     ),
     ClearRect(Rect<f32>, Transform2D<f32>),
     ClipPath(Path, Transform2D<f32>),
+    PopClip,
     FillPath(
         FillOrStrokeStyle,
         Path,
@@ -500,8 +515,6 @@ pub enum Canvas2dMsg {
     GetImageData(Rect<u32>, Size2D<u32>, IpcSender<IpcSnapshot>),
     MeasureText(String, IpcSender<TextMetrics>, TextOptions),
     PutImageData(Rect<u32>, IpcSnapshot),
-    RestoreContext,
-    SaveContext,
     StrokeRect(
         Rect<f32>,
         FillOrStrokeStyle,
@@ -625,6 +638,48 @@ pub enum FillOrStrokeStyle {
     LinearGradient(LinearGradientStyle),
     RadialGradient(RadialGradientStyle),
     Surface(SurfaceStyle),
+}
+
+impl FillOrStrokeStyle {
+    pub fn is_zero_size_gradient(&self) -> bool {
+        match self {
+            Self::RadialGradient(pattern) => {
+                let centers_equal = (pattern.x0, pattern.y0) == (pattern.x1, pattern.y1);
+                let radii_equal = pattern.r0 == pattern.r1;
+                (centers_equal && radii_equal) || pattern.stops.is_empty()
+            },
+            Self::LinearGradient(pattern) => {
+                (pattern.x0, pattern.y0) == (pattern.x1, pattern.y1) || pattern.stops.is_empty()
+            },
+            Self::Color(..) | Self::Surface(..) => false,
+        }
+    }
+
+    pub fn x_bound(&self) -> Option<u32> {
+        match self {
+            Self::Surface(pattern) => {
+                if pattern.repeat_x {
+                    None
+                } else {
+                    Some(pattern.surface_size.width)
+                }
+            },
+            Self::Color(..) | Self::LinearGradient(..) | Self::RadialGradient(..) => None,
+        }
+    }
+
+    pub fn y_bound(&self) -> Option<u32> {
+        match self {
+            Self::Surface(pattern) => {
+                if pattern.repeat_y {
+                    None
+                } else {
+                    Some(pattern.surface_size.height)
+                }
+            },
+            Self::Color(..) | Self::LinearGradient(..) | Self::RadialGradient(..) => None,
+        }
+    }
 }
 
 #[derive(

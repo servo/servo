@@ -150,7 +150,10 @@ impl CanvasContextState {
 
     fn text_options(&self) -> TextOptions {
         TextOptions {
-            font: self.font_style.clone(),
+            font: self
+                .font_style
+                .as_ref()
+                .map(|font| servo_arc::Arc::new(font.clone())),
             align: self.text_align,
             baseline: self.text_baseline,
         }
@@ -1344,7 +1347,6 @@ impl CanvasState {
         self.saved_states
             .borrow_mut()
             .push(self.state.borrow().clone());
-        self.send_canvas_2d_msg(Canvas2dMsg::SaveContext);
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -1353,7 +1355,7 @@ impl CanvasState {
         let mut saved_states = self.saved_states.borrow_mut();
         if let Some(state) = saved_states.pop() {
             self.state.borrow_mut().clone_from(&state);
-            self.send_canvas_2d_msg(Canvas2dMsg::RestoreContext);
+            self.send_canvas_2d_msg(Canvas2dMsg::PopClip);
         }
     }
 
