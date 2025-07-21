@@ -416,6 +416,38 @@ pub enum FillRule {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct CompositionOptions {
+    pub alpha: f64,
+    pub composition_operation: CompositionOrBlending,
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ShadowOptions {
+    pub offset_x: f64,
+    pub offset_y: f64,
+    pub blur: f64,
+    pub color: AbsoluteColor,
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct LineOptions {
+    pub width: f64,
+    pub cap_style: LineCapStyle,
+    pub join_style: LineJoinStyle,
+    pub miter_limit: f64,
+    pub dash: Vec<f32>,
+    pub dash_offset: f64,
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct TextOptions {
+    pub font: Option<FontStyleStruct>,
+    pub align: TextAlign,
+    pub baseline: TextBaseline,
+}
+
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
@@ -426,19 +458,42 @@ pub enum CanvasMsg {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Canvas2dMsg {
-    DrawImage(IpcSnapshot, Rect<f64>, Rect<f64>, bool, Transform2D<f32>),
-    DrawEmptyImage(Size2D<u32>, Rect<f64>, Rect<f64>, Transform2D<f32>),
+    DrawImage(
+        IpcSnapshot,
+        Rect<f64>,
+        Rect<f64>,
+        bool,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
+    DrawEmptyImage(
+        Size2D<u32>,
+        Rect<f64>,
+        Rect<f64>,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
     DrawImageInOther(
         CanvasId,
         Size2D<u32>,
         Rect<f64>,
         Rect<f64>,
         bool,
+        ShadowOptions,
+        CompositionOptions,
         Transform2D<f32>,
     ),
     ClearRect(Rect<f32>, Transform2D<f32>),
     ClipPath(Path, Transform2D<f32>),
-    FillPath(FillOrStrokeStyle, Path, Transform2D<f32>),
+    FillPath(
+        FillOrStrokeStyle,
+        Path,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
     FillText(
         String,
         f64,
@@ -446,31 +501,39 @@ pub enum Canvas2dMsg {
         Option<f64>,
         FillOrStrokeStyle,
         bool,
+        TextOptions,
+        ShadowOptions,
+        CompositionOptions,
         Transform2D<f32>,
     ),
-    FillRect(Rect<f32>, FillOrStrokeStyle, Transform2D<f32>),
+    FillRect(
+        Rect<f32>,
+        FillOrStrokeStyle,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
     GetImageData(Rect<u32>, Size2D<u32>, IpcSender<IpcSnapshot>),
-    MeasureText(String, IpcSender<TextMetrics>),
+    MeasureText(String, IpcSender<TextMetrics>, TextOptions),
     PutImageData(Rect<u32>, IpcSnapshot),
     RestoreContext,
     SaveContext,
-    StrokeRect(Rect<f32>, FillOrStrokeStyle, Transform2D<f32>),
-    StrokePath(FillOrStrokeStyle, Path, Transform2D<f32>),
-    SetLineWidth(f32),
-    SetLineCap(LineCapStyle),
-    SetLineJoin(LineJoinStyle),
-    SetMiterLimit(f32),
-    SetLineDash(Vec<f32>),
-    SetLineDashOffset(f32),
-    SetGlobalAlpha(f32),
-    SetGlobalComposition(CompositionOrBlending),
-    SetShadowOffsetX(f64),
-    SetShadowOffsetY(f64),
-    SetShadowBlur(f64),
-    SetShadowColor(AbsoluteColor),
-    SetFont(FontStyleStruct),
-    SetTextAlign(TextAlign),
-    SetTextBaseline(TextBaseline),
+    StrokeRect(
+        Rect<f32>,
+        FillOrStrokeStyle,
+        LineOptions,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
+    StrokePath(
+        Path,
+        FillOrStrokeStyle,
+        LineOptions,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
     UpdateImage(IpcSender<()>),
 }
 
