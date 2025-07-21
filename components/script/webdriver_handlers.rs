@@ -71,6 +71,7 @@ use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::types::ShadowRoot;
+use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
@@ -1099,6 +1100,38 @@ fn handle_send_keys_file(
     }
 
     // Step 8. Return success with data null.
+    Ok(false)
+}
+
+/// We have verify previously that input element is not textual.
+fn handle_send_keys_non_typeable(
+    input_element: &HTMLInputElement,
+    text: &str,
+    can_gc: CanGc,
+) -> Result<bool, ErrorStatus> {
+    // Step 1. If element does not have an own property named value,
+    // Return ErrorStatus::ElementNotInteractable. 
+    // Currently, we only support HTMLInputElement for non-typeable
+    // form controls. Hence, it should always have value property.
+
+    // Step 2. If element is not mutable, return ErrorStatus::ElementNotInteractable.
+    if !input_element.is_mutable() {
+        return Err(ErrorStatus::ElementNotInteractable);
+    }
+
+    // Step 3. Set a property value to text on element.
+    if input_element.SetValue(text.into(), can_gc).is_err() {
+        return Err(ErrorStatus::UnknownError)
+    }
+
+    // Step 4. If element is suffering from bad input, return ErrorStatus::InvalidArgument.
+    if input_element.Validity()
+        .invalid_flags()
+        .contains(ValidationFlags::BAD_INPUT) {
+        return Err(ErrorStatus::InvalidArgument);
+    }
+
+    // Step 5. Return success with data null.
     // This is done in `webdriver_server:lib.rs`
     Ok(false)
 }
@@ -1119,10 +1152,12 @@ pub(crate) fn handle_will_send_keys(
         .send(
             // Set 5. Let element be the result of trying to get a known element.
             get_known_element(documents, pipeline, element_id).and_then(|element| {
-                // Step 6. Let file be true if element is input element
+                let input_element = element
+                    .downcast::<HTMLInputElement>();
+
+                // Step 6: Let file be true if element is input element
                 // in the file upload state, or false otherwise
-                let file_input = element
-                    .downcast::<HTMLInputElement>()
+                let file_input = input_element
                     .filter(|&input_element| input_element.input_type() == InputType::File);
 
                 // Step 7. If file is false or the session's strict file interactability
@@ -1146,7 +1181,13 @@ pub(crate) fn handle_will_send_keys(
                     return handle_send_keys_file(file_input, &text, can_gc);
                 }
 
-                // TODO: Check non-typeable form control
+                // Step 8 (non-typeable form control)
+                if let Some(input_element) = input_element {
+                    if !input_element.input_type().is_textual_or_password() {
+                        return handle_send_keys_non_typeable(&input_element, &text, can_gc);
+                    } 
+                }
+
                 // TODO: Check content editable
 
                 Ok(true)
