@@ -1073,29 +1073,33 @@ fn handle_send_keys_file(
     text: &str,
     can_gc: CanGc,
 ) -> Result<bool, ErrorStatus> {
-    // Step 8.1: Let files be the result of splitting text
+    // Step 1. Let files be the result of splitting text
     // on the newline (\n) character.
     let files: Vec<DOMString> = text.split("\n").map(|s| s.into()).collect();
 
-    // Step 8.2
+    // Step 2. If files is of 0 length, return ErrorStatus::InvalidArgument.
     if files.is_empty() {
         return Err(ErrorStatus::InvalidArgument);
     }
 
-    // Step 8.3 - 8.4
+    // Step 3. Let multiple equal the result of calling 
+    // hasAttribute() with "multiple" on element.
+    // Step 4. If multiple is false and the length of files
+    // is not equal to 1, return ErrorStatus::InvalidArgument.
     if !file_input.Multiple() && files.len() > 1 {
         return Err(ErrorStatus::InvalidArgument);
     }
 
-    // Step 8.5
-    // InvalidArgument Error is returned if the files are not valid.
-    // Step 8.6 - 8.7
-    // Input and change event already fired in `htmlinputelement.rs`.
+    // Step 5. Return ErrorStatus::InvalidArgument if the files does not exist.
+    // Step 6. Set the selected files on the input event. If multiple is true files are
+    // be appended to element's selected files.
+    // Step 7. Fire input and change event (should already be fired in `htmlinputelement.rs`)
     if file_input.select_files(Some(files), can_gc).is_err() {
         return Err(ErrorStatus::InvalidArgument);
     }
 
-    // Step 8.8
+    // Step 8. Return success with data null.
+    // This is done in `webdriver_server:lib.rs`
     Ok(false)
 }
 
