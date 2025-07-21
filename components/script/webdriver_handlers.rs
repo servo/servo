@@ -1139,7 +1139,7 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 8 (file input)
                 if let Some(file_input) = file_input {
-                    return handle_file_send_keys(text, file_input, can_gc);
+                    return handle_send_keys_file(text, file_input, can_gc);
                 }
 
                 // TODO: Check non-typeable form control
