@@ -2193,6 +2193,16 @@ impl HTMLInputElement {
         self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-clear-algorithm>
+    /// Used by WebDriver to clear the input element.
+    pub(crate) fn clear(&self) {
+        self.value_dirty.set(false);
+        self.update_checked_state(self.DefaultChecked(), false);
+        self.textinput.borrow_mut().set_content(DOMString::from(""));
+        self.filelist.set(None);
+        self.enable_sanitization();
+    }
+
     fn update_placeholder_shown_state(&self) {
         if !self.input_type().is_textual_or_password() {
             return;

@@ -1692,9 +1692,9 @@ fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), Er
 
     // Step 4. Run clear algorithm for element.
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-        input_element.reset(can_gc);
+        input_element.clear();
     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
-        textarea_element.reset();
+        textarea_element.clear();
     } else {
         unreachable!("We have confirm previously that element is mutable form control");
     }
