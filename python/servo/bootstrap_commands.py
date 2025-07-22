@@ -176,8 +176,8 @@ class MachCommands(CommandBase):
         }
         import toml
 
-        if os.environ["CARGO_HOME"]:
-            cargo_dir = os.environ.get("CARGO_HOME", "")
+        if os.environ.get("CARGO_HOME", ""):
+            cargo_dir = os.environ["CARGO_HOME"]
         else:
             home_dir = os.path.expanduser("~")
             cargo_dir = path.join(home_dir, ".cargo")
