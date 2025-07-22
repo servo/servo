@@ -2070,6 +2070,13 @@ async fn http_network_fetch(
     let url1 = request.url();
     let url2 = url1.clone();
 
+    let pipeline_id = request.pipeline_id;
+    let browsing_context_id = request.target_webview_id.map(|id| id.0);
+    let status = response.status.clone();
+    let headers = response.headers.clone();
+    let devtools_chan = context.devtools_chan.clone();
+    let request_id = request.id.0.to_string();
+
     HANDLE.spawn(
         res.into_body()
             .map_err(|e| {
@@ -2095,7 +2102,29 @@ async fn http_network_fetch(
                     ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                     _ => vec![],
                 };
+                let devtools_response_body = completed_body.clone();
                 *body = ResponseBody::Done(completed_body);
+                if let (Some(devtools_chan), Some(pipeline_id), Some(browsing_context_id)) =
+                    (devtools_chan.as_ref(), pipeline_id, browsing_context_id)
+                {
+                    let devtools_response = DevtoolsHttpResponse {
+                        headers: Some(headers),
+                        status,
+                        body: Some(devtools_response_body),
+                        pipeline_id,
+                        browsing_context_id,
+                    };
+
+                    let msg = ChromeToDevtoolsControlMsg::NetworkEvent(
+                        request_id.clone(),
+                        NetworkEvent::HttpResponse(devtools_response),
+                    );
+
+                    let _ = devtools_chan
+                        .lock()
+                        .unwrap()
+                        .send(DevtoolsControlMsg::FromChrome(msg));
+                }
                 timing_ptr2
                     .lock()
                     .unwrap()

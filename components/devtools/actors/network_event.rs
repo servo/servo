@@ -9,7 +9,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
-use headers::{ContentType, Cookie, HeaderMapExt};
+use headers::{ContentLength, ContentType, Cookie, HeaderMapExt};
 use http::{HeaderMap, Method, header};
 use net_traits::request::Destination as RequestDestination;
 use serde::Serialize;
@@ -448,12 +448,18 @@ impl NetworkEventActor {
             .and_then(|h| h.typed_get::<ContentType>())
             .map(|ct| ct.to_string())
             .unwrap_or_default();
+        let transferred_size = response
+            .headers
+            .as_ref()
+            .and_then(|hdrs| hdrs.typed_get::<ContentLength>())
+            .map(|cl| cl.0);
+        let content_size = response.body.as_ref().map(|body| body.len() as u64);
 
         // TODO: Set correct values when response's body is sent to the devtools in http_loader.
         ResponseContentMsg {
             mime_type,
-            content_size: 0,
-            transferred_size: 0,
+            content_size: content_size.unwrap_or(222) as u32,
+            transferred_size: transferred_size.unwrap_or(222) as u32,
             discard_response_body: true,
         }
     }
