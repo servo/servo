@@ -9,14 +9,11 @@ use std::fmt::{Debug, Error, Formatter};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker, TouchEventResult};
-use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::RasterImage;
 use smallvec::SmallVec;
 use strum_macros::IntoStaticStr;
-use style_traits::CSSPixel;
 use webrender_api::DocumentId;
 
 pub mod display_list;
@@ -80,12 +77,6 @@ pub enum CompositorMsg {
     RemoveWebView(WebViewId),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(WebViewId, TouchEventResult),
-    /// Composite to a PNG file and return the Image over a passed channel.
-    CreatePng(
-        WebViewId,
-        Option<Rect<f32, CSSPixel>>,
-        IpcSender<Option<RasterImage>>,
-    ),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
     /// Set whether to use less resources by stopping animations.

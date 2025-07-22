@@ -138,7 +138,7 @@ pub enum WebDriverCommandMsg {
         DeviceIndependentIntSize,
         IpcSender<Size2D<i32, DeviceIndependentPixel>>,
     ),
-    /// Take a screenshot of the window.
+    /// Take a screenshot of the viewport.
     TakeScreenshot(
         WebViewId,
         Option<Rect<f32, CSSPixel>>,

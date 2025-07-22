@@ -88,7 +88,7 @@ pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers,
 };
 use layout::LayoutFactoryImpl;
-use log::{Log, Metadata, Record, debug, warn};
+use log::{Log, Metadata, Record, debug, error, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
@@ -1061,8 +1061,23 @@ impl Servo {
     }
 
     pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
-        self.constellation_proxy
-            .send(EmbedderToConstellationMessage::WebDriverCommand(command));
+        if let WebDriverCommandMsg::TakeScreenshot(webview_id, page_rect, response_sender) = command
+        {
+            let res = self
+                .compositor
+                .borrow_mut()
+                .render_to_shared_memory(webview_id, page_rect);
+            if let Err(ref e) = res {
+                error!("Error retrieving PNG: {:?}", e);
+            }
+            let img = res.unwrap_or(None);
+            if let Err(e) = response_sender.send(img) {
+                error!("Sending reply to create png failed ({:?}).", e);
+            }
+        } else {
+            self.constellation_proxy
+                .send(EmbedderToConstellationMessage::WebDriverCommand(command));
+        }
     }
 }
 

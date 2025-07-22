@@ -21,7 +21,6 @@ use std::{env, fmt, process, thread};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use constellation_traits::EmbedderToConstellationMessage;
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
@@ -128,13 +127,11 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
 
 pub fn start_server(
     port: u16,
-    constellation_chan_deprecated: Sender<EmbedderToConstellationMessage>,
     embedder_sender: Sender<WebDriverCommandMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
 ) {
     let handler = Handler::new(
-        constellation_chan_deprecated,
         embedder_sender,
         event_loop_waker,
         webdriver_response_receiver,
@@ -244,10 +241,6 @@ struct Handler {
 
     /// An [`EventLoopWaker`] which is used to wake up the embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
-
-    /// The channel for sending Webdriver messages to the constellation.
-    /// TODO: change name to constellation_sender
-    constellation_chan: Sender<EmbedderToConstellationMessage>,
 
     /// Receiver notification from the constellation when a command is completed
     webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
@@ -474,7 +467,6 @@ enum VerifyBrowsingContextIsOpen {
 
 impl Handler {
     pub fn new(
-        constellation_chan: Sender<EmbedderToConstellationMessage>,
         embedder_sender: Sender<WebDriverCommandMsg>,
         event_loop_waker: Box<dyn EventLoopWaker>,
         webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
@@ -494,7 +486,6 @@ impl Handler {
             session: None,
             embedder_sender,
             event_loop_waker,
-            constellation_chan,
             webdriver_response_receiver,
             id_generator: WebDriverMessageIdGenerator::new(),
             current_action_id: Cell::new(None),
@@ -2247,9 +2238,10 @@ impl Handler {
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
+        let webview_id = self.session()?.webview_id;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(webview_id)?;
 
         let mut img = None;
 
@@ -2259,11 +2251,9 @@ impl Handler {
         for _ in 0..iterations {
             let (sender, receiver) = ipc::channel().unwrap();
 
-            let cmd_msg =
-                WebDriverCommandMsg::TakeScreenshot(self.session()?.webview_id, rect, sender);
-            self.constellation_chan
-                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-                .unwrap();
+            self.send_message_to_embedder(WebDriverCommandMsg::TakeScreenshot(
+                webview_id, rect, sender,
+            ))?;
 
             if let Some(x) = wait_for_script_response(receiver)? {
                 img = Some(x);

@@ -34,7 +34,6 @@ mod from_constellation {
                 Self::CreateOrUpdateWebView(..) => target!("CreateOrUpdateWebView"),
                 Self::RemoveWebView(..) => target!("RemoveWebView"),
                 Self::TouchEventProcessed(..) => target!("TouchEventProcessed"),
-                Self::CreatePng(..) => target!("CreatePng"),
                 Self::IsReadyToSaveImageReply(..) => target!("IsReadyToSaveImageReply"),
                 Self::SetThrottled(..) => target!("SetThrottled"),
                 Self::NewWebRenderFrameReady(..) => target!("NewWebRenderFrameReady"),
