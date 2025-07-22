@@ -21,10 +21,11 @@ use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
-use servo::servo_geometry::{DeviceIndependentIntRect, convert_size_to_css_pixel};
+use servo::servo_geometry::convert_rect_to_css_pixel;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_api::units::DeviceIntRect;
 use servo::{
     EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
     WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
@@ -418,24 +419,23 @@ impl App {
                     // In reality, the request may exceed available screen size.
 
                     // Step 18. Set position of the window.
-                    let requested_physical_position = requested_physical_rect.min;
-                    window.set_position(requested_physical_position);
+                    window.set_position(requested_physical_rect.min);
 
-                    let reply_size = returned_size
-                        .map(|size| convert_size_to_css_pixel(size, scale))
-                        .unwrap_or(requested_rect.size());
-
-                    let reply_pos = window
+                    let result_physical_position = window
                         .winit_window()
                         .and_then(|window| window.outer_position().ok())
                         .map(winit_position_to_euclid_point)
-                        .map(|result_physical_pos| result_physical_pos.to_f32() / scale)
-                        .map(|result_css_pos| result_css_pos.to_i32())
-                        .unwrap_or(requested_rect.min);
+                        .unwrap_or(requested_physical_rect.min);
 
-                    if let Err(error) = size_sender.send(
-                        DeviceIndependentIntRect::from_origin_and_size(reply_pos, reply_size),
-                    ) {
+                    let reply_rect = convert_rect_to_css_pixel(
+                        DeviceIntRect::from_origin_and_size(
+                            result_physical_position,
+                            returned_size.unwrap_or(requested_physical_rect.size()),
+                        ),
+                        scale,
+                    );
+
+                    if let Err(error) = size_sender.send(reply_rect) {
                         warn!("Failed to send window size: {error}");
                     }
                 },
