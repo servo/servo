@@ -9,6 +9,7 @@ use js::rust::HandleObject;
 use crate::dom::bindings::codegen::Bindings::HTMLMenuElementBinding::HTMLMenuElementMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
+use crate::dom::element::ElementCreator;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
@@ -23,9 +24,10 @@ impl HTMLMenuElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLMenuElement {
         HTMLMenuElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
         }
     }
 
@@ -35,10 +37,13 @@ impl HTMLMenuElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLMenuElement> {
         Node::reflect_node_with_proto(
-            Box::new(HTMLMenuElement::new_inherited(local_name, prefix, document)),
+            Box::new(HTMLMenuElement::new_inherited(
+                local_name, prefix, document, creator,
+            )),
             document,
             proto,
             can_gc,

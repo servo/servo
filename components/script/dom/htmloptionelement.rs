@@ -53,6 +53,7 @@ impl HTMLOptionElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement: HTMLElement::new_inherited_with_state(
@@ -60,6 +61,7 @@ impl HTMLOptionElement {
                 local_name,
                 prefix,
                 document,
+                creator,
             ),
             selectedness: Cell::new(false),
             dirtiness: Cell::new(false),
@@ -72,11 +74,12 @@ impl HTMLOptionElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLOptionElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLOptionElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,

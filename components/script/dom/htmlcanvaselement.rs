@@ -47,7 +47,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
 #[cfg(not(feature = "webgpu"))]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
@@ -86,9 +86,10 @@ impl HTMLCanvasElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLCanvasElement {
         HTMLCanvasElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
             context_mode: DomRefCell::new(None),
             callback_id: Cell::new(0),
             blob_callbacks: RefCell::new(HashMap::new()),
@@ -101,11 +102,12 @@ impl HTMLCanvasElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLCanvasElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLCanvasElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,

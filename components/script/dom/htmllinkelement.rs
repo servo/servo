@@ -134,11 +134,13 @@ impl HTMLLinkElement {
         document: &Document,
         creator: ElementCreator,
     ) -> HTMLLinkElement {
+        let line_number = creator.return_line_number();
+        let is_parser_created = creator.is_parser_created();
         HTMLLinkElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
             rel_list: Default::default(),
             relations: Cell::new(LinkRelations::empty()),
-            parser_inserted: Cell::new(creator.is_parser_created()),
+            parser_inserted: Cell::new(is_parser_created),
             stylesheet: DomRefCell::new(None),
             cssom_stylesheet: MutNullableDom::new(None),
             pending_loads: Cell::new(0),
@@ -147,7 +149,7 @@ impl HTMLLinkElement {
             is_explicitly_enabled: Cell::new(false),
             previous_type_matched: Cell::new(true),
             previous_media_environment_matched: Cell::new(true),
-            line_number: creator.return_line_number(),
+            line_number,
         }
     }
 
@@ -1025,9 +1027,8 @@ impl FetchResponseListener for PrefetchContext {
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let link = self.link.root();
-        let source_position = link
-            .upcast::<Element>()
-            .compute_source_position(link.line_number as u32);
+        let mut source_position = link.upcast::<Element>().compute_source_position();
+        source_position.line_number += 2;
         global.report_csp_violations(violations, None, Some(source_position));
     }
 }
@@ -1103,9 +1104,8 @@ impl FetchResponseListener for PreloadContext {
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let link = self.link.root();
-        let source_position = link
-            .upcast::<Element>()
-            .compute_source_position(link.line_number as u32);
+        let mut source_position = link.upcast::<Element>().compute_source_position();
+        source_position.line_number += 2;
         global.report_csp_violations(violations, None, Some(source_position));
     }
 }

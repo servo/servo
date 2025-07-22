@@ -50,7 +50,7 @@ use crate::dom::blob::Blob;
 use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -113,6 +113,7 @@ impl HTMLFormElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited_with_state(
@@ -120,6 +121,7 @@ impl HTMLFormElement {
                 local_name,
                 prefix,
                 document,
+                creator,
             ),
             marked_for_reset: Cell::new(false),
             constructing_entry_list: Cell::new(false),
@@ -140,10 +142,13 @@ impl HTMLFormElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLFormElement> {
         Node::reflect_node_with_proto(
-            Box::new(HTMLFormElement::new_inherited(local_name, prefix, document)),
+            Box::new(HTMLFormElement::new_inherited(
+                local_name, prefix, document, creator,
+            )),
             document,
             proto,
             can_gc,

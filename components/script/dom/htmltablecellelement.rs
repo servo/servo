@@ -17,7 +17,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::element::{Element, ElementCreator, LayoutElementHelpers};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltableelement::HTMLTableElement;
 use crate::dom::htmltablerowelement::HTMLTableRowElement;
@@ -39,9 +39,10 @@ impl HTMLTableCellElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLTableCellElement {
         HTMLTableCellElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
         }
     }
 
@@ -51,11 +52,12 @@ impl HTMLTableCellElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLTableCellElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLTableCellElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,

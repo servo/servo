@@ -13,7 +13,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
 use crate::dom::node::Node;
 use crate::dom::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -32,9 +32,12 @@ impl SVGSVGElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> SVGSVGElement {
         SVGSVGElement {
-            svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
+            svggraphicselement: SVGGraphicsElement::new_inherited(
+                local_name, prefix, document, creator,
+            ),
         }
     }
 
@@ -44,10 +47,13 @@ impl SVGSVGElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<SVGSVGElement> {
         Node::reflect_node_with_proto(
-            Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
+            Box::new(SVGSVGElement::new_inherited(
+                local_name, prefix, document, creator,
+            )),
             document,
             proto,
             can_gc,

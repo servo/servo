@@ -22,6 +22,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
+use crate::dom::element::ElementCreator;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
@@ -202,6 +203,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 None,
                 &doc,
                 None,
+                ElementCreator::ScriptCreated,
                 can_gc,
             ));
             doc_node
@@ -215,6 +217,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                     None,
                     &doc,
                     None,
+                    ElementCreator::ScriptCreated,
                     can_gc,
                 ));
                 doc_html.AppendChild(&doc_head, can_gc).unwrap();
@@ -227,6 +230,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                         None,
                         &doc,
                         None,
+                        ElementCreator::ScriptCreated,
                         can_gc,
                     ));
                     doc_head.AppendChild(&doc_title, can_gc).unwrap();
@@ -238,7 +242,14 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             }
 
             // Step 7.
-            let doc_body = HTMLBodyElement::new(local_name!("body"), None, &doc, None, can_gc);
+            let doc_body = HTMLBodyElement::new(
+                local_name!("body"),
+                None,
+                &doc,
+                None,
+                ElementCreator::ScriptCreated,
+                can_gc,
+            );
             doc_html.AppendChild(doc_body.upcast(), can_gc).unwrap();
         }
 

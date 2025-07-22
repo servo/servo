@@ -38,7 +38,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlcollection::CollectionFilter;
@@ -114,6 +114,7 @@ impl HTMLSelectElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited_with_state(
@@ -121,6 +122,7 @@ impl HTMLSelectElement {
                 local_name,
                 prefix,
                 document,
+                creator,
             ),
             options: Default::default(),
             form_owner: Default::default(),
@@ -136,11 +138,12 @@ impl HTMLSelectElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLSelectElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLSelectElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,
@@ -258,14 +261,28 @@ impl HTMLSelectElement {
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
-        let select_box = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let select_box = HTMLDivElement::new(
+            local_name!("div"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
         select_box.upcast::<Element>().set_string_attribute(
             &local_name!("style"),
             SELECT_BOX_STYLE.into(),
             can_gc,
         );
 
-        let text_container = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let text_container = HTMLDivElement::new(
+            local_name!("div"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
         text_container.upcast::<Element>().set_string_attribute(
             &local_name!("style"),
             TEXT_CONTAINER_STYLE.into(),
@@ -285,8 +302,14 @@ impl HTMLSelectElement {
             .AppendChild(text.upcast::<Node>(), can_gc)
             .unwrap();
 
-        let chevron_container =
-            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let chevron_container = HTMLDivElement::new(
+            local_name!("div"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
         chevron_container.upcast::<Element>().set_string_attribute(
             &local_name!("style"),
             CHEVRON_CONTAINER_STYLE.into(),

@@ -18,7 +18,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::htmldivelement::HTMLDivElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeTraits};
@@ -45,9 +45,10 @@ impl HTMLProgressElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLProgressElement {
         HTMLProgressElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
             labels_node_list: MutNullableDom::new(None),
             shadow_tree: Default::default(),
         }
@@ -59,11 +60,12 @@ impl HTMLProgressElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLProgressElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLProgressElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,
@@ -75,7 +77,14 @@ impl HTMLProgressElement {
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
-        let progress_bar = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let progress_bar = HTMLDivElement::new(
+            local_name!("div"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
         // FIXME: This should use ::-moz-progress-bar
         progress_bar
             .upcast::<Element>()

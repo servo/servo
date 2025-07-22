@@ -203,6 +203,7 @@ pub struct Element {
     #[no_trace]
     selector_flags: Cell<ElementSelectorFlags>,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
+    line_number: u64,
 }
 
 impl fmt::Debug for Element {
@@ -283,6 +284,7 @@ impl Element {
         namespace: Namespace,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> Element {
         Element::new_inherited_with_state(
             ElementState::empty(),
@@ -290,6 +292,7 @@ impl Element {
             namespace,
             prefix,
             document,
+            creator,
         )
     }
 
@@ -299,6 +302,7 @@ impl Element {
         namespace: Namespace,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> Element {
         Element {
             node: Node::new_inherited(document),
@@ -315,6 +319,7 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
             rare_data: Default::default(),
+            line_number: creator.return_line_number(),
         }
     }
 
@@ -324,11 +329,12 @@ impl Element {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<Element> {
         Node::reflect_node_with_proto(
             Box::new(Element::new_inherited(
-                local_name, namespace, prefix, document,
+                local_name, namespace, prefix, document, creator,
             )),
             document,
             proto,
@@ -2581,6 +2587,7 @@ impl Element {
                 None,
                 owner_doc,
                 None,
+                ElementCreator::ScriptCreated,
                 can_gc,
             )),
         }
@@ -2696,10 +2703,10 @@ impl Element {
         }
     }
 
-    pub(crate) fn compute_source_position(&self, line_number: u32) -> SourcePosition {
+    pub(crate) fn compute_source_position(&self) -> SourcePosition {
         SourcePosition {
             source_file: self.owner_global().get_url().to_string(),
-            line_number: line_number + 2,
+            line_number: self.line_number as u32,
             column_number: 0,
         }
     }

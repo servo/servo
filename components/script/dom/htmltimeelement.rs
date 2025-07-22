@@ -10,6 +10,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTimeElementBinding::HTMLTimeEle
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::ElementCreator;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
@@ -24,9 +25,10 @@ impl HTMLTimeElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLTimeElement {
         HTMLTimeElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
         }
     }
 
@@ -36,10 +38,13 @@ impl HTMLTimeElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLTimeElement> {
         Node::reflect_node_with_proto(
-            Box::new(HTMLTimeElement::new_inherited(local_name, prefix, document)),
+            Box::new(HTMLTimeElement::new_inherited(
+                local_name, prefix, document, creator,
+            )),
             document,
             proto,
             can_gc,

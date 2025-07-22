@@ -17,7 +17,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
@@ -54,6 +54,7 @@ impl HTMLButtonElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement: HTMLElement::new_inherited_with_state(
@@ -61,6 +62,7 @@ impl HTMLButtonElement {
                 local_name,
                 prefix,
                 document,
+                creator,
             ),
             button_type: Cell::new(ButtonType::Submit),
             form_owner: Default::default(),
@@ -75,11 +77,12 @@ impl HTMLButtonElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLButtonElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLButtonElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,

@@ -142,7 +142,9 @@ impl CspReporting for Option<CspList> {
         let (result, violations) =
             csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source);
 
-        global.report_csp_violations(violations, Some(el), None);
+        let source_position = el.compute_source_position();
+
+        global.report_csp_violations(violations, Some(el), Some(source_position));
 
         result == CheckResult::Blocked
     }

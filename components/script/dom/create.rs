@@ -96,22 +96,31 @@ fn create_svg_element(
     prefix: Option<Prefix>,
     document: &Document,
     proto: Option<HandleObject>,
+    creator: ElementCreator,
 ) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(svg));
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, CanGc::note());
+            let obj = $ctor::new(name.local, prefix, document, proto, creator, CanGc::note());
             DomRoot::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+, CanGc::note());
+            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+, creator, CanGc::note());
             DomRoot::upcast(obj)
         })
     );
 
     if !pref!(dom_svg_enabled) {
-        return Element::new(name.local, name.ns, prefix, document, proto, CanGc::note());
+        return Element::new(
+            name.local,
+            name.ns,
+            prefix,
+            document,
+            proto,
+            creator,
+            CanGc::note(),
+        );
     }
 
     match name.local {
@@ -200,7 +209,7 @@ fn create_html_element(
                             // custom element definition set to null, is value set to null,
                             // and node document set to document.
                             let element = DomRoot::upcast::<Element>(HTMLUnknownElement::new(
-                                local_name, prefix, document, proto, can_gc,
+                                local_name, prefix, document, proto, creator, can_gc,
                             ));
                             element.set_custom_element_state(CustomElementState::Failed);
                             element
@@ -219,6 +228,7 @@ fn create_html_element(
                         prefix.clone(),
                         document,
                         proto,
+                        creator,
                         can_gc,
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
@@ -268,11 +278,11 @@ pub(crate) fn create_native_html_element(
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, CanGc::note());
+            let obj = $ctor::new(name.local, prefix, document, proto, creator, CanGc::note());
             DomRoot::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+, CanGc::note());
+            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+, creator, CanGc::note());
             DomRoot::upcast(obj)
         })
     );
@@ -344,7 +354,7 @@ pub(crate) fn create_native_html_element(
         local_name!("html") => make!(HTMLHtmlElement),
         local_name!("i") => make!(HTMLElement),
         local_name!("iframe") => make!(HTMLIFrameElement),
-        local_name!("img") => make!(HTMLImageElement, creator),
+        local_name!("img") => make!(HTMLImageElement),
         local_name!("input") => make!(HTMLInputElement),
         local_name!("ins") => make!(HTMLModElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:isindex-2
@@ -355,7 +365,7 @@ pub(crate) fn create_native_html_element(
         local_name!("label") => make!(HTMLLabelElement),
         local_name!("legend") => make!(HTMLLegendElement),
         local_name!("li") => make!(HTMLLIElement),
-        local_name!("link") => make!(HTMLLinkElement, creator),
+        local_name!("link") => make!(HTMLLinkElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:listing
         local_name!("listing") => make!(HTMLPreElement),
         local_name!("main") => make!(HTMLElement),
@@ -390,7 +400,7 @@ pub(crate) fn create_native_html_element(
         local_name!("ruby") => make!(HTMLElement),
         local_name!("s") => make!(HTMLElement),
         local_name!("samp") => make!(HTMLElement),
-        local_name!("script") => make!(HTMLScriptElement, creator),
+        local_name!("script") => make!(HTMLScriptElement),
         local_name!("section") => make!(HTMLElement),
         local_name!("select") => make!(HTMLSelectElement),
         local_name!("slot") => make!(HTMLSlotElement),
@@ -401,7 +411,7 @@ pub(crate) fn create_native_html_element(
         local_name!("span") => make!(HTMLSpanElement),
         local_name!("strike") => make!(HTMLElement),
         local_name!("strong") => make!(HTMLElement),
-        local_name!("style") => make!(HTMLStyleElement, creator),
+        local_name!("style") => make!(HTMLStyleElement),
         local_name!("sub") => make!(HTMLElement),
         local_name!("summary") => make!(HTMLElement),
         local_name!("sup") => make!(HTMLElement),
@@ -443,7 +453,9 @@ pub(crate) fn create_element(
     let prefix = name.prefix.clone();
     match name.ns {
         ns!(html) => create_html_element(name, prefix, is, document, creator, mode, proto, can_gc),
-        ns!(svg) => create_svg_element(name, prefix, document, proto),
-        _ => Element::new(name.local, name.ns, prefix, document, proto, can_gc),
+        ns!(svg) => create_svg_element(name, prefix, document, proto, creator),
+        _ => Element::new(
+            name.local, name.ns, prefix, document, proto, creator, can_gc,
+        ),
     }
 }

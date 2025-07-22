@@ -54,12 +54,13 @@ impl HTMLStyleElement {
         document: &Document,
         creator: ElementCreator,
     ) -> HTMLStyleElement {
+        let is_parser_created = creator.is_parser_created();
         HTMLStyleElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
             stylesheet: DomRefCell::new(None),
             cssom_stylesheet: MutNullableDom::new(None),
-            parser_inserted: Cell::new(creator.is_parser_created()),
-            in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
+            parser_inserted: Cell::new(is_parser_created),
+            in_stack_of_open_elements: Cell::new(is_parser_created),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
         }

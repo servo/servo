@@ -26,7 +26,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
@@ -141,6 +141,7 @@ impl HTMLTextAreaElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLTextAreaElement {
         let constellation_sender = document
             .window()
@@ -153,6 +154,7 @@ impl HTMLTextAreaElement {
                 local_name,
                 prefix,
                 document,
+                creator,
             ),
             placeholder: DomRefCell::new(DOMString::new()),
             textinput: DomRefCell::new(TextInput::new(
@@ -179,11 +181,12 @@ impl HTMLTextAreaElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLTextAreaElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLTextAreaElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,

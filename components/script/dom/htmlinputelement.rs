@@ -59,7 +59,7 @@ use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueStr
 use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -399,6 +399,7 @@ impl HTMLInputElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLInputElement {
         let constellation_sender = document
             .window()
@@ -411,6 +412,7 @@ impl HTMLInputElement {
                 local_name,
                 prefix,
                 document,
+                creator,
             ),
             input_type: Cell::new(Default::default()),
             placeholder: DomRefCell::new(DOMString::new()),
@@ -445,11 +447,12 @@ impl HTMLInputElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLInputElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLInputElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,
@@ -1117,7 +1120,14 @@ impl HTMLInputElement {
         implemented_pseudo: PseudoElement,
         can_gc: CanGc,
     ) -> DomRoot<HTMLDivElement> {
-        let el = HTMLDivElement::new(local_name!("div"), None, document, None, can_gc);
+        let el = HTMLDivElement::new(
+            local_name!("div"),
+            None,
+            document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
         parent
             .upcast::<Node>()
             .AppendChild(el.upcast::<Node>(), can_gc)
@@ -1136,8 +1146,14 @@ impl HTMLInputElement {
         let shadow_root = self.shadow_root(can_gc);
         Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
 
-        let inner_container =
-            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let inner_container = HTMLDivElement::new(
+            local_name!("div"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
         shadow_root
             .upcast::<Node>()
             .AppendChild(inner_container.upcast::<Node>(), can_gc)
@@ -1196,7 +1212,14 @@ impl HTMLInputElement {
         let shadow_root = self.shadow_root(can_gc);
         Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
 
-        let color_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let color_value = HTMLDivElement::new(
+            local_name!("div"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
         shadow_root
             .upcast::<Node>()
             .AppendChild(color_value.upcast::<Node>(), can_gc)

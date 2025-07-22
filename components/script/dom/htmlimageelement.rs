@@ -331,9 +331,8 @@ impl FetchResponseListener for ImageContext {
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let elem = self.element.root();
-        let source_position = elem
-            .upcast::<Element>()
-            .compute_source_position(elem.line_number as u32);
+        let mut source_position = elem.upcast::<Element>().compute_source_position();
+        source_position.line_number += 2;
         global.report_csp_violations(violations, None, Some(source_position));
     }
 }
@@ -1336,8 +1335,9 @@ impl HTMLImageElement {
         document: &Document,
         creator: ElementCreator,
     ) -> HTMLImageElement {
+        let line_number = creator.return_line_number();
         HTMLImageElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
             image_request: Cell::new(ImageRequestPhase::Current),
             current_request: DomRefCell::new(ImageRequest {
                 state: State::Unavailable,
@@ -1365,7 +1365,7 @@ impl HTMLImageElement {
             dimension_attribute_source: Default::default(),
             last_selected_source: DomRefCell::new(None),
             image_decode_promises: DomRefCell::new(vec![]),
-            line_number: creator.return_line_number(),
+            line_number,
         }
     }
 

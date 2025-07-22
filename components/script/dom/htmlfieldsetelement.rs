@@ -16,7 +16,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -40,6 +40,7 @@ impl HTMLFieldSetElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement: HTMLElement::new_inherited_with_state(
@@ -47,6 +48,7 @@ impl HTMLFieldSetElement {
                 local_name,
                 prefix,
                 document,
+                creator,
             ),
             form_owner: Default::default(),
             validity_state: Default::default(),
@@ -59,11 +61,12 @@ impl HTMLFieldSetElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLFieldSetElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLFieldSetElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,

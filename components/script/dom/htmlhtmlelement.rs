@@ -9,6 +9,7 @@ use js::rust::HandleObject;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
+use crate::dom::element::ElementCreator;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
@@ -24,9 +25,10 @@ impl HTMLHtmlElement {
         localName: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLHtmlElement {
         HTMLHtmlElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document, creator),
         }
     }
 
@@ -36,10 +38,13 @@ impl HTMLHtmlElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLHtmlElement> {
         let n = Node::reflect_node_with_proto(
-            Box::new(HTMLHtmlElement::new_inherited(localName, prefix, document)),
+            Box::new(HTMLHtmlElement::new_inherited(
+                localName, prefix, document, creator,
+            )),
             document,
             proto,
             can_gc,

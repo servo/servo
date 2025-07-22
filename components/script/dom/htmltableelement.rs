@@ -19,7 +19,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablecaptionelement::HTMLTableCaptionElement;
@@ -60,9 +60,10 @@ impl HTMLTableElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLTableElement {
         HTMLTableElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
             border: Cell::new(None),
             cellpadding: Cell::new(None),
             cellspacing: Cell::new(None),
@@ -76,11 +77,12 @@ impl HTMLTableElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLTableElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLTableElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,
@@ -150,8 +152,14 @@ impl HTMLTableElement {
             return section;
         }
 
-        let section =
-            HTMLTableSectionElement::new(atom.clone(), None, &self.owner_document(), None, can_gc);
+        let section = HTMLTableSectionElement::new(
+            atom.clone(),
+            None,
+            &self.owner_document(),
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
         match *atom {
             local_name!("thead") => self.SetTHead(Some(&section)),
             local_name!("tfoot") => self.SetTFoot(Some(&section)),
@@ -232,6 +240,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                     None,
                     &self.owner_document(),
                     None,
+                    ElementCreator::ScriptCreated,
                     can_gc,
                 );
                 self.SetCaption(Some(&caption))
@@ -334,6 +343,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             None,
             &self.owner_document(),
             None,
+            ElementCreator::ScriptCreated,
             can_gc,
         );
         let node = self.upcast::<Node>();
@@ -362,6 +372,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             None,
             &self.owner_document(),
             None,
+            ElementCreator::ScriptCreated,
             can_gc,
         );
         let node = self.upcast::<Node>();

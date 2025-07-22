@@ -8,6 +8,7 @@ use stylo_dom::ElementState;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::document::Document;
+use crate::dom::element::ElementCreator;
 use crate::dom::svgelement::SVGElement;
 use crate::dom::virtualmethods::VirtualMethods;
 
@@ -21,12 +22,14 @@ impl SVGGraphicsElement {
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> SVGGraphicsElement {
         SVGGraphicsElement::new_inherited_with_state(
             ElementState::empty(),
             tag_name,
             prefix,
             document,
+            creator,
         )
     }
 
@@ -35,9 +38,12 @@ impl SVGGraphicsElement {
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> SVGGraphicsElement {
         SVGGraphicsElement {
-            svgelement: SVGElement::new_inherited_with_state(state, tag_name, prefix, document),
+            svgelement: SVGElement::new_inherited_with_state(
+                state, tag_name, prefix, document, creator,
+            ),
         }
     }
 }

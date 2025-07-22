@@ -20,7 +20,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::element::Element;
+use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
@@ -61,8 +61,14 @@ impl HTMLOptionsCollection {
         let document = root.owner_document();
 
         for _ in 0..count {
-            let element =
-                HTMLOptionElement::new(local_name!("option"), None, &document, None, can_gc);
+            let element = HTMLOptionElement::new(
+                local_name!("option"),
+                None,
+                &document,
+                None,
+                ElementCreator::ScriptCreated,
+                can_gc,
+            );
             let node = element.upcast::<Node>();
             root.AppendChild(node, can_gc)?;
         }

@@ -14,7 +14,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -30,8 +30,15 @@ impl SVGElement {
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> SVGElement {
-        SVGElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
+        SVGElement::new_inherited_with_state(
+            ElementState::empty(),
+            tag_name,
+            prefix,
+            document,
+            creator,
+        )
     }
 
     pub(crate) fn new_inherited_with_state(
@@ -39,9 +46,17 @@ impl SVGElement {
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> SVGElement {
         SVGElement {
-            element: Element::new_inherited_with_state(state, tag_name, ns!(svg), prefix, document),
+            element: Element::new_inherited_with_state(
+                state,
+                tag_name,
+                ns!(svg),
+                prefix,
+                document,
+                creator,
+            ),
             style_decl: Default::default(),
         }
     }
@@ -51,10 +66,13 @@ impl SVGElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<SVGElement> {
         Node::reflect_node_with_proto(
-            Box::new(SVGElement::new_inherited(tag_name, prefix, document)),
+            Box::new(SVGElement::new_inherited(
+                tag_name, prefix, document, creator,
+            )),
             document,
             proto,
             can_gc,

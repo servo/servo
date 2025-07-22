@@ -35,7 +35,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlmediaelement::{HTMLMediaElement, NetworkState, ReadyState};
 use crate::dom::node::{Node, NodeTraits};
@@ -70,9 +70,12 @@ impl HTMLVideoElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLVideoElement {
         HTMLVideoElement {
-            htmlmediaelement: HTMLMediaElement::new_inherited(local_name, prefix, document),
+            htmlmediaelement: HTMLMediaElement::new_inherited(
+                local_name, prefix, document, creator,
+            ),
             video_width: Cell::new(None),
             video_height: Cell::new(None),
             generation_id: Cell::new(0),
@@ -88,11 +91,12 @@ impl HTMLVideoElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLVideoElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLVideoElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,

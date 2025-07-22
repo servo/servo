@@ -14,6 +14,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::element::ElementCreator;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{CloneChildrenFlag, Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -32,9 +33,10 @@ impl HTMLTemplateElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLTemplateElement {
         HTMLTemplateElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document, creator),
             contents: MutNullableDom::new(None),
         }
     }
@@ -45,11 +47,12 @@ impl HTMLTemplateElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLTemplateElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLTemplateElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,
