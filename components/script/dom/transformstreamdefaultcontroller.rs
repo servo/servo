@@ -139,7 +139,7 @@ impl TransformStreamDefaultController {
         if let TransformerType::Js { transform_obj, .. } = &self.transformer_type {
             transform_obj.set(*this_object)
         } else {
-            panic!("Non-Js transformer type should not set transform_objß")
+            unreachable!("Non-Js transformer type should not set transform_objß")
         }
     }
 
