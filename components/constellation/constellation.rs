@@ -4455,13 +4455,6 @@ where
                     self.handle_send_error(pipeline_id, e);
                 }
             },
-            WebDriverCommandMsg::TakeScreenshot(webview_id, rect, response_sender) => {
-                self.compositor_proxy.send(CompositorMsg::CreatePng(
-                    webview_id,
-                    rect,
-                    response_sender,
-                ));
-            },
             WebDriverCommandMsg::CloseWebView(..) |
             WebDriverCommandMsg::NewWebView(..) |
             WebDriverCommandMsg::FocusWebView(..) |
@@ -4475,7 +4468,8 @@ where
             WebDriverCommandMsg::KeyboardAction(..) |
             WebDriverCommandMsg::MouseButtonAction(..) |
             WebDriverCommandMsg::MouseMoveAction(..) |
-            WebDriverCommandMsg::WheelScrollAction(..) => {
+            WebDriverCommandMsg::WheelScrollAction(..) |
+            WebDriverCommandMsg::TakeScreenshot(..) => {
                 unreachable!("This command should be send directly to the embedder.");
             },
             _ => {
