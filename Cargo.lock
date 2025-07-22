@@ -9422,6 +9422,7 @@ dependencies = [
  "serde",
  "serde_json",
  "servo_config",
+ "servo_geometry",
  "servo_url",
  "stylo_traits",
  "uuid",

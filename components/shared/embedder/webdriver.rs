@@ -16,7 +16,7 @@ use keyboard_types::KeyboardEvent;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use pixels::RasterImage;
 use serde::{Deserialize, Serialize};
-use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
+use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
@@ -132,11 +132,11 @@ pub enum WebDriverCommandMsg {
         // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
     ),
-    /// Set the window size.
-    SetWindowSize(
+    /// Set the outer window rectangle.
+    SetWindowRect(
         WebViewId,
-        DeviceIndependentIntSize,
-        IpcSender<Size2D<i32, DeviceIndependentPixel>>,
+        DeviceIndependentIntRect,
+        IpcSender<DeviceIndependentIntRect>,
     ),
     /// Take a screenshot of the viewport.
     TakeScreenshot(

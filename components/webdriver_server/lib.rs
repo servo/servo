@@ -28,7 +28,7 @@ use embedder_traits::{
     WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverMessageId,
     WebDriverScriptCommand,
 };
-use euclid::{Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -41,6 +41,7 @@ use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use servo_config::prefs::{self, PrefValue, Preferences};
+use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use uuid::Uuid;
@@ -889,7 +890,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#set-window-rect>
-    fn handle_set_window_size(
+    fn handle_set_window_rect(
         &self,
         params: &WindowRectParameters,
     ) -> WebDriverResult<WebDriverResponse> {
@@ -908,17 +909,9 @@ impl Handler {
         // Step 13. Handle any user prompt.
         self.handle_any_user_prompts(webview_id)?;
 
-        // We don't current allow modifying the window x/y positions, so we can just
-        // return the current window rectangle if not changing dimension.
-        if params.width.is_none() && params.height.is_none() {
-            return self.handle_window_rect(VerifyBrowsingContextIsOpen::No);
-        }
         // (TODO) Step 14. Fully exit fullscreen.
         // (TODO) Step 15. Restore the window.
         let (sender, receiver) = ipc::channel().unwrap();
-
-        // Step 16 - 17. Set the width/height in CSS pixels.
-        // This should be done as long as one of width/height is not null.
 
         let current = LazyCell::new(|| {
             let WebDriverResponse::WindowRect(current) = self
@@ -930,24 +923,34 @@ impl Handler {
             current
         });
 
-        let (width, height) = (
+        let (x, y, width, height) = (
+            params.x.unwrap_or_else(|| current.x),
+            params.y.unwrap_or_else(|| current.y),
             params.width.unwrap_or_else(|| current.width),
             params.height.unwrap_or_else(|| current.height),
         );
 
-        self.send_message_to_embedder(WebDriverCommandMsg::SetWindowSize(
+        // Step 16 - 17. Set the width/height in CSS pixels.
+        // This should be done as long as one of width/height is not null.
+
+        // Step 18 - 19. Set the screen x/y in CSS pixels.
+        // This should be done as long as one of width/height is not null.
+        self.send_message_to_embedder(WebDriverCommandMsg::SetWindowRect(
             webview_id,
-            Size2D::new(width, height),
+            DeviceIndependentIntRect::from_origin_and_size(
+                Point2D::new(x, y),
+                Size2D::new(width, height),
+            ),
             sender.clone(),
         ))?;
 
-        let window_size = wait_for_script_response(receiver)?;
-        debug!("window_size after resizing: {window_size:?}");
+        let window_rect = wait_for_script_response(receiver)?;
+        debug!("Result window_rect: {window_rect:?}");
         let window_size_response = WindowRectResponse {
-            x: 0,
-            y: 0,
-            width: window_size.width,
-            height: window_size.height,
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
@@ -2449,7 +2452,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetWindowRect => {
                 self.handle_window_rect(VerifyBrowsingContextIsOpen::Yes)
             },
-            WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_size(size),
+            WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_rect(size),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
             WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
             WebDriverCommand::GoBack => self.handle_go_back(),

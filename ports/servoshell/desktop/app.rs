@@ -21,10 +21,11 @@ use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
-use servo::servo_geometry::convert_size_to_css_pixel;
+use servo::servo_geometry::convert_rect_to_css_pixel;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_api::units::DeviceIntRect;
 use servo::{
     EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
     WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
@@ -38,6 +39,7 @@ use winit::window::WindowId;
 
 use super::app_state::AppState;
 use super::events_loop::{AppEvent, EventLoopProxy, EventsLoop};
+use super::geometry::winit_position_to_euclid_point;
 use super::minibrowser::{Minibrowser, MinibrowserEvent};
 use super::{headed_window, headless_window};
 use crate::desktop::app_state::RunningAppState;
@@ -392,7 +394,7 @@ impl App {
                         warn!("Failed to send response of GetWindowSize: {error}");
                     }
                 },
-                WebDriverCommandMsg::SetWindowSize(webview_id, requested_size, size_sender) => {
+                WebDriverCommandMsg::SetWindowRect(webview_id, requested_rect, size_sender) => {
                     let Some(webview) = running_state.webview_by_id(webview_id) else {
                         continue;
                     };
@@ -404,20 +406,35 @@ impl App {
                         .expect("Should have at least one window in servoshell");
                     let scale = window.hidpi_scale_factor();
 
-                    let requested_physical_size =
-                        (requested_size.to_f32() * scale).round().to_i32();
+                    let requested_physical_rect =
+                        (requested_rect.to_f32() * scale).round().to_i32();
 
                     // When None is returned, it means that the request went to the display system,
                     // and the actual size will be delivered later with the WindowEvent::Resized.
-                    let returned_size = window.request_resize(&webview, requested_physical_size);
+                    // Step 17. Set Width/Height.
+                    let returned_size =
+                        window.request_resize(&webview, requested_physical_rect.size());
                     // TODO: Handle None case. For now, we assume always succeed.
                     // In reality, the request may exceed available screen size.
 
-                    if let Err(error) = size_sender.send(
-                        returned_size
-                            .map(|size| convert_size_to_css_pixel(size, scale))
-                            .unwrap_or(requested_size),
-                    ) {
+                    // Step 18. Set position of the window.
+                    window.set_position(requested_physical_rect.min);
+
+                    let result_physical_position = window
+                        .winit_window()
+                        .and_then(|window| window.outer_position().ok())
+                        .map(winit_position_to_euclid_point)
+                        .unwrap_or(requested_physical_rect.min);
+
+                    let reply_rect = convert_rect_to_css_pixel(
+                        DeviceIntRect::from_origin_and_size(
+                            result_physical_position,
+                            returned_size.unwrap_or(requested_physical_rect.size()),
+                        ),
+                        scale,
+                    );
+
+                    if let Err(error) = size_sender.send(reply_rect) {
                         warn!("Failed to send window size: {error}");
                     }
                 },
