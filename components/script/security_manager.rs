@@ -19,7 +19,7 @@ use crate::conversions::Convert;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::csp::{GlobalCspReporting, Violation};
+use crate::dom::csp::Violation;
 use crate::dom::csppolicyviolationreport::{
     CSPReportUriViolationReport, SecurityPolicyViolationReport,
 };
@@ -99,6 +99,9 @@ impl CSPViolationReportTask {
         for token in &report_uri_directive.value {
             // Step 3.4.2.1. Let endpoint be the result of executing the URL parser with token as the input,
             // and violation’s url as the base URL.
+            //
+            // TODO: Figure out if this should be the URL of the containing document or not in case
+            // the url points to a blob
             let Ok(endpoint) = ServoUrl::parse_with_base(Some(&global.get_url()), token) else {
                 // Step 3.4.2.2. If endpoint is not a valid URL, skip the remaining substeps.
                 continue;
@@ -224,10 +227,7 @@ impl FetchResponseListener for CSPReportUriFetchListener {
         submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
-    }
+    fn process_csp_violations(&mut self, _request_id: RequestId, _violations: Vec<Violation>) {}
 }
 
 impl ResourceTimingListener for CSPReportUriFetchListener {

@@ -32,10 +32,10 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
-use script_bindings::conversions::IDLInterface;
+use script_bindings::conversions::{IDLInterface, SafeToJSValConvertible};
 use strum::IntoEnumIterator;
 
-use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
+use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
@@ -594,7 +594,7 @@ pub(crate) fn write(
     unsafe {
         rooted!(in(*cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {
-            transfer.to_jsval(*cx, val.handle_mut());
+            transfer.safe_to_jsval(cx, val.handle_mut());
         }
         let mut sc_writer = StructuredDataWriter::default();
         let sc_writer_ptr = &mut sc_writer as *mut _;

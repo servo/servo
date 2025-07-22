@@ -214,6 +214,7 @@ mod from_script {
                 Self::SetCursor(..) => target_variant!("SetCursor"),
                 Self::NewFavicon(..) => target_variant!("NewFavicon"),
                 Self::HistoryChanged(..) => target_variant!("HistoryChanged"),
+                Self::HistoryTraversalComplete(..) => target_variant!("HistoryTraversalComplete"),
                 Self::GetWindowRect(..) => target_variant!("GetWindowRect"),
                 Self::GetScreenMetrics(..) => target_variant!("GetScreenMetrics"),
                 Self::NotifyFullscreenStateChanged(..) => {

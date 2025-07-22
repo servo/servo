@@ -119,10 +119,11 @@ def handle_preset(s: str) -> Optional[JobConfig]:
                     "./tests/wpt/tests/webdriver/tests/classic/",
                     "--product servodriver",
                     "--headless",
+                    "--processes 1",
                 ]
             ),
             unit_tests=False,
-            number_of_wpt_chunks=1,
+            number_of_wpt_chunks=2,
         )
     elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)

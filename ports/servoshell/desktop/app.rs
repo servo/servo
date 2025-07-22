@@ -21,11 +21,10 @@ use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
-use servo::servo_geometry::DeviceIndependentIntSize;
+use servo::servo_geometry::convert_size_to_css_pixel;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::DeviceIntSize;
 use servo::{
     EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
     WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
@@ -378,13 +377,10 @@ impl App {
                 WebDriverCommandMsg::CloseWebView(webview_id) => {
                     running_state.close_webview(webview_id);
                 },
-                WebDriverCommandMsg::FocusWebView(webview_id) => {
+                WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.focus();
+                        webview.focus_from_webdriver(response_sender);
                     }
-
-                    // TODO: send a response to the WebDriver
-                    // so it knows when the focus has finished.
                 },
                 WebDriverCommandMsg::GetWindowRect(_webview_id, response_sender) => {
                     let window = self
@@ -407,29 +403,20 @@ impl App {
                         .values()
                         .next()
                         .expect("Should have at least one window in servoshell");
-                    let scale = window.hidpi_scale_factor().get() as f64;
-                    // TODO: Find a universal way to convert.
-                    // See https://github.com/servo/servo/issues/37937
-                    let requested_physical_size = DeviceIntSize::new(
-                        (requested_size.width as f64 * scale).round() as i32,
-                        (requested_size.height as f64 * scale).round() as i32,
-                    );
+                    let scale = window.hidpi_scale_factor();
+
+                    let requested_physical_size =
+                        (requested_size.to_f32() * scale).round().to_i32();
+
                     // When None is returned, it means that the request went to the display system,
                     // and the actual size will be delivered later with the WindowEvent::Resized.
                     let returned_size = window.request_resize(&webview, requested_physical_size);
                     // TODO: Handle None case. For now, we assume always succeed.
                     // In reality, the request may exceed available screen size.
 
-                    // TODO: Find a universal way to convert.
-                    // See https://github.com/servo/servo/issues/37937
                     if let Err(error) = size_sender.send(
                         returned_size
-                            .map(|size| {
-                                DeviceIndependentIntSize::new(
-                                    (size.width as f64 / scale).round() as i32,
-                                    (size.height as f64 / scale).round() as i32,
-                                )
-                            })
+                            .map(|size| convert_size_to_css_pixel(size, scale))
                             .unwrap_or(requested_size),
                     ) {
                         warn!("Failed to send window size: {error}");
@@ -462,24 +449,34 @@ impl App {
                 },
                 WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.load(url.into_url());
                         running_state.set_load_status_sender(webview_id, load_status_sender);
+                        webview.load(url.into_url());
                     }
                 },
                 WebDriverCommandMsg::Refresh(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.reload();
                         running_state.set_load_status_sender(webview_id, load_status_sender);
+                        webview.reload();
                     }
                 },
-                WebDriverCommandMsg::GoBack(webview_id) => {
+                WebDriverCommandMsg::GoBack(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.go_back(1);
+                        let traversal_id = webview.go_back(1);
+                        running_state.set_pending_traversal(
+                            webview_id,
+                            traversal_id,
+                            load_status_sender,
+                        );
                     }
                 },
-                WebDriverCommandMsg::GoForward(webview_id) => {
+                WebDriverCommandMsg::GoForward(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.go_forward(1);
+                        let traversal_id = webview.go_forward(1);
+                        running_state.set_pending_traversal(
+                            webview_id,
+                            traversal_id,
+                            load_status_sender,
+                        );
                     }
                 },
                 // Key events don't need hit test so can be forwarded to constellation for now
@@ -560,7 +557,7 @@ impl App {
                             ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
 
                         webview.notify_input_event(
-                            InputEvent::Wheel(WheelEvent::new(delta, point))
+                            InputEvent::Wheel(WheelEvent::new(delta, point.to_f32()))
                                 .with_webdriver_message_id(webdriver_message_id),
                         );
 
@@ -577,8 +574,17 @@ impl App {
                         webdriver_script_command,
                     ));
                 },
+                WebDriverCommandMsg::CurrentUserPrompt(webview_id, response_sender) => {
+                    let current_dialog =
+                        running_state.get_current_active_dialog_webdriver_type(webview_id);
+                    if let Err(error) = response_sender.send(current_dialog) {
+                        warn!("Failed to send response of CurrentUserPrompt: {error}");
+                    };
+                },
                 WebDriverCommandMsg::HandleUserPrompt(webview_id, action, response_sender) => {
                     let response = if running_state.webview_has_active_dialog(webview_id) {
+                        let alert_text = running_state.alert_text_of_newest_dialog(webview_id);
+
                         match action {
                             WebDriverUserPromptAction::Accept => {
                                 running_state.accept_active_dialogs(webview_id)
@@ -586,9 +592,14 @@ impl App {
                             WebDriverUserPromptAction::Dismiss => {
                                 running_state.dismiss_active_dialogs(webview_id)
                             },
+                            WebDriverUserPromptAction::Ignore => {},
                         };
-                        Ok(())
+
+                        // Return success for AcceptAlert and DismissAlert commands.
+                        Ok(alert_text)
                     } else {
+                        // Return error for AcceptAlert and DismissAlert commands
+                        // if there is no active dialog.
                         Err(())
                     };
 
@@ -606,6 +617,9 @@ impl App {
                         warn!("Failed to send response of GetAlertText: {error}");
                     };
                 },
+                WebDriverCommandMsg::SendAlertText(webview_id, text) => {
+                    running_state.set_alert_text_of_newest_dialog(webview_id, text);
+                },
                 WebDriverCommandMsg::TakeScreenshot(..) => {
                     warn!(
                         "WebDriverCommand {:?} is still not moved from constellation to embedder",
@@ -622,7 +636,8 @@ impl App {
         running_state: &RunningAppState,
     ) {
         match msg {
-            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) => {
+            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) |
+            WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
                 // Give embedder a chance to interrupt the script command.
                 // Webdriver only handles 1 script command at a time, so we can
                 // safely set a new interrupt sender and remove the previous one here.

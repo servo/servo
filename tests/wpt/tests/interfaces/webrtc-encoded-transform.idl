@@ -19,8 +19,18 @@ enum SFrameTransformRole {
     "decrypt"
 };
 
+// List of supported cipher suites, as defined in [[RFC9605]] section 4.5.
+enum SFrameCipherSuite {
+     "AES_128_CTR_HMAC_SHA256_80",
+     "AES_128_CTR_HMAC_SHA256_64",
+     "AES_128_CTR_HMAC_SHA256_32",
+     "AES_128_GCM_SHA256_128",
+     "AES_256_GCM_SHA512_128"
+};
+
 dictionary SFrameTransformOptions {
     SFrameTransformRole role = "encrypt";
+    required SFrameCipherSuite cipherSuite;
 };
 
 typedef [EnforceRange] unsigned long long SmallCryptoKeyID;

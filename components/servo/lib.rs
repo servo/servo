@@ -732,12 +732,15 @@ impl Servo {
                     webview.delegate().notify_closed(webview);
                 }
             },
-            EmbedderMsg::WebViewFocused(webview_id) => {
+            EmbedderMsg::WebViewFocused(webview_id, response_sender) => {
                 for id in self.webviews.borrow().keys() {
                     if let Some(webview) = self.get_webview_handle(*id) {
                         let focused = webview.id() == webview_id;
                         webview.set_focused(focused);
                     }
+                }
+                if let Some(response_sender) = response_sender {
+                    let _ = response_sender.send(true);
                 }
             },
             EmbedderMsg::WebViewBlurred => {
@@ -799,6 +802,13 @@ impl Servo {
             EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.set_load_status(load_status);
+                }
+            },
+            EmbedderMsg::HistoryTraversalComplete(webview_id, traversal_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_traversal_complete(webview.clone(), traversal_id);
                 }
             },
             EmbedderMsg::HistoryChanged(webview_id, urls, current_index) => {

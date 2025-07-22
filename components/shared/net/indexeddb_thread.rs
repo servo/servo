@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::{PartialEq, PartialOrd};
+
 use ipc_channel::ipc::IpcSender;
 use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
@@ -14,9 +16,8 @@ pub enum IndexedDBTxnMode {
     Versionchange,
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#key-type
-// FIXME:(arihant2math) Ordering needs to completely be reimplemented as per https://www.w3.org/TR/IndexedDB-2/#compare-two-keys
-#[derive(Clone, Debug, Deserialize, PartialEq, PartialOrd, Serialize)]
+/// <https://www.w3.org/TR/IndexedDB-2/#key-type>
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum IndexedDBKeyType {
     Number(f64),
     String(String),
@@ -25,6 +26,91 @@ pub enum IndexedDBKeyType {
     Date(Vec<u8>),
     Array(Vec<IndexedDBKeyType>),
     // FIXME:(arihant2math) implment ArrayBuffer
+}
+
+/// <https://www.w3.org/TR/IndexedDB-2/#compare-two-keys>
+impl PartialOrd for IndexedDBKeyType {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // 1. Let ta be the type of a.
+        // 2. Let tb be the type of b.
+
+        match (self, other) {
+            // Step 3: If ta is array and tb is binary, string, date or number, return 1.
+            (
+                IndexedDBKeyType::Array(_),
+                IndexedDBKeyType::Binary(_) |
+                IndexedDBKeyType::Date(_) |
+                IndexedDBKeyType::Number(_) |
+                IndexedDBKeyType::String(_),
+            ) => Some(std::cmp::Ordering::Greater),
+            // Step 4: If tb is array and ta is binary, string, date or number, return -1.
+            (
+                IndexedDBKeyType::Binary(_) |
+                IndexedDBKeyType::Date(_) |
+                IndexedDBKeyType::Number(_) |
+                IndexedDBKeyType::String(_),
+                IndexedDBKeyType::Array(_),
+            ) => Some(std::cmp::Ordering::Less),
+            // Step 5: If ta is binary and tb is string, date or number, return 1.
+            (
+                IndexedDBKeyType::Binary(_),
+                IndexedDBKeyType::String(_) |
+                IndexedDBKeyType::Date(_) |
+                IndexedDBKeyType::Number(_),
+            ) => Some(std::cmp::Ordering::Greater),
+            // Step 6: If tb is binary and ta is string, date or number, return -1.
+            (
+                IndexedDBKeyType::String(_) |
+                IndexedDBKeyType::Date(_) |
+                IndexedDBKeyType::Number(_),
+                IndexedDBKeyType::Binary(_),
+            ) => Some(std::cmp::Ordering::Less),
+            // Step 7: If ta is string and tb is date or number, return 1.
+            (
+                IndexedDBKeyType::String(_),
+                IndexedDBKeyType::Date(_) | IndexedDBKeyType::Number(_),
+            ) => Some(std::cmp::Ordering::Greater),
+            // Step 8: If tb is string and ta is date or number, return -1.
+            (
+                IndexedDBKeyType::Date(_) | IndexedDBKeyType::Number(_),
+                IndexedDBKeyType::String(_),
+            ) => Some(std::cmp::Ordering::Less),
+            // Step 9: If ta is date and tb is number, return 1.
+            (IndexedDBKeyType::Date(_), IndexedDBKeyType::Number(_)) => {
+                Some(std::cmp::Ordering::Greater)
+            },
+            // Step 10: If tb is date and ta is number, return -1.
+            (IndexedDBKeyType::Number(_), IndexedDBKeyType::Date(_)) => {
+                Some(std::cmp::Ordering::Less)
+            },
+            // Step 11 skipped
+            // TODO: Likely a tiny bit wrong (use js number comparison)
+            (IndexedDBKeyType::Number(a), IndexedDBKeyType::Number(b)) => a.partial_cmp(b),
+            // TODO: Likely a tiny bit wrong (use js string comparison)
+            (IndexedDBKeyType::String(a), IndexedDBKeyType::String(b)) => a.partial_cmp(b),
+            // TODO: Likely a little wrong (use js binary comparison)
+            (IndexedDBKeyType::Binary(a), IndexedDBKeyType::Binary(b)) => a.partial_cmp(b),
+            // TODO: Very wrong (convert to Date and compare)
+            (IndexedDBKeyType::Date(a), IndexedDBKeyType::Date(b)) => a.partial_cmp(b),
+            // TODO: Probably also wrong (the items in a and b should be compared, double check against the spec)
+            (IndexedDBKeyType::Array(a), IndexedDBKeyType::Array(b)) => a.partial_cmp(b),
+            // No catch-all is used, rust ensures that all variants are handled
+        }
+    }
+}
+
+impl PartialEq for IndexedDBKeyType {
+    fn eq(&self, other: &Self) -> bool {
+        let cmp = self.partial_cmp(other);
+        match cmp {
+            Some(std::cmp::Ordering::Equal) => true,
+            Some(std::cmp::Ordering::Less) | Some(std::cmp::Ordering::Greater) => false,
+            None => {
+                // If we can't compare the two keys, we assume they are not equal.
+                false
+            },
+        }
+    }
 }
 
 // <https://www.w3.org/TR/IndexedDB-2/#key-range>
@@ -92,6 +178,8 @@ pub enum AsyncReadWriteOperation {
     RemoveItem(
         IndexedDBKeyType, // Key
     ),
+    /// Clears all key/value pairs in the associated idb data
+    Clear,
 }
 
 /// Operations that are not executed instantly, but rather added to a

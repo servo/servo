@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS-content test: first line with quotes honor color</title>
+<link rel="author" title="Minseong Kim" href="jja08111@gmail.com">
+<style>
+body { font: 32px serif; }
+.first-line { color: red; }
+</style>
+<p>Test passes if color of quote marks matches the text color on each line.</p>
+<div>
+  <span class="first-line">This is <q>quoted</q></span>
+  <br>
+  This is <q>quoted</q>
+</div>

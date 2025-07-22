@@ -58,7 +58,7 @@
       var epsilon = 1;
       var emToPx = 25;
 
-      ["mrow", "mstyle", "mphantom", "mpadded", "merror", "mprescripts", "none", "unknown"].forEach(tag => {
+      ["mrow", "mstyle", "mphantom", "mpadded", "merror", "mprescripts", "none", "unknown", "mfenced", "a"].forEach(tag => {
           test(function() {
               assert_true(MathMLFeatureDetection.has_operator_spacing());
               assert_approx_equals(spaceBeforeElement(`${tag}-op-1`), 2 * emToPx, epsilon);
@@ -512,6 +512,110 @@
         <mn>X</mn> <!-- "mn" is not space-like -->
         <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
       </unknown>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <!-- mfenced is unknown to MathML Core so it is considered a grouping element. -->
+  <p>
+    <math>
+      <mn>X</mn>
+      <mfenced id="mfenced-op-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+      </mfenced>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mfenced id="mfenced-nonop-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </mfenced>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mfenced id="mfenced-op-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mfenced>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mfenced id="mfenced-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mfenced>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <!-- a is unknown to MathML Core so it is considered a grouping element. -->
+  <p>
+    <math>
+      <mn>X</mn>
+      <a id="a-op-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+      </a>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <a id="a-nonop-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </a>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <a id="a-op-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </a>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <a id="a-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </a>
       <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
       <mn>X</mn>
       <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>

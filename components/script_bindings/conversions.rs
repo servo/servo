@@ -41,7 +41,7 @@ pub trait SafeToJSValConvertible {
     fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue);
 }
 
-impl<T: ToJSValConvertible> SafeToJSValConvertible for T {
+impl<T: ToJSValConvertible + ?Sized> SafeToJSValConvertible for T {
     fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue) {
         unsafe { self.to_jsval(*cx, rval) };
     }
@@ -76,6 +76,30 @@ pub enum StringificationBehavior {
 impl ToJSValConvertible for DOMString {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         (**self).to_jsval(cx, rval);
+    }
+}
+
+/// A safe wrapper for `FromJSValConvertible`.
+pub trait SafeFromJSValConvertible: Sized {
+    type Config;
+
+    #[allow(clippy::result_unit_err)] // Type definition depends on mozjs
+    fn safe_from_jsval(
+        cx: SafeJSContext,
+        value: HandleValue,
+        option: Self::Config,
+    ) -> Result<ConversionResult<Self>, ()>;
+}
+
+impl<T: FromJSValConvertible> SafeFromJSValConvertible for T {
+    type Config = <T as FromJSValConvertible>::Config;
+
+    fn safe_from_jsval(
+        cx: SafeJSContext,
+        value: HandleValue,
+        option: Self::Config,
+    ) -> Result<ConversionResult<Self>, ()> {
+        unsafe { T::from_jsval(*cx, value, option) }
     }
 }
 

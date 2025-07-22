@@ -11,6 +11,7 @@ use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentType, Cookie, HeaderMapExt};
 use http::{HeaderMap, Method, header};
+use net_traits::request::Destination as RequestDestination;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -27,6 +28,7 @@ pub struct NetworkEventActor {
     pub request_method: Method,
     pub request_started: SystemTime,
     pub request_time_stamp: i64,
+    pub request_destination: RequestDestination,
     pub request_headers_raw: Option<HeaderMap>,
     pub request_body: Option<Vec<u8>>,
     pub request_cookies: Option<RequestCookiesMsg>,
@@ -350,6 +352,7 @@ impl NetworkEventActor {
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs() as i64,
+            request_destination: RequestDestination::None,
             request_headers_raw: None,
             request_body: None,
             request_cookies: None,
@@ -377,6 +380,7 @@ impl NetworkEventActor {
         self.request_method = request.method;
         self.request_started = request.started_date_time;
         self.request_time_stamp = request.time_stamp;
+        self.request_destination = request.destination;
         self.request_body = request.body.clone();
         self.request_headers_raw = Some(request.headers.clone());
     }
@@ -404,14 +408,6 @@ impl NetworkEventActor {
             LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339().to_string(),
         };
 
-        let cause_type = match self.request_url.as_str() {
-            // Adjust based on request data
-            url if url.ends_with(".css") => "stylesheet",
-            url if url.ends_with(".js") => "script",
-            url if url.ends_with(".png") || url.ends_with(".jpg") => "img",
-            _ => "document",
-        };
-
         EventActor {
             actor: self.name(),
             resource_id: self.resource_id,
@@ -422,7 +418,7 @@ impl NetworkEventActor {
             is_xhr: self.is_xhr,
             private: false,
             cause: Cause {
-                type_: cause_type.to_string(),
+                type_: self.request_destination.as_str().to_string(),
                 loading_document_uri: None, // Set if available
             },
         }

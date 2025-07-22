@@ -134,7 +134,9 @@ use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
+use crate::dom::documentorshadowroot::{
+    DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource,
+};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
 use crate::dom::element::{
@@ -332,7 +334,7 @@ pub(crate) struct Document {
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     #[custom_trace]
-    stylesheets: DomRefCell<DocumentStylesheetSet<StyleSheetInDocument>>,
+    stylesheets: DomRefCell<DocumentStylesheetSet<ServoStylesheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
@@ -2186,11 +2188,11 @@ impl Document {
     pub(crate) fn handle_wheel_event(
         &self,
         event: WheelEvent,
-        hit_test_result: Option<CompositorHitTestResult>,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = hit_test_result else {
+        let Some(hit_test_result) = &input_event.hit_test_result else {
             return;
         };
 
@@ -2220,6 +2222,16 @@ impl Document {
             EventCancelable::Cancelable,
             Some(&self.window),
             0i32,
+            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result
+                .point_relative_to_initial_containing_block
+                .to_i32(),
+            input_event.active_keyboard_modifiers,
+            0i16,
+            input_event.pressed_mouse_buttons,
+            None,
+            None,
             // winit defines positive wheel delta values as revealing more content left/up.
             // https://docs.rs/winit-gtk/latest/winit/event/enum.MouseScrollDelta.html
             // This is the opposite of wheel delta in uievents
@@ -3337,6 +3349,10 @@ impl Document {
         self.iframes.borrow_mut()
     }
 
+    pub(crate) fn invalidate_iframes_collection(&self) {
+        self.iframes.borrow_mut().invalidate();
+    }
+
     pub(crate) fn get_dom_interactive(&self) -> Option<CrossProcessInstant> {
         self.dom_interactive.get()
     }
@@ -4133,7 +4149,7 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
-            iframes: Default::default(),
+            iframes: RefCell::new(IFrameCollection::new()),
             style_shared_lock: {
                 /// Per-process shared lock for author-origin stylesheets
                 ///
@@ -4879,23 +4895,29 @@ impl Document {
 
         stylesheets
             .get(Origin::Author, index)
-            .and_then(|s| s.owner.upcast::<Node>().get_cssom_stylesheet())
+            .and_then(|s| s.owner.get_cssom_object())
     }
 
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
-        let insertion_point = stylesheets
-            .iter()
-            .map(|(sheet, _origin)| sheet)
-            .find(|sheet_in_doc| {
-                owner
-                    .upcast::<Node>()
-                    .is_before(sheet_in_doc.owner.upcast())
-            })
-            .cloned();
+
+        // TODO(stevennovayo): support constructed stylesheet for adopted stylesheet and its ordering
+        let insertion_point = match &owner {
+            StylesheetSource::Element(owner_elem) => stylesheets
+                .iter()
+                .map(|(sheet, _origin)| sheet)
+                .find(|sheet_in_doc| match sheet_in_doc.owner {
+                    StylesheetSource::Element(ref other_elem) => {
+                        owner_elem.upcast::<Node>().is_before(other_elem.upcast())
+                    },
+                    StylesheetSource::Constructed(_) => unreachable!(),
+                })
+                .cloned(),
+            StylesheetSource::Constructed(_) => unreachable!(),
+        };
 
         if self.has_browsing_context() {
             self.window.layout_mut().add_stylesheet(
@@ -4922,7 +4944,7 @@ impl Document {
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn remove_stylesheet(&self, owner: &Element, stylesheet: &Arc<Stylesheet>) {
+    pub(crate) fn remove_stylesheet(&self, owner: StylesheetSource, stylesheet: &Arc<Stylesheet>) {
         if self.has_browsing_context() {
             self.window
                 .layout_mut()
@@ -5207,19 +5229,15 @@ impl Document {
     }
 
     /// <https://dom.spec.whatwg.org/#document-allow-declarative-shadow-roots>
-    pub fn allow_declarative_shadow_roots(&self) -> bool {
+    pub(crate) fn allow_declarative_shadow_roots(&self) -> bool {
         self.allow_declarative_shadow_roots.get()
     }
 
-    pub fn set_allow_declarative_shadow_roots(&self, value: bool) {
-        self.allow_declarative_shadow_roots.set(value)
-    }
-
-    pub fn has_trustworthy_ancestor_origin(&self) -> bool {
+    pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
         self.has_trustworthy_ancestor_origin.get()
     }
 
-    pub fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
+    pub(crate) fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
         self.has_trustworthy_ancestor_origin.get() ||
             self.origin().immutable().is_potentially_trustworthy()
     }

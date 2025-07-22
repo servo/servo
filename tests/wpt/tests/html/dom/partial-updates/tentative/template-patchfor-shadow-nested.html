@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: patching inside a declarative shadow tree</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder">Old content in light DOM</div>
+<div id="container">
+    <template shadowrootmode="open">
+        <div id="placeholder">Old content in shadow DOM</div>
+        <div>
+            <template patchfor="placeholder">New content</template>
+        </div>
+    </template>
+</div>
+<script>
+test(() => {
+    assert_equals(document.querySelector("#placeholder").innerText, "Old content in light DOM");
+    const {shadowRoot} = document.querySelector("#container");
+    assert_equals(shadowRoot.querySelector("#placeholder").innerText, "New content");
+    assert_equals(shadowRoot.querySelector("template[patchfor=placeholder]"), null);
+}, "<template patchfor> inside a <template shadowrootmode><div> should apply directly to its target");
+
+</script>

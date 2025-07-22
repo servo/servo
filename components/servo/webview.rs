@@ -14,7 +14,7 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, ViewportDetails,
+    ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
 use servo_geometry::DeviceIndependentPixel;
@@ -25,7 +25,7 @@ use webrender_api::units::{DeviceIntPoint, DevicePixel, DeviceRect};
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
-use crate::{ConstellationProxy, Servo, WebRenderDebugOption};
+use crate::{ConstellationProxy, IpcSender, Servo, WebRenderDebugOption};
 
 /// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
 /// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
@@ -77,7 +77,7 @@ pub(crate) struct WebViewInner {
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
-
+    /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     rect: DeviceRect,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
@@ -308,7 +308,19 @@ impl WebView {
     pub fn focus(&self) {
         self.inner()
             .constellation_proxy
-            .send(EmbedderToConstellationMessage::FocusWebView(self.id()));
+            .send(EmbedderToConstellationMessage::FocusWebView(
+                self.id(),
+                None,
+            ));
+    }
+
+    pub fn focus_from_webdriver(&self, response_sender: IpcSender<bool>) {
+        self.inner()
+            .constellation_proxy
+            .send(EmbedderToConstellationMessage::FocusWebView(
+                self.id(),
+                Some(response_sender),
+            ));
     }
 
     pub fn blur(&self) {
@@ -416,22 +428,28 @@ impl WebView {
             .send(EmbedderToConstellationMessage::Reload(self.id()))
     }
 
-    pub fn go_back(&self, amount: usize) {
+    pub fn go_back(&self, amount: usize) -> TraversalId {
+        let traversal_id = TraversalId::new();
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Back(amount),
-            ))
+                traversal_id.clone(),
+            ));
+        traversal_id
     }
 
-    pub fn go_forward(&self, amount: usize) {
+    pub fn go_forward(&self, amount: usize) -> TraversalId {
+        let traversal_id = TraversalId::new();
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Forward(amount),
-            ))
+                traversal_id.clone(),
+            ));
+        traversal_id
     }
 
     /// Ask the [`WebView`] to scroll web content. Note that positive scroll offsets reveal more

@@ -3277,18 +3277,20 @@
 - name: 2d.text.writingmode
   desc: writing-mode in css should not change how text is rendered
   canvas_types: ['HtmlCanvas']
+  size: [300, 300]
   code: |
+    canvas.style.textOrientation = "upright";
     canvas.style.writingMode = "vertical-rl";
     canvas.style.fontFamily = "Arial";
 
     ctx.font = "bold 64px Arial";
     ctx.textBaseline = "top";
 
-    ctx.fillText("Happy", 0, 100);
+    ctx.fillText("Happy", 100, 0);
   reference: |
     ctx.font = "bold 64px Arial";
     ctx.textBaseline = "top";
 
-    ctx.fillText("Happy", 0, 100);
+    ctx.fillText("Happy", 100, 0);
 
 # TODO: shadows, alpha, composite, clip

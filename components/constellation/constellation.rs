@@ -100,9 +100,8 @@ use background_hang_monitor_api::{
 };
 use base::Epoch;
 use base::id::{
-    BroadcastChannelRouterId, BrowsingContextGroupId, BrowsingContextId, HistoryStateId,
-    MessagePortId, MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
-    PipelineNamespaceRequest, WebViewId,
+    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
+    PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -115,7 +114,7 @@ use compositing_traits::{
     WebrenderExternalImageRegistry,
 };
 use constellation_traits::{
-    AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, BroadcastMsg, DocumentState,
+    AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState,
     IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
     PaintMetricEvent, PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders,
@@ -169,6 +168,7 @@ use webrender::RenderApiSender;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
 
+use crate::broadcastchannel::BroadcastChannels;
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
     NewBrowsingContextInfo,
@@ -368,11 +368,8 @@ pub struct Constellation<STF, SWF> {
     /// A map of router-id to ipc-sender, to route messages to ports.
     message_port_routers: HashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
 
-    /// A map of broadcast routers to their IPC sender.
-    broadcast_routers: HashMap<BroadcastChannelRouterId, IpcSender<BroadcastMsg>>,
-
-    /// A map of origin to a map of channel-name to a list of relevant routers.
-    broadcast_channels: HashMap<ImmutableOrigin, HashMap<String, Vec<BroadcastChannelRouterId>>>,
+    /// Bookkeeping for BroadcastChannel functionnality.
+    broadcast_channels: BroadcastChannels,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
@@ -678,8 +675,7 @@ where
                     browsing_context_group_next_id: Default::default(),
                     message_ports: HashMap::new(),
                     message_port_routers: HashMap::new(),
-                    broadcast_routers: HashMap::new(),
-                    broadcast_channels: HashMap::new(),
+                    broadcast_channels: Default::default(),
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
@@ -1370,16 +1366,25 @@ where
                 }
                 self.handle_panic(webview_id, error, None);
             },
-            EmbedderToConstellationMessage::FocusWebView(webview_id) => {
-                self.handle_focus_web_view(webview_id);
+            EmbedderToConstellationMessage::FocusWebView(webview_id, response_sender) => {
+                self.handle_focus_web_view(webview_id, response_sender);
             },
             EmbedderToConstellationMessage::BlurWebView => {
                 self.webviews.unfocus();
                 self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
             },
             // Handle a forward or back request
-            EmbedderToConstellationMessage::TraverseHistory(webview_id, direction) => {
+            EmbedderToConstellationMessage::TraverseHistory(
+                webview_id,
+                direction,
+                traversal_id,
+            ) => {
                 self.handle_traverse_history_msg(webview_id, direction);
+                self.embedder_proxy
+                    .send(EmbedderMsg::HistoryTraversalComplete(
+                        webview_id,
+                        traversal_id,
+                    ));
             },
             EmbedderToConstellationMessage::ChangeViewportDetails(
                 webview_id,
@@ -1561,42 +1566,64 @@ where
                 response_sender,
                 origin,
             ) => {
-                self.handle_new_broadcast_channel_router(
-                    source_pipeline_id,
-                    router_id,
-                    response_sender,
-                    origin,
-                );
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
+                    .is_err()
+                {
+                    return warn!("Attempt to add broadcast router from an unexpected origin.");
+                }
+                self.broadcast_channels
+                    .new_broadcast_channel_router(router_id, response_sender);
             },
             ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(
                 router_id,
                 channel_name,
                 origin,
             ) => {
-                self.handle_new_broadcast_channel_name_in_router(
-                    source_pipeline_id,
-                    router_id,
-                    channel_name,
-                    origin,
-                );
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
+                    .is_err()
+                {
+                    return warn!("Attempt to add channel name from an unexpected origin.");
+                }
+                self.broadcast_channels
+                    .new_broadcast_channel_name_in_router(router_id, channel_name, origin);
             },
             ScriptToConstellationMessage::RemoveBroadcastChannelNameInRouter(
                 router_id,
                 channel_name,
                 origin,
             ) => {
-                self.handle_remove_broadcast_channel_name_in_router(
-                    source_pipeline_id,
-                    router_id,
-                    channel_name,
-                    origin,
-                );
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
+                    .is_err()
+                {
+                    return warn!("Attempt to remove channel name from an unexpected origin.");
+                }
+                self.broadcast_channels
+                    .remove_broadcast_channel_name_in_router(router_id, channel_name, origin);
             },
             ScriptToConstellationMessage::RemoveBroadcastChannelRouter(router_id, origin) => {
-                self.handle_remove_broadcast_channel_router(source_pipeline_id, router_id, origin);
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
+                    .is_err()
+                {
+                    return warn!("Attempt to remove broadcast router from an unexpected origin.");
+                }
+                self.broadcast_channels
+                    .remove_broadcast_channel_router(router_id);
             },
             ScriptToConstellationMessage::ScheduleBroadcast(router_id, message) => {
-                self.handle_schedule_broadcast(source_pipeline_id, router_id, message);
+                if self
+                    .check_origin_against_pipeline(&source_pipeline_id, &message.origin)
+                    .is_err()
+                {
+                    return warn!(
+                        "Attempt to schedule broadcast from an origin not matching the origin of the msg."
+                    );
+                }
+                self.broadcast_channels
+                    .schedule_broadcast(router_id, message);
             },
             ScriptToConstellationMessage::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy.send(embedder_msg);
@@ -1879,157 +1906,6 @@ where
             return Ok(());
         }
         Err(())
-    }
-
-    /// Broadcast a message via routers in various event-loops.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_schedule_broadcast(
-        &self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        message: BroadcastMsg,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &message.origin)
-            .is_err()
-        {
-            return warn!(
-                "Attempt to schedule broadcast from an origin not matching the origin of the msg."
-            );
-        }
-        if let Some(channels) = self.broadcast_channels.get(&message.origin) {
-            let routers = match channels.get(&message.channel_name) {
-                Some(routers) => routers,
-                None => return warn!("Broadcast to channel name without active routers."),
-            };
-            for router in routers {
-                // Exclude the sender of the broadcast.
-                // Broadcasting locally is done at the point of sending.
-                if router == &router_id {
-                    continue;
-                }
-
-                if let Some(broadcast_ipc_sender) = self.broadcast_routers.get(router) {
-                    if broadcast_ipc_sender.send(message.clone()).is_err() {
-                        warn!("Failed to broadcast message to router: {:?}", router);
-                    }
-                } else {
-                    warn!("No sender for broadcast router: {:?}", router);
-                }
-            }
-        } else {
-            warn!(
-                "Attempt to schedule a broadcast for an origin without routers {:?}",
-                message.origin
-            );
-        }
-    }
-
-    /// Remove a channel-name for a given broadcast router.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_remove_broadcast_channel_name_in_router(
-        &mut self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        channel_name: String,
-        origin: ImmutableOrigin,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &origin)
-            .is_err()
-        {
-            return warn!("Attempt to remove channel name from an unexpected origin.");
-        }
-        if let Some(channels) = self.broadcast_channels.get_mut(&origin) {
-            let is_empty = if let Some(routers) = channels.get_mut(&channel_name) {
-                routers.retain(|router| router != &router_id);
-                routers.is_empty()
-            } else {
-                return warn!(
-                    "Multiple attempts to remove name for broadcast-channel {:?} at {:?}",
-                    channel_name, origin
-                );
-            };
-            if is_empty {
-                channels.remove(&channel_name);
-            }
-        } else {
-            warn!(
-                "Attempt to remove a channel-name for an origin without channels {:?}",
-                origin
-            );
-        }
-    }
-
-    /// Note a new channel-name relevant to a given broadcast router.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_new_broadcast_channel_name_in_router(
-        &mut self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        channel_name: String,
-        origin: ImmutableOrigin,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &origin)
-            .is_err()
-        {
-            return warn!("Attempt to add channel name from an unexpected origin.");
-        }
-        let channels = self.broadcast_channels.entry(origin).or_default();
-
-        let routers = channels.entry(channel_name).or_default();
-
-        routers.push(router_id);
-    }
-
-    /// Remove a broadcast router.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_remove_broadcast_channel_router(
-        &mut self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        origin: ImmutableOrigin,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &origin)
-            .is_err()
-        {
-            return warn!("Attempt to remove broadcast router from an unexpected origin.");
-        }
-        if self.broadcast_routers.remove(&router_id).is_none() {
-            warn!("Attempt to remove unknown broadcast-channel router.");
-        }
-        // Also remove the router_id from the broadcast_channels list.
-        for channels in self.broadcast_channels.values_mut() {
-            for routers in channels.values_mut() {
-                routers.retain(|router| router != &router_id);
-            }
-        }
-    }
-
-    /// Add a new broadcast router.
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_new_broadcast_channel_router(
-        &mut self,
-        pipeline_id: PipelineId,
-        router_id: BroadcastChannelRouterId,
-        broadcast_ipc_sender: IpcSender<BroadcastMsg>,
-        origin: ImmutableOrigin,
-    ) {
-        if self
-            .check_origin_against_pipeline(&pipeline_id, &origin)
-            .is_err()
-        {
-            return warn!("Attempt to add broadcast router from an unexpected origin.");
-        }
-        if self
-            .broadcast_routers
-            .insert(router_id, broadcast_ipc_sender)
-            .is_some()
-        {
-            warn!("Multple attempt to add broadcast-channel router.");
-        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -2898,13 +2774,20 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_focus_web_view(&mut self, webview_id: WebViewId) {
+    fn handle_focus_web_view(
+        &mut self,
+        webview_id: WebViewId,
+        response_sender: Option<IpcSender<bool>>,
+    ) {
         if self.webviews.get(webview_id).is_none() {
+            if let Some(response_sender) = response_sender {
+                let _ = response_sender.send(false);
+            }
             return warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
         }
         self.webviews.focus(webview_id);
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id));
+            .send(EmbedderMsg::WebViewFocused(webview_id, response_sender));
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -4276,7 +4159,7 @@ where
         // Focus the top-level browsing context.
         self.webviews.focus(webview_id);
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id));
+            .send(EmbedderMsg::WebViewFocused(webview_id, None));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused

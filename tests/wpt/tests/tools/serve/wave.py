@@ -90,7 +90,7 @@ def run(venv=None, **kwargs):
     else:
         raise Exception("Missing virtualenv for serve-wave.")
 
-    if kwargs['report'] is True:
+    if kwargs["report"] is True:
         if not is_wptreport_installed():
             raise Exception("wptreport is not installed. Please install it from https://github.com/w3c/wptreport")
 

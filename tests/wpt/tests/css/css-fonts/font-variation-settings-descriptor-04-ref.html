@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-variation-settings descriptor</title>
+<style>
+  @font-face {
+    font-family: "Roboto";
+    src: url('support/fonts/RobotoExtremo-VF.subset.ttf') format('truetype');
+  }
+  .content {
+     font-family: "Roboto";
+     font-variation-settings: 'wdth' 125, 'opsz' 144, 'wght' 600.7;
+  }
+</style>
+<body>
+<p>Test passes if the text below renders correct text weight.</p>
+<p class="content">Filler Text</p>
+</body>
+</html>

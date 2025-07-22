@@ -1,156 +1,111 @@
 <!doctype html>
 <html>
   <head>
-    <title>k-rate AudioParams with inputs for DelayNode</title>
+    <title>DelayNode delayTime with k-rate input should match automation</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
   </head>
 
   <body>
     <script>
-      let audit = Audit.createTaskRunner();
-
-      // Power-of-two to eliminate round-off in computing time and frames, but
-      // is otherwise arbitrary.
+      // Power-of-two sample rate to eliminate round-off errors.
       const sampleRate = 8192;
 
-      // Arbitrary duration except it must be greater than or equal to 1.
-      const testDuration = 1.5;
+      // Arbitrary test duration (must be ≥ 1s).
+      const testDurationSeconds = 1.5;
 
-      audit.define(
-          {label: 'delayTime', description: `DelayNode delayTime k-rate input`},
-          async (task, should) => {
-            // Two channels:  0 = test result, 1 = expected result.
-            let context = new OfflineAudioContext({
-              numberOfChannels: 2,
-              sampleRate: sampleRate,
-              length: testDuration * sampleRate
-            });
+      // Total number of frames based on sample rate and duration.
+      const totalFrames = sampleRate * testDurationSeconds;
 
-            let merger = new ChannelMergerNode(
-                context, {numberOfInputs: context.destination.channelCount});
-            merger.connect(context.destination);
+      promise_test(async t => {
+        // Two channels:  0 = test result, 1 = expected result.
+        const context = new OfflineAudioContext({
+          numberOfChannels: 2,
+          sampleRate: sampleRate,
+          length: totalFrames
+        });
 
-            // Test the DelayNode by having a reference node (refNode) that uses
-            // k-rate automations of delayTime. The test node (testNode) sets
-            // delayTime to k-rate with a connected input that has the same
-            // automation vlaues as the reference node.  The test passes if the
-            // output from each node is identical to each other.
+        const merger = new ChannelMergerNode(context, {
+          numberOfInputs: context.destination.channelCount
+        });
+        merger.connect(context.destination);
 
-            // Just some non-constant source.
-            let src = new OscillatorNode(context);
+        // Test the DelayNode by having a reference node (refNode) that uses
+        // k-rate automations of delayTime. The test node (testNode) sets
+        // delayTime to k-rate with a connected input that has the same
+        // automation vlaues as the reference node.  The test passes if the
+        // output from each node is identical to each other.
 
-            // The end value and time for the linear ramp.  These values are
-            // chosen so that the delay advances faster than real time.
-            let endValue = 1.125;
-            let endTime = 1;
+        const oscillator = new OscillatorNode(context);
 
-            let refNode;
+        // The end value and time for the linear ramp.  These values are
+        // chosen so that the delay advances faster than real time.
+        const rampEndValue = 1.125;
+        const rampEndTime = 1;
 
-            should(
-                () => refNode = new DelayNode(context),
-                `refNode = new DelayNode(context)`)
-                .notThrow();
+        const refNode = new DelayNode(context);
+        refNode.delayTime.automationRate = 'k-rate';
+        refNode.delayTime.setValueAtTime(0, 0);
+        refNode.delayTime.linearRampToValueAtTime(rampEndValue, rampEndTime);
 
-            should(
-                () => refNode.delayTime.automationRate = 'k-rate',
-                `refNode.delayTime.automationRate = 'k-rate'`)
-                .notThrow();
+        const testNode = new DelayNode(context);
+        testNode.delayTime.automationRate = 'k-rate';
 
-            should(
-                () => refNode.delayTime.setValueAtTime(0, 0),
-                `refNode.delayTime.setValueAtTime(0, 0)`)
-                .notThrow();
+        const modulator = new ConstantSourceNode(context);
+        modulator.offset.setValueAtTime(0, 0);
+        modulator.offset.linearRampToValueAtTime(rampEndValue, rampEndTime);
+        modulator.connect(testNode.delayTime);
 
-            should(
-                () => refNode.delayTime.linearRampToValueAtTime(
-                    endValue, endTime),
-                `refNode.delayTime.linearRampToValueAtTime(${endValue}, ${
-                    endTime})`)
-                .notThrow();
+        oscillator.connect(testNode).connect(merger, 0, 0);
+        oscillator.connect(refNode).connect(merger, 0, 1);
 
-            let testNode;
+        oscillator.start();
+        modulator.start();
 
-            should(
-                () => testNode = new DelayNode(context),
-                `testNode = new DelayNode(context)`)
-                .notThrow();
+        const renderedBuffer = await context.startRendering();
+        const actual = renderedBuffer.getChannelData(0);
+        const expected = renderedBuffer.getChannelData(1);
 
-            should(
-                () => testNode.delayTime.automationRate = 'k-rate',
-                `testNode.delayTime.automationRate = 'k-rate'`)
-                .notThrow();
+        // Quick sanity check that output isn't zero.  This means we messed
+        // up the connections or automations or the buffer source.
+        assert_not_constant_value(
+            expected, 0, 'Expected output should not be constant zero');
+        assert_not_constant_value(
+            actual, 0, 'Actual output should not be constant zero');
 
-            let testMod;
+        // Quick sanity check.  The amount of delay after one render is
+        // endValue * 128 / sampleRate.  But after 1 render, time has
+        // advanced 128/sampleRate.  Hence, the delay exceeds the time by
+        // (endValue - 1)*128/sampleRate sec or (endValue - 1)*128 frames.
+        // This means the output must be EXACTLY zero for this many frames
+        // in the second render.
+        const silentFrames = (rampEndValue - 1) * RENDER_QUANTUM_FRAMES;
 
-            should(
-                () => testMod = new ConstantSourceNode(context),
-                `testMod = new ConstantSourceNode(context)`)
-                .notThrow();
+        assert_strict_constant_value(
+            actual.slice(
+                RENDER_QUANTUM_FRAMES, RENDER_QUANTUM_FRAMES + silentFrames),
+            0,
+            `output[${RENDER_QUANTUM_FRAMES}` +
+                `..${RENDER_QUANTUM_FRAMES + silentFrames - 1}] must be silent`
+        );
 
-            should(
-                () => testMod.offset.setValueAtTime(0, 0),
-                `testMod.offset.setValueAtTime(0, 0)`)
-                .notThrow();
+        // Next quantum should NOT be silent
+        assert_not_constant_value(
+            actual.slice(
+                RENDER_QUANTUM_FRAMES + silentFrames,
+                2 * RENDER_QUANTUM_FRAMES),
+            0,
+            `output[${RENDER_QUANTUM_FRAMES + silentFrames}` +
+                `..${2 * RENDER_QUANTUM_FRAMES - 1}] must have signal`
+        );
 
-            should(
-                () => testMod.offset.linearRampToValueAtTime(endValue, endTime),
-                `testMod.offset.linearRampToValueAtTime(${endValue}, ${
-                    endTime})`)
-                .notThrow();
-
-            should(
-                () => testMod.connect(testNode.delayTime),
-                `testMod.connect(testNode.delayTime)`)
-                .notThrow();
-
-            // Connect up everything and go!
-            src.connect(testNode).connect(merger, 0, 0);
-            src.connect(refNode).connect(merger, 0, 1);
-
-            src.start();
-            testMod.start();
-
-            const buffer = await context.startRendering();
-            let expected = buffer.getChannelData(0);
-            let actual = buffer.getChannelData(1);
-
-            // Quick sanity check that output isn't zero.  This means we messed
-            // up the connections or automations or the buffer source.
-            should(expected, `Expected k-rate delayTime AudioParam with input`)
-                .notBeConstantValueOf(0);
-            should(actual, `Actual k-rate delayTime AudioParam with input`)
-                .notBeConstantValueOf(0);
-
-            // Quick sanity check.  The amount of delay after one render is
-            // endValue * 128 / sampleRate.  But after 1 render, time has
-            // advanced 128/sampleRate.  Hence, the delay exceeds the time by
-            // (endValue - 1)*128/sampleRate sec or (endValue - 1)*128 frames.
-            // This means the output must be EXACTLY zero for this many frames
-            // in the second render.
-            let zeroFrames = (endValue - 1) * RENDER_QUANTUM_FRAMES;
-            should(
-                actual.slice(
-                    RENDER_QUANTUM_FRAMES, RENDER_QUANTUM_FRAMES + zeroFrames),
-                `output[${RENDER_QUANTUM_FRAMES}, ${
-                    RENDER_QUANTUM_FRAMES + zeroFrames - 1}]`)
-                .beConstantValueOf(0);
-            should(
-                actual.slice(
-                    RENDER_QUANTUM_FRAMES + zeroFrames,
-                    2 * RENDER_QUANTUM_FRAMES),
-                `output[${RENDER_QUANTUM_FRAMES + zeroFrames}, ${
-                    2 * RENDER_QUANTUM_FRAMES - 1}]`)
-                .notBeConstantValueOf(0);
-
-            // The expected and actual results must be EXACTLY the same.
-            should(actual, `k-rate delayTime AudioParam with input`)
-                .beCloseToArray(expected, {absoluteThreshold: 0});
-          });
-
-      audit.run();
+        // Compare actual vs expected output
+        assert_array_equals_exact(
+            actual,
+            expected,
+            'Output from testNode should exactly match reference');
+      }, 'k-rate DelayNode.delayTime with input matches automation behavior');
     </script>
   </body>
-  </html>
+</html>

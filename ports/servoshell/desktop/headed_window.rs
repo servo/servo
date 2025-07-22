@@ -15,7 +15,9 @@ use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_config::pref;
-use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
+use servo::servo_geometry::{
+    DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
+};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
@@ -46,13 +48,15 @@ use {
 use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
-use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
+use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, PIXEL_DELTA_FACTOR, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     screen_size: Size2D<u32, DeviceIndependentPixel>,
+    /// The inner size of the window in physical pixels which excludes OS decorations.
+    /// It equals viewport size + (0, toolbar height).
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     monitor: winit::monitor::MonitorHandle,
@@ -495,26 +499,19 @@ impl WindowPortsMethods for Window {
 
     fn window_rect(&self) -> DeviceIndependentIntRect {
         let outer_size = self.winit_window.outer_size();
-        let hidpi_scale = self.hidpi_scale_factor().get() as f64;
-        // TODO: Find a universal way to convert.
-        // See https://github.com/servo/servo/issues/37937
-        let total_size = Size2D::new(
-            (outer_size.width as f64 / hidpi_scale).round() as i32,
-            (outer_size.height as f64 / hidpi_scale).round() as i32,
-        );
-        // TODO: Find a universal way to convert.
-        // See https://github.com/servo/servo/issues/37937
+        let scale = self.hidpi_scale_factor();
+
+        let outer_size = winit_size_to_euclid_size(outer_size).to_i32();
+
         let origin = self
             .winit_window
             .outer_position()
-            .map(|point| {
-                Point2D::new(
-                    (point.x as f64 / hidpi_scale).round() as i32,
-                    (point.y as f64 / hidpi_scale).round() as i32,
-                )
-            })
+            .map(winit_position_to_euclid_point)
             .unwrap_or_default();
-        DeviceIndependentIntRect::from_origin_and_size(origin, total_size)
+        convert_rect_to_css_pixel(
+            DeviceIntRect::from_origin_and_size(origin, outer_size),
+            scale,
+        )
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
@@ -599,9 +596,7 @@ impl WindowPortsMethods for Window {
             WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(state, event),
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers_state.set(modifiers.state()),
             WindowEvent::MouseInput { state, button, .. } => {
-                if button == MouseButton::Left || button == MouseButton::Right {
-                    self.handle_mouse(&webview, button, state);
-                }
+                self.handle_mouse(&webview, button, state);
             },
             WindowEvent::CursorMoved { position, .. } => {
                 let mut point = winit_position_to_euclid_point(position).to_f32();
@@ -626,13 +621,19 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::MouseWheel { delta, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
-                    MouseScrollDelta::LineDelta(dx, dy) => {
-                        (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
-                    },
+                    MouseScrollDelta::LineDelta(dx, dy) => (
+                        (dx * LINE_WIDTH) as f64,
+                        (dy * LINE_HEIGHT) as f64,
+                        WheelMode::DeltaLine,
+                    ),
                     MouseScrollDelta::PixelDelta(position) => {
-                        let scale_factor = self.device_hidpi_scale_factor().inverse().get() as f64;
-                        let position = position.to_logical(scale_factor);
-                        (position.x, position.y, WheelMode::DeltaPixel)
+                        let position: LogicalPosition<f64> =
+                            position.to_logical(self.device_hidpi_scale_factor().get() as f64);
+                        (
+                            position.x * PIXEL_DELTA_FACTOR,
+                            position.y * PIXEL_DELTA_FACTOR,
+                            WheelMode::DeltaPixel,
+                        )
                     },
                 };
 

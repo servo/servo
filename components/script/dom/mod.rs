@@ -429,6 +429,7 @@ pub(crate) mod idbtransaction;
 pub(crate) mod idbversionchangeevent;
 pub(crate) mod iirfilternode;
 pub(crate) mod imagebitmap;
+pub(crate) mod imagebitmaprenderingcontext;
 pub(crate) mod imagedata;
 pub(crate) mod inputevent;
 pub(crate) mod intersectionobserver;

@@ -37,6 +37,7 @@ use strum_macros::IntoStaticStr;
 use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
+use uuid::Uuid;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 
 pub use crate::input_events::*;
@@ -168,6 +169,14 @@ impl SimpleDialog {
             SimpleDialog::Alert { message, .. } => message,
             SimpleDialog::Confirm { message, .. } => message,
             SimpleDialog::Prompt { message, .. } => message,
+        }
+    }
+
+    pub fn set_message(&mut self, text: String) {
+        match self {
+            SimpleDialog::Alert { message, .. } => *message = text,
+            SimpleDialog::Confirm { message, .. } => *message = text,
+            SimpleDialog::Prompt { message, .. } => *message = text,
         }
     }
 
@@ -318,6 +327,17 @@ pub struct ScreenMetrics {
     pub available_size: DeviceIndependentIntSize,
 }
 
+/// An opaque identifier for a single history traversal operation.
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
+pub struct TraversalId(String);
+
+impl TraversalId {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self(Uuid::new_v4().to_string())
+    }
+}
+
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -353,7 +373,9 @@ pub enum EmbedderMsg {
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
     /// A webview gained focus for keyboard events
-    WebViewFocused(WebViewId),
+    /// If sender is provided, it will be used to send back a
+    /// bool indicating whether the focus was successfully set.
+    WebViewFocused(WebViewId, Option<IpcSender<bool>>),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document
@@ -372,6 +394,8 @@ pub enum EmbedderMsg {
     NewFavicon(WebViewId, ServoUrl),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
+    /// A history traversal operation completed.
+    HistoryTraversalComplete(WebViewId, TraversalId),
     /// Get the device independent window rectangle.
     GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the device independent screen size and available size.
@@ -782,9 +806,10 @@ pub struct ScreenGeometry {
     /// toolbars, docks, and interface elements. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub available_size: DeviceIntSize,
-    /// The rectangle the `WebView`'s containing window in device pixels for the purposes of the
-    /// `window.screenLeft` and similar APIs. This will be converted to CSS pixels based
-    /// on the pixel scaling of the `WebView`.
+    /// The rectangle the `WebView`'s containing window (including OS decorations)
+    /// in device pixels for the purposes of the
+    /// `window.screenLeft`, `window.outerHeight` and similar APIs.
+    /// This will be converted to CSS pixels based on the pixel scaling of the `WebView`.
     pub window_rect: DeviceIntRect,
 }
 

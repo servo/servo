@@ -18,8 +18,8 @@ use base::id::{
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use constellation_traits::{
-    BlobData, BlobImpl, BroadcastMsg, FileBlob, MessagePortImpl, MessagePortMsg, PortMessageTask,
-    ScriptToConstellationChan, ScriptToConstellationMessage,
+    BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
+    PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
 };
 use content_security_policy::CspList;
 use crossbeam_channel::Sender;
@@ -501,7 +501,7 @@ pub(crate) enum MessagePortState {
 impl BroadcastListener {
     /// Handle a broadcast coming in over IPC,
     /// by queueing the appropriate task on the relevant event-loop.
-    fn handle(&self, event: BroadcastMsg) {
+    fn handle(&self, event: BroadcastChannelMsg) {
         let context = self.context.clone();
 
         // Note: strictly speaking we should just queue the message event tasks,
@@ -1223,7 +1223,7 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage>
     /// Step 7 and following steps.
-    pub(crate) fn schedule_broadcast(&self, msg: BroadcastMsg, channel_id: &Uuid) {
+    pub(crate) fn schedule_broadcast(&self, msg: BroadcastChannelMsg, channel_id: &Uuid) {
         // First, broadcast locally.
         self.broadcast_message_event(msg.clone(), Some(channel_id));
 
@@ -1244,10 +1244,14 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage>
     /// Step 7 and following steps.
-    pub(crate) fn broadcast_message_event(&self, event: BroadcastMsg, channel_id: Option<&Uuid>) {
+    pub(crate) fn broadcast_message_event(
+        &self,
+        event: BroadcastChannelMsg,
+        channel_id: Option<&Uuid>,
+    ) {
         if let BroadcastChannelState::Managed(_, channels) = &*self.broadcast_channel_state.borrow()
         {
-            let BroadcastMsg {
+            let BroadcastChannelMsg {
                 data,
                 origin,
                 channel_name,
@@ -1617,7 +1621,7 @@ impl GlobalScope {
                 broadcast_control_receiver,
                 Box::new(move |message| match message {
                     Ok(msg) => listener.handle(msg),
-                    Err(err) => warn!("Error receiving a BroadcastMsg: {:?}", err),
+                    Err(err) => warn!("Error receiving a BroadcastChannelMsg: {:?}", err),
                 }),
             );
             let router_id = BroadcastChannelRouterId::new();

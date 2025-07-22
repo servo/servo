@@ -4,6 +4,7 @@
 
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -19,8 +20,8 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebView,
-    WebViewBuilder, WebViewDelegate,
+    TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -28,7 +29,7 @@ use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
-use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
+use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
@@ -44,6 +45,7 @@ pub(crate) enum AppState {
 struct WebDriverSenders {
     pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
     pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
+    pub pending_traversals: HashMap<WebViewId, (TraversalId, IpcSender<WebDriverLoadStatus>)>,
 }
 
 pub(crate) struct RunningAppState {
@@ -338,11 +340,21 @@ impl RunningAppState {
     }
 
     pub(crate) fn webview_has_active_dialog(&self, webview_id: WebViewId) -> bool {
-        let inner = self.inner();
-        inner
+        self.inner()
             .dialogs
             .get(&webview_id)
             .is_some_and(|dialogs| !dialogs.is_empty())
+    }
+
+    pub(crate) fn get_current_active_dialog_webdriver_type(
+        &self,
+        webview_id: WebViewId,
+    ) -> Option<WebDriverUserPrompt> {
+        self.inner()
+            .dialogs
+            .get(&webview_id)
+            .and_then(|dialogs| dialogs.last())
+            .map(|dialog| dialog.webdriver_diaglog_type())
     }
 
     pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {
@@ -367,6 +379,14 @@ impl RunningAppState {
             .get(&webview_id)
             .and_then(|dialogs| dialogs.last())
             .and_then(|dialog| dialog.message())
+    }
+
+    pub(crate) fn set_alert_text_of_newest_dialog(&self, webview_id: WebViewId, text: String) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            if let Some(dialog) = dialogs.last_mut() {
+                dialog.set_message(text);
+            }
+        }
     }
 
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
@@ -413,21 +433,33 @@ impl RunningAppState {
                 webview.notify_scroll_event(ScrollLocation::End, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, -1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowDown, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, 1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
-                let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(-LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
-                let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             });
+    }
+
+    pub(crate) fn set_pending_traversal(
+        &self,
+        webview_id: WebViewId,
+        traversal_id: TraversalId,
+        sender: IpcSender<WebDriverLoadStatus>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .pending_traversals
+            .insert(webview_id, (traversal_id, sender));
     }
 
     pub(crate) fn set_load_status_sender(
@@ -508,6 +540,16 @@ impl WebViewDelegate for RunningAppState {
             let window_title = format!("{} - Servo", title.clone().unwrap_or_default());
             self.inner().window.set_title(&window_title);
             self.inner_mut().need_update = true;
+        }
+    }
+
+    fn notify_traversal_complete(&self, webview: servo::WebView, traversal_id: TraversalId) {
+        let mut webdriver_state = self.webdriver_senders.borrow_mut();
+        if let Entry::Occupied(entry) = webdriver_state.pending_traversals.entry(webview.id()) {
+            if entry.get().0 == traversal_id {
+                let (_, sender) = entry.remove();
+                let _ = sender.send(WebDriverLoadStatus::Complete);
+            }
         }
     }
 

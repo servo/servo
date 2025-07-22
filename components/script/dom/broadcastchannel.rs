@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use constellation_traits::BroadcastMsg;
+use constellation_traits::BroadcastChannelMsg;
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, HandleValue};
 use uuid::Uuid;
@@ -89,7 +89,7 @@ impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
 
         let global = self.global();
 
-        let msg = BroadcastMsg {
+        let msg = BroadcastChannelMsg {
             origin: global.origin().immutable().clone(),
             channel_name: self.Name().to_string(),
             data,

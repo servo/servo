@@ -1,0 +1,9 @@
+features:
+- name: canvas-2d-alpha
+  files:
+  - initial_color_alpha_false.html
+  - clearRect_alpha_false.html
+  - drawImage_alpha_false.html
+  - fill_alpha_false.html
+  - fillRect_alpha_false.html
+  - reset_color_alpha_false.html

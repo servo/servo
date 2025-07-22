@@ -526,8 +526,8 @@
                      * event will be subscribed to globally. If omitted, the
                      * event will be subscribed to on the current browsing
                      * context.
-                     * @returns {Promise<void>} Resolves when the subscription
-                     * is successfully done.
+                     * @returns {Promise<(function(): Promise<void>)>} Callback
+                     * for unsubscribing from the created subscription.
                      */
                     subscribe: async function(params = {}) {
                         assertBidiIsEnabled();
@@ -593,8 +593,8 @@
                      * event will be subscribed to globally. If omitted, the
                      * event will be subscribed to on the current browsing
                      * context.
-                     * @returns {Promise<void>} Resolves when the subscription
-                     * is successfully done.
+                     * @returns {Promise<(function(): Promise<void>)>} Callback
+                     * for unsubscribing from the created subscription.
                      */
                     subscribe: async function(params = {}) {
                         assertBidiIsEnabled();
@@ -660,8 +660,8 @@
                      * event will be subscribed to globally. If omitted, the
                      * event will be subscribed to on the current browsing
                      * context.
-                     * @returns {Promise<void>} Resolves when the subscription
-                     * is successfully done.
+                     * @returns {Promise<(function(): Promise<void>)>} Callback
+                     * for unsubscribing from the created subscription.
                      */
                     subscribe: async function(params = {}) {
                         assertBidiIsEnabled();
@@ -727,8 +727,8 @@
                      * event will be subscribed to globally. If omitted, the
                      * event will be subscribed to on the current browsing
                      * context.
-                     * @returns {Promise<void>} Resolves when the subscription
-                     * is successfully done.
+                     * @returns {Promise<(function(): Promise<void>)>} Callback
+                     * for unsubscribing from the created subscription.
                      */
                     subscribe: async function(params = {}) {
                         assertBidiIsEnabled();
@@ -907,8 +907,8 @@
                      * event will be subscribed to globally. If omitted, the
                      * event will be subscribed to on the current browsing
                      * context.
-                     * @returns {Promise<void>} Resolves when the subscription
-                     * is successfully done.
+                     * @returns {Promise<(function(): Promise<void>)>} Callback
+                     * for unsubscribing from the created subscription.
                      */
                     subscribe: async function (params = {}) {
                         assertBidiIsEnabled();

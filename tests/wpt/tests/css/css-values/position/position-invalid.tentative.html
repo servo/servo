@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Values and Units Module Level 5: parsing &lt;position&gt; with invalid values</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#position">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+const property = "object-position";
+
+test_invalid_value(property, "auto");
+test_invalid_value(property, "left top garbage");
+test_invalid_value(property, "garbage left top");
+test_invalid_value(property, "left garbage top");
+test_invalid_value(property, "left 10px top 10px garbage");
+test_invalid_value(property, "garbage left 10px top 10px");
+test_invalid_value(property, "left 10px garbage top 10px");
+test_invalid_value(property, "left garbage 10px top 10px");
+test_invalid_value(property, "left 10px top garbage 10px");
+test_invalid_value(property, "1px 2px 3px");
+test_invalid_value(property, "left right");
+test_invalid_value(property, "bottom 10%");
+test_invalid_value(property, "bottom 10% top 20%");
+test_invalid_value(property, "center left 1px");
+test_invalid_value(property, "center top 2px");
+test_invalid_value(property, "right 3% center");
+test_invalid_value(property, "left 4px top");
+test_invalid_value(property, "right top 5px");
+test_invalid_value(property, "bottom 6% center");
+test_invalid_value(property, "bottom 7% left");
+test_invalid_value(property, "bottom right 8%");
+</script>
+</body>
+</html>

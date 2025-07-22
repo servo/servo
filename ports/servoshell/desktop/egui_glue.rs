@@ -81,7 +81,7 @@ impl EguiGlow {
             None,
         );
         let window = window.winit_window().unwrap();
-        egui_winit.init_accesskit(window, event_loop_proxy);
+        egui_winit.init_accesskit(event_loop, window, event_loop_proxy);
         window.set_visible(true);
         Self {
             egui_winit,

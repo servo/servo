@@ -43,7 +43,7 @@ use crate::dom::element::{
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
@@ -813,6 +813,13 @@ impl VirtualMethods for HTMLIFrameElement {
         }
     }
 
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+        if let Some(s) = self.super_type() {
+            s.bind_to_tree(context, can_gc);
+        }
+        self.owner_document().invalidate_iframes_collection();
+    }
+
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
@@ -865,5 +872,7 @@ impl VirtualMethods for HTMLIFrameElement {
         // a new iframe. Without this, the constellation gets very
         // confused.
         self.destroy_nested_browsing_context();
+
+        self.owner_document().invalidate_iframes_collection();
     }
 }

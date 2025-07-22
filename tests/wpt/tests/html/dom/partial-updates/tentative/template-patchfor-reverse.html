@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: patch should appear after its target</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<template patchfor="placeholder">New content</template>
+<div id="placeholder">Old content</div>
+<script>
+test(() => {
+    assert_equals(document.querySelector("#placeholder").innerText, "Old content");
+    assert_equals(document.querySelector("template[patchfor=placeholder]").content.textContent, "New content",
+    "<template patchfor> without a match should parse normally");
+}, "<template patchfor> should apply directly to its target");
+</script>

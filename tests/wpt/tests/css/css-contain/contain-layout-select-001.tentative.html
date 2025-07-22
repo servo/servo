@@ -1,0 +1,17 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+<link rel="help" href="https://github.com/web-platform-tests/wpt/issues/45889">
+<link rel="match" href="reference/contain-layout-select-001-ref.html">
+<meta name=assert content="Select and button align when layout-contained">
+<style>
+button, select {
+  appearance: none;
+  contain: layout;
+  width: 20px;
+  height: 20px;
+  border: 2px solid;
+  margin: 5px;
+  padding: 2px;
+}
+</style>
+<button></button><select></select>

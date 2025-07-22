@@ -107,7 +107,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
+    ConversionResult, SafeFromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -1133,7 +1133,7 @@ impl ScriptThread {
                     }
                 },
                 InputEvent::Wheel(wheel_event) => {
-                    document.handle_wheel_event(wheel_event, event.hit_test_result, can_gc);
+                    document.handle_wheel_event(wheel_event, &event, can_gc);
                 },
                 InputEvent::Keyboard(keyboard_event) => {
                     document.dispatch_key_event(keyboard_event, can_gc);
@@ -2086,6 +2086,14 @@ impl ScriptThread {
             },
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)
+            },
+            MainThreadScriptMsg::Common(CommonScriptMsg::ReportCspViolations(
+                pipeline_id,
+                violations,
+            )) => {
+                if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
+                    global.report_csp_violations(violations, None, None);
+                }
             },
             MainThreadScriptMsg::NavigationResponse {
                 pipeline_id,
@@ -3681,18 +3689,16 @@ impl ScriptThread {
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
-            unsafe {
-                let strval = DOMString::from_jsval(
-                    *GlobalScope::get_cx(),
-                    jsval.handle(),
-                    StringificationBehavior::Empty,
-                );
-                match strval {
-                    Ok(ConversionResult::Success(s)) => {
-                        Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
-                    },
-                    _ => None,
-                }
+            let strval = DOMString::safe_from_jsval(
+                GlobalScope::get_cx(),
+                jsval.handle(),
+                StringificationBehavior::Empty,
+            );
+            match strval {
+                Ok(ConversionResult::Success(s)) => {
+                    Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
+                },
+                _ => None,
             }
         } else {
             Some(JsEvalResult::NoContent)

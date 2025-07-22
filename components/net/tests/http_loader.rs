@@ -333,6 +333,7 @@ fn test_request_and_response_data_with_network_messages() {
         time_stamp: devhttprequests.1.time_stamp,
         connect_time: devhttprequests.1.connect_time,
         send_time: devhttprequests.1.send_time,
+        destination: Destination::Document,
         is_xhr: false,
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };

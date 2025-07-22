@@ -256,7 +256,10 @@ impl Tokenizer {
         };
         tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
 
-        let sink = Sink::new(to_tokenizer_sender.clone());
+        let sink = Sink::new(
+            to_tokenizer_sender.clone(),
+            document.allow_declarative_shadow_roots(),
+        );
         let mut form_parse_node = None;
         let mut parser_fragment_context = None;
         if let Some(fragment_context) = fragment_context {
@@ -677,10 +680,11 @@ pub(crate) struct Sink {
     next_parse_node_id: Cell<ParseNodeId>,
     document_node: ParseNode,
     sender: Sender<ToTokenizerMsg>,
+    allow_declarative_shadow_roots: bool,
 }
 
 impl Sink {
-    fn new(sender: Sender<ToTokenizerMsg>) -> Sink {
+    fn new(sender: Sender<ToTokenizerMsg>, allow_declarative_shadow_roots: bool) -> Sink {
         let sink = Sink {
             current_line: Cell::new(1),
             parse_node_data: RefCell::new(HashMap::new()),
@@ -690,6 +694,7 @@ impl Sink {
                 qual_name: None,
             },
             sender,
+            allow_declarative_shadow_roots,
         };
         let data = ParseNodeData::default();
         sink.insert_parse_node_data(0, data);
@@ -956,7 +961,10 @@ impl TreeSink for Sink {
         self.send_op(ParseOperation::Pop { node: node.id });
     }
 
-    /// Attach declarative shadow
+    fn allow_declarative_shadow_roots(&self, _intended_parent: &Self::Handle) -> bool {
+        self.allow_declarative_shadow_roots
+    }
+
     fn attach_declarative_shadow(
         &self,
         location: &Self::Handle,

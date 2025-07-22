@@ -61,7 +61,7 @@ def test_subprocess_exit(server_subprocesses, tempfile_name):
             "alternate_hosts": {"alt": "127.0.0.1"},
             "check_subdomains": False,
         }
-        with open(tempfile_name, 'w') as handle:
+        with open(tempfile_name, "w") as handle:
             json.dump(config, handle)
 
         # The `logger` module from the wptserver package uses a singleton

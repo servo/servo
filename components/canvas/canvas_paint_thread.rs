@@ -11,7 +11,7 @@ use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
 use compositing_traits::CrossProcessCompositorApi;
 use crossbeam_channel::{Sender, select, unbounded};
-use euclid::default::{Point2D, Rect, Size2D, Transform2D};
+use euclid::default::{Rect, Size2D, Transform2D};
 use fonts::{FontContext, SystemFontServiceProxy};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -148,29 +148,15 @@ impl<'a> CanvasPaintThread<'a> {
                 self.canvas(canvas_id).stroke_rect(&rect);
             },
             Canvas2dMsg::ClearRect(ref rect) => self.canvas(canvas_id).clear_rect(rect),
-            Canvas2dMsg::BeginPath => self.canvas(canvas_id).begin_path(),
-            Canvas2dMsg::ClosePath => self.canvas(canvas_id).close_path(),
-            Canvas2dMsg::Fill(style) => {
-                self.canvas(canvas_id).set_fill_style(style);
-                self.canvas(canvas_id).fill();
-            },
             Canvas2dMsg::FillPath(style, path) => {
                 self.canvas(canvas_id).set_fill_style(style);
                 self.canvas(canvas_id).fill_path(&path);
-            },
-            Canvas2dMsg::Stroke(style) => {
-                self.canvas(canvas_id).set_stroke_style(style);
-                self.canvas(canvas_id).stroke();
             },
             Canvas2dMsg::StrokePath(style, path) => {
                 self.canvas(canvas_id).set_stroke_style(style);
                 self.canvas(canvas_id).stroke_path(&path);
             },
-            Canvas2dMsg::Clip => self.canvas(canvas_id).clip(),
             Canvas2dMsg::ClipPath(path) => self.canvas(canvas_id).clip_path(&path),
-            Canvas2dMsg::IsPointInCurrentPath(x, y, fill_rule, chan) => self
-                .canvas(canvas_id)
-                .is_point_in_path(x, y, fill_rule, chan),
             Canvas2dMsg::DrawImage(snapshot, dest_rect, source_rect, smoothing_enabled) => {
                 self.canvas(canvas_id).draw_image(
                     snapshot.to_owned(),
@@ -199,24 +185,6 @@ impl<'a> CanvasPaintThread<'a> {
                     smoothing,
                 );
             },
-            Canvas2dMsg::MoveTo(ref point) => self.canvas(canvas_id).move_to(point),
-            Canvas2dMsg::LineTo(ref point) => self.canvas(canvas_id).line_to(point),
-            Canvas2dMsg::Rect(ref rect) => self.canvas(canvas_id).rect(rect),
-            Canvas2dMsg::QuadraticCurveTo(ref cp, ref pt) => {
-                self.canvas(canvas_id).quadratic_curve_to(cp, pt)
-            },
-            Canvas2dMsg::BezierCurveTo(ref cp1, ref cp2, ref pt) => {
-                self.canvas(canvas_id).bezier_curve_to(cp1, cp2, pt)
-            },
-            Canvas2dMsg::Arc(ref center, radius, start, end, ccw) => {
-                self.canvas(canvas_id).arc(center, radius, start, end, ccw)
-            },
-            Canvas2dMsg::ArcTo(ref cp1, ref cp2, radius) => {
-                self.canvas(canvas_id).arc_to(cp1, cp2, radius)
-            },
-            Canvas2dMsg::Ellipse(ref center, radius_x, radius_y, rotation, start, end, ccw) => self
-                .canvas(canvas_id)
-                .ellipse(center, radius_x, radius_y, rotation, start, end, ccw),
             Canvas2dMsg::MeasureText(text, sender) => {
                 let metrics = self.canvas(canvas_id).measure_text(text);
                 sender.send(metrics).unwrap();
@@ -230,10 +198,6 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetLineDash(items) => self.canvas(canvas_id).set_line_dash(items),
             Canvas2dMsg::SetLineDashOffset(offset) => {
                 self.canvas(canvas_id).set_line_dash_offset(offset)
-            },
-            Canvas2dMsg::GetTransform(sender) => {
-                let transform = self.canvas(canvas_id).get_transform();
-                sender.send(transform).unwrap();
             },
             Canvas2dMsg::SetTransform(ref matrix) => self.canvas(canvas_id).set_transform(matrix),
             Canvas2dMsg::SetGlobalAlpha(alpha) => self.canvas(canvas_id).set_global_alpha(alpha),
@@ -288,12 +252,6 @@ impl Canvas<'_> {
         }
     }
 
-    fn fill(&mut self) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.fill(),
-        }
-    }
-
     fn fill_text(&mut self, text: String, x: f64, y: f64, max_width: Option<f64>, is_rtl: bool) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.fill_text(text, x, y, max_width, is_rtl),
@@ -318,45 +276,15 @@ impl Canvas<'_> {
         }
     }
 
-    fn begin_path(&mut self) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.begin_path(),
-        }
-    }
-
-    fn close_path(&mut self) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.close_path(),
-        }
-    }
-
     fn fill_path(&mut self, path: &Path) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.fill_path(path),
         }
     }
 
-    fn stroke(&mut self) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.stroke(),
-        }
-    }
-
     fn stroke_path(&mut self, path: &Path) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.stroke_path(path),
-        }
-    }
-
-    fn clip(&mut self) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.clip(),
-        }
-    }
-
-    fn is_point_in_path(&mut self, x: f64, y: f64, fill_rule: FillRule, chan: IpcSender<bool>) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.is_point_in_path(x, y, fill_rule, chan),
         }
     }
 
@@ -387,66 +315,6 @@ impl Canvas<'_> {
     ) -> Snapshot {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.read_pixels(read_rect, canvas_size),
-        }
-    }
-
-    fn move_to(&mut self, point: &Point2D<f32>) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.move_to(point),
-        }
-    }
-
-    fn line_to(&mut self, point: &Point2D<f32>) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.line_to(point),
-        }
-    }
-
-    fn rect(&mut self, rect: &Rect<f32>) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.rect(rect),
-        }
-    }
-
-    fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, pt: &Point2D<f32>) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.quadratic_curve_to(cp, pt),
-        }
-    }
-
-    fn bezier_curve_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, pt: &Point2D<f32>) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.bezier_curve_to(cp1, cp2, pt),
-        }
-    }
-
-    fn arc(&mut self, center: &Point2D<f32>, radius: f32, start: f32, end: f32, ccw: bool) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.arc(center, radius, start, end, ccw),
-        }
-    }
-
-    fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.arc_to(cp1, cp2, radius),
-        }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn ellipse(
-        &mut self,
-        center: &Point2D<f32>,
-        radius_x: f32,
-        radius_y: f32,
-        rotation: f32,
-        start: f32,
-        end: f32,
-        ccw: bool,
-    ) {
-        match self {
-            Canvas::Raqote(canvas_data) => {
-                canvas_data.ellipse(center, radius_x, radius_y, rotation, start, end, ccw)
-            },
         }
     }
 
@@ -567,12 +435,6 @@ impl Canvas<'_> {
     fn clip_path(&mut self, path: &Path) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.clip_path(path),
-        }
-    }
-
-    fn get_transform(&self) -> Transform2D<f32> {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.get_transform(),
         }
     }
 
