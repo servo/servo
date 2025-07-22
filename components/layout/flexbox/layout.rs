@@ -1179,7 +1179,11 @@ fn do_initial_flex_line_layout<'items>(
     // We didn't reach the end of the last line, so add all remaining items there.
     lines.push((items, line_size_so_far));
 
-    lines.par_drain(..).map(construct_line).collect()
+    if flex_context.layout_context.use_rayon {
+        lines.par_drain(..).map(construct_line).collect()
+    } else {
+        lines.drain(..).map(construct_line).collect()
+    }
 }
 
 /// The result of splitting the flex items into lines using their intrinsic sizes and doing an

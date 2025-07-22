@@ -589,7 +589,7 @@ impl LayoutThread {
             return false;
         }
         // We always need to at least build a fragment tree.
-        if !self.fragment_tree.borrow().is_none() {
+        if self.fragment_tree.borrow().is_none() {
             return false;
         }
 
@@ -710,6 +710,7 @@ impl LayoutThread {
         (viewport_changed && had_used_viewport_units) || theme_changed
     }
 
+    #[servo_tracing::instrument(skip_all)]
     fn prepare_stylist_for_reflow<'dom>(
         &mut self,
         reflow_request: &ReflowRequest,
