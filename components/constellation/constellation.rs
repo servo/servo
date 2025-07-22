@@ -4468,7 +4468,7 @@ where
             WebDriverCommandMsg::IsWebViewOpen(..) |
             WebDriverCommandMsg::GetWindowRect(..) |
             WebDriverCommandMsg::GetViewportSize(..) |
-            WebDriverCommandMsg::SetWindowSize(..) |
+            WebDriverCommandMsg::SetWindowRect(..) |
             WebDriverCommandMsg::LoadUrl(..) |
             WebDriverCommandMsg::Refresh(..) |
             WebDriverCommandMsg::SendKeys(..) |

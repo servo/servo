@@ -480,6 +480,12 @@ impl WindowPortsMethods for Window {
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
         let outer_size = self.winit_window.outer_size();
+        if outer_size.width == new_outer_size.width as u32 &&
+            outer_size.height == new_outer_size.height as u32
+        {
+            return Some(new_outer_size);
+        }
+
         let inner_size = self.winit_window.inner_size();
         let decoration_height = outer_size.height - inner_size.height;
         let decoration_width = outer_size.width - inner_size.width;
