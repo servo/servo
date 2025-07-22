@@ -159,7 +159,6 @@ use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
@@ -509,7 +508,6 @@ pub struct InitialConstellationState {
 /// Data needed for webdriver
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
-    resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
     // Forward responses from the script thread to the webdriver server.
     input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
 }
@@ -518,7 +516,6 @@ impl WebDriverData {
     fn new() -> WebDriverData {
         WebDriverData {
             load_channel: None,
-            resize_channel: None,
             input_command_response_sender: None,
         }
     }
@@ -4930,10 +4927,6 @@ where
 
         let browsing_context_id = BrowsingContextId::from(webview_id);
         self.resize_browsing_context(new_viewport_details, size_type, browsing_context_id);
-
-        if let Some(response_sender) = self.webdriver.resize_channel.take() {
-            let _ = response_sender.send(new_viewport_details.size);
-        }
     }
 
     /// Called when the window exits from fullscreen mode
