@@ -133,7 +133,7 @@ use embedder_traits::{
     FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
     KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverCommandResponse, WebDriverLoadStatus,
+    WebDriverCommandResponse,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -507,18 +507,8 @@ pub struct InitialConstellationState {
 
 /// Data needed for webdriver
 struct WebDriverData {
-    load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
     // Forward responses from the script thread to the webdriver server.
     input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
-}
-
-impl WebDriverData {
-    fn new() -> WebDriverData {
-        WebDriverData {
-            load_channel: None,
-            input_command_response_sender: None,
-        }
-    }
 }
 
 /// When we are running reftests, we save an image to compare against a reference.
@@ -682,7 +672,9 @@ where
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
-                    webdriver: WebDriverData::new(),
+                    webdriver: WebDriverData {
+                        input_command_response_sender: None,
+                    },
                     document_states: HashMap::new(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
@@ -1349,7 +1341,7 @@ where
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
             EmbedderToConstellationMessage::NewWebView(url, webview_id, viewport_details) => {
-                self.handle_new_top_level_browsing_context(url, webview_id, viewport_details, None);
+                self.handle_new_top_level_browsing_context(url, webview_id, viewport_details);
             },
             // Close a top level browsing context.
             EmbedderToConstellationMessage::CloseWebView(webview_id) => {
@@ -2942,7 +2934,6 @@ where
         url: ServoUrl,
         webview_id: WebViewId,
         viewport_details: ViewportDetails,
-        response_sender: Option<IpcSender<WebDriverLoadStatus>>,
     ) {
         let pipeline_id = PipelineId::new();
         let browsing_context_id = BrowsingContextId::from(webview_id);
@@ -2999,10 +2990,6 @@ where
             }),
             viewport_details,
         });
-
-        if let Some(response_sender) = response_sender {
-            self.webdriver.load_channel = Some((pipeline_id, response_sender));
-        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3625,18 +3612,6 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_load_complete_msg(&mut self, webview_id: WebViewId, pipeline_id: PipelineId) {
-        let mut webdriver_reset = false;
-        if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
-            if expected_pipeline_id == pipeline_id {
-                debug!("Sending load for {:?} to WebDriver", expected_pipeline_id);
-                let _ = reply_chan.send(WebDriverLoadStatus::Complete);
-                webdriver_reset = true;
-            }
-        }
-        if webdriver_reset {
-            self.webdriver.load_channel = None;
-        }
-
         if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
             debug!("{}: Marking as loaded", pipeline_id);
             pipeline.completely_loaded = true;
