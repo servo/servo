@@ -265,7 +265,7 @@ class MachCommands(CommandBase):
                     }
                 packages["crates"][crate_name]["exist"].append(d)
 
-        total_size = 0
+        total_size = 0.0
         for packages_type in ["git", "crates"]:
             sorted_packages = sorted(packages[packages_type])
             for crate_name in sorted_packages:
@@ -309,7 +309,7 @@ class MachCommands(CommandBase):
                                 crate_paths.append(path.join(crates_cache_dir, "{}.crate".format(exist)))
                                 crate_paths.append(path.join(crates_src_dir, exist))
 
-                            size = round(sum(get_size(p) for p in crate_paths)) if show_size else 0
+                            size = sum((get_size(p) for p in crate_paths), 0.0) if show_size else 0.0
                             total_size += size
                             print_msg = (exist_name, " ({}MB)".format(round(size, 2)) if show_size else "", cargo_dir)
                             if force:
