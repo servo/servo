@@ -9,7 +9,7 @@ use euclid::Angle;
 use euclid::approxeq::ApproxEq;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::IpcSender;
-use kurbo::{Affine, BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
+use kurbo::{BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::IpcSnapshot;
@@ -39,7 +39,7 @@ impl Path {
     }
 
     pub fn transform(&mut self, transform: Transform2D<f64>) {
-        self.0.apply_affine(Affine::new(transform.to_array()));
+        self.0.apply_affine(transform.into());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ensure-there-is-a-subpath>
@@ -222,19 +222,7 @@ impl Path {
     }
 
     pub fn last_point(&mut self) -> Option<Point> {
-        // https://github.com/linebender/kurbo/pull/462
-        match self.0.elements().last()? {
-            PathEl::ClosePath => self
-                .0
-                .elements()
-                .iter()
-                .rev()
-                .skip(1)
-                .take_while(|el| !matches!(el, PathEl::ClosePath))
-                .last()
-                .and_then(|el| el.end_point()),
-            other => other.end_point(),
-        }
+        self.0.current_position()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -399,11 +387,7 @@ impl Path {
     }
 
     pub fn bounding_box(&self) -> Rect<f64> {
-        let rect = self.0.control_box();
-        Rect::new(
-            Point2D::new(rect.origin().x, rect.origin().y),
-            Size2D::new(rect.width(), rect.height()),
-        )
+        self.0.control_box().into()
     }
 }
 
