@@ -3349,6 +3349,10 @@ impl Document {
         self.iframes.borrow_mut()
     }
 
+    pub(crate) fn invalidate_iframes_collection(&self) {
+        self.iframes.borrow_mut().invalidate();
+    }
+
     pub(crate) fn get_dom_interactive(&self) -> Option<CrossProcessInstant> {
         self.dom_interactive.get()
     }
@@ -4145,7 +4149,7 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
-            iframes: Default::default(),
+            iframes: RefCell::new(IFrameCollection::new()),
             style_shared_lock: {
                 /// Per-process shared lock for author-origin stylesheets
                 ///
