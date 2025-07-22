@@ -88,6 +88,8 @@ static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getIncumbentGlobal: Some(get_incumbent_global),
     enqueuePromiseJob: Some(enqueue_promise_job),
     empty: Some(empty),
+    pushNewInterruptQueue: Some(push_new_interrupt_queue),
+    popInterruptQueue: Some(pop_interrupt_queue),
 };
 
 static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
@@ -244,6 +246,35 @@ unsafe extern "C" fn empty(extra: *const c_void) -> bool {
     wrap_panic(&mut || {
         let microtask_queue = &*(extra as *const MicrotaskQueue);
         result = microtask_queue.empty()
+    });
+    result
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> *mut c_void {
+    let mut result = std::ptr::null_mut();
+    wrap_panic(&mut || {
+        let interrupt_queues = &mut *(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
+        let mut new_queue = Rc::new(MicrotaskQueue::default());
+        // TODO: SAFETY: is this ok? It subverts the Rc::get_mut() check
+        result = Rc::get_mut(&mut new_queue).expect("Guaranteed by usage of `new_queue`") as *mut _
+            as *mut c_void;
+        interrupt_queues.push(new_queue.clone());
+    });
+    result
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn pop_interrupt_queue(interrupt_queues: *mut c_void) -> *mut c_void {
+    let mut result = std::ptr::null_mut();
+    wrap_panic(&mut || {
+        let interrupt_queues = &mut *(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
+        let mut popped_queue: Rc<MicrotaskQueue> =
+            interrupt_queues.pop().expect("Guaranteed by SpiderMonkey?");
+        // Dangling, but jsglue.cpp will only use this for pointer comparison.
+        // TODO: SAFETY: is this ok? It subverts the Rc::get_mut() check
+        result = Rc::get_mut(&mut popped_queue).expect("Guaranteed by usage of `popped_queue`")
+            as *mut _ as *mut c_void;
     });
     result
 }
@@ -474,7 +505,10 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
 #[derive(JSTraceable)]
 pub(crate) struct Runtime {
     rt: RustRuntime,
+    /// Our actual microtask queue, which is preserved and untouched by the debugger when running debugger scripts.
     pub(crate) microtask_queue: Rc<MicrotaskQueue>,
+    /// Extra microtask queues created for debugger scripts via AutoDebuggerJobQueueInterruption and saveJobQueue().
+    interrupt_microtask_queues: Rc<Vec<Rc<MicrotaskQueue>>>,
     job_queue: *mut JobQueue,
     networking_task_src: Option<Box<SendableTaskSource>>,
 }
@@ -581,9 +615,15 @@ impl Runtime {
         InitConsumeStreamCallback(cx, Some(consume_stream), Some(report_stream_error));
 
         let microtask_queue = Rc::new(MicrotaskQueue::default());
+        let mut interrupt_microtask_queues: Rc<Vec<Rc<MicrotaskQueue>>> = Rc::new(vec![]);
+        // TODO: SAFETY: is this ok? It subverts the Rc::get_mut() check
+        let interrupt_queues_raw = Rc::get_mut(&mut interrupt_microtask_queues)
+            .expect("Guaranteed by usage of `new_queue`")
+            as *mut _ as *mut c_void;
         let job_queue = CreateJobQueue(
             &JOB_QUEUE_TRAPS,
             &*microtask_queue as *const _ as *const c_void,
+            interrupt_queues_raw,
         );
         SetJobQueue(cx, job_queue);
         SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
@@ -728,6 +768,7 @@ impl Runtime {
         Runtime {
             rt: runtime,
             microtask_queue,
+            interrupt_microtask_queues,
             job_queue,
             networking_task_src: (!networking_task_src_ptr.is_null())
                 .then(|| Box::from_raw(networking_task_src_ptr)),
@@ -742,6 +783,8 @@ impl Runtime {
 impl Drop for Runtime {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
+        // Clear our microtask_queue, but do not touch any interrupt_microtask_queues.
+        // Those are under SpiderMonkey’s control, even though we are responsible for their lifetimes.
         self.microtask_queue.clear();
 
         unsafe {
