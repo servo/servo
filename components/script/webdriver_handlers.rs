@@ -1068,6 +1068,44 @@ pub(crate) fn handle_get_element_shadow_root(
         .unwrap();
 }
 
+fn handle_send_keys_file(
+    file_input: &HTMLInputElement,
+    text: &str,
+    can_gc: CanGc,
+) -> Result<bool, ErrorStatus> {
+    // Step 1. Let files be the result of splitting text
+    // on the newline (\n) character.
+    let files: Vec<DOMString> = text.split("\n").map(|s| s.into()).collect();
+
+    // Step 2. If files is of 0 length, return ErrorStatus::InvalidArgument.
+    if files.is_empty() {
+        return Err(ErrorStatus::InvalidArgument);
+    }
+
+    // Step 3. Let multiple equal the result of calling
+    // hasAttribute() with "multiple" on element.
+    // Step 4. If multiple is false and the length of files
+    // is not equal to 1, return ErrorStatus::InvalidArgument.
+    if !file_input.Multiple() && files.len() > 1 {
+        return Err(ErrorStatus::InvalidArgument);
+    }
+
+    // Step 5. Return ErrorStatus::InvalidArgument if the files does not exist.
+    // Step 6. Set the selected files on the input event.
+    // TODO: If multiple is true files are be appended to element's selected files.
+    // Step 7. Fire input and change event (should already be fired in `htmlinputelement.rs`)
+    if file_input.select_files(Some(files), can_gc).is_err() {
+        return Err(ErrorStatus::InvalidArgument);
+    }
+
+    // Step 8. Return success with data null.
+    // This is done in `webdriver_server:lib.rs`
+    Ok(false)
+}
+
+/// Implementing step 5 - 8 of Element Send Keys. This function will send a boolean
+/// back to webdriver_server, indicating whether the dispatching of the key and
+/// composition event is still needed or not.
 pub(crate) fn handle_will_send_keys(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1079,15 +1117,21 @@ pub(crate) fn handle_will_send_keys(
 ) {
     reply
         .send(
+            // Set 5. Let element be the result of trying to get a known element.
             get_known_element(documents, pipeline, element_id).and_then(|element| {
-                // Step 6: Let file be true if element is input element
+                // Step 6. Let file be true if element is input element
                 // in the file upload state, or false otherwise
                 let file_input = element
                     .downcast::<HTMLInputElement>()
                     .filter(|&input_element| input_element.input_type() == InputType::File);
 
-                // Step 7: If file is false or the session's strict file interactability
+                // Step 7. If file is false or the session's strict file interactability
                 if file_input.is_none() || strict_file_interactability {
+                    // TODO: Step 7.1. Scroll Into View
+                    // TODO: Step 7.2 - 7.6
+                    // Wait until element become Keyboard-interactable
+                    // or return error with error code element not interactable.
+
                     match element.downcast::<HTMLElement>() {
                         Some(element) => {
                             // Need a way to find if this actually succeeded
@@ -1099,30 +1143,7 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 8 (file input)
                 if let Some(file_input) = file_input {
-                    // Step 8.1: Let files be the result of splitting text
-                    // on the newline (\n) character.
-                    let files: Vec<DOMString> = text.split("\n").map(|s| s.into()).collect();
-
-                    // Step 8.2
-                    if files.is_empty() {
-                        return Err(ErrorStatus::InvalidArgument);
-                    }
-
-                    // Step 8.3 - 8.4
-                    if !file_input.Multiple() && files.len() > 1 {
-                        return Err(ErrorStatus::InvalidArgument);
-                    }
-
-                    // Step 8.5
-                    // InvalidArgument Error is returned if the files are not valid.
-                    // Step 8.6 - 8.7
-                    // Input and change event already fired in `htmlinputelement.rs`.
-                    if file_input.select_files(Some(files), can_gc).is_err() {
-                        return Err(ErrorStatus::InvalidArgument);
-                    }
-
-                    // Step 8.8
-                    return Ok(false);
+                    return handle_send_keys_file(file_input, &text, can_gc);
                 }
 
                 // TODO: Check non-typeable form control
