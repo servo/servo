@@ -69,6 +69,7 @@ use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::types::ShadowRoot;
@@ -1647,6 +1648,88 @@ pub(crate) fn handle_get_url(
                 .find_document(pipeline)
                 .map(|document| document.url())
                 .unwrap_or_else(|| ServoUrl::parse("about:blank").expect("infallible")),
+        )
+        .unwrap();
+}
+
+/// <https://w3c.github.io/webdriver/#dfn-mutable-form-control-element>
+fn element_is_mutable_form_control(element: &Element) -> bool {
+    if let Some(input_element) = element.downcast::<HTMLInputElement>() {
+        input_element.is_mutable() &&
+            matches!(
+                input_element.input_type(),
+                InputType::Text |
+                    InputType::Search |
+                    InputType::Url |
+                    InputType::Tel |
+                    InputType::Email |
+                    InputType::Password |
+                    InputType::Date |
+                    InputType::Month |
+                    InputType::Week |
+                    InputType::Time |
+                    InputType::DatetimeLocal |
+                    InputType::Number |
+                    InputType::Range |
+                    InputType::Color |
+                    InputType::File
+            )
+    } else {
+        element.is::<HTMLTextAreaElement>()
+    }
+}
+
+/// <https://w3c.github.io/webdriver/#dfn-clear-a-resettable-element>
+fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), ErrorStatus> {
+    // TODO: Step 1 - 2. Check if element is a candidate for constratint validation.
+
+    let html_element = element
+        .downcast::<HTMLElement>()
+        .ok_or(ErrorStatus::UnknownError)?;
+
+    // Step 3. Invoke the focusing steps for the element.
+    html_element.Focus(can_gc);
+
+    // Step 4. Run clear algorithm for element.
+    if let Some(input_element) = element.downcast::<HTMLInputElement>() {
+        input_element.reset(can_gc);
+    } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
+        textarea_element.reset();
+    } else {
+        unreachable!("We have confirm previously that element is mutable form control");
+    }
+
+    // Step 5. Run the unfocusing steps for the element.
+    html_element.Blur(can_gc);
+
+    Ok(())
+}
+
+pub(crate) fn handle_element_clear(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    element_id: String,
+    reply: IpcSender<Result<(), ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    reply
+        .send(
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
+                // Step 4. If element is not editable, return ErrorStatus::InvalidElementState.
+                // TODO: editing hosts and content editable elements are not implemented yet,
+                // hence we currently skip the check
+                if !element_is_mutable_form_control(&element) {
+                    return Err(ErrorStatus::InvalidElementState);
+                }
+
+                // TODO: Step 5. Scroll Into View
+                // TODO: Step 6 - 10
+                // Wait until element become interactable and check.
+
+                // Step 11
+                // TODO: Clear content editable elements
+                clear_a_resettable_element(&element, can_gc)
+            }),
         )
         .unwrap();
 }

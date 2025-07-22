@@ -2111,6 +2111,25 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
+    fn handle_element_clear(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If session's current browsing context is no longer open,
+        // return ErrorStatus::NoSuchWindow.
+        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+
+        // Step 2. Try to handle any user prompt.
+        self.handle_any_user_prompts(self.session()?.webview_id)?;
+
+        // Step 3-11 handled in script thread.
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+
+        match wait_for_script_response(receiver)? {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
+    }
+
     /// <https://w3c.github.io/webdriver/#element-click>
     fn handle_element_click(&mut self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
@@ -2513,6 +2532,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::ElementClear(ref element) => self.handle_element_clear(element),
             WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::AcceptAlert => self.handle_accept_alert(),
