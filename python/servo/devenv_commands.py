@@ -27,13 +27,14 @@ class MachCommands(CommandBase):
         "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo check"
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def check(self, params, **kwargs) -> CompletedProcess[bytes] | int:
+    def check(self, params, **kwargs) -> int:
         if not params:
             params = []
 
         self.ensure_bootstrapped()
         self.ensure_clobbered()
         status = self.run_cargo_build_like_command("check", params, **kwargs)
+        assert isinstance(status, int)
         if status == 0:
             print("Finished checking, binary NOT updated. Consider ./mach build before ./mach run")
 
@@ -53,13 +54,15 @@ class MachCommands(CommandBase):
         "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo-fix"
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_fix(self, params, **kwargs) -> CompletedProcess[bytes] | int:
+    def cargo_fix(self, params, **kwargs) -> int:
         if not params:
             params = []
 
         self.ensure_bootstrapped()
         self.ensure_clobbered()
-        return self.run_cargo_build_like_command("fix", params, **kwargs)
+        status = self.run_cargo_build_like_command("fix", params, **kwargs)
+        assert isinstance(status, int)
+        return status
 
     @Command("clippy", description='Run "cargo clippy"', category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
@@ -70,7 +73,7 @@ class MachCommands(CommandBase):
         help="Emit the clippy warnings in the Github Actions annotations format",
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_clippy(self, params, github_annotations=False, **kwargs) -> CompletedProcess[bytes] | int:
+    def cargo_clippy(self, params, github_annotations=False, **kwargs) -> int:
         if not params:
             params = []
 
@@ -96,7 +99,9 @@ class MachCommands(CommandBase):
             except json.JSONDecodeError:
                 pass
             return results.returncode
-        return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
+        status = self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
+        assert isinstance(status, int)
+        return status
 
     @Command("fetch", description="Fetch Rust, Cargo and Cargo dependencies", category="devenv")
     def fetch(self) -> int:

@@ -7,7 +7,6 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from python.servo.platform.build_target import AndroidTarget, OpenHarmonyTarget
 from datetime import datetime
 import random
 import time
@@ -43,6 +42,7 @@ from servo.command_base import (
 from servo.util import delete, get_target_dir
 
 from python.servo.platform.build_target import SanitizerKind
+from servo.platform.build_target import is_android, is_openharmony
 
 PACKAGES = {
     "android": [
@@ -116,7 +116,7 @@ class PackageCommands(CommandBase):
         binary_path = self.get_binary_path(build_type, sanitizer=sanitizer)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
-        if self.is_android():
+        if is_android(self.target):
             target_triple = self.target.triple()
             if "aarch64" in target_triple:
                 arch_string = "Arm64"
@@ -156,7 +156,7 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
-        elif self.is_openharmony():
+        elif is_openharmony(self.target):
             # hvigor doesn't support an option to place output files in a specific directory
             # so copy the source files into the target/openharmony directory first.
             ohos_app_dir = path.join(self.get_top_dir(), "support", "openharmony")
@@ -217,7 +217,6 @@ class PackageCommands(CommandBase):
                 env["NODE_PATH"] = env["HVIGOR_PATH"] + "/node_modules"
                 hvigor_script = f"{env['HVIGOR_PATH']}/node_modules/@ohos/hvigor/bin/hvigor.js"
                 hvigor_command[0:0] = ["node", hvigor_script]
-            assert isinstance(self.target, OpenHarmonyTarget)
             abi_string = self.target.abi_string()
             ohos_libs_dir = path.join(ohos_target_dir, "entry", "libs", abi_string)
             os.makedirs(ohos_libs_dir)
@@ -418,8 +417,7 @@ class PackageCommands(CommandBase):
                 print("Rebuilding Servo did not solve the missing build problem.")
                 return 1
 
-        if self.is_android():
-            assert isinstance(self.target, AndroidTarget)
+        if is_android(self.target):
             pkg_path = self.target.get_package_path(build_type.directory_name())
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
@@ -430,8 +428,7 @@ class PackageCommands(CommandBase):
             if usb:
                 exec_command += ["-d"]
             exec_command += ["install", "-r", pkg_path]
-        elif self.is_openharmony():
-            assert isinstance(self.target, OpenHarmonyTarget)
+        elif is_openharmony(self.target):
             pkg_path = self.target.get_package_path(build_type.directory_name(), flavor=flavor)
             hdc_path = path.join(env["OHOS_SDK_NATIVE"], "../", "toolchains", "hdc")
             exec_command = [hdc_path, "install", "-r", pkg_path]

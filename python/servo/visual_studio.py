@@ -146,10 +146,10 @@ def find_msvc_redist_dirs(vs_platform: str) -> Generator[str, None, None]:
                 path2 = os.path.join("onecore", vs_platform, "Microsoft.{}.CRT".format(redist_version))
                 for path in [path1, path2]:
                     full_path = os.path.join(redist_path, path)
-                    if os.path.isdir(path):
+                    if os.path.isdir(full_path):
                         yield full_path
                     else:
-                        tried.append(path)
+                        tried.append(full_path)
 
     print("Couldn't locate MSVC redistributable directory. Tried:", file=sys.stderr)
     for path in tried:

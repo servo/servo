@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from typing import TypeGuard
 import errno
 import json
 import os
@@ -493,3 +494,11 @@ class OpenHarmonyTarget(CrossBuildTarget):
     def abi_string(self) -> str:
         abi_map = {"aarch64-unknown-linux-ohos": "arm64-v8a", "x86_64-unknown-linux-ohos": "x86_64"}
         return abi_map[self.triple()]
+
+
+def is_android(target: BuildTarget) -> TypeGuard[AndroidTarget]:
+    return isinstance(target, AndroidTarget)
+
+
+def is_openharmony(target: BuildTarget) -> TypeGuard[OpenHarmonyTarget]:
+    return isinstance(target, OpenHarmonyTarget)

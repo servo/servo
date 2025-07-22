@@ -11,6 +11,7 @@ import fileinput
 import re
 from re import Match
 import random
+from typing import Iterator
 
 
 def is_comment(line: str) -> Match[str] | None:
@@ -176,17 +177,7 @@ class DeleteIfBlock(Strategy):
             line_to_mutate += 1
 
 
-def get_strategies() -> tuple[
-    type[AndOr],
-    type[IfTrue],
-    type[IfFalse],
-    type[ModifyComparision],
-    type[PlusToMinus],
-    type[MinusToPlus],
-    type[AtomicString],
-    type[DuplicateLine],
-    type[DeleteIfBlock],
-]:
+def get_strategies() -> Iterator[Strategy]:
     return (
         AndOr,
         IfTrue,

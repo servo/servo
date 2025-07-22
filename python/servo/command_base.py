@@ -1,5 +1,4 @@
-# Copyright 2013 The Servo Project Developers. See the COPYRIGHT
-# file at the top-level directory of this distribution.
+# Copyright 2013 The Servo Project Developers. See the COPYRIGHT file at the top-level directory of this distribution.
 #
 # Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 # http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -15,7 +14,6 @@ import gzip
 import itertools
 import locale
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -26,7 +24,6 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from enum import Enum
-from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 from os import path
 from subprocess import PIPE, CompletedProcess
@@ -186,8 +183,6 @@ def call(*args, **kwargs) -> int:
     verbose = kwargs.pop("verbose", False)
     if verbose:
         print(" ".join(args[0]))
-    if not isinstance(kwargs, dict):
-        kwargs = dict(kwargs)
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows\
     kwargs.setdefault("shell", sys.platform == "win32")
@@ -199,8 +194,6 @@ def check_output(*args, **kwargs) -> Union[str, bytes]:
     verbose = kwargs.pop("verbose", False)
     if verbose:
         print(" ".join(args[0]))
-    if not isinstance(kwargs, dict):
-        kwargs = dict(kwargs)
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
     kwargs.setdefault("shell", sys.platform == "win32")
@@ -211,8 +204,6 @@ def check_call(*args, **kwargs) -> None:
     """Wrap `subprocess.check_call`, printing the command if verbose=True.
 
     Also fix any unicode-containing `env`, for subprocess"""
-    if not isinstance(kwargs, dict):
-        kwargs = dict(kwargs)
     verbose = kwargs.pop("verbose", False)
 
     if verbose:
@@ -261,7 +252,7 @@ class CommandBase(object):
 
     This mostly handles configuration management, such as .servobuild."""
 
-    target: BuildTarget | OpenHarmonyTarget | AndroidTarget
+    target: BuildTarget
 
     def __init__(self, context) -> None:
         self.context = context
@@ -272,7 +263,7 @@ class CommandBase(object):
         # by `configure_build_target`
         self.target = BuildTarget.from_triple(None)
 
-        def get_env_bool(var: str, default: bool) -> bool | None:
+        def get_env_bool(var: str, default: bool) -> bool:
             # Contents of env vars are strings by default. This returns the
             # boolean value of the specified environment variable, or the
             # speciried default if the var doesn't contain True or False
@@ -354,7 +345,7 @@ class CommandBase(object):
 
         return binary_path
 
-    def detach_volume(self, mounted_volume: LiteralString) -> None:
+    def detach_volume(self, mounted_volume: str | bytes) -> None:
         print("Detaching volume {}".format(mounted_volume))
         try:
             subprocess.check_call(["hdiutil", "detach", mounted_volume])
@@ -362,7 +353,7 @@ class CommandBase(object):
             print("Could not detach volume {} : {}".format(mounted_volume, e.returncode))
             sys.exit(1)
 
-    def detach_volume_if_attached(self, mounted_volume: LiteralString) -> None:
+    def detach_volume_if_attached(self, mounted_volume: str | bytes) -> None:
         if os.path.exists(mounted_volume):
             self.detach_volume(mounted_volume)
 
@@ -793,12 +784,6 @@ class CommandBase(object):
         if self.target.is_cross_build() and not suppress_log:
             print(f"Targeting '{self.target.triple()}' for cross-compilation")
 
-    def is_android(self) -> bool:
-        return isinstance(self.target, AndroidTarget)
-
-    def is_openharmony(self) -> bool:
-        return isinstance(self.target, OpenHarmonyTarget)
-
     def is_media_enabled(self, media_stack: Optional[str]):
         """Determine whether media is enabled based on the value of the build target
         platform and the value of the '--media-stack' command-line argument.
@@ -939,35 +924,6 @@ class CommandBase(object):
             installed_targets = installed_targets.decode("utf-8")
         if self.target.triple() not in installed_targets:
             check_call(["rustup", "target", "add", self.target.triple()], cwd=self.context.topdir)
-
-    def ensure_rustup_version(self) -> None:
-        try:
-            version_line = subprocess.check_output(
-                ["rustup" + servo.platform.get().executable_suffix(), "--version"],
-                # Silence "info: This is the version for the rustup toolchain manager,
-                # not the rustc compiler."
-                stderr=open(os.devnull, "wb"),
-            )
-        except OSError as e:
-            if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
-                print(
-                    "It looks like rustup is not installed. See instructions at "
-                    "https://github.com/servo/servo/#setting-up-your-environment"
-                )
-                print()
-                sys.exit(1)
-            raise
-        match = re.match(rb"rustup (\d+)\.(\d+)\.(\d+)", version_line)
-        if not match:
-            print("Could not extract version from regex pattern in rustup")
-            sys.exit(1)
-
-        version: tuple[int, int, int] = tuple(map(int, match.groups()))
-        version_needed = (1, 23, 0)
-        if version < version_needed:
-            print("rustup is at version %s.%s.%s, Servo requires %s.%s.%s or more recent." % (version + version_needed))
-            print("Try running 'rustup self update'.")
-            sys.exit(1)
 
     def ensure_clobbered(self, target_dir=None) -> None:
         if target_dir is None:

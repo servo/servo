@@ -31,7 +31,7 @@ from servo.command_base import (
     check_call,
     is_linux,
 )
-
+from servo.platform.build_target import is_android
 
 ANDROID_APP_NAME = "org.servo.servoshell"
 
@@ -110,7 +110,7 @@ class PostBuildCommands(CommandBase):
         if debugger_cmd:
             debugger = True
 
-        if self.is_android():
+        if is_android(self.target):
             if debugger:
                 print("Android on-device debugging is not supported by mach yet. See")
                 print("https://github.com/servo/servo/wiki/Building-for-Android#debugging-on-device")
