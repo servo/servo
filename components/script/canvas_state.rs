@@ -8,9 +8,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use canvas_traits::canvas::{
-    Canvas2dMsg, CanvasId, CanvasMsg, CompositionOrBlending, Direction, FillOrStrokeStyle,
-    FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, Path, RadialGradientStyle,
-    RepetitionStyle, TextAlign, TextBaseline, TextMetrics as CanvasTextMetrics,
+    Canvas2dMsg, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending, Direction,
+    FillOrStrokeStyle, FillRule, LineCapStyle, LineJoinStyle, LineOptions, LinearGradientStyle,
+    Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextAlign, TextBaseline,
+    TextMetrics as CanvasTextMetrics, TextOptions,
 };
 use constellation_traits::ScriptToConstellationMessage;
 use cssparser::color::clamp_unit_f32;
@@ -144,6 +145,41 @@ impl CanvasContextState {
             direction: Default::default(),
             line_dash: Vec::new(),
             line_dash_offset: 0.0,
+        }
+    }
+
+    fn text_options(&self) -> TextOptions {
+        TextOptions {
+            font: self.font_style.clone(),
+            align: self.text_align,
+            baseline: self.text_baseline,
+        }
+    }
+
+    fn composition_options(&self) -> CompositionOptions {
+        CompositionOptions {
+            alpha: self.global_alpha,
+            composition_operation: self.global_composition,
+        }
+    }
+
+    fn shadow_options(&self) -> ShadowOptions {
+        ShadowOptions {
+            offset_x: self.shadow_offset_x,
+            offset_y: self.shadow_offset_y,
+            blur: self.shadow_blur,
+            color: self.shadow_color,
+        }
+    }
+
+    fn line_options(&self) -> LineOptions {
+        LineOptions {
+            width: self.line_width,
+            cap_style: self.line_cap,
+            join_style: self.line_join,
+            miter_limit: self.miter_limit,
+            dash: self.line_dash.iter().map(|x| *x as f32).collect(),
+            dash_offset: self.line_dash_offset,
         }
     }
 }
@@ -302,7 +338,10 @@ impl CanvasState {
             return;
         }
 
-        self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(self.size.get().to_f32().into()));
+        self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(
+            self.size.get().to_f32().into(),
+            self.state.borrow().transform,
+        ));
     }
 
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
@@ -563,6 +602,9 @@ impl CanvasState {
             dest_rect,
             source_rect,
             smoothing_enabled,
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
         ));
 
         self.mark_as_dirty(canvas);
@@ -609,6 +651,9 @@ impl CanvasState {
             dest_rect,
             source_rect,
             smoothing_enabled,
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
         ));
 
         self.mark_as_dirty(canvas);
@@ -657,6 +702,9 @@ impl CanvasState {
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
                     ));
                 },
                 OffscreenRenderingContext::BitmapRenderer(ref context) => {
@@ -669,6 +717,9 @@ impl CanvasState {
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
                     ));
                 },
                 OffscreenRenderingContext::Detached => return Err(Error::InvalidState),
@@ -678,6 +729,9 @@ impl CanvasState {
                 image_size,
                 dest_rect,
                 source_rect,
+                self.state.borrow().shadow_options(),
+                self.state.borrow().composition_options(),
+                self.state.borrow().transform,
             ));
         }
 
@@ -728,6 +782,9 @@ impl CanvasState {
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
                     ));
                 },
                 RenderingContext::BitmapRenderer(ref context) => {
@@ -740,6 +797,9 @@ impl CanvasState {
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
                     ));
                 },
                 RenderingContext::Placeholder(ref context) => {
@@ -754,6 +814,9 @@ impl CanvasState {
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
+                                self.state.borrow().shadow_options(),
+                                self.state.borrow().composition_options(),
+                                self.state.borrow().transform,
                             )),
                         OffscreenRenderingContext::BitmapRenderer(ref context) => {
                             let Some(snapshot) = context.get_image_data() else {
@@ -765,6 +828,9 @@ impl CanvasState {
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
+                                self.state.borrow().shadow_options(),
+                                self.state.borrow().composition_options(),
+                                self.state.borrow().transform,
                             ));
                         },
                         OffscreenRenderingContext::Detached => return Err(Error::InvalidState),
@@ -777,6 +843,9 @@ impl CanvasState {
                 image_size,
                 dest_rect,
                 source_rect,
+                self.state.borrow().shadow_options(),
+                self.state.borrow().composition_options(),
+                self.state.borrow().transform,
             ));
         }
 
@@ -824,6 +893,9 @@ impl CanvasState {
             dest_rect,
             source_rect,
             smoothing_enabled,
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
         ));
         self.mark_as_dirty(canvas);
         Ok(())
@@ -870,6 +942,9 @@ impl CanvasState {
             dest_rect,
             source_rect,
             smoothing_enabled,
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
         ));
 
         self.mark_as_dirty(canvas);
@@ -952,7 +1027,6 @@ impl CanvasState {
             .borrow_mut()
             .transform(state.transform.cast());
         state.transform = transform;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetTransform(state.transform));
         if let Some(inverse) = transform.inverse() {
             self.current_default_path
                 .borrow_mut()
@@ -964,14 +1038,20 @@ impl CanvasState {
     pub(crate) fn fill_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
-            self.send_canvas_2d_msg(Canvas2dMsg::FillRect(rect, style));
+            self.send_canvas_2d_msg(Canvas2dMsg::FillRect(
+                rect,
+                style,
+                self.state.borrow().shadow_options(),
+                self.state.borrow().composition_options(),
+                self.state.borrow().transform,
+            ));
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clearrect
     pub(crate) fn clear_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(rect));
+            self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(rect, self.state.borrow().transform));
         }
     }
 
@@ -979,7 +1059,14 @@ impl CanvasState {
     pub(crate) fn stroke_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
-            self.send_canvas_2d_msg(Canvas2dMsg::StrokeRect(rect, style));
+            self.send_canvas_2d_msg(Canvas2dMsg::StrokeRect(
+                rect,
+                style,
+                self.state.borrow().line_options(),
+                self.state.borrow().shadow_options(),
+                self.state.borrow().composition_options(),
+                self.state.borrow().transform,
+            ));
         }
     }
 
@@ -994,7 +1081,6 @@ impl CanvasState {
             return;
         }
         self.state.borrow_mut().shadow_offset_x = value;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetShadowOffsetX(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
@@ -1008,7 +1094,6 @@ impl CanvasState {
             return;
         }
         self.state.borrow_mut().shadow_offset_y = value;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetShadowOffsetY(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
@@ -1022,7 +1107,6 @@ impl CanvasState {
             return;
         }
         self.state.borrow_mut().shadow_blur = value;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetShadowBlur(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
@@ -1041,7 +1125,6 @@ impl CanvasState {
     ) {
         if let Ok(rgba) = parse_color(canvas, &value, can_gc) {
             self.state.borrow_mut().shadow_color = rgba;
-            self.send_canvas_2d_msg(Canvas2dMsg::SetShadowColor(rgba))
         }
     }
 
@@ -1286,7 +1369,6 @@ impl CanvasState {
         }
 
         self.state.borrow_mut().global_alpha = alpha;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetGlobalAlpha(alpha as f32))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
@@ -1301,7 +1383,6 @@ impl CanvasState {
     pub(crate) fn set_global_composite_operation(&self, op_str: DOMString) {
         if let Ok(op) = CompositionOrBlending::from_str(&op_str) {
             self.state.borrow_mut().global_composition = op;
-            self.send_canvas_2d_msg(Canvas2dMsg::SetGlobalComposition(op))
         }
     }
 
@@ -1353,6 +1434,10 @@ impl CanvasState {
             max_width,
             style,
             is_rtl,
+            self.state.borrow().text_options(),
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
         ));
     }
 
@@ -1373,7 +1458,11 @@ impl CanvasState {
         }
 
         let (sender, receiver) = ipc::channel::<CanvasTextMetrics>().unwrap();
-        self.send_canvas_2d_msg(Canvas2dMsg::MeasureText(text.into(), sender));
+        self.send_canvas_2d_msg(Canvas2dMsg::MeasureText(
+            text.into(),
+            sender,
+            self.state.borrow().text_options(),
+        ));
         let metrics = receiver.recv().unwrap();
 
         TextMetrics::new(
@@ -1413,7 +1502,6 @@ impl CanvasState {
                 None => return, // syntax error
             };
         self.state.borrow_mut().font_style = Some((*resolved_font_style).clone());
-        self.send_canvas_2d_msg(Canvas2dMsg::SetFont((*resolved_font_style).clone()));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
@@ -1449,7 +1537,6 @@ impl CanvasState {
             CanvasTextAlign::Center => TextAlign::Center,
         };
         self.state.borrow_mut().text_align = text_align;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetTextAlign(text_align));
     }
 
     pub(crate) fn text_baseline(&self) -> CanvasTextBaseline {
@@ -1473,7 +1560,6 @@ impl CanvasState {
             CanvasTextBaseline::Bottom => TextBaseline::Bottom,
         };
         self.state.borrow_mut().text_baseline = text_baseline;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetTextBaseline(text_baseline));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
@@ -1507,7 +1593,6 @@ impl CanvasState {
         }
 
         self.state.borrow_mut().line_width = width;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetLineWidth(width as f32))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
@@ -1527,7 +1612,6 @@ impl CanvasState {
             CanvasLineCap::Square => LineCapStyle::Square,
         };
         self.state.borrow_mut().line_cap = line_cap;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetLineCap(line_cap));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
@@ -1547,7 +1631,6 @@ impl CanvasState {
             CanvasLineJoin::Miter => LineJoinStyle::Miter,
         };
         self.state.borrow_mut().line_join = line_join;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetLineJoin(line_join));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
@@ -1562,7 +1645,6 @@ impl CanvasState {
         }
 
         self.state.borrow_mut().miter_limit = limit;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetMiterLimit(limit as f32))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getlinedash>
@@ -1594,9 +1676,6 @@ impl CanvasState {
 
         // > Let the object's dash list be segments.
         self.state.borrow_mut().line_dash = line_dash.clone();
-        self.send_canvas_2d_msg(Canvas2dMsg::SetLineDash(
-            line_dash.into_iter().map(|dash| dash as f32).collect(),
-        ))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
@@ -1615,7 +1694,6 @@ impl CanvasState {
 
         // > other values must change the current value to the new value.
         self.state.borrow_mut().line_dash_offset = offset;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetLineDashOffset(offset as f32));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -1858,7 +1936,13 @@ impl CanvasState {
     pub(crate) fn fill_(&self, path: Path, _fill_rule: CanvasFillRule) {
         // TODO: Process fill rule
         let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
-        self.send_canvas_2d_msg(Canvas2dMsg::FillPath(style, path));
+        self.send_canvas_2d_msg(Canvas2dMsg::FillPath(
+            style,
+            path,
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
@@ -1869,7 +1953,14 @@ impl CanvasState {
 
     pub(crate) fn stroke_(&self, path: Path) {
         let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
-        self.send_canvas_2d_msg(Canvas2dMsg::StrokePath(style, path));
+        self.send_canvas_2d_msg(Canvas2dMsg::StrokePath(
+            path,
+            style,
+            self.state.borrow().line_options(),
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
@@ -1881,7 +1972,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
     pub(crate) fn clip_(&self, path: Path, _fill_rule: CanvasFillRule) {
         // TODO: Process fill rule
-        self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(path));
+        self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(path, self.state.borrow().transform));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
