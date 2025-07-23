@@ -353,7 +353,7 @@ impl App {
         while let Ok(msg) = webdriver_receiver.try_recv() {
             match msg {
                 WebDriverCommandMsg::SetWebDriverResponseSender(..) => {
-                    running_state.forward_webdriver_command(msg);
+                    running_state.servo().execute_webdriver_command(msg);
                 },
                 WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
                     let context = running_state.webview_by_id(webview_id);
@@ -363,7 +363,7 @@ impl App {
                     }
                 },
                 WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
-                    running_state.forward_webdriver_command(msg);
+                    running_state.servo().execute_webdriver_command(msg);
                 },
                 WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
                     let new_webview =
@@ -580,15 +580,9 @@ impl App {
                         webview.notify_scroll_event(scroll_location, point.to_i32());
                     }
                 },
-                WebDriverCommandMsg::ScriptCommand(
-                    browsing_context_id,
-                    webdriver_script_command,
-                ) => {
-                    self.handle_webdriver_script_commnd(&webdriver_script_command, running_state);
-                    running_state.forward_webdriver_command(WebDriverCommandMsg::ScriptCommand(
-                        browsing_context_id,
-                        webdriver_script_command,
-                    ));
+                WebDriverCommandMsg::ScriptCommand(_, ref webdriver_script_command) => {
+                    self.handle_webdriver_script_commnd(webdriver_script_command, running_state);
+                    running_state.servo().execute_webdriver_command(msg);
                 },
                 WebDriverCommandMsg::CurrentUserPrompt(webview_id, response_sender) => {
                     let current_dialog =
@@ -637,7 +631,7 @@ impl App {
                     running_state.set_alert_text_of_newest_dialog(webview_id, text);
                 },
                 WebDriverCommandMsg::TakeScreenshot(..) => {
-                    running_state.forward_webdriver_command(msg);
+                    running_state.servo().execute_webdriver_command(msg);
                 },
             };
         }
