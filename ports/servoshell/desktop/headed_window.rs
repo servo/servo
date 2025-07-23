@@ -432,14 +432,11 @@ impl Window {
     }
 
     /// Update [`WindowRenderingContext`] after a resize.
-    fn update_window_rendering_context_after_resize(
-        &self,
-        res_inner_width: f32,
-        res_inner_height: f32,
-    ) {
+    fn update_window_rendering_context_after_resize(&self, inner_size: PhysicalSize<u32>) {
         self.window_rendering_context.resize(PhysicalSize::new(
-            res_inner_width as u32,
-            (res_inner_height - (self.toolbar_height() * self.hidpi_scale_factor()).0) as u32,
+            inner_size.width,
+            (inner_size.height as f32 - (self.toolbar_height() * self.hidpi_scale_factor()).0)
+                as u32,
         ));
     }
 }
@@ -507,10 +504,10 @@ impl WindowPortsMethods for Window {
                 new_outer_size.width - decoration_width as i32,
                 new_outer_size.height - decoration_height as i32,
             ))
-            .map(|res_inner_size| {
+            .map(|resulting_size| {
                 DeviceIntSize::new(
-                    (res_inner_size.width + decoration_width) as i32,
-                    (res_inner_size.height + decoration_height) as i32,
+                    (resulting_size.width + decoration_width) as i32,
+                    (resulting_size.height + decoration_height) as i32,
                 )
             })
     }
@@ -693,11 +690,8 @@ impl WindowPortsMethods for Window {
             WindowEvent::Resized(new_inner_size) => {
                 if self.inner_size.get() != new_inner_size {
                     self.inner_size.set(new_inner_size);
-                    // webview related compositor rect was updated in minibrowser::update
-                    self.update_window_rendering_context_after_resize(
-                        new_inner_size.width as f32,
-                        new_inner_size.height as f32,
-                    );
+                    // `WebView::move_resize` was already called in `Minibrowser::update`.
+                    self.update_window_rendering_context_after_resize(new_inner_size);
                 }
             },
             WindowEvent::ThemeChanged(theme) => {

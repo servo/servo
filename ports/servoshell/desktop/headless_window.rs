@@ -90,9 +90,7 @@ impl WindowPortsMethods for Window {
         // Because we are managing the rendering surface ourselves, there will be no other
         // notification (such as from the display manager) that it has changed size, so we
         // must notify the compositor here.
-        let mut rect = webview.rect();
-        rect.set_size(outer_size.to_f32());
-        webview.move_resize(rect);
+        webview.move_resize(outer_size.to_f32().into());
         webview.resize(PhysicalSize::new(
             outer_size.width as u32,
             outer_size.height as u32,

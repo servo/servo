@@ -349,7 +349,6 @@ impl WebView {
         self.inner().rect
     }
 
-    /// Update Compositor's [`WebViewRenderer`] rect and notify repaint.
     pub fn move_resize(&self, rect: DeviceRect) {
         if self.inner().rect == rect {
             return;
@@ -362,7 +361,6 @@ impl WebView {
             .move_resize_webview(self.id(), rect);
     }
 
-    /// Update Compositor's [`RenderingContext`] size and notify repaint.
     pub fn resize(&self, new_size: PhysicalSize<u32>) {
         self.inner()
             .compositor
