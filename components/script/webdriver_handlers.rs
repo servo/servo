@@ -1699,12 +1699,17 @@ fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), Er
         unreachable!("We have confirm previously that element is mutable form control");
     }
 
+    let event_target = element.upcast::<EventTarget>();
+    event_target.fire_bubbling_event(atom!("input"), can_gc);
+    event_target.fire_bubbling_event(atom!("change"), can_gc);
+
     // Step 5. Run the unfocusing steps for the element.
     html_element.Blur(can_gc);
 
     Ok(())
 }
 
+/// <https://w3c.github.io/webdriver/#element-clear>
 pub(crate) fn handle_element_clear(
     documents: &DocumentCollection,
     pipeline: PipelineId,

@@ -2111,6 +2111,7 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
+    /// <https://w3c.github.io/webdriver/#element-clear>
     fn handle_element_clear(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return ErrorStatus::NoSuchWindow.

@@ -2201,6 +2201,7 @@ impl HTMLInputElement {
         self.textinput.borrow_mut().set_content(DOMString::from(""));
         self.filelist.set(None);
         self.enable_sanitization();
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     fn update_placeholder_shown_state(&self) {
