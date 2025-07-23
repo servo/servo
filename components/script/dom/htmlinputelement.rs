@@ -2195,11 +2195,18 @@ impl HTMLInputElement {
 
     /// <https://w3c.github.io/webdriver/#dfn-clear-algorithm>
     /// Used by WebDriver to clear the input element.
-    pub(crate) fn clear(&self) {
+    pub(crate) fn clear(&self) {        
+        // Step 1. Reset dirty flags.
         self.value_dirty.set(false);
-        self.update_checked_state(self.DefaultChecked(), false);
+        // Step 2. Set value to empty string.
         self.textinput.borrow_mut().set_content(DOMString::from(""));
+        // Step 3. Set checkedness based on presence of content attribute.
+        self.update_checked_state(self.DefaultChecked(), false);
+        // Step 4. Empty selected files
         self.filelist.set(None);
+        // Step 5. invoke the value sanitization algorithm iff 
+        // the type attribute's current state defines one.
+        // This is covered in `fn sanitize_value` called below.
         self.enable_sanitization();
         self.upcast::<Node>().dirty(NodeDamage::Other);
     }
