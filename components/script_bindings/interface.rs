@@ -142,7 +142,6 @@ pub(crate) unsafe fn create_global_object<D: DomTypes>(
     trace: TraceHook,
     mut rval: MutableHandleObject,
     origin: &MutableOrigin,
-    is_system_or_addon_principal: bool,
     use_system_compartment: bool,
 ) {
     assert!(rval.is_null());
@@ -160,7 +159,8 @@ pub(crate) unsafe fn create_global_object<D: DomTypes>(
     // “System or addon” principals control JIT policy (IsBaselineJitEnabled, IsIonEnabled) and WASM policy
     // (IsSimdPrivilegedContext, HasSupport). This is unrelated to the concept of “system” compartments, though WASM
     // HasSupport describes checking this flag as “check trusted principals”, which seems to be a mistake.
-    let principal = ServoJSPrincipals::new::<D>(origin, is_system_or_addon_principal);
+    // Servo currently creates all principals as non-system-or-addon principals.
+    let principal = ServoJSPrincipals::new::<D>(origin);
     if use_system_compartment {
         // “System” compartments are those that have all “system” realms, which in turn are those that were
         // created with the runtime’s global “trusted” principals. This influences the IsSystemCompartment() check

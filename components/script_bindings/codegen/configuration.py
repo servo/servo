@@ -252,7 +252,6 @@ class Descriptor(DescriptorProvider):
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
         self.weakReferenceable = desc.get('weakReferenceable', False)
-        self.isSystemOrAddonPrincipal = desc.get('isSystemOrAddonPrincipal', False)
         self.useSystemCompartment = desc.get('useSystemCompartment', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark

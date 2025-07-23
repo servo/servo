@@ -19,21 +19,12 @@ use crate::interfaces::DomHelpers;
 #[repr(transparent)]
 pub struct ServoJSPrincipals(NonNull<JSPrincipals>);
 
-#[derive(Debug)]
-pub struct PrincipalInfo {
-    origin: MutableOrigin,
-    is_system_or_addon_principal: bool,
-}
-
 impl ServoJSPrincipals {
-    pub fn new<D: DomTypes>(origin: &MutableOrigin, is_system_or_addon_principal: bool) -> Self {
+    pub fn new<D: DomTypes>(origin: &MutableOrigin) -> Self {
         unsafe {
-            let private: Box<PrincipalInfo> = Box::new(PrincipalInfo {
-                origin: origin.clone(),
-                is_system_or_addon_principal,
-            });
+            let private: Box<MutableOrigin> = Box::new(origin.clone());
             let raw = CreateRustJSPrincipals(
-                <D as DomHelpers<D>>::principals_callbacks(is_system_or_addon_principal),
+                <D as DomHelpers<D>>::principals_callbacks(),
                 Box::into_raw(private) as _,
             );
             // The created `JSPrincipals` object has an initial reference
@@ -56,16 +47,8 @@ impl ServoJSPrincipals {
     #[inline]
     pub fn origin(&self) -> MutableOrigin {
         unsafe {
-            let info = GetRustJSPrincipalsPrivate(self.0.as_ptr()) as *mut PrincipalInfo;
-            (*info).origin.clone()
-        }
-    }
-
-    #[inline]
-    pub fn is_system_or_addon_principal(&self) -> bool {
-        unsafe {
-            let info = GetRustJSPrincipalsPrivate(self.0.as_ptr()) as *mut PrincipalInfo;
-            (*info).is_system_or_addon_principal
+            let origin = GetRustJSPrincipalsPrivate(self.0.as_ptr()) as *mut MutableOrigin;
+            (*origin).clone()
         }
     }
 
