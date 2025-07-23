@@ -6,7 +6,7 @@
 
 from collections import defaultdict
 from itertools import groupby
-from typing import Generator, Tuple, Optional, List, Any, Iterator
+from typing import Generator, Tuple, Optional, List
 from abc import abstractmethod
 
 import operator
@@ -123,13 +123,13 @@ RUST_KEYWORDS = {
 }
 
 
-def genericsForType(t):
+def genericsForType(t) -> tuple[str, str]:
     if containsDomInterface(t):
         return ("<D: DomTypes>", "<D>")
     return ("", "")
 
 
-def isDomInterface(t, logging=False):
+def isDomInterface(t, logging: bool = False) -> bool:
     while isinstance(t, IDLNullableType) or isinstance(t, IDLWrapperType):
         t = t.inner
     if isinstance(t, IDLInterface):
@@ -139,12 +139,11 @@ def isDomInterface(t, logging=False):
     return t.isInterface() and (t.isGeckoInterface() or (t.isSpiderMonkeyInterface() and not t.isBufferSource()))
 
 
-def containsDomInterface(t, logging=False):
+def containsDomInterface(t, logging: bool = False) -> bool:
     if isinstance(t, IDLArgument):
         t = t.type
     if isinstance(t, IDLTypedefType):
-        # pyrefly: ignore  # missing-attribute
-        t = t.innerType
+        t = t.inner
     while isinstance(t, IDLNullableType) or isinstance(t, IDLWrapperType):
         t = t.inner
     if t.isEnum():
@@ -163,11 +162,11 @@ def containsDomInterface(t, logging=False):
     return False
 
 
-def toStringBool(arg):
+def toStringBool(arg) -> str:
     return str(not not arg).lower()
 
 
-def toBindingNamespace(arg):
+def toBindingNamespace(arg) -> str:
     """
     Namespaces are *_Bindings
 
@@ -176,7 +175,7 @@ def toBindingNamespace(arg):
     return re.sub("((_workers)?$)", "_Binding\\1", MakeNativeName(arg))
 
 
-def toBindingModuleFile(arg):
+def toBindingModuleFile(arg) -> str:
     """
     Module files are *Bindings
 
@@ -185,14 +184,14 @@ def toBindingModuleFile(arg):
     return re.sub("((_workers)?$)", "Binding\\1", MakeNativeName(arg))
 
 
-def toBindingModuleFileFromDescriptor(desc):
+def toBindingModuleFileFromDescriptor(desc) -> str:
     if desc.maybeGetSuperModule() is not None:
         return toBindingModuleFile(desc.maybeGetSuperModule())
     else:
         return toBindingModuleFile(desc.name)
 
 
-def stripTrailingWhitespace(text):
+def stripTrailingWhitespace(text: str) -> str:
     tail = '\n' if text.endswith('\n') else ''
     lines = text.splitlines()
     for i in range(len(lines)):
@@ -289,7 +288,7 @@ numericTags = [
 lineStartDetector = re.compile("^(?=[^\n#])", re.MULTILINE)
 
 
-def indent(s, indentLevel=2):
+def indent(s: str, indentLevel: int = 2) -> str:
     """
     Indent C++ code.
 
@@ -301,7 +300,7 @@ def indent(s, indentLevel=2):
     return re.sub(lineStartDetector, indentLevel * " ", s)
 
 @functools.cache
-def dedent(s):
+def dedent(s: str) -> str:
     """
     Remove all leading whitespace from s, and remove a blank line
     at the beginning.
@@ -415,7 +414,7 @@ class CGMethodCall(CGThing):
     A class to generate selection of a method signature from a set of
     signatures and generation of a call to that signature.
     """
-    cgRoot: Any
+    cgRoot: CGThing
     def __init__(self, argsPre, nativeMethodName, static, descriptor, method):
         CGThing.__init__(self)
 
@@ -1350,7 +1349,7 @@ class CGArgumentConverter(CGThing):
     argument list, and the argv and argc strings and generates code to
     unwrap the argument to the right native type.
     """
-    converter: Any
+    converter: CGThing
     def __init__(self, argument, index, args, argc, descriptorProvider,
                  invalidEnumValueFatal=True):
         CGThing.__init__(self)
@@ -3033,7 +3032,7 @@ class CGAbstractMethod(CGThing):
     def definition_epilogue(self):
         return "\n}\n"
 
-    def definition_body(self) -> CGGeneric | CGList | CGWrapper:
+    def definition_body(self) -> CGThing:
         raise NotImplementedError  # Override me!
 
 
@@ -4310,7 +4309,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                 Argument('*const JSJitMethodCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
-    def definition_body(self) -> Any:
+    def definition_body(self) -> CGThing:
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
         return CGWrapper(CGMethodCall([], nativeName, self.method.isStatic(),
