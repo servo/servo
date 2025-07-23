@@ -92,7 +92,8 @@ impl Window {
     ) -> Window {
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;
         let window_size = servoshell_preferences.initial_window_size;
-        let window_attr = winit::window::Window::default_attributes()
+        #[allow(unused_mut)]
+        let mut window_attr = winit::window::Window::default_attributes()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
@@ -106,7 +107,23 @@ impl Window {
         #[cfg(target_os = "linux")]
         let window_attr = window_attr.with_name("org.servo.Servo", "Servo");
 
-        #[allow(deprecated)]
+        #[cfg(all(
+            unix,
+            not(target_os = "macos"),
+            not(target_os = "ios"),
+            not(target_os = "android"),
+            not(target_env = "ohos")
+        ))]
+        {
+            use winit::platform::startup_notify::{
+                self, EventLoopExtStartupNotify, WindowAttributesExtStartupNotify,
+            };
+            if let Some(token) = event_loop.read_token_from_env() {
+                startup_notify::reset_activation_token_env();
+                window_attr = window_attr.with_activation_token(token);
+            }
+        }
+
         let winit_window = event_loop
             .create_window(window_attr)
             .expect("Failed to create window.");
@@ -729,10 +746,28 @@ impl WindowPortsMethods for Window {
     ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
-        let window_attr = winit::window::Window::default_attributes()
+        #[allow(unused_mut)]
+        let mut window_attr = winit::window::Window::default_attributes()
             .with_title("Servo XR".to_string())
             .with_inner_size(size)
             .with_visible(false);
+
+        #[cfg(all(
+            unix,
+            not(target_os = "macos"),
+            not(target_os = "ios"),
+            not(target_os = "android"),
+            not(target_env = "ohos")
+        ))]
+        {
+            use winit::platform::startup_notify::{
+                self, EventLoopExtStartupNotify, WindowAttributesExtStartupNotify,
+            };
+            if let Some(token) = event_loop.read_token_from_env() {
+                startup_notify::reset_activation_token_env();
+                window_attr = window_attr.with_activation_token(token);
+            }
+        }
 
         let winit_window = event_loop
             .create_window(window_attr)
