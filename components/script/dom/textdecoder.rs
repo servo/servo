@@ -109,7 +109,6 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
-    #[allow(unsafe_code)]
     fn Decode(
         &self,
         input: Option<ArrayBufferViewOrArrayBuffer>,
