@@ -289,7 +289,7 @@ jobs:
         continue-on-error: true
       - name: Run speedometer
         id: BencherRun
-        run: python3 ./mach test-speedometer-ohos --bmf-output speedometer.json
+        run: python3 ./mach test-speedometer-ohos --bmf-output speedometer.json --profile ${{ inputs.profile }}
         continue-on-error: true
       - name: Create empty speedometer.json if failed
         run: touch speedometer.json
