@@ -295,8 +295,9 @@ jobs:
         run: touch speedometer.json
         if: ${{ steps.BencherRun.outcome == 'failure' }}
       - name: Getting model name
+        # awk is used to remove trailing spaces
         run: |
-          echo "MODEL_NAME=$(hdc bugreport | head -n 20 | grep MarketName | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}' -)" >> $GITHUB_ENV
+          echo "MODEL_NAME=$(hdc shell param get const.product.name | awk '{$1=$1;print}' )" >> $GITHUB_ENV
       - name: Combining bencher files
         run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
       - uses: bencherdev/bencher@main
