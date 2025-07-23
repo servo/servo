@@ -369,8 +369,8 @@ impl DocumentOrShadowRoot {
     /// In case of duplicates, the setter will respect the last duplicates.
     ///
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    // TODO(stevennovaryo): Handle duplicated adoptedstylesheet correctly, Stylo is preventing
-    //                      duplicates inside a Stylesheet Set. But this is not ideal.
+    // TODO: Handle duplicated adoptedstylesheet correctly, Stylo is preventing duplicates inside a
+    //       Stylesheet Set. But this is not ideal. https://bugzilla.mozilla.org/show_bug.cgi?id=1978755
     fn set_adopted_stylesheet(
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_stylesheets: &[Dom<CSSStyleSheet>],

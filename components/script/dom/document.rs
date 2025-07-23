@@ -4905,8 +4905,8 @@ impl Document {
     }
 
     /// Add a stylesheet owned by `owner_node` to the list of document sheets, in the
-    /// correct tree position. Additionally, the owned stylesheet is inserted before any
-    /// constructed ones.
+    /// correct tree position. Additionally, ensure that the owned stylesheet is inserted
+    /// before any constructed stylesheet.
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
@@ -4922,7 +4922,8 @@ impl Document {
                     StylesheetSource::Element(other_node) => {
                         owner_node.upcast::<Node>().is_before(other_node.upcast())
                     },
-                    // Non-constructed stylesheet should be ordered before owned ones.
+                    // Non-constructed stylesheet should be ordered before the
+                    // constructed ones.
                     StylesheetSource::Constructed(_) => true,
                 }
             })
