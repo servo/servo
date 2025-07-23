@@ -1121,6 +1121,7 @@ fn handle_send_keys_non_typeable(
 
     // Step 3. Set a property value to text on element.
     if input_element.SetValue(text.into(), can_gc).is_err() {
+        info!("Failed to set value on non-typeable input element");
         return Err(ErrorStatus::UnknownError);
     }
 
