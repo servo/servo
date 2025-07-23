@@ -327,6 +327,17 @@ pub struct ScreenMetrics {
     pub available_size: DeviceIndependentIntSize,
 }
 
+/// An opaque identifier for a single webview focus operation.
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
+pub struct FocusId(String);
+
+impl FocusId {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self(Uuid::new_v4().to_string())
+    }
+}
+
 /// An opaque identifier for a single history traversal operation.
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub struct TraversalId(String);
@@ -372,10 +383,10 @@ pub enum EmbedderMsg {
     AllowOpeningWebView(WebViewId, IpcSender<Option<(WebViewId, ViewportDetails)>>),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
-    /// A webview gained focus for keyboard events
-    /// If sender is provided, it will be used to send back a
-    /// bool indicating whether the focus was successfully set.
-    WebViewFocused(WebViewId, Option<IpcSender<bool>>),
+    /// A webview potentially gained focus for keyboard events, as initiated
+    /// by the provided focus id. If the boolean value is false, the webiew
+    /// could not be focused.
+    WebViewFocused(WebViewId, FocusId, bool),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document

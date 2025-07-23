@@ -19,7 +19,7 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
-    CompositorHitTestResult, Cursor, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
+    CompositorHitTestResult, Cursor, FocusId, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
     Theme, TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
 };
 pub use from_script_message::*;
@@ -70,7 +70,7 @@ pub enum EmbedderToConstellationMessage {
     SendError(Option<WebViewId>, String),
     /// Make a webview focused. If sender is provided, it will be used to send back a
     /// bool indicating whether the focus was successfully set in EmbedderMsg::WebViewFocused.
-    FocusWebView(WebViewId, Option<IpcSender<bool>>),
+    FocusWebView(WebViewId, FocusId),
     /// Make none of the webviews focused.
     BlurWebView,
     /// Forward an input event to an appropriate ScriptTask.

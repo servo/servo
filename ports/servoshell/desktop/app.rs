@@ -380,7 +380,12 @@ impl App {
                 },
                 WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.focus_from_webdriver(response_sender);
+                        let focus_id = webview.focus();
+                        running_state.set_pending_focus(
+                            webview_id,
+                            focus_id,
+                            response_sender,
+                        );
                     }
                 },
                 WebDriverCommandMsg::GetWindowRect(_webview_id, response_sender) => {
