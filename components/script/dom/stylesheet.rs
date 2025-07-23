@@ -51,7 +51,8 @@ impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
     fn GetOwnerNode(&self) -> Option<DomRoot<Element>> {
-        self.downcast::<CSSStyleSheet>().and_then(|s| s.get_owner())
+        self.downcast::<CSSStyleSheet>()
+            .and_then(|s| s.owner_node())
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-media

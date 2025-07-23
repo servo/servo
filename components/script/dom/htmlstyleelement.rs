@@ -160,8 +160,7 @@ impl HTMLStyleElement {
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
         self.clean_stylesheet_ownership();
-        stylesheets_owner
-            .add_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), s);
+        stylesheets_owner.add_owned_stylesheet(self.upcast(), s);
     }
 
     pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -178,7 +177,7 @@ impl HTMLStyleElement {
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
-                    false, // is_constructed
+                    None, // constructor_document
                     CanGc::note(),
                 )
             })
@@ -187,7 +186,7 @@ impl HTMLStyleElement {
 
     fn clean_stylesheet_ownership(&self) {
         if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
-            cssom_stylesheet.set_owner(None);
+            cssom_stylesheet.set_owner_node(None);
         }
         self.cssom_stylesheet.set(None);
     }

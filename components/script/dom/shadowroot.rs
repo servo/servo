@@ -8,6 +8,9 @@ use std::collections::hash_map::Entry;
 
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
+use js::rust::{HandleValue, MutableHandleValue};
+use script_bindings::error::ErrorResult;
+use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
@@ -24,6 +27,7 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
+use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -92,6 +96,14 @@ pub(crate) struct ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#shadowroot-delegates-focus>
     delegates_focus: Cell<bool>,
+
+    /// The constructed stylesheet that is adopted by this [ShadowRoot].
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
+    adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
+
+    /// Cached frozen array of [`Self::adopted_stylesheets`]
+    #[ignore_malloc_size_of = "mozjs"]
+    adopted_stylesheets_frozen_types: CachedFrozenArray,
 }
 
 impl ShadowRoot {
@@ -129,6 +141,8 @@ impl ShadowRoot {
             declarative: Cell::new(false),
             serializable: Cell::new(false),
             delegates_focus: Cell::new(false),
+            adopted_stylesheets: Default::default(),
+            adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
         }
     }
 
@@ -163,6 +177,10 @@ impl ShadowRoot {
         self.host.set(None);
     }
 
+    pub(crate) fn owner_doc(&self) -> &Document {
+        &self.document
+    }
+
     pub(crate) fn get_focused_element(&self) -> Option<DomRoot<Element>> {
         //XXX get retargeted focused element
         None
@@ -180,28 +198,51 @@ impl ShadowRoot {
             .and_then(|s| s.owner.get_cssom_object())
     }
 
-    /// Add a stylesheet owned by `owner` to the list of shadow root sheets, in the
-    /// correct tree position.
+    /// Add a stylesheet owned by `owner_node` to the list of shadow root sheets, in the
+    /// correct tree position. Additionally, ensure that owned stylesheet is inserted before
+    /// any constructed stylesheet.
+    ///
+    /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
 
-        // TODO(stevennovayo): support constructed stylesheet for adopted stylesheet and its ordering
-        let insertion_point = match &owner {
-            StylesheetSource::Element(owner_elem) => stylesheets
-                .iter()
-                .find(|sheet_in_shadow| match sheet_in_shadow.owner {
-                    StylesheetSource::Element(ref other_elem) => {
-                        owner_elem.upcast::<Node>().is_before(other_elem.upcast())
+        // FIXME(stevennovaryo): This is almost identical with the one in Document::add_stylesheet.
+        let insertion_point = stylesheets
+            .iter()
+            .find(|sheet_in_shadow| {
+                match &sheet_in_shadow.owner {
+                    StylesheetSource::Element(other_node) => {
+                        owner_node.upcast::<Node>().is_before(other_node.upcast())
                     },
-                    StylesheetSource::Constructed(_) => unreachable!(),
-                })
-                .cloned(),
-            StylesheetSource::Constructed(_) => unreachable!(),
-        };
+                    // Non-constructed stylesheet should be ordered before the
+                    // constructed ones.
+                    StylesheetSource::Constructed(_) => true,
+                }
+            })
+            .cloned();
 
         DocumentOrShadowRoot::add_stylesheet(
-            owner,
+            StylesheetSource::Element(Dom::from_ref(owner_node)),
+            StylesheetSetRef::Author(stylesheets),
+            sheet,
+            insertion_point,
+            self.document.style_shared_lock(),
+        );
+    }
+
+    /// Append a constructed stylesheet to the back of shadow root stylesheet set.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+        debug_assert!(cssom_stylesheet.is_constructed());
+
+        let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
+        let sheet = cssom_stylesheet.style_stylesheet_arc().clone();
+
+        let insertion_point = stylesheets.iter().last().cloned();
+
+        DocumentOrShadowRoot::add_stylesheet(
+            StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Author(stylesheets),
             sheet,
             insertion_point,
@@ -473,6 +514,40 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
     event_handler!(onslotchange, GetOnslotchange, SetOnslotchange);
+
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
+    fn AdoptedStyleSheets(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+        self.adopted_stylesheets_frozen_types.get_or_init(
+            || {
+                self.adopted_stylesheets
+                    .borrow()
+                    .clone()
+                    .iter()
+                    .map(|sheet| sheet.as_rooted())
+                    .collect()
+            },
+            context,
+            retval,
+            can_gc,
+        );
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
+    fn SetAdoptedStyleSheets(&self, context: JSContext, val: HandleValue) -> ErrorResult {
+        let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
+            context,
+            self.adopted_stylesheets.borrow_mut().as_mut(),
+            val,
+            &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
+        );
+
+        // If update is successful, clear the FrozenArray cache.
+        if result.is_ok() {
+            self.adopted_stylesheets_frozen_types.clear();
+        }
+
+        result
+    }
 }
 
 impl VirtualMethods for ShadowRoot {
@@ -485,6 +560,8 @@ impl VirtualMethods for ShadowRoot {
             s.bind_to_tree(context, can_gc);
         }
 
+        // TODO(stevennovaryo): Handle adoptedStylesheet to deal with different
+        //                      constructor document.
         if context.tree_connected {
             let document = self.owner_document();
             document.register_shadow_root(self);

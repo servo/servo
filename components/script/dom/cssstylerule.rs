@@ -21,7 +21,6 @@ use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::cssrule::SpecificCSSRule;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -136,9 +135,9 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
             let mut guard = self.cssgroupingrule.shared_lock().write();
             let stylerule = self.stylerule.write_with(&mut guard);
             mem::swap(&mut stylerule.selectors, &mut s);
-            if let Some(owner) = self.cssgroupingrule.parent_stylesheet().get_owner() {
-                owner.stylesheet_list_owner().invalidate_stylesheets();
-            }
+            self.cssgroupingrule
+                .parent_stylesheet()
+                .notify_invalidations();
         }
     }
 }
