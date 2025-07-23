@@ -262,7 +262,7 @@ impl Layout for LayoutThread {
     #[servo_tracing::instrument(skip_all)]
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_box_request(node, self.stacking_context_tree.borrow().as_ref())
+        process_content_box_request(self.stacking_context_tree.borrow().as_ref(), node)
     }
 
     /// Get a `Vec` of bounding boxes of this node's `Fragement`s in the coordinate space of the
@@ -272,7 +272,7 @@ impl Layout for LayoutThread {
     #[servo_tracing::instrument(skip_all)]
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_boxes_request(node, self.stacking_context_tree.borrow().as_ref())
+        process_content_boxes_request(self.stacking_context_tree.borrow().as_ref(), node)
     }
 
     #[servo_tracing::instrument(skip_all)]
