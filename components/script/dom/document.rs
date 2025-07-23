@@ -5217,19 +5217,15 @@ impl Document {
     }
 
     /// <https://dom.spec.whatwg.org/#document-allow-declarative-shadow-roots>
-    pub fn allow_declarative_shadow_roots(&self) -> bool {
+    pub(crate) fn allow_declarative_shadow_roots(&self) -> bool {
         self.allow_declarative_shadow_roots.get()
     }
 
-    pub fn set_allow_declarative_shadow_roots(&self, value: bool) {
-        self.allow_declarative_shadow_roots.set(value)
-    }
-
-    pub fn has_trustworthy_ancestor_origin(&self) -> bool {
+    pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
         self.has_trustworthy_ancestor_origin.get()
     }
 
-    pub fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
+    pub(crate) fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
         self.has_trustworthy_ancestor_origin.get() ||
             self.origin().immutable().is_potentially_trustworthy()
     }

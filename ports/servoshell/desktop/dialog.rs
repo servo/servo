@@ -14,7 +14,7 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
     AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, FilterPattern,
     PermissionRequest, PromptResponse, RgbColor, SelectElement, SelectElementOption,
-    SelectElementOptionOrOptgroup, SimpleDialog,
+    SelectElementOptionOrOptgroup, SimpleDialog, WebDriverUserPrompt,
 };
 
 pub enum Dialog {
@@ -165,6 +165,12 @@ impl Dialog {
         match self {
             Dialog::SimpleDialog(dialog) => Some(dialog.message().to_string()),
             _ => None,
+        }
+    }
+
+    pub fn set_message(&mut self, text: String) {
+        if let Dialog::SimpleDialog(dialog) = self {
+            dialog.set_message(text);
         }
     }
 
@@ -580,6 +586,16 @@ impl Dialog {
 
                 is_open
             },
+        }
+    }
+
+    pub fn webdriver_diaglog_type(&self) -> WebDriverUserPrompt {
+        match self {
+            Dialog::File { .. } => WebDriverUserPrompt::File,
+            Dialog::SimpleDialog(SimpleDialog::Alert { .. }) => WebDriverUserPrompt::Alert,
+            Dialog::SimpleDialog(SimpleDialog::Confirm { .. }) => WebDriverUserPrompt::Confirm,
+            Dialog::SimpleDialog(SimpleDialog::Prompt { .. }) => WebDriverUserPrompt::Prompt,
+            _ => WebDriverUserPrompt::Default,
         }
     }
 }

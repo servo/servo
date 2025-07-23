@@ -934,7 +934,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         };
         let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
         self.send_to_embedder(msg);
-        let AlertResponse::Ok = receiver.recv().unwrap();
+        receiver.recv().unwrap_or_else(|_| {
+            // If the receiver is closed, we assume the dialog was cancelled.
+            debug!("Alert dialog was cancelled or failed to show.");
+            AlertResponse::Ok
+        });
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-confirm
@@ -947,7 +951,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         };
         let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
         self.send_to_embedder(msg);
-        receiver.recv().unwrap() == ConfirmResponse::Ok
+        match receiver.recv() {
+            Ok(ConfirmResponse::Ok) => true,
+            Ok(ConfirmResponse::Cancel) => false,
+            Err(_) => {
+                warn!("Confirm dialog was cancelled or failed to show.");
+                false
+            },
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-prompt
@@ -961,9 +972,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         };
         let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
         self.send_to_embedder(msg);
-        match receiver.recv().unwrap() {
-            PromptResponse::Ok(input) => Some(input.into()),
-            PromptResponse::Cancel => None,
+        match receiver.recv() {
+            Ok(PromptResponse::Ok(input)) => Some(input.into()),
+            Ok(PromptResponse::Cancel) => None,
+            Err(_) => {
+                warn!("Prompt dialog was cancelled or failed to show.");
+                None
+            },
         }
     }
 

@@ -21,7 +21,7 @@ use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
     TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
-    WebView, WebViewBuilder, WebViewDelegate,
+    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -29,7 +29,7 @@ use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
-use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
+use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
@@ -340,11 +340,21 @@ impl RunningAppState {
     }
 
     pub(crate) fn webview_has_active_dialog(&self, webview_id: WebViewId) -> bool {
-        let inner = self.inner();
-        inner
+        self.inner()
             .dialogs
             .get(&webview_id)
             .is_some_and(|dialogs| !dialogs.is_empty())
+    }
+
+    pub(crate) fn get_current_active_dialog_webdriver_type(
+        &self,
+        webview_id: WebViewId,
+    ) -> Option<WebDriverUserPrompt> {
+        self.inner()
+            .dialogs
+            .get(&webview_id)
+            .and_then(|dialogs| dialogs.last())
+            .map(|dialog| dialog.webdriver_diaglog_type())
     }
 
     pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {
@@ -369,6 +379,14 @@ impl RunningAppState {
             .get(&webview_id)
             .and_then(|dialogs| dialogs.last())
             .and_then(|dialog| dialog.message())
+    }
+
+    pub(crate) fn set_alert_text_of_newest_dialog(&self, webview_id: WebViewId, text: String) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            if let Some(dialog) = dialogs.last_mut() {
+                dialog.set_message(text);
+            }
+        }
     }
 
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
@@ -415,19 +433,19 @@ impl RunningAppState {
                 webview.notify_scroll_event(ScrollLocation::End, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, -1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowDown, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, 1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
-                let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(-LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
-                let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             });
     }

@@ -172,6 +172,14 @@ impl SimpleDialog {
         }
     }
 
+    pub fn set_message(&mut self, text: String) {
+        match self {
+            SimpleDialog::Alert { message, .. } => *message = text,
+            SimpleDialog::Confirm { message, .. } => *message = text,
+            SimpleDialog::Prompt { message, .. } => *message = text,
+        }
+    }
+
     pub fn dismiss(&self) {
         match self {
             SimpleDialog::Alert {
@@ -796,9 +804,10 @@ pub struct ScreenGeometry {
     /// toolbars, docks, and interface elements. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub available_size: DeviceIntSize,
-    /// The rectangle the `WebView`'s containing window in device pixels for the purposes of the
-    /// `window.screenLeft` and similar APIs. This will be converted to CSS pixels based
-    /// on the pixel scaling of the `WebView`.
+    /// The rectangle the `WebView`'s containing window (including OS decorations)
+    /// in device pixels for the purposes of the
+    /// `window.screenLeft`, `window.outerHeight` and similar APIs.
+    /// This will be converted to CSS pixels based on the pixel scaling of the `WebView`.
     pub window_rect: DeviceIntRect,
 }
 

@@ -56,7 +56,7 @@ use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
-use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
+use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation, parse_csp_list_from_metadata};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
@@ -860,21 +860,14 @@ impl ParserContext {
         let Some(policy_container) = policy_container else {
             return;
         };
-        let Some(parent_csp_list) = &policy_container.csp_list else {
-            return;
-        };
         let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
             return;
         };
-        let new_csp_list = match parser.document.get_csp_list() {
-            None => parent_csp_list.clone(),
-            Some(original_csp_list) => {
-                let mut appended_csp_list = original_csp_list.clone();
-                appended_csp_list.append(parent_csp_list.clone());
-                appended_csp_list.to_owned()
-            },
-        };
-        parser.document.set_csp_list(Some(new_csp_list));
+        let new_csp_list = parser
+            .document
+            .get_csp_list()
+            .concatenate(policy_container.csp_list.clone());
+        parser.document.set_csp_list(new_csp_list);
     }
 }
 

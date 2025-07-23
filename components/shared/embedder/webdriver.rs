@@ -28,10 +28,48 @@ use crate::{MouseButton, MouseButtonAction};
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum WebDriverUserPrompt {
+    Alert,
+    BeforeUnload,
+    Confirm,
+    Default,
+    File,
+    Prompt,
+    FallbackDefault,
+}
+
+impl WebDriverUserPrompt {
+    pub fn new_from_str(s: &str) -> Option<Self> {
+        match s {
+            "alert" => Some(WebDriverUserPrompt::Alert),
+            "beforeUnload" => Some(WebDriverUserPrompt::BeforeUnload),
+            "confirm" => Some(WebDriverUserPrompt::Confirm),
+            "default" => Some(WebDriverUserPrompt::Default),
+            "file" => Some(WebDriverUserPrompt::File),
+            "prompt" => Some(WebDriverUserPrompt::Prompt),
+            "fallbackDefault" => Some(WebDriverUserPrompt::FallbackDefault),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum WebDriverUserPromptAction {
     Accept,
     Dismiss,
+    Ignore,
+}
+
+impl WebDriverUserPromptAction {
+    pub fn new_from_str(s: &str) -> Option<Self> {
+        match s {
+            "accept" => Some(WebDriverUserPromptAction::Accept),
+            "dismiss" => Some(WebDriverUserPromptAction::Dismiss),
+            "ignore" => Some(WebDriverUserPromptAction::Ignore),
+            _ => None,
+        }
+    }
 }
 
 /// Messages to the constellation originating from the WebDriver server.
@@ -121,12 +159,14 @@ pub enum WebDriverCommandMsg {
     IsWebViewOpen(WebViewId, IpcSender<bool>),
     /// Check whether browsing context is open.
     IsBrowsingContextOpen(BrowsingContextId, IpcSender<bool>),
+    CurrentUserPrompt(WebViewId, IpcSender<Option<WebDriverUserPrompt>>),
     HandleUserPrompt(
         WebViewId,
         WebDriverUserPromptAction,
-        IpcSender<Result<(), ()>>,
+        IpcSender<Result<Option<String>, ()>>,
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
+    SendAlertText(WebViewId, String),
     AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
     RemoveLoadStatusSender(WebViewId),
 }

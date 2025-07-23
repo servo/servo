@@ -20,12 +20,12 @@ use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
-use net_traits::IpcSend;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder as NetRequestInit,
 };
+use net_traits::{IpcSend, ReferrerPolicy};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
@@ -274,6 +274,12 @@ impl WorkerGlobalScope {
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
         self.policy_container.borrow_mut().set_csp_list(csp_list);
+    }
+
+    pub(crate) fn set_referrer_policy(&self, referrer_policy: ReferrerPolicy) {
+        self.policy_container
+            .borrow_mut()
+            .set_referrer_policy(referrer_policy);
     }
 
     pub(crate) fn append_reporting_observer(&self, reporting_observer: DomRoot<ReportingObserver>) {

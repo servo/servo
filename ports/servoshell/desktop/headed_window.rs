@@ -48,13 +48,15 @@ use {
 use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
-use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
+use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, PIXEL_DELTA_FACTOR, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     screen_size: Size2D<u32, DeviceIndependentPixel>,
+    /// The inner size of the window in physical pixels which excludes OS decorations.
+    /// It equals viewport size + (0, toolbar height).
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     monitor: winit::monitor::MonitorHandle,
@@ -619,13 +621,19 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::MouseWheel { delta, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
-                    MouseScrollDelta::LineDelta(dx, dy) => {
-                        (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
-                    },
+                    MouseScrollDelta::LineDelta(dx, dy) => (
+                        (dx * LINE_WIDTH) as f64,
+                        (dy * LINE_HEIGHT) as f64,
+                        WheelMode::DeltaLine,
+                    ),
                     MouseScrollDelta::PixelDelta(position) => {
-                        let scale_factor = self.device_hidpi_scale_factor().inverse().get() as f64;
-                        let position = position.to_logical(scale_factor);
-                        (position.x, position.y, WheelMode::DeltaPixel)
+                        let position: LogicalPosition<f64> =
+                            position.to_logical(self.device_hidpi_scale_factor().get() as f64);
+                        (
+                            position.x * PIXEL_DELTA_FACTOR,
+                            position.y * PIXEL_DELTA_FACTOR,
+                            WheelMode::DeltaPixel,
+                        )
                     },
                 };
 
