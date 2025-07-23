@@ -1185,7 +1185,7 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 8 (non-typeable form control)
                 if let Some(input_element) = input_element {
-                    if !input_element.has_selectable_text() {
+                    if input_element.is_nontypeable() {
                         return handle_send_keys_non_typeable(input_element, &text, can_gc);
                     }
                 }

@@ -492,6 +492,24 @@ impl HTMLInputElement {
     }
 
     #[inline]
+    /// <https://w3c.github.io/webdriver/#dfn-non-typeable-form-control>
+    pub(crate) fn is_nontypeable(&self) -> bool {
+        matches!(
+            self.input_type(),
+            InputType::Button |
+                InputType::Checkbox |
+                InputType::Color |
+                InputType::File |
+                InputType::Hidden |
+                InputType::Image |
+                InputType::Radio |
+                InputType::Range |
+                InputType::Reset |
+                InputType::Submit
+        )
+    }
+
+    #[inline]
     pub(crate) fn is_submit_button(&self) -> bool {
         let input_type = self.input_type.get();
         input_type == InputType::Submit || input_type == InputType::Image
