@@ -396,7 +396,7 @@ pub struct Constellation<STF, SWF> {
     /// and the namespaces are allocated by the constellation.
     next_pipeline_namespace_id: PipelineNamespaceId,
 
-    /// Forward responses from the script thread to the webdriver server.
+    /// An [`IpcSender`] to forward responses from the `ScriptThread` to the WebDriver server.
     webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
