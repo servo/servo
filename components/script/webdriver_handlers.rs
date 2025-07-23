@@ -1166,9 +1166,14 @@ pub(crate) fn handle_will_send_keys(
                 // Step 7. If file is false or the session's strict file interactability
                 if file_input.is_none() || strict_file_interactability {
                     // TODO: Step 7.1. Scroll Into View
-                    // TODO: Step 7.2 - 7.6
-                    // Wait until element become Keyboard-interactable
-                    // or return error with error code element not interactable.
+                    // TODO: Step 7.2 - 7.5
+                    // Wait until element become keyboard-interactable
+
+                    // Step 7.6. If element is not keyboard-interactable,
+                    // return ErrorStatus::ElementNotInteractable.
+                    if !element.is_keyboard_interactable() {
+                        return Err(ErrorStatus::ElementNotInteractable);
+                    }
 
                     match element.downcast::<HTMLElement>() {
                         Some(element) => {
