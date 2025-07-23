@@ -397,7 +397,7 @@ pub struct Constellation<STF, SWF> {
     next_pipeline_namespace_id: PipelineNamespaceId,
 
     // Forward responses from the script thread to the webdriver server.
-    input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
+    webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
     document_states: HashMap<PipelineId, DocumentState>,
@@ -666,7 +666,7 @@ where
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
-                    input_command_response_sender: None,
+                    webdriver_input_command_reponse_sender: None,
                     document_states: HashMap::new(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
@@ -1454,7 +1454,7 @@ where
                 }
             },
             EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
-                self.input_command_response_sender = Some(sender);
+                self.webdriver_input_command_reponse_sender = Some(sender);
             },
         }
     }
@@ -1855,14 +1855,14 @@ where
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
             ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
-                if let Some(ref reply_sender) = self.input_command_response_sender {
+                if let Some(ref reply_sender) = self.webdriver_input_command_reponse_sender {
                     reply_sender
                         .send(WebDriverCommandResponse { id: msg_id })
                         .unwrap_or_else(|_| {
                             warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
                         });
                 } else {
-                    warn!("No WebDriver input_command_response_sender");
+                    warn!("No webdriver_input_command_reponse_sender");
                 }
             },
         }
