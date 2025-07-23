@@ -81,7 +81,6 @@ itertools = { workspace = true }
 js = { workspace = true }
 jstraceable_derive = { path = "../jstraceable_derive" }
 keyboard-types = { workspace = true }
-kurbo = { workspace = true }
 layout_api = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
@@ -109,7 +108,6 @@ selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 servo-media = { workspace = true }
-servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
