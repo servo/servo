@@ -70,7 +70,6 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
-use crate::dom::textcontrol::TextControlElement;
 use crate::dom::types::ShadowRoot;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
