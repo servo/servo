@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
+use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -29,6 +30,9 @@ pub(crate) struct TextDecoder {
 
     /// <https://encoding.spec.whatwg.org/#textdecodercommon>
     decoder: TextDecoderCommon,
+
+    /// <https://encoding.spec.whatwg.org/#textdecoder-do-not-flush-flag>
+    do_not_flush: Cell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -38,6 +42,7 @@ impl TextDecoder {
         TextDecoder {
             reflector_: Reflector::new(),
             decoder,
+            do_not_flush: Cell::new(false),
         }
     }
 
@@ -90,7 +95,7 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-encoding>
     fn Encoding(&self) -> DOMString {
-        self.decoder.encoding()
+        DOMString::from(self.decoder.encoding().name().to_ascii_lowercase())
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-fatal>
@@ -104,13 +109,44 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
+    #[allow(unsafe_code)]
     fn Decode(
         &self,
         input: Option<ArrayBufferViewOrArrayBuffer>,
         options: &TextDecodeOptions,
     ) -> Fallible<USVString> {
+        // Step 1. If this’s do not flush is false, then set this’s decoder to a new
+        // instance of this’s encoding’s decoder, this’s I/O queue to the I/O queue
+        // of bytes « end-of-queue », and this’s BOM seen to false.
+        if !self.do_not_flush.get() {
+            if self.decoder.ignore_bom() {
+                self.decoder
+                    .decoder()
+                    .replace(self.decoder.encoding().new_decoder_without_bom_handling());
+            } else {
+                self.decoder
+                    .decoder()
+                    .replace(self.decoder.encoding().new_decoder());
+            }
+            self.decoder.io_queue().replace(Vec::new());
+        }
+
+        // Step 2. Set this’s do not flush to options["stream"].
+        self.do_not_flush.set(options.stream);
+
+        // Step 3. If input is given, then push a copy of input to this’s I/O queue.
+        // Step 4. Let output be the I/O queue of scalar values « end-of-queue ».
+        // Step 5. While true:
+        // Step 5.1 Let item be the result of reading from this’s I/O queue.
+        // Step 5.2 If item is end-of-queue and this’s do not flush is true,
+        //      then return the result of running serialize I/O queue with this and output.
+        // Step 5.3 Otherwise:
+        // Step 5.3.1 Let result be the result of processing an item with item, this’s decoder,
+        //      this’s I/O queue, output, and this’s error mode.
+        // Step 5.3.2 If result is finished, then return the result of running serialize I/O
+        //      queue with this and output.
         self.decoder
-            .decode(input.as_ref(), options.stream)
+            .decode(input.as_ref(), !options.stream)
             .map(USVString)
     }
 }

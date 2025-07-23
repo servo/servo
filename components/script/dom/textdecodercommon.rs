@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 
 use encoding_rs::{Decoder, DecoderResult, Encoding};
-use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -37,10 +36,7 @@ pub(crate) struct TextDecoderCommon {
     decoder: RefCell<Decoder>,
 
     /// <https://encoding.spec.whatwg.org/#textdecodercommon-i-o-queue>
-    in_stream: RefCell<Vec<u8>>,
-
-    /// <https://encoding.spec.whatwg.org/#textdecoder-do-not-flush-flag>
-    do_not_flush: Cell<bool>,
+    io_queue: RefCell<Vec<u8>>,
 }
 
 #[allow(non_snake_case)]
@@ -51,9 +47,9 @@ impl TextDecoderCommon {
         ignoreBOM: bool,
     ) -> TextDecoderCommon {
         let decoder = if ignoreBOM {
-            encoding.new_decoder()
-        } else {
             encoding.new_decoder_without_bom_handling()
+        } else {
+            encoding.new_decoder()
         };
 
         TextDecoderCommon {
@@ -61,94 +57,161 @@ impl TextDecoderCommon {
             fatal,
             ignoreBOM,
             decoder: RefCell::new(decoder),
-            in_stream: RefCell::new(Vec::new()),
-            do_not_flush: Cell::new(false),
+            io_queue: RefCell::new(Vec::new()),
         }
     }
 
-    pub(crate) fn encoding(&self) -> DOMString {
-        DOMString::from(self.encoding.name().to_ascii_lowercase())
+    /// <https://encoding.spec.whatwg.org/#textdecoder-encoding>
+    pub(crate) fn encoding(&self) -> &'static Encoding {
+        self.encoding
     }
 
+    /// <https://encoding.spec.whatwg.org/#textdecodercommon-decoder>
+    pub(crate) fn decoder(&self) -> &RefCell<Decoder> {
+        &self.decoder
+    }
+
+    /// <https://encoding.spec.whatwg.org/#textdecodercommon-i-o-queue>
+    pub(crate) fn io_queue(&self) -> &RefCell<Vec<u8>> {
+        &self.io_queue
+    }
+
+    /// <https://encoding.spec.whatwg.org/#textdecoder-error-mode>
     pub(crate) fn fatal(&self) -> bool {
         self.fatal
     }
 
+    /// <https://encoding.spec.whatwg.org/#textdecoder-ignore-bom-flag>
     pub(crate) fn ignore_bom(&self) -> bool {
         self.ignoreBOM
     }
 
+    /// Shared by `TextDecoder` and `TextDecoderStream`
+    ///
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
+    /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
     #[allow(unsafe_code)]
     pub(crate) fn decode(
         &self,
         input: Option<&ArrayBufferViewOrArrayBuffer>,
-        do_not_flush: bool,
+        last: bool,
     ) -> Fallible<String> {
-        // Step 1. If this’s do not flush is false, then set this’s decoder to a
-        // new instance of this’s encoding’s decoder, this’s I/O queue to the
-        // I/O queue of bytes « end-of-queue », and this’s BOM seen to false.
-        if !self.do_not_flush.get() {
-            if self.ignoreBOM {
-                self.decoder
-                    .replace(self.encoding.new_decoder_without_bom_handling());
-            } else {
-                self.decoder.replace(self.encoding.new_decoder());
-            }
-            self.in_stream.replace(Vec::new());
-        }
-
-        // Step 2. Set this’s do not flush to options["stream"].
-        self.do_not_flush.set(do_not_flush);
-
+        // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
         // Step 3. If input is given, then push a copy of input to this’s I/O queue.
-        match input {
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(a)) => {
-                self.in_stream
-                    .borrow_mut()
-                    .extend_from_slice(unsafe { a.as_slice() });
+        //
+        // <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
+        // Step 2. Push a copy of bufferSource to decoder’s I/O queue.
+        //
+        // NOTE: try to avoid this copy unless there are bytes left
+        let mut io_queue = self.io_queue.borrow_mut();
+        let input = match &input {
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(a)) => unsafe {
+                if io_queue.is_empty() {
+                    a.as_slice()
+                } else {
+                    io_queue.extend_from_slice(a.as_slice());
+                    &io_queue[..]
+                }
             },
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(a)) => {
-                self.in_stream
-                    .borrow_mut()
-                    .extend_from_slice(unsafe { a.as_slice() });
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(a)) => unsafe {
+                if io_queue.is_empty() {
+                    a.as_slice()
+                } else {
+                    io_queue.extend_from_slice(a.as_slice());
+                    &io_queue[..]
+                }
             },
-            None => {},
+            None => &io_queue[..],
         };
 
         let mut decoder = self.decoder.borrow_mut();
-        let (remaining, s) = {
-            let mut in_stream = self.in_stream.borrow_mut();
+        let (output, read) = if self.fatal {
+            // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
+            // Step 4. Let output be the I/O queue of scalar values « end-of-queue ».
+            //
+            // <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
+            // Step 3. Let output be the I/O queue of scalar values « end-of-queue ».
+            let mut output = String::with_capacity(
+                decoder
+                    .max_utf8_buffer_length_without_replacement(input.len())
+                    .expect("Expected UTF8 buffer length would overflow"),
+            );
 
-            let (remaining, s) = if self.fatal {
-                // Step 4. Let output be the I/O queue of scalar values « end-of-queue ».
-                let mut out_stream = String::with_capacity(
-                    decoder
-                        .max_utf8_buffer_length_without_replacement(in_stream.len())
-                        .unwrap(),
-                );
-                // Step 5: Implemented by encoding_rs::Decoder.
-                match decoder.decode_to_string_without_replacement(
-                    &in_stream,
-                    &mut out_stream,
-                    !do_not_flush,
-                ) {
-                    (DecoderResult::InputEmpty, read) => (in_stream.split_off(read), out_stream),
-                    // Step 5.3.3.
-                    _ => return Err(Error::Type("Decoding failed".to_owned())),
-                }
-            } else {
-                // Step 4. Let output be the I/O queue of scalar values « end-of-queue ».
-                let mut out_stream =
-                    String::with_capacity(decoder.max_utf8_buffer_length(in_stream.len()).unwrap());
-                // Step 5: Implemented by encoding_rs::Decoder.
-                let (_result, read, _replaced) =
-                    decoder.decode_to_string(&in_stream, &mut out_stream, !do_not_flush);
-                (in_stream.split_off(read), out_stream)
-            };
-            (remaining, s)
+            // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
+            // Step 5. While true:
+            // Step 5.1 Let item be the result of reading from this’s I/O queue.
+            // Step 5.2 If item is end-of-queue and this’s do not flush is true,
+            //      then return the result of running serialize I/O queue with this and output.
+            // Step 5.3 Otherwise:
+            // Step 5.3.1 Let result be the result of processing an item with item, this’s decoder,
+            //      this’s I/O queue, output, and this’s error mode.
+            //
+            // <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
+            // Step 4. While true:
+            // Step 4.1 Let item be the result of reading from decoder’s I/O queue.
+            // Step 4.2 If item is end-of-queue:
+            // Step 4.2.1 Let outputChunk be the result of running serialize I/O queue with decoder and output.
+            // Step 4.2.2 If outputChunk is not the empty string, then enqueue outputChunk in decoder’s transform.
+            // Step 4.2.3 Return.
+            // Step 4.3 Let result be the result of processing an item with item, decoder’s decoder,
+            //      decoder’s I/O queue, output, and decoder’s error mode.
+            // Step 4.4 If result is error, then throw a TypeError.
+            let (result, read) =
+                decoder.decode_to_string_without_replacement(input, &mut output, last);
+            match result {
+                // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
+                // Step 5.3.2 If result is finished, then return the result of running serialize I/O
+                //      queue with this and output.
+                DecoderResult::InputEmpty => (output, read),
+                // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
+                // Step 5.3.3 Otherwise, if result is error, throw a TypeError.
+                DecoderResult::Malformed(_, _) => {
+                    return Err(Error::Type("Decoding failed".to_owned()));
+                },
+                DecoderResult::OutputFull => {
+                    unreachable!("output is allocated with sufficient capacity")
+                },
+            }
+        } else {
+            // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
+            // Step 4. Let output be the I/O queue of scalar values « end-of-queue ».
+            let mut output =
+                String::with_capacity(decoder.max_utf8_buffer_length(input.len()).unwrap());
+
+            // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
+            // Step 5. While true:
+            // Step 5.1 Let item be the result of reading from this’s I/O queue.
+            // Step 5.2 If item is end-of-queue and this’s do not flush is true,
+            //      then return the result of running serialize I/O queue with this and output.
+            // Step 5.3 Otherwise:
+            // Step 5.3.1 Let result be the result of processing an item with item, this’s decoder,
+            //      this’s I/O queue, output, and this’s error mode.
+            //
+            // <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
+            // Step 4. While true:
+            // Step 4.1 Let item be the result of reading from decoder’s I/O queue.
+            // Step 4.2 If item is end-of-queue:
+            // Step 4.2.1 Let outputChunk be the result of running serialize I/O queue with decoder and output.
+            // Step 4.2.2 If outputChunk is not the empty string, then enqueue outputChunk in decoder’s transform.
+            // Step 4.2.3 Return.
+            // Step 4.3 Let result be the result of processing an item with item, decoder’s decoder,
+            //      decoder’s I/O queue, output, and decoder’s error mode.
+            // Step 4.4 If result is error, then throw a TypeError.
+            let (result, read, _replaced) = decoder.decode_to_string(input, &mut output, last);
+            match result {
+                // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
+                // Step 5.3.2 If result is finished, then return the result of running serialize I/O
+                //      queue with this and output.
+                encoding_rs::CoderResult::InputEmpty => (output, read),
+                encoding_rs::CoderResult::OutputFull => {
+                    unreachable!("output is allocated with sufficient capacity")
+                },
+            }
         };
-        self.in_stream.replace(remaining);
-        Ok(s)
+
+        let (_consumed, remaining) = input.split_at(read);
+        *io_queue = remaining.to_vec();
+
+        Ok(output)
     }
 }

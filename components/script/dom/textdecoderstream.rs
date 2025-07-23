@@ -46,9 +46,16 @@ pub(crate) fn decode_and_enqueue_a_chunk(
 
     // Step 2. Push a copy of bufferSource to decoder’s I/O queue.
     // Step 3. Let output be the I/O queue of scalar values « end-of-queue ».
-    // Step 4. Implemented by `TextDecoderCommon::decode`, which uses the same procedure as
-    //      `TextDecoder`
-    let output_chunk = decoder.decode(Some(buffer_source), true)?;
+    // Step 4. While true:
+    // Step 4.1 Let item be the result of reading from decoder’s I/O queue.
+    // Step 4.2 If item is end-of-queue:
+    // Step 4.2.1 Let outputChunk be the result of running serialize I/O queue with decoder and output.
+    // Step 4.2.2 If outputChunk is not the empty string, then enqueue outputChunk in decoder’s transform.
+    // Step 4.2.3 Return.
+    // Step 4.3 Let result be the result of processing an item with item, decoder’s decoder,
+    //      decoder’s I/O queue, output, and decoder’s error mode.
+    // Step 4.4 If result is error, then throw a TypeError.
+    let output_chunk = decoder.decode(Some(buffer_source), false)?;
 
     // Step 4.2.2 If outputChunk is not the empty string, then enqueue
     //      outputChunk in decoder’s transform.
@@ -71,7 +78,7 @@ pub(crate) fn flush_and_enqueue(
 ) -> Fallible<()> {
     // Step 1. Implemented by `TextDecoderCommon::decode` which uses a similar process
     //      as `TextDecoder::Decode`.
-    let output_chunk = decoder.decode(None, false)?;
+    let output_chunk = decoder.decode(None, true)?;
 
     // Step 2.3.2 If outputChunk is not the empty string, then enqueue
     //      outputChunk in decoder’s transform.
@@ -165,7 +172,7 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-encoding>
     fn Encoding(&self) -> DOMString {
-        self.decoder.encoding()
+        DOMString::from(self.decoder.encoding().name().to_ascii_lowercase())
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-fatal>
