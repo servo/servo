@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
 use std::default::Default;
 
 use base::id::BrowsingContextId;
@@ -29,25 +28,31 @@ pub(crate) struct IFrame {
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct IFrameCollection {
-    /// The version of the [`Document`] that this collection refers to. When the versions
-    /// do not match, the collection will need to be rebuilt.
-    document_version: Cell<u64>,
     /// The `<iframe>`s in the collection.
     iframes: Vec<IFrame>,
+    /// When true, the collection will need to be rebuilt.
+    invalid: bool,
 }
 
 impl IFrameCollection {
+    pub(crate) fn new() -> Self {
+        Self {
+            iframes: vec![],
+            invalid: true,
+        }
+    }
+
+    pub(crate) fn invalidate(&mut self) {
+        self.invalid = true;
+    }
+
     /// Validate that the collection is up-to-date with the given [`Document`]. If it isn't up-to-date
     /// rebuild it.
     pub(crate) fn validate(&mut self, document: &Document) {
-        // TODO: Whether the DOM has changed at all can lead to rebuilding this collection
-        // when it isn't necessary. A better signal might be if any `<iframe>` nodes have
-        // been connected or disconnected.
-        let document_node = DomRoot::from_ref(document.upcast::<Node>());
-        let document_version = document_node.inclusive_descendants_version();
-        if document_version == self.document_version.get() {
+        if !self.invalid {
             return;
         }
+        let document_node = DomRoot::from_ref(document.upcast::<Node>());
 
         // Preserve any old sizes, but only for `<iframe>`s that already have a
         // BrowsingContextId and a set size.
@@ -75,7 +80,7 @@ impl IFrameCollection {
                 }
             })
             .collect();
-        self.document_version.set(document_version);
+        self.invalid = false;
     }
 
     pub(crate) fn get(&self, browsing_context_id: BrowsingContextId) -> Option<&IFrame> {

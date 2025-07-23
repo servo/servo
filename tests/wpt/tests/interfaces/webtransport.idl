@@ -74,6 +74,7 @@ dictionary WebTransportOptions {
   [EnforceRange] unsigned short? anticipatedConcurrentIncomingUnidirectionalStreams = null;
   [EnforceRange] unsigned short? anticipatedConcurrentIncomingBidirectionalStreams = null;
   sequence<DOMString> protocols = [];
+  DatagramsReadableMode datagramsReadableMode;
 };
 
 enum WebTransportCongestionControl {
@@ -81,6 +82,8 @@ enum WebTransportCongestionControl {
   "throughput",
   "low-latency",
 };
+
+enum DatagramsReadableMode { "bytes" };
 
 dictionary WebTransportCloseInfo {
   unsigned long closeCode = 0;

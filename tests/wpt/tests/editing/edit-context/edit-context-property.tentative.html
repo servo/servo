@@ -79,7 +79,7 @@ test(function () {
   assert_equals(element2.editContext, null, "element2 association should not have changed");
 
   element1.editContext = editContext2;
-  assert_equals(element1.editContext, editContext2, "Association can be switched directly to second EditConext");
+  assert_equals(element1.editContext, editContext2, "Association can be switched directly to second EditContext");
 
   element1.editContext = editContext2;
   assert_equals(element1.editContext, editContext2, "Assigning to the same EditContext again is a no-op");

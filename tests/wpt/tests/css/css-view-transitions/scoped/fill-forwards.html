@@ -65,6 +65,8 @@
     });
     assert_equals(document.getAnimations().length, tally);
     await vt.finished;
+    // Need to wait one more frame for effect of VT to be finished.
+    await new Promise(requestAnimationFrame);
     assert_equals(document.getAnimations().length, 0);
   }, 'View transition animations do not persist once the transition is ' +
      'finished even if animation-fill-mode is forwards');

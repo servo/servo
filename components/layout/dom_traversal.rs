@@ -51,8 +51,16 @@ impl<'dom> NodeAndStyleInfo<'dom> {
         }
     }
 
+    /// Whether this is a container for the text within a single-line text input. This
+    /// is used to solve the special case of line height for a text entry widget.
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+    // TODO(stevennovaryo): Remove the addition of HTMLInputElement here once all of the
+    //                      input element is implemented with UA shadow DOM. This is temporary
+    //                      workaround for past version of input element where we are
+    //                      rendering it as a bare html element.
     pub(crate) fn is_single_line_text_input(&self) -> bool {
-        self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
+        self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) ||
+            self.node.is_text_container_of_single_line_input()
     }
 
     pub(crate) fn pseudo(
@@ -75,7 +83,18 @@ impl<'dom> NodeAndStyleInfo<'dom> {
     }
 
     pub(crate) fn get_selected_style(&self) -> ServoArc<ComputedValues> {
-        self.node.to_threadsafe().selected_style()
+        // This is a workaround for handling the `::selection` pseudos where it would not
+        // propagate to the children and Shadow DOM elements. For this case, UA widget
+        // inner elements should follow the originating element in terms of selection.
+        if self.node.is_in_ua_widget() {
+            self.node
+                .containing_shadow_host()
+                .expect("Ua widget inner editor is not contained")
+                .to_threadsafe()
+                .selected_style()
+        } else {
+            self.node.to_threadsafe().selected_style()
+        }
     }
 
     pub(crate) fn get_selection_range(&self) -> Option<Range<ByteIndex>> {
@@ -194,16 +213,13 @@ fn traverse_children_of<'dom>(
 ) {
     traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
 
+    // TODO(stevennovaryo): In the past we are rendering text input as a normal element,
+    //                      and the processing of text is happening here. Remove this
+    //                      special case after the implementation of UA Shadow DOM for
+    //                      all affected input elements.
     if parent_element_info.node.is_text_input() {
         let node_text_content = parent_element_info.node.to_threadsafe().node_text_content();
         if node_text_content.is_empty() {
-            // The addition of zero-width space here forces the text input to have an inline formatting
-            // context that might otherwise be trimmed if there's no text. This is important to ensure
-            // that the input element is at least as tall as the line gap of the caret:
-            // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-            //
-            // This is also used to ensure that the caret will still be rendered when the input is empty.
-            // TODO: Is there a less hacky way to do this?
             handler.handle_text(parent_element_info, "\u{200B}".into());
         } else {
             handler.handle_text(parent_element_info, node_text_content);

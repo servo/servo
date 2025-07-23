@@ -91,6 +91,86 @@
    }
   },
   "reftest": {
+   "appearance": {
+    "input-text-definite-width.html": [
+     "fda46f8af9c14cef3911ec809054624204848b9d",
+     [
+      "appearance/input-text-definite-width.html",
+      [
+       [
+        "/_mozilla/appearance/input-text-definite-width-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-text-empty.html": [
+     "bd5f5f5a21ec0ce028922a6764de41dc904a1eb1",
+     [
+      "appearance/input-text-empty.html",
+      [
+       [
+        "/_mozilla/appearance/input-text-empty-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-text-nonempty-placeholder.html": [
+     "e075663cb6ae708b313b3cd5cd69f78c51b4bc1f",
+     [
+      "appearance/input-text-nonempty-placeholder.html",
+      [
+       [
+        "/_mozilla/appearance/input-text-nonempty-placeholder-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-text-overflow.html": [
+     "52db07c0f0274d2b7b086d7017982145c25918da",
+     [
+      "appearance/input-text-overflow.html",
+      [
+       [
+        "/_mozilla/appearance/input-text-overflow-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-text-placeholder-overflow.html": [
+     "c4d77ae2a22a5b7972f2798b8ca78742b81bacc4",
+     [
+      "appearance/input-text-placeholder-overflow.html",
+      [
+       [
+        "/_mozilla/appearance/input-text-placeholder-overflow-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-text-placeholder.html": [
+     "d75acade78038b14529135b1d63c0ac5a168a87b",
+     [
+      "appearance/input-text-placeholder.html",
+      [
+       [
+        "/_mozilla/appearance/input-text-placeholder-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ]
+   },
    "css": {
     "abs-overflow-stackingcontext.html": [
      "264df01aa64e0abe9ea3a75e57452c27d53a904f",
@@ -3569,19 +3649,6 @@
       [
        [
         "/_mozilla/css/input_line_height_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
-    "input_placeholder.html": [
-     "f74cec8d54c04755bf5277db2e127fb0a37f855e",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/input_placeholder_ref.html",
         "=="
        ]
       ],
@@ -8062,6 +8129,38 @@
     "b485d435a63ada28eabe976b49a8a580725e7508",
     []
    ],
+   "appearance": {
+    "input-text-definite-width-ref.html": [
+     "86f7937755750261ed3b06dfe11e78a251b9d175",
+     []
+    ],
+    "input-text-empty-ref.html": [
+     "437c9988a13e094d870f67c8de0dd0becdeece76",
+     []
+    ],
+    "input-text-nonempty-placeholder-ref.html": [
+     "5415dfb2a4a88dc3bfed6ad04e23f288534351e4",
+     []
+    ],
+    "input-text-overflow-ref.html": [
+     "4cece657a2a09cfe3f1d91d49f0c9d76f5714516",
+     []
+    ],
+    "input-text-placeholder-overflow-ref.html": [
+     "0cccfff638c0d8687a3582310c73233b7d883b1a",
+     []
+    ],
+    "input-text-placeholder-ref.html": [
+     "fa5b60bdabdf2b9b818ebe66bfc7f2711173b88b",
+     []
+    ],
+    "supports": {
+     "input-text-ref.css": [
+      "8cf00d493138285e50aa510273abae98c099ae8b",
+      []
+     ]
+    }
+   },
    "bluetooth": {
     "bluetooth-helpers.js": [
      "16a280cca298bcaa5796b36b48d331bfd15baae8",
@@ -9193,10 +9292,6 @@
     ],
     "input_line_height_ref.html": [
      "f29e061cc35625fa039473e702f78dbc5a7d9c14",
-     []
-    ],
-    "input_placeholder_ref.html": [
-     "1caffed07f2cdd341ad26ab7489e02233a6ae26c",
      []
     ],
     "input_selection_incremental_ref.html": [

@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
+use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::stylesheets::{AllowImportRules, Origin, Stylesheet, UrlExtraData};
@@ -22,6 +23,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, InlineCheckType};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
+use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
@@ -153,11 +155,12 @@ impl HTMLStyleElement {
     pub(crate) fn set_stylesheet(&self, s: Arc<Stylesheet>) {
         let stylesheets_owner = self.stylesheet_list_owner();
         if let Some(ref s) = *self.stylesheet.borrow() {
-            stylesheets_owner.remove_stylesheet(self.upcast(), s)
+            stylesheets_owner
+                .remove_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), s)
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
         self.clean_stylesheet_ownership();
-        stylesheets_owner.add_stylesheet(self.upcast(), s);
+        stylesheets_owner.add_owned_stylesheet(self.upcast(), s);
     }
 
     pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -174,7 +177,7 @@ impl HTMLStyleElement {
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
-                    false, // is_constructed
+                    None, // constructor_document
                     CanGc::note(),
                 )
             })
@@ -183,7 +186,7 @@ impl HTMLStyleElement {
 
     fn clean_stylesheet_ownership(&self) {
         if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
-            cssom_stylesheet.set_owner(None);
+            cssom_stylesheet.set_owner_node(None);
         }
         self.cssom_stylesheet.set(None);
     }
@@ -192,7 +195,7 @@ impl HTMLStyleElement {
         if let Some(s) = self.stylesheet.borrow_mut().take() {
             self.clean_stylesheet_ownership();
             self.stylesheet_list_owner()
-                .remove_stylesheet(self.upcast(), &s)
+                .remove_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), &s)
         }
     }
 }

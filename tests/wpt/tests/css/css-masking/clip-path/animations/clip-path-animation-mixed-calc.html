@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-mixed-calc-ref.html">
+<!--
+  This test PASSES if a running clip path animation with a mixed-unit
+  calc changes in response to changes in font size and element size.
+-->
+<style>
+#animated {
+  width: 100px;
+  height: 100px;
+  font-size: 10px;
+  background-color: green;
+  animation: clippath 20s steps(2, jump-end) -10.05s;
+}
+
+#animated.override {
+  width: 150px;
+  height: 150px;
+  font-size: 15px;
+}
+
+@keyframes clippath {
+  0%   { clip-path: circle(10px at 50% 50%); }
+  100% { clip-path: circle(calc(20% + 2em) at 50% 50%); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+<body>
+<div id="animated"></div>
+<script>
+let element = document.getElementById("animated");
+let animation = document.getAnimations()[0];
+animation.ready.then(() => {
+  element.className = "override";
+  requestAnimationFrame(takeScreenshot);
+})
+</script>
+</body>
+</html>

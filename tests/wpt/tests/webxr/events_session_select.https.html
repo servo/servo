@@ -64,7 +64,7 @@ let testFunction = function(session, fakeDeviceController, t) {
   }
 
   // Verifies that the same object is returned each time attributes are accessed
-  // on an XRInputSoruceEvent, as required by the spec.
+  // on an XRInputSourceEvent, as required by the spec.
   function validateSameObject(event) {
     let frame = event.frame;
     let source = event.inputSource;

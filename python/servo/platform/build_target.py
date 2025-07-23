@@ -375,7 +375,12 @@ class OpenHarmonyTarget(CrossBuildTarget):
         # rustc linker
         env[f"CARGO_TARGET_{rust_target_triple.upper()}_LINKER"] = ndk_clang
 
-        link_args = ["-fuse-ld=lld", f"--target={clang_target_triple}", f"--sysroot={ohos_sysroot_posix}"]
+        link_args = [
+            "-fuse-ld=lld",
+            f"--target={clang_target_triple}",
+            f"--sysroot={ohos_sysroot_posix}",
+            "-Wl,--build-id",
+        ]
 
         env["HOST_CFLAGS"] = ""
         env["HOST_CXXFLAGS"] = ""

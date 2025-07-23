@@ -87,7 +87,7 @@ ipc-channel = "0.20"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 keyboard-types = "0.7"
-kurbo = "0.11"
+kurbo = { version = "0.11.3", features = ["euclid"] }
 libc = "0.2"
 log = "0.4"
 mach2 = "0.4"

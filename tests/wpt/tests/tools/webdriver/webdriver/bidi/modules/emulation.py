@@ -87,3 +87,21 @@ class Emulation(BidiModule):
             params["userContexts"] = user_contexts
 
         return params
+
+    @command
+    def set_timezone_override(
+            self,
+            timezone: Union[str, None],
+            contexts: Optional[List[str]] = None,
+            user_contexts: Optional[List[str]] = None,
+    ) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "timezone": timezone
+        }
+
+        if contexts is not None:
+            params["contexts"] = contexts
+        if user_contexts is not None:
+            params["userContexts"] = user_contexts
+
+        return params

@@ -16,6 +16,7 @@ use content_security_policy::{
 use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
 use js::rust::describe_scripted_caller;
+use log::warn;
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -251,6 +252,7 @@ impl GlobalCspReporting for GlobalScope {
         if violations.is_empty() {
             return;
         }
+        warn!("Reporting CSP violations: {:?}", violations);
         let source_position =
             source_position.unwrap_or_else(compute_scripted_caller_source_position);
         for violation in violations {

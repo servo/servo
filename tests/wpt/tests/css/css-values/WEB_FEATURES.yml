@@ -18,6 +18,9 @@ features:
 - name: ric
   files:
   - ric-*
+- name: if
+  files:
+  - if-*
 - name: lh
   files:
   - lh-*

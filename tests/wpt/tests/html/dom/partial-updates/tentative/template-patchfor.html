@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder">Old content</div>
+<template patchfor="placeholder">New content</template>
+<script>
+test(() => {
+    assert_equals(document.querySelector("#placeholder").innerText, "New content");
+    assert_equals(document.querySelector("template[patchfor]"), null, "<template patchfor> with a match should not attach");
+}, "<template patchfor> should apply directly to its target");
+
+test(() => {
+    const doc = document.implementation.createHTMLDocument();
+    doc.write('<div id="placeholder">Old content</div>');
+    assert_equals(doc.querySelector("#placeholder").innerText, "Old content");
+    doc.write('<template patchfor="placeholder">');
+    assert_equals(doc.querySelector("template"), null);
+    assert_equals(doc.querySelector("#placeholder").innerText, "");
+    doc.write('New');
+    assert_equals(doc.querySelector("#placeholder").innerText, "New");
+    doc.write(' content</template>');
+    assert_equals(doc.querySelector("#placeholder").innerText, "New content");
+    assert_equals(doc.querySelector("template"), null);
+}, "<template patchfor> should work when chunked");
+
+</script>

@@ -166,6 +166,25 @@ def list_tests(test_paths, product, **kwargs):
         print(test)
 
 
+def list_tests_json(test_paths, product, **kwargs):
+    env.do_delayed_imports(logger, test_paths)
+
+    _, test_loader = get_loader(test_paths, product, **kwargs)
+
+    tests = {}
+    targets = [(test_loader.tests, False),
+               (test_loader.disabled_tests, True)]
+    for subsuite in test_loader.subsuites:
+        tests[subsuite] = {}
+        for test_type in test_loader.test_types:
+            tests[subsuite][test_type] = {}
+            for target, disabled in targets:
+                for test in target[subsuite][test_type]:
+                    tests[subsuite][test_type][test.id] = {"disabled": disabled,
+                                                           "expected": test.expected()}
+    print(json.dumps(tests, indent=2))
+
+
 def get_pause_after_test(test_loader, **kwargs):
     if kwargs["pause_after_test"] is not None:
         return kwargs["pause_after_test"]
@@ -563,6 +582,8 @@ def start(**kwargs):
             list_disabled(**kwargs)
         elif kwargs["list_tests"]:
             list_tests(**kwargs)
+        elif kwargs["list_tests_json"]:
+            list_tests_json(**kwargs)
         elif kwargs["verify"] or kwargs["stability"]:
             rv = check_stability(**kwargs) or logged_critical.has_log
         else:

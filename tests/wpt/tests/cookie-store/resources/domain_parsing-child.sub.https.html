@@ -12,7 +12,7 @@
           { name: cookieName, value: "cookie-value", domain: cookieDomain });
 
       testCase.add_cleanup(async () => {
-        await cookieStore.delete("cookie-name");
+        await cookieStore.delete(cookieName);
       });
 
       const cookie = await cookieStore.get(cookieName);

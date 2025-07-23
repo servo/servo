@@ -23,6 +23,7 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFetchTiming,
     ResourceTimingType,
 };
+use script_bindings::root::Dom;
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
@@ -41,6 +42,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
+use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
@@ -178,11 +180,12 @@ impl HTMLLinkElement {
     pub(crate) fn set_stylesheet(&self, s: Arc<Stylesheet>) {
         let stylesheets_owner = self.stylesheet_list_owner();
         if let Some(ref s) = *self.stylesheet.borrow() {
-            stylesheets_owner.remove_stylesheet(self.upcast(), s)
+            stylesheets_owner
+                .remove_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), s)
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
         self.clean_stylesheet_ownership();
-        stylesheets_owner.add_stylesheet(self.upcast(), s);
+        stylesheets_owner.add_owned_stylesheet(self.upcast(), s);
     }
 
     pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -199,7 +202,7 @@ impl HTMLLinkElement {
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
-                    false, // is_constructed
+                    None, // constructor_document
                     can_gc,
                 )
             })
@@ -218,7 +221,7 @@ impl HTMLLinkElement {
 
     fn clean_stylesheet_ownership(&self) {
         if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
-            cssom_stylesheet.set_owner(None);
+            cssom_stylesheet.set_owner_node(None);
         }
         self.cssom_stylesheet.set(None);
     }
@@ -416,7 +419,7 @@ impl VirtualMethods for HTMLLinkElement {
         if let Some(s) = self.stylesheet.borrow_mut().take() {
             self.clean_stylesheet_ownership();
             self.stylesheet_list_owner()
-                .remove_stylesheet(self.upcast(), &s);
+                .remove_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), &s);
         }
     }
 }

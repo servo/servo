@@ -39,6 +39,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::csp::Violation;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -49,7 +50,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::fetch::load_whole_resource;
+use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
@@ -131,6 +132,12 @@ pub(crate) enum MixedMessage {
     Devtools(DevtoolScriptControlMsg),
     Control(ServiceWorkerControlMsg),
     Timer,
+}
+
+struct ServiceWorkerCspProcessor {}
+
+impl CspViolationsProcessor for ServiceWorkerCspProcessor {
+    fn process_csp_violations(&self, _violations: Vec<Violation>) {}
 }
 
 #[dom_struct]
@@ -360,6 +367,7 @@ impl ServiceWorkerGlobalScope {
                     request,
                     &resource_threads_sender,
                     global.upcast(),
+                    &ServiceWorkerCspProcessor {},
                     CanGc::note(),
                 ) {
                     Err(_) => {

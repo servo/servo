@@ -71,6 +71,7 @@ use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::types::ShadowRoot;
+use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
@@ -1068,6 +1069,80 @@ pub(crate) fn handle_get_element_shadow_root(
         .unwrap();
 }
 
+fn handle_send_keys_file(
+    file_input: &HTMLInputElement,
+    text: &str,
+    can_gc: CanGc,
+) -> Result<bool, ErrorStatus> {
+    // Step 1. Let files be the result of splitting text
+    // on the newline (\n) character.
+    let files: Vec<DOMString> = text.split("\n").map(|s| s.into()).collect();
+
+    // Step 2. If files is of 0 length, return ErrorStatus::InvalidArgument.
+    if files.is_empty() {
+        return Err(ErrorStatus::InvalidArgument);
+    }
+
+    // Step 3. Let multiple equal the result of calling
+    // hasAttribute() with "multiple" on element.
+    // Step 4. If multiple is false and the length of files
+    // is not equal to 1, return ErrorStatus::InvalidArgument.
+    if !file_input.Multiple() && files.len() > 1 {
+        return Err(ErrorStatus::InvalidArgument);
+    }
+
+    // Step 5. Return ErrorStatus::InvalidArgument if the files does not exist.
+    // Step 6. Set the selected files on the input event.
+    // TODO: If multiple is true files are be appended to element's selected files.
+    // Step 7. Fire input and change event (should already be fired in `htmlinputelement.rs`)
+    if file_input.select_files(Some(files), can_gc).is_err() {
+        return Err(ErrorStatus::InvalidArgument);
+    }
+
+    // Step 8. Return success with data null.
+    Ok(false)
+}
+
+/// We have verify previously that input element is not textual.
+fn handle_send_keys_non_typeable(
+    input_element: &HTMLInputElement,
+    text: &str,
+    can_gc: CanGc,
+) -> Result<bool, ErrorStatus> {
+    // Step 1. If element does not have an own property named value,
+    // Return ErrorStatus::ElementNotInteractable.
+    // Currently, we only support HTMLInputElement for non-typeable
+    // form controls. Hence, it should always have value property.
+
+    // Step 2. If element is not mutable, return ErrorStatus::ElementNotInteractable.
+    if !input_element.is_mutable() {
+        return Err(ErrorStatus::ElementNotInteractable);
+    }
+
+    // Step 3. Set a property value to text on element.
+    if input_element.SetValue(text.into(), can_gc).is_err() {
+        return Err(ErrorStatus::UnknownError);
+    }
+
+    // Step 4. If element is suffering from bad input, return ErrorStatus::InvalidArgument.
+    if input_element
+        .Validity()
+        .invalid_flags()
+        .contains(ValidationFlags::BAD_INPUT)
+    {
+        return Err(ErrorStatus::InvalidArgument);
+    }
+
+    // Step 5. Return success with data null.
+    // This is done in `webdriver_server:lib.rs`
+    Ok(false)
+}
+
+/// Implementing step 5 - 7, plus part of step 8 of "Element Send Keys"
+/// where element is input element in the file upload state.
+/// This function will send a boolean back to webdriver_server,
+/// indicating whether the dispatching of the key and
+/// composition event is still needed or not.
 pub(crate) fn handle_will_send_keys(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1079,15 +1154,22 @@ pub(crate) fn handle_will_send_keys(
 ) {
     reply
         .send(
+            // Set 5. Let element be the result of trying to get a known element.
             get_known_element(documents, pipeline, element_id).and_then(|element| {
+                let input_element = element.downcast::<HTMLInputElement>();
+
                 // Step 6: Let file be true if element is input element
                 // in the file upload state, or false otherwise
-                let file_input = element
-                    .downcast::<HTMLInputElement>()
+                let file_input = input_element
                     .filter(|&input_element| input_element.input_type() == InputType::File);
 
-                // Step 7: If file is false or the session's strict file interactability
+                // Step 7. If file is false or the session's strict file interactability
                 if file_input.is_none() || strict_file_interactability {
+                    // TODO: Step 7.1. Scroll Into View
+                    // TODO: Step 7.2 - 7.6
+                    // Wait until element become Keyboard-interactable
+                    // or return error with error code element not interactable.
+
                     match element.downcast::<HTMLElement>() {
                         Some(element) => {
                             // Need a way to find if this actually succeeded
@@ -1099,32 +1181,16 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 8 (file input)
                 if let Some(file_input) = file_input {
-                    // Step 8.1: Let files be the result of splitting text
-                    // on the newline (\n) character.
-                    let files: Vec<DOMString> = text.split("\n").map(|s| s.into()).collect();
-
-                    // Step 8.2
-                    if files.is_empty() {
-                        return Err(ErrorStatus::InvalidArgument);
-                    }
-
-                    // Step 8.3 - 8.4
-                    if !file_input.Multiple() && files.len() > 1 {
-                        return Err(ErrorStatus::InvalidArgument);
-                    }
-
-                    // Step 8.5
-                    // TODO: Should return invalid argument error if file doesn't exist
-
-                    // Step 8.6 - 8.7
-                    // Input and change event already fired in `htmlinputelement.rs`.
-                    file_input.SelectFiles(files, can_gc);
-
-                    // Step 8.8
-                    return Ok(false);
+                    return handle_send_keys_file(file_input, &text, can_gc);
                 }
 
-                // TODO: Check non-typeable form control
+                // Step 8 (non-typeable form control)
+                if let Some(input_element) = input_element {
+                    if input_element.is_nontypeable() {
+                        return handle_send_keys_non_typeable(input_element, &text, can_gc);
+                    }
+                }
+
                 // TODO: Check content editable
 
                 Ok(true)

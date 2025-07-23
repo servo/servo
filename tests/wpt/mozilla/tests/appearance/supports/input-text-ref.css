@@ -1,0 +1,27 @@
+/* Minimal stylesheet to mimic the appearence of an input type=text specific to Servo.
+ * This stylesheet is expected to be modified following the development of the
+ * Shadow DOM input type=text in Servo.
+ */
+
+#input {
+    display: inline-block;
+    background: white;
+    border: solid lightgrey 1px;
+    font-family: sans-serif;
+    font-size: 1em; /* We are using 1em here to reduce the effect of inconsistencies in layout */
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* We are using definite width for most of the test to reduce the effect if calculating inline
+ * size of the input element. Which, will depends on the average character width of a font.
+ *
+ * <https://html.spec.whatwg.org/#converting-a-character-width-to-pixels>
+ */
+.definite-width {
+    width: 100px;
+}
+
+.placeholder-color {
+    color: grey;
+}
