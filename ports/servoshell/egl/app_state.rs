@@ -696,11 +696,14 @@ impl RunningAppState {
     }
 }
 
+/// Currently the OHOS build does not use this.
+#[allow(unused)]
 #[cfg(feature = "webxr")]
 pub(crate) struct XrDiscoveryWebXrRegistry {
     xr_discovery: RefCell<Option<servo::webxr::Discovery>>,
 }
 
+#[allow(unused)]
 #[cfg(feature = "webxr")]
 impl XrDiscoveryWebXrRegistry {
     pub(crate) fn new(xr_discovery: Option<servo::webxr::Discovery>) -> Self {

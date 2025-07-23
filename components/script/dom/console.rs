@@ -4,7 +4,7 @@
 
 use std::convert::TryFrom;
 use std::ptr::{self, NonNull};
-use std::{io, slice};
+use std::slice;
 
 use devtools_traits::{
     ConsoleMessage, ConsoleMessageArgument, ConsoleMessageBuilder, LogLevel,
@@ -115,6 +115,7 @@ fn with_stderr_lock<F>(f: F)
 where
     F: FnOnce(),
 {
+    use std::io;
     let stderr = io::stderr();
     let _handle = stderr.lock();
     f()
@@ -343,6 +344,7 @@ fn stringify_handle_values(messages: &[HandleValue]) -> DOMString {
 /// to the logger. As `Console::method` and `Console::send_string_message`
 /// already forwards all messages to the logger with appropriate level
 /// this does not need to do anything for these targets.
+#[allow(unused)]
 fn console_message_to_stdout(global: &GlobalScope, message: &DOMString) {
     #[cfg(not(any(target_os = "android", target_env = "ohos")))]
     {
