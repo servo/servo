@@ -1148,7 +1148,7 @@ impl ScriptThread {
                     document.handle_editing_action(editing_action_event, can_gc);
                 },
                 InputEvent::Scroll(scroll_event) => {
-                    document.handle_scroll_event(scroll_event, can_gc);
+                    document.handle_embedder_scroll_event(scroll_event);
                 },
             }
         }
@@ -1254,9 +1254,6 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
             self.process_pending_input_events(*pipeline_id, can_gc);
 
-            // TODO(#31665): Implement the "run the scroll steps" from
-            // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
-
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
             if document.window().run_the_resize_steps(can_gc) {
                 // Evaluate media queries and report changes.
@@ -1268,6 +1265,9 @@ impl ScriptThread {
                 // As per the spec, this can be run at any time.
                 document.react_to_environment_changes()
             }
+
+            // > 9. For each doc of docs, run the scroll steps for doc.
+            document.run_the_scroll_steps(can_gc);
 
             // > 11. For each doc of docs, update animations and send events for doc, passing
             // > in relative high resolution time given frameTimestamp and doc's relevant
