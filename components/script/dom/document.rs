@@ -2419,8 +2419,8 @@ impl Document {
 
             // Step 2.2
             // > Otherwise, fire an event named scroll at target.
-            if target.downcast::<Document>().is_some() {
-                target.fire_bubbling_event(Atom::from("scroll"), can_gc);
+            if target.downcast::<Element>().is_some() {
+                target.fire_event(Atom::from("scroll"), can_gc);
             }
         }
 
@@ -2433,7 +2433,8 @@ impl Document {
         // TODO(#7673): Implement scroll snapping
     }
 
-    /// Step 2-4 of viewport scroll event.
+    /// Whenever a viewport gets scrolled (whether in response to user interaction or by an
+    /// API), the user agent must run these steps:
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
     pub(crate) fn handle_viewport_scroll_event(&self) {
         // Step 2.
@@ -2448,7 +2449,8 @@ impl Document {
         if self
             .pending_scroll_event_targets
             .borrow()
-            .contains(&Dom::from_ref(target))
+            .iter()
+            .any(|other_target| *other_target == target)
         {
             return;
         }
@@ -2460,7 +2462,8 @@ impl Document {
             .push(Dom::from_ref(target));
     }
 
-    /// Step 2-4 of element scroll event.
+    /// Whenever an element gets scrolled (whether in response to user interaction or by an
+    /// API), the user agent must run these steps:
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
     pub(crate) fn handle_element_scroll_event(&self, element: &Element) {
         // Step 2.
@@ -2476,7 +2479,8 @@ impl Document {
         if self
             .pending_scroll_event_targets
             .borrow()
-            .contains(&Dom::from_ref(target))
+            .iter()
+            .any(|other_target| *other_target == target)
         {
             return;
         }
