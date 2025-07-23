@@ -431,9 +431,10 @@ class MachCommands(CommandBase):
 
     @Command("test-speedometer-ohos", description="Run servo's speedometer on a ohos device", category="testing")
     @CommandArgument("--bmf-output", default=None, help="Specifcy BMF JSON output file")
+    @CommandArgument("--profile", default=None, help="Specify a profile which will be prepended to the output")
     # This needs to be a separate command because we do not need a binary locally
-    def test_speedometer_ohos(self, bmf_output: str | None = None):
-        return self.speedometer_runner_ohos(bmf_output)
+    def test_speedometer_ohos(self, bmf_output: str | None = None, profile: str | None = None):
+        return self.speedometer_runner_ohos(bmf_output, profile)
 
     @Command("update-jquery", description="Update the jQuery test suite expected results", category="testing")
     @CommandBase.common_command_arguments(binary_selection=True)
@@ -569,12 +570,13 @@ class MachCommands(CommandBase):
 
         return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
-    def speedometer_to_bmf(self, speedometer: str, bmf_output: str | None):
+    def speedometer_to_bmf(self, speedometer: str, bmf_output: str | None = None, profile: str | None = None):
         output = dict()
+        profile = "" if profile is None else profile + "/"
 
         def parse_speedometer_result(result):
             if result["unit"] == "ms":
-                output[f"Speedometer/{result['name']}"] = {
+                output[profile + f"Speedometer/{result['name']}"] = {
                     "latency": {  # speedometer has ms we need to convert to ns
                         "value": float(result["mean"]) * 1000000.0,
                         "lower_value": float(result["min"]) * 1000000.0,
@@ -582,7 +584,7 @@ class MachCommands(CommandBase):
                     }
                 }
             elif result["unit"] == "score":
-                output[f"Speedometer/{result['name']}"] = {
+                output[profile + f"Speedometer/{result['name']}"] = {
                     "score": {
                         "value": float(result["mean"]),
                         "lower_value": float(result["min"]),
@@ -620,7 +622,7 @@ class MachCommands(CommandBase):
         if bmf_output:
             self.speedometer_to_bmf(speedometer, bmf_output)
 
-    def speedometer_runner_ohos(self, bmf_output: str | None):
+    def speedometer_runner_ohos(self, bmf_output: str | None, profile: str | None):
         hdc_path: str = shutil.which("hdc")
         log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
         if hdc_path is None:
@@ -680,7 +682,7 @@ class MachCommands(CommandBase):
         speedometer = json.loads(json_string)
         print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
         if bmf_output:
-            self.speedometer_to_bmf(speedometer, bmf_output)
+            self.speedometer_to_bmf(speedometer, bmf_output, profile)
 
     @Command(
         "update-net-cookies",
