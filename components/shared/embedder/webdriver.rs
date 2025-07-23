@@ -243,7 +243,7 @@ pub enum WebDriverScriptCommand {
     IsEnabled(String, IpcSender<Result<bool, ErrorStatus>>),
     IsSelected(String, IpcSender<Result<bool, ErrorStatus>>),
     GetTitle(IpcSender<String>),
-    /// Match the element type before sending the event for webdriver `element send keys`.
+    /// Deal with the case of input element for Element Send Keys, which does not send keys.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
     IsDocumentReadyStateComplete(IpcSender<bool>),
 }

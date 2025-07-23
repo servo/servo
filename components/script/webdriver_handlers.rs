@@ -1103,8 +1103,9 @@ fn handle_send_keys_file(
     Ok(false)
 }
 
-/// Implementing step 5 - 8 of Element Send Keys. This function will send a boolean
-/// back to webdriver_server, indicating whether the dispatching of the key and
+/// Implementing step 5 - 7, plus step 8.file for Element Send Keys.
+/// This function will send a boolean back to webdriver_server,
+/// indicating whether the dispatching of the key and
 /// composition event is still needed or not.
 pub(crate) fn handle_will_send_keys(
     documents: &DocumentCollection,
