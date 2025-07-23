@@ -1467,7 +1467,6 @@ dependencies = [
  "servo_config",
  "servo_rand",
  "servo_url",
- "stylo_traits",
  "tracing",
  "webgpu",
  "webgpu_traits",
