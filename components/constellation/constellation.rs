@@ -396,8 +396,8 @@ pub struct Constellation<STF, SWF> {
     /// and the namespaces are allocated by the constellation.
     next_pipeline_namespace_id: PipelineNamespaceId,
 
-    /// Bits of state used to interact with the webdriver implementation
-    webdriver: WebDriverData,
+    // Forward responses from the script thread to the webdriver server.
+    input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
     document_states: HashMap<PipelineId, DocumentState>,
@@ -503,12 +503,6 @@ pub struct InitialConstellationState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
-}
-
-/// Data needed for webdriver
-struct WebDriverData {
-    // Forward responses from the script thread to the webdriver server.
-    input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
 }
 
 /// When we are running reftests, we save an image to compare against a reference.
@@ -672,9 +666,7 @@ where
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
-                    webdriver: WebDriverData {
-                        input_command_response_sender: None,
-                    },
+                    input_command_response_sender: None,
                     document_states: HashMap::new(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
@@ -1462,7 +1454,7 @@ where
                 }
             },
             EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
-                self.webdriver.input_command_response_sender = Some(sender);
+                self.input_command_response_sender = Some(sender);
             },
         }
     }
@@ -1863,7 +1855,7 @@ where
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
             ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
-                if let Some(ref reply_sender) = self.webdriver.input_command_response_sender {
+                if let Some(ref reply_sender) = self.input_command_response_sender {
                     reply_sender
                         .send(WebDriverCommandResponse { id: msg_id })
                         .unwrap_or_else(|_| {
