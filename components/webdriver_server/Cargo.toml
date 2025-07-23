@@ -14,7 +14,6 @@ path = "lib.rs"
 [dependencies]
 base = { workspace = true }
 base64 = { workspace = true }
-constellation_traits = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }

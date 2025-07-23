@@ -1074,7 +1074,6 @@ dependencies = [
  "ipc-channel",
  "kurbo",
  "log",
- "lyon_geom",
  "net_traits",
  "pixels",
  "range",
@@ -1098,7 +1097,6 @@ dependencies = [
  "malloc_size_of_derive",
  "pixels",
  "serde",
- "serde_bytes",
  "servo_config",
  "servo_malloc_size_of",
  "strum",
@@ -1409,11 +1407,9 @@ dependencies = [
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
- "pixels",
  "profile_traits",
  "raw-window-handle",
  "serde",
- "servo_geometry",
  "servo_malloc_size_of",
  "smallvec",
  "strum_macros",
@@ -4669,7 +4665,6 @@ dependencies = [
  "base",
  "bitflags 2.9.1",
  "compositing_traits",
- "constellation_traits",
  "data-url",
  "embedder_traits",
  "euclid",
@@ -7087,7 +7082,6 @@ dependencies = [
  "itertools 0.14.0",
  "jstraceable_derive",
  "keyboard-types",
- "kurbo",
  "layout_api",
  "libc",
  "log",
@@ -7116,7 +7110,6 @@ dependencies = [
  "serde",
  "serde_json",
  "servo-media",
- "servo_allocator",
  "servo_arc",
  "servo_config",
  "servo_geometry",
@@ -8477,10 +8470,8 @@ checksum = "06535c958d6abe68dc4b4ef9e6845f758fc42fe463d0093d0aca40254f03fb14"
 name = "timers"
 version = "0.0.1"
 dependencies = [
- "base",
  "crossbeam-channel",
  "malloc_size_of_derive",
- "serde",
  "servo_malloc_size_of",
 ]
 
@@ -9407,7 +9398,6 @@ version = "0.0.1"
 dependencies = [
  "base",
  "base64 0.22.1",
- "constellation_traits",
  "cookie 0.18.1",
  "crossbeam-channel",
  "embedder_traits",
@@ -9466,7 +9456,6 @@ dependencies = [
  "serde",
  "servo_config",
  "webgpu_traits",
- "webrender",
  "webrender_api",
  "wgpu-core",
  "wgpu-types",

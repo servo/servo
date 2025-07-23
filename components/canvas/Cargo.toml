@@ -23,7 +23,6 @@ fonts = { path = "../fonts" }
 ipc-channel = { workspace = true }
 kurbo = { workspace = true }
 log = { workspace = true }
-lyon_geom = "1.0.4"
 net_traits = { workspace = true }
 pixels = { path = "../pixels" }
 range = { path = "../range" }
