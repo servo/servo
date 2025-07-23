@@ -376,6 +376,7 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
         })
     }
 
+    #[servo_tracing::instrument(name = "Box Tree Update From Dirty Root", skip_all)]
     fn update_from_dirty_root(&self, context: &LayoutContext) {
         let contents = ReplacedContents::for_element(self.node, context)
             .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);

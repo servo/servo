@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::shared_lock::SharedRwLock;
@@ -13,6 +14,7 @@ use style::stylesheets::{
     AllowImportRules, CssRuleTypes, Origin, Stylesheet as StyleStyleSheet, UrlExtraData,
 };
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
     CSSStyleSheetInit, CSSStyleSheetMethods,
 };
@@ -26,23 +28,41 @@ use crate::dom::bindings::reflector::{
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
 use crate::dom::stylesheet::StyleSheet;
+use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSStyleSheet {
     stylesheet: StyleSheet,
-    owner: MutNullableDom<Element>,
+
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-owner-node>
+    owner_node: MutNullableDom<Element>,
+
+    /// <https://drafts.csswg.org/cssom/#ref-for-concept-css-style-sheet-css-rules>
     rulelist: MutNullableDom<CSSRuleList>,
+
+    /// The inner Stylo's [Stylesheet].
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
     style_stylesheet: Arc<StyleStyleSheet>,
+
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-origin-clean-flag>
     origin_clean: Cell<bool>,
-    is_constructed: bool,
+
+    /// In which [Document] that this stylesheet was constructed.
+    ///
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-constructor-document>
+    constructor_document: Option<Dom<Document>>,
+
+    /// Documents or shadow DOMs thats adopt this stylesheet, they will be notified whenever
+    /// the stylesheet is modified.
+    adopters: DomRefCell<Vec<StyleSheetListOwner>>,
 }
 
 impl CSSStyleSheet {
@@ -52,15 +72,16 @@ impl CSSStyleSheet {
         href: Option<DOMString>,
         title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
-        is_constructed: bool,
+        constructor_document: Option<&Document>,
     ) -> CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
-            owner: MutNullableDom::new(owner),
+            owner_node: MutNullableDom::new(owner),
             rulelist: MutNullableDom::new(None),
             style_stylesheet: stylesheet,
             origin_clean: Cell::new(true),
-            is_constructed,
+            constructor_document: constructor_document.map(Dom::from_ref),
+            adopters: Default::default(),
         }
     }
 
@@ -73,7 +94,7 @@ impl CSSStyleSheet {
         href: Option<DOMString>,
         title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
-        is_constructed: bool,
+        constructor_document: Option<&Document>,
         can_gc: CanGc,
     ) -> DomRoot<CSSStyleSheet> {
         reflect_dom_object(
@@ -83,7 +104,7 @@ impl CSSStyleSheet {
                 href,
                 title,
                 stylesheet,
-                is_constructed,
+                constructor_document,
             )),
             window,
             can_gc,
@@ -100,7 +121,7 @@ impl CSSStyleSheet {
         href: Option<DOMString>,
         title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
-        is_constructed: bool,
+        constructor_document: Option<&Document>,
         can_gc: CanGc,
     ) -> DomRoot<CSSStyleSheet> {
         reflect_dom_object_with_proto(
@@ -110,7 +131,7 @@ impl CSSStyleSheet {
                 href,
                 title,
                 stylesheet,
-                is_constructed,
+                constructor_document,
             )),
             window,
             proto,
@@ -134,21 +155,18 @@ impl CSSStyleSheet {
         self.style_stylesheet.disabled()
     }
 
-    pub(crate) fn get_owner(&self) -> Option<DomRoot<Element>> {
-        self.owner.get()
+    pub(crate) fn owner_node(&self) -> Option<DomRoot<Element>> {
+        self.owner_node.get()
     }
 
     pub(crate) fn set_disabled(&self, disabled: bool) {
-        if self.style_stylesheet.set_disabled(disabled) && self.get_owner().is_some() {
-            self.get_owner()
-                .unwrap()
-                .stylesheet_list_owner()
-                .invalidate_stylesheets();
+        if self.style_stylesheet.set_disabled(disabled) {
+            self.notify_invalidations();
         }
     }
 
-    pub(crate) fn set_owner(&self, value: Option<&Element>) {
-        self.owner.set(value);
+    pub(crate) fn set_owner_node(&self, value: Option<&Element>) {
+        self.owner_node.set(value);
     }
 
     pub(crate) fn shared_lock(&self) -> &SharedRwLock {
@@ -156,6 +174,10 @@ impl CSSStyleSheet {
     }
 
     pub(crate) fn style_stylesheet(&self) -> &StyleStyleSheet {
+        &self.style_stylesheet
+    }
+
+    pub(crate) fn style_stylesheet_arc(&self) -> &Arc<StyleStyleSheet> {
         &self.style_stylesheet
     }
 
@@ -175,7 +197,39 @@ impl CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-constructed-flag>
     #[inline]
     pub(crate) fn is_constructed(&self) -> bool {
-        self.is_constructed
+        self.constructor_document.is_some()
+    }
+
+    pub(crate) fn constructor_document_matches(&self, other_doc: &Document) -> bool {
+        match &self.constructor_document {
+            Some(doc) => *doc == other_doc,
+            None => false,
+        }
+    }
+
+    /// Add a [StyleSheetListOwner] as an adopter to be notified whenever this stylesheet is
+    /// modified.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn add_adopter(&self, owner: StyleSheetListOwner) {
+        debug_assert!(self.is_constructed());
+        self.adopters.borrow_mut().push(owner);
+    }
+
+    pub(crate) fn remove_adopter(&self, owner: &StyleSheetListOwner) {
+        let adopters = &mut *self.adopters.borrow_mut();
+        if let Some(index) = adopters.iter().position(|o| o == owner) {
+            adopters.swap_remove(index);
+        }
+    }
+
+    /// Invalidate all stylesheet set this stylesheet is a part on.
+    pub(crate) fn notify_invalidations(&self) {
+        if let Some(owner) = self.owner_node() {
+            owner.stylesheet_list_owner().invalidate_stylesheets();
+        }
+        for adopter in self.adopters.borrow().iter() {
+            adopter.invalidate_stylesheets();
+        }
     }
 }
 
@@ -218,7 +272,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             None, // href
             None, // title
             stylesheet,
-            true, // is_constructed
+            Some(&window.Document()), // constructor_document
             can_gc,
         )
     }
@@ -294,7 +348,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#synchronously-replace-the-rules-of-a-cssstylesheet>
     fn ReplaceSync(&self, text: USVString) -> Result<(), Error> {
         // Step 1. If the constructed flag is not set throw a NotAllowedError
-        if !self.is_constructed {
+        if !self.is_constructed() {
             return Err(Error::NotAllowed);
         }
 
@@ -315,6 +369,9 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         // We reset our rule list, which will be initialized properly
         // at the next getter access.
         self.rulelist.set(None);
+
+        // Notify invalidation to update the styles immediately.
+        self.notify_invalidations();
 
         Ok(())
     }

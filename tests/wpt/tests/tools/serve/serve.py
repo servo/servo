@@ -212,7 +212,7 @@ class WrapperHandler(metaclass=abc.ABCMeta):
 
 class HtmlWrapperHandler(WrapperHandler):
     global_type: ClassVar[Optional[str]] = None
-    headers = [('Content-Type', 'text/html')]
+    headers = [("Content-Type", "text/html")]
 
     def check_exposure(self, request):
         if self.global_type is not None:
@@ -232,7 +232,7 @@ class HtmlWrapperHandler(WrapperHandler):
                 return '<meta name="timeout" content="long">'
         if key == "title":
             value = value.replace("&", "&amp;").replace("<", "&lt;")
-            return '<title>%s</title>' % value
+            return "<title>%s</title>" % value
         return None
 
     def _script_replacement(self, key, value):
@@ -560,7 +560,7 @@ class ShadowRealmInAudioWorkletHandler(HtmlWrapperHandler):
 
 
 class BaseWorkerHandler(WrapperHandler):
-    headers = [('Content-Type', 'text/javascript')]
+    headers = [("Content-Type", "text/javascript")]
 
     def _meta_replacement(self, key, value):
         return None
@@ -738,7 +738,7 @@ class RoutesBuilder:
         self.extra = []
         self.inject_script_data = None
         if inject_script is not None:
-            with open(inject_script, 'rb') as f:
+            with open(inject_script, "rb") as f:
                 self.inject_script_data = f.read()
 
         self.mountpoint_routes = OrderedDict()
@@ -848,7 +848,7 @@ class ServerProc:
         self.proc = self.mp_context.Process(target=self.create_daemon,
                                             args=(init_func, host, port, paths, routes, bind_address,
                                                   config, log_handlers, dict(**os.environ)),
-                                            name='%s on port %s' % (self.scheme, port),
+                                            name="%s on port %s" % (self.scheme, port),
                                             kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
@@ -1429,10 +1429,10 @@ def run(config_cls=ConfigBuilder, route_builder=None, mp_context=None, log_handl
         if kwargs.get("alias_file"):
             with open(kwargs["alias_file"]) as alias_file:
                 for line in alias_file:
-                    alias, doc_root = (x.strip() for x in line.split(','))
+                    alias, doc_root = (x.strip() for x in line.split(","))
                     config["aliases"].append({
-                        'url-path': alias,
-                        'local-dir': doc_root,
+                        "url-path": alias,
+                        "local-dir": doc_root,
                     })
 
         if route_builder is None:

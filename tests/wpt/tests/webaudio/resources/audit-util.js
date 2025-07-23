@@ -195,13 +195,13 @@ function computeSNR(actual, expected) {
 }
 
 /**
- * Asserts that all elements in the given array are equal to the specified value.
+ * Asserts that all elements in the given array are equal to the specified value
  * If the value is NaN, checks that each element in the array is also NaN.
  * Throws an assertion error if any element does not match the expected value.
  *
  * @param {Array<number>} array - The array of numbers to check.
- * @param {number} value - The constant value that each array element should match.
- * @param {string} [messagePrefix=''] - Optional prefix for assertion error messages.
+ * @param {number} value - The constant that each array element should match.
+ * @param {string} [messagePrefix=''] - Optional for assertion error messages.
  */
 function assert_constant_value(array, value, messagePrefix = '') {
   for (let i = 0; i < array.length; ++i) {
@@ -218,4 +218,73 @@ function assert_constant_value(array, value, messagePrefix = '') {
       );
     }
   }
+}
+
+/**
+ * Asserts that two arrays are exactly equal, element by element.
+ * @param {!Array<number>} actual The actual array of values.
+ * @param {!Array<number>} expected The expected array of values.
+ * @param {string} message Description used for assertion failures.
+ */
+function assert_array_equals_exact(actual, expected, message) {
+  assert_equals(actual.length, expected.length, 'Buffers must be same length');
+  for (let i = 0; i < actual.length; ++i) {
+    assert_equals(actual[i], expected[i], `${message} (at index ${i})`);
+  }
+}
+
+/**
+ * Asserts that an array is not a constant array
+ * (i.e., not all values are equal to the given constant).
+ * @param {!Array<number>} array The array to be checked.
+ * @param {number} constantValue The constant value to compare against.
+ * @param {string} message Description used for assertion failures.
+ * Asserts that not all values in the given array are equal to the
+ * specified constant. This is useful for verifying that an output
+ * signal is not silent or uniform.
+ *
+ * @param {!Array<number>} array - The array of numbers to check.
+ * @param {number} constantValue - The value that not all array elements
+ * should match.
+ * @param {string} message - Description used for assertion failure messages.
+ */
+function assert_not_constant_value(array, constantValue, message) {
+  const notAllSame = array.some(value => value !== constantValue);
+  assert_true(notAllSame, message);
+}
+
+/**
+ * Asserts that all elements of an array are exactly equal to a constant value.
+ * @param {!Array<number>} array The array to be checked.
+ * @param {number} constantValue The expected constant value.
+ * @param {string} message Description used for assertion failures.
+ */
+function assert_strict_constant_value(array, constantValue, message) {
+  const allSame = array.every(value => value === constantValue);
+  assert_true(allSame, message);
+}
+
+/**
+ * Asserts that two arrays are approximately equal, element-wise, within a given
+ * absolute threshold.
+ * This is helpful when comparing floating-point buffers where exact equality is
+ * not expected.
+ *
+ * @param {!Array<number>} actual - The actual output array.
+ * @param {!Array<number>} expected - The expected reference array.
+ * @param {number} threshold - The maximum allowed absolute difference between
+ * corresponding elements.
+ * @param {string} message - Description used for assertion failure messages.
+ */
+function assert_array_approximately_equals(
+    actual, expected, threshold, message) {
+      assert_equals(
+          actual.length,
+          expected.length,
+          `${message} - buffer lengths must match`);
+      for (let i = 0; i < actual.length; ++i) {
+        assert_approx_equals(
+            actual[i], expected[i], threshold,
+            `${message} at index ${i}`);
+      }
 }

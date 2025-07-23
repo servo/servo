@@ -6,6 +6,10 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
+    html {
+      z-index: calc(sibling-index() * 2);
+      widows: calc(sibling-count() * 2);
+    }
     #test {
       z-index: calc(sibling-index());
       counter-increment: foo calc(sibling-count());
@@ -46,7 +50,17 @@ test(() => {
   let style = getComputedStyle(document.getElementById('test'), '::before');
   assert_equals(style.zIndex, '4');
   assert_equals(style.widows, '10');
-}, 'sibling-count on pseudo-element');
+}, 'sibling-count() on pseudo-element');
+
+test(() => {
+  let style = getComputedStyle(document.documentElement);
+  assert_equals(style.zIndex, '2');
+}, 'sibling-index() on root');
+
+test(() => {
+  let style = getComputedStyle(document.documentElement);
+  assert_equals(style.widows, '2');
+}, 'sibling-count() on root');
   </script>
 </body>
 </html>

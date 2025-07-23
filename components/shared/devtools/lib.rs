@@ -23,6 +23,7 @@ use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
+use net_traits::request::Destination;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use uuid::Uuid;
@@ -443,6 +444,7 @@ pub struct HttpRequest {
     pub time_stamp: i64,
     pub connect_time: Duration,
     pub send_time: Duration,
+    pub destination: Destination,
     pub is_xhr: bool,
     pub browsing_context_id: BrowsingContextId,
 }

@@ -128,6 +128,7 @@ export function request_options_with_two_idps(mediation = 'required') {
 // Test wrapper which does FedCM-specific setup.
 export function fedcm_test(test_func, test_name) {
   promise_test(async t => {
+    assert_implements(window.IdentityCredential, "FedCM is not supported");
     // Turn off delays that are not useful in tests.
     try {
       await test_driver.set_fedcm_delay_enabled(false);
@@ -180,20 +181,26 @@ export function request_options_with_domain_hint(manifest_filename, domain_hint)
 }
 
 export function fedcm_get_dialog_type_promise(t) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     async function helper() {
-      // Try to get the dialog type. If the UI is not up yet, we'll catch an exception
-      // and try again in 100ms.
+      // Try to get the dialog type. If the UI is not up yet, we'll catch a 'no such alert'
+      // exception and try again in 100ms. Other exceptions will be rejected.
       try {
         const type = await window.test_driver.get_fedcm_dialog_type();
         resolve(type);
       } catch (ex) {
-        t.step_timeout(helper, 100);
+        if (String(ex).includes("no such alert")) {
+          t.step_timeout(helper, 100);
+        } else {
+          reject(ex);
+        }
       }
     }
+
     helper();
   });
 }
+
 
 export async function fedcm_settles_without_dialog(t, cred_promise) {
   let dialog_promise = fedcm_get_dialog_type_promise(t);
@@ -238,9 +245,15 @@ export async function fedcm_select_account_promise(t, account_index) {
   await window.test_driver.select_fedcm_account(account_index);
 }
 
-export function fedcm_get_and_select_first_account(t, options) {
+export async function fedcm_get_and_select_first_account(t, options) {
   const credentialPromise = navigator.credentials.get(options);
-  fedcm_select_account_promise(t, 0);
+  let type = await fedcm_expect_dialog(
+    credentialPromise,
+    fedcm_get_dialog_type_promise(t)
+  );
+  if (type != "AccountChooser")
+    throw "Incorrect dialog type: " + type;
+  await window.test_driver.select_fedcm_account(0);
   return credentialPromise;
 }
 

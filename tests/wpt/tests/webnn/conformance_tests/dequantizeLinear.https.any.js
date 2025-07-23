@@ -18,15 +18,16 @@
 
 
 const getDequantizeLinearPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 1};
+  const toleranceValueDict = {float32: 1, float16: 1};
   const expectedDataType =
       getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
 };
 
 const dequantizeLinearTests = [
+  // float32 tests
   {
-    'name': 'dequantizeLinear int8 0D tensor with float32 scalar scale',
+    'name': 'dequantizeLinear int8 0D tensor with float32 0D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -63,7 +64,8 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear constant input',
+    'name':
+        'dequantizeLinear int8 0D constant tensor with float32 0D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -100,7 +102,7 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear uint8 1D constant tensor',
+    'name': 'dequantizeLinear uint8 1D constant tensor with float32 1D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -145,7 +147,8 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear uint8 1D constant tensor with negative scale',
+    'name':
+        'dequantizeLinear uint8 1D constant tensor with negative float32 1D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -191,7 +194,7 @@ const dequantizeLinearTests = [
   },
   {
     'name':
-        'dequantizeLinear uint8 1D constant tensor with implicit block_size = 2.',
+        'dequantizeLinear uint8 1D constant tensor with float32 1D scale, implicit block_size = 2',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -235,7 +238,7 @@ const dequantizeLinearTests = [
   },
   {
     'name':
-        'dequantizeLinear int8 4D constant tensor broadcasting scale and zeroPoint',
+        'dequantizeLinear int8 4D constant tensor broadcasting float32 4D scale and int8 4D zeroPoint',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -275,7 +278,8 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear int8 4D constant tensor with block_size = [3, 2]',
+    'name':
+        'dequantizeLinear int8 2D constant tensor with float32 2D scale, block_size = [3, 2]',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -343,7 +347,8 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear uint4 1D tensor with even input size',
+    'name':
+        'dequantizeLinear uint4 1D tensor of even size with float32 1D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -380,7 +385,8 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear uint4 1D tensor with odd input size',
+    'name':
+        'dequantizeLinear uint4 1D tensor of odd size with float32 1D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -417,7 +423,8 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear uint4 4D constant tensor broadcasting zeroPoint',
+    'name':
+        'dequantizeLinear uint4 4D constant tensor with broadcasting float32 4D scale and uint4 4D zeroPoint',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -460,7 +467,8 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear uint4 3D input with block_size = [1, 1, 2]',
+    'name':
+        'dequantizeLinear uint4 3D input with float32 3D scale, block_size = [1, 1, 2]',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -503,7 +511,8 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear int4 1D tensor with even size',
+    'name':
+        'dequantizeLinear int4 1D tensor of even size with float32 1D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -540,7 +549,7 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear int4 1D tensor with odd size',
+    'name': 'dequantizeLinear int4 1D tensor of odd size with float32 1D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -577,7 +586,8 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'per-tensor dequantizeLinear for int4 4D constant',
+    'name':
+        'per-tensor dequantizeLinear for int4 4D constant with float32 4D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -620,7 +630,7 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear int32 1D tensor with float32 scalar scale',
+    'name': 'dequantizeLinear int32 1D tensor with float32 1D scale',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -657,7 +667,7 @@ const dequantizeLinearTests = [
     }
   },
   {
-    'name': 'dequantizeLinear as an intermediate node',
+    'name': 'dequantizeLinear with float32 3D scale as an intermediate node',
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
@@ -713,7 +723,7 @@ const dequantizeLinearTests = [
   ,
   {
     'name':
-        'quantizeLinear then dequantizeLinear with different scale and zero_point',
+        'quantizeLinear then dequantizeLinear with different float32 scale and int8 zeroPoint',
     'graph': {
       'inputs': {
         'quantizeLinearInput': {
@@ -769,13 +779,699 @@ const dequantizeLinearTests = [
       }
     }
   },
+
+  // float16 tests
+  {
+    'name': 'dequantizeLinear int8 0D tensor with float16 0D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [123],
+          'descriptor': {'shape': [], 'dataType': 'int8'},
+          'constant': false
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875],
+          'descriptor': {'shape': [], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [3],
+          'descriptor': {'shape': [], 'dataType': 'int8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [134.375],
+          'descriptor': {'shape': [], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear int8 0D constant tensor with float16 0D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [123],
+          'descriptor': {'shape': [], 'dataType': 'int8'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875],
+          'descriptor': {'shape': [], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [3],
+          'descriptor': {'shape': [], 'dataType': 'int8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [134.375],
+          'descriptor': {'shape': [], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'dequantizeLinear uint8 1D constant tensor with float16 1D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [12, 24, 35, 123],
+          'descriptor': {'shape': [4], 'dataType': 'uint8'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [9.34375, 0.280029296875, 4.6171875, 1.1201171875],
+          'descriptor': {'shape': [4], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [128, 128, 128, 128],
+          'descriptor': {'shape': [4], 'dataType': 'uint8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-1084, -29.125, -429.5, -5.6015625],
+          'descriptor': {'shape': [4], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear uint8 1D constant tensor with negative float16 1D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [12, 24, 35, 123],
+          'descriptor': {'shape': [4], 'dataType': 'uint8'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [9.34375, 0.280029296875, -4.6171875, 1.1201171875],
+          'descriptor': {'shape': [4], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [128, 128, 128, 128],
+          'descriptor': {'shape': [4], 'dataType': 'uint8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-1084, -29.125, 429.5, -5.6015625],
+          'descriptor': {'shape': [4], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear uint8 1D constant tensor with float16 1D scale, implicit block_size = 2',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [12, 24, 35, 123],
+          'descriptor': {'shape': [4], 'dataType': 'uint8'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [9.34375, -4.6171875],
+          'descriptor': {'shape': [2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [128, 110],
+          'descriptor': {'shape': [2], 'dataType': 'uint8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-1084, -972, 346.25, -60.03125],
+          'descriptor': {'shape': [4], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear int8 4D constant tensor broadcasting float16 4D scale and int8 4D zeroPoint',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [-124, 0, 23, 122],
+          'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'int8'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [0.280029296875, -4.6171875],
+          'descriptor': {'shape': [1, 1, 2, 1], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [12, 12],
+          'descriptor': {'shape': [1, 1, 2, 1], 'dataType': 'int8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-38.09375, -3.359375, -50.78125, -508],
+          'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear int8 2D constant tensor with float16 2D scale, block_size = [3, 2]',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [
+            -124, 0,   23,  122, 12, 23, 45, 36, 67, 78, -22, 0,
+            -34,  -45, -56, -67, 89, 30, 12, 23, 56, 67, 56,  -12
+          ],
+          'descriptor': {'shape': [6, 4], 'dataType': 'int8'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [0.280029296875, -4.6171875, 1.2802734375, -3.6171875],
+          'descriptor': {'shape': [2, 2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [1, 3, 5, 12],
+          'descriptor': {'shape': [2, 2], 'dataType': 'int8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [
+            -35,        -0.280029296875, -92.375,  -549.5,    3.080078125,
+            6.16015625, -193.875,        -152.375, 18.484375, 21.5625,
+            115.4375,   13.8515625,      -49.9375, -64,       246,
+            285.75,     107.5625,        32,       0,         -39.78125,
+            65.3125,    79.375,          -159.125, 86.8125
+          ],
+          'descriptor': {'shape': [6, 4], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear uint4 1D tensor of even size with float16 1D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [15, 0],
+          'descriptor': {'shape': [2], 'dataType': 'uint4'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875, 1.1201171875],
+          'descriptor': {'shape': [2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [0, 1],
+          'descriptor': {'shape': [2], 'dataType': 'uint4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [16.796875, -1.1201171875],
+          'descriptor': {'shape': [2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear uint4 1D tensor of odd size with float16 1D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [10, 12, 14],
+          'descriptor': {'shape': [3], 'dataType': 'uint4'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875],
+          'descriptor': {'shape': [1], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [2],
+          'descriptor': {'shape': [1], 'dataType': 'uint4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [8.9609375, 11.203125, 13.4375],
+          'descriptor': {'shape': [3], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear uint4 4D constant tensor with broadcasting float16 4D scale and uint4 4D zeroPoint',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [0, 1, 10, 15],
+          'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'uint4'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [9.34375, -4.6171875],
+          'descriptor': {'shape': [1, 1, 2, 1], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [2, 3],
+          'descriptor': {'shape': [1, 1, 2, 1], 'dataType': 'uint4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-18.6875, -9.34375, -32.3125, -55.40625],
+          'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear uint4 3D input with float16 3D scale, block_size = [1, 1, 2]',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [0, 1, 10, 15],
+          'descriptor': {'shape': [1, 1, 4], 'dataType': 'uint4'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [9.34375, -4.6171875],
+          'descriptor': {'shape': [1, 1, 2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [2, 3],
+          'descriptor': {'shape': [1, 1, 2], 'dataType': 'uint4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-18.6875, -9.34375, -32.3125, -55.40625],
+          'descriptor': {'shape': [1, 1, 4], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'dequantizeLinear int4 1D tensor of even size with float16 1D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [-8, -3],
+          'descriptor': {'shape': [2], 'dataType': 'int4'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875, 1.1201171875],
+          'descriptor': {'shape': [2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [0, -2],
+          'descriptor': {'shape': [2], 'dataType': 'int4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-8.9609375, -1.1201171875],
+          'descriptor': {'shape': [2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'dequantizeLinear int4 1D tensor of odd size with float16 1D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [-1, 7, 0],
+          'descriptor': {'shape': [3], 'dataType': 'int4'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875],
+          'descriptor': {'shape': [1], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [-3],
+          'descriptor': {'shape': [1], 'dataType': 'int4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [2.240234375, 11.203125, 3.359375],
+          'descriptor': {'shape': [3], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'per-tensor dequantizeLinear for int4 4D constant with float16 4D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [0, -1, -6, 1],
+          'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'int4'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875, -4.6171875, 6.2421875, 3.841796875],
+          'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [2, -3, -5, 4],
+          'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'int4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-2.240234375, -9.234375, -6.2421875, -11.5234375],
+          'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'dequantizeLinear int32 1D tensor with float16 1D scale',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [12345, 65504],
+          'descriptor': {'shape': [2], 'dataType': 'int32'},
+          'constant': false
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875, 0.280029296875],
+          'descriptor': {'shape': [2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [32345, 0],
+          'descriptor': {'shape': [2], 'dataType': 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-22400, 18336],
+          'descriptor': {'shape': [2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'dequantizeLinear with float16 3D scale as an intermediate node',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [34, 23],
+          'descriptor': {'shape': [2, 1], 'dataType': 'int32'},
+          'constant': false
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875, 0.280029296875],
+          'descriptor': {'shape': [1, 1, 2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [35, -24],
+          'descriptor': {'shape': [1, 1, 2], 'dataType': 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [
+        {
+          'name': 'transpose',
+          'arguments': [
+            {'input': 'dequantizeLinearInput'},
+            {'options': {'permutation': [1, 0]}}
+          ],
+          'outputs': 'transposeOutput'
+        },
+        {
+          'name': 'reshape',
+          'arguments': [{'input': 'transposeOutput'}, {'newShape': [1, 1, 2]}],
+          'outputs': 'reshapeOutput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'reshapeOutput'}, {'scale': 'dequantizeLinearScale'},
+            {'zeroPoint': 'dequantizeLinearZeroPoint'}
+          ],
+          'outputs': 'dequantizeLinearOutput'
+        }
+      ],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-1.1201171875, 13.1640625],
+          'descriptor': {'shape': [1, 1, 2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'quantizeLinear then dequantizeLinear with different float16 scale and int8 zeroPoint',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [-1.1201171875, 13.1640625],
+          'descriptor': {'shape': [2], 'dataType': 'float16'},
+          'constant': false
+        },
+        'quantizeLinearScale': {
+          'data': [0.12030029296875, 1.2802734375],
+          'descriptor': {'shape': [2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [12, -21],
+          'descriptor': {'shape': [2], 'dataType': 'int8'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1201171875, 0.280029296875],
+          'descriptor': {'shape': [2], 'dataType': 'float16'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [35, -24],
+          'descriptor': {'shape': [2], 'dataType': 'int8'},
+          'constant': true
+        }
+      },
+      'operators': [
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+            {'zeroPoint': 'quantizeLinearZeroPoint'}
+          ],
+          'outputs': 'quantizeLinearOutput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizeLinearOutput'},
+            {'scale': 'dequantizeLinearScale'},
+            {'zeroPoint': 'dequantizeLinearZeroPoint'}
+          ],
+          'outputs': 'dequantizeLinearOutput'
+        }
+      ],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-35.84375, 3.640625],
+          'descriptor': {'shape': [2], 'dataType': 'float16'}
+        }
+      }
+    }
+  }
 ];
 
 if (navigator.ml) {
   dequantizeLinearTests.forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getDequantizeLinearPrecisionTolerance, test,
-        /*cast_to_supported_type=*/ true);
+        /*cast_to_supported_type=*/true);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

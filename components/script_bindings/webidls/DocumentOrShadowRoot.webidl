@@ -15,3 +15,9 @@ interface mixin DocumentOrShadowRoot {
   readonly attribute Element? activeElement;
   readonly attribute StyleSheetList styleSheets;
 };
+
+partial interface mixin DocumentOrShadowRoot {
+  // TODO(37902): Use ObservableArray Array when available
+  [Pref="dom_adoptedstylesheet_enabled", SetterThrows]
+  attribute /* ObservableArray<CSSStyleSheet> */ any adoptedStyleSheets;
+};

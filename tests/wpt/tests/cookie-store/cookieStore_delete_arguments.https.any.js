@@ -3,6 +3,7 @@
 // META: global=window,serviceworker
 
 'use strict';
+const MAX_COOKIE_NAME_SIZE = 4096;
 
 promise_test(async testCase => {
   await cookieStore.set('cookie-name', 'cookie-value');
@@ -192,6 +193,18 @@ promise_test(async testCase => {
   const cookie = await cookieStore.get('');
   assert_equals(cookie, null);
 }, 'cookieStore.delete with empty name in options');
+
+promise_test(async testCase => {
+  const cookieName = 't'.repeat(MAX_COOKIE_NAME_SIZE);
+  await cookieStore.set(cookieName, '');
+  testCase.add_cleanup(async () => {
+    await setCookieStringHttp(cookieName + '=; Max-Age=0');
+  });
+
+  await cookieStore.delete({name: cookieName});
+  const cookie = await cookieStore.get(cookieName);
+  assert_equals(cookie, null);
+}, 'cookieStore.delete with maximum cookie name size');
 
 promise_test(async testCase => {
   // Cookies having a __Host- prefix are not allowed to specify a domain

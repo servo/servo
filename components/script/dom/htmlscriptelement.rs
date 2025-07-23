@@ -73,7 +73,7 @@ use crate::dom::trustedscript::TrustedScript;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::fetch::{create_a_potential_cors_request, load_whole_resource};
+use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_module::{

@@ -27,7 +27,9 @@ test_math_used('calc(progress(100px, 0px, 50px) * 10px + 100px)', '110px');
 test_math_used('calc(progress(100, 0, sign(50px)))', '1', {type:'number'});
 test_math_used('calc(progress(abs(5%), hypot(3%, 4%), 10%))', '0', {type:'number', approx:0.001});
 test_math_used('progress(50em, 10em, 110em)', '0.4', {type:'number', approx:0.1});
+test_math_used('progress(1000em, 10em, 110em)', '1', {type:'number', approx:0.1});
 test_math_used('scale(progress(50em, 10rem, 110em))', 'scale(1)', {prop:'transform', type:'number', approx:0.1});
+test_math_used('scale(progress(1000em, 10rem, 110em))', 'scale(1)', {prop:'transform', type:'number', approx:0.1});
 test_math_used('scale(progress(0em, 0rem, 0em))', 'scale(0)', {prop:'transform', type:'number'});
 test_math_used('scale(progress(sign(1em - 1rem) * 1ex, 0rem, 0em))', 'scale(0)', {prop:'transform', type:'number'});
 

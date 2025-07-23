@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: column-span elements in a fragmented container aren't skipped</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:mattwoodrow@apple.com">
+<link rel="match" href="column-span-during-transition-doesnt-skip-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+#container {
+  width: 500px;
+  height: 500px;
+}
+.fragment {
+  columns: 2;
+}
+#target {
+  height: 200px;
+  background: green;
+  view-transition-name: target;
+  column-span: all;
+}
+
+::view-transition {
+  background: pink;
+}
+::view-transition-group(root) {
+  animation-duration: 500s;
+  visibility: hidden;
+}
+</style>
+<div id=container>
+  <div id=target></div>
+</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTransition() {
+  let t = document.startViewTransition();
+  t.ready.then(() => {
+    requestAnimationFrame(() => {
+      container.classList.add("fragment")
+      requestAnimationFrame(takeScreenshot);
+    });
+  });
+}
+
+requestAnimationFrame(() => requestAnimationFrame(runTransition))
+</script>

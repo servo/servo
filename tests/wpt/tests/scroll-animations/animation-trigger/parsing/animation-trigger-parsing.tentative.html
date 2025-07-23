@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+test_valid_value('animation-trigger', 'initial');
+test_valid_value('animation-trigger', 'inherit');
+test_valid_value('animation-trigger', 'unset');
+test_valid_value('animation-trigger', 'revert');
+
+test_valid_value('animation-trigger', 'none');
+test_valid_value('animation-trigger', '--abc');
+test_valid_value('animation-trigger', '  --abc', '--abc');
+test_valid_value('animation-trigger', '--aBc');
+test_valid_value('animation-trigger', '--foo, --bar');
+test_valid_value('animation-trigger', '--bar, --foo');
+test_valid_value('animation-trigger', 'none, none');
+test_valid_value('animation-trigger', '--a, none, --b');
+
+test_valid_value('animation-trigger', '--abc --bcd, --cde --def');
+test_valid_value('animation-trigger', '--abc --abc');
+test_valid_value('animation-trigger', '  --abc --abc', '--abc --abc');
+test_valid_value('animation-trigger', '  --abc --bcd', '--abc --bcd');
+test_valid_value('animation-trigger', '--aBc --abc');
+test_valid_value('animation-trigger', '--aBc --abc --aBc');
+test_valid_value('animation-trigger', '--aBc, --aBc', '--aBc, --aBc');
+test_valid_value('animation-trigger', '--abc --bcd, --abc --bcd');
+test_valid_value('animation-trigger', '---abc');
+
+test_computed_value('animation-trigger', 'none');
+test_computed_value('animation-trigger', '--abc');
+test_computed_value('animation-trigger', '  --abc', '--abc');
+test_computed_value('animation-trigger', '--aBc');
+test_computed_value('animation-trigger', '--foo, --bar');
+test_computed_value('animation-trigger', '--bar, --foo');
+test_computed_value('animation-trigger', 'none, none');
+test_computed_value('animation-trigger', '--abc --bcd, --cde --def');
+test_computed_value('animation-trigger', '--abc --abc');
+test_computed_value('animation-trigger', '  --abc --abc', '--abc --abc');
+test_computed_value('animation-trigger', '  --abc --bcd', '--abc --bcd');
+test_computed_value('animation-trigger', '--aBc --abc');
+test_computed_value('animation-trigger', '--aBc --abc --aBc');
+test_computed_value('animation-trigger', '--aBc, --aBc', '--aBc, --aBc');
+test_computed_value('animation-trigger', '--abc --bcd, --abc --bcd');
+test_computed_value('animation-trigger', '--a, none, --b');
+test_computed_value('animation-trigger', '---abc');
+
+test_invalid_value('animation-trigger', '--abc none');
+test_invalid_value('animation-trigger', '--a --b, --a none, --b');
+test_invalid_value('animation-trigger', 'none --abc');
+test_invalid_value('animation-trigger', 'none none');
+test_invalid_value('animation-trigger', 'none none, none', 'none, none');
+test_invalid_value('animation-trigger', 'auto');
+test_invalid_value('animation-trigger', 'abc');
+test_invalid_value('animation-trigger', '-abc');
+test_invalid_value('animation-trigger', 'default');
+test_invalid_value('animation-trigger', '10px');
+test_invalid_value('animation-trigger', 'foo bar');
+test_invalid_value('animation-trigger', '"foo" "bar"');
+test_invalid_value('animation-trigger', 'rgb(1, 2, 3)');
+test_invalid_value('animation-trigger', '#fefefe');
+test_invalid_value('animation-trigger', '--a,, --b');
+</script>

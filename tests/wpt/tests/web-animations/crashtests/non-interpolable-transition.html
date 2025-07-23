@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Non-interpolable transition</title>
+  <!-- crbug.com/422811234 -->
+</head>
+<body>
+  <div class="transition"></div>
+</body>
+<style>
+  .transition {
+    transition-delay: 0.1s;
+  }
+  .update {
+    /* Transition from initial value with units to one without must not crash */
+    stroke-width: calc(1px/1px);
+  }
+</style>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.body.className = "update";
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('test-wait');
+      });
+    })
+  });
+</script>
+</html>

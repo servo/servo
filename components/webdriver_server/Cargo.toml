@@ -28,6 +28,7 @@ pixels = { path = "../pixels" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }
+servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 stylo_traits = { workspace = true }
 uuid = { workspace = true }

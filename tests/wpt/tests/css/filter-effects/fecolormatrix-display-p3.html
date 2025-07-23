@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+	<title>Filter Effects: Test feColorMatrix with type matrix on a Display P3 canvas</title>
+	<link rel="author" title="Hans Otto Wirtz" href="mailto:hansottowirtz@gmail.com">
+	<link rel="help" href="http://www.w3.org/TR/filter-effects-1/#feColorMatrixElement">
+	<link rel="help" href="http://www.w3.org/TR/filter-effects-1/#element-attrdef-fecolormatrix-type">
+	<link rel="match" href="fecolormatrix-display-p3-ref.html">
+	<meta name="assert" content="If the test runs, you should see three yellow squares.">
+	<meta name=fuzzy content="maxDifference=0-2;totalPixels=0-19200">
+	<style type="text/css">
+		svg {
+			vertical-align: top;
+		}
+		div {
+			font-size: 0;
+		}
+	</style>
+</head>
+<body>
+	<p>You should see three yellow squares.</p>
+	<div>
+		<svg width="100" height="100">
+			<defs>
+				<filter id="filter" color-interpolation-filters="sRGB">
+					<feColorMatrix
+						type="matrix"
+						values="-1.0986 -0.2556 1.5646 0.0146 0 -0.3103 -1.8658 2.6509 0.0109 0 -0.3976 1.8096 -0.734 0.0035 0 0 0 0 1 0"
+					></feColorMatrix>
+				</filter>
+			</defs>
+			<rect width="80" height="80" fill="#0ca7da" filter="url(#filter)"/>
+		</svg>
+		<img width="100" height="100"/>
+		<canvas width="100" height="100"></canvas>
+	</div>
+	<script>
+		const canvas = document.querySelector('canvas');
+		const svg = document.querySelector('svg');
+		const img = document.querySelector('img');
+		const svgString = new XMLSerializer().serializeToString(svg);
+		const ctx = canvas.getContext('2d', { colorSpace: 'display-p3' });
+		img.src = "data:image/svg+xml," + encodeURIComponent(svgString);
+		img.onload = () => {
+			ctx.drawImage(img, 0, 0);
+			document.documentElement.classList.remove('reftest-wait');
+		};
+	</script>
+</body>
+</html>

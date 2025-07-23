@@ -263,7 +263,8 @@ class Descriptor(DescriptorProvider):
         self.bindingPath = f"{getModuleFromObject(self.interface)}::{ifaceName}_Binding"
         self.outerObjectHook = desc.get("outerObjectHook", "None")
         self.proxy = False
-        self.weakReferenceable = desc.get("weakReferenceable", False)
+        self.weakReferenceable = desc.get('weakReferenceable', False)
+        self.useSystemCompartment = desc.get('useSystemCompartment', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.

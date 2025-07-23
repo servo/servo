@@ -172,7 +172,7 @@ interface CSSStyleProperties : CSSStyleDeclaration {
 };
 
 interface mixin ElementCSSInlineStyle {
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
+  [SameObject, PutForwards=cssText] readonly attribute CSSStyleProperties style;
 };
 
 HTMLElement includes ElementCSSInlineStyle;
@@ -182,7 +182,7 @@ SVGElement includes ElementCSSInlineStyle;
 MathMLElement includes ElementCSSInlineStyle;
 
 partial interface Window {
-  [NewObject] CSSStyleDeclaration getComputedStyle(Element elt, optional CSSOMString? pseudoElt);
+  [NewObject] CSSStyleProperties getComputedStyle(Element elt, optional CSSOMString? pseudoElt);
 };
 
 [Exposed=Window]

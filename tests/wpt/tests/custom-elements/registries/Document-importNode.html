@@ -53,8 +53,12 @@ test(() => {
 }, 'importNode should clone using the global regsitry by default');
 
 test(() => {
-    assert_true(document.importNode(document.createElement('some-element'), {customElementRegistry: scopedRegistry}) instanceof ScopedSomeElement);
-}, 'importNode should clone using the specified scoped regsitry');
+    assert_true(document.importNode(document.createElement('some-element'), {customElementRegistry: scopedRegistry}) instanceof GlobalSomeElement);
+}, 'importNode should clone using target\'s registry if non-null');
+
+test(() => {
+    assert_true(document.importNode(document.implementation.createHTMLDocument().createElement('some-element'), {customElementRegistry: scopedRegistry}) instanceof ScopedSomeElement);
+}, 'importNode should clone using the specified registry if target\'s registry is null');
 
 test(() => {
     const clone = document.importNode(host, {selfOnly: false, customElementRegistry: scopedRegistry});
@@ -83,10 +87,13 @@ test(() => {
     const element = document.createElement('div', {customElementRegistry: emptyRegistry});
     element.innerHTML = '<some-element></some-element><other-element></other-element>';
     const clone = document.importNode(element, {selfOnly: false, customElementRegistry: scopedRegistry});
-    assert_equals(clone.customElementRegistry, scopedRegistry);
-    assert_true(clone.querySelector('some-element') instanceof ScopedSomeElement);
+    assert_equals(clone.customElementRegistry, emptyRegistry);
+    assert_true(clone.querySelector('some-element') instanceof HTMLElement);
+    assert_false(clone.querySelector('some-element') instanceof GlobalSomeElement);
+    assert_false(clone.querySelector('some-element') instanceof ScopedSomeElement);
+    assert_true(clone.querySelector('other-element') instanceof HTMLElement);
     assert_false(clone.querySelector('other-element') instanceof GlobalOtherElement);
-}, 'importNode should clone an element originating from a scoped registry using another scoped registry');
+}, 'importNode should clone using target\'s registry if non-null, including when it\'s not the global registry');
 
 test(() => {
     const template = document.createElement('template');

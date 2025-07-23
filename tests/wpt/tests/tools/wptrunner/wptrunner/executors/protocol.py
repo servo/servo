@@ -565,6 +565,14 @@ class BidiEventsProtocolPart(ProtocolPart):
         pass
 
     @abstractmethod
+    async def unsubscribe(self, subscriptions: List[str]) -> Mapping[str, Any]:
+        """
+        Unsubscribes from the subscriptions with the given IDs.
+        :param subscriptions: The list of subscription ids to unsubscribe from.
+        """
+        pass
+
+    @abstractmethod
     async def unsubscribe_all(self):
         """Cleans up the subscription state. Removes all the previously added subscriptions."""
         pass

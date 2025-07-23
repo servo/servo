@@ -373,7 +373,9 @@ pub enum EmbedderMsg {
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
     /// A webview gained focus for keyboard events
-    WebViewFocused(WebViewId),
+    /// If sender is provided, it will be used to send back a
+    /// bool indicating whether the focus was successfully set.
+    WebViewFocused(WebViewId, Option<IpcSender<bool>>),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document

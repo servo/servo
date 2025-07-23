@@ -21,7 +21,6 @@ use std::{env, fmt, process, thread};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use constellation_traits::EmbedderToConstellationMessage;
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
@@ -29,7 +28,7 @@ use embedder_traits::{
     WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverMessageId,
     WebDriverScriptCommand,
 };
-use euclid::{Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -42,6 +41,7 @@ use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use servo_config::prefs::{self, PrefValue, Preferences};
+use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use uuid::Uuid;
@@ -128,13 +128,11 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
 
 pub fn start_server(
     port: u16,
-    constellation_chan_deprecated: Sender<EmbedderToConstellationMessage>,
     embedder_sender: Sender<WebDriverCommandMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
 ) {
     let handler = Handler::new(
-        constellation_chan_deprecated,
         embedder_sender,
         event_loop_waker,
         webdriver_response_receiver,
@@ -244,10 +242,6 @@ struct Handler {
 
     /// An [`EventLoopWaker`] which is used to wake up the embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
-
-    /// The channel for sending Webdriver messages to the constellation.
-    /// TODO: change name to constellation_sender
-    constellation_chan: Sender<EmbedderToConstellationMessage>,
 
     /// Receiver notification from the constellation when a command is completed
     webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
@@ -474,7 +468,6 @@ enum VerifyBrowsingContextIsOpen {
 
 impl Handler {
     pub fn new(
-        constellation_chan: Sender<EmbedderToConstellationMessage>,
         embedder_sender: Sender<WebDriverCommandMsg>,
         event_loop_waker: Box<dyn EventLoopWaker>,
         webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
@@ -494,7 +487,6 @@ impl Handler {
             session: None,
             embedder_sender,
             event_loop_waker,
-            constellation_chan,
             webdriver_response_receiver,
             id_generator: WebDriverMessageIdGenerator::new(),
             current_action_id: Cell::new(None),
@@ -898,7 +890,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#set-window-rect>
-    fn handle_set_window_size(
+    fn handle_set_window_rect(
         &self,
         params: &WindowRectParameters,
     ) -> WebDriverResult<WebDriverResponse> {
@@ -917,17 +909,9 @@ impl Handler {
         // Step 13. Handle any user prompt.
         self.handle_any_user_prompts(webview_id)?;
 
-        // We don't current allow modifying the window x/y positions, so we can just
-        // return the current window rectangle if not changing dimension.
-        if params.width.is_none() && params.height.is_none() {
-            return self.handle_window_rect(VerifyBrowsingContextIsOpen::No);
-        }
         // (TODO) Step 14. Fully exit fullscreen.
         // (TODO) Step 15. Restore the window.
         let (sender, receiver) = ipc::channel().unwrap();
-
-        // Step 16 - 17. Set the width/height in CSS pixels.
-        // This should be done as long as one of width/height is not null.
 
         let current = LazyCell::new(|| {
             let WebDriverResponse::WindowRect(current) = self
@@ -939,24 +923,34 @@ impl Handler {
             current
         });
 
-        let (width, height) = (
+        let (x, y, width, height) = (
+            params.x.unwrap_or_else(|| current.x),
+            params.y.unwrap_or_else(|| current.y),
             params.width.unwrap_or_else(|| current.width),
             params.height.unwrap_or_else(|| current.height),
         );
 
-        self.send_message_to_embedder(WebDriverCommandMsg::SetWindowSize(
+        // Step 16 - 17. Set the width/height in CSS pixels.
+        // This should be done as long as one of width/height is not null.
+
+        // Step 18 - 19. Set the screen x/y in CSS pixels.
+        // This should be done as long as one of width/height is not null.
+        self.send_message_to_embedder(WebDriverCommandMsg::SetWindowRect(
             webview_id,
-            Size2D::new(width, height),
+            DeviceIndependentIntRect::from_origin_and_size(
+                Point2D::new(x, y),
+                Size2D::new(width, height),
+            ),
             sender.clone(),
         ))?;
 
-        let window_size = wait_for_script_response(receiver)?;
-        debug!("window_size after resizing: {window_size:?}");
+        let window_rect = wait_for_script_response(receiver)?;
+        debug!("Result window_rect: {window_rect:?}");
         let window_size_response = WindowRectResponse {
-            x: 0,
-            y: 0,
-            width: window_size.width,
-            height: window_size.height,
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
@@ -1266,9 +1260,14 @@ impl Handler {
             let webview_id = *webview_id;
             session.webview_id = webview_id;
             session.browsing_context_id = BrowsingContextId::from(webview_id);
-
-            let msg = WebDriverCommandMsg::FocusWebView(webview_id);
+            let (sender, receiver) = ipc::channel().unwrap();
+            let msg = WebDriverCommandMsg::FocusWebView(webview_id, sender);
             self.send_message_to_embedder(msg)?;
+            if wait_for_script_response(receiver)? {
+                debug!("Focus new webview successfully");
+            } else {
+                debug!("Focus new webview failed, it may not exist anymore");
+            }
             Ok(WebDriverResponse::Void)
         } else {
             Err(WebDriverError::new(
@@ -2242,9 +2241,10 @@ impl Handler {
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
+        let webview_id = self.session()?.webview_id;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(webview_id)?;
 
         let mut img = None;
 
@@ -2254,11 +2254,9 @@ impl Handler {
         for _ in 0..iterations {
             let (sender, receiver) = ipc::channel().unwrap();
 
-            let cmd_msg =
-                WebDriverCommandMsg::TakeScreenshot(self.session()?.webview_id, rect, sender);
-            self.constellation_chan
-                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-                .unwrap();
+            self.send_message_to_embedder(WebDriverCommandMsg::TakeScreenshot(
+                webview_id, rect, sender,
+            ))?;
 
             if let Some(x) = wait_for_script_response(receiver)? {
                 img = Some(x);
@@ -2324,10 +2322,7 @@ impl Handler {
                     serde_json::to_value(encoded)?,
                 )))
             },
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Element not found",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "Element not found")),
         }
     }
 
@@ -2457,7 +2452,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetWindowRect => {
                 self.handle_window_rect(VerifyBrowsingContextIsOpen::Yes)
             },
-            WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_size(size),
+            WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_rect(size),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
             WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
             WebDriverCommand::GoBack => self.handle_go_back(),

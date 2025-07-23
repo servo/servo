@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for the 'secure-payment-confirmation' payment method authentication - the browser bound key from enrollment is reused</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation/#sctn-retrieving-a-browser-bound-key">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src=../webauthn/resources/common-inputs.js></script>
+<script src=../webauthn/resources/utils.js></script>
+<script src="utils.sub.js"></script>
+<script src="utils-bbk.js"></script>
+<script>
+'use strict';
+
+async function testBrowserBoundKeyOnSecurePaymentConfirmationAuthentication(t, options) {
+  options = Object.assign({
+    // Override the browserBoundPubKeyCredParams on credential enrollment. An
+    // empty list should allow the user agent to default to [ES256, RS256].
+    enrollmentBrowserBoundPubKeyCredParams: [],
+    // Override the browserBoundPubKeyCredParams on assertion. An empty list
+    // should allow the user agent to default to [ES256, RS256].
+    browserBoundPubKeyCredParams: [],
+    // When browserBoundPubKeyCredParams nor pubKeyCredParams are specified,
+    // then ES256 and RS256 signature algorithms are allowed which correspond
+    // to EC2 and RSA keys.
+    expectedKeyTypes: [cose_key_type_ec2, cose_key_type_rsa],
+    // When set to true, the test allows a credential response where both the
+    // browser bound public key and the browser bound signature are not included.
+    allowNoBrowserBoundKey: false,
+  }, options);
+
+  await window.test_driver.add_virtual_authenticator(
+    AUTHENTICATOR_OPTS)
+    .then(authenticator => {
+      t.add_cleanup(() => {
+        return window.test_driver.remove_virtual_authenticator(authenticator);
+      });
+    });
+
+  await window.test_driver.set_spc_transaction_mode("autoAccept")
+    .then(_ => {
+      t.add_cleanup(() => {
+        return window.test_driver.set_spc_transaction_mode("none");
+      });
+    });
+
+  const credential = await createCredential(/*set_payment_extension=*/true, {
+    browserBoundPubKeyCredParams: options.enrollmentBrowserBoundPubKeyCredParams,
+  });
+  const browserBoundPublicKeyAtCreation = getBrowserBoundPublicKeyFromCredential(credential);
+  if (!options.allowNoBrowserBoundKey) {
+    assert_not_equals(browserBoundPublicKeyAtCreation, undefined,
+      "A browser bound key was present during credential enrollment.");
+  }
+
+  const challenge = 'server challenge';
+  const payeeOrigin = 'https://merchant.com';
+  const displayName = 'Troycard ***1234';
+  const request = new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+      credentialIds: [credential.rawId],
+      challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
+      payeeOrigin,
+      rpId: window.location.hostname,
+      timeout: 60000,
+      instrument: {
+        displayName,
+        icon: ICON_URL,
+      },
+      browserBoundPubKeyCredParams: options.browserBoundPubKeyCredParams,
+    }
+  }], PAYMENT_DETAILS);
+
+  await test_driver.bless('user activation');
+  const response = await request.show();
+  await response.complete('success');
+
+  const browserBoundPublicKeyAtAuthentication = getBrowserBoundPublicKeyFromCredential(response.details);
+  assert_equals(browserBoundPublicKeyAtCreation, browserBoundPublicKeyAtAuthentication,
+    "The browser bound public keys differed at enrollment and authentication (or only one was present).");
+  const verificationResult = await verifyBrowserBoundKey(response.details, options.expectedKeyTypes);
+  if (!options.allowNoBrowserBoundKey) {
+    assert_true(verificationResult ==
+       BrowserBoundKeyVerificationResult.BrowserBoundKeySignatureVerified,
+      "The browser bound signature could not be verified.");
+  }
+}
+
+promise_test(async t => {
+  return testBrowserBoundKeyOnSecurePaymentConfirmationAuthentication(t, /*options=*/{
+    enrollmentBrowserBoundPubKeyCredParams: [], // Let the user agent provide a default.
+    browserBoundPubKeyCredParams: [], // Let the user agent provide a default.
+    expectedKeyTypes: [cose_key_type_ec2, cose_key_type_rsa],
+  });
+}, 'Uses the same browser bound key authentication as enrollment.');
+
+promise_test(async t => {
+  return testBrowserBoundKeyOnSecurePaymentConfirmationAuthentication(t, {
+    enrollmentBrowserBoundPubKeyCredParams: [{
+      type: "public-key",
+      alg: -7, // "ES256"
+    }],
+    browserBoundPubKeyCredParams: [{
+      type: "public-key",
+      alg: -7, // "ES256"
+    }],
+    expectedKeyTypes: [cose_key_type_ec2],
+    allowNoBrowserBoundKey: true,
+  });
+}, 'If ES256 is supported, the browser bound key is the same during authentication as enrollment.');
+
+promise_test(async t => {
+  return testBrowserBoundKeyOnSecurePaymentConfirmationAuthentication(t, {
+    enrollmentBrowserBoundPubKeyCredParams: [{
+      type: "public-key",
+      alg: -257, // "RS256"
+    }],
+    browserBoundPubKeyCredParams: [{
+      type: "public-key",
+      alg: -257, // "RS256"
+    }],
+    expectedKeyTypes: [cose_key_type_rsa],
+    allowNoBrowserBoundKey: true,
+  });
+}, 'If RS256 is supported, the browser bound key is the same during authentication as enrollment.');
+</script>
