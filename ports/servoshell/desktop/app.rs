@@ -452,12 +452,6 @@ impl App {
                         warn!("Failed to send response of GetFocusedWebView: {error}");
                     };
                 },
-                WebDriverCommandMsg::AddLoadStatusSender(webview_id, load_status_sender) => {
-                    running_state.set_load_status_sender(webview_id, load_status_sender);
-                },
-                WebDriverCommandMsg::RemoveLoadStatusSender(webview_id) => {
-                    running_state.remove_load_status_sender(webview_id);
-                },
                 WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
                         running_state.set_load_status_sender(webview_id, load_status_sender);
@@ -568,7 +562,7 @@ impl App {
                     }
                 },
                 WebDriverCommandMsg::ScriptCommand(_, ref webdriver_script_command) => {
-                    self.handle_webdriver_script_commnd(webdriver_script_command, running_state);
+                    self.handle_webdriver_script_command(webdriver_script_command, running_state);
                     running_state.servo().execute_webdriver_command(msg);
                 },
                 WebDriverCommandMsg::CurrentUserPrompt(webview_id, response_sender) => {
@@ -624,7 +618,7 @@ impl App {
         }
     }
 
-    fn handle_webdriver_script_commnd(
+    fn handle_webdriver_script_command(
         &self,
         msg: &WebDriverScriptCommand,
         running_state: &RunningAppState,
@@ -636,6 +630,12 @@ impl App {
                 // Webdriver only handles 1 script command at a time, so we can
                 // safely set a new interrupt sender and remove the previous one here.
                 running_state.set_script_command_interrupt_sender(Some(response_sender.clone()));
+            },
+            WebDriverScriptCommand::AddLoadStatusSender(webview_id, load_status_sender) => {
+                running_state.set_load_status_sender(*webview_id, load_status_sender.clone());
+            },
+            WebDriverScriptCommand::RemoveLoadStatusSender(webview_id) => {
+                running_state.remove_load_status_sender(*webview_id);
             },
             _ => {
                 running_state.set_script_command_interrupt_sender(None);
