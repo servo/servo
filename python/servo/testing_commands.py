@@ -578,7 +578,9 @@ class MachCommands(CommandBase):
 
         return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
-    def speedometer_to_bmf(self, speedometer: dict[str, Any], bmf_output: str | None = None, profile: str | None = None) -> None:
+    def speedometer_to_bmf(
+        self, speedometer: dict[str, Any], bmf_output: str | None = None, profile: str | None = None
+    ) -> None:
         output = dict()
         profile = "" if profile is None else profile + "/"
 
@@ -631,14 +633,9 @@ class MachCommands(CommandBase):
         if bmf_output:
             self.speedometer_to_bmf(speedometer, bmf_output)
 
-<<<<<<< HEAD
-    def speedometer_runner_ohos(self, bmf_output: str | None) -> None:
+    def speedometer_runner_ohos(self, bmf_output: str | None, profile: str | None) -> None:
         ohos_sdk_native = os.getenv("OHOS_SDK_NATIVE") or ""
         hdc_path: str = shutil.which("hdc") or path.join(ohos_sdk_native, "../", "toolchains", "hdc")
-=======
-    def speedometer_runner_ohos(self, bmf_output: str | None, profile: str | None):
-        hdc_path: str = shutil.which("hdc")
->>>>>>> 52f53f61e15cfe74570473e87aa1b87f8eaf96f2
         log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
 
         def read_log_file() -> str:
