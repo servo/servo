@@ -1740,12 +1740,9 @@ impl Element {
         }
     }
 
-    pub(crate) fn is_keyboard_interactable(&self) -> bool {
-        self.is_focusable_area() || self.is::<HTMLBodyElement>() || self.is_document_element()
-    }
-
-    fn is_document_element(&self) -> bool {
-        if let Some(ref document_element) = self.upcast::<Node>().owner_doc().GetDocumentElement() {
+    /// <https://dom.spec.whatwg.org/#document-element>
+    pub(crate) fn is_document_element(&self) -> bool {
+        if let Some(ref document_element) = self.owner_document().GetDocumentElement() {
             **document_element == *self
         } else {
             false
