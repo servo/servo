@@ -450,7 +450,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 }
 
 impl HTMLTextAreaElement {
-    /// <https://w3c.github.io/webdriver/#dfn-clear-algorithm>
+    /// <https://w3c.github.io/webdriver/#ref-for-dfn-clear-algorithm-4>
     /// Used by WebDriver to clear the textarea element.
     pub(crate) fn clear(&self) {
         self.value_dirty.set(false);
