@@ -69,8 +69,8 @@ pub enum EmbedderToConstellationMessage {
     CloseWebView(WebViewId),
     /// Panic a top level browsing context.
     SendError(Option<WebViewId>, String),
-    /// Make a webview focused. If sender is provided, it will be used to send back a
-    /// bool indicating whether the focus was successfully set in EmbedderMsg::WebViewFocused.
+    /// Make a webview focused. [EmbedderMsg::WebViewFocused] will be sent with
+    /// the result of this operation.
     FocusWebView(WebViewId, FocusId),
     /// Make none of the webviews focused.
     BlurWebView,
