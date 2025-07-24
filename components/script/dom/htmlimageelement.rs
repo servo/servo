@@ -1386,7 +1386,9 @@ impl HTMLImageElement {
             proto,
             can_gc,
         );
-        image_element.dimension_attribute_source.set(Some(image_element.upcast()));
+        image_element
+            .dimension_attribute_source
+            .set(Some(image_element.upcast()));
         image_element
     }
 
