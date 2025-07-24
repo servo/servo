@@ -361,6 +361,13 @@ impl WebView {
             .move_resize_webview(self.id(), rect);
     }
 
+    pub fn resize(&self, new_size: PhysicalSize<u32>) {
+        self.inner()
+            .compositor
+            .borrow_mut()
+            .resize_rendering_context(new_size);
+    }
+
     pub fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         self.inner().hidpi_scale_factor
     }
@@ -488,13 +495,6 @@ impl WebView {
 
     pub fn notify_vsync(&self) {
         self.inner().compositor.borrow_mut().on_vsync(self.id());
-    }
-
-    pub fn resize(&self, new_size: PhysicalSize<u32>) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .resize_rendering_context(new_size);
     }
 
     pub fn set_zoom(&self, new_zoom: f32) {
