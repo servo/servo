@@ -88,7 +88,7 @@ pub(crate) struct WebViewRenderer {
     touch_handler: TouchHandler,
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
-    /// "Mobile-style" zoom that does not reflow the page, i.e. pinch zoom.
+    /// "Mobile-style" zoom that does not reflow the page.
     pinch_zoom: PinchZoomFactor,
     /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
     /// by the embedding layer.
