@@ -2193,7 +2193,7 @@ impl HTMLInputElement {
         self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
-    /// <https://w3c.github.io/webdriver/#dfn-clear-algorithm>
+    /// <https://w3c.github.io/webdriver/#ref-for-dfn-clear-algorithm-3>
     /// Used by WebDriver to clear the input element.
     pub(crate) fn clear(&self) {
         // Step 1. Reset dirty flags.
