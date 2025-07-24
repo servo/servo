@@ -1259,7 +1259,6 @@ impl FormControl for HTMLElement {
     }
 
     fn to_element(&self) -> &Element {
-        debug_assert!(self.is_form_associated_custom_element());
         self.as_element()
     }
 
@@ -1268,5 +1267,5 @@ impl FormControl for HTMLElement {
         true
     }
 
-    // TODO candidate_for_validation, satisfies_constraints traits
+    // TODO satisfies_constraints traits
 }
