@@ -18,10 +18,11 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FocusId, FormControl, GamepadHapticEffectType,
-    KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
-    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FocusId, FormControl,
+    GamepadHapticEffectType, KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate,
+    ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverJSValue, WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder,
+    WebViewDelegate,
 };
 use url::Url;
 
@@ -274,7 +275,7 @@ impl RunningAppState {
         match last_created {
             Some(last_created_webview) => {
                 last_created_webview.focus();
-            }
+            },
             None => self.servo.start_shutting_down(),
         }
     }

@@ -2755,11 +2755,7 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_focus_web_view(
-        &mut self,
-        webview_id: WebViewId,
-        focus_id: FocusId,
-    ) {
+    fn handle_focus_web_view(&mut self, webview_id: WebViewId, focus_id: FocusId) {
         let focused = self.webviews.focus(webview_id).is_ok();
         if !focused {
             warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
@@ -4119,8 +4115,11 @@ where
 
         // Focus the top-level browsing context.
         let focused = self.webviews.focus(webview_id);
-        self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, FocusId::new(), focused.is_ok()));
+        self.embedder_proxy.send(EmbedderMsg::WebViewFocused(
+            webview_id,
+            FocusId::new(),
+            focused.is_ok(),
+        ));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused

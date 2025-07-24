@@ -19,8 +19,9 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
-    CompositorHitTestResult, Cursor, FocusId, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
+    CompositorHitTestResult, Cursor, FocusId, InputEvent, JavaScriptEvaluationId,
+    MediaSessionActionType, Theme, TraversalId, ViewportDetails, WebDriverCommandMsg,
+    WebDriverCommandResponse,
 };
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;

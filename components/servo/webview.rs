@@ -13,8 +13,8 @@ use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, FocusId, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, TraversalId, ViewportDetails,
+    Cursor, FocusId, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
+    MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
 use servo_geometry::DeviceIndependentPixel;

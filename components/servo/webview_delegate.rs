@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
-    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
-    FocusId, GamepadHapticEffectType, InputMethodType, KeyboardEvent, LoadStatus, MediaSessionEvent,
+    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern, FocusId,
+    GamepadHapticEffectType, InputMethodType, KeyboardEvent, LoadStatus, MediaSessionEvent,
     Notification, PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
     SimpleDialog, TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
