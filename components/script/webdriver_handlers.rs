@@ -1694,7 +1694,7 @@ fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), Er
 
     // Step 4. Run clear algorithm for element.
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-        input_element.clear();
+        input_element.clear(can_gc);
     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
         textarea_element.clear();
     } else {
