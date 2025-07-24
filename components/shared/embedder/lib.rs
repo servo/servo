@@ -328,7 +328,7 @@ pub struct ScreenMetrics {
 }
 
 /// An opaque identifier for a single webview focus operation.
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct FocusId(String);
 
 impl FocusId {
@@ -339,7 +339,7 @@ impl FocusId {
 }
 
 /// An opaque identifier for a single history traversal operation.
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TraversalId(String);
 
 impl TraversalId {
