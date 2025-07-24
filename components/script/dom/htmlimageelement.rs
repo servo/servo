@@ -162,7 +162,7 @@ pub(crate) struct HTMLImageElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
     source_set: DomRefCell<SourceSet>,
-    /// <https://html.spec.whatwg.org/multipage/embedded-content.html#concept-img-dimension-attribute-source>
+    /// <https://html.spec.whatwg.org/multipage/#concept-img-dimension-attribute-source>
     /// Always non-null after construction.
     dimension_attribute_source: MutNullableDom<Element>,
     last_selected_source: DomRefCell<Option<USVString>>,
