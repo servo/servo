@@ -1698,7 +1698,7 @@ pub(crate) trait FormControl: DomObject {
         }
     }
 
-    /// <https://html.spec.whatwg.org/#candidate-for-constraint-validation>
+    /// <https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation>
     fn is_candidate_for_constraint_validation(&self) -> bool {
         let element = self.to_element();
         let html_element = element.downcast::<HTMLElement>();
