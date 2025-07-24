@@ -9,6 +9,15 @@ from WebIDL import (
 )
 from typing import Protocol, cast
 
+
+# WARN: This maps the value defined at:
+# https://github.com/servo/servo/blob/main/third_party/WebIDL/WebIDL.py#L2525
+#
+# NOTE: Pyrefly incorrectly infers the type as the class `CostumEnumType` itself,
+# instead of our own custom enum implementation. To work around this, we map
+# the type definition below. For reference, here is our custom enum implementation:
+# https://github.com/servo/servo/blob/main/third_party/WebIDL/WebIDL.py#L52
+
 class IDLTypeTagsProtocol(Protocol):
     int8: int
     uint8: int

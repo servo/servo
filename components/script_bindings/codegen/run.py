@@ -72,12 +72,12 @@ def main() -> None:
 
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
-        prefix = "Bindings/%sBinding" % webidl[: -len(".webidl")]
+        prefix = "Bindings/%sBinding" % webidl[:-len(".webidl")]
         module = CGBindingRoot(config, prefix, filename).define()
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))
-        prefix = "ConcreteBindings/%sBinding" % webidl[: -len(".webidl")]
+        prefix = "ConcreteBindings/%sBinding" % webidl[:-len(".webidl")]
         module = CGConcreteBindingRoot(config, prefix, filename).define()
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
@@ -92,7 +92,6 @@ def make_dir(path: str):
 
 def generate(config, name: str, filename: str) -> None:
     from codegen import GlobalGenRoots
-
     root = getattr(GlobalGenRoots, name)(config)
     code = root.define()
     with open(filename, "wb") as f:
@@ -122,8 +121,10 @@ def add_css_properties_attributes(css_properties_json: str, parser) -> None:
 
     css_properties = json.load(open(css_properties_json, "rb"))
     idl = "partial interface CSSStyleDeclaration {\n%s\n};\n" % "\n".join(
-        "  [%sCEReactions, SetterThrows] attribute [LegacyNullToEmptyString] DOMString %s;"
-        % ((f'Pref="{map_preference_name(data["pref"])}", ' if data["pref"] else ""), attribute_name)
+        "  [%sCEReactions, SetterThrows] attribute [LegacyNullToEmptyString] DOMString %s;" % (
+            (f'Pref="{map_preference_name(data["pref"])}", ' if data["pref"] else ""),
+            attribute_name
+        )
         for (kind, properties_list) in sorted(css_properties.items())
         for (property_name, data) in sorted(properties_list.items())
         for attribute_name in attribute_names(property_name)
@@ -153,7 +154,7 @@ def camel_case(chars: str, webkit_prefixed: bool = False):
         chars = chars[1:]
     next_is_uppercase = False
     for c in chars:
-        if c == "-":
+        if c == '-':
             next_is_uppercase = True
         elif next_is_uppercase:
             next_is_uppercase = False
