@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
-    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
+    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern, FocusId,
     GamepadHapticEffectType, InputMethodType, KeyboardEvent, LoadStatus, MediaSessionEvent,
     Notification, PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
     SimpleDialog, TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
@@ -418,6 +418,9 @@ pub trait WebViewDelegate {
     /// This [`WebView`] has either become focused or lost focus. Whether or not the
     /// [`WebView`] is focused can be accessed via [`WebView::focused`].
     fn notify_focus_changed(&self, _webview: WebView, _focused: bool) {}
+    /// A focus operation that was initiated by this webview has completed.
+    /// The current focus status of this [`WebView`] can be accessed via [`WebView::focused`].
+    fn notify_focus_complete(&self, _webview: WebView, _focus_id: FocusId) {}
     /// This [`WebView`] has either started to animate or stopped animating. When a
     /// [`WebView`] is animating, it is up to the embedding application ensure that
     /// `Servo::spin_event_loop` is called at regular intervals in order to update the
