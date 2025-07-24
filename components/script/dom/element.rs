@@ -1740,6 +1740,15 @@ impl Element {
         }
     }
 
+    /// <https://dom.spec.whatwg.org/#document-element>
+    pub(crate) fn is_document_element(&self) -> bool {
+        if let Some(ref document_element) = self.owner_document().GetDocumentElement() {
+            **document_element == *self
+        } else {
+            false
+        }
+    }
+
     pub(crate) fn is_focusable_area(&self) -> bool {
         if self.is_actually_disabled() {
             return false;

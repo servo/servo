@@ -61,6 +61,7 @@ use crate::dom::domrect::DOMRect;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
@@ -1069,6 +1070,11 @@ pub(crate) fn handle_get_element_shadow_root(
         .unwrap();
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-keyboard-interactable>
+fn is_keyboard_interactable(element: &Element) -> bool {
+    element.is_focusable_area() || element.is::<HTMLBodyElement>() || element.is_document_element()
+}
+
 fn handle_send_keys_file(
     file_input: &HTMLInputElement,
     text: &str,
@@ -1169,10 +1175,15 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 7. If file is false or the session's strict file interactability
                 if file_input.is_none() || strict_file_interactability {
-                    // TODO: Step 7.1. Scroll Into View
-                    // TODO: Step 7.2 - 7.6
-                    // Wait until element become Keyboard-interactable
-                    // or return error with error code element not interactable.
+                    // TODO(24059): Step 7.1. Scroll Into View
+                    // TODO: Step 7.2 - 7.5
+                    // Wait until element become keyboard-interactable
+
+                    // Step 7.6. If element is not keyboard-interactable,
+                    // return ErrorStatus::ElementNotInteractable.
+                    if !is_keyboard_interactable(&element) {
+                        return Err(ErrorStatus::ElementNotInteractable);
+                    }
 
                     match element.downcast::<HTMLElement>() {
                         Some(element) => {
