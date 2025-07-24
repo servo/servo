@@ -1174,6 +1174,8 @@ pub(crate) fn handle_will_send_keys(
                 let file_input = input_element
                     .filter(|&input_element| input_element.input_type() == InputType::File);
 
+                let mut element_has_focus = false;
+
                 // Step 7. If file is false or the session's strict file interactability
                 if file_input.is_none() || strict_file_interactability {
                     // TODO(24059): Step 7.1. Scroll Into View
@@ -1186,12 +1188,16 @@ pub(crate) fn handle_will_send_keys(
                         return Err(ErrorStatus::ElementNotInteractable);
                     }
 
-                    match element.downcast::<HTMLElement>() {
-                        Some(element) => {
-                            // Need a way to find if this actually succeeded
-                            element.Focus(can_gc);
-                        },
-                        None => return Err(ErrorStatus::UnknownError),
+                    // Step 7.7. If element is not the active element 
+                    // run the focusing steps for the element.
+                    if let Some(html_element) = element.downcast::<HTMLElement>() {
+                        if !element.is_active_element() {
+                            html_element.Focus(can_gc);
+                        } else {
+                            element_has_focus = element.focus_state();
+                        }
+                    } else {
+                        return Err(ErrorStatus::UnknownError);
                     }
                 }
 
@@ -1209,12 +1215,16 @@ pub(crate) fn handle_will_send_keys(
 
                 // TODO: Check content editable
 
+                // Step 8.1. If element does not currently have focus,
+                // let current text length be the length of element's API value.
                 // Step 8.2. Set the text insertion caret using set selection range
                 // using current text length for both the start and end parameters.
-                if let Some(input_element) = input_element {
-                    input_element.move_caret_to_limit();
-                } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
-                    textarea_element.move_caret_to_limit();
+                if !element_has_focus {
+                    if let Some(input_element) = input_element {
+                        input_element.move_caret_to_limit();
+                    } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
+                        textarea_element.move_caret_to_limit();
+                    }
                 }
 
                 Ok(true)
