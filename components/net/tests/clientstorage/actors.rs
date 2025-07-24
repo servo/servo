@@ -9,7 +9,7 @@ use net_traits::clientstorage::actors_child::ClientStorageTestChild;
 use net_traits::clientstorage::proxy::ClientStorageProxy;
 use net_traits::clientstorage::thread_msg::ClientStorageThreadMsg;
 
-use super::utils::TestClientStorageProxySender;
+use super::utils::{TestClientStorageProxySender, TestOnceFlag};
 
 #[test]
 fn test_sync_ping() {
@@ -48,11 +48,21 @@ fn test_ping() {
 
     proxy.send_test_constructor(&child);
 
+    let flag = TestOnceFlag::new();
+
+    child.set_pong_callback(flag.as_callback());
+
     child.send_ping();
 
-    let msg = receiver.recv().unwrap();
+    loop {
+        let msg = receiver.recv().unwrap();
 
-    proxy.recv_proxy_message(msg);
+        proxy.recv_proxy_message(msg);
+
+        if flag.is_set() {
+            break;
+        }
+    }
 
     child.send_delete();
 

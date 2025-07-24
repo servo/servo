@@ -20,14 +20,18 @@ struct BoundState {
     id: u64,
 }
 
+type PongCallback = Box<dyn Fn()>;
+
 pub struct ClientStorageTestChild {
     bound_state: RefCell<Option<BoundState>>,
+    pong_callback: RefCell<Option<PongCallback>>,
 }
 
 impl ClientStorageTestChild {
     pub fn new() -> Rc<Self> {
         Rc::new(ClientStorageTestChild {
             bound_state: RefCell::new(None),
+            pong_callback: RefCell::new(None),
         })
     }
 
@@ -97,7 +101,20 @@ impl ClientStorageTestChild {
         }
     }
 
-    fn recv_pong(self: &Rc<Self>) {}
+    fn recv_pong(self: &Rc<Self>) {
+        let pong_callback = self.pong_callback.borrow_mut().take();
+
+        if let Some(callback) = pong_callback {
+            callback();
+        }
+    }
+
+    pub fn set_pong_callback<F>(&self, callback: F)
+    where
+        F: Fn() + 'static,
+    {
+        self.pong_callback.borrow_mut().replace(Box::new(callback));
+    }
 }
 
 impl Drop for ClientStorageTestChild {
