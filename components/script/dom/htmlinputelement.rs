@@ -221,9 +221,10 @@ pub(crate) enum InputType {
 }
 
 impl InputType {
-    // Note that Password is not included here since it is handled
-    // slightly differently, with placeholder characters shown rather
-    // than the underlying value.
+    /// Defines which input type that should perform like a text input,
+    /// specifically when it is interacting with JS. Note that Password
+    /// is not included here since it is handled slightly differently,
+    /// with placeholder characters shown rather than the underlying value.
     pub(crate) fn is_textual(&self) -> bool {
         matches!(
             *self,
@@ -1241,9 +1242,35 @@ impl HTMLInputElement {
         .expect("UA shadow tree was not created")
     }
 
-    fn update_textual_or_password_shadow_tree(&self, can_gc: CanGc) {
-        // Should only do this for textual or password input.
-        debug_assert!(self.input_type().is_textual_or_password());
+    /// Should this input type render as a basic text UA widget.
+    // TODO(stevennovaryo): Ideally, the most basic shadow dom should cover only `text`,
+    //                      `password`, `url`, `tel`, and `email`. But we are leaving the
+    //                      others textual inputs here while tackling them one by one.
+    fn is_textual_widget(&self) -> bool {
+        matches!(
+            self.input_type(),
+            InputType::Date |
+                InputType::DatetimeLocal |
+                InputType::Email |
+                InputType::Month |
+                InputType::Number |
+                InputType::Password |
+                InputType::Range |
+                InputType::Search |
+                InputType::Tel |
+                InputType::Text |
+                InputType::Time |
+                InputType::Url |
+                InputType::Week
+        )
+    }
+
+    /// Construct the most basic shadow tree structure for textual input.
+    /// TODO(stevennovaryo): The rest of textual input shadow dom structure should act like an
+    ///                       exstension to this one.
+    fn update_textual_shadow_tree(&self, can_gc: CanGc) {
+        // Should only do this for textual input widget.
+        debug_assert!(self.is_textual_widget());
 
         let text_shadow_tree = self.text_shadow_tree(can_gc);
         let value = self.Value();
@@ -1297,9 +1324,8 @@ impl HTMLInputElement {
     }
 
     fn update_shadow_tree(&self, can_gc: CanGc) {
-        let input_type = self.input_type();
-        match input_type {
-            _ if input_type.is_textual_or_password() => self.update_textual_or_password_shadow_tree(can_gc),
+        match self.input_type() {
+            _ if self.is_textual_widget() => self.update_textual_shadow_tree(can_gc),
             InputType::Color => self.update_color_shadow_tree(can_gc),
             _ => {},
         }
@@ -1394,8 +1420,8 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
     /// Textual input, specifically text entry and domain specific input has
     /// a default preferred size.
     ///
-    /// <https://html.spec.whatwg.org/#the-input-element-as-a-text-entry-widget>
-    /// <https://html.spec.whatwg.org/#the-input-element-as-domain-specific-widgets>
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-domain-specific-widgets>
     // FIXME(stevennovaryo): Implement the calculation of default preferred size
     //                       for domain specific input widgets correctly.
     // FIXME(#4378): Implement the calculation of average character width for

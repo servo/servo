@@ -1122,8 +1122,8 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         // Textual input, specifically text entry and domain specific input has
         // a default preferred size.
         //
-        // <https://html.spec.whatwg.org/#the-input-element-as-a-text-entry-widget>
-        // <https://html.spec.whatwg.org/#the-input-element-as-domain-specific-widgets>
+        // <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+        // <https://html.spec.whatwg.org/multipage/#the-input-element-as-domain-specific-widgets>
         let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
             // FIXME(pcwalton): More use of atoms, please!
             match self.get_attr_val_for_layout(&ns!(), &local_name!("type")) {
