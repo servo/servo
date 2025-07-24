@@ -41,6 +41,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMeth
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
@@ -1221,10 +1222,18 @@ pub(crate) fn handle_will_send_keys(
                 // using current text length for both the start and end parameters.
                 if !element_has_focus {
                     if let Some(input_element) = input_element {
-                        input_element.move_caret_to_limit();
+                        let _ = input_element.SetSelectionRange(
+                            input_element.Value().len() as u32,
+                            input_element.Value().len() as u32,
+                            None,
+                        );
                     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>()
                     {
-                        textarea_element.move_caret_to_limit();
+                        let _ = textarea_element.SetSelectionRange(
+                            textarea_element.Value().len() as u32,
+                            textarea_element.Value().len() as u32,
+                            None,
+                        );
                     }
                 }
 

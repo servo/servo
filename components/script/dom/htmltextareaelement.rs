@@ -196,16 +196,6 @@ impl HTMLTextAreaElement {
         HTMLInputElement::directionality_from_value(&value)
     }
 
-    pub(crate) fn move_caret_to_limit(&self) {
-        let UTF8Bytes(content_length) = self.textinput.borrow().len_utf8();
-        let content_length = content_length as u32;
-        self.textinput.borrow_mut().set_selection_range(
-            content_length,
-            content_length,
-            SelectionDirection::None,
-        );
-    }
-
     fn update_placeholder_shown_state(&self) {
         let has_placeholder = !self.placeholder.borrow().is_empty();
         let has_value = !self.textinput.borrow().is_empty();
