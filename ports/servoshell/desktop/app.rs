@@ -479,19 +479,13 @@ impl App {
                 WebDriverCommandMsg::GoBack(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
                         let traversal_id = webview.go_back(1);
-                        running_state.set_pending_traversal(
-                            traversal_id,
-                            load_status_sender,
-                        );
+                        running_state.set_pending_traversal(traversal_id, load_status_sender);
                     }
                 },
                 WebDriverCommandMsg::GoForward(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
                         let traversal_id = webview.go_forward(1);
-                        running_state.set_pending_traversal(
-                            traversal_id,
-                            load_status_sender,
-                        );
+                        running_state.set_pending_traversal(traversal_id, load_status_sender);
                     }
                 },
                 // Key events don't need hit test so can be forwarded to constellation for now

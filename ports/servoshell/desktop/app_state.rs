@@ -454,11 +454,7 @@ impl RunningAppState {
             });
     }
 
-    pub(crate) fn set_pending_focus(
-        &self,
-        focus_id: FocusId,
-        sender: IpcSender<bool>,
-    ) {
+    pub(crate) fn set_pending_focus(&self, focus_id: FocusId, sender: IpcSender<bool>) {
         self.webdriver_senders
             .borrow_mut()
             .pending_focus
