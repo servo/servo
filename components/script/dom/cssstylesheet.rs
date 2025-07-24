@@ -7,8 +7,8 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use script_bindings::root::Dom;
 use script_bindings::realms::InRealm;
+use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::shared_lock::SharedRwLock;
@@ -429,9 +429,10 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         Ok(promise)
     }
 
-    /// <https://drafts.csswg.org/cssom/#synchronously-replace-the-rules-of-a-cssstylesheet>
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replacesync>
     fn ReplaceSync(&self, text: USVString) -> Result<(), Error> {
-        // Step 1. If the constructed flag is not set throw a NotAllowedError
+        // Step 1. If the constructed flag is not set, or the disallow modification flag is set,
+        // throw a NotAllowedError DOMException.
         if !self.is_constructed() || self.disallow_modification() {
             return Err(Error::NotAllowed);
         }
