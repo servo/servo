@@ -1674,8 +1674,10 @@ fn element_is_mutable_form_control(element: &Element) -> bool {
                     InputType::Color |
                     InputType::File
             )
+    } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
+        textarea_element.is_mutable()
     } else {
-        element.is::<HTMLTextAreaElement>()
+        false
     }
 }
 
