@@ -520,7 +520,6 @@ impl HTMLInputElement {
         self.input_type.get()
     }
 
-    #[inline]
     /// <https://w3c.github.io/webdriver/#dfn-non-typeable-form-control>
     pub(crate) fn is_nontypeable(&self) -> bool {
         matches!(

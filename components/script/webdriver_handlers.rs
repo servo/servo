@@ -532,7 +532,7 @@ pub(crate) fn handle_execute_script(
             };
 
             if reply.send(result).is_err() {
-                info!("Webdriver might already be released by embedder before reply is sent");
+                error!("Webdriver might already be released by embedder before reply is sent");
             };
         },
         None => {
@@ -540,7 +540,7 @@ pub(crate) fn handle_execute_script(
                 .send(Err(WebDriverJSError::BrowsingContextNotFound))
                 .is_err()
             {
-                info!("Webdriver might already be released by embedder before reply is sent");
+                error!("Webdriver might already be released by embedder before reply is sent");
             };
         },
     }
@@ -1120,7 +1120,11 @@ fn handle_send_keys_non_typeable(
     }
 
     // Step 3. Set a property value to text on element.
-    if input_element.SetValue(text.into(), can_gc).is_err() {
+    if let Err(error) = input_element.SetValue(text.into(), can_gc) {
+        error!(
+            "Failed to set value on non-typeable input element: {:?}",
+            error
+        );
         return Err(ErrorStatus::UnknownError);
     }
 

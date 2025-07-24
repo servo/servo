@@ -159,10 +159,6 @@ impl RunningAppState {
         self.webdriver_receiver.as_ref()
     }
 
-    pub(crate) fn forward_webdriver_command(&self, command: WebDriverCommandMsg) {
-        self.servo().execute_webdriver_command(command);
-    }
-
     pub(crate) fn hidpi_scale_factor_changed(&self) {
         let inner = self.inner();
         let new_scale_factor = inner.window.hidpi_scale_factor();
