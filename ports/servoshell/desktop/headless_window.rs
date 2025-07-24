@@ -10,9 +10,9 @@ use std::rc::Rc;
 use euclid::num::Zero;
 use euclid::{Length, Point2D, Scale, Size2D};
 use servo::servo_geometry::{
-    DeviceIndependentIntRect, DeviceIndependentPixel, convert_size_to_css_pixel,
+    DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
-use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
 use winit::dpi::PhysicalSize;
 
@@ -25,6 +25,8 @@ pub struct Window {
     device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>,
     inner_size: Cell<DeviceIntSize>,
     screen_size: Size2D<i32, DevicePixel>,
+    // virtual top-left position of the window in device pixels.
+    window_position: Cell<Point2D<i32, DevicePixel>>,
     rendering_context: Rc<SoftwareRenderingContext>,
 }
 
@@ -54,6 +56,7 @@ impl Window {
             device_pixel_ratio_override,
             inner_size: Cell::new(inner_size),
             screen_size,
+            window_position: Cell::new(Point2D::zero()),
             rendering_context: Rc::new(rendering_context),
         };
 
@@ -70,8 +73,15 @@ impl WindowPortsMethods for Window {
         ScreenGeometry {
             size: self.screen_size,
             available_size: self.screen_size,
-            window_rect: self.inner_size.get().into(),
+            window_rect: DeviceIntRect::from_origin_and_size(
+                self.window_position.get(),
+                self.inner_size.get(),
+            ),
         }
+    }
+
+    fn set_position(&self, point: DeviceIntPoint) {
+        self.window_position.set(point);
     }
 
     fn request_resize(
@@ -142,12 +152,9 @@ impl WindowPortsMethods for Window {
     }
 
     fn window_rect(&self) -> DeviceIndependentIntRect {
-        let inner_size = self.inner_size.get();
-        let scale = self.hidpi_scale_factor();
-
-        DeviceIndependentIntRect::from_origin_and_size(
-            Point2D::zero(),
-            convert_size_to_css_pixel(inner_size, scale),
+        convert_rect_to_css_pixel(
+            DeviceIntRect::from_origin_and_size(self.window_position.get(), self.inner_size.get()),
+            self.hidpi_scale_factor(),
         )
     }
 
