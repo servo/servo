@@ -69,6 +69,7 @@ use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::types::ShadowRoot;
@@ -1207,6 +1208,14 @@ pub(crate) fn handle_will_send_keys(
                 }
 
                 // TODO: Check content editable
+
+                // Step 8.2. Set the text insertion caret using set selection range
+                // using current text length for both the start and end parameters.
+                if let Some(input_element) = input_element {
+                    input_element.move_caret_to_limit();
+                } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
+                    textarea_element.move_caret_to_limit();
+                }
 
                 Ok(true)
             }),

@@ -1255,6 +1255,7 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
     fn commit_focus_transaction(&self, focus_initiator: FocusInitiator, can_gc: CanGc) {
+        dbg!("Committing focus transaction");
         let (mut new_focused, new_focus_state) = {
             let focus_transaction = self.focus_transaction.borrow();
             let focus_transaction = focus_transaction
