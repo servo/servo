@@ -1188,7 +1188,7 @@ pub(crate) fn handle_will_send_keys(
                         return Err(ErrorStatus::ElementNotInteractable);
                     }
 
-                    // Step 7.7. If element is not the active element 
+                    // Step 7.7. If element is not the active element
                     // run the focusing steps for the element.
                     if let Some(html_element) = element.downcast::<HTMLElement>() {
                         if !element.is_active_element() {
@@ -1222,7 +1222,8 @@ pub(crate) fn handle_will_send_keys(
                 if !element_has_focus {
                     if let Some(input_element) = input_element {
                         input_element.move_caret_to_limit();
-                    } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
+                    } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>()
+                    {
                         textarea_element.move_caret_to_limit();
                     }
                 }
