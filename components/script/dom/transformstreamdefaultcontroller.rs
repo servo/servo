@@ -249,7 +249,8 @@ impl TransformStreamDefaultController {
                     .unwrap_or_else(|e| {
                         // <https://streams.spec.whatwg.org/#transformstream-set-up>
                         // Step 5.1 If this throws an exception e,
-                        let p = Promise::new(global, can_gc);
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
                         // return a promise rejected with e.
                         p.reject_error(e, can_gc);
                         p
@@ -368,7 +369,8 @@ impl TransformStreamDefaultController {
                     .unwrap_or_else(|e| {
                         // <https://streams.spec.whatwg.org/#transformstream-set-up>
                         // Step 6.1 If this throws an exception e,
-                        let p = Promise::new(global, can_gc);
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
                         // return a promise rejected with e.
                         p.reject_error(e, can_gc);
                         p

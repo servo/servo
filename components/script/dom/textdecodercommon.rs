@@ -134,9 +134,14 @@ impl TextDecoderCommon {
             let mut output = String::with_capacity(
                 decoder
                     .max_utf8_buffer_length_without_replacement(input.len())
-                    .expect("Expected UTF8 buffer length would overflow"),
+                    .ok_or_else(|| {
+                        Error::Type("Expected UTF8 buffer length would overflow".to_owned())
+                    })?,
             );
 
+            // Note: The two algorithms below are implemented in
+            // `encoding_rs::Decoder::decode_to_string_without_replacement`
+            //
             // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
             // Step 5. While true:
             // Step 5.1 Let item be the result of reading from this’s I/O queue.
@@ -176,8 +181,13 @@ impl TextDecoderCommon {
             // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
             // Step 4. Let output be the I/O queue of scalar values « end-of-queue ».
             let mut output =
-                String::with_capacity(decoder.max_utf8_buffer_length(input.len()).unwrap());
+                String::with_capacity(decoder.max_utf8_buffer_length(input.len()).ok_or_else(
+                    || Error::Type("Expected UTF8 buffer length would overflow".to_owned()),
+                )?);
 
+            // Note: The two algorithms below are implemented in
+            // `encoding_rs::Decoder::decode_to_string`
+            //
             // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
             // Step 5. While true:
             // Step 5.1 Let item be the result of reading from this’s I/O queue.

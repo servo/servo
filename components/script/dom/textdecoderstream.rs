@@ -40,9 +40,9 @@ pub(crate) fn decode_and_enqueue_a_chunk(
             Error::Type("Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string())
         })?
     };
-    let buffer_source = conversion_result.get_success_value().ok_or(Error::Type(
-        "Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string(),
-    ))?;
+    let buffer_source = conversion_result.get_success_value().ok_or_else(|| {
+        Error::Type("Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string())
+    })?;
 
     // Step 2. Push a copy of bufferSource to decoder’s I/O queue.
     // Step 3. Let output be the I/O queue of scalar values « end-of-queue ».
