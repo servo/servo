@@ -1698,8 +1698,18 @@ pub(crate) trait FormControl: DomObject {
         }
     }
 
+    /// <https://html.spec.whatwg.org/#candidate-for-constraint-validation>
+    fn is_candidate_for_constraint_validation(&self) -> bool {
+        let element = self.to_element();
+        let html_element = element.downcast::<HTMLElement>();
+        if let Some(html_element) = html_element {
+            html_element.is_submittable_element() || element.is_instance_validatable()
+        } else {
+            false
+        }
+    }
+
     // XXXKiChjang: Implement these on inheritors
-    // fn candidate_for_validation(&self) -> bool;
     // fn satisfies_constraints(&self) -> bool;
 }
 

@@ -41,6 +41,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMeth
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
@@ -64,6 +65,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlformelement::FormControl;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
@@ -1683,11 +1685,23 @@ fn element_is_mutable_form_control(element: &Element) -> bool {
 
 /// <https://w3c.github.io/webdriver/#dfn-clear-a-resettable-element>
 fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), ErrorStatus> {
-    // TODO: Step 1 - 2. Check if element is a candidate for constratint validation.
-
     let html_element = element
         .downcast::<HTMLElement>()
         .ok_or(ErrorStatus::UnknownError)?;
+
+    // Step 1 - 2. if element is a candidate for constraint
+    // validation and value is empty, abort steps.
+    if html_element.is_candidate_for_constraint_validation() {
+        if let Some(input_element) = element.downcast::<HTMLInputElement>() {
+            if input_element.Value().is_empty() {
+                return Ok(());
+            }
+        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
+            if textarea_element.Value().is_empty() {
+                return Ok(());
+            }
+        }
+    }
 
     // Step 3. Invoke the focusing steps for the element.
     html_element.Focus(can_gc);
