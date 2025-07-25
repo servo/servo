@@ -1222,16 +1222,18 @@ pub(crate) fn handle_will_send_keys(
                 // using current text length for both the start and end parameters.
                 if !element_has_focus {
                     if let Some(input_element) = input_element {
+                        let length = input_element.Value().len() as u32;
                         let _ = input_element.SetSelectionRange(
-                            input_element.Value().len() as u32,
-                            input_element.Value().len() as u32,
+                            length,
+                            length,
                             None,
                         );
                     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>()
                     {
+                        let length = textarea_element.Value().len() as u32;
                         let _ = textarea_element.SetSelectionRange(
-                            textarea_element.Value().len() as u32,
-                            textarea_element.Value().len() as u32,
+                            length,
+                            length,
                             None,
                         );
                     }
