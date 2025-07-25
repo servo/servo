@@ -2141,9 +2141,14 @@ impl Window {
         y: f32,
         scroll_id: ExternalScrollId,
         _behavior: ScrollBehavior,
-        _element: Option<&Element>,
+        element: Option<&Element>,
         can_gc: CanGc,
     ) {
+        // We are recording the scroll offset here, to know whether the element is scrolled and
+        // we need to fire events related to it.
+        let initial_scroll_offset =
+            self.scroll_offset_query_with_external_scroll_id_no_reflow(scroll_id);
+
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
@@ -2151,6 +2156,20 @@ impl Window {
             ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)),
             can_gc,
         );
+
+        let updated_scroll_offset =
+            self.scroll_offset_query_with_external_scroll_id_no_reflow(scroll_id);
+
+        // > If the scroll position did not change as a result of the user interaction or programmatic
+        // > invocation, where no translations were applied as a result, then no scrollend event fires
+        // > because no scrolling occurred.
+        // Even though the note mention the scrollend, it is relevant to the scroll as well.
+        if initial_scroll_offset != updated_scroll_offset {
+            match element {
+                Some(el) => self.Document().handle_element_scroll_event(el),
+                None => self.Document().handle_viewport_scroll_event(),
+            };
+        }
     }
 
     pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
@@ -2503,33 +2522,46 @@ impl Window {
         can_gc: CanGc,
     ) -> Vector2D<f32, LayoutPixel> {
         self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery, can_gc);
+        self.scroll_offset_query_with_external_scroll_id_no_reflow(external_scroll_id)
+    }
+
+    fn scroll_offset_query_with_external_scroll_id_no_reflow(
+        &self,
+        external_scroll_id: ExternalScrollId,
+    ) -> Vector2D<f32, LayoutPixel> {
         self.layout
             .borrow()
             .scroll_offset(external_scroll_id)
             .unwrap_or_default()
     }
 
-    // https://drafts.csswg.org/cssom-view/#element-scrolling-members
-    pub(crate) fn scroll_node(
+    /// <https://drafts.csswg.org/cssom-view/#scroll-an-element>
+    // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
+    pub(crate) fn scroll_an_element(
         &self,
-        node: &Node,
+        element: &Element,
         x_: f64,
         y_: f64,
         behavior: ScrollBehavior,
         can_gc: CanGc,
     ) {
         let scroll_id = ExternalScrollId(
-            combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
+            combine_id_with_fragment_type(
+                element.upcast::<Node>().to_opaque().id(),
+                FragmentType::FragmentBody,
+            ),
             self.pipeline_id().into(),
         );
 
-        // Step 12
+        // Step 6.
+        // > Perform a scroll of box to position, element as the associated element and behavior as
+        // > the scroll behavior.
         self.perform_a_scroll(
             x_.to_f32().unwrap_or(0.0f32),
             y_.to_f32().unwrap_or(0.0f32),
             scroll_id,
             behavior,
-            None,
+            Some(element),
             can_gc,
         );
     }
