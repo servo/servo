@@ -1223,19 +1223,11 @@ pub(crate) fn handle_will_send_keys(
                 if !element_has_focus {
                     if let Some(input_element) = input_element {
                         let length = input_element.Value().len() as u32;
-                        let _ = input_element.SetSelectionRange(
-                            length,
-                            length,
-                            None,
-                        );
+                        let _ = input_element.SetSelectionRange(length, length, None);
                     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>()
                     {
                         let length = textarea_element.Value().len() as u32;
-                        let _ = textarea_element.SetSelectionRange(
-                            length,
-                            length,
-                            None,
-                        );
+                        let _ = textarea_element.SetSelectionRange(length, length, None);
                     }
                 }
 
