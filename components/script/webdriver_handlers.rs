@@ -1170,14 +1170,15 @@ pub(crate) fn handle_will_send_keys(
             // Set 5. Let element be the result of trying to get a known element.
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 let input_element = element.downcast::<HTMLInputElement>();
+                let mut element_has_focus = false;
 
                 // Step 6: Let file be true if element is input element
                 // in the file upload state, or false otherwise
-                let file_input = input_element
-                    .filter(|&input_element| input_element.input_type() == InputType::File);
+                let is_file_input =
+                    input_element.is_some_and(|e| e.input_type() == InputType::File);
 
                 // Step 7. If file is false or the session's strict file interactability
-                if file_input.is_none() || strict_file_interactability {
+                if !is_file_input || strict_file_interactability {
                     // TODO(24059): Step 7.1. Scroll Into View
                     // TODO: Step 7.2 - 7.5
                     // Wait until element become keyboard-interactable
@@ -1188,28 +1189,48 @@ pub(crate) fn handle_will_send_keys(
                         return Err(ErrorStatus::ElementNotInteractable);
                     }
 
-                    match element.downcast::<HTMLElement>() {
-                        Some(element) => {
-                            // Need a way to find if this actually succeeded
-                            element.Focus(can_gc);
-                        },
-                        None => return Err(ErrorStatus::UnknownError),
+                    // Step 7.7. If element is not the active element
+                    // run the focusing steps for the element.
+                    if let Some(html_element) = element.downcast::<HTMLElement>() {
+                        if !element.is_active_element() {
+                            html_element.Focus(can_gc);
+                        } else {
+                            element_has_focus = element.focus_state();
+                        }
+                    } else {
+                        return Err(ErrorStatus::UnknownError);
                     }
                 }
 
-                // Step 8 (file input)
-                if let Some(file_input) = file_input {
-                    return handle_send_keys_file(file_input, &text, can_gc);
-                }
-
-                // Step 8 (non-typeable form control)
                 if let Some(input_element) = input_element {
+                    // Step 8 (Handle file upload)
+                    if is_file_input {
+                        return handle_send_keys_file(input_element, &text, can_gc);
+                    }
+
+                    // Step 8 (Handle non-typeable form control)
                     if input_element.is_nontypeable() {
                         return handle_send_keys_non_typeable(input_element, &text, can_gc);
                     }
                 }
 
                 // TODO: Check content editable
+
+                // Step 8 (Other type of elements)
+                // Step 8.1. If element does not currently have focus,
+                // let current text length be the length of element's API value.
+                // Step 8.2. Set the text insertion caret using set selection range
+                // using current text length for both the start and end parameters.
+                if !element_has_focus {
+                    if let Some(input_element) = input_element {
+                        let length = input_element.Value().len() as u32;
+                        let _ = input_element.SetSelectionRange(length, length, None);
+                    } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>()
+                    {
+                        let length = textarea_element.Value().len() as u32;
+                        let _ = textarea_element.SetSelectionRange(length, length, None);
+                    }
+                }
 
                 Ok(true)
             }),
