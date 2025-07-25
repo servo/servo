@@ -23,7 +23,6 @@ use pixels::Snapshot;
 use webrender_api::ImageKey;
 
 use crate::canvas_data::*;
-use crate::raqote_backend::RaqoteBackend;
 
 pub struct CanvasPaintThread {
     canvases: HashMap<CanvasId, Canvas>,
@@ -120,12 +119,8 @@ impl CanvasPaintThread {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
-        let canvas_data = CanvasData::new(
-            size,
-            self.compositor_api.clone(),
-            self.font_context.clone(),
-            RaqoteBackend,
-        );
+        let canvas_data =
+            CanvasData::new(size, self.compositor_api.clone(), self.font_context.clone());
         let image_key = canvas_data.image_key();
         self.canvases.insert(canvas_id, Canvas::Raqote(canvas_data));
 
@@ -301,7 +296,7 @@ impl CanvasPaintThread {
 }
 
 enum Canvas {
-    Raqote(CanvasData<RaqoteBackend>),
+    Raqote(CanvasData<raqote::DrawTarget>),
 }
 
 impl Canvas {

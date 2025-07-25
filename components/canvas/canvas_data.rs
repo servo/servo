@@ -20,7 +20,7 @@ use range::Range;
 use unicode_script::Script;
 use webrender_api::ImageKey;
 
-use crate::backend::{Backend, GenericDrawTarget as _};
+use crate::backend::GenericDrawTarget;
 
 // Asserts on WR texture cache update for zero sized image with raw data.
 // https://github.com/servo/webrender/blob/main/webrender/src/texture_cache.rs#L1475
@@ -102,28 +102,25 @@ pub(crate) enum Filter {
     Nearest,
 }
 
-pub(crate) struct CanvasData<B: Backend> {
-    backend: B,
-    drawtarget: B::DrawTarget,
+pub(crate) struct CanvasData<DrawTarget: GenericDrawTarget> {
+    drawtarget: DrawTarget,
     compositor_api: CrossProcessCompositorApi,
     image_key: ImageKey,
     font_context: Arc<FontContext>,
 }
 
-impl<B: Backend> CanvasData<B> {
+impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     pub(crate) fn new(
         size: Size2D<u64>,
         compositor_api: CrossProcessCompositorApi,
         font_context: Arc<FontContext>,
-        backend: B,
-    ) -> CanvasData<B> {
+    ) -> CanvasData<DrawTarget> {
         let size = size.max(MIN_WR_IMAGE_SIZE);
-        let draw_target = backend.create_drawtarget(size);
+        let draw_target = DrawTarget::new(size.cast());
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
         let (descriptor, data) = draw_target.image_descriptor_and_serializable_data();
         compositor_api.add_image(image_key, descriptor, data);
         CanvasData {
-            backend,
             drawtarget: draw_target,
             compositor_api,
             image_key,
@@ -155,8 +152,8 @@ impl<B: Backend> CanvasData<B> {
             snapshot
         };
 
-        let writer = |draw_target: &mut B::DrawTarget, transform| {
-            write_image::<B>(
+        let writer = |draw_target: &mut DrawTarget, transform| {
+            write_image::<DrawTarget>(
                 draw_target,
                 snapshot,
                 dest_rect,
@@ -496,7 +493,7 @@ impl<B: Backend> CanvasData<B> {
                 shadow_options,
                 composition_options,
                 transform,
-                |new_draw_target: &mut B::DrawTarget, transform| {
+                |new_draw_target, transform| {
                     new_draw_target.fill_rect(rect, style, composition_options, transform);
                 },
             );
@@ -538,7 +535,7 @@ impl<B: Backend> CanvasData<B> {
                 shadow_options,
                 composition_options,
                 transform,
-                |new_draw_target: &mut B::DrawTarget, transform| {
+                |new_draw_target, transform| {
                     new_draw_target.stroke_rect(
                         rect,
                         style,
@@ -629,9 +626,7 @@ impl<B: Backend> CanvasData<B> {
             .max(MIN_WR_IMAGE_SIZE);
 
         // Step 1. Clear canvas's bitmap to transparent black.
-        self.drawtarget = self
-            .backend
-            .create_drawtarget(Size2D::new(size.width, size.height));
+        self.drawtarget = DrawTarget::new(Size2D::new(size.width, size.height).cast());
 
         self.update_image_rendering();
     }
@@ -658,7 +653,7 @@ impl<B: Backend> CanvasData<B> {
         );
     }
 
-    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> B::DrawTarget {
+    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> DrawTarget {
         self.drawtarget.create_similar_draw_target(&Size2D::new(
             source_rect.size.width as i32,
             source_rect.size.height as i32,
@@ -673,7 +668,7 @@ impl<B: Backend> CanvasData<B> {
         transform: Transform2D<f32>,
         draw_shadow_source: F,
     ) where
-        F: FnOnce(&mut B::DrawTarget, Transform2D<f32>),
+        F: FnOnce(&mut DrawTarget, Transform2D<f32>),
     {
         let shadow_src_rect = transform.outer_transformed_rect(rect);
         let mut new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
@@ -755,7 +750,7 @@ impl<B: Backend> CanvasData<B> {
     }
 }
 
-impl<B: Backend> Drop for CanvasData<B> {
+impl<D: GenericDrawTarget> Drop for CanvasData<D> {
     fn drop(&mut self) {
         self.compositor_api.delete_image(self.image_key);
     }
@@ -771,8 +766,8 @@ const IDEOGRAPHIC_BASELINE_DEFAULT: f32 = 0.5;
 /// dest_rect: Area of the destination target where the pixels will be copied
 /// smoothing_enabled: It determines if smoothing is applied to the image result
 /// premultiply: Determines whenever the image data should be premultiplied or not
-fn write_image<B: Backend>(
-    draw_target: &mut B::DrawTarget,
+fn write_image<DrawTarget: GenericDrawTarget>(
+    draw_target: &mut DrawTarget,
     snapshot: Snapshot,
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
