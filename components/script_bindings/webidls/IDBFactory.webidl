@@ -21,7 +21,7 @@ interface IDBFactory {
 
   // Promise<sequence<IDBDatabaseInfo>> databases();
 
-  // short cmp(any first, any second);
+  [Throws] short cmp(any first, any second);
 };
 
 // https://w3c.github.io/IndexedDB/#dictdef-idbdatabaseinfo
