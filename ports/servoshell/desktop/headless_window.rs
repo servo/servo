@@ -17,7 +17,7 @@ use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
 use winit::dpi::PhysicalSize;
 
 use super::app_state::RunningAppState;
-use crate::desktop::window_trait::WindowPortsMethods;
+use crate::desktop::window_trait::{MIN_INNER_HEIGHT, MIN_INNER_WIDTH, WindowPortsMethods};
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
@@ -89,8 +89,10 @@ impl WindowPortsMethods for Window {
         webview: &::servo::WebView,
         outer_size: DeviceIntSize,
     ) -> Option<DeviceIntSize> {
-        // Surfman doesn't support zero-sized surfaces.
-        let new_size = DeviceIntSize::new(outer_size.width.max(1), outer_size.height.max(1));
+        let new_size = DeviceIntSize::new(
+            outer_size.width.max(MIN_INNER_WIDTH),
+            outer_size.height.max(MIN_INNER_HEIGHT),
+        );
         if self.inner_size.get() == new_size {
             return Some(new_size);
         }
