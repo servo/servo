@@ -19,7 +19,7 @@ use raqote::{DrawOptions, PathBuilder, StrokeStyle};
 use style::color::AbsoluteColor;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
-use crate::backend::{Backend, GenericDrawTarget};
+use crate::backend::GenericDrawTarget;
 use crate::canvas_data::{Filter, TextRun};
 
 thread_local! {
@@ -28,18 +28,6 @@ thread_local! {
     /// in order to ensure that fonts are particular to a thread we have to make our own
     /// cache thread local as well.
     static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, Font>> = RefCell::default();
-}
-
-#[derive(Clone, Default)]
-pub(crate) struct RaqoteBackend;
-
-impl Backend for RaqoteBackend {
-    type DrawTarget = raqote::DrawTarget;
-    type SourceSurface = Vec<u8>; // TODO: See if we can avoid the alloc (probably?)
-
-    fn create_drawtarget(&self, size: Size2D<u64>) -> Self::DrawTarget {
-        raqote::DrawTarget::new(size.width as i32, size.height as i32)
-    }
 }
 
 #[derive(Clone)]
@@ -199,9 +187,15 @@ fn create_gradient_stops(gradient_stops: Vec<CanvasGradientStop>) -> Vec<raqote:
     stops
 }
 
-impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
+impl GenericDrawTarget for raqote::DrawTarget {
+    type SourceSurface = Vec<u8>; // TODO: See if we can avoid the alloc (probably?)
+
+    fn new(size: Size2D<u32>) -> Self {
+        raqote::DrawTarget::new(size.width as i32, size.height as i32)
+    }
+
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
-        <Self as GenericDrawTarget<RaqoteBackend>>::fill_rect(
+        <Self as GenericDrawTarget>::fill_rect(
             self,
             rect,
             FillOrStrokeStyle::Color(AbsoluteColor::TRANSPARENT_BLACK),
@@ -215,7 +209,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     #[allow(unsafe_code)]
     fn copy_surface(
         &mut self,
-        surface: <RaqoteBackend as Backend>::SourceSurface,
+        surface: Self::SourceSurface,
         source: Rect<i32>,
         destination: Point2D<i32>,
     ) {
@@ -226,16 +220,10 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         raqote::DrawTarget::copy_surface(self, &dt, source.to_box2d(), destination);
     }
 
-    fn create_similar_draw_target(
-        &self,
-        size: &Size2D<i32>,
-    ) -> <RaqoteBackend as Backend>::DrawTarget {
+    fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self {
         raqote::DrawTarget::new(size.width, size.height)
     }
-    fn create_source_surface_from_data(
-        &self,
-        data: Snapshot,
-    ) -> Option<<RaqoteBackend as Backend>::SourceSurface> {
+    fn create_source_surface_from_data(&self, data: Snapshot) -> Option<Self::SourceSurface> {
         Some(
             data.to_vec(
                 Some(SnapshotAlphaMode::Transparent {
@@ -249,7 +237,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     #[allow(unsafe_code)]
     fn draw_surface(
         &mut self,
-        surface: <RaqoteBackend as Backend>::SourceSurface,
+        surface: Self::SourceSurface,
         dest: Rect<f64>,
         src: Rect<f64>,
         filter: Filter,
@@ -297,7 +285,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     }
     fn draw_surface_with_shadow(
         &self,
-        _surface: <RaqoteBackend as Backend>::SourceSurface,
+        _surface: Self::SourceSurface,
         _dest: &Point2D<f32>,
         _shadow_options: ShadowOptions,
         _composition_options: CompositionOptions,
@@ -398,13 +386,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
             rect.size.height,
         );
 
-        <Self as GenericDrawTarget<RaqoteBackend>>::fill(
-            self,
-            &pb,
-            style,
-            composition_options,
-            transform,
-        );
+        <Self as GenericDrawTarget>::fill(self, &pb, style, composition_options, transform);
     }
     fn get_size(&self) -> Size2D<i32> {
         Size2D::new(self.width(), self.height())
@@ -419,7 +401,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn push_clip_rect(&mut self, rect: &Rect<i32>) {
         self.push_clip_rect(rect.to_box2d());
     }
-    fn surface(&self) -> <RaqoteBackend as Backend>::SourceSurface {
+    fn surface(&self) -> Self::SourceSurface {
         self.get_data_u8().to_vec()
     }
     fn stroke(

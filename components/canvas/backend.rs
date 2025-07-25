@@ -12,28 +12,25 @@ use webrender_api::ImageDescriptor;
 
 use crate::canvas_data::{Filter, TextRun};
 
-pub(crate) trait Backend: Clone + Sized {
-    type DrawTarget: GenericDrawTarget<Self>;
-    type SourceSurface;
-
-    fn create_drawtarget(&self, size: Size2D<u64>) -> Self::DrawTarget;
-}
-
 // This defines required methods for a DrawTarget (currently only implemented for raqote).  The
 // prototypes are derived from the now-removed Azure backend's methods.
-pub(crate) trait GenericDrawTarget<B: Backend> {
+pub(crate) trait GenericDrawTarget {
+    type SourceSurface;
+
+    fn new(size: Size2D<u32>) -> Self;
+    fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
+
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>);
     fn copy_surface(
         &mut self,
-        surface: B::SourceSurface,
+        surface: Self::SourceSurface,
         source: Rect<i32>,
         destination: Point2D<i32>,
     );
-    fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
-    fn create_source_surface_from_data(&self, data: Snapshot) -> Option<B::SourceSurface>;
+    fn create_source_surface_from_data(&self, data: Snapshot) -> Option<Self::SourceSurface>;
     fn draw_surface(
         &mut self,
-        surface: B::SourceSurface,
+        surface: Self::SourceSurface,
         dest: Rect<f64>,
         source: Rect<f64>,
         filter: Filter,
@@ -42,7 +39,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
     );
     fn draw_surface_with_shadow(
         &self,
-        surface: B::SourceSurface,
+        surface: Self::SourceSurface,
         dest: &Point2D<f32>,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
@@ -89,7 +86,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     );
-    fn surface(&self) -> B::SourceSurface;
+    fn surface(&self) -> Self::SourceSurface;
     fn image_descriptor_and_serializable_data(&self) -> (ImageDescriptor, SerializableImageData);
     fn snapshot(&self) -> Snapshot;
 }
