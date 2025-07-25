@@ -47,7 +47,7 @@ impl Window {
 
         let screen_size = servoshell_preferences
             .screen_size_override
-            .map_or(inner_size, |screen_size_override| {
+            .map_or(inner_size * 2, |screen_size_override| {
                 (screen_size_override.to_f32() * hidpi_factor).to_i32()
             });
 
