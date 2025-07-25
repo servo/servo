@@ -13,7 +13,7 @@ use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
-use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
+use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext, WebView};
 use winit::dpi::PhysicalSize;
 
 use super::app_state::RunningAppState;
@@ -86,7 +86,7 @@ impl WindowPortsMethods for Window {
 
     fn request_resize(
         &self,
-        webview: &::servo::WebView,
+        webview: &WebView,
         outer_size: DeviceIntSize,
     ) -> Option<DeviceIntSize> {
         let new_size = DeviceIntSize::new(
@@ -166,5 +166,18 @@ impl WindowPortsMethods for Window {
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
         self.rendering_context.clone()
+    }
+
+    fn maximize(&self, webview: &WebView) {
+        self.window_position.set(Point2D::zero());
+        self.inner_size.set(self.screen_size);
+        // Because we are managing the rendering surface ourselves, there will be no other
+        // notification (such as from the display manager) that it has changed size, so we
+        // must notify the compositor here.
+        webview.move_resize(self.screen_size.to_f32().into());
+        webview.resize(PhysicalSize::new(
+            self.screen_size.width as u32,
+            self.screen_size.height as u32,
+        ));
     }
 }

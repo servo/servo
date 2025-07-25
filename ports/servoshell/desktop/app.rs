@@ -392,6 +392,22 @@ impl App {
                         warn!("Failed to send response of GetWindowSize: {error}");
                     }
                 },
+                WebDriverCommandMsg::MaximizeWebView(webview_id, response_sender) => {
+                    let window = self
+                        .windows
+                        .values()
+                        .next()
+                        .expect("Should have at least one window in servoshell");
+                    window.maximize(
+                        &running_state
+                            .webview_by_id(webview_id)
+                            .expect("Webview must exists as we just verified"),
+                    );
+
+                    if let Err(error) = response_sender.send(window.window_rect()) {
+                        warn!("Failed to send response of GetWindowSize: {error}");
+                    }
+                },
                 WebDriverCommandMsg::SetWindowRect(webview_id, requested_rect, size_sender) => {
                     let Some(webview) = running_state.webview_by_id(webview_id) else {
                         continue;

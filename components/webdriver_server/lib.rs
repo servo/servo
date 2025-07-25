@@ -911,7 +911,6 @@ impl Handler {
 
         // (TODO) Step 14. Fully exit fullscreen.
         // (TODO) Step 15. Restore the window.
-        let (sender, receiver) = ipc::channel().unwrap();
 
         let current = LazyCell::new(|| {
             let WebDriverResponse::WindowRect(current) = self
@@ -929,7 +928,7 @@ impl Handler {
             params.width.unwrap_or_else(|| current.width),
             params.height.unwrap_or_else(|| current.height),
         );
-
+        let (sender, receiver) = ipc::channel().unwrap();
         // Step 16 - 17. Set the width/height in CSS pixels.
         // This should be done as long as one of width/height is not null.
 
@@ -941,8 +940,40 @@ impl Handler {
                 Point2D::new(x, y),
                 Size2D::new(width, height),
             ),
-            sender.clone(),
+            sender,
         ))?;
+
+        let window_rect = wait_for_script_response(receiver)?;
+        debug!("Result window_rect: {window_rect:?}");
+        let window_size_response = WindowRectResponse {
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
+        };
+        Ok(WebDriverResponse::WindowRect(window_size_response))
+    }
+
+    /// <https://w3c.github.io/webdriver/#maximize-window>
+    fn handle_maximize_window(&mut self) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If the remote end does not support the Maximize Window command for session's
+        // current top-level browsing context for any reason,
+        // return error with error code unsupported operation.
+        let webview_id = self.session()?.webview_id;
+        // Step 2. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
+        // Step 3. Try to handle any user prompts with session.
+        self.handle_any_user_prompts(self.session()?.webview_id)?;
+
+        // Step 4. (TODO) Fully exit fullscreen.
+
+        // Step 5. (TODO) Restore the window.
+
+        // Step 6. Maximize the window of session's current top-level browsing context.
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::MaximizeWebView(webview_id, sender))?;
 
         let window_rect = wait_for_script_response(receiver)?;
         debug!("Result window_rect: {window_rect:?}");
@@ -2483,6 +2514,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetWindowHandles => self.handle_window_handles(),
             WebDriverCommand::NewWindow(ref parameters) => self.handle_new_window(parameters),
             WebDriverCommand::CloseWindow => self.handle_close_window(),
+            WebDriverCommand::MaximizeWindow => self.handle_maximize_window(),
             WebDriverCommand::SwitchToFrame(ref parameters) => {
                 self.handle_switch_to_frame(parameters)
             },

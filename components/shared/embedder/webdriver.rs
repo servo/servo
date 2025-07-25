@@ -138,6 +138,8 @@ pub enum WebDriverCommandMsg {
         DeviceIndependentIntRect,
         IpcSender<DeviceIndependentIntRect>,
     ),
+    /// Maximize the window. Send back result window rectangle.
+    MaximizeWebView(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Take a screenshot of the viewport.
     TakeScreenshot(
         WebViewId,

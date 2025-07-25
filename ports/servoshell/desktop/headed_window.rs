@@ -767,10 +767,7 @@ impl WindowPortsMethods for Window {
         // this prevents a crash in the compositor due to invalid surface size
         self.winit_window.set_min_inner_size(Some(PhysicalSize::new(
             MIN_INNER_WIDTH,
-            i32::max(
-                MIN_INNER_HEIGHT,
-                (self.toolbar_height() * self.hidpi_scale_factor()).0 as i32,
-            ),
+            MIN_INNER_HEIGHT.max((self.toolbar_height() * self.hidpi_scale_factor()).0 as i32),
         )));
     }
 
@@ -807,6 +804,10 @@ impl WindowPortsMethods for Window {
             Some(winit::window::Theme::Dark) => servo::Theme::Dark,
             Some(winit::window::Theme::Light) | None => servo::Theme::Light,
         }
+    }
+
+    fn maximize(&self, _webview: &WebView) {
+        self.winit_window.set_maximized(true);
     }
 }
 
