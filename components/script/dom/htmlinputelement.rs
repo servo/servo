@@ -244,7 +244,7 @@ impl InputType {
         )
     }
 
-    pub(crate) fn is_textual_or_password(&self) -> bool {
+    fn is_textual_or_password(&self) -> bool {
         self.is_textual() || *self == InputType::Password
     }
 
@@ -1243,10 +1243,10 @@ impl HTMLInputElement {
     }
 
     /// Should this input type render as a basic text UA widget.
-    // TODO(stevennovaryo): Ideally, the most basic shadow dom should cover only `text`,
-    //                      `password`, `url`, `tel`, and `email`. But we are leaving the
-    //                      others textual inputs here while tackling them one by one.
-    fn is_textual_widget(&self) -> bool {
+    // TODO(#38251): Ideally, the most basic shadow dom should cover only `text`, `password`, `url`, `tel`,
+    //               and `email`. But we are leaving the others textual inputs here while tackling them one
+    //               by one.
+    pub(crate) fn is_textual_widget(&self) -> bool {
         matches!(
             self.input_type(),
             InputType::Date |
@@ -2237,7 +2237,7 @@ impl HTMLInputElement {
     // Update the placeholder text in the text shadow tree.
     // To increase the performance, we would only do this when it is necessary.
     fn update_text_shadow_tree_placeholder(&self, can_gc: CanGc) {
-        if !self.input_type().is_textual_or_password() {
+        if !self.is_textual_widget() {
             return;
         }
 

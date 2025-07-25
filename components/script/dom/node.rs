@@ -1852,6 +1852,9 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
     }
 
+    /// Whether this element should layout as a special case input element.
+    // TODO(#38251): With the implementation of Shadow DOM, we could implement the construction properly
+    //               in the DOM, instead of delegating it to layout.
     fn is_text_input(&self) -> bool {
         let type_id = self.type_id_for_layout();
         if type_id ==
@@ -1861,8 +1864,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         {
             let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
 
-            // FIXME: All the non-color and non-text input types currently render as text
-            !input.input_type().is_textual_or_password() && input.input_type() != InputType::Color
+            !input.is_textual_widget() && input.input_type() != InputType::Color
         } else {
             type_id ==
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
