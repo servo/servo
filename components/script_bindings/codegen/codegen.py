@@ -1592,10 +1592,13 @@ class PropertyDefiner:
     def length(self):
         return len(self.regular)
 
+    @abstractmethod
+    def generateArray(self, array, name) -> str:
+        raise NotImplementedError
+
     def __str__(self):
         # We only need to generate id arrays for things that will end
         # up used via ResolveProperty or EnumerateProperties.
-        # pyrefly: ignore  # missing-attribute
         return self.generateArray(self.regular, self.variableName())
 
     @staticmethod
@@ -2695,17 +2698,17 @@ def UnionTypes(
     unionStructs = dict()
     for (t, descriptor) in getAllTypes(descriptors, dictionaries, callbacks, typedefs):
         t = t.unroll()
-        if not t.isUnion():
+        if not t.isUnion() or not isinstance(t, IDLUnionType):
             continue
-        # pyrefly: ignore  # missing-attribute
-        for memberType in t.flatMemberTypes:
-            if memberType.isDictionary() or memberType.isEnum() or memberType.isCallback():
-                memberModule = getModuleFromObject(memberType)
-                memberName = (memberType.callback.identifier.name
-                              if memberType.isCallback() else memberType.inner.identifier.name)
-                imports.append(f"{memberModule}::{memberName}")
-                if memberType.isEnum():
-                    imports.append(f"{memberModule}::{memberName}Values")
+        if t.flatMemberTypes is not None:
+            for memberType in t.flatMemberTypes:
+                if memberType.isDictionary() or memberType.isEnum() or memberType.isCallback():
+                    memberModule = getModuleFromObject(memberType)
+                    memberName = (memberType.callback.identifier.name
+                                  if memberType.isCallback() else memberType.inner.identifier.name)
+                    imports.append(f"{memberModule}::{memberName}")
+                    if memberType.isEnum():
+                        imports.append(f"{memberModule}::{memberName}Values")
         name = str(t)
         if name not in unionStructs:
             provider = descriptor or config.getDescriptorProvider()
@@ -5671,8 +5674,7 @@ pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
 
         args = ', '.join([a.define() for a in self.args])
 
-        # pyrefly: ignore  # missing-argument
-        body = f'    {self.getBody()}'
+        body = f'    {self.getBody(cgClass)}'
         trimmedBody = stripTrailingWhitespace(body.replace('\n', '\n    '))
         body = f'\n{trimmedBody}'
         if len(body) > 0:
