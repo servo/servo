@@ -218,9 +218,12 @@ class AndroidTarget(CrossBuildTarget):
             env["RUSTFLAGS"] = env.get("RUSTFLAGS", "")
             env["RUSTFLAGS"] += f"-C link-arg={libclangrt_filename}"
 
+        assert host_cc
+        assert host_cxx
+
         env["RUST_TARGET"] = self.triple()
-        env["HOST_CC"] = host_cc or ""
-        env["HOST_CXX"] = host_cxx or ""
+        env["HOST_CC"] = host_cc
+        env["HOST_CXX"] = host_cxx
         env["HOST_CFLAGS"] = ""
         env["HOST_CXXFLAGS"] = ""
         env["TARGET_CC"] = to_ndk_bin("clang")

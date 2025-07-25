@@ -15,7 +15,6 @@ import pathlib
 import shutil
 import stat
 import subprocess
-from subprocess import CompletedProcess
 import sys
 
 from time import time
@@ -103,7 +102,7 @@ class MachCommands(CommandBase):
         sanitizer: SanitizerKind = SanitizerKind.NONE,
         flavor=None,
         **kwargs,
-    ) -> CompletedProcess[bytes] | int:
+    ) -> int:
         opts = params or []
 
         if build_type.is_release():
@@ -194,7 +193,7 @@ class MachCommands(CommandBase):
         elapsed_delta = datetime.timedelta(seconds=int(elapsed))
         build_message = f"{'Succeeded' if status == 0 else 'Failed'} in {elapsed_delta}"
         print(build_message)
-
+        assert isinstance(status, int)
         return status
 
     @Command("clean", description="Clean the target/ and Python virtual environment directories", category="build")

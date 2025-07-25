@@ -27,7 +27,7 @@ from enum import Enum
 from glob import glob
 from os import path
 from subprocess import PIPE, CompletedProcess
-from typing import Any, Dict, List, Optional, Union, LiteralString, cast, Literal
+from typing import Any, Dict, List, Optional, Union, LiteralString, cast
 from xml.etree.ElementTree import XML
 
 import toml
@@ -44,8 +44,6 @@ from python.servo.platform.build_target import SanitizerKind
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
 ASAN_LEAK_SUPPRESSION_FILE = "support/suppressed_leaks_for_asan.txt"
 
-BuildProfile = Literal["debug", "release", "medium", "production", "production-stripped", "profiling"]
-
 
 @dataclass
 class BuildType:
@@ -55,7 +53,7 @@ class BuildType:
         CUSTOM = 3
 
     kind: Kind
-    profile: BuildProfile
+    profile: str
 
     def dev() -> BuildType:
         return BuildType(BuildType.Kind.DEV, "debug")
@@ -66,7 +64,7 @@ class BuildType:
     def prod() -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, "production")
 
-    def custom(profile: BuildProfile) -> BuildType:
+    def custom(profile: str) -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, profile)
 
     def is_dev(self) -> bool:
@@ -415,15 +413,8 @@ class CommandBase(object):
             response = urllib.request.urlopen(req).read()
             tree = XML(response)
             namespaces = {"ns": tree.tag[1 : tree.tag.index("}")]}
-            contents = tree.find("ns:Contents", namespaces)
-            if contents is None:
-                raise ValueError("Missing <Contents> element")
-
-            key = contents.find("ns:Key", namespaces)
-            if key is None or key.text is None:
-                raise ValueError("Missing <Key> element or its text")
-
-            file_to_download = key.text
+            # pyrefly: ignore  # missing-attribute
+            file_to_download = tree.find("ns:Contents", namespaces).find("ns:Key", namespaces).text
         except urllib.error.URLError as e:
             print("Could not fetch the available nightly versions from the repository : {}".format(e.reason))
             sys.exit(1)
@@ -441,6 +432,7 @@ class CommandBase(object):
         nightly_target_directory = path.join(self.context.topdir, "target")
         # ':' is not an authorized character for a file name on Windows
         # make sure the OS specific separator is used
+        # pyrefly: ignore  # missing-attribute
         target_file_path = file_to_download.replace(":", "-").split("/")
         destination_file = os.path.join(nightly_target_directory, os.path.join(*target_file_path))
         # Once extracted, the nightly folder name is the tar name without the extension
@@ -458,6 +450,7 @@ class CommandBase(object):
             print("The nightly file {} has already been downloaded.".format(destination_file))
         else:
             print("The nightly {} does not exist yet, downloading it.".format(destination_file))
+            # pyrefly: ignore  # no-matching-overload
             download_file(destination_file, NIGHTLY_REPOSITORY_URL + file_to_download, destination_file)
 
         # Extract the downloaded nightly version
@@ -715,7 +708,7 @@ class CommandBase(object):
 
         return target_configuration_decorator
 
-    def configure_build_type(self, release: bool, dev: bool, prod: bool, profile: BuildProfile) -> BuildType:
+    def configure_build_type(self, release: bool, dev: bool, prod: bool, profile: str) -> BuildType:
         option_count = release + dev + prod + (profile is not None)
 
         if option_count > 1:

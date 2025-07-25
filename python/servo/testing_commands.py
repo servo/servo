@@ -17,7 +17,6 @@ import platform
 import re
 import shutil
 import subprocess
-from subprocess import CompletedProcess
 import sys
 import textwrap
 from time import sleep
@@ -149,7 +148,7 @@ class MachCommands(CommandBase):
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
     def test_unit(
         self, build_type: BuildType, test_name=None, package=None, bench=False, nocapture=False, **kwargs
-    ) -> CompletedProcess[bytes] | int:
+    ) -> int:
         if test_name is None:
             test_name = []
 
@@ -227,9 +226,7 @@ class MachCommands(CommandBase):
         elif build_type.is_dev():
             pass  # there is no argument for debug
         else:
-            args += ["--profile"]
-            if build_type.profile is not None:
-                args += [build_type.profile]
+            args += ["--profile", build_type.profile]
 
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
@@ -244,7 +241,9 @@ class MachCommands(CommandBase):
         result = call(["cargo", "bench" if bench else "test"], cwd="support/crown")
         if result != 0:
             return result
-        return self.run_cargo_build_like_command("bench" if bench else "test", args, env=env, **kwargs)
+        result = self.run_cargo_build_like_command("bench" if bench else "test", args, env=env, **kwargs)
+        assert isinstance(result, int)
+        return result
 
     @Command("test-content", description="Run the content tests", category="testing")
     def test_content(self) -> int:
@@ -578,9 +577,7 @@ class MachCommands(CommandBase):
 
         return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
-    def speedometer_to_bmf(
-        self, speedometer: dict[str, Any], bmf_output: str | None = None, profile: str | None = None
-    ) -> None:
+    def speedometer_to_bmf(self, speedometer: dict[str, Any], bmf_output: str, profile: str | None = None) -> None:
         output = dict()
         profile = "" if profile is None else profile + "/"
 
@@ -609,9 +606,8 @@ class MachCommands(CommandBase):
 
         for v in speedometer.values():
             parse_speedometer_result(v)
-        if bmf_output is not None:
-            with open(bmf_output, "w", encoding="utf-8") as f:
-                json.dump(output, f, indent=4)
+        with open(bmf_output, "w", encoding="utf-8") as f:
+            json.dump(output, f, indent=4)
 
     def speedometer_runner(self, binary: str, bmf_output: str | None) -> None:
         speedometer = json.loads(
@@ -634,11 +630,15 @@ class MachCommands(CommandBase):
             self.speedometer_to_bmf(speedometer, bmf_output)
 
     def speedometer_runner_ohos(self, bmf_output: str | None, profile: str | None) -> None:
-        ohos_sdk_native = os.getenv("OHOS_SDK_NATIVE") or ""
-        hdc_path: str = shutil.which("hdc") or path.join(ohos_sdk_native, "../", "toolchains", "hdc")
+        hdc_path = shutil.which("hdc")
         log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
 
-        def read_log_file() -> str:
+        if hdc_path is None:
+            ohos_sdk_native = os.getenv("OHOS_SDK_NATIVE")
+            assert ohos_sdk_native
+            hdc_path = path.join(ohos_sdk_native, "../", "toolchains", "hdc")
+
+        def read_log_file(hdc_path: str) -> str:
             subprocess.call([hdc_path, "file", "recv", log_path])
             file = ""
             try:
@@ -680,12 +680,12 @@ class MachCommands(CommandBase):
         whole_file: str = ""
         for i in range(10):
             sleep(30)
-            whole_file = read_log_file()
+            whole_file = read_log_file(hdc_path)
             if "[INFO script::dom::console]" in whole_file:
                 # technically the file could not have been written completely yet
                 # on devices with slow flash, we might want to wait a bit more
                 sleep(2)
-                whole_file = read_log_file()
+                whole_file = read_log_file(hdc_path)
                 break
         start_index: int = whole_file.index("[INFO script::dom::console]") + len("[INFO script::dom::console]") + 1
         json_string = whole_file[start_index:]

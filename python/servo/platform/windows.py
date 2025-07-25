@@ -184,8 +184,7 @@ class Windows(Base):
             for installer in [libs_msi, devel_msi]:
                 arguments = [
                     "/a",
-                    # Install destination
-                    f'"{installer}"TARGETDIR="{DEPENDENCIES_DIR}"',
+                    f'"{installer}"TARGETDIR="{DEPENDENCIES_DIR}"',  # Install destination
                     "/qn",  # Quiet mode
                 ]
                 quoted_arguments = ",".join((f"'{arg}'" for arg in arguments))
