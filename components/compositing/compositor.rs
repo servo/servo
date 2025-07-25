@@ -768,8 +768,6 @@ impl IOCompositor {
                     return warn!("Could not find WebView for incoming display list");
                 };
 
-                // WebRender is not ready until we receive "NewWebRenderFrameReady"
-                webview_renderer.webrender_frame_ready.set(false);
                 let old_scale = webview_renderer.device_pixels_per_page_pixel();
 
                 let pipeline_id = display_list_info.pipeline_id;
@@ -1566,15 +1564,8 @@ impl IOCompositor {
                 },
                 CompositorMsg::NewWebRenderFrameReady(..) => {
                     found_recomposite_msg = true;
-
-                    // Process all pending events
                     // FIXME: Shouldn't `webview_frame_ready` be stored globally and why can't `pending_frames`
                     // be used here?
-                    self.webview_renderers.iter().for_each(|webview| {
-                        webview.dispatch_pending_point_input_events();
-                        webview.webrender_frame_ready.set(true);
-                    });
-
                     true
                 },
                 _ => true,

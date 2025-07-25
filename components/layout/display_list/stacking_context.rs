@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use core::f32;
+use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::mem;
 use std::sync::Arc;
@@ -11,13 +12,14 @@ use app_units::Au;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use compositing_traits::display_list::{
-    AxesScrollSensitivity, CompositorDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
-    SpatialTreeNodeInfo, StickyNodeInfo,
+    AxesScrollSensitivity, CompositorDisplayListInfo, ReferenceFrameNodeInfo, ScrollTree,
+    ScrollableNodeInfo, SpatialTreeNodeInfo, StickyNodeInfo,
 };
 use embedder_traits::ViewportDetails;
 use euclid::SideOffsets2D;
 use euclid::default::{Point2D, Rect, Size2D};
-use log::warn;
+use layout_api::HitTestResult;
+use log::{debug, warn};
 use servo_config::opts::DebugOptions;
 use style::Zero;
 use style::color::AbsoluteColor;
@@ -41,7 +43,9 @@ use super::ClipId;
 use super::clip::StackingContextTreeClipStore;
 use crate::ArcRefCell;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
-use crate::display_list::{BuilderForBoxFragment, DisplayListBuilder, offset_radii};
+use crate::display_list::{
+    BuilderForBoxFragment, DisplayListBuilder, offset_radii, rounded_rectangle_contains_point,
+};
 use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
@@ -65,6 +69,156 @@ pub(crate) struct ContainingBlock {
 
     /// The physical rect of this containing block.
     rect: PhysicalRect<Au>,
+}
+
+pub(crate) struct HitTestData<'a> {
+    /// hit test location
+    client_point: LayoutPoint,
+    /// we need scroll_tree and clip_store in StackingContextTree
+    stacking_context_tree: &'a StackingContextTree,
+}
+
+impl<'a> HitTestData<'a> {
+    pub(crate) fn new(
+        client_point: LayoutPoint,
+        stacking_context_tree: &'a StackingContextTree,
+    ) -> Self {
+        HitTestData {
+            client_point,
+            stacking_context_tree,
+        }
+    }
+}
+
+fn handle_spatial_node(
+    hit_test_data: &HitTestData,
+    scroll_tree_node_id: &ScrollTreeNodeId,
+) -> LayoutPoint {
+    let mut hit_test_location = hit_test_data.client_point;
+    handle_spatial_node_internal(
+        hit_test_location.borrow_mut(),
+        &hit_test_data
+            .stacking_context_tree
+            .compositor_info
+            .scroll_tree,
+        scroll_tree_node_id,
+    );
+    debug!("handle_spatial_node hit test location:{hit_test_location:?}.");
+    hit_test_location
+}
+
+fn handle_spatial_node_internal(
+    hit_test_location: &mut LayoutPoint,
+    scroll_tree: &ScrollTree,
+    scroll_tree_node_id: &ScrollTreeNodeId,
+) {
+    let mut scroll_tree_node = scroll_tree.get_node(scroll_tree_node_id);
+    let spatial_node_info = &scroll_tree_node.info;
+    match spatial_node_info {
+        SpatialTreeNodeInfo::ReferenceFrame(reference_frame_node_info) => {
+            // ReferenceFrame fragment border rect not has containing block offset.
+            *hit_test_location -= reference_frame_node_info.origin.to_vector();
+            *hit_test_location = reference_frame_node_info
+                .transform
+                .inverse()
+                .and_then(|inverted| inverted.transform_point2d(*hit_test_location))
+                .unwrap_or_default();
+        },
+        SpatialTreeNodeInfo::Scroll(scrollable_node_info) => {
+            *hit_test_location += scrollable_node_info.offset;
+        },
+        SpatialTreeNodeInfo::Sticky(sticky_node_info) => {
+            // https://drafts.csswg.org/css-position/#valdef-position-sticky
+            // The element is positioned according to the normal flow of the document,
+            // and then offset relative to its nearest scrolling ancestor and containing
+            // block (nearest block-level ancestor).
+            if let Some(parent_id) = &scroll_tree_node.parent {
+                // obtain parent scroll clip rect.
+                scroll_tree_node = scroll_tree.get_node(parent_id);
+                let parent_spatial_node_info = &scroll_tree_node.info;
+                if let SpatialTreeNodeInfo::Scroll(parent_scrollable_node_info) =
+                    parent_spatial_node_info
+                {
+                    debug!(
+                        "handle_spatial_node_internal Sticky parent scroll info:{parent_scrollable_node_info:?}"
+                    );
+                    // apply parent scroll offset.
+                    *hit_test_location += parent_scrollable_node_info.offset;
+                    let parent_scroll_clip_rect = parent_scrollable_node_info.clip_rect;
+                    // current scroll area rect is parent_scroll_clip_rect add parent_scrollable_node_info offset.
+                    let scroll_area_max =
+                        parent_scroll_clip_rect.max + parent_scrollable_node_info.offset;
+                    let scroll_area_min =
+                        parent_scroll_clip_rect.min + parent_scrollable_node_info.offset;
+                    // if the sticky element min x is less than scroll area min x plus margin left of sitcky element,
+                    // then the sticky element needs to be offset to the right by the diffrence between the two.
+                    let mut x_offset = (scroll_area_min.x +
+                        sticky_node_info.margins.left.unwrap_or_default() -
+                        sticky_node_info.frame_rect.min.x)
+                        .max(0.0);
+                    let mut y_offset = (scroll_area_min.y +
+                        sticky_node_info.margins.top.unwrap_or_default() -
+                        sticky_node_info.frame_rect.min.y)
+                        .max(0.0);
+                    if x_offset.is_zero() {
+                        x_offset = (scroll_area_max.x -
+                            sticky_node_info.margins.right.unwrap_or_default() -
+                            sticky_node_info.frame_rect.max.x)
+                            .min(0.0);
+                    }
+                    if y_offset.is_zero() {
+                        y_offset = (scroll_area_max.y -
+                            sticky_node_info.margins.bottom.unwrap_or_default() -
+                            sticky_node_info.frame_rect.max.y)
+                            .min(0.0);
+                    }
+                    debug!(
+                        "handle_spatial_node_internal Sticky x_offset:{x_offset:?} y_offset:{y_offset:?}"
+                    );
+                    hit_test_location.x -= x_offset;
+                    hit_test_location.y -= y_offset;
+                }
+            } else {
+                warn!("handle_spatial_node_internal Sticky parent should be Scroll.");
+            }
+        },
+    }
+    if let Some(parent_id) = &scroll_tree_node.parent {
+        // handle parent spatial
+        debug!(
+            "handle_spatial_node_internal scroll_tree_node_id:{scroll_tree_node_id:?} \
+            hit test location:{hit_test_location:?} parent:{parent_id:?}."
+        );
+        handle_spatial_node_internal(hit_test_location, scroll_tree, parent_id);
+    }
+}
+
+fn handle_clip_node(hit_test_data: &mut HitTestData, clip_id: Option<ClipId>) -> bool {
+    // The clip chain id of this stacking context if it has one. Used for filter clipping.
+    if clip_id.is_some_and(|clip_id| clip_id != ClipId::INVALID) {
+        let clip_info = &hit_test_data.stacking_context_tree.clip_store.0[clip_id.unwrap().0];
+        debug!(
+            "handle_clip_node clip_id:{clip_id:?} rect:{:?} radii:{:?} parent_scroll_node_id:{:?} parent_clip_id:{:?}",
+            clip_info.rect,
+            clip_info.radii,
+            clip_info.parent_scroll_node_id,
+            clip_info.parent_clip_id
+        );
+        // handle clip parent scroll.
+        let hit_test_location =
+            handle_spatial_node(hit_test_data, &clip_info.parent_scroll_node_id);
+        debug!(
+            "handle_clip_node handle clip parent scroll. hit test location:{hit_test_location:?}."
+        );
+        // hit test in clip rectangle
+        if rounded_rectangle_contains_point(&hit_test_location, &clip_info.rect, &clip_info.radii) {
+            // handle clip parent clip, until parent clip id is invalid.
+            return handle_clip_node(hit_test_data, Some(clip_info.parent_clip_id));
+        }
+        // hit test not in clip rect return false.
+        return false;
+    }
+    true
 }
 
 impl ContainingBlock {
@@ -328,6 +482,50 @@ impl StackingContextContent {
             },
             Self::AtomicInlineStackingContainer { index } => {
                 inline_stacking_containers[*index].build_display_list(builder);
+            },
+        }
+    }
+
+    fn hit_test_stacking_context_content(
+        &self,
+        hit_test_data: &mut HitTestData,
+        hit_test_result: &mut HitTestResult,
+        inline_stacking_containers: &[StackingContext],
+    ) -> bool {
+        match self {
+            Self::Fragment {
+                scroll_node_id,
+                reference_frame_scroll_node_id: _,
+                clip_id,
+                section,
+                containing_block,
+                fragment,
+                is_hit_test_for_scrollable_overflow,
+                is_collapsed_table_borders: _,
+                text_decorations: _,
+            } => {
+                debug!(
+                    "StackingContextContent::hit_test_stacking_context_content section:{section:?} containing_block:\
+                    {containing_block:?} scroll_node_id:{scroll_node_id:?} clip_id:{clip_id:?}"
+                );
+                if handle_clip_node(hit_test_data, Some(*clip_id)) {
+                    let hit_test_location = handle_spatial_node(hit_test_data, scroll_node_id);
+                    fragment.hit_test_fragment(
+                        hit_test_location,
+                        hit_test_result,
+                        containing_block,
+                        *is_hit_test_for_scrollable_overflow,
+                    )
+                } else {
+                    false
+                }
+            },
+            Self::AtomicInlineStackingContainer { index } => {
+                debug!(
+                    "StackingContextContent::hit_test_stacking_context_content AtomicInlineStackingContainer."
+                );
+                inline_stacking_containers[*index]
+                    .hit_test_stacking_context(hit_test_data, hit_test_result)
             },
         }
     }
@@ -806,6 +1004,109 @@ impl StackingContext {
                 tree.end_level();
             },
         }
+    }
+
+    pub(crate) fn hit_test_stacking_context(
+        &self,
+        hit_test_data: &mut HitTestData,
+        hit_test_result: &mut HitTestResult,
+    ) -> bool {
+        debug!(
+            "StackingContext::hit_test_stacking_context context_type:{:?} z_index:{:?} contents:{:?} \
+            real_stacking_contexts:{:?} float_stacking_containers:{:?}",
+            self.context_type,
+            self.z_index(),
+            self.contents.len(),
+            self.real_stacking_contexts_and_positioned_stacking_containers
+                .len(),
+            self.float_stacking_containers.len()
+        );
+        let mut contents = self.contents.iter().rev().peekable();
+        // Step 1: Outline
+        while contents
+            .peek()
+            .is_some_and(|child| child.section() == StackingContextSection::Outline)
+        {
+            // The hit test will not hit the outline.
+            let _ = contents.next().unwrap();
+        }
+
+        // Steps 2 and 3: Stacking contexts with non-negative ‘z-index’, and
+        // positioned stacking containers (where ‘z-index’ is auto)
+        let mut real_stacking_contexts_and_positioned_stacking_containers = self
+            .real_stacking_contexts_and_positioned_stacking_containers
+            .iter()
+            .rev()
+            .peekable();
+        while real_stacking_contexts_and_positioned_stacking_containers
+            .peek()
+            .is_some_and(|child| child.z_index() >= 0)
+        {
+            let child = real_stacking_contexts_and_positioned_stacking_containers
+                .next()
+                .unwrap();
+            if child.hit_test_stacking_context(hit_test_data, hit_test_result) {
+                return true;
+            }
+        }
+
+        // Steps 4 and 5: Fragments and inline stacking containers
+        while contents
+            .peek()
+            .is_some_and(|child| child.section() == StackingContextSection::Foreground)
+        {
+            let child = contents.next().unwrap();
+            if child.hit_test_stacking_context_content(
+                hit_test_data,
+                hit_test_result,
+                &self.atomic_inline_stacking_containers,
+            ) {
+                return true;
+            }
+        }
+
+        // Step 6: Float stacking containers
+        for child in self.float_stacking_containers.iter() {
+            if child.hit_test_stacking_context(hit_test_data, hit_test_result) {
+                return true;
+            }
+        }
+
+        // Step 7: Block backgrounds and borders
+        while contents.peek().is_some_and(|child| {
+            child.section() == StackingContextSection::DescendantBackgroundsAndBorders
+        }) {
+            let child = contents.next().unwrap();
+            if child.hit_test_stacking_context_content(
+                hit_test_data,
+                hit_test_result,
+                &self.atomic_inline_stacking_containers,
+            ) {
+                return true;
+            }
+        }
+
+        // Step 8: Stacking contexts with negative ‘z-index’
+        for child in real_stacking_contexts_and_positioned_stacking_containers {
+            if child.hit_test_stacking_context(hit_test_data, hit_test_result) {
+                return true;
+            }
+        }
+
+        // Steps 9 and 10: Borders and background for the root
+        while contents.peek().is_some_and(|child| {
+            child.section() == StackingContextSection::OwnBackgroundsAndBorders
+        }) {
+            let child = contents.next().unwrap();
+            if child.hit_test_stacking_context_content(
+                hit_test_data,
+                hit_test_result,
+                &self.atomic_inline_stacking_containers,
+            ) {
+                return true;
+            }
+        }
+        false
     }
 }
 

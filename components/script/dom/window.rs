@@ -51,9 +51,9 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    FragmentType, Layout, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
-    ReflowGoal, ReflowRequest, ReflowRequestRestyle, RestyleReason, TrustedNodeAddress,
-    combine_id_with_fragment_type,
+    FragmentType, HitTestResult, Layout, PendingImage, PendingImageState,
+    PendingRasterizationImage, QueryMsg, ReflowGoal, ReflowRequest, ReflowRequestRestyle,
+    RestyleReason, TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -88,7 +88,7 @@ use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
+use webrender_api::units::{DeviceIntSize, DevicePixel, DevicePoint, LayoutPixel, LayoutPoint};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -3060,6 +3060,14 @@ impl Window {
                 nodes.push(Dom::from_ref(&*node));
             }
         }
+    }
+
+    pub(crate) fn hit_test(&self, hit_test_location: DevicePoint) -> HitTestResult {
+        // div device_pixel_ratio.
+        let dpr = self.device_pixel_ratio();
+        let hit_test_css_point = hit_test_location / dpr;
+        let hit_test_layout_point = LayoutPoint::from_untyped(hit_test_css_point.to_untyped());
+        self.layout.borrow().hit_test(hit_test_layout_point)
     }
 }
 

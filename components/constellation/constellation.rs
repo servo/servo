@@ -129,10 +129,10 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy, FocusId,
-    FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
-    KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
-    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
+    AnimationState, Cursor, EmbedderMsg, EmbedderProxy, FocusId, FocusSequenceNumber, InputEvent,
+    JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent,
+    MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState, MouseButton,
+    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
     WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::Size2D;
@@ -1403,8 +1403,8 @@ where
             EmbedderToConstellationMessage::LogEntry(webview_id, thread_name, entry) => {
                 self.handle_log_entry(webview_id, thread_name, entry);
             },
-            EmbedderToConstellationMessage::ForwardInputEvent(webview_id, event, hit_test) => {
-                self.forward_input_event(webview_id, event, hit_test);
+            EmbedderToConstellationMessage::ForwardInputEvent(webview_id, event) => {
+                self.forward_input_event(webview_id, event);
             },
             EmbedderToConstellationMessage::SetCursor(webview_id, cursor) => {
                 self.handle_set_cursor_msg(webview_id, cursor)
@@ -2851,12 +2851,7 @@ where
         }
     }
 
-    fn forward_input_event(
-        &mut self,
-        webview_id: WebViewId,
-        event: InputEvent,
-        hit_test_result: Option<CompositorHitTestResult>,
-    ) {
+    fn forward_input_event(&mut self, webview_id: WebViewId, event: InputEvent) {
         if let InputEvent::MouseButton(event) = &event {
             self.update_pressed_mouse_buttons(event);
         }
@@ -2877,30 +2872,23 @@ where
             }
         }
 
-        let pipeline_id = match &hit_test_result {
-            Some(hit_test) => hit_test.pipeline_id,
-            None => {
-                // If there's no hit test, send to the focused browsing context of the given webview.
-                let Some(browsing_context_id) = self
-                    .webviews
-                    .get(webview_id)
-                    .map(|webview| webview.focused_browsing_context_id)
-                else {
-                    warn!("Handling InputEvent for an unknown webview: {webview_id}");
-                    return;
-                };
+        // obtain focused browsing context of the given webview.
+        let Some(browsing_context_id) = self
+            .webviews
+            .get(webview_id)
+            .map(|webview| webview.focused_browsing_context_id)
+        else {
+            warn!("Handling InputEvent for an unknown webview: {webview_id}");
+            return;
+        };
 
-                let Some(pipeline_id) = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .map(|context| context.pipeline_id)
-                else {
-                    warn!("{browsing_context_id}: Got InputEvent for nonexistent browsing context");
-                    return;
-                };
-
-                pipeline_id
-            },
+        let Some(pipeline_id) = self
+            .browsing_contexts
+            .get(&browsing_context_id)
+            .map(|context| context.pipeline_id)
+        else {
+            warn!("{browsing_context_id}: Got InputEvent for nonexistent browsing context");
+            return;
         };
 
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
@@ -2909,7 +2897,6 @@ where
         };
 
         let event = ConstellationInputEvent {
-            hit_test_result,
             pressed_mouse_buttons,
             active_keyboard_modifiers,
             event,

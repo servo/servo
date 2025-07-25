@@ -14,7 +14,8 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
-use layout_api::ReflowRequest;
+use layout_api::{HitTestResult, ReflowRequest};
+use log::debug;
 use net_traits::image_cache::Image as CachedImage;
 use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
@@ -41,11 +42,11 @@ use style::values::specified::ui::CursorKind;
 use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
-    self as wr, BorderDetails, BoxShadowClipMode, BuiltDisplayList, ClipChainId, ClipMode,
-    CommonItemProperties, ComplexClipRegion, ImageRendering, NinePatchBorder,
+    self as wr, BorderDetails, BorderRadius, BoxShadowClipMode, BuiltDisplayList, ClipChainId,
+    ClipMode, CommonItemProperties, ComplexClipRegion, ImageRendering, NinePatchBorder,
     NinePatchBorderSource, PropertyBinding, SpatialId, SpatialTreeItemKey, units,
 };
-use wr::units::LayoutVector2D;
+use wr::units::{LayoutPoint, LayoutVector2D, RectExt};
 
 use crate::cell::ArcRefCell;
 use crate::context::{ImageResolver, ResolvedImage};
@@ -961,6 +962,147 @@ impl Fragment {
                 text_decoration.style.to_webrender(),
             );
         }
+    }
+
+    pub(crate) fn hit_test_fragment(
+        &self,
+        hit_test_location: LayoutPoint,
+        hit_test_result: &mut HitTestResult,
+        containing_block: &PhysicalRect<Au>,
+        is_hit_test_for_scrollable_overflow: bool,
+    ) -> bool {
+        match self {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                debug!(
+                    "hit_test_fragment Box is_hit_test_for_scrollable_overflow:{:?}",
+                    is_hit_test_for_scrollable_overflow
+                );
+                let box_fragment = &*box_fragment.borrow();
+                match box_fragment.style.get_inherited_box().visibility {
+                    Visibility::Visible => {
+                        let webrender_border_rect = box_fragment
+                            .border_rect()
+                            .translate(containing_block.origin.to_vector());
+                        self.hit_test_fragment_in_rect(
+                            hit_test_location,
+                            hit_test_result,
+                            webrender_border_rect,
+                            &box_fragment.style,
+                        )
+                    },
+                    Visibility::Hidden => false,
+                    Visibility::Collapse => false,
+                }
+            },
+            Fragment::AbsoluteOrFixedPositioned(_) => false,
+            Fragment::Positioning(positioning_fragment) => {
+                let positioning_fragment = positioning_fragment.borrow();
+                let rect = positioning_fragment
+                    .rect
+                    .translate(containing_block.origin.to_vector());
+                self.hit_test_fragment_in_rect(
+                    hit_test_location,
+                    hit_test_result,
+                    rect,
+                    &positioning_fragment.style,
+                )
+            },
+            Fragment::IFrame(_) => false,
+            Fragment::Text(text) => {
+                let text = &*text.borrow();
+                match text
+                    .inline_styles
+                    .style
+                    .borrow()
+                    .get_inherited_box()
+                    .visibility
+                {
+                    Visibility::Visible => {
+                        let rect = text.rect.translate(containing_block.origin.to_vector());
+                        let parent_style = text.inline_styles.style.borrow();
+                        self.hit_test_fragment_in_rect(
+                            hit_test_location,
+                            hit_test_result,
+                            rect,
+                            &parent_style,
+                        )
+                    },
+                    Visibility::Hidden => false,
+                    Visibility::Collapse => false,
+                }
+            },
+            _ => false,
+        }
+    }
+
+    pub(crate) fn hit_test_fragment_in_rect(
+        &self,
+        hit_test_location: LayoutPoint,
+        hit_test_result: &mut HitTestResult,
+        border_rect: PhysicalRect<Au>,
+        style: &ComputedValues,
+    ) -> bool {
+        debug!("Fragment::hit_test_fragment_in_rect border_rect:{border_rect:?}");
+        use style::computed_values::pointer_events::T as PointerEvents;
+        let inherited_ui = style.get_inherited_ui();
+        if inherited_ui.pointer_events == PointerEvents::None {
+            return false;
+        }
+        if let Some(tag) = self.tag() {
+            // obtain border radius
+            let webrender_border_rect = border_rect.to_webrender();
+            let border_radius = {
+                let resolve = |radius: &LengthPercentage, box_size: Au| {
+                    radius.to_used_value(box_size).to_f32_px()
+                };
+                let corner = |corner: &style::values::computed::BorderCornerRadius| {
+                    Size2D::new(
+                        resolve(&corner.0.width.0, border_rect.size.width),
+                        resolve(&corner.0.height.0, border_rect.size.height),
+                    )
+                };
+                let b = style.get_border();
+                let mut radius = wr::BorderRadius {
+                    top_left: corner(&b.border_top_left_radius),
+                    top_right: corner(&b.border_top_right_radius),
+                    bottom_right: corner(&b.border_bottom_right_radius),
+                    bottom_left: corner(&b.border_bottom_left_radius),
+                };
+
+                normalize_radii(&webrender_border_rect, &mut radius);
+                radius
+            };
+            if border_radius.is_zero() {
+                // if not has border radius hit test in rect.
+                if webrender_border_rect.contains(hit_test_location) {
+                    hit_test_result.node = Some(tag.node);
+                    hit_test_result.point_in_target =
+                        hit_test_location - webrender_border_rect.min.to_vector();
+                    debug!(
+                        "Fragment::hit_test_fragment_in_rect true point_in_target:{:?}",
+                        hit_test_result.point_in_target
+                    );
+                    return true;
+                }
+            } else {
+                // if has border radius, handle clip region.
+                if rounded_rectangle_contains_point(
+                    &hit_test_location,
+                    &webrender_border_rect,
+                    &border_radius,
+                ) {
+                    hit_test_result.node = Some(tag.node);
+                    hit_test_result.point_in_target =
+                        hit_test_location - webrender_border_rect.min.to_vector();
+                    debug!(
+                        "Fragment::hit_test_fragment_in_rect true point_in_target:{:?}",
+                        hit_test_result.point_in_target
+                    );
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -1913,4 +2055,158 @@ pub(super) fn compute_margin_box_radius(
             Size2D::new(margin.right, margin.bottom),
         ),
     }
+}
+
+use std::f32::consts::FRAC_PI_2;
+
+/// Number of steps to integrate arc length over.
+const STEP_COUNT: usize = 20;
+
+/// Represents an ellipse centred at a local space origin.
+pub struct Ellipse {
+    pub radius: LayoutSize,
+    pub total_arc_length: f32,
+}
+
+impl Ellipse {
+    pub fn new(radius: LayoutSize) -> Ellipse {
+        // Approximate the total length of the first quadrant of this ellipse.
+        let total_arc_length = get_simpson_length(FRAC_PI_2, radius.width, radius.height);
+
+        Ellipse {
+            radius,
+            total_arc_length,
+        }
+    }
+
+    pub fn contains(&self, point: LayoutPoint) -> bool {
+        self.signed_distance(point.to_vector()) <= 0.0
+    }
+
+    /// Find the signed distance from this ellipse given a point.
+    /// Taken from <http://www.iquilezles.org/www/articles/ellipsedist/ellipsedist.htm>
+    fn signed_distance(&self, point: LayoutVector2D) -> f32 {
+        // This algorithm fails for circles, so we handle them here.
+        if self.radius.width == self.radius.height {
+            return point.length() - self.radius.width;
+        }
+
+        let mut p = LayoutVector2D::new(point.x.abs(), point.y.abs());
+        let mut ab = self.radius.to_vector();
+        if p.x > p.y {
+            p = p.yx();
+            ab = ab.yx();
+        }
+
+        let l = ab.y * ab.y - ab.x * ab.x;
+
+        let m = ab.x * p.x / l;
+        let n = ab.y * p.y / l;
+        let m2 = m * m;
+        let n2 = n * n;
+
+        let c = (m2 + n2 - 1.0) / 3.0;
+        let c3 = c * c * c;
+
+        let q = c3 + m2 * n2 * 2.0;
+        let d = c3 + m2 * n2;
+        let g = m + m * n2;
+
+        let co = if d < 0.0 {
+            let p = (q / c3).acos() / 3.0;
+            let s = p.cos();
+            let t = p.sin() * (3.0_f32).sqrt();
+            let rx = (-c * (s + t + 2.0) + m2).sqrt();
+            let ry = (-c * (s - t + 2.0) + m2).sqrt();
+            (ry + l.signum() * rx + g.abs() / (rx * ry) - m) / 2.0
+        } else {
+            let h = 2.0 * m * n * d.sqrt();
+            let s = (q + h).signum() * (q + h).abs().powf(1.0 / 3.0);
+            let u = (q - h).signum() * (q - h).abs().powf(1.0 / 3.0);
+            let rx = -s - u - c * 4.0 + 2.0 * m2;
+            let ry = (s - u) * (3.0_f32).sqrt();
+            let rm = (rx * rx + ry * ry).sqrt();
+            let p = ry / (rm - rx).sqrt();
+            (p + 2.0 * g / rm - m) / 2.0
+        };
+
+        let si = (1.0 - co * co).sqrt();
+        let r = LayoutVector2D::new(ab.x * co, ab.y * si);
+        (r - p).length() * (p.y - r.y).signum()
+    }
+}
+
+pub fn rounded_rectangle_contains_point(
+    point: &LayoutPoint,
+    rect: &LayoutRect,
+    radii: &BorderRadius,
+) -> bool {
+    if !rect.contains(*point) {
+        return false;
+    }
+
+    let top_left_center = rect.min + radii.top_left.to_vector();
+    if top_left_center.x > point.x &&
+        top_left_center.y > point.y &&
+        !Ellipse::new(radii.top_left).contains(*point - top_left_center.to_vector())
+    {
+        return false;
+    }
+
+    let bottom_right_center = rect.bottom_right() - radii.bottom_right.to_vector();
+    if bottom_right_center.x < point.x &&
+        bottom_right_center.y < point.y &&
+        !Ellipse::new(radii.bottom_right).contains(*point - bottom_right_center.to_vector())
+    {
+        return false;
+    }
+
+    let top_right_center =
+        rect.top_right() + LayoutVector2D::new(-radii.top_right.width, radii.top_right.height);
+    if top_right_center.x < point.x &&
+        top_right_center.y > point.y &&
+        !Ellipse::new(radii.top_right).contains(*point - top_right_center.to_vector())
+    {
+        return false;
+    }
+
+    let bottom_left_center = rect.bottom_left() +
+        LayoutVector2D::new(radii.bottom_left.width, -radii.bottom_left.height);
+    if bottom_left_center.x > point.x &&
+        bottom_left_center.y < point.y &&
+        !Ellipse::new(radii.bottom_left).contains(*point - bottom_left_center.to_vector())
+    {
+        return false;
+    }
+
+    true
+}
+
+/// Use Simpsons rule to approximate the arc length of
+/// part of an ellipse. Note that this only works over
+/// the range of [0, pi/2].
+// TODO(gw): This is a simplistic way to estimate the
+// arc length of an ellipse segment. We can probably use
+// a faster / more accurate method!
+fn get_simpson_length(theta: f32, rx: f32, ry: f32) -> f32 {
+    let df = theta / STEP_COUNT as f32;
+    let mut sum = 0.0;
+
+    for i in 0..(STEP_COUNT + 1) {
+        let (sin_theta, cos_theta) = (i as f32 * df).sin_cos();
+        let a = rx * sin_theta;
+        let b = ry * cos_theta;
+        let y = (a * a + b * b).sqrt();
+        let q = if i == 0 || i == STEP_COUNT {
+            1.0
+        } else if i % 2 == 0 {
+            2.0
+        } else {
+            4.0
+        };
+
+        sum += q * y;
+    }
+
+    (df / 3.0) * sum
 }

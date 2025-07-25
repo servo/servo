@@ -53,7 +53,7 @@ use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
-use webrender_api::units::{DeviceIntSize, LayoutVector2D};
+use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
@@ -200,6 +200,18 @@ pub struct LayoutConfig {
     pub theme: Theme,
 }
 
+#[derive(Debug, Default)]
+pub struct HitTestResult {
+    /// hit test target node
+    pub node: Option<OpaqueNode>,
+    /// point in html page
+    pub page_point: LayoutPoint,
+    /// point in window client
+    pub client_point: LayoutPoint,
+    /// point in the target item.
+    pub point_in_target: LayoutPoint,
+}
+
 pub trait LayoutFactory: Send + Sync {
     fn create(&self, config: LayoutConfig) -> Box<dyn Layout>;
 }
@@ -286,6 +298,7 @@ pub trait Layout {
     ) -> Option<ServoArc<Font>>;
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
     fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
+    fn hit_test(&self, hit_test_location: LayoutPoint) -> HitTestResult;
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`

@@ -51,7 +51,7 @@ use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     EmbedderMsg, FocusSequenceNumber, InputEvent, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionActionType, MouseButton, MouseButtonAction,
-    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    MouseButtonEvent, MouseMoveEvent, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
@@ -1015,6 +1015,7 @@ impl ScriptThread {
     fn process_mouse_move_event(
         &self,
         document: &Document,
+        event: MouseMoveEvent,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
@@ -1022,7 +1023,12 @@ impl ScriptThread {
         let prev_mouse_over_target = self.topmost_mouse_over_target.get();
 
         unsafe {
-            document.handle_mouse_move_event(input_event, &self.topmost_mouse_over_target, can_gc)
+            document.handle_mouse_move_event(
+                event,
+                input_event,
+                &self.topmost_mouse_over_target,
+                can_gc,
+            )
         }
 
         // Short-circuit if nothing changed
@@ -1095,17 +1101,16 @@ impl ScriptThread {
                 InputEvent::MouseButton(mouse_button_event) => {
                     document.handle_mouse_button_event(mouse_button_event, &event, can_gc);
                 },
-                InputEvent::MouseMove(_) => {
+                InputEvent::MouseMove(mouse_move_event) => {
                     // The event itself is unecessary here, because the point in the viewport is in the hit test.
-                    self.process_mouse_move_event(&document, &event, can_gc);
+                    self.process_mouse_move_event(&document, mouse_move_event, &event, can_gc);
                 },
-                InputEvent::MouseLeave(_) => {
+                InputEvent::MouseLeave(mouse_leave_event) => {
                     self.topmost_mouse_over_target.take();
-                    document.handle_mouse_leave_event(&event, can_gc);
+                    document.handle_mouse_leave_event(mouse_leave_event, &event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
-                    let touch_result =
-                        document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
+                    let touch_result = document.handle_touch_event(touch_event, can_gc);
                     if let (TouchEventResult::Processed(handled), true) =
                         (touch_result, touch_event.is_cancelable())
                     {
@@ -3641,13 +3646,11 @@ impl ScriptThread {
                         if pixel_dist < 10.0 * document.window().device_pixel_ratio().get() {
                             // Pass webdriver_id to the newly generated click event
                             document.note_pending_input_event(ConstellationInputEvent {
-                                hit_test_result: event.hit_test_result.clone(),
                                 pressed_mouse_buttons: event.pressed_mouse_buttons,
                                 active_keyboard_modifiers: event.active_keyboard_modifiers,
                                 event: event.event.clone().with_webdriver_message_id(None),
                             });
                             document.note_pending_input_event(ConstellationInputEvent {
-                                hit_test_result: event.hit_test_result,
                                 pressed_mouse_buttons: event.pressed_mouse_buttons,
                                 active_keyboard_modifiers: event.active_keyboard_modifiers,
                                 event: InputEvent::MouseButton(MouseButtonEvent::new(

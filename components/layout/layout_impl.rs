@@ -26,9 +26,9 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use layout_api::{
-    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, NodesFromPointQueryType,
-    OffsetParentResponse, QueryMsg, ReflowGoal, ReflowRequest, ReflowRequestRestyle, ReflowResult,
-    TrustedNodeAddress,
+    HitTestResult, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory,
+    NodesFromPointQueryType, OffsetParentResponse, QueryMsg, ReflowGoal, ReflowRequest,
+    ReflowRequestRestyle, ReflowResult, TrustedNodeAddress,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -75,11 +75,11 @@ use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use url::Url;
-use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
-use crate::display_list::{DisplayListBuilder, StackingContextTree};
+use crate::display_list::{DisplayListBuilder, HitTestData, StackingContextTree};
 use crate::query::{
     get_the_text_steps, process_client_rect_request, process_content_box_request,
     process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
@@ -476,6 +476,28 @@ impl Layout for LayoutThread {
             .borrow_mut()
             .as_mut()
             .and_then(|tree| tree.compositor_info.scroll_tree.scroll_offset(id))
+    }
+
+    fn hit_test(&self, hit_test_location: LayoutPoint) -> HitTestResult {
+        let mut hit_test_result = HitTestResult::default();
+        if !self.need_new_display_list.get() {
+            if let Some(stacking_context_tree) = self.stacking_context_tree.borrow().as_ref() {
+                let root_scroll_offset = stacking_context_tree
+                    .compositor_info
+                    .scroll_tree
+                    .scroll_offset(self.id.root_scroll_id())
+                    .unwrap_or_default();
+                // The page_point in the hit test result is only related to the scroll offset of the root node.
+                hit_test_result.page_point = hit_test_location + root_scroll_offset;
+                // The client_point in the test result will not be modified.
+                hit_test_result.client_point = hit_test_location;
+                let mut hit_test_data = HitTestData::new(hit_test_location, stacking_context_tree);
+                stacking_context_tree
+                    .root_stacking_context
+                    .hit_test_stacking_context(&mut hit_test_data, &mut hit_test_result);
+            }
+        }
+        hit_test_result
     }
 }
 
