@@ -48,7 +48,10 @@ use {
 use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
-use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, PIXEL_DELTA_FACTOR, WindowPortsMethods};
+use super::window_trait::{
+    LINE_HEIGHT, LINE_WIDTH, MIN_INNER_HEIGHT, MIN_INNER_WIDTH, PIXEL_DELTA_FACTOR,
+    WindowPortsMethods,
+};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::prefs::ServoShellPreferences;
@@ -97,7 +100,7 @@ impl Window {
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
             .with_inner_size(LogicalSize::new(inner_size.width, inner_size.height))
-            .with_min_inner_size(LogicalSize::new(1, 1))
+            .with_min_inner_size(LogicalSize::new(MIN_INNER_WIDTH, MIN_INNER_HEIGHT))
             // Must be invisible at startup; accesskit_winit setup needs to
             // happen before the window is shown for the first time.
             .with_visible(false);
@@ -772,8 +775,11 @@ impl WindowPortsMethods for Window {
         // Prevent the inner area from being 0 pixels wide or tall
         // this prevents a crash in the compositor due to invalid surface size
         self.winit_window.set_min_inner_size(Some(PhysicalSize::new(
-            1.0,
-            1.0 + (self.toolbar_height() * self.hidpi_scale_factor()).0,
+            MIN_INNER_WIDTH,
+            i32::max(
+                MIN_INNER_HEIGHT,
+                (self.toolbar_height() * self.hidpi_scale_factor()).0 as i32,
+            ),
         )));
     }
 
