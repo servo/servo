@@ -443,23 +443,6 @@ impl CanvasState {
         }
     }
 
-    pub(crate) fn get_rect(&self, canvas_size: Size2D<u32>, rect: Rect<u32>) -> Vec<u8> {
-        assert!(self.origin_is_clean());
-        assert!(Rect::from_size(canvas_size).contains_rect(&rect));
-
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
-        let snapshot = receiver.recv().unwrap().to_owned();
-        snapshot
-            .to_vec(
-                Some(SnapshotAlphaMode::Transparent {
-                    premultiplied: false,
-                }),
-                Some(SnapshotPixelFormat::RGBA),
-            )
-            .0
-    }
-
     ///
     /// drawImage coordinates explained
     ///
@@ -701,7 +684,6 @@ impl CanvasState {
                 OffscreenRenderingContext::Context2d(ref context) => {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                         self.get_canvas_id(),
-                        image_size,
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -781,7 +763,6 @@ impl CanvasState {
                 RenderingContext::Context2d(ref context) => {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                         self.get_canvas_id(),
-                        image_size,
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -813,7 +794,6 @@ impl CanvasState {
                         OffscreenRenderingContext::Context2d(ref context) => context
                             .send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                                 self.get_canvas_id(),
-                                image_size,
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
@@ -1755,7 +1735,19 @@ impl CanvasState {
         };
 
         let data = if self.is_paintable() {
-            Some(self.get_rect(canvas_size, read_rect))
+            let (sender, receiver) = ipc::channel().unwrap();
+            self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(Some(read_rect), sender));
+            let snapshot = receiver.recv().unwrap().to_owned();
+            Some(
+                snapshot
+                    .to_vec(
+                        Some(SnapshotAlphaMode::Transparent {
+                            premultiplied: false,
+                        }),
+                        Some(SnapshotPixelFormat::RGBA),
+                    )
+                    .0,
+            )
         } else {
             None
         };
