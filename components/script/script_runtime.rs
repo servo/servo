@@ -90,6 +90,7 @@ static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     empty: Some(empty),
     pushNewInterruptQueue: Some(push_new_interrupt_queue),
     popInterruptQueue: Some(pop_interrupt_queue),
+    dropInterruptQueues: Some(drop_interrupt_queues),
 };
 
 static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
@@ -251,32 +252,38 @@ unsafe extern "C" fn empty(extra: *const c_void) -> bool {
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> *mut c_void {
-    let mut result = std::ptr::null_mut();
+unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> *const c_void {
+    let mut result = std::ptr::null();
     wrap_panic(&mut || {
-        let interrupt_queues = &mut *(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
+        let mut interrupt_queues = Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
         let mut new_queue = Rc::new(MicrotaskQueue::default());
-        // TODO: SAFETY: is this ok? It subverts the Rc::get_mut() check
-        result = Rc::get_mut(&mut new_queue).expect("Guaranteed by usage of `new_queue`") as *mut _
-            as *mut c_void;
+        result = Rc::as_ptr(&new_queue) as *const c_void;
         interrupt_queues.push(new_queue.clone());
+        std::mem::forget(interrupt_queues);
     });
     result
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn pop_interrupt_queue(interrupt_queues: *mut c_void) -> *mut c_void {
-    let mut result = std::ptr::null_mut();
+unsafe extern "C" fn pop_interrupt_queue(interrupt_queues: *mut c_void) -> *const c_void {
+    let mut result = std::ptr::null();
     wrap_panic(&mut || {
-        let interrupt_queues = &mut *(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
+        let mut interrupt_queues = Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
         let mut popped_queue: Rc<MicrotaskQueue> =
             interrupt_queues.pop().expect("Guaranteed by SpiderMonkey?");
         // Dangling, but jsglue.cpp will only use this for pointer comparison.
-        // TODO: SAFETY: is this ok? It subverts the Rc::get_mut() check
-        result = Rc::get_mut(&mut popped_queue).expect("Guaranteed by usage of `popped_queue`")
-            as *mut _ as *mut c_void;
+        result = Rc::as_ptr(&popped_queue) as *const c_void;
+        std::mem::forget(interrupt_queues);
     });
     result
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn drop_interrupt_queues(interrupt_queues: *mut c_void) {
+    wrap_panic(&mut || {
+        let interrupt_queues = Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
+        drop(interrupt_queues);
+    });
 }
 
 /// SM callback for promise job resolution. Adds a promise callback to the current
@@ -507,8 +514,6 @@ pub(crate) struct Runtime {
     rt: RustRuntime,
     /// Our actual microtask queue, which is preserved and untouched by the debugger when running debugger scripts.
     pub(crate) microtask_queue: Rc<MicrotaskQueue>,
-    /// Extra microtask queues created for debugger scripts via AutoDebuggerJobQueueInterruption and saveJobQueue().
-    interrupt_microtask_queues: Rc<Vec<Rc<MicrotaskQueue>>>,
     job_queue: *mut JobQueue,
     networking_task_src: Option<Box<SendableTaskSource>>,
 }
@@ -615,15 +620,16 @@ impl Runtime {
         InitConsumeStreamCallback(cx, Some(consume_stream), Some(report_stream_error));
 
         let microtask_queue = Rc::new(MicrotaskQueue::default());
-        let mut interrupt_microtask_queues: Rc<Vec<Rc<MicrotaskQueue>>> = Rc::new(vec![]);
-        // TODO: SAFETY: is this ok? It subverts the Rc::get_mut() check
-        let interrupt_queues_raw = Rc::get_mut(&mut interrupt_microtask_queues)
-            .expect("Guaranteed by usage of `new_queue`")
-            as *mut _ as *mut c_void;
+
+        // Extra queues for debugger scripts (“interrupts”) via AutoDebuggerJobQueueInterruption and saveJobQueue().
+        // Moved indefinitely to mozjs via CreateJobQueue(), borrowed from mozjs via JobQueueTraps, and moved back from
+        // mozjs for dropping via DeleteJobQueue().
+        let mut interrupt_queues: Box<Vec<Rc<MicrotaskQueue>>> = Box::new(vec![]);
+
         let job_queue = CreateJobQueue(
             &JOB_QUEUE_TRAPS,
             &*microtask_queue as *const _ as *const c_void,
-            interrupt_queues_raw,
+            Box::into_raw(interrupt_queues) as *mut c_void,
         );
         SetJobQueue(cx, job_queue);
         SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
@@ -768,7 +774,6 @@ impl Runtime {
         Runtime {
             rt: runtime,
             microtask_queue,
-            interrupt_microtask_queues,
             job_queue,
             networking_task_src: (!networking_task_src_ptr.is_null())
                 .then(|| Box::from_raw(networking_task_src_ptr)),
@@ -783,10 +788,10 @@ impl Runtime {
 impl Drop for Runtime {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        // Clear our microtask_queue, but do not touch any interrupt_microtask_queues.
-        // Those are under SpiderMonkey’s control, even though we are responsible for their lifetimes.
+        // Clear our main microtask_queue.
         self.microtask_queue.clear();
 
+        // Delete the RustJobQueue in mozjs, which will destroy our interrupt queues.
         unsafe {
             DeleteJobQueue(self.job_queue);
         }
