@@ -6,34 +6,70 @@
 
 from WebIDL import IDLType
 
+# WARN: This maps the value defined at:
+# https://github.com/servo/servo/blob/main/third_party/WebIDL/WebIDL.py#L2525
+# Be aware that missing Tags will break the build.
 class Tags:
-    bool = IDLType.Tags.bool,
-    int8 = IDLType.Tags.int8,
-    int16 = IDLType.Tags.int16,
-    int32 = IDLType.Tags.int32,
-    int64 = IDLType.Tags.int64,
-    uint8 = IDLType.Tags.uint8,
-    uint16 = IDLType.Tags.uint16,
-    uint32 = IDLType.Tags.uint32,
-    uint64 = IDLType.Tags.uint64,
-    unrestricted_float = IDLType.Tags.unrestricted_float,
-    float = IDLType.Tags.float,
-    unrestricted_double = IDLType.Tags.unrestricted_double,
-    double = IDLType.Tags.double,
-    int8array = IDLType.Tags.int8array,
-    uint8array = IDLType.Tags.uint8array,
-    int16array = IDLType.Tags.int16array,
-    uint16array = IDLType.Tags.uint16array,
-    int32array = IDLType.Tags.int32array,
-    uint32array = IDLType.Tags.uint32array,
-    float32array = IDLType.Tags.float32array,
-    float64array = IDLType.Tags.float64array,
-    arrayBuffer = IDLType.Tags.arrayBuffer,
-    arrayBufferView = IDLType.Tags.arrayBufferView,
-    uint8clampedarray = IDLType.Tags.uint8clampedarray,
-    usvstring = IDLType.Tags.usvstring
+    # Integer types
+    int8 = IDLType.Tags.int8
+    uint8 = IDLType.Tags.uint8
+    int16 = IDLType.Tags.int16
+    uint16 = IDLType.Tags.uint16
+    int32 = IDLType.Tags.int32
+    uint32 = IDLType.Tags.uint32
+    int64 = IDLType.Tags.int64
+    uint64 = IDLType.Tags.uint64
+
+    # Floating-point types
+    unrestricted_float = IDLType.Tags.unrestricted_float
+    float = IDLType.Tags.float
+    unrestricted_double = IDLType.Tags.unrestricted_double
+    double = IDLType.Tags.double
+
+    # Boolean
+    bool = IDLType.Tags.bool
+
+    # String types
     domstring = IDLType.Tags.domstring
     bytestring = IDLType.Tags.bytestring
+    usvstring = IDLType.Tags.usvstring
+    utf8string = IDLType.Tags.utf8string
+    jsstring = IDLType.Tags.jsstring
+
+    # Special types
+    any = IDLType.Tags.any
+    undefined = IDLType.Tags.undefined
+    object = IDLType.Tags.object
+
+    # Typed arrays
+    int8array = IDLType.Tags.int8array
+    uint8array = IDLType.Tags.uint8array
+    int16array = IDLType.Tags.int16array
+    uint16array = IDLType.Tags.uint16array
+    int32array = IDLType.Tags.int32array
+    uint32array = IDLType.Tags.uint32array
+    float32array = IDLType.Tags.float32array
+    float64array = IDLType.Tags.float64array
+    uint8clampedarray = IDLType.Tags.uint8clampedarray
+
+    # Buffer and views
+    arrayBuffer = IDLType.Tags.arrayBuffer
+    arrayBufferView = IDLType.Tags.arrayBufferView
+
+    # Structured types
+    dictionary = IDLType.Tags.dictionary
+    enum = IDLType.Tags.enum
+    callback = IDLType.Tags.callback
+
+    # Composite/Generic types
+    union = IDLType.Tags.union
+    sequence = IDLType.Tags.sequence
+    record = IDLType.Tags.record
+    promise = IDLType.Tags.promise
+    observablearray = IDLType.Tags.observablearray
+
+    # Interface reference
+    interface = IDLType.Tags.interface
 
 builtinNames = {
     IDLType.Tags.bool: 'bool',
