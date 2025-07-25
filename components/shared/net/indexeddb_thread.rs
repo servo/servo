@@ -22,8 +22,7 @@ pub enum IndexedDBKeyType {
     Number(f64),
     String(String),
     Binary(Vec<u8>),
-    // FIXME:(arihant2math) Date should not be stored as a Vec<u8>
-    Date(Vec<u8>),
+    Date(f64),
     Array(Vec<IndexedDBKeyType>),
     // FIXME:(arihant2math) implment ArrayBuffer
 }
