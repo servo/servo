@@ -254,7 +254,6 @@ impl IndependentFormattingContext {
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
-        depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         match &self.contents {
@@ -263,20 +262,17 @@ impl IndependentFormattingContext {
                 containing_block_for_children,
                 preferred_aspect_ratio,
                 &self.base,
-                depends_on_block_constraints,
                 lazy_block_size,
             ),
             IndependentFormattingContextContents::Flow(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
-                depends_on_block_constraints,
             ),
             IndependentFormattingContextContents::Flex(fc) => fc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
-                depends_on_block_constraints,
                 lazy_block_size,
             ),
             IndependentFormattingContextContents::Grid(fc) => fc.layout(
@@ -290,7 +286,6 @@ impl IndependentFormattingContext {
                 positioning_context,
                 containing_block_for_children,
                 containing_block,
-                depends_on_block_constraints,
             ),
         }
     }
@@ -307,7 +302,6 @@ impl IndependentFormattingContext {
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
-        depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         if let Some(cache) = self.base.cached_layout_result.borrow().as_ref() {
@@ -316,8 +310,7 @@ impl IndependentFormattingContext {
                 containing_block_for_children.size.inline &&
                 (cache.containing_block_for_children_size.block ==
                     containing_block_for_children.size.block ||
-                    !(cache.result.depends_on_block_constraints ||
-                        depends_on_block_constraints))
+                    !cache.result.depends_on_block_constraints)
             {
                 positioning_context.append(cache.positioning_context.clone());
                 return cache.result.clone();
@@ -337,7 +330,6 @@ impl IndependentFormattingContext {
             containing_block_for_children,
             containing_block,
             preferred_aspect_ratio,
-            depends_on_block_constraints,
             lazy_block_size,
         );
 

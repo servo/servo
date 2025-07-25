@@ -346,7 +346,6 @@ impl OutsideMarker {
             layout_context,
             positioning_context,
             &containing_block_for_children,
-            false, /* depends_on_block_constraints */
         );
 
         let max_inline_size =
@@ -429,7 +428,6 @@ impl BlockFormattingContext {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        depends_on_block_constraints: bool,
     ) -> CacheableLayoutResult {
         let mut sequential_layout_state = if self.contains_floats || !layout_context.use_rayon {
             Some(SequentialLayoutState::new(containing_block.size.inline))
@@ -470,8 +468,7 @@ impl BlockFormattingContext {
                 clearance.unwrap_or_default(),
             content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
-            depends_on_block_constraints: depends_on_block_constraints ||
-                flow_layout.depends_on_block_constraints,
+            depends_on_block_constraints: flow_layout.depends_on_block_constraints,
             specific_layout_info: None,
             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
         }
@@ -1241,7 +1238,6 @@ impl IndependentFormattingContext {
             &containing_block_for_children,
             containing_block,
             preferred_aspect_ratio,
-            false, /* depends_on_block_constraints */
             &lazy_block_size,
         );
 
@@ -1432,7 +1428,6 @@ impl IndependentFormattingContext {
                 },
                 containing_block,
                 preferred_aspect_ratio,
-                false, /* depends_on_block_constraints */
                 &lazy_block_size,
             );
 
@@ -1498,7 +1493,6 @@ impl IndependentFormattingContext {
                     },
                     containing_block,
                     preferred_aspect_ratio,
-                    false, /* depends_on_block_constraints */
                     &lazy_block_size,
                 );
 
@@ -2326,7 +2320,6 @@ impl IndependentFormattingContext {
             &containing_block_for_children,
             containing_block,
             preferred_aspect_ratio,
-            false, /* depends_on_block_constraints */
             &lazy_block_size,
         );
 

@@ -627,7 +627,6 @@ impl FlexContainer {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         let mut flex_context = FlexContext {
@@ -952,6 +951,20 @@ impl FlexContainer {
                 .last
                 .or(all_baselines.last),
         };
+
+        // TODO: `depends_on_block_constraints` could be false in some corner cases
+        // in order to improve performance.
+        // - In a single-line column container where all items have the grow and shrink
+        //   factors set to zero and the flex basis doesn't depend on block constraints,
+        //   and `justify-content` is `start` or equivalent.
+        //   This is unlikely because the flex shrink factor defaults to 1.
+        // - In a single-line row container where all items have `align-self: start` or
+        //   equivalent, and the cross size doesn't depend on block constraints.
+        //   This is unlikely because `align-self` stretches by default.
+        // - In a multi-line row container where `align-content` is `start` or equivalent,
+        //   and no item cross size depends on block constraints.
+        //   This is unlikely because `align-content` defaults to `stretch`.
+        let depends_on_block_constraints = true;
 
         CacheableLayoutResult {
             fragments,
@@ -1880,9 +1893,6 @@ impl FlexItem<'_> {
             &item_as_containing_block,
             containing_block,
             self.preferred_aspect_ratio,
-            flex_axis == FlexAxis::Column ||
-                self.cross_size_stretches_to_line ||
-                self.depends_on_block_constraints,
             &lazy_block_size,
         );
         let CacheableLayoutResult {
@@ -2597,7 +2607,6 @@ impl FlexItemBox {
                     &item_as_containing_block,
                     flex_context.containing_block,
                     preferred_aspect_ratio,
-                    false, /* depends_on_block_constraints */
                     &LazySize::intrinsic(),
                 )
                 .content_block_size

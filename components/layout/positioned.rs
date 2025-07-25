@@ -584,7 +584,6 @@ impl HoistedAbsolutelyPositionedBox {
             &containing_block_for_children,
             containing_block,
             preferred_aspect_ratio,
-            false, /* depends_on_block_constraints */
             &lazy_block_size,
         );
 
