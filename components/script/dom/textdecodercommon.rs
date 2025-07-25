@@ -49,7 +49,7 @@ impl TextDecoderCommon {
         let decoder = if ignoreBOM {
             encoding.new_decoder_without_bom_handling()
         } else {
-            encoding.new_decoder()
+            encoding.new_decoder_with_bom_removal()
         };
 
         TextDecoderCommon {

@@ -125,7 +125,7 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
             } else {
                 self.decoder
                     .decoder()
-                    .replace(self.decoder.encoding().new_decoder());
+                    .replace(self.decoder.encoding().new_decoder_with_bom_removal());
             }
             self.decoder.io_queue().replace(Vec::new());
         }
