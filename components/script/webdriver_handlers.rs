@@ -1173,7 +1173,7 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 6: Let file be true if element is input element
                 // in the file upload state, or false otherwise
-                let is_file_input = input_element.map_or(false, |e| e.input_type() == InputType::File);
+                let is_file_input = input_element.is_some_and(|e| e.input_type() == InputType::File);
 
                 // Step 7. If file is false or the session's strict file interactability
                 if !is_file_input || strict_file_interactability {
