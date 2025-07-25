@@ -86,7 +86,9 @@ pub(crate) trait GenericDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     );
-    fn surface(&self) -> Self::SourceSurface;
-    fn image_descriptor_and_serializable_data(&self) -> (ImageDescriptor, SerializableImageData);
-    fn snapshot(&self) -> Snapshot;
+    fn surface(&mut self) -> Self::SourceSurface;
+    fn image_descriptor_and_serializable_data(
+        &mut self,
+    ) -> (ImageDescriptor, SerializableImageData);
+    fn snapshot(&mut self) -> Snapshot;
 }
