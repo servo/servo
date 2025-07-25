@@ -1751,8 +1751,8 @@ impl Element {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-activeelement>
     pub(crate) fn is_active_element(&self) -> bool {
-        if let Some(ref active_element) = self.owner_document().GetActiveElement() {
-            **active_element == *self
+        if let Some(active_element) = self.owner_document().GetActiveElement() {
+            *active_element == *self
         } else {
             false
         }
