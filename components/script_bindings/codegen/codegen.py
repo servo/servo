@@ -4,9 +4,11 @@
 
 # Common codegen classes.
 
+from WebIDL import IDLUnionType
+from WebIDL import IDLSequenceType
 from collections import defaultdict
 from itertools import groupby
-from typing import Generator, Tuple, Optional, List
+from typing import Generator, Tuple, Optional, List, cast
 from abc import abstractmethod
 
 import operator
@@ -151,16 +153,14 @@ def containsDomInterface(t: IDLType, logging: bool = False) -> bool:
         t = t.inner
     if t.isEnum():
         return False
-    if t.isUnion():
-        # pyrefly: ignore  # missing-attribute
-        return any(map(lambda x: containsDomInterface(x), t.flatMemberTypes))
-    if t.isDictionary():
-        # pyrefly: ignore  # missing-attribute
-        return any(map(lambda x: containsDomInterface(x), t.members)) or (t.parent and containsDomInterface(t.parent))
+    if t.isUnion() and isinstance(t, IDLUnionType):
+        return any(map(lambda x: containsDomInterface(x), cast(list[IDLType], t.flatMemberTypes)))
+    if t.isDictionary() and isinstance(t, IDLDictionary):
+        return any(map(lambda x: containsDomInterface(x),
+        cast(list[IDLType],t.members))) or (t.parent is not None and containsDomInterface(cast(IDLType, t.parent)))
     if isDomInterface(t):
         return True
-    if t.isSequence():
-        # pyrefly: ignore  # missing-attribute
+    if t.isSequence() and isinstance(t, IDLSequenceType):
         return containsDomInterface(t.inner)
     return False
 
@@ -622,7 +622,7 @@ def typeIsSequenceOrHasSequenceMember(type):
     return False
 
 
-def union_native_type(t):
+def union_native_type(t: IDLType) -> str:
     name = t.unroll().name
     generic = "<D>" if containsDomInterface(t) else ""
     return f'GenericUnionTypes::{name}{generic}'
@@ -630,7 +630,7 @@ def union_native_type(t):
 
 # Unfortunately, .capitalize() on a string will lowercase things inside the
 # string, which we do not want.
-def firstCap(string):
+def firstCap(string: str) -> str:
     return f"{string[0].upper()}{string[1:]}"
 
 
@@ -7810,15 +7810,14 @@ class CGBindingRoot(CGThing):
         return stripTrailingWhitespace(self.root.define())
 
 
-def type_needs_tracing(t: IDLType):
+def type_needs_tracing(t: IDLType | IDLObject):
     assert isinstance(t, IDLObject), (t, type(t))
 
-    if t.isType():
+    if t.isType() and isinstance(t, IDLType):
         if isinstance(t, IDLWrapperType):
             return type_needs_tracing(t.inner)
 
-        if t.nullable():
-            # pyrefly: ignore  # missing-attribute
+        if t.nullable() and isinstance(t, IDLNullableType):
             return type_needs_tracing(t.inner)
 
         if t.isAny():
@@ -7827,12 +7826,10 @@ def type_needs_tracing(t: IDLType):
         if t.isObject():
             return True
 
-        if t.isSequence():
-            # pyrefly: ignore  # missing-attribute
+        if t.isSequence() and isinstance(t, IDLSequenceType):
             return type_needs_tracing(t.inner)
 
-        if t.isUnion():
-            # pyrefly: ignore  # missing-attribute
+        if t.isUnion() and isinstance(t, IDLUnionType) and t.flatMemberTypes is not None:
             return any(type_needs_tracing(member) for member in t.flatMemberTypes)
 
         if is_typed_array(t):
@@ -7840,12 +7837,10 @@ def type_needs_tracing(t: IDLType):
 
         return False
 
-    if t.isDictionary():
-        # pyrefly: ignore  # missing-attribute
+    if t.isDictionary() and isinstance(t, IDLDictionary):
         if t.parent and type_needs_tracing(t.parent):
             return True
 
-        # pyrefly: ignore  # missing-attribute
         if any(type_needs_tracing(member.type) for member in t.members):
             return True
 
