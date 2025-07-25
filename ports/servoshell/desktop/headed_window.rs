@@ -433,15 +433,6 @@ impl Window {
             }
         }
     }
-
-    /// Update [`WindowRenderingContext`] after a resize.
-    fn update_window_rendering_context_after_resize(&self, inner_size: PhysicalSize<u32>) {
-        self.window_rendering_context.resize(PhysicalSize::new(
-            inner_size.width,
-            (inner_size.height as f32 - (self.toolbar_height() * self.hidpi_scale_factor()).0)
-                as u32,
-        ));
-    }
 }
 
 impl WindowPortsMethods for Window {
@@ -694,7 +685,7 @@ impl WindowPortsMethods for Window {
                 if self.inner_size.get() != new_inner_size {
                     self.inner_size.set(new_inner_size);
                     // `WebView::move_resize` was already called in `Minibrowser::update`.
-                    self.update_window_rendering_context_after_resize(new_inner_size);
+                    self.window_rendering_context.resize(new_inner_size);
                 }
             },
             WindowEvent::ThemeChanged(theme) => {
