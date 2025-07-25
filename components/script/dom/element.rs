@@ -1742,8 +1742,8 @@ impl Element {
 
     /// <https://dom.spec.whatwg.org/#document-element>
     pub(crate) fn is_document_element(&self) -> bool {
-        if let Some(ref document_element) = self.owner_document().GetDocumentElement() {
-            **document_element == *self
+        if let Some(document_element) = self.owner_document().GetDocumentElement() {
+            *document_element == *self
         } else {
             false
         }
