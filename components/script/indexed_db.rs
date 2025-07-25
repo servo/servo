@@ -24,6 +24,7 @@ use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::structuredclone;
 use crate::dom::idbobjectstore::KeyPath;
 
+// https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value
 #[allow(unsafe_code)]
 pub fn key_type_to_jsval(
     cx: SafeJSContext,
@@ -92,9 +93,11 @@ pub fn convert_value_to_key(
     // as it does not implement PartialEq
 
     // Step 3
-    // FIXME:(arihant2math) Accept buffer, array and date as well
+    // FIXME:(arihant2math) Accept array as well
     if input.is_number() {
-        // FIXME:(arihant2math) check for NaN
+        if input.to_number().is_nan() {
+            return Err(Error::Data);
+        }
         return Ok(IndexedDBKeyType::Number(input.to_number()));
     }
 
@@ -114,20 +117,26 @@ pub fn convert_value_to_key(
             }
 
             if let ESClass::Date = built_in_class {
-                // FIXME:(arihant2math) implement it the correct way
-                let key = structuredclone::write(cx, input, None).expect("Could not serialize key");
-                return Ok(IndexedDBKeyType::Date(key.serialized.clone()));
+                let mut f = f64::NAN;
+                if !js::jsapi::DateGetMsecSinceEpoch(*cx, object.handle().into(), &mut f) {
+                    return Err(Error::Data);
+                }
+                if f.is_nan() {
+                    return Err(Error::Data);
+                }
+                return Ok(IndexedDBKeyType::Date(f));
             }
 
             if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
-                // FIXME:(arihant2math)
-                error!("Array buffers as keys is currently unsupported");
-                return Err(Error::NotSupported);
+                // FIXME:(arihant2math) implement it the correct way (is this correct?)
+                let key = structuredclone::write(cx, input, None).expect("Could not serialize key");
+                return Ok(IndexedDBKeyType::Binary(key.serialized.clone()));
             }
 
             if let ESClass::Array = built_in_class {
                 // FIXME:(arihant2math)
-                unimplemented!("Arrays as keys is currently unsupported");
+                error!("Arrays as keys is currently unsupported");
+                return Err(Error::NotSupported);
             }
         }
     }
@@ -205,7 +214,7 @@ pub fn evaluate_key_path_on_value(
                             has_prop = true;
                         } else {
                             // If we get here it means the object doesn't have the property or the
-                            // property is available throuch a getter. We don't want to call any
+                            // property is available through a getter. We don't want to call any
                             // getters to avoid potential re-entrancy.
                             // The blob object is special since its properties are available
                             // only through getters but we still want to support them for key
