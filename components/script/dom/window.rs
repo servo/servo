@@ -8,6 +8,7 @@ use std::cmp;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
+use std::ffi::c_char;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -42,13 +43,15 @@ use fonts::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use js::glue::DumpJSStack;
 use js::jsapi::{
-    GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
+    GCReason, Heap, JS_GC, JS_GetFunctionObject, JSAutoRealm, JSContext as RawJSContext, JSObject,
+    JSPROP_ENUMERATE,
 };
 use js::jsval::{NullValue, UndefinedValue};
-use js::rust::wrappers::JS_DefineProperty;
+use js::rust::wrappers::{CompileFunction1, JS_DefineProperty};
 use js::rust::{
-    CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
-    MutableHandleValue,
+    CompileOptionsWrapper, CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue,
+    MutableHandleObject, MutableHandleValue, RootedObjectVectorWrapper,
+    transform_str_to_source_text,
 };
 use layout_api::{
     FragmentType, Layout, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
@@ -67,6 +70,7 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_bindings::callback::ExceptionHandling;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -106,8 +110,8 @@ use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, FrameRequestCallback, ScrollBehavior, ScrollToOptions, WindowMethods,
-    WindowPostMessageOptions,
+    self, EmbedderEvaluateJSCallback, FrameRequestCallback, ScrollBehavior, ScrollToOptions,
+    WindowMethods, WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::UnionTypes::{RequestOrUSVString, StringOrFunction};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -143,6 +147,7 @@ use crate::dom::medialist::MediaList;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
+use crate::dom::messageport::MessagePort;
 use crate::dom::navigator::Navigator;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::performance::Performance;
@@ -1974,6 +1979,39 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 }
 
 impl Window {
+    #[allow(unsafe_code)]
+    pub(crate) fn evaluate_embedder_js(
+        &self,
+        cx: JSContext,
+        body: &str,
+        port: Option<&MessagePort>,
+        rval: MutableHandleValue,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        let _realm = enter_realm(self);
+
+        let name = c"<evaluate>".as_ptr();
+        const ARG_NAMES: &[*const c_char] = &[c"port".as_ptr()];
+        let options = unsafe { CompileOptionsWrapper::new(*cx, self.get_url().as_str(), 0) };
+        let scopechain = RootedObjectVectorWrapper::new(*cx);
+        rooted!(in(*cx) let mut compiled = unsafe {
+            CompileFunction1(
+                *cx,
+                scopechain.handle(),
+                options.ptr,
+                name,
+                ARG_NAMES.len() as u32,
+                ARG_NAMES.as_ptr(),
+                &mut transform_str_to_source_text(&body),
+            )
+        });
+
+        rooted!(in(*cx) let mut function = unsafe { JS_GetFunctionObject(compiled.get())});
+        let callback = unsafe { EmbedderEvaluateJSCallback::new(cx, function.get()) };
+
+        callback.Call_(self, port, rval, ExceptionHandling::Report, can_gc)
+    }
+
     pub(crate) fn scroll_offset(&self, can_gc: CanGc) -> Vector2D<f32, LayoutPixel> {
         self.scroll_offset_query_with_external_scroll_id(
             self.pipeline_id().root_scroll_id(),

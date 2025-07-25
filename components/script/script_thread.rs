@@ -4028,22 +4028,24 @@ impl ScriptThread {
         let context = window.get_cx();
 
         rooted!(in(*context) let mut return_value = UndefinedValue());
-        global_scope.evaluate_js_on_global_with_result(
-            &script,
-            return_value.handle_mut(),
-            ScriptFetchOptions::default_classic_script(global_scope),
-            global_scope.api_base_url(),
-            can_gc,
-        );
-        let result = match jsval_to_webdriver(
-            context,
-            global_scope,
-            return_value.handle(),
-            (&realm).into(),
-            can_gc,
-        ) {
-            Ok(ref value) => Ok(value.into()),
-            Err(_) => Err(JavaScriptEvaluationError::SerializationError),
+        let _script = AutoEntryScript::new(global_scope);
+        let result = if window
+            .evaluate_embedder_js(context, &script, None, return_value.handle_mut(), can_gc)
+            .is_err()
+        {
+            // TODO: serialize error value/pending exception.
+            Err(JavaScriptEvaluationError::InternalError)
+        } else {
+            match jsval_to_webdriver(
+                context,
+                global_scope,
+                return_value.handle(),
+                (&realm).into(),
+                can_gc,
+            ) {
+                Ok(ref value) => Ok(value.into()),
+                Err(_) => Err(JavaScriptEvaluationError::SerializationError),
+            }
         };
 
         let _ = self.senders.pipeline_to_constellation_sender.send((

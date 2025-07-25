@@ -168,6 +168,8 @@ interface mixin WindowLocalStorage {
 };
 Window includes WindowLocalStorage;
 
+callback EmbedderEvaluateJSCallback = any (MessagePort? port);
+
 // http://w3c.github.io/animation-timing/#framerequestcallback
 callback FrameRequestCallback = undefined (DOMHighResTimeStamp time);
 
