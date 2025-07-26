@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use net_traits::IpcSend;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
+use net_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use profile_traits::ipc;
 use stylo_atoms::Atom;
 
@@ -104,7 +104,10 @@ impl IDBDatabase {
             .get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(operation));
 
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().unwrap_or_else(|e| {
+            error!("{e:?}");
+            u64::MAX
+        })
     }
 
     pub fn set_transaction(&self, transaction: &IDBTransaction) {
@@ -185,7 +188,6 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         name: DOMString,
         options: &IDBObjectStoreParameters,
     ) -> Fallible<DomRoot<IDBObjectStore>> {
-        // FIXME:(arihant2math) ^^ Change idl to match above.
         // Step 2
         let upgrade_transaction = match self.upgrade_transaction.get() {
             Some(txn) => txn,
@@ -247,11 +249,18 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
+        let key_paths = key_path.map(|p| match p {
+            StringOrStringSequence::String(s) => KeyPath::String(s.to_string()),
+            StringOrStringSequence::StringSequence(s) => {
+                KeyPath::Sequence(s.clone().into_iter().map(|s| s.to_string()).collect())
+            },
+        });
         let operation = SyncOperation::CreateObjectStore(
             sender,
             self.global().origin().immutable().clone(),
             self.name.to_string(),
             name.to_string(),
+            key_paths,
             auto_increment,
         );
 

@@ -5,6 +5,7 @@
 use std::iter::repeat;
 use std::ptr;
 
+use ipc_channel::ipc::IpcSender;
 use js::gc::MutableHandle;
 use js::jsapi::{
     ESClass, GetBuiltinClass, IsArrayBufferObject, JS_DeleteUCProperty,
@@ -13,17 +14,31 @@ use js::jsapi::{
 };
 use js::jsval::{DoubleValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
-use net_traits::indexeddb_thread::{IndexedDBKeyRange, IndexedDBKeyType};
+use net_traits::indexeddb_thread::{DbResult, IndexedDBKeyRange, IndexedDBKeyType};
+use profile_traits::ipc;
+use profile_traits::ipc::IpcReceiver;
 use script_bindings::conversions::{SafeToJSValConvertible, root_from_object};
+use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
+use serde::{Deserialize, Serialize};
 
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
 use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::structuredclone;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
+
+pub fn create_channel<T>(
+    global: DomRoot<GlobalScope>,
+) -> (IpcSender<DbResult<T>>, IpcReceiver<DbResult<T>>)
+where
+    T: for<'a> Deserialize<'a> + Serialize,
+{
+    ipc::channel::<DbResult<T>>(global.time_profiler_chan().clone()).unwrap()
+}
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value
 #[allow(unsafe_code)]
@@ -147,7 +162,6 @@ pub fn convert_value_to_key(
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range
 #[allow(unsafe_code)]
-#[expect(unused)]
 pub fn convert_value_to_key_range(
     cx: SafeJSContext,
     input: HandleValue,
