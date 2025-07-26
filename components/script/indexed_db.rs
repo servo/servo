@@ -3,16 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::iter::repeat;
+use std::mem::MaybeUninit;
 use std::ptr;
 
 use js::gc::MutableHandle;
 use js::jsapi::{
-    ESClass, GetBuiltinClass, IsArrayBufferObject, JS_DeleteUCProperty,
-    JS_GetOwnUCPropertyDescriptor, JS_GetStringLength, JS_IsArrayBufferViewObject, JSObject,
-    ObjectOpResult, ObjectOpResult_SpecialCodes, PropertyDescriptor,
+    ClippedTime, ESClass,
+    GetArrayLength, GetBuiltinClass, IsArrayBufferObject, JSObject,
+    JS_DeleteUCProperty, JS_GetOwnUCPropertyDescriptor, JS_GetStringLength, JS_HasOwnPropertyById,
+    JS_IndexToId, JS_IsArrayBufferViewObject, ObjectOpResult, ObjectOpResult_SpecialCodes,
+    PropertyDescriptor, PropertyKey,
 };
 use js::jsval::{DoubleValue, UndefinedValue};
-use js::rust::{HandleValue, MutableHandleValue};
+use js::rust::{HandleValue, IntoHandle, IntoMutableHandle, MutableHandleValue};
 use net_traits::indexeddb_thread::IndexedDBKeyType;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::str::DOMString;
@@ -35,9 +38,16 @@ pub fn key_type_to_jsval(
         IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
         IndexedDBKeyType::String(s) => s.safe_to_jsval(cx, result),
         IndexedDBKeyType::Binary(b) => b.safe_to_jsval(cx, result),
-        IndexedDBKeyType::Date(_d) => {
-            // TODO: implement this when Date's representation is finalized.
-            result.set(UndefinedValue());
+        IndexedDBKeyType::Date(d) => unsafe {
+            // TODO: This doesn't clip the time (while firefox does)
+            // Inner representation of clippedtime is a f64, this is safe
+            let time: ClippedTime = std::mem::transmute(d.trunc());
+            // Could be null
+            let date = js::jsapi::NewDateObject(*cx, time);
+            if date.is_null() {
+                return;
+            }
+            date.safe_to_jsval(cx, result);
         },
         IndexedDBKeyType::Array(a) => {
             rooted_vec!(let mut values <- repeat(UndefinedValue()).take(a.len()));
@@ -84,7 +94,7 @@ pub fn convert_value_to_key(
     seen: Option<Vec<HandleValue>>,
 ) -> Result<IndexedDBKeyType, Error> {
     // Step 1: If seen was not given, then let seen be a new empty set.
-    let _seen = seen.unwrap_or_default();
+    let mut seen = seen.unwrap_or_default();
 
     // Step 2: If seen contains input, then return invalid.
     // FIXME:(arihant2math) implement this
@@ -135,8 +145,46 @@ pub fn convert_value_to_key(
 
             if let ESClass::Array = built_in_class {
                 // FIXME:(arihant2math)
-                error!("Arrays as keys is currently unsupported");
-                return Err(Error::NotSupported);
+                let mut len = MaybeUninit::uninit();
+                if !GetArrayLength(*cx, object.handle().into_handle(), len.as_mut_ptr()) {
+                    return Err(Error::InvalidState);
+                }
+                let len = len.assume_init();
+                seen.push(input);
+                let mut values = vec![];
+                for i in 0..len {
+                    rooted!(in(*cx) let mut id: PropertyKey = std::mem::zeroed());
+                    if !JS_IndexToId(*cx, i, js::jsapi::MutableHandleId::from(id.handle_mut())) {
+                        return Err(Error::InvalidState);
+                    }
+                    let mut hop = MaybeUninit::uninit();
+                    if !JS_HasOwnPropertyById(
+                        *cx,
+                        object.handle().into_handle(),
+                        id.handle().into_handle(),
+                        hop.as_mut_ptr(),
+                    ) {
+                        return Err(Error::InvalidState);
+                    }
+                    let hop = hop.assume_init();
+                    if !hop {
+                        return Err(Error::InvalidState);
+                    }
+                    rooted!(in(*cx) let mut item = UndefinedValue());
+                    if !js::jsapi::JS_GetPropertyById(
+                        *cx,
+                        object.handle().into_handle(),
+                        id.handle().into_handle(),
+                        item.handle_mut().into_handle_mut(),
+                    ) {
+                        return Err(Error::InvalidState);
+                    }
+                    if item.is_undefined() {
+                        return Err(Error::InvalidState);
+                    }
+                    values.push(convert_value_to_key(cx, item.handle(), Some(seen.clone()))?);
+                }
+                return Ok(IndexedDBKeyType::Array(values));
             }
         }
     }
