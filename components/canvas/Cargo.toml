@@ -12,7 +12,7 @@ name = "canvas"
 path = "lib.rs"
 
 [features]
-vello = ["dep:vello", "dep:pollster", "dep:futures-intrusive"]
+vello = ["dep:vello", "dep:pollster", "dep:futures-intrusive", "dep:peniko"]
 
 [dependencies]
 app_units = { workspace = true }
@@ -27,6 +27,7 @@ ipc-channel = { workspace = true }
 kurbo = { workspace = true }
 log = { workspace = true }
 net_traits = { workspace = true }
+peniko = { workspace = true, optional = true }
 pixels = { path = "../pixels" }
 range = { path = "../range" }
 raqote = "0.8.5"

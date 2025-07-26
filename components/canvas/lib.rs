@@ -5,6 +5,8 @@
 #![deny(unsafe_code)]
 
 mod backend;
+#[cfg(feature = "vello")]
+mod peniko_conversions;
 mod raqote_backend;
 #[cfg(feature = "vello")]
 mod vello_backend;

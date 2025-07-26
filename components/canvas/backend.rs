@@ -92,3 +92,10 @@ pub(crate) trait GenericDrawTarget {
     ) -> (ImageDescriptor, SerializableImageData);
     fn snapshot(&mut self) -> Snapshot;
 }
+
+#[allow(dead_code)] // used by gated backends
+/// A version of the `Into<T>` trait from the standard library that can be used
+/// to convert between two types that are not defined in the canvas crate.
+pub(crate) trait Convert<T> {
+    fn convert(self) -> T;
+}
