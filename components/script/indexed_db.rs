@@ -4,19 +4,17 @@
 
 use std::ffi::CString;
 use std::iter::repeat_n;
+use std::mem::MaybeUninit;
 use std::ptr;
 
 use ipc_channel::ipc::IpcSender;
 use itertools::Itertools;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandle;
-use js::jsapi::{
-    ClippedTime, ESClass, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength,
-    JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
-};
+use js::jsapi::{ClippedTime, ESClass, GetArrayLength, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength, JS_HasOwnPropertyById, JS_IndexToId, JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject, PropertyKey};
 use js::jsval::{DoubleValue, UndefinedValue};
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty, JS_IsIdentifier};
-use js::rust::{HandleValue, MutableHandleValue};
+use js::rust::{HandleValue, IntoHandle, IntoMutableHandle, MutableHandleValue};
 use net_traits::indexeddb_thread::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
 use profile_traits::ipc;
 use profile_traits::ipc::IpcReceiver;
@@ -158,7 +156,7 @@ pub fn convert_value_to_key(
     seen: Option<Vec<HandleValue>>,
 ) -> Result<ConversionResult, Error> {
     // Step 1: If seen was not given, then let seen be a new empty set.
-    let _seen = seen.unwrap_or_default();
+    let mut seen = seen.unwrap_or_default();
 
     // Step 2: If seen contains input, then return invalid.
     // FIXME:(arihant2math) implement this
@@ -213,8 +211,46 @@ pub fn convert_value_to_key(
 
             if let ESClass::Array = built_in_class {
                 // FIXME:(arihant2math)
-                error!("Arrays as keys is currently unsupported");
-                return Err(Error::NotSupported);
+                let mut len = MaybeUninit::uninit();
+                if !GetArrayLength(*cx, object.handle().into_handle(), len.as_mut_ptr()) {
+                    return Err(Error::InvalidState);
+                }
+                let len = len.assume_init();
+                seen.push(input);
+                let mut values = vec![];
+                for i in 0..len {
+                    rooted!(in(*cx) let mut id: PropertyKey = std::mem::zeroed());
+                    if !JS_IndexToId(*cx, i, js::jsapi::MutableHandleId::from(id.handle_mut())) {
+                        return Err(Error::InvalidState);
+                    }
+                    let mut hop = MaybeUninit::uninit();
+                    if !JS_HasOwnPropertyById(
+                        *cx,
+                        object.handle().into_handle(),
+                        id.handle().into_handle(),
+                        hop.as_mut_ptr(),
+                    ) {
+                        return Err(Error::InvalidState);
+                    }
+                    let hop = hop.assume_init();
+                    if !hop {
+                        return Err(Error::InvalidState);
+                    }
+                    rooted!(in(*cx) let mut item = UndefinedValue());
+                    if !js::jsapi::JS_GetPropertyById(
+                        *cx,
+                        object.handle().into_handle(),
+                        id.handle().into_handle(),
+                        item.handle_mut().into_handle_mut(),
+                    ) {
+                        return Err(Error::InvalidState);
+                    }
+                    if item.is_undefined() {
+                        return Err(Error::InvalidState);
+                    }
+                    values.push(convert_value_to_key(cx, item.handle(), Some(seen.clone()))?);
+                }
+                return Ok(IndexedDBKeyType::Array(values));
             }
         }
     }
