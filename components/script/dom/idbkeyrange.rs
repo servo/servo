@@ -35,7 +35,6 @@ impl IDBKeyRange {
         reflect_dom_object(Box::new(IDBKeyRange::new_inherited(inner)), global, can_gc)
     }
 
-    #[expect(unused)]
     pub fn inner(&self) -> &IndexedDBKeyRange {
         &self.inner
     }
