@@ -17,7 +17,7 @@ use std::num::NonZeroUsize;
 use std::rc::Rc;
 
 use canvas_traits::canvas::{
-    CompositionOptions, FillOrStrokeStyle, LineOptions, Path, ShadowOptions,
+    CompositionOptions, FillOrStrokeStyle, FillRule, LineOptions, Path, ShadowOptions,
 };
 use compositing_traits::SerializableImageData;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
@@ -311,13 +311,14 @@ impl GenericDrawTarget for VelloDrawTarget {
     fn fill(
         &mut self,
         path: &Path,
+        fill_rule: FillRule,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
         self.with_draw_options(&composition_options, |self_| {
             self_.scene.fill(
-                peniko::Fill::NonZero,
+                fill_rule.convert(),
                 transform.cast().into(),
                 &style
                     .convert()
@@ -418,7 +419,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         self.scene.pop_layer();
     }
 
-    fn push_clip(&mut self, path: &Path, transform: Transform2D<f32>) {
+    fn push_clip(&mut self, path: &Path, _fill_rule: FillRule, transform: Transform2D<f32>) {
         self.scene
             .push_layer(peniko::Mix::Clip, 1.0, transform.cast().into(), &path.0);
     }
@@ -432,7 +433,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             rect.size.width,
             rect.size.height,
         );
-        self.push_clip(&path, Transform2D::identity());
+        self.push_clip(&path, FillRule::Nonzero, Transform2D::identity());
     }
 
     fn stroke(

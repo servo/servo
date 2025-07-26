@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::{
-    CompositionOptions, FillOrStrokeStyle, LineOptions, Path, ShadowOptions,
+    CompositionOptions, FillOrStrokeStyle, FillRule, LineOptions, Path, ShadowOptions,
 };
 use compositing_traits::SerializableImageData;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
@@ -47,6 +47,7 @@ pub(crate) trait GenericDrawTarget {
     fn fill(
         &mut self,
         path: &Path,
+        fill_rule: FillRule,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
@@ -68,7 +69,7 @@ pub(crate) trait GenericDrawTarget {
     );
     fn get_size(&self) -> Size2D<i32>;
     fn pop_clip(&mut self);
-    fn push_clip(&mut self, path: &Path, transform: Transform2D<f32>);
+    fn push_clip(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f32>);
     fn push_clip_rect(&mut self, rect: &Rect<i32>);
     fn stroke(
         &mut self,

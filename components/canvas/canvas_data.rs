@@ -567,6 +567,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     pub(crate) fn fill_path(
         &mut self,
         path: &Path,
+        fill_rule: FillRule,
         style: FillOrStrokeStyle,
         _shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
@@ -584,7 +585,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             |self_, style| {
                 self_
                     .drawtarget
-                    .fill(path, style, composition_options, transform)
+                    .fill(path, fill_rule, style, composition_options, transform)
             },
         )
     }
@@ -615,8 +616,13 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         )
     }
 
-    pub(crate) fn clip_path(&mut self, path: &Path, transform: Transform2D<f32>) {
-        self.drawtarget.push_clip(path, transform);
+    pub(crate) fn clip_path(
+        &mut self,
+        path: &Path,
+        fill_rule: FillRule,
+        transform: Transform2D<f32>,
+    ) {
+        self.drawtarget.push_clip(path, fill_rule, transform);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state>
