@@ -140,6 +140,7 @@ webxr-api = { workspace = true, features = ["ipc"], optional = true }
 wgpu-core = { workspace = true }
 wgpu-types = { workspace = true }
 xml5ever = { workspace = true }
+sysinfo = {version = "0.36.1", default-features = false, features = ["system"]}
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 mozangle = { workspace = true }

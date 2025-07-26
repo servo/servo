@@ -8,6 +8,7 @@ use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
+use script_bindings::num::Finite;
 use servo_config::pref;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -41,6 +42,25 @@ pub(super) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
 
     *CPUS
+}
+
+// https://www.w3.org/TR/device-memory/#computing-device-memory-value
+pub(super) fn device_memory() -> Finite<f64> {
+    const NUM_BYTES_IN_MIB: u64 = 1048576; // 1024 * 1024
+    const POSSIBLE_FRACTIONS: [f64; 6] = [0.25, 0.5, 1.0, 2.0, 4.0, 8.0];
+    let mut sys = sysinfo::System::new();
+    sys.refresh_memory();
+    let num_bytes = sys.total_memory();
+    let num_mib = num_bytes / NUM_BYTES_IN_MIB;
+    let matched_fraction = POSSIBLE_FRACTIONS
+        .iter()
+        .min_by(|&a, &b| {
+            let diff_a = num_mib.saturating_sub((a * 1024.0) as u64);
+            let diff_b = num_mib.saturating_sub((b * 1024.0) as u64);
+            diff_a.partial_cmp(&diff_b).unwrap()
+        })
+        .unwrap();
+    Finite::wrap(*matched_fraction)
 }
 
 #[dom_struct]
@@ -324,5 +344,10 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn Servo(&self) -> DomRoot<ServoInternals> {
         self.servo_internals
             .or_init(|| ServoInternals::new(&self.global(), CanGc::note()))
+    }
+
+    /// https://www.w3.org/TR/device-memory/
+    fn DeviceMemory(&self) -> Finite<f64> {
+        device_memory()
     }
 }
