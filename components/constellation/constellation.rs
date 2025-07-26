@@ -451,6 +451,9 @@ pub struct Constellation<STF, SWF> {
 
     /// The process manager.
     process_manager: ProcessManager,
+
+    /// A list of URLs that can access privileged internal APIs.
+    privileged_urls: Vec<ServoUrl>,
 }
 
 /// State needed to construct a constellation.
@@ -503,6 +506,9 @@ pub struct InitialConstellationState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
+
+    /// A list of URLs that can access privileged internal APIs.
+    pub privileged_urls: Vec<ServoUrl>,
 }
 
 /// When we are running reftests, we save an image to compare against a reference.
@@ -690,6 +696,7 @@ where
                     rippy_data,
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
+                    privileged_urls: state.privileged_urls,
                 };
 
                 constellation.run();
@@ -940,6 +947,7 @@ where
             player_context: WindowGLContext::get(),
             rippy_data: self.rippy_data.clone(),
             user_content_manager: self.user_content_manager.clone(),
+            privileged_urls: self.privileged_urls.clone(),
         });
 
         let pipeline = match result {
