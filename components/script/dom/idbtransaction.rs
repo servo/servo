@@ -229,6 +229,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         // returns the same IDBObjectStore instance.
         let mut store_handles = self.store_handles.borrow_mut();
         let store = store_handles.entry(name.to_string()).or_insert_with(|| {
+            // TODO: get key path from backend
             let store = IDBObjectStore::new(
                 &self.global(),
                 self.db.get_name(),

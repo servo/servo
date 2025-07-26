@@ -36,7 +36,6 @@ futures-core = { version = "0.3.30", default-features = false }
 futures-util = { version = "0.3.30", default-features = false }
 generic-array = "0.14"
 headers = { workspace = true }
-heed = "0.20"
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true, features = ["client", "http1", "http2"] }
@@ -60,6 +59,8 @@ rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
 rustls-pki-types = { workspace = true }
 resvg = { workspace = true }
+rusqlite = { version = "0.37", features = ["bundled"] }
+sea-query = { version = "0.32", default-features = false, features = ["derive", "backend-sqlite"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_arc = { workspace = true }
@@ -86,6 +87,7 @@ futures = { version = "0.3", features = ["compat"] }
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
+tempfile = "3"
 
 [[test]]
 name = "main"
