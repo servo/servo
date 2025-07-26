@@ -9520,6 +9520,7 @@ dependencies = [
  "servo_geometry",
  "servo_url",
  "stylo_traits",
+ "time",
  "uuid",
  "webdriver",
 ]

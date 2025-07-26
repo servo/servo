@@ -21,7 +21,7 @@ use std::{env, fmt, process, thread};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use cookie::{CookieBuilder, Expiration};
+use cookie::{CookieBuilder, Expiration, SameSite};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
     EventLoopWaker, MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverFrameId,
@@ -44,6 +44,7 @@ use servo_config::prefs::{self, PrefValue, Preferences};
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
+use time::OffsetDateTime;
 use uuid::Uuid;
 use webdriver::actions::{
     ActionSequence, ActionsType, PointerAction, PointerActionItem, PointerActionParameters,
@@ -1811,17 +1812,32 @@ impl Handler {
         self.handle_any_user_prompts(self.session()?.webview_id)?;
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cookie_builder = CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
-            .secure(params.secure)
-            .http_only(params.httpOnly);
-        let cookie_builder = match params.domain {
-            Some(ref domain) => cookie_builder.domain(domain.to_owned()),
-            _ => cookie_builder,
-        };
-        let cookie_builder = match params.path {
-            Some(ref path) => cookie_builder.path(path.to_owned()),
-            _ => cookie_builder,
-        };
+        let mut cookie_builder =
+            CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
+                .secure(params.secure)
+                .http_only(params.httpOnly);
+        if let Some(ref domain) = params.domain {
+            cookie_builder = cookie_builder.domain(domain.clone());
+        }
+        if let Some(ref path) = params.path {
+            cookie_builder = cookie_builder.path(path.clone());
+        }
+        if let Some(ref expiry) = params.expiry {
+            if let Ok(datetime) = OffsetDateTime::from_unix_timestamp(expiry.0 as i64) {
+                cookie_builder = cookie_builder.expires(datetime);
+            }
+        }
+        if let Some(ref same_site) = params.sameSite {
+            cookie_builder = match same_site.as_str() {
+                "None" => Ok(cookie_builder.same_site(SameSite::None)),
+                "Lax" => Ok(cookie_builder.same_site(SameSite::Lax)),
+                "Strict" => Ok(cookie_builder.same_site(SameSite::Strict)),
+                _ => Err(WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    "invalid argument",
+                )),
+            }?;
+        }
 
         let cmd = WebDriverScriptCommand::AddCookie(cookie_builder.build(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
