@@ -65,4 +65,5 @@ pub trait WindowPortsMethods {
         servo::Theme::Light
     }
     fn window_rect(&self) -> DeviceIndependentIntRect;
+    fn maximize(&self, webview: &WebView);
 }

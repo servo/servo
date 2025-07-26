@@ -4422,6 +4422,7 @@ where
             WebDriverCommandMsg::GetWindowRect(..) |
             WebDriverCommandMsg::GetViewportSize(..) |
             WebDriverCommandMsg::SetWindowRect(..) |
+            WebDriverCommandMsg::MaximizeWebView(..) |
             WebDriverCommandMsg::LoadUrl(..) |
             WebDriverCommandMsg::Refresh(..) |
             WebDriverCommandMsg::SendKeys(..) |
