@@ -166,6 +166,7 @@ unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.12.1", features = ["v4"] }
+vello = { git = "https://github.com/linebender/vello", rev = "ecf6b282dba01e5dc50e9463b87b6baeccdb3094" }
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"
