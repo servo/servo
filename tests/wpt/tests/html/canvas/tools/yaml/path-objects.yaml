@@ -2479,6 +2479,37 @@
     cr.rectangle(0, 0, 100, 50)
     cr.fill()
 
+- name: 2d.path.fill.winding.evenodd.1
+  desc: evenodd winding number rule works in fill
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 50);
+    ctx.rect(0, 0, 100, 50);
+
+    ctx.fillStyle = "#f00";
+    ctx.fill("evenodd");
+
+    @assert pixel 50,25 == 0,255,0,255;
+
+- name: 2d.path.fill.winding.evenodd.2
+  desc: evenodd winding number rule works in fill
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    let path = new Path2D();
+    path.rect(0, 0, 100, 50);
+    path.rect(0, 0, 100, 50);
+    path.closePath();
+
+    ctx.fillStyle = "#f00";
+    ctx.fill(path, "evenodd");
+
+    @assert pixel 50,25 == 0,255,0,255;
+
 - name: 2d.path.fill.winding.add
   code: |
     ctx.fillStyle = '#f00';
@@ -3045,6 +3076,39 @@
 
     @assert pixel 50,25 == 0,255,0,255;
   expected: green
+
+- name: 2d.path.clip.winding.evenodd.1
+  desc: evenodd winding number rule works in clip
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 50);
+    ctx.rect(0, 0, 100, 50);
+
+    ctx.fillStyle = "#f00";
+    ctx.clip("evenodd");
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 50,25 == 0,255,0,255;
+
+- name: 2d.path.clip.winding.evenodd.2
+  desc: evenodd winding number rule works in clip
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    let path = new Path2D();
+    path.rect(0, 0, 100, 50);
+    path.rect(0, 0, 100, 50);
+    path.closePath();
+
+    ctx.fillStyle = "#f00";
+    ctx.clip(path, "evenodd");
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 50,25 == 0,255,0,255;
 
 - name: 2d.path.clip.winding.1
   code: |
