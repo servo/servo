@@ -346,7 +346,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             .or_init(|| ServoInternals::new(&self.global(), CanGc::note()))
     }
 
-    /// https://www.w3.org/TR/device-memory/
+    /// <https://www.w3.org/TR/device-memory/>
     fn DeviceMemory(&self) -> Finite<f64> {
         device_memory()
     }

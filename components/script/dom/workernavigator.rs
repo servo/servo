@@ -129,7 +129,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
         hardware_concurrency()
     }
 
-    /// https://www.w3.org/TR/device-memory/
+    /// <https://www.w3.org/TR/device-memory/>
     fn DeviceMemory(&self) -> Finite<f64> {
         device_memory()
     }
