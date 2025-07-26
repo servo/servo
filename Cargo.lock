@@ -1076,6 +1076,7 @@ dependencies = [
  "kurbo",
  "log",
  "net_traits",
+ "peniko",
  "pixels",
  "pollster",
  "range",

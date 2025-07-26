@@ -105,6 +105,7 @@ num-traits = "0.2"
 num_cpus = "1.17.0"
 openxr = "0.19"
 parking_lot = "0.12"
+peniko = "0.4"
 percent-encoding = "2.3"
 proc-macro2 = "1"
 profile_traits = { path = "components/shared/profile" }
