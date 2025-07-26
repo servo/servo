@@ -1064,6 +1064,7 @@ name = "canvas"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "bytemuck",
  "canvas_traits",
  "compositing_traits",
  "crossbeam-channel",

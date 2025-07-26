@@ -33,6 +33,7 @@ base64 = "0.22.1"
 bincode = "1"
 bitflags = "2.9"
 bluetooth_traits = { path = "components/shared/bluetooth" }
+bytemuck = "1"
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }
 cbc = "0.1.2"

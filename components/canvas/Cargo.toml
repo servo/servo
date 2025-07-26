@@ -16,6 +16,7 @@ vello = ["dep:vello", "dep:pollster", "dep:futures-intrusive", "dep:peniko"]
 
 [dependencies]
 app_units = { workspace = true }
+bytemuck = { workspace = true, features = ["extern_crate_alloc"] }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }

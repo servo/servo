@@ -154,26 +154,16 @@ pub fn source(pattern: &Pattern) -> raqote::Source {
             pattern.radius2,
             raqote::Spread::Pad,
         ),
-        Pattern::Surface(pattern) => {
-            #[allow(unsafe_code)]
-            let data = unsafe {
-                let data = pattern.image.as_raw_bytes();
-                std::slice::from_raw_parts(
-                    data.as_ptr() as *const u32,
-                    data.len() / std::mem::size_of::<u32>(),
-                )
-            };
-            raqote::Source::Image(
-                raqote::Image {
-                    width: pattern.image.size().width as i32,
-                    height: pattern.image.size().height as i32,
-                    data,
-                },
-                pattern.extend,
-                pattern.filter,
-                pattern.transform,
-            )
-        },
+        Pattern::Surface(pattern) => raqote::Source::Image(
+            raqote::Image {
+                width: pattern.image.size().width as i32,
+                height: pattern.image.size().height as i32,
+                data: bytemuck::cast_slice(pattern.image.as_raw_bytes()),
+            },
+            pattern.extend,
+            pattern.filter,
+            pattern.transform,
+        ),
     }
 }
 
@@ -188,7 +178,7 @@ fn create_gradient_stops(gradient_stops: Vec<CanvasGradientStop>) -> Vec<raqote:
 }
 
 impl GenericDrawTarget for raqote::DrawTarget {
-    type SourceSurface = Vec<u8>; // TODO: See if we can avoid the alloc (probably?)
+    type SourceSurface = Vec<u32>; // TODO: See if we can avoid the alloc (probably?)
 
     fn new(size: Size2D<u32>) -> Self {
         raqote::DrawTarget::new(size.width as i32, size.height as i32)
@@ -206,17 +196,13 @@ impl GenericDrawTarget for raqote::DrawTarget {
             transform,
         );
     }
-    #[allow(unsafe_code)]
     fn copy_surface(
         &mut self,
         surface: Self::SourceSurface,
         source: Rect<i32>,
         destination: Point2D<i32>,
     ) {
-        let mut dt = raqote::DrawTarget::new(source.size.width, source.size.height);
-        let data = surface;
-        let s = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4) };
-        dt.get_data_mut().copy_from_slice(s);
+        let dt = raqote::DrawTarget::from_vec(source.size.width, source.size.height, surface);
         raqote::DrawTarget::copy_surface(self, &dt, source.to_box2d(), destination);
     }
 
@@ -225,16 +211,18 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
     fn create_source_surface_from_data(&self, data: Snapshot) -> Option<Self::SourceSurface> {
         Some(
-            data.to_vec(
-                Some(SnapshotAlphaMode::Transparent {
-                    premultiplied: true,
-                }),
-                Some(SnapshotPixelFormat::BGRA),
+            bytemuck::try_cast_vec(
+                data.to_vec(
+                    Some(SnapshotAlphaMode::Transparent {
+                        premultiplied: true,
+                    }),
+                    Some(SnapshotPixelFormat::BGRA),
+                )
+                .0,
             )
-            .0,
+            .unwrap_or_else(|(_, surface)| bytemuck::pod_collect_to_vec(&surface)),
         )
     }
-    #[allow(unsafe_code)]
     fn draw_surface(
         &mut self,
         surface: Self::SourceSurface,
@@ -244,28 +232,12 @@ impl GenericDrawTarget for raqote::DrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
-        let image = Snapshot::from_vec(
-            src.size.cast(),
-            SnapshotPixelFormat::BGRA,
-            SnapshotAlphaMode::Transparent {
-                premultiplied: true,
-            },
-            surface,
-        );
-
         let paint_transform =
             raqote::Transform::translation(-dest.origin.x as f32, -dest.origin.y as f32)
                 .then_scale(
                     src.size.width as f32 / dest.size.width as f32,
                     src.size.height as f32 / dest.size.height as f32,
                 );
-
-        let pattern = Pattern::Surface(SurfacePattern::new(
-            image,
-            filter.to_raqote(),
-            Repetition::NoRepeat,
-            paint_transform,
-        ));
 
         self.set_transform(&transform);
         let dest = dest.cast();
@@ -276,10 +248,20 @@ impl GenericDrawTarget for raqote::DrawTarget {
             dest.size.width,
             dest.size.height,
         );
+        let size = src.size.cast();
         fill_draw_target(
             self,
             draw_options(composition_options),
-            pattern,
+            &raqote::Source::Image(
+                raqote::Image {
+                    width: size.width,
+                    height: size.height,
+                    data: &surface,
+                },
+                raqote::ExtendMode::Pad,
+                filter.to_raqote(),
+                paint_transform,
+            ),
             pb.finish(),
         );
     }
@@ -303,7 +285,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         let draw_options = draw_options(composition_options);
         let pattern = style.to_raqote_pattern();
         let path = to_path(path);
-        fill_draw_target(self, draw_options, pattern, path);
+        fill_draw_target(self, draw_options, &source(&pattern), path);
     }
 
     fn fill_text(
@@ -402,7 +384,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         self.push_clip_rect(rect.to_box2d());
     }
     fn surface(&mut self) -> Self::SourceSurface {
-        self.get_data_u8().to_vec()
+        self.get_data().to_vec()
     }
     fn stroke(
         &mut self,
@@ -481,13 +463,13 @@ impl GenericDrawTarget for raqote::DrawTarget {
 fn fill_draw_target(
     draw_target: &mut raqote::DrawTarget,
     draw_options: DrawOptions,
-    pattern: Pattern,
+    source: &raqote::Source<'_>,
     path: raqote::Path,
 ) {
     match draw_options.blend_mode {
         raqote::BlendMode::Src => {
             draw_target.clear(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0));
-            draw_target.fill(&path, &source(&pattern), &draw_options);
+            draw_target.fill(&path, source, &draw_options);
         },
         raqote::BlendMode::Clear |
         raqote::BlendMode::SrcAtop |
@@ -496,7 +478,7 @@ fn fill_draw_target(
         raqote::BlendMode::Xor |
         raqote::BlendMode::DstOver |
         raqote::BlendMode::SrcOver => {
-            draw_target.fill(&path, &source(&pattern), &draw_options);
+            draw_target.fill(&path, source, &draw_options);
         },
         raqote::BlendMode::SrcIn |
         raqote::BlendMode::SrcOut |
@@ -505,7 +487,7 @@ fn fill_draw_target(
             let mut options = draw_options;
             draw_target.push_layer_with_blend(1., options.blend_mode);
             options.blend_mode = raqote::BlendMode::SrcOver;
-            draw_target.fill(&path, &source(&pattern), &options);
+            draw_target.fill(&path, source, &options);
             draw_target.pop_layer();
         },
         _ => warn!("unrecognized blend mode: {:?}", draw_options.blend_mode),
@@ -620,7 +602,6 @@ impl ToRaqoteGradientStop for CanvasGradientStop {
 }
 
 impl ToRaqotePattern for FillOrStrokeStyle {
-    #[allow(unsafe_code)]
     fn to_raqote_pattern(self) -> Pattern {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
 
