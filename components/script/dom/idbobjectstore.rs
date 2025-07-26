@@ -215,8 +215,7 @@ impl IDBObjectStore {
             }
         }
 
-        let serialized_value =
-            structuredclone::write(cx, value, None).expect("Could not serialize value");
+        let serialized_value = structuredclone::write(cx, value, None)?;
 
         IDBRequest::execute_async(
             self,
