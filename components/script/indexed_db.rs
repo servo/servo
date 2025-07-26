@@ -13,8 +13,8 @@ use js::jsapi::{
 };
 use js::jsval::{DoubleValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
-use net_traits::indexeddb_thread::IndexedDBKeyType;
-use script_bindings::conversions::SafeToJSValConvertible;
+use net_traits::indexeddb_thread::{IndexedDBKeyRange, IndexedDBKeyType};
+use script_bindings::conversions::{SafeToJSValConvertible, root_from_object};
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
@@ -22,6 +22,7 @@ use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::structuredclone;
+use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value
@@ -76,8 +77,8 @@ pub fn is_valid_key_path(key_path: &StrOrStringSequence) -> bool {
     }
 }
 
-#[allow(unsafe_code)]
 // https://www.w3.org/TR/IndexedDB-2/#convert-value-to-key
+#[allow(unsafe_code)]
 pub fn convert_value_to_key(
     cx: SafeJSContext,
     input: HandleValue,
@@ -142,6 +143,33 @@ pub fn convert_value_to_key(
     }
 
     Err(Error::Data)
+}
+
+// https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range
+#[allow(unsafe_code)]
+#[expect(unused)]
+pub fn convert_value_to_key_range(
+    cx: SafeJSContext,
+    input: HandleValue,
+    null_disallowed: Option<bool>,
+) -> Result<IndexedDBKeyRange, Error> {
+    let null_disallowed = null_disallowed.unwrap_or(false);
+    // Step 1.
+    if input.is_object() {
+        rooted!(in(*cx) let object = input.to_object());
+        unsafe {
+            if let Ok(obj) = root_from_object::<IDBKeyRange>(object.get(), *cx) {
+                let obj = obj.inner().clone();
+                return Ok(obj);
+            }
+        }
+    }
+    // Step 2.
+    if (input.get().is_undefined() || input.get().is_null()) && null_disallowed {
+        return Err(Error::Data);
+    }
+    let key = convert_value_to_key(cx, input, None)?;
+    Ok(IndexedDBKeyRange::only(key))
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#evaluate-a-key-path-on-a-value
