@@ -7,6 +7,7 @@ use js::rust::MutableHandleValue;
 use script_bindings::num::Finite;
 use servo_config::pref;
 
+use super::navigator::device_memory;
 use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -19,8 +20,6 @@ use crate::dom::permissions::Permissions;
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
-
-use super::navigator::device_memory;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
