@@ -723,12 +723,8 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
     #[allow(unsafe_code)]
-    pub(crate) fn read_pixels(
-        &mut self,
-        read_rect: Option<Rect<u32>>,
-        canvas_size: Option<Size2D<u32>>,
-    ) -> Snapshot {
-        let canvas_size = canvas_size.unwrap_or(self.drawtarget.get_size().cast());
+    pub(crate) fn read_pixels(&mut self, read_rect: Option<Rect<u32>>) -> Snapshot {
+        let canvas_size = self.drawtarget.get_size().cast();
 
         if let Some(read_rect) = read_rect {
             let canvas_rect = Rect::from_size(canvas_size);

@@ -449,7 +449,6 @@ pub struct TextOptions {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    FromScript(FromScriptMsg, CanvasId),
     Recreate(Option<Size2D<u64>>, CanvasId),
     Close(CanvasId),
 }
@@ -475,7 +474,6 @@ pub enum Canvas2dMsg {
     ),
     DrawImageInOther(
         CanvasId,
-        Size2D<u32>,
         Rect<f64>,
         Rect<f64>,
         bool,
@@ -512,7 +510,7 @@ pub enum Canvas2dMsg {
         CompositionOptions,
         Transform2D<f32>,
     ),
-    GetImageData(Rect<u32>, Size2D<u32>, IpcSender<IpcSnapshot>),
+    GetImageData(Option<Rect<u32>>, IpcSender<IpcSnapshot>),
     MeasureText(String, IpcSender<TextMetrics>, TextOptions),
     PutImageData(Rect<u32>, IpcSnapshot),
     StrokeRect(
@@ -532,11 +530,6 @@ pub enum Canvas2dMsg {
         Transform2D<f32>,
     ),
     UpdateImage(IpcSender<()>),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum FromScriptMsg {
-    SendPixels(IpcSender<IpcSnapshot>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

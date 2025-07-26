@@ -77,15 +77,6 @@ impl CanvasPaintThread {
                                 Ok(CanvasMsg::Recreate(size, canvas_id)) => {
                                     canvas_paint_thread.canvas(canvas_id).recreate(size);
                                 },
-                                Ok(CanvasMsg::FromScript(message, canvas_id)) => match message {
-                                    FromScriptMsg::SendPixels(chan) => {
-                                        chan.send(canvas_paint_thread
-                                            .canvas(canvas_id)
-                                            .read_pixels(None, None)
-                                            .as_ipc()
-                                        ).unwrap();
-                                    },
-                                },
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
                                 },
@@ -247,7 +238,6 @@ impl CanvasPaintThread {
             ),
             Canvas2dMsg::DrawImageInOther(
                 other_canvas_id,
-                image_size,
                 dest_rect,
                 source_rect,
                 smoothing,
@@ -257,7 +247,7 @@ impl CanvasPaintThread {
             ) => {
                 let snapshot = self
                     .canvas(canvas_id)
-                    .read_pixels(Some(source_rect.to_u32()), Some(image_size));
+                    .read_pixels(Some(source_rect.to_u32()));
                 self.canvas(other_canvas_id).draw_image(
                     snapshot,
                     dest_rect,
@@ -272,10 +262,8 @@ impl CanvasPaintThread {
                 let metrics = self.canvas(canvas_id).measure_text(text, text_options);
                 sender.send(metrics).unwrap();
             },
-            Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender) => {
-                let snapshot = self
-                    .canvas(canvas_id)
-                    .read_pixels(Some(dest_rect), Some(canvas_size));
+            Canvas2dMsg::GetImageData(dest_rect, sender) => {
+                let snapshot = self.canvas(canvas_id).read_pixels(dest_rect);
                 sender.send(snapshot.as_ipc()).unwrap();
             },
             Canvas2dMsg::PutImageData(rect, snapshot) => {
@@ -436,13 +424,9 @@ impl Canvas {
         }
     }
 
-    fn read_pixels(
-        &mut self,
-        read_rect: Option<Rect<u32>>,
-        canvas_size: Option<Size2D<u32>>,
-    ) -> Snapshot {
+    fn read_pixels(&mut self, read_rect: Option<Rect<u32>>) -> Snapshot {
         match self {
-            Canvas::Raqote(canvas_data) => canvas_data.read_pixels(read_rect, canvas_size),
+            Canvas::Raqote(canvas_data) => canvas_data.read_pixels(read_rect),
         }
     }
 
