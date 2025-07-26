@@ -662,7 +662,7 @@ pub async fn main_fetch(
     let mut response_loaded = false;
     let mut response = if !response.is_network_error() && !request.integrity_metadata.is_empty() {
         // Step 19.1.
-        wait_for_response(request, &mut response, target, done_chan).await;
+        wait_for_response(request, &mut response, target, done_chan, context).await;
         response_loaded = true;
 
         // Step 19.2.
@@ -686,7 +686,7 @@ pub async fn main_fetch(
         // by sync fetch, but we overload it here for simplicity
         target.process_response(request, &response);
         if !response_loaded {
-            wait_for_response(request, &mut response, target, done_chan).await;
+            wait_for_response(request, &mut response, target, done_chan, context).await;
         }
         // overloaded similarly to process_response
         target.process_response_eof(request, &response);
@@ -706,11 +706,11 @@ pub async fn main_fetch(
     // Step 22.
     target.process_response(request, &response);
     // Send Response to Devtools
-    send_response_to_devtools(request, context, &response);
+    send_response_to_devtools(request, context, &response, None);
 
     // Step 23.
     if !response_loaded {
-        wait_for_response(request, &mut response, target, done_chan).await;
+        wait_for_response(request, &mut response, target, done_chan, context).await;
     }
 
     // Step 24.
@@ -718,7 +718,7 @@ pub async fn main_fetch(
     // Send Response to Devtools
     // This is done after process_response_eof to ensure that the body is fully
     // processed before sending the response to Devtools.
-    send_response_to_devtools(request, context, &response);
+    send_response_to_devtools(request, context, &response, None);
 
     if let Ok(http_cache) = context.state.http_cache.write() {
         http_cache.update_awaiting_consumers(request, &response);
@@ -734,6 +734,7 @@ async fn wait_for_response(
     response: &mut Response,
     target: Target<'_>,
     done_chan: &mut DoneChannel,
+    context: &FetchContext,
 ) {
     if let Some(ref mut ch) = *done_chan {
         loop {
@@ -760,6 +761,17 @@ async fn wait_for_response(
             // obtained synchronously via scheme_fetch for data/file/about/etc
             // We should still send the body across as a chunk
             target.process_response_chunk(request, vec.clone());
+            if let Some(ref _devtools_chan) = context.devtools_chan {
+                // Now that we've replayed the entire cached body,
+                // notify the DevTools server with the full Response.
+                let mut devtools_request = request.clone();
+                send_response_to_devtools(
+                    &mut devtools_request,
+                    context,
+                    response,
+                    Some(vec.clone()),
+                );
+            }
         } else {
             assert_eq!(*body, ResponseBody::Empty)
         }

@@ -437,6 +437,7 @@ pub fn send_response_to_devtools(
     request: &mut Request,
     context: &FetchContext,
     response: &Response,
+    body_data: Option<Vec<u8>>,
 ) {
     if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
         context.devtools_chan.as_ref(),
@@ -457,7 +458,7 @@ pub fn send_response_to_devtools(
         let devtoolsresponse = DevtoolsHttpResponse {
             headers,
             status,
-            body: None,
+            body: body_data.clone(),
             pipeline_id,
             browsing_context_id,
         };
@@ -940,7 +941,7 @@ pub async fn http_fetch(
         .is_some_and(is_redirect_status)
     {
         // Notify devtools before handling redirect
-        send_response_to_devtools(request, context, &response);
+        send_response_to_devtools(request, context, &response, None);
         // Substep 1.
         if response.actual_response().status != StatusCode::SEE_OTHER {
             // TODO: send RST_STREAM frame
