@@ -73,8 +73,8 @@ impl VelloCPUDrawTarget {
     }
 
     fn pixmap(&mut self) -> &[u8] {
-        //self.scene.flush();
         self.ignore_clips(|self_| {
+            self_.ctx.flush();
             self_
                 .ctx
                 .render_to_pixmap(&mut self_.pixmap, vello_cpu::RenderMode::OptimizeQuality)
