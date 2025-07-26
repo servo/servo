@@ -482,11 +482,12 @@ pub enum Canvas2dMsg {
         Transform2D<f32>,
     ),
     ClearRect(Rect<f32>, Transform2D<f32>),
-    ClipPath(Path, Transform2D<f32>),
+    ClipPath(Path, FillRule, Transform2D<f32>),
     PopClip,
     FillPath(
         FillOrStrokeStyle,
         Path,
+        FillRule,
         ShadowOptions,
         CompositionOptions,
         Transform2D<f32>,

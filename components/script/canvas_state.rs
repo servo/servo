@@ -38,6 +38,7 @@ use url::Url;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext, RenderingContext};
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -1927,12 +1928,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
-    pub(crate) fn fill_(&self, path: Path, _fill_rule: CanvasFillRule) {
-        // TODO: Process fill rule
+    pub(crate) fn fill_(&self, path: Path, fill_rule: CanvasFillRule) {
         let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
         self.send_canvas_2d_msg(Canvas2dMsg::FillPath(
             style,
             path,
+            fill_rule.convert(),
             self.state.borrow().shadow_options(),
             self.state.borrow().composition_options(),
             self.state.borrow().transform,
@@ -1964,9 +1965,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
-    pub(crate) fn clip_(&self, path: Path, _fill_rule: CanvasFillRule) {
-        // TODO: Process fill rule
-        self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(path, self.state.borrow().transform));
+    pub(crate) fn clip_(&self, path: Path, fill_rule: CanvasFillRule) {
+        self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(
+            path,
+            fill_rule.convert(),
+            self.state.borrow().transform,
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
@@ -2330,5 +2334,14 @@ fn adjust_canvas_size(size: Size2D<u64>) -> Size2D<u64> {
         size
     } else {
         Size2D::zero()
+    }
+}
+
+impl Convert<FillRule> for CanvasFillRule {
+    fn convert(self) -> FillRule {
+        match self {
+            CanvasFillRule::Nonzero => FillRule::Nonzero,
+            CanvasFillRule::Evenodd => FillRule::Evenodd,
+        }
     }
 }

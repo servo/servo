@@ -207,3 +207,12 @@ impl Convert<peniko::ImageQuality> for Filter {
         }
     }
 }
+
+impl Convert<peniko::Fill> for FillRule {
+    fn convert(self) -> peniko::Fill {
+        match self {
+            FillRule::Nonzero => peniko::Fill::NonZero,
+            FillRule::Evenodd => peniko::Fill::EvenOdd,
+        }
+    }
+}

@@ -173,9 +173,17 @@ impl CanvasPaintThread {
             Canvas2dMsg::ClearRect(ref rect, transform) => {
                 self.canvas(canvas_id).clear_rect(rect, transform)
             },
-            Canvas2dMsg::FillPath(style, path, shadow_options, composition_options, transform) => {
+            Canvas2dMsg::FillPath(
+                style,
+                path,
+                fill_rule,
+                shadow_options,
+                composition_options,
+                transform,
+            ) => {
                 self.canvas(canvas_id).fill_path(
                     &path,
+                    fill_rule,
                     style,
                     shadow_options,
                     composition_options,
@@ -199,8 +207,9 @@ impl CanvasPaintThread {
                     transform,
                 );
             },
-            Canvas2dMsg::ClipPath(path, transform) => {
-                self.canvas(canvas_id).clip_path(&path, transform);
+            Canvas2dMsg::ClipPath(path, fill_rule, transform) => {
+                self.canvas(canvas_id)
+                    .clip_path(&path, fill_rule, transform);
             },
             Canvas2dMsg::DrawImage(
                 snapshot,
@@ -412,19 +421,30 @@ impl Canvas {
     fn fill_path(
         &mut self,
         path: &Path,
+        fill_rule: FillRule,
         style: FillOrStrokeStyle,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
         match self {
-            Canvas::Raqote(canvas_data) => {
-                canvas_data.fill_path(path, style, shadow_options, composition_options, transform)
-            },
+            Canvas::Raqote(canvas_data) => canvas_data.fill_path(
+                path,
+                fill_rule,
+                style,
+                shadow_options,
+                composition_options,
+                transform,
+            ),
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => {
-                canvas_data.fill_path(path, style, shadow_options, composition_options, transform)
-            },
+            Canvas::Vello(canvas_data) => canvas_data.fill_path(
+                path,
+                fill_rule,
+                style,
+                shadow_options,
+                composition_options,
+                transform,
+            ),
         }
     }
 
@@ -515,11 +535,11 @@ impl Canvas {
         }
     }
 
-    fn clip_path(&mut self, path: &Path, transform: Transform2D<f32>) {
+    fn clip_path(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f32>) {
         match self {
-            Canvas::Raqote(canvas_data) => canvas_data.clip_path(path, transform),
+            Canvas::Raqote(canvas_data) => canvas_data.clip_path(path, fill_rule, transform),
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => canvas_data.clip_path(path, transform),
+            Canvas::Vello(canvas_data) => canvas_data.clip_path(path, fill_rule, transform),
         }
     }
 

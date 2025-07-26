@@ -277,6 +277,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
     fn fill(
         &mut self,
         path: &canvas_traits::canvas::Path,
+        fill_rule: FillRule,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
@@ -284,7 +285,11 @@ impl GenericDrawTarget for raqote::DrawTarget {
         self.set_transform(&transform);
         let draw_options = draw_options(composition_options);
         let pattern = style.to_raqote_pattern();
-        let path = to_path(path);
+        let mut path = to_path(path);
+        path.winding = match fill_rule {
+            FillRule::Nonzero => raqote::Winding::NonZero,
+            FillRule::Evenodd => raqote::Winding::EvenOdd,
+        };
         fill_draw_target(self, draw_options, &source(&pattern), path);
     }
 
@@ -368,7 +373,14 @@ impl GenericDrawTarget for raqote::DrawTarget {
             rect.size.height,
         );
 
-        <Self as GenericDrawTarget>::fill(self, &pb, style, composition_options, transform);
+        <Self as GenericDrawTarget>::fill(
+            self,
+            &pb,
+            FillRule::Nonzero,
+            style,
+            composition_options,
+            transform,
+        );
     }
     fn get_size(&self) -> Size2D<i32> {
         Size2D::new(self.width(), self.height())
@@ -376,9 +388,19 @@ impl GenericDrawTarget for raqote::DrawTarget {
     fn pop_clip(&mut self) {
         self.pop_clip();
     }
-    fn push_clip(&mut self, path: &canvas_traits::canvas::Path, transform: Transform2D<f32>) {
+    fn push_clip(
+        &mut self,
+        path: &canvas_traits::canvas::Path,
+        fill_rule: FillRule,
+        transform: Transform2D<f32>,
+    ) {
         self.set_transform(&transform);
-        self.push_clip(&to_path(path));
+        let mut path = to_path(path);
+        path.winding = match fill_rule {
+            FillRule::Nonzero => raqote::Winding::NonZero,
+            FillRule::Evenodd => raqote::Winding::EvenOdd,
+        };
+        self.push_clip(&path);
     }
     fn push_clip_rect(&mut self, rect: &Rect<i32>) {
         self.push_clip_rect(rect.to_box2d());
