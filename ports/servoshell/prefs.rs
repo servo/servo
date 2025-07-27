@@ -591,6 +591,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             "dom_fontface_enabled",
             "dom_intersection_observer_enabled",
             "dom_mouse_event_which_enabled",
+            "dom_navigator_sendbeacon_enabled",
             "dom_notification_enabled",
             "dom_offscreen_canvas_enabled",
             "dom_permissions_enabled",

@@ -801,7 +801,7 @@ fn is_cors_safelisted_language(value: &[u8]) -> bool {
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
 // subclause `content-type`
-fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
+pub fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
     // step 1
     if value.iter().any(is_cors_unsafe_request_header_byte) {
         return false;
