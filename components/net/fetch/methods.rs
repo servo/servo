@@ -738,12 +738,23 @@ async fn wait_for_response(
     context: &FetchContext,
 ) {
     if let Some(ref mut ch) = *done_chan {
+        let mut devtools_body = context.devtools_chan.as_ref().map(|_| Vec::new());
         loop {
             match ch.1.recv().await {
                 Some(Data::Payload(vec)) => {
+                    if let Some(body) = devtools_body.as_mut() {
+                        body.extend(&vec);
+                    }
                     target.process_response_chunk(request, vec);
                 },
                 Some(Data::Done) => {
+                    let mut devtools_request = request.clone();
+                    send_response_to_devtools(
+                        &mut devtools_request,
+                        context,
+                        response,
+                        devtools_body,
+                    );
                     break;
                 },
                 Some(Data::Cancelled) => {
