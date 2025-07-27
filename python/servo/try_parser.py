@@ -125,6 +125,19 @@ def handle_preset(s: str) -> Optional[JobConfig]:
             unit_tests=False,
             number_of_wpt_chunks=2,
         )
+    elif any(word in s for word in ["vello-cpu", "vello_cpu"]):
+        return JobConfig(
+            "Vello-CPU WPT",
+            Workflow.LINUX,
+            wpt=True,
+            wpt_args=" ".join(
+                [
+                    "--subsuite-file ./tests/wpt/vello_cpu_canvas_subsuite.json",
+                    "--subsuite vello_cpu_canvas",
+                ]
+            ),
+            build_args="--features 'vello_cpu'",
+        )
     elif any(word in s for word in ["vello"]):
         return JobConfig(
             "Vello WPT",

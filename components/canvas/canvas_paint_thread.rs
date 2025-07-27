@@ -296,6 +296,8 @@ enum Canvas {
     Raqote(CanvasData<raqote::DrawTarget>),
     #[cfg(feature = "vello")]
     Vello(CanvasData<crate::vello_backend::VelloDrawTarget>),
+    #[cfg(feature = "vello_cpu")]
+    VelloCPU(CanvasData<crate::vello_cpu_backend::VelloCPUDrawTarget>),
 }
 
 impl Canvas {
@@ -308,6 +310,10 @@ impl Canvas {
         if servo_config::pref!(dom_canvas_vello_enabled) {
             return Self::Vello(CanvasData::new(size, compositor_api, font_context));
         }
+        #[cfg(feature = "vello_cpu")]
+        if servo_config::pref!(dom_canvas_vello_cpu_enabled) {
+            return Self::VelloCPU(CanvasData::new(size, compositor_api, font_context));
+        }
         Self::Raqote(CanvasData::new(size, compositor_api, font_context))
     }
 
@@ -316,6 +322,8 @@ impl Canvas {
             Canvas::Raqote(canvas_data) => canvas_data.image_key(),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.image_key(),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.image_key(),
         }
     }
 
@@ -324,6 +332,8 @@ impl Canvas {
             Canvas::Raqote(canvas_data) => canvas_data.pop_clip(),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.pop_clip(),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.pop_clip(),
         }
     }
 
@@ -366,6 +376,19 @@ impl Canvas {
                 composition_options,
                 transform,
             ),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.fill_text(
+                text,
+                x,
+                y,
+                max_width,
+                is_rtl,
+                style,
+                text_options,
+                shadow_options,
+                composition_options,
+                transform,
+            ),
         }
     }
 
@@ -383,6 +406,10 @@ impl Canvas {
             },
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => {
+                canvas_data.fill_rect(rect, style, shadow_options, composition_options, transform)
+            },
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => {
                 canvas_data.fill_rect(rect, style, shadow_options, composition_options, transform)
             },
         }
@@ -408,6 +435,15 @@ impl Canvas {
             ),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.stroke_rect(
+                rect,
+                style,
+                line_options,
+                shadow_options,
+                composition_options,
+                transform,
+            ),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.stroke_rect(
                 rect,
                 style,
                 line_options,
@@ -445,6 +481,15 @@ impl Canvas {
                 composition_options,
                 transform,
             ),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.fill_path(
+                path,
+                fill_rule,
+                style,
+                shadow_options,
+                composition_options,
+                transform,
+            ),
         }
     }
 
@@ -475,6 +520,15 @@ impl Canvas {
                 composition_options,
                 transform,
             ),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.stroke_path(
+                path,
+                style,
+                line_options,
+                shadow_options,
+                composition_options,
+                transform,
+            ),
         }
     }
 
@@ -483,6 +537,8 @@ impl Canvas {
             Canvas::Raqote(canvas_data) => canvas_data.clear_rect(rect, transform),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.clear_rect(rect, transform),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.clear_rect(rect, transform),
         }
     }
 
@@ -516,6 +572,16 @@ impl Canvas {
                 composition_options,
                 transform,
             ),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.draw_image(
+                snapshot,
+                dest_rect,
+                source_rect,
+                smoothing_enabled,
+                shadow_options,
+                composition_options,
+                transform,
+            ),
         }
     }
 
@@ -524,6 +590,8 @@ impl Canvas {
             Canvas::Raqote(canvas_data) => canvas_data.read_pixels(read_rect),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.read_pixels(read_rect),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.read_pixels(read_rect),
         }
     }
 
@@ -532,6 +600,8 @@ impl Canvas {
             Canvas::Raqote(canvas_data) => canvas_data.measure_text(text, text_options),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.measure_text(text, text_options),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.measure_text(text, text_options),
         }
     }
 
@@ -540,6 +610,8 @@ impl Canvas {
             Canvas::Raqote(canvas_data) => canvas_data.clip_path(path, fill_rule, transform),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.clip_path(path, fill_rule, transform),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.clip_path(path, fill_rule, transform),
         }
     }
 
@@ -548,6 +620,8 @@ impl Canvas {
             Canvas::Raqote(canvas_data) => canvas_data.put_image_data(snapshot, rect),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.put_image_data(snapshot, rect),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.put_image_data(snapshot, rect),
         }
     }
 
@@ -556,6 +630,8 @@ impl Canvas {
             Canvas::Raqote(canvas_data) => canvas_data.update_image_rendering(),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.update_image_rendering(),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.update_image_rendering(),
         }
     }
 
@@ -564,6 +640,8 @@ impl Canvas {
             Canvas::Raqote(canvas_data) => canvas_data.recreate(size),
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => canvas_data.recreate(size),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.recreate(size),
         }
     }
 }

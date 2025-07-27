@@ -1087,6 +1087,7 @@ dependencies = [
  "stylo",
  "unicode-script",
  "vello",
+ "vello_cpu",
  "webrender_api",
 ]
 
@@ -1335,6 +1336,9 @@ name = "color"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ae467d04a8a8aea5d9a49018a6ade2e4221d92968e8ce55a48c0b1164e5f698"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "color_quant"
@@ -1355,7 +1359,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2462,6 +2466,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e6853b52649d4ac5c0bd02320cddc5ba956bdb407c4b75a2c6b75bf51500f8c"
 dependencies = [
  "simd-adler32",
+]
+
+[[package]]
+name = "fearless_simd"
+version = "0.2.0"
+source = "git+https://github.com/linebender/fearless_simd?rev=3d1a77c#3d1a77cfb4515c0da307d50dc782c08840b90c70"
+dependencies = [
+ "bytemuck",
 ]
 
 [[package]]
@@ -4833,7 +4845,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -6220,6 +6232,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f9529efd019889b2a205193c14ffb6e2839b54ed9d2720674f10f4b04d87ac9"
 dependencies = [
+ "bytemuck",
  "color",
  "kurbo",
  "smallvec",
@@ -9135,7 +9148,7 @@ checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 [[package]]
 name = "vello"
 version = "0.5.0"
-source = "git+https://github.com/linebender/vello?rev=ecf6b282dba01e5dc50e9463b87b6baeccdb3094#ecf6b282dba01e5dc50e9463b87b6baeccdb3094"
+source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
 dependencies = [
  "bytemuck",
  "futures-intrusive",
@@ -9151,9 +9164,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "vello_common"
+version = "0.0.1"
+source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
+dependencies = [
+ "bytemuck",
+ "fearless_simd",
+ "log",
+ "peniko",
+ "png",
+ "skrifa",
+ "smallvec",
+]
+
+[[package]]
+name = "vello_cpu"
+version = "0.0.1"
+source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
+dependencies = [
+ "bytemuck",
+ "vello_common",
+]
+
+[[package]]
 name = "vello_encoding"
 version = "0.5.0"
-source = "git+https://github.com/linebender/vello?rev=ecf6b282dba01e5dc50e9463b87b6baeccdb3094#ecf6b282dba01e5dc50e9463b87b6baeccdb3094"
+source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
 dependencies = [
  "bytemuck",
  "guillotiere",
@@ -9165,7 +9201,7 @@ dependencies = [
 [[package]]
 name = "vello_shaders"
 version = "0.5.0"
-source = "git+https://github.com/linebender/vello?rev=ecf6b282dba01e5dc50e9463b87b6baeccdb3094#ecf6b282dba01e5dc50e9463b87b6baeccdb3094"
+source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
 dependencies = [
  "bytemuck",
  "log",
@@ -9885,7 +9921,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
