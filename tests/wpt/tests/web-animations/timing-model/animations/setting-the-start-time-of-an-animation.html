@@ -325,5 +325,58 @@ promise_test(async t => {
 }, 'Setting the start time on a reverse running animation updates the play '
    + 'state');
 
+promise_test(async t => {
+  const make_animation = () => createDiv(t).animate(null, 100 * MS_PER_SEC);
+
+  // Wait for a couple of page rendering updates to run and record the timeline time.
+  await waitForAnimationFrames(2);
+  const timelineTimeForFirstPageRenderingUpdate = document.timeline.currentTime;
+
+  // Create a first animation that is created during the page rendering update.
+  // This animation should have its start time set to the current timeline time.
+  const animStartedDuringPageRenderingUpdate = make_animation();
+
+  // Wait for a new JS call frame and start another animation. This animation
+  // should have its start time set to the timeline time of the next page
+  // rendering update.
+  await new Promise(setTimeout);
+  const animStartedAfterTimeout = make_animation();
+
+  // Wait for another new JS call frame and start another animation. This
+  // animation, like the previous one, should have its start time set to
+  // the timeline time of the next page rendering update.
+  await new Promise(setTimeout);
+  const animStartedAfterAnotherTimeout = make_animation();
+
+  // Now wait until the next page rendering update and record the timeline time.
+  await waitForAnimationFrames(1);
+  const timelineTimeForSecondPageRenderingUpdate = document.timeline.currentTime;
+
+  // Create an animation that is created during this second page rendering update.
+  // This animation should have its start time set to the new timeline time.
+  const animStartedDuringSecondPageRenderingUpdate = make_animation();
+
+  // All animations should be ready by the next animation frame.
+  await waitForAnimationFrames(1);
+
+  const assert_start_time = (animation, expected, description) => {
+    assert_approx_equals(animation.startTime, expected, 0.0001,
+      `Start time of animation started ${description}`);
+  };
+
+  assert_start_time(animStartedDuringPageRenderingUpdate,
+    timelineTimeForFirstPageRenderingUpdate,
+    "during the first page rendering update");
+  assert_start_time(animStartedAfterTimeout,
+    timelineTimeForSecondPageRenderingUpdate,
+    "after waiting for a new JS call frame");
+  assert_start_time(animStartedAfterAnotherTimeout,
+    timelineTimeForSecondPageRenderingUpdate,
+    "after waiting for another new JS call frame");
+  assert_start_time(animStartedDuringSecondPageRenderingUpdate,
+    timelineTimeForSecondPageRenderingUpdate,
+    "during the second page rendering update");
+}, 'Checking the start time of animations started at various times between two page rendering updates');
+
 </script>
 </body>

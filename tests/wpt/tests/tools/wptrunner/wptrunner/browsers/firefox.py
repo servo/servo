@@ -259,6 +259,7 @@ def update_properties():
         "debug",
         "display",
         "fission",
+        "isolated_process",
         "processor",
         "swgl",
         "asan",

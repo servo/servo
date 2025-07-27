@@ -1030,7 +1030,7 @@ const padTests = [
 ];
 
 if (navigator.ml) {
-  padTests.forEach((test) => {
+  padTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

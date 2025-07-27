@@ -282,7 +282,7 @@ const scatterElementsTests = [
 ];
 
 if (navigator.ml) {
-  scatterElementsTests.forEach((test) => {
+  scatterElementsTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

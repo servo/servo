@@ -1,7 +1,5 @@
 # mypy: allow-untyped-defs
 
-from six import ensure_text
-
 from .node import NodeVisitor, ValueNode, ListNode, BinaryExpressionNode
 from .parser import atoms, precedence, token_types
 
@@ -23,7 +21,7 @@ def escape(string, extras=""):
             rv += "\\" + c
         else:
             rv += c
-    return ensure_text(rv)
+    return rv
 
 
 class ManifestSerializer(NodeVisitor):
@@ -89,7 +87,7 @@ class ManifestSerializer(NodeVisitor):
         return ["".join(rv)]
 
     def visit_ValueNode(self, node):
-        data = ensure_text(node.data)
+        data = node.data
         if ("#" in data or
             data.startswith("if ") or
             (isinstance(node.parent, ListNode) and
@@ -115,7 +113,7 @@ class ManifestSerializer(NodeVisitor):
         return rv
 
     def visit_NumberNode(self, node):
-        return [ensure_text(node.data)]
+        return [node.data]
 
     def visit_VariableNode(self, node):
         rv = escape(node.data)
@@ -149,10 +147,10 @@ class ManifestSerializer(NodeVisitor):
         return [" ".join(children)]
 
     def visit_UnaryOperatorNode(self, node):
-        return [ensure_text(node.data)]
+        return [node.data]
 
     def visit_BinaryOperatorNode(self, node):
-        return [ensure_text(node.data)]
+        return [node.data]
 
 
 def serialize(tree, *args, **kwargs):

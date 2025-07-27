@@ -921,7 +921,7 @@ const maxTests = [
 ];
 
 if (navigator.ml) {
-  maxTests.forEach((test) => {
+  maxTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

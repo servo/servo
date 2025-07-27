@@ -34,6 +34,7 @@ promise_test(async t => {
 
   await select_range(t, text, text);
 
+  // XXX This test seems to rely on Chromium internal behavior!
   // Don't first verify that `getSelection().anchorNode` is the expected
   // `<span id=text>` node that was selected above. If we did that, then at
   // least in Chromium browsers, this would generate a new Range capturing the

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>CSS Overflow: parsing line-clamp with invalid values</title>
-<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-line-clamp">
-<meta name="assert" content="line-clamp supports only the grammar 'none | <integer> <‘block-ellipsis’>?'.">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef-line-clamp">
+<meta name="assert" content="line-clamp supports only the grammar 'none | [<integer [1,∞]> || <‘block-ellipsis’>] -webkit-legacy?'.">
 <meta name="assert" content="Zero or negative max-lines integers are invalid.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -12,16 +12,14 @@
 </head>
 <body>
 <script>
-test_invalid_value("line-clamp", 'auto');
-
 test_invalid_value("line-clamp", '0');
 test_invalid_value("line-clamp", '-5');
 
-test_invalid_value("line-clamp", '" etc., etc. "');
-
 test_invalid_value("line-clamp", 'none 2');
 test_invalid_value("line-clamp", '3 none');
-test_invalid_value("line-clamp", 'auto 4');
+
+test_invalid_value("line-clamp", '-webkit-legacy');
+test_invalid_value("line-clamp", '0 -webkit-legacy');
 </script>
 </body>
 </html>

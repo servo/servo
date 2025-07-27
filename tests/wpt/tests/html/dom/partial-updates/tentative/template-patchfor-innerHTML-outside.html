@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: patching via innerHTML</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder">Old content in light DOM</div>
+<div id="container"></div>
+<script>
+test(() => {
+    const placeholder = document.getElementById("placeholder");
+    const container = document.getElementById("container");
+    assert_equals(placeholder.textContent, "Old content in light DOM");
+    container.innerHTML = "<template patchfor=placeholder>New content</template>";
+    assert_equals(placeholder.textContent, "New content");
+    // The <template> element should not be inserted, so no child nodes.
+    assert_false(container.hasChildNodes(), "container has child nodes");
+}, "<template patchfor> in innerHTML patching outer element");
+</script>

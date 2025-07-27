@@ -1493,7 +1493,7 @@ const castTests = [
 ];
 
 if (navigator.ml) {
-  castTests.forEach((test) => {
+  castTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getCastPrecisionTolerance, test);
   });

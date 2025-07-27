@@ -785,7 +785,7 @@ const lstmCellTests = [
 ];
 
 if (navigator.ml) {
-  lstmCellTests.forEach((test) => {
+  lstmCellTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getLstmCellPrecisionTolerance, test);
   });

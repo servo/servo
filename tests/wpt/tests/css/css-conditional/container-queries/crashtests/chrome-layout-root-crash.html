@@ -1,5 +1,5 @@
 <!doctype html>
-<html class="reftest-wait">
+<html class="test-wait">
 <link rel="help" href="https://crbug.com/1371820">
 <style>
   body, div, img { container-type: size; }
@@ -12,6 +12,6 @@
     img.alt = img.src = "b";
     // Marks div size container for layout which skips style recalc for the sub-tree.
     div.style.width = "500px";
-    document.documentElement.classList.remove("reftest-wait");
+    document.documentElement.classList.remove("test-wait");
   }));
 </script>

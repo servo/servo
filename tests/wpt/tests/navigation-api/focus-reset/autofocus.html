@@ -120,7 +120,6 @@ promise_test(async t => {
   assert_equals(document.activeElement, decoy, "Focus stays on the initially-focused button during the transition");
 
   decoy.disabled = true;
-  assert_equals(document.activeElement, document.body, "Disabling the initially-focused button temporarily resets focus to the body");
 
   await finished;
   assert_equals(document.activeElement, autofocusTarget, "Focus moves to the second autofocused button after the transition");

@@ -623,7 +623,7 @@ const absTests = [
 ];
 
 if (navigator.ml) {
-  absTests.forEach((test) => {
+  absTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getAbsPrecisionTolerance, test);
   });

@@ -44,14 +44,44 @@ promise_test(async t => {
   assert_throws_with_label(() => builder.clamp(input, options), regrexp);
 }, '[clamp] Throw if options.minValue > options.maxValue');
 
-// To be removed once infinite `minValue` is allowed. Tracked in
-// https://github.com/webmachinelearning/webnn/pull/647.
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const options = {
-    minValue: -Infinity,
-    label: label,
-  };
-  const input = builder.input('input', {dataType: 'float32', shape: []});
+  const options = {minValue: 3n, maxValue: 1n};
+  if (!context.opSupportLimits().input.dataTypes.includes('int64')) {
+    assert_throws_js(
+        TypeError,
+        () => builder.input('input', {dataType: 'int64', shape: [1, 2, 3]}));
+    return;
+  }
+  const input = builder.input('input', {dataType: 'int64', shape: [1, 2, 3]});
   assert_throws_js(TypeError, () => builder.clamp(input, options));
-}, '[clamp] Throw if options.minValue is -Infinity');
+}, '[clamp] Throw if options.minValue BigInt > options.maxValue BigInt');
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+  const options = {minValue: 3, maxValue: 1n};
+  if (!context.opSupportLimits().input.dataTypes.includes('int64')) {
+    assert_throws_js(
+        TypeError,
+        () => builder.input('input', {dataType: 'int64', shape: [1, 2, 3]}));
+    return;
+  }
+  const input = builder.input('input', {dataType: 'int64', shape: [1, 2, 3]});
+  assert_throws_js(TypeError, () => builder.clamp(input, options));
+}, '[clamp] Throw if options.minValue > options.maxValue BigInt');
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+  const options = { minValue: 1n, maxValue: 3n };
+  const data_types = ['float32', 'float16', 'int32', 'uint32', 'int8', 'uint8', 'int4', 'uint4'];
+  for (const data_type of data_types) {
+    if (!context.opSupportLimits().input.dataTypes.includes(data_type)) {
+      assert_throws_js(
+        TypeError,
+        () => builder.input('input', { dataType: data_type, shape: [1, 2, 3] }));
+      return;
+    }
+    const input = builder.input('input', { dataType: data_type, shape: [1, 2, 3] });
+    assert_throws_js(TypeError, () => builder.clamp(input, options));
+  }
+}, '[clamp] Throw if BigInt is used for data types other than int64 and uint64');

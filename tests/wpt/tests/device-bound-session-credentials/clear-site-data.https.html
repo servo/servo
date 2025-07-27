@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>DBSC session ended with Clear-Site-Data</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="helper.js" type="module"></script>
@@ -23,7 +22,7 @@
     const endSessionResponse = await fetch('end_session_via_clear_site_data.py');
     assert_equals(endSessionResponse.status, 200);
     // Need to set up the state again because all cookies were cleared.
-    await setupShardedServerState(testId);
+    await setupShardedServerState({testId});
 
     // Expire the cookie, and confirm it does not get refreshed.
     expireCookie(expectedCookieAndAttributes);
@@ -48,7 +47,7 @@
     const endSessionResponse = await fetch('end_session_via_clear_site_data.py', {method: 'POST', body: '"storage"'});
     assert_equals(endSessionResponse.status, 200);
     // Need to set up the state again because all cookies were cleared.
-    await setupShardedServerState(testId);
+    await setupShardedServerState({testId});
 
     // Expire the cookie, and confirm it does not get refreshed.
     expireCookie(expectedCookieAndAttributes);

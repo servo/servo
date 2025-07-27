@@ -1211,7 +1211,7 @@ const reduceLogSumExpTests = [
 ];
 
 if (navigator.ml) {
-  reduceLogSumExpTests.forEach((test) => {
+  reduceLogSumExpTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

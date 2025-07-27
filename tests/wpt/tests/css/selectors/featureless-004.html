@@ -9,7 +9,7 @@
       <style>
         div {
           width: 100px;
-          height: 20px;
+          height: 10px;
         }
         .red { background-color: red; }
         .green { background-color: green; }
@@ -31,12 +31,36 @@
         :not(:host > .foo) .t5 {
           background-color: red;
         }
+        :is(:not(body) > :host) .t6 {
+          background-color: red;
+        }
+        :is(:host:not(body)) .t7 {
+          background-color: red;
+        }
+        :host:not(body) {
+          .t8 {
+            background-color: red;
+          }
+        }
+        :host:has(#foo) {
+          .t9 {
+            background-color: red;
+          }
+        }
+        :is(:host.host) .t10 {
+          background-color: red;
+        }
       </style>
       <div class="red t1"></div>
       <div class="red t2"></div>
       <div class="green t3"></div>
       <div class="green t4"></div>
       <div class="green t5"></div>
+      <div class="green t6"></div>
+      <div class="green t7"></div>
+      <div class="green t8"></div>
+      <div class="green t9"></div>
+      <div class="green t10"></div>
       <slot></slot>
     </template>
     <section></section>

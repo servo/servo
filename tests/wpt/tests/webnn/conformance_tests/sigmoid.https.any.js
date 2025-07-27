@@ -630,7 +630,7 @@ const sigmoidTests = [
 ];
 
 if (navigator.ml) {
-  sigmoidTests.forEach((test) => {
+  sigmoidTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

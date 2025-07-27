@@ -608,7 +608,7 @@ const gruCellTests = [
 ];
 
 if (navigator.ml) {
-  gruCellTests.forEach((test) => {
+  gruCellTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getGruCellPrecisionTolerance, test);
   });

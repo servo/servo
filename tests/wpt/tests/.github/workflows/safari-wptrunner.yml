@@ -102,7 +102,6 @@ jobs:
           ./wpt run \
             --no-manifest-update \
             --no-restart-on-unexpected \
-            --no-fail-on-unexpected \
             --no-pause \
             --this-chunk "$CURRENT_CHUNK" \
             --total-chunks "$TOTAL_CHUNKS" \

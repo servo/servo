@@ -1114,7 +1114,7 @@ const subTests = [
 ];
 
 if (navigator.ml) {
-  subTests.forEach((test) => {
+  subTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

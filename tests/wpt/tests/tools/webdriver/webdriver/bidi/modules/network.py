@@ -249,6 +249,35 @@ class Network(BidiModule):
         return params
 
     @command
+    def add_data_collector(
+            self,
+            data_types: List[str],
+            max_encoded_data_size: int,
+            collector_type: Optional[str] = None,
+            contexts: Optional[List[str]] = None,
+            user_contexts: Optional[List[str]] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "dataTypes": data_types,
+            "maxEncodedDataSize": max_encoded_data_size,
+        }
+
+        if collector_type is not None:
+            params["collectorType"] = collector_type
+
+        if contexts is not None:
+            params["contexts"] = contexts
+
+        if user_contexts is not None:
+            params["userContexts"] = user_contexts
+
+        return params
+
+    @add_data_collector.result
+    def _add_data_collector(self, result: Mapping[str, Any]) -> Any:
+        assert result["collector"] is not None
+        return result["collector"]
+
+    @command
     def set_cache_behavior(
             self,
             cache_behavior: CacheBehavior,

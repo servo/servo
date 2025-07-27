@@ -1838,7 +1838,7 @@ const whereTests = [
 ];
 
 if (navigator.ml) {
-  whereTests.forEach((test) => {
+  whereTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getWherePrecisionTolerance, test);
   });

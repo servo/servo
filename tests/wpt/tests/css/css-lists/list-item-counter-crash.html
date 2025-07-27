@@ -1,5 +1,5 @@
 <!doctype html>
-<html class="reftest-wait">
+<html class="test-wait">
 <link rel="help" href="http://crbug.com/1487174">
 <style>
 * { counter-increment: c; }
@@ -7,7 +7,7 @@
 <script>
   function error_fn() {
     test.style.setProperty("text-orientation", "upright");
-    document.documentElement.classList.remove("reftest-wait");
+    document.documentElement.classList.remove("test-wait");
   }
 </script>
 <li id="test"></li>

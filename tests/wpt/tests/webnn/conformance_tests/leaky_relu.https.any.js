@@ -875,7 +875,7 @@ const leakyReluTests = [
 ];
 
 if (navigator.ml) {
-  leakyReluTests.forEach((test) => {
+  leakyReluTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {
