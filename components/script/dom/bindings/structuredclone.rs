@@ -20,19 +20,19 @@ use constellation_traits::{
 };
 use js::gc::RootedVec;
 use js::glue::{
-    CopyJSStructuredCloneData, DeleteJSAutoStructuredCloneBuffer, GetLengthOfJSStructuredCloneData,
-    NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
+    CopyJSStructuredCloneData, GetLengthOfJSStructuredCloneData, WriteBytesToJSStructuredCloneData,
 };
 use js::jsapi::{
     CloneDataPolicy, HandleObject as RawHandleObject, Heap, JS_IsExceptionPending,
-    JS_ReadUint32Pair, JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32Pair,
-    JSAutoStructuredCloneBuffer, JSContext, JSObject, JSStructuredCloneCallbacks,
-    JSStructuredCloneData, JSStructuredCloneReader, JSStructuredCloneWriter,
+    JS_ReadUint32Pair, JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32Pair, JSContext, JSObject,
+    JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
-use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use js::rust::{
+    CustomAutoRooterGuard, HandleValue, JSAutoStructuredCloneBufferWrapper, MutableHandleValue,
+};
 use script_bindings::conversions::{IDLInterface, SafeToJSValConvertible};
 use strum::IntoEnumIterator;
 
@@ -527,35 +527,6 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     sabCloned: Some(sab_cloned_callback),
 };
 
-struct AutoStructuredCloneBuffer {
-    ptr: *mut JSAutoStructuredCloneBuffer,
-}
-
-impl AutoStructuredCloneBuffer {
-    fn new(
-        scope: StructuredCloneScope,
-        callbacks: *const JSStructuredCloneCallbacks,
-    ) -> AutoStructuredCloneBuffer {
-        unsafe {
-            AutoStructuredCloneBuffer {
-                ptr: NewJSAutoStructuredCloneBuffer(scope, callbacks),
-            }
-        }
-    }
-
-    fn data_mut(&mut self) -> &mut JSStructuredCloneData {
-        unsafe { &mut ((*self.ptr).data_) }
-    }
-}
-
-impl Drop for AutoStructuredCloneBuffer {
-    fn drop(&mut self) {
-        unsafe {
-            DeleteJSAutoStructuredCloneBuffer(self.ptr);
-        }
-    }
-}
-
 pub(crate) enum StructuredData<'a, 'b> {
     Reader(&'a mut StructuredDataReader<'b>),
     Writer(&'a mut StructuredDataWriter),
@@ -629,11 +600,11 @@ pub(crate) fn write(
         let mut sc_writer = StructuredDataWriter::default();
         let sc_writer_ptr = &mut sc_writer as *mut _;
 
-        let mut scbuf = AutoStructuredCloneBuffer::new(
+        let scbuf = JSAutoStructuredCloneBufferWrapper::new(
             StructuredCloneScope::DifferentProcess,
             &STRUCTURED_CLONE_CALLBACKS,
         );
-        let scdata = scbuf.data_mut();
+        let scdata = &mut ((*scbuf.as_raw_ptr()).data_);
         let policy = CloneDataPolicy {
             allowIntraClusterClonableSharedObjects_: false,
             allowSharedMemoryObjects_: false,
@@ -703,11 +674,11 @@ pub(crate) fn read(
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
-        let mut scbuf = AutoStructuredCloneBuffer::new(
+        let scbuf = JSAutoStructuredCloneBufferWrapper::new(
             StructuredCloneScope::DifferentProcess,
             &STRUCTURED_CLONE_CALLBACKS,
         );
-        let scdata = scbuf.data_mut();
+        let scdata = &mut ((*scbuf.as_raw_ptr()).data_);
 
         WriteBytesToJSStructuredCloneData(
             data.serialized.as_mut_ptr() as *const u8,
