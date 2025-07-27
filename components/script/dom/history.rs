@@ -12,7 +12,7 @@ use constellation_traits::{
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
-use js::rust::{HandleValue, MutableHandleValue};
+use js::rust::{AsHandleValue, HandleValue, MutableHandleValue};
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use profile_traits::ipc::channel;
@@ -27,6 +27,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -46,14 +47,14 @@ pub(crate) struct History {
     reflector_: Reflector,
     window: Dom<Window>,
     #[ignore_malloc_size_of = "mozjs"]
-    state: Heap<JSVal>,
+    state: RootedTraceableBox<Heap<JSVal>>,
     #[no_trace]
     state_id: Cell<Option<HistoryStateId>>,
 }
 
 impl History {
     pub(crate) fn new_inherited(window: &Window) -> History {
-        let state = Heap::default();
+        let state = RootedTraceableBox::new(Heap::default());
         state.set(NullValue());
         History {
             reflector_: Reflector::new(),
@@ -84,7 +85,6 @@ impl History {
 
     /// <https://html.spec.whatwg.org/multipage/#history-traversal>
     /// Steps 5-16
-    #[allow(unsafe_code)]
     pub(crate) fn activate_state(
         &self,
         state_id: Option<HistoryStateId>,
@@ -145,7 +145,7 @@ impl History {
             PopStateEvent::dispatch_jsval(
                 self.window.upcast::<EventTarget>(),
                 &self.window,
-                unsafe { HandleValue::from_raw(self.state.handle()) },
+                self.state.as_handle_value(),
                 can_gc,
             );
         }

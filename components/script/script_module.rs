@@ -88,16 +88,15 @@ fn gen_type_error(global: &GlobalScope, string: String, can_gc: CanGc) -> Rethro
 }
 
 #[derive(JSTraceable)]
-pub(crate) struct ModuleObject(Box<Heap<*mut JSObject>>);
+pub(crate) struct ModuleObject(RootedTraceableBox<Heap<*mut JSObject>>);
 
 impl ModuleObject {
     fn new(obj: RustHandleObject) -> ModuleObject {
-        ModuleObject(Heap::boxed(obj.get()))
+        ModuleObject(RootedTraceableBox::from_box(Heap::boxed(obj.get())))
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn handle(&self) -> HandleObject {
-        unsafe { self.0.handle() }
+        self.0.handle().into()
     }
 }
 

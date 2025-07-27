@@ -154,7 +154,7 @@ pub(crate) struct PipeTo {
     /// The error potentially passed to shutdown,
     /// stored here because we must keep it across a microtask.
     #[ignore_malloc_size_of = "mozjs"]
-    shutdown_error: Rc<RefCell<Option<Heap<JSVal>>>>,
+    shutdown_error: Rc<RefCell<Option<RootedTraceableBox<Heap<JSVal>>>>>,
 
     /// The promise returned by a shutdown action.
     /// We keep it to only continue when it is not pending anymore.
@@ -193,7 +193,7 @@ impl PipeTo {
         // Unless any shutdown action raise their own error,
         // in which case this error will be overwritten by the shutdown action error.
         {
-            let mut error = Some(Heap::default());
+            let mut error = Some(RootedTraceableBox::new(Heap::default()));
             // Setting the value on the heap after it has been moved.
             if let Some(heap) = error.as_mut() {
                 heap.set(reason.get())
@@ -371,7 +371,7 @@ impl Callback for PipeTo {
                     // then it is an error
                     // and should overwrite the current shutdown error.
                     {
-                        let mut error = Some(Heap::default());
+                        let mut error = Some(RootedTraceableBox::new(Heap::default()));
                         // Setting the value on the heap after it has been moved.
                         if let Some(heap) = error.as_mut() {
                             heap.set(result.get())
@@ -503,7 +503,7 @@ impl PipeTo {
             rooted!(in(*cx) let mut source_error = UndefinedValue());
             source.get_stored_error(source_error.handle_mut());
             {
-                let mut error = Some(Heap::default());
+                let mut error = Some(RootedTraceableBox::new(Heap::default()));
                 // Setting the value on the heap after it has been moved.
                 if let Some(heap) = error.as_mut() {
                     heap.set(source_error.get())
@@ -553,7 +553,7 @@ impl PipeTo {
             rooted!(in(*cx) let mut dest_error = UndefinedValue());
             dest.get_stored_error(dest_error.handle_mut());
             {
-                let mut error = Some(Heap::default());
+                let mut error = Some(RootedTraceableBox::new(Heap::default()));
                 // Setting the value on the heap after it has been moved.
                 if let Some(heap) = error.as_mut() {
                     heap.set(dest_error.get())
@@ -649,7 +649,7 @@ impl PipeTo {
                 Error::Type("Destination is closed or has closed queued or in flight".to_string());
             error.to_jsval(cx, global, dest_closed.handle_mut(), can_gc);
             {
-                let mut error = Some(Heap::default());
+                let mut error = Some(RootedTraceableBox::new(Heap::default()));
                 // Setting the value on the heap after it has been moved.
                 if let Some(heap) = error.as_mut() {
                     heap.set(dest_closed.get())

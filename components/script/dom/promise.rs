@@ -29,13 +29,14 @@ use js::rust::wrappers::{
     GetPromiseIsHandled, GetPromiseState, IsPromiseObject, NewPromiseObject, RejectPromise,
     ResolvePromise, SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
-use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
+use js::rust::{AsHandleValue, HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
@@ -424,7 +425,7 @@ struct WaitForAllFulfillmentHandler {
     /// The results of the promises.
     #[ignore_malloc_size_of = "Rc is hard"]
     #[allow(clippy::vec_box)]
-    result: Rc<RefCell<Vec<Box<Heap<JSVal>>>>>,
+    result: Rc<RefCell<Vec<RootedTraceableBox<Heap<JSVal>>>>>,
 
     /// The index identifying which promise this handler is attached to.
     promise_index: usize,
@@ -435,7 +436,6 @@ struct WaitForAllFulfillmentHandler {
 }
 
 impl Callback for WaitForAllFulfillmentHandler {
-    #[allow(unsafe_code)]
     fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
         // Let fulfillmentHandler be the following steps given arg:
 
@@ -453,15 +453,10 @@ impl Callback for WaitForAllFulfillmentHandler {
 
         // If fulfilledCount equals total, then perform successSteps given result.
         if equals_total {
-            // Safety: the values are kept alive by the Heap
-            // while their handles are passed to the the success steps.
-            let result_handles: Vec<HandleValue> = unsafe {
-                self.result
-                    .borrow()
-                    .iter()
-                    .map(|val| HandleValue::from_raw(val.handle()))
-                    .collect()
-            };
+            let result_ref = self.result.borrow();
+            let result_handles: Vec<HandleValue> =
+                result_ref.iter().map(|v| v.as_handle_value()).collect();
+
             (self.success_steps)(result_handles);
         }
     }
@@ -532,7 +527,7 @@ pub(crate) fn wait_for_all(
     // Note: done with `enumerate` below.
 
     // Let result be a list containing total null values.
-    let result: Rc<RefCell<Vec<Box<Heap<JSVal>>>>> = Default::default();
+    let result: Rc<RefCell<Vec<RootedTraceableBox<Heap<JSVal>>>>> = Default::default();
 
     // For each promise of promises:
     for (promise_index, promise) in promises.into_iter().enumerate() {
@@ -542,7 +537,7 @@ pub(crate) fn wait_for_all(
             // Note: adding a null value for this promise result.
             let mut result_list = result.borrow_mut();
             rooted!(in(*cx) let null_value = NullValue());
-            result_list.push(Heap::boxed(null_value.get()));
+            result_list.push(RootedTraceableBox::from_box(Heap::boxed(null_value.get())));
         }
 
         // Let promiseIndex be index.

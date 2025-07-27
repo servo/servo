@@ -20,6 +20,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::types::{GPUAdapterInfo, GPUSupportedLimits};
@@ -37,7 +38,7 @@ pub(crate) struct GPUAdapter {
     channel: WebGPU,
     name: DOMString,
     #[ignore_malloc_size_of = "mozjs"]
-    extensions: Heap<*mut JSObject>,
+    extensions: RootedTraceableBox<Heap<*mut JSObject>>,
     features: Dom<GPUSupportedFeatures>,
     limits: Dom<GPUSupportedLimits>,
     info: Dom<GPUAdapterInfo>,
@@ -49,7 +50,7 @@ impl GPUAdapter {
     fn new_inherited(
         channel: WebGPU,
         name: DOMString,
-        extensions: Heap<*mut JSObject>,
+        extensions: RootedTraceableBox<Heap<*mut JSObject>>,
         features: &GPUSupportedFeatures,
         limits: &GPUSupportedLimits,
         info: &GPUAdapterInfo,
@@ -72,7 +73,7 @@ impl GPUAdapter {
         global: &GlobalScope,
         channel: WebGPU,
         name: DOMString,
-        extensions: Heap<*mut JSObject>,
+        extensions: RootedTraceableBox<Heap<*mut JSObject>>,
         features: wgpu_types::Features,
         limits: wgpu_types::Limits,
         info: wgpu_types::AdapterInfo,
@@ -226,7 +227,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     &self.global(),
                     self.channel.clone(),
                     self,
-                    Heap::default(),
+                    RootedTraceableBox::default(),
                     descriptor.required_features,
                     descriptor.required_limits,
                     device_id,
@@ -259,7 +260,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     &self.global(),
                     self.channel.clone(),
                     self,
-                    Heap::default(),
+                    RootedTraceableBox::default(),
                     wgpu_types::Features::default(),
                     wgpu_types::Limits::default(),
                     device_id,

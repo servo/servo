@@ -73,7 +73,7 @@ pub(crate) struct GPUDevice {
     channel: WebGPU,
     adapter: Dom<GPUAdapter>,
     #[ignore_malloc_size_of = "mozjs"]
-    extensions: Heap<*mut JSObject>,
+    extensions: RootedTraceableBox<Heap<*mut JSObject>>,
     features: Dom<GPUSupportedFeatures>,
     limits: Dom<GPUSupportedLimits>,
     label: DomRefCell<USVString>,
@@ -114,7 +114,7 @@ impl GPUDevice {
     fn new_inherited(
         channel: WebGPU,
         adapter: &GPUAdapter,
-        extensions: Heap<*mut JSObject>,
+        extensions: RootedTraceableBox<Heap<*mut JSObject>>,
         features: &GPUSupportedFeatures,
         limits: &GPUSupportedLimits,
         device: WebGPUDevice,
@@ -142,7 +142,7 @@ impl GPUDevice {
         global: &GlobalScope,
         channel: WebGPU,
         adapter: &GPUAdapter,
-        extensions: Heap<*mut JSObject>,
+        extensions: RootedTraceableBox<Heap<*mut JSObject>>,
         features: wgpu_types::Features,
         limits: wgpu_types::Limits,
         device: WebGPUDevice,

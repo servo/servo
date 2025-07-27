@@ -86,7 +86,8 @@ imsz = "0.2"
 indexmap = { version = "2.10.0", features = ["std"] }
 ipc-channel = "0.20"
 itertools = "0.14"
-js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
+#js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
+js = { package = "mozjs", git = "https://github.com/Taym95/mozjs", branch = "heap-handlevalue-wrapper" }
 keyboard-types = "0.7"
 kurbo = { version = "0.11.3", features = ["euclid"] }
 libc = "0.2"

@@ -79,7 +79,7 @@ pub(crate) struct Notification {
     body: DOMString,
     /// <https://notifications.spec.whatwg.org/#data>
     #[ignore_malloc_size_of = "mozjs"]
-    data: Heap<JSVal>,
+    data: RootedTraceableBox<Heap<JSVal>>,
     /// <https://notifications.spec.whatwg.org/#concept-direction>
     dir: NotificationDirection,
     /// <https://notifications.spec.whatwg.org/#image-url>
@@ -166,7 +166,7 @@ impl Notification {
     ) -> Self {
         // TODO: missing call to https://html.spec.whatwg.org/multipage/#structuredserializeforstorage
         // may be find in `dom/bindings/structuredclone.rs`
-        let data = Heap::default();
+        let data = RootedTraceableBox::default();
 
         let title = title.clone();
         let dir = options.dir;
