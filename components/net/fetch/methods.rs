@@ -62,6 +62,7 @@ pub enum Data {
     Cancelled,
 }
 
+#[derive(Clone)]
 pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
@@ -761,7 +762,7 @@ async fn wait_for_response(
             // obtained synchronously via scheme_fetch for data/file/about/etc
             // We should still send the body across as a chunk
             target.process_response_chunk(request, vec.clone());
-            if let Some(ref _devtools_chan) = context.devtools_chan {
+            if context.devtools_chan.is_some() {
                 // Now that we've replayed the entire cached body,
                 // notify the DevTools server with the full Response.
                 let mut devtools_request = request.clone();

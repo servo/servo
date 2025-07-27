@@ -439,26 +439,41 @@ pub fn send_response_to_devtools(
     response: &Response,
     body_data: Option<Vec<u8>>,
 ) {
+    let meta = match response
+        .metadata()
+        .expect("Response metadata should exist at this stage")
+    {
+        FetchMetadata::Unfiltered(m) => m,
+        FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+    };
+
+    send_response_values_to_devtools(
+        meta.headers.map(Serde::into_inner),
+        meta.status,
+        body_data,
+        request,
+        context,
+    );
+}
+
+pub fn send_response_values_to_devtools(
+    headers: Option<HeaderMap>,
+    status: HttpStatus,
+    body: Option<Vec<u8>>,
+    request: &mut Request,
+    context: &FetchContext,
+) {
     if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
         context.devtools_chan.as_ref(),
         request.pipeline_id,
         request.target_webview_id,
     ) {
         let browsing_context_id = webview_id.0;
-        let meta = match response
-            .metadata()
-            .expect("Response metadata should exist at this stage")
-        {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        };
-        let status = meta.status;
-        let headers = meta.headers.map(Serde::into_inner);
 
         let devtoolsresponse = DevtoolsHttpResponse {
             headers,
             status,
-            body: body_data.clone(),
+            body,
             pipeline_id,
             browsing_context_id,
         };
@@ -1912,6 +1927,7 @@ async fn http_network_fetch(
 
     // Step 1: Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
+    let context = Arc::new(context.clone());
 
     // Step 2
     // TODO be able to create connection using current url's origin and credentials
@@ -1967,7 +1983,7 @@ async fn http_network_fetch(
         Some(&request_id),
         request.destination,
         is_xhr,
-        context,
+        &context,
         fetch_terminated_sender,
         browsing_context_id,
     );
@@ -2068,15 +2084,13 @@ async fn http_network_fetch(
     let done_sender3 = done_sender.clone();
     let timing_ptr2 = context.timing.clone();
     let timing_ptr3 = context.timing.clone();
-    let url1 = request.url();
+    let mut devtools_request = request.clone();
+    let devtools_context = context.clone();
+    let url1 = devtools_request.url();
     let url2 = url1.clone();
 
-    let pipeline_id = request.pipeline_id;
-    let browsing_context_id = request.target_webview_id.map(|id| id.0);
     let status = response.status.clone();
     let headers = response.headers.clone();
-    let devtools_chan = context.devtools_chan.clone();
-    let request_id = request.id.0.to_string();
 
     HANDLE.spawn(
         res.into_body()
@@ -2105,27 +2119,13 @@ async fn http_network_fetch(
                 };
                 let devtools_response_body = completed_body.clone();
                 *body = ResponseBody::Done(completed_body);
-                if let (Some(devtools_chan), Some(pipeline_id), Some(browsing_context_id)) =
-                    (devtools_chan.as_ref(), pipeline_id, browsing_context_id)
-                {
-                    let devtools_response = DevtoolsHttpResponse {
-                        headers: Some(headers),
-                        status,
-                        body: Some(devtools_response_body),
-                        pipeline_id,
-                        browsing_context_id,
-                    };
-
-                    let msg = ChromeToDevtoolsControlMsg::NetworkEvent(
-                        request_id.clone(),
-                        NetworkEvent::HttpResponse(devtools_response),
-                    );
-
-                    let _ = devtools_chan
-                        .lock()
-                        .unwrap()
-                        .send(DevtoolsControlMsg::FromChrome(msg));
-                }
+                send_response_values_to_devtools(
+                    Some(headers),
+                    status,
+                    Some(devtools_response_body),
+                    &mut devtools_request,
+                    &devtools_context,
+                );
                 timing_ptr2
                     .lock()
                     .unwrap()
