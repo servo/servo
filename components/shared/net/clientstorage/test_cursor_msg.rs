@@ -4,27 +4,19 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::actor_id::ClientStorageActorId;
-
 #[derive(Debug, Deserialize, Serialize)]
-pub enum ClientStorageTestMsg {
+pub enum ClientStorageTestCursorMsg {
     // child to parent:
-    SyncPing,
-
-    Ping,
-
-    TestCursorConstructor { actor_id: ClientStorageActorId },
+    Continue,
 
     Delete,
 
     // parent to child:
-    SyncPingReply,
-
-    Pong,
+    Response(u64),
 }
 
-impl ClientStorageTestMsg {
+impl ClientStorageTestCursorMsg {
     pub fn is_sync_reply(&self) -> bool {
-        matches!(self, ClientStorageTestMsg::SyncPingReply)
+        false
     }
 }

@@ -10,5 +10,6 @@ pub mod proxy;
 pub mod proxy_msg;
 pub mod proxy_sender;
 pub mod routed_msg;
+pub mod test_cursor_msg;
 pub mod test_msg;
 pub mod thread_msg;

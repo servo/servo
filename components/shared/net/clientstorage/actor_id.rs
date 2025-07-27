@@ -7,4 +7,5 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ClientStorageActorId {
     pub global_id: u64,
+    pub local_id: i64,
 }

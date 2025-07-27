@@ -4,8 +4,10 @@
 
 use std::rc::Rc;
 
-use super::actors_parent::ClientStorageTestParent;
+use super::actors_parent::{ClientStorageTestCursorParent, ClientStorageTestParent};
 
+#[derive(Clone)]
 pub enum ClientStorageParent {
     ClientStorageTest(Rc<ClientStorageTestParent>),
+    ClientStorageTestCursor(Rc<ClientStorageTestCursorParent>),
 }

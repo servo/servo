@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::OnceCell;
+use std::cell::{Cell, OnceCell};
 use std::rc::Rc;
 
 use crossbeam_channel::{Sender, unbounded};
@@ -62,5 +62,33 @@ impl TestOnceFlag {
         move || {
             this.set();
         }
+    }
+}
+
+pub struct TestCounter {
+    count: Cell<u32>,
+    max: u32,
+}
+
+impl TestCounter {
+    pub fn new(max: u32) -> Rc<Self> {
+        Rc::new(Self {
+            count: Cell::new(0),
+            max,
+        })
+    }
+
+    pub fn get(&self) -> u32 {
+        self.count.get()
+    }
+
+    pub fn increment(&self) -> u32 {
+        let next = self.count.get() + 1;
+        self.count.set(next);
+        next
+    }
+
+    pub fn done(&self) -> bool {
+        self.count.get() >= self.max
     }
 }

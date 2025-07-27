@@ -102,19 +102,24 @@ impl ClientStorageProxy {
     }
 
     fn recv_routed_message(self: &Rc<Self>, msg: ClientStorageRoutedMsg) {
-        if let Some((actor, msg)) = {
-            let actors = self.actors.borrow();
+        let actor = self.actors.borrow().get(&msg.actor_id).unwrap().clone();
 
-            let actor = actors.get(&msg.actor_id).unwrap();
+        match (actor, msg.data) {
+            (
+                ClientStorageChild::ClientStorageTest(actor),
+                ClientStorageMixedMsg::ClientStorageTest(msg),
+            ) => {
+                actor.recv_message(msg);
+            },
 
-            match (actor, msg.data) {
-                (
-                    ClientStorageChild::ClientStorageTest(actor),
-                    ClientStorageMixedMsg::ClientStorageTest(msg),
-                ) => Some((Rc::clone(actor), msg)),
-            }
-        } {
-            actor.recv_message(msg);
+            (
+                ClientStorageChild::ClientStorageTestCursor(actor),
+                ClientStorageMixedMsg::ClientStorageTestCursor(msg),
+            ) => {
+                actor.recv_message(msg);
+            },
+
+            _ => {},
         }
     }
 
@@ -126,8 +131,8 @@ impl ClientStorageProxy {
         self.actors.borrow_mut().insert(actor_id, actor);
     }
 
-    pub fn unregister_actor(self: &Rc<Self>, actor_id: ClientStorageActorId) {
-        self.actors.borrow_mut().remove(&actor_id);
+    pub fn unregister_actor(self: &Rc<Self>, actor_id: &ClientStorageActorId) {
+        self.actors.borrow_mut().remove(actor_id);
     }
 }
 

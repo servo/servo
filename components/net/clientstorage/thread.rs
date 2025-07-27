@@ -100,7 +100,10 @@ impl ClientStorageThread {
         let global_id = self.next_global_id.get();
         self.next_global_id.set(global_id + 1);
 
-        let actor_id = ClientStorageActorId { global_id };
+        let actor_id = ClientStorageActorId {
+            global_id,
+            local_id: 0,
+        };
 
         ROUTER.add_typed_route(
             child_to_parent_receiver,
@@ -118,19 +121,24 @@ impl ClientStorageThread {
     }
 
     fn recv_routed_message(self: &Rc<Self>, msg: ClientStorageRoutedMsg) {
-        if let Some((actor, msg)) = {
-            let actors = self.actors.borrow();
+        let actor = self.actors.borrow().get(&msg.actor_id).unwrap().clone();
 
-            let actor = actors.get(&msg.actor_id).unwrap();
+        match (actor, msg.data) {
+            (
+                ClientStorageParent::ClientStorageTest(actor),
+                ClientStorageMixedMsg::ClientStorageTest(msg),
+            ) => {
+                actor.recv_message(msg);
+            },
 
-            match (actor, msg.data) {
-                (
-                    ClientStorageParent::ClientStorageTest(actor),
-                    ClientStorageMixedMsg::ClientStorageTest(msg),
-                ) => Some((Rc::clone(actor), msg)),
-            }
-        } {
-            actor.recv_message(msg);
+            (
+                ClientStorageParent::ClientStorageTestCursor(actor),
+                ClientStorageMixedMsg::ClientStorageTestCursor(msg),
+            ) => {
+                actor.recv_message(msg);
+            },
+
+            _ => {},
         }
     }
 

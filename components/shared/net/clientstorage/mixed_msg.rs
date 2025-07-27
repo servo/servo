@@ -4,17 +4,20 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::test_cursor_msg::ClientStorageTestCursorMsg;
 use super::test_msg::ClientStorageTestMsg;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum ClientStorageMixedMsg {
     ClientStorageTest(ClientStorageTestMsg),
+    ClientStorageTestCursor(ClientStorageTestCursorMsg),
 }
 
 impl ClientStorageMixedMsg {
     pub fn is_sync_reply(&self) -> bool {
         match self {
             ClientStorageMixedMsg::ClientStorageTest(inner) => inner.is_sync_reply(),
+            ClientStorageMixedMsg::ClientStorageTestCursor(inner) => inner.is_sync_reply(),
         }
     }
 }
