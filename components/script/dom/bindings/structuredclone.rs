@@ -20,8 +20,7 @@ use constellation_traits::{
 };
 use js::gc::RootedVec;
 use js::glue::{
-    CopyJSStructuredCloneData, DeleteJSAutoStructuredCloneBuffer, GetLengthOfJSStructuredCloneData,
-    NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
+    CopyJSStructuredCloneData, GetLengthOfJSStructuredCloneData, WriteBytesToJSStructuredCloneData,
 };
 use js::jsapi::{
     CloneDataPolicy, HandleObject as RawHandleObject, Heap, JS_IsExceptionPending,
@@ -31,7 +30,9 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
-use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use js::rust::{
+    CustomAutoRooterGuard, HandleValue, JSAutoStructuredCloneBufferWrapper, MutableHandleValue,
+};
 use script_bindings::conversions::{IDLInterface, SafeToJSValConvertible};
 use strum::IntoEnumIterator;
 
@@ -599,11 +600,11 @@ pub(crate) fn write(
         let mut sc_writer = StructuredDataWriter::default();
         let sc_writer_ptr = &mut sc_writer as *mut _;
 
-        let scbuf = NewJSAutoStructuredCloneBuffer(
+        let scbuf = JSAutoStructuredCloneBufferWrapper::new(
             StructuredCloneScope::DifferentProcess,
             &STRUCTURED_CLONE_CALLBACKS,
         );
-        let scdata = &mut ((*scbuf).data_);
+        let scdata = &mut ((*scbuf.as_raw_ptr()).data_);
         let policy = CloneDataPolicy {
             allowIntraClusterClonableSharedObjects_: false,
             allowSharedMemoryObjects_: false,
@@ -632,8 +633,6 @@ pub(crate) fn write(
         let mut data = Vec::with_capacity(nbytes);
         CopyJSStructuredCloneData(scdata, data.as_mut_ptr());
         data.set_len(nbytes);
-
-        DeleteJSAutoStructuredCloneBuffer(scbuf);
 
         let data = StructuredSerializedData {
             serialized: data,
@@ -675,11 +674,11 @@ pub(crate) fn read(
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
-        let scbuf = NewJSAutoStructuredCloneBuffer(
+        let scbuf = JSAutoStructuredCloneBufferWrapper::new(
             StructuredCloneScope::DifferentProcess,
             &STRUCTURED_CLONE_CALLBACKS,
         );
-        let scdata = &mut ((*scbuf).data_);
+        let scdata = &mut ((*scbuf.as_raw_ptr()).data_);
 
         WriteBytesToJSStructuredCloneData(
             data.serialized.as_mut_ptr() as *const u8,
@@ -709,8 +708,6 @@ pub(crate) fn read(
 
             return Err(error);
         }
-
-        DeleteJSAutoStructuredCloneBuffer(scbuf);
 
         let mut message_ports = vec![];
         for reflector in sc_reader.roots.iter() {
