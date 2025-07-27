@@ -439,14 +439,22 @@ pub fn send_response_to_devtools(
     response: &Response,
     body_data: Option<Vec<u8>>,
 ) {
-    let meta = match response
-        .metadata()
-        .expect("Response metadata should exist at this stage")
-    {
-        FetchMetadata::Unfiltered(m) => m,
-        FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+    // let meta = match response
+    //     .metadata()
+    //     .expect("Response metadata should exist at this stage")
+    // {
+    //     FetchMetadata::Unfiltered(m) => m,
+    //     FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+    // };
+    let meta = match response.metadata() {
+        Ok(FetchMetadata::Unfiltered(m)) => m,
+        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
+        Err(_) => {
+            // Could log, skip sending to devtools, or use a default
+            log::warn!("No metadata available, skipping devtools response.");
+            return; // or `continue`, or whatever makes sense contextually
+        },
     };
-
     send_response_values_to_devtools(
         meta.headers.map(Serde::into_inner),
         meta.status,
