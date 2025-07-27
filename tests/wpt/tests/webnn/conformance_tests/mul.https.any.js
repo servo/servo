@@ -915,7 +915,7 @@ const mulTests = [
 ];
 
 if (navigator.ml) {
-  mulTests.forEach((test) => {
+  mulTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

@@ -729,7 +729,7 @@ const eluTests = [
 ];
 
 if (navigator.ml) {
-  eluTests.forEach((test) => {
+  eluTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

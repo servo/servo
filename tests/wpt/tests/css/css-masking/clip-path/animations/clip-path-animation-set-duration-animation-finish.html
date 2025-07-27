@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-set-currenttime-ref.html">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    animation: clippath 10s -5s;
+    animation-fill-mode: none;
+    clip-path: inset(33% 33%);
+  }
+
+  @keyframes clippath {
+    0% {
+      clip-path: circle(50% at 50% 50%);
+    }
+
+    100% {
+      clip-path: circle(35% at 35% 35%);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="container">
+  </div>
+
+  <script>
+    let animation = document.getAnimations()[0];
+    animation.ready.then(() => {
+      // With the negative start delay of 5s, this should mean that the animation completes.
+      animation.effect.updateTiming({duration: 5000 - 1});
+
+      // Since the animation is finished, and animation-fill-mode is none,
+      // we should get the original style set in css .container rather than
+      // any animated style.
+      requestAnimationFrame(takeScreenshot);
+    });
+  </script>
+</body>
+
+</html>

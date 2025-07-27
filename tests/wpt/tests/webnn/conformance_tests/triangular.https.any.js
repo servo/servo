@@ -1308,7 +1308,7 @@ const triangularTests = [
 ];
 
 if (navigator.ml) {
-  triangularTests.forEach((test) => {
+  triangularTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getTriangularPrecisionTolerance, test);
   });

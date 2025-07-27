@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click here!</button>
+<div id="content"></div>
+
+<script>
+  promise_test(async t => {
+    const URL = '/late-url-change';
+
+    navigateButton.addEventListener("click", async () => {
+      content.innerHTML = '<img src="/images/lcp-256x256.png" elementtiming="test-image"></img>';
+
+      const entries = await new Promise(resolve => {
+        new PerformanceObserver((list, observer) => {
+          resolve(list.getEntries());
+          observer.disconnect();
+        }).observe({type: 'element', buffered: true});
+      });
+      assert_equals(
+          entries.length, 1, 'Expected exactly one ElementTiming entry');
+      assert_equals(
+          entries[0].identifier, 'test-image', 'Unexpected ElementTiming entry.');
+      history.pushState({}, '', URL);
+    }, {once: true});
+
+    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
+      /*type=*/ "soft-navigation",
+      /*include_soft_navigation_observations=*/ false,
+      /*min_num_entries=*/ 1,
+    );
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+    const entries = await helper.withTimeoutMessage(
+        softNavPromise, "Soft navigation entry never arrived.", 3000);
+    assert_equals(entries.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+        entries[0].name.endsWith(URL),
+        'Unexpected Soft Navigation URL.');
+  }, 'Soft Navigation Detection supports setting URL after paint');
+</script>

@@ -129,6 +129,14 @@ export function request_options_with_two_idps(mediation = 'required') {
 export function fedcm_test(test_func, test_name) {
   promise_test(async t => {
     assert_implements(window.IdentityCredential, "FedCM is not supported");
+
+    try {
+      await navigator.credentials.preventSilentAccess();
+    } catch (ex) {
+      // In Chrome's content_shell, the promise will be rejected
+      // even though the part we care about succeeds.
+    }
+
     // Turn off delays that are not useful in tests.
     try {
       await test_driver.set_fedcm_delay_enabled(false);

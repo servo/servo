@@ -553,7 +553,7 @@ const reciprocalTests = [
 ];
 
 if (navigator.ml) {
-  reciprocalTests.forEach((test) => {
+  reciprocalTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getReciprocalPrecisionTolerance, test);
   });

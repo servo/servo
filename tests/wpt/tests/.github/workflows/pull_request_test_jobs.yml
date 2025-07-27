@@ -30,7 +30,7 @@ jobs:
       safari-technology-preview: true
       safaridriver-diagnose: false
       fetch-depth: 2
-      extra-options: --affected ${{ github.sha }}^1
+      extra-options: --affected ${{ github.sha }}^1 --no-fail-on-unexpected
 
   affected_without_changes_safari_preview:
     name: "affected tests without changes: Safari Technology Preview"
@@ -44,7 +44,7 @@ jobs:
       safaridriver-diagnose: false
       fetch-depth: 2
       test-rev: HEAD^1
-      extra-options: --affected ${{ github.sha }}
+      extra-options: --affected ${{ github.sha }} --no-fail-on-unexpected
 
   infrastructure_mac:
     name: "infrastructure/ tests: macOS"

@@ -1034,7 +1034,7 @@ const reduceProductTests = [
 ];
 
 if (navigator.ml) {
-  reduceProductTests.forEach((test) => {
+  reduceProductTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

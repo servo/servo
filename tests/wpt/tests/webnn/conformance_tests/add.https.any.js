@@ -999,7 +999,7 @@ const addTests = [
 ];
 
 if (navigator.ml) {
-  addTests.forEach((test) => {
+  addTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

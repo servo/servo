@@ -146,13 +146,13 @@
             // Single value
             { value: "italic 20deg",            isValid: false, description: "'italic' followed by angle" },
             { value: "italic a",                isValid: false, description: "Extra content after keyword" },
-            { value: "oblique 0deg",            isValid: true,  description: "'oblique' followed by zero degrees" },
+            { value: "oblique 0deg",            isValid: true,  expectedValue: "normal", description: "'oblique' followed by zero degrees" },
             { value: "oblique 20deg",           isValid: true,  description: "'oblique' followed by former default 20deg angle" },
             { value: "oblique 90deg",           isValid: true,  description: "'oblique' followed by maxumum 90 degree angle" },
             { value: "oblique -90deg",          isValid: true,  description: "'oblique' followed by minimum -90 degree angle" },
             { value: "oblique calc(91deg)",     isValid: true,  description: "'oblique' followed by calc with out of range value (should be clamped)" },
             { value: "oblique calc(-91deg)",    isValid: true,  description: "'oblique' followed by calc with out of range value (should be clamped)" },
-            { value: "oblique 0rad",            isValid: true,  expectedValue: "oblique 0deg", description: "'oblique' followed by angle in radians" },
+            { value: "oblique 0rad",            isValid: true,  expectedValue: "normal", description: "'oblique' followed by angle in radians" },
             { value: "oblique 20",              isValid: false, description: "'oblique' followed by unit-less number" },
             { value: "oblique 20px",            isValid: false, description: "'oblique' followed by non-angle" },
             { value: "oblique a",               isValid: false, description: "'oblique' followed by non-number" },
@@ -163,6 +163,7 @@
             // Value range
             { value: "oblique 10deg 20deg",         isValid: true,  description: "Simple range" },
             { value: "oblique 10deg 10deg",         isValid: true,  expectedValue: "oblique 10deg", description: "Simple range with equal upper and lower bounds" },
+            { value: "oblique 0deg 0deg",           isValid: true,  expectedValue: "normal", description: "Simple range with equal upper and lower bounds" },
             { value: "oblique 20deg 20deg",         isValid: true,  description: "Simple range with former default angle for both bounds" },
             { value: "oblique 20deg 10deg",         isValid: true,  expectedValue: "oblique 20deg 10deg", description: "Bounds out of order" },
             { value: "oblique -100deg 20deg",       isValid: false, description: "Lower bound out of range" },

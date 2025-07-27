@@ -1825,7 +1825,7 @@ const argMinMaxTests = [
 ];
 
 if (navigator.ml) {
-  argMinMaxTests.forEach((test) => {
+  argMinMaxTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

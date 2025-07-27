@@ -2114,7 +2114,7 @@ const conv2dTests = [
 ];
 
 if (navigator.ml) {
-  conv2dTests.forEach((test) => {
+  conv2dTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

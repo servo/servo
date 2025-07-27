@@ -3246,7 +3246,7 @@ const convTranspose2dTests = [
 ];
 
 if (navigator.ml) {
-  convTranspose2dTests.forEach((test) => {
+  convTranspose2dTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

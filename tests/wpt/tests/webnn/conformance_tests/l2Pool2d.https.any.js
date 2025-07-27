@@ -1358,7 +1358,7 @@ const l2Pool2dTests = [
 ];
 
 if (navigator.ml) {
-  l2Pool2dTests.forEach((test) => {
+  l2Pool2dTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

@@ -163,7 +163,7 @@ const tileTests = [
 ];
 
 if (navigator.ml) {
-  tileTests.forEach((test) => {
+  tileTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

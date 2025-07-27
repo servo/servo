@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp and -webkit-line-clamp compete in cascade order, even without -webkit-box</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-001-ref.html">
+<meta name="assert" content="line-clamp and -webkit-line-clamp are both shorthands for the same properties, so if both are present, whichever is greater in the cascade order wins. This is regardless of whether the properties that are needed for -webkit-line-clamp to do anything are present.">
+<style>
+.clamp {
+  line-clamp: 4;
+  -webkit-line-clamp: 4;
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div>

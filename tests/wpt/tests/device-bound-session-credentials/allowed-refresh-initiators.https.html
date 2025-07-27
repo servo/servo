@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, documentHasCookie, waitForCookie, addCookieAndSessionCleanup, setupShardedServerState, configureServer } from "./helper.js";
+
+  // Create an iframe that fetches URLs on demand via postMessage.
+  async function createFrame(url) {
+    const frame = document.createElement('iframe');
+    const promise = new Promise((resolve, reject) => {
+      frame.onload = () => resolve(frame);
+      frame.onerror = () => {
+        reject();
+      };
+    });
+    frame.src = url;
+    document.body.appendChild(frame);
+    return promise;
+  }
+
+  async function crossSiteFetch(frame, url) {
+    let promise = new Promise((resolve) => {
+      const listener = (event) => {
+        window.removeEventListener("message", listener);
+        resolve(event.data);
+      };
+      window.addEventListener("message", listener);
+    });
+    frame.contentWindow.postMessage(url, "*");
+    return promise;
+  }
+
+  async function runTest(t, origin, refresh_expected) {
+    await setupShardedServerState({crossSite: true});
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    // Override the attributes to be SameSite=None.
+    const expectedCookieAttributes = `Domain=${location.hostname};Path=/device-bound-session-credentials;SameSite=None;Secure`;
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};${expectedCookieAttributes}`;
+    addCookieAndSessionCleanup(t);
+
+    configureServer({ allowedRefreshInitiators: [get_host_info().NOTSAMESITE_HOST],
+                      cookieDetails: [ {attributes: expectedCookieAttributes} ],
+                    });
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    const frame = await createFrame(`${origin}/device-bound-session-credentials/url_fetcher.html`);
+
+    // Expire the cookie, and check whether a refresh has occurred.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+
+    const authStatusAfterExpiry = await crossSiteFetch(frame, `${location.protocol}//${location.host}/device-bound-session-credentials/verify_authenticated.py`);
+    assert_equals(authStatusAfterExpiry, refresh_expected ? 200 : 401);
+    assert_equals(documentHasCookie(expectedCookieAndValue), refresh_expected);
+  }
+
+  promise_test(async t => {
+    await runTest(t, location.origin, /*refresh_expected=*/true);
+  }, "An established session refreshes when initated by the owning site");
+
+  promise_test(async t => {
+    await runTest(t, get_host_info().HTTPS_NOTSAMESITE_ORIGIN, /*refresh_expected=*/true);
+  }, "An established session refreshes when initated by a host in allowed_refresh_initiators");
+
+  promise_test(async t => {
+    await runTest(t, get_host_info().HTTPS_OTHER_NOTSAMESITE_ORIGIN, /*refresh_expected=*/false);
+  }, "An established session does not refresh when initated by a host not in allowed_refresh_initiators");
+</script>

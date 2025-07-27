@@ -503,7 +503,7 @@ const geluTests = [
 ];
 
 if (navigator.ml) {
-  geluTests.forEach((test) => {
+  geluTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

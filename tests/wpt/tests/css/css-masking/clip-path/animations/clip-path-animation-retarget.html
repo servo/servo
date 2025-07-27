@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-retarget-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  clip-path: inset(20% 20%);
+}
+
+#animinitial {
+  background-color: green;
+}
+
+#animfinal {
+  background-color: green;
+}
+
+@keyframes clippath {
+  0%   { clip-path: circle(50% at 50% 50%); }
+  100% { clip-path: circle(20% at 20% 20%); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
+<body>
+<div id="animinitial" class="container"></div>
+<div id="animfinal" class="container"></div>
+
+<script>
+  let target1 = document.getElementById("animinitial");
+  let target2 = document.getElementById("animfinal");
+
+  const animation = target1.animate(
+    [
+      { clipPath: 'circle(30% at 30% 30%)' },
+      { clipPath: 'circle(50% at 50% 50%)' }
+    ],
+    {
+      duration: 10000,
+      easing: 'steps(2, jump-end)',
+    }
+  );
+
+  animation.ready.then(() => {
+    animation.effect.target = target2;
+
+    // Test passes if the 'animfinal' element shows the initial keyframe,
+    // and the 'animinitial' shows the initial CSS style defined in '.container'
+    requestAnimationFrame(takeScreenshot);
+  });
+</script>
+</body>
+</html>

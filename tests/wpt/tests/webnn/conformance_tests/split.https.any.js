@@ -919,7 +919,7 @@ const splitTests = [
 ];
 
 if (navigator.ml) {
-  splitTests.forEach((test) => {
+  splitTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

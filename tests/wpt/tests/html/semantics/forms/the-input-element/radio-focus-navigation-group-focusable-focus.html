@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Focus Navigation for the radio group</title>
+<link rel="author" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://issues.chromium.org/issues/421837104">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/focus-utils.js"></script>
+
+<input type="text" id="start">
+<form>
+  <label><input type="radio" name="radio" id="a">enabled 1</label>
+  <button id="btn">Button</button>
+  <label><input type="radio" name="radio" id="b">enabled 2</label>
+  <label><input type="radio" name="radio" id="c">enabled 3</label>
+</form>
+<input type="text" id="end">
+
+<script>
+promise_test(async () => {
+  start.focus();
+  assert_equals(document.activeElement, start);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, a);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, btn);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, end);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, btn);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, a);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, start);
+  // Focus on the checked radio element.
+  b.checked = true;
+  start.focus();
+  await navigateFocusForward();
+  assert_equals(document.activeElement, btn);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, b);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, end);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, b);
+}, 'Focusable elements between radio elements in a group can be focused.');
+
+promise_test(async () => {
+  b.checked = false;
+  start.focus();
+  assert_equals(document.activeElement, start);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, a);
+  // Arrow key navigation, skip btn.
+  await arrowDown();
+  assert_equals(document.activeElement, b);
+  assert_true(b.checked);
+  await arrowUp();
+  assert_equals(document.activeElement, a);
+  assert_true(a.checked);
+  await arrowDown();
+  assert_equals(document.activeElement, b);
+  assert_true(b.checked);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, end);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, b);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, btn);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, start);
+}, 'During arrow key navigation, focus and checked is set on the radio element.');
+</script>

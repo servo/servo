@@ -376,4 +376,91 @@ test(() => {
     }], details);
   });
 }, 'Non-HTTPS payee origin throws exception.');
+
+test(() => {
+  new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+      credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+      challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+      payeeOrigin: window.location.origin,
+      timeout: 60000,
+      instrument: {
+        displayName: 'X',
+        icon: 'https://example.test/icon.png',
+      },
+      rpId: 'relying-party.example',
+      paymentEntitiesLogos: [],
+    },
+  }], details);
+}, 'Empty paymentEntitiesLogo field is valid.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          icon: 'https://example.test/icon.png',
+        },
+        rpId: 'relying-party.example',
+        paymentEntitiesLogos: [{
+          url: '',
+          label: 'Payment Entity Label',
+        }],
+      },
+    }], details);
+  });
+}, 'Empty url field in a PaymentEntityLogo throws exception.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          icon: 'https://example.test/icon.png',
+        },
+        rpId: 'relying-party.example',
+        paymentEntitiesLogos: [{
+          url: 'thisisnotaurl',
+          label: 'Payment Entity Label',
+        }],
+      },
+    }], details);
+  });
+}, 'Invalid url field in a PaymentEntityLogo throws exception.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          icon: 'https://example.test/icon.png',
+        },
+        rpId: 'relying-party.example',
+        paymentEntitiesLogos: [{
+          url: 'https://example.test/logo.png',
+          label: '',
+        }],
+      },
+    }], details);
+  });
+}, 'Empty logo field in a PaymentEntityLogo throws exception.');
 </script>

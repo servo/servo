@@ -14,7 +14,7 @@ const kChallenge = 'server challenge';
 const kPayeeOrigin = 'https://merchant.com';
 const kInstrumentDisplayName = 'Troycard';
 
-async function triggerSpc(t, instrumentDetails) {
+async function triggerSpc(t, instrumentDetails, paymentEntitiesLogos) {
   const authenticator = await window.test_driver.add_virtual_authenticator(
       AUTHENTICATOR_OPTS);
   t.add_cleanup(() => {
@@ -42,6 +42,10 @@ async function triggerSpc(t, instrumentDetails) {
 
   if (instrumentDetails !== undefined) {
     data.instrument.details = instrumentDetails;
+  }
+
+  if (paymentEntitiesLogos !== undefined) {
+    data.paymentEntitiesLogos = paymentEntitiesLogos;
   }
 
   const request = new PaymentRequest([{
@@ -90,9 +94,17 @@ promise_test(async t => {
 
 promise_test(async t => {
   const instrumentDetails = '***1234';
-  const clientDataJSON = await triggerSpc(t, instrumentDetails);
+  const paymentEntityLogoLabel = 'Sync Network';
+  const paymentEntitiesLogos = [{
+      url: PAYMENT_ENTITY_LOGO_URL,
+      label: paymentEntityLogoLabel,
+  }];
+  const clientDataJSON = await triggerSpc(t, instrumentDetails, paymentEntitiesLogos);
 
   // Payment-specific information.
   assert_equals(clientDataJSON.payment.instrument.details, instrumentDetails);
+  assert_equals(clientDataJSON.payment.paymentEntitiesLogos.length, 1);
+  assert_equals(clientDataJSON.payment.paymentEntitiesLogos[0].url, PAYMENT_ENTITY_LOGO_URL);
+  assert_equals(clientDataJSON.payment.paymentEntitiesLogos[0].label, paymentEntityLogoLabel);
 }, 'Successful SPC authentication - optional fields');
 </script>

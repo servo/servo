@@ -223,11 +223,11 @@ const clampTests = [
     }
   },
   {
-    'name': 'clamp int64 1D tensor',
+    'name': 'clamp int64 1D tensor with bigint max',
     'graph': {
       'inputs': {
         'clampInput': {
-          'data': [-4147483648, 4147483647, -4, -2, 1, 0, 2, 4],
+          'data': [-41, 9007199254740995n, -4, -2, 1, 0, 2, 4],
           'descriptor': {shape: [8], dataType: 'int64'}
         }
       },
@@ -235,20 +235,20 @@ const clampTests = [
         'name': 'clamp',
         'arguments': [
           {'input': 'clampInput'},
-          {'options': {'minValue': -2, 'maxValue': 4147483645}}
+          {'options': {'minValue': -2, 'maxValue': 9007199254740992n}}
         ],
         'outputs': 'clampOutput'
       }],
       'expectedOutputs': {
         'clampOutput': {
-          'data': [-2, 4147483645, -2, -2, 1, 0, 2, 4],
+          'data': [-2, 9007199254740992n, -2, -2, 1, 0, 2, 4],
           'descriptor': {shape: [8], dataType: 'int64'}
         }
       }
     }
   },
   {
-    'name': 'clamp uint64 1D tensor',
+    'name': 'clamp uint64 1D tensor with Number min and max',
     'graph': {
       'inputs': {
         'clampInput': {
@@ -267,6 +267,31 @@ const clampTests = [
       'expectedOutputs': {
         'clampOutput': {
           'data': [5294967290, 127, 5, 5],
+          'descriptor': {shape: [4], dataType: 'uint64'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'clamp uint64 1D tensor with bigint max',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [9007199254740995n, 127, 5, 0],
+          'descriptor': {shape: [4], dataType: 'uint64'}
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [
+          {'input': 'clampInput'},
+          {'options': {'minValue': 5, 'maxValue': 9007199254740992n}}
+        ],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [9007199254740992n, 127, 5, 5],
           'descriptor': {shape: [4], dataType: 'uint64'}
         }
       }
@@ -1098,8 +1123,8 @@ const clampTests = [
     'graph': {
       'inputs': {
         'clampInput': {
-          'data': [NaN, -Infinity, Infinity, -64000, 64000, -2, 1, 0],
-          'descriptor': {shape: [8], dataType: 'float16'}
+          'data': [-64000, 64000, -2, 1, 0],
+          'descriptor': {shape: [5], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1109,8 +1134,8 @@ const clampTests = [
       }],
       'expectedOutputs': {
         'clampOutput': {
-          'data': [NaN, -2, Infinity, -2, 64000, -2, 1, 0],
-          'descriptor': {shape: [8], dataType: 'float16'}
+          'data': [-2, 64000, -2, 1, 0],
+          'descriptor': {shape: [5], dataType: 'float16'}
         }
       }
     }
@@ -1722,11 +1747,186 @@ const clampTests = [
         }
       }
     }
-  }
+  },
+  {
+    'name': 'minValue as -Infinity',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments':
+            [{'input': 'clampInput'}, {'options': {'minValue': -Infinity}}],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'minValue as Infinity',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments':
+            [{'input': 'clampInput'}, {'options': {'minValue': Infinity}}],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [
+            Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity
+          ],
+          'descriptor': {shape: [7], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'maxValue as -Infinity',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments':
+            [{'input': 'clampInput'}, {'options': {'maxValue': -Infinity}}],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [
+            -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity,
+            -Infinity
+          ],
+          'descriptor': {shape: [7], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'maxValue as Infinity',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments':
+            [{'input': 'clampInput'}, {'options': {'maxValue': Infinity}}],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'minValue == maxValue',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [
+          {'input': 'clampInput'},
+          {'options': {'minValue': 0.5, 'maxValue': 0.5}}
+        ],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+          'descriptor': {shape: [7], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'minValue as NaN',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments':
+            [{'input': 'clampInput'}, {'options': {'minValue': NaN}}],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [0, Infinity, 0, 2147483647, 0, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'maxValue as NaN',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
+          'descriptor': {shape: [7], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments':
+            [{'input': 'clampInput'}, {'options': {'maxValue': NaN}}],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [-Infinity, 0, -3e35, 0, -2, 0, 0],
+          'descriptor': {shape: [7], dataType: 'float32'}
+        }
+      }
+    }
+  },
 ];
 
 if (navigator.ml) {
-  clampTests.forEach((test) => {
+  clampTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

@@ -27,14 +27,17 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <script src="../support/common.js"></script>
+
 <div id="scroller">
   <div class="box"></div>
-  <div class="box"></div>
+  <div id="target" class="box"></div>
   <div id="space"></div>
 </div>
 <script>
 promise_test(async t => {
+  await waitForCompositorReady();
   const scroller = document.getElementById("scroller");
   scroller.scrollTo(0, 0);
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
@@ -43,28 +46,21 @@ promise_test(async t => {
   };
   const scrollPromise = waitForScrollEvent(scroller);
   const wheelPromise = waitForWheelEvent(scroller);
+  const targetBounds =
+      document.getElementById('target').getBoundingClientRect();
+  const dy = targetBounds.top / 2 + 1;
   const actions = new test_driver.Actions()
-       .scroll(50, 50, 0, 50, {origin: scroller, duration: 100});
+       .scroll(50, 50, 0, dy, {origin: scroller, duration: 100});
   await actions.send();
   await wheelPromise;
   await scrollPromise;
-  let scrollEndTime;
-  let snapEndTime;
-  // Detect first pause in scrolling.
-  const scrollStabilizedPromise =
-      waitForAnimationEnd(scrollTop).then((timestamp) => {
-        scrollEndTime = timestamp;
-      });
-  const snapEndPromise =
-      waitForScrollTo(scroller, () => {
-        return scroller.scrollTop;
-      }, 110).then((evt) => {
-    snapEndTime = evt.timestamp;
-  });
-  await Promise.all([scrollStabilizedPromise, snapEndPromise]);
-  assert_equals(scroller.scrollTop, 110,
+  // Detect first pause in scrolling. As expected to snap right at the end of
+  // the scroll, there should be no appreciable pause before the snap takes
+  // place. Once the scrolling settles, we are expected to be at the snap
+  // position.
+  const scrollStabilizedPromise = waitForAnimationEnd(scrollTop);
+  await scrollStabilizedPromise;
+  assert_approx_equals(scroller.scrollTop, 110, 0.5,
                 'Failed to advance to next snap target');
-  assert_true(snapEndTime < scrollEndTime,
-              'Detected pause in scrolling before reaching snap target');
-}, "Wheel-scroll triggers snap to target position immediately.");
+}, "Wheel-scroll triggers snap to target position without intermediate pause.");
 </script>

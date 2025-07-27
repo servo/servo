@@ -529,7 +529,7 @@ const erfTests = [
 ];
 
 if (navigator.ml) {
-  erfTests.forEach((test) => {
+  erfTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getErfPrecisionTolerance, test);
   });
