@@ -8,6 +8,7 @@ use uuid::Uuid;
 use webdriver::error::WebDriverResult;
 
 use crate::capabilities::ServoCapabilities;
+use crate::timeout::{deserialize_as_timeouts_configuration, serialize_timeouts_configuration};
 use crate::user_prompt::{
     default_unhandled_prompt_behavior, deserialize_unhandled_prompt_behaviour,
 };
@@ -18,6 +19,16 @@ pub enum PageLoadStrategy {
     None,
     Eager,
     Normal,
+}
+
+impl ToString for PageLoadStrategy {
+    fn to_string(&self) -> String {
+        match self {
+            PageLoadStrategy::None => String::from("none"),
+            PageLoadStrategy::Eager => String::from("eager"),
+            PageLoadStrategy::Normal => String::from("normal"),
+        }
+    }
 }
 
 impl Handler {
@@ -94,7 +105,7 @@ impl Handler {
             None => {
                 capabilities.insert(
                     String::from("pageLoadStrategy"),
-                    json!(session.page_loading_strategy),
+                    json!(session.page_loading_strategy.to_string()),
                 );
                 session.page_loading_strategy = PageLoadStrategy::Normal;
             },
@@ -102,50 +113,27 @@ impl Handler {
 
         // Step 9.2. Let strictFileInteractability be the result of getting property
         // "strictFileInteractability" from capabilities
-        match capabilities.get("strictFileInteractability") {
-            Some(Value::Bool(strict_file_interactability)) => {
-                session.strict_file_interactability = *strict_file_interactability;
-            },
-            _ => {
-                // Set a default value to cappabilities
-                capabilities.insert(
-                    "strictFileInteractability".to_string(),
-                    json!(session.strict_file_interactability),
-                );
-            },
+        if let Some(Value::Bool(strict_file_interactability)) =
+            capabilities.get("strictFileInteractability")
+        {
+            session.strict_file_interactability = *strict_file_interactability;
         }
 
         // Step 9.3. Let timeouts be the result of getting a property "timeouts" from capabilities.
         // If timeouts is not undefined, set session's session timeouts to timeouts.
         if let Some(timeouts) = capabilities.get("timeouts") {
-            if let Some(script_timeout_value) = timeouts.get("script") {
-                session.script_timeout = script_timeout_value.as_u64();
-            }
-            if let Some(load_timeout_value) = timeouts.get("pageLoad") {
-                if let Some(load_timeout) = load_timeout_value.as_u64() {
-                    session.load_timeout = load_timeout;
-                }
-            }
-            if let Some(implicit_wait_timeout_value) = timeouts.get("implicit") {
-                if let Some(implicit_wait_timeout) = implicit_wait_timeout_value.as_u64() {
-                    session.implicit_wait_timeout = implicit_wait_timeout;
-                }
-            }
+            session.timeouts = deserialize_as_timeouts_configuration(timeouts)?;
         }
 
         // Step 9.4 Set a property on capabilities with name "timeouts"
         // and value serialize the timeouts configuration with session's session timeouts.
         capabilities.insert(
             "timeouts".to_string(),
-            json!({
-                "script": session.script_timeout,
-                "pageLoad": session.load_timeout,
-                "implicit": session.implicit_wait_timeout,
-            }),
+            json!(serialize_timeouts_configuration(&session.timeouts)),
         );
 
         // Step 10. Process any extension capabilities in capabilities in an implementation-defined manner
-        // There is no extension capabilities.
+        
 
         // Step 11. Run any WebDriver new session algorithm defined in external specifications
         capabilities.insert(

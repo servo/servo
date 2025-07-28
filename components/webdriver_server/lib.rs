@@ -9,6 +9,7 @@
 mod actions;
 mod capabilities;
 mod session;
+mod timeout;
 mod user_prompt;
 
 use std::borrow::ToOwned;
@@ -69,6 +70,7 @@ use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{ActionItem, InputSourceState, PointerInputState};
 use crate::session::PageLoadStrategy;
+use crate::timeout::TimeoutsConfiguration;
 use crate::user_prompt::UserPromptHandler;
 
 #[derive(Default)]
@@ -173,16 +175,7 @@ pub struct WebDriverSession {
     /// <https://www.w3.org/TR/webdriver2/#dfn-window-handles>
     window_handles: HashMap<WebViewId, String>,
 
-    /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
-    /// specifies that the script should run indefinitely.
-    script_timeout: Option<u64>,
-
-    /// Time to wait for a page to finish loading upon navigation.
-    load_timeout: u64,
-
-    /// Time to wait for the element location strategy when retrieving elements, and when
-    /// waiting for an element to become interactable.
-    implicit_wait_timeout: u64,
+    timeouts: TimeoutsConfiguration,
 
     page_loading_strategy: PageLoadStrategy,
 
@@ -208,9 +201,7 @@ impl WebDriverSession {
             webview_id,
             browsing_context_id,
             window_handles,
-            script_timeout: Some(30_000),
-            load_timeout: 300_000,
-            implicit_wait_timeout: 0,
+            timeouts: TimeoutsConfiguration::default(),
             page_loading_strategy: PageLoadStrategy::Normal,
             strict_file_interactability: false,
             user_prompt_handler: UserPromptHandler::new(),
@@ -712,7 +703,7 @@ impl Handler {
         }
 
         // Step 3. let timeout be the session's page load timeout.
-        let timeout = self.session()?.load_timeout;
+        let timeout = self.session()?.timeouts.page_load;
 
         // TODO: Step 4. Implement timer parameter
 
@@ -1786,9 +1777,9 @@ impl Handler {
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         let timeouts = TimeoutsResponse {
-            script: session.script_timeout,
-            page_load: session.load_timeout,
-            implicit: session.implicit_wait_timeout,
+            script: session.timeouts.script,
+            page_load: session.timeouts.page_load,
+            implicit: session.timeouts.implicit_wait,
         };
 
         Ok(WebDriverResponse::Timeouts(timeouts))
@@ -1804,13 +1795,13 @@ impl Handler {
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         if let Some(timeout) = parameters.script {
-            session.script_timeout = timeout;
+            session.timeouts.script = timeout;
         }
         if let Some(timeout) = parameters.page_load {
-            session.load_timeout = timeout
+            session.timeouts.page_load = timeout
         }
         if let Some(timeout) = parameters.implicit {
-            session.implicit_wait_timeout = timeout
+            session.timeouts.implicit_wait = timeout
         }
 
         Ok(WebDriverResponse::Void)
@@ -1954,7 +1945,7 @@ impl Handler {
             .collect();
         args_string.push("resolve".to_string());
 
-        let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
+        let timeout_script = if let Some(script_timeout) = self.session()?.timeouts.script {
             format!("setTimeout(webdriverTimeout, {});", script_timeout)
         } else {
             "".into()

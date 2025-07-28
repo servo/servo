@@ -59,7 +59,13 @@ impl BrowserCapabilities for ServoCapabilities {
         Ok(self.set_window_rect)
     }
 
-    fn strict_file_interactability(&mut self, _: &Capabilities) -> WebDriverResult<bool> {
+    fn strict_file_interactability(&mut self, value: &Capabilities) -> WebDriverResult<bool> {
+        if let Some(Value::Bool(strict_file_interactability)) =
+            value.get("strictFileInteractability")
+        {
+            self.strict_file_interactability = *strict_file_interactability;
+        }
+
         Ok(self.strict_file_interactability)
     }
 
