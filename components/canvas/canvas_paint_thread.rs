@@ -85,8 +85,7 @@ impl CanvasPaintThread {
                         recv(create_receiver) -> msg => {
                             match msg {
                                 Ok(ConstellationCanvasMsg::Create { sender: creator, size }) => {
-                                    let canvas_data = canvas_paint_thread.create_canvas(size);
-                                    creator.send(canvas_data).unwrap();
+                                    creator.send(canvas_paint_thread.create_canvas(size)).unwrap();
                                 },
                                 Ok(ConstellationCanvasMsg::Exit(exit_sender)) => {
                                     let _ = exit_sender.send(());
@@ -106,7 +105,7 @@ impl CanvasPaintThread {
         (create_sender, ipc_sender)
     }
 
-    pub fn create_canvas(&mut self, size: Size2D<u64>) -> (CanvasId, ImageKey) {
+    pub fn create_canvas(&mut self, size: Size2D<u64>) -> Option<(CanvasId, ImageKey)> {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
@@ -114,7 +113,7 @@ impl CanvasPaintThread {
         let image_key = canvas.image_key();
         self.canvases.insert(canvas_id, canvas);
 
-        (canvas_id, image_key)
+        Some((canvas_id, image_key))
     }
 
     fn process_canvas_2d_message(&mut self, message: Canvas2dMsg, canvas_id: CanvasId) {

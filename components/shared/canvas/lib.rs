@@ -18,7 +18,7 @@ pub mod webgl;
 
 pub enum ConstellationCanvasMsg {
     Create {
-        sender: Sender<(CanvasId, ImageKey)>,
+        sender: Sender<Option<(CanvasId, ImageKey)>>,
         size: Size2D<u64>,
     },
     Exit(Sender<()>),

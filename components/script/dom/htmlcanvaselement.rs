@@ -205,7 +205,7 @@ impl HTMLCanvasElement {
 
         let window = self.owner_window();
         let size = self.get_size();
-        let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size, can_gc);
+        let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size, can_gc)?;
         *self.context_mode.borrow_mut() =
             Some(RenderingContext::Context2d(Dom::from_ref(&*context)));
         Some(context)

@@ -42,23 +42,25 @@ pub(crate) struct PaintRenderingContext2D {
 }
 
 impl PaintRenderingContext2D {
-    fn new_inherited(global: &PaintWorkletGlobalScope) -> PaintRenderingContext2D {
-        PaintRenderingContext2D {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    fn new_inherited(global: &PaintWorkletGlobalScope) -> Option<PaintRenderingContext2D> {
+        Some(PaintRenderingContext2D {
             reflector_: Reflector::new(),
-            canvas_state: CanvasState::new(global.upcast(), Size2D::zero()),
+            canvas_state: CanvasState::new(global.upcast(), Size2D::zero())?,
             device_pixel_ratio: Cell::new(Scale::new(1.0)),
-        }
+        })
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &PaintWorkletGlobalScope,
         can_gc: CanGc,
-    ) -> DomRoot<PaintRenderingContext2D> {
-        reflect_dom_object(
-            Box::new(PaintRenderingContext2D::new_inherited(global)),
+    ) -> Option<DomRoot<PaintRenderingContext2D>> {
+        Some(reflect_dom_object(
+            Box::new(PaintRenderingContext2D::new_inherited(global)?),
             global,
             can_gc,
-        )
+        ))
     }
 
     /// Send update to canvas paint thread and returns [`ImageKey`]
