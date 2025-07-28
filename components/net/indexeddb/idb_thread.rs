@@ -20,12 +20,6 @@ use crate::indexeddb::engines::{
     KvsEngine, KvsOperation, KvsTransaction, SanitizedName, SqliteEngine,
 };
 
-macro_rules! err {
-    ($e:expr) => {
-        Err(format!("{:?}", $e))
-    };
-}
-
 pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
 }
@@ -177,7 +171,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
         let _ = match result {
             Ok(_) => sender.send(Ok(())),
-            Err(e) => sender.send(err!(e)),
+            Err(e) => sender.send(Err(format!("{:?}", e))),
         };
     }
 

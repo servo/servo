@@ -64,12 +64,6 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     condition
 }
 
-macro_rules! err {
-    ($e:expr) => {
-        Err(format!("{:?}", $e))
-    };
-}
-
 pub struct SqliteEngine {
     db_path: PathBuf,
     connection: DatabaseConnection,
@@ -264,7 +258,7 @@ impl KvsEngine for SqliteEngine {
                                     let _ = sender.send(Ok(PutItemResult::Success));
                                 },
                                 Err(e) => {
-                                    let _ = sender.send(err!(e));
+                                    let _ = sender.send(Err(format!("{:?}", e)));
                                 },
                             }
                         } else {
@@ -286,7 +280,7 @@ impl KvsEngine for SqliteEngine {
                                 let _ = sender.send(Ok(result.map(|blob| blob.data.to_vec())));
                             },
                             Err(e) => {
-                                let _ = sender.send(err!(e));
+                                let _ = sender.send(Err(format!("{:?}", e)));
                             },
                         }
                     },
@@ -304,7 +298,7 @@ impl KvsEngine for SqliteEngine {
                                 .exec(&conn)
                                 .await;
                         if let Err(err) = result {
-                            let _ = sender.send(err!(err));
+                            let _ = sender.send(Err(format!("{:?}", err)));
                         } else {
                             let _ = sender.send(Ok(()));
                         }
@@ -324,7 +318,7 @@ impl KvsEngine for SqliteEngine {
                                 let _ = sender.send(Ok(list.len() as u64));
                             },
                             Err(e) => {
-                                let _ = sender.send(err!(e));
+                                let _ = sender.send(Err(format!("{:?}", e)));
                             },
                         }
                     },
@@ -335,7 +329,7 @@ impl KvsEngine for SqliteEngine {
                             .await;
                         let _ = match result {
                             Ok(_) => sender.send(Ok(())),
-                            Err(e) => sender.send(err!(e)),
+                            Err(e) => sender.send(Err(format!("{:?}", e))),
                         };
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetKey {
@@ -356,7 +350,7 @@ impl KvsEngine for SqliteEngine {
                                             .map(|blob| bincode::deserialize(&blob.key).unwrap())));
                             },
                             Err(e) => {
-                                let _ = sender.send(err!(e));
+                                let _ = sender.send(Err(format!("{:?}", e)));
                             },
                         }
                     },
