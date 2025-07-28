@@ -68,15 +68,18 @@ fn assert_cookie_for_domain(
 }
 
 fn recv_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
-    match devtools_port.recv().unwrap() {
-        DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
-            match net_event {
-                NetworkEvent::HttpRequest(req) => req,
-                NetworkEvent::HttpRequestUpdate(req) => req,
-                other => panic!("Expected HttpRequest but got: {:?}", other),
-            }
-        },
-        other => panic!("Expected NetworkEvent but got: {:?}", other),
+    loop {
+        match devtools_port.recv().unwrap() {
+            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
+                _,
+                net_event,
+            )) => match net_event {
+                NetworkEvent::HttpRequest(req) => return req,
+                NetworkEvent::HttpRequestUpdate(req) => return req,
+                _other => continue,
+            },
+            other => panic!("Expected NetworkEvent but got: {:?}", other),
+        }
     }
 }
 
@@ -103,6 +106,19 @@ pub fn expect_devtools_http_response(
         },
         other => panic!("Expected NetworkEvent but got: {:?}", other),
     }
+}
+
+pub fn devtools_response_with_body(
+    devtools_port: &Receiver<DevtoolsControlMsg>,
+) -> DevtoolsHttpResponse {
+    let devhttpresponses = vec![
+        expect_devtools_http_response(devtools_port),
+        expect_devtools_http_response(devtools_port),
+    ];
+    return devhttpresponses
+        .into_iter()
+        .find(|resp| resp.body.is_some())
+        .expect("One of the responses should have a body");
 }
 
 #[test]
@@ -283,7 +299,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     // notification received from devtools
     let devhttprequests = expect_devtools_http_request(&devtools_port);
-    let devhttpresponse = expect_devtools_http_response(&devtools_port);
+    let devhttpresponse = devtools_response_with_body(&devtools_port);
 
     //Creating default headers for request
     let mut headers = HeaderMap::new();
@@ -355,7 +371,7 @@ fn test_request_and_response_data_with_network_messages() {
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
         status: HttpStatus::default(),
-        body: None,
+        body: devhttpresponse.clone().body,
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };
