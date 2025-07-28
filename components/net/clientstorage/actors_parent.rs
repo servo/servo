@@ -17,7 +17,7 @@ use super::thread::ClientStorageThread;
 struct BoundState {
     thread: Rc<ClientStorageThread>,
     ipc_sender: IpcSender<ClientStorageRoutedMsg>,
-    id: u64,
+    global_id: u64,
 }
 
 pub struct ClientStorageTestParent {
@@ -36,14 +36,17 @@ impl ClientStorageTestParent {
         self: &Rc<Self>,
         thread: Rc<ClientStorageThread>,
         ipc_sender: IpcSender<ClientStorageRoutedMsg>,
-        id: u64,
+        global_id: u64,
     ) {
-        thread.register_actor(id, ClientStorageParent::ClientStorageTest(Rc::clone(self)));
+        thread.register_actor(
+            global_id,
+            ClientStorageParent::ClientStorageTest(Rc::clone(self)),
+        );
 
         self.bound_state.borrow_mut().replace(BoundState {
             thread,
             ipc_sender,
-            id,
+            global_id,
         });
     }
 
@@ -64,7 +67,7 @@ impl ClientStorageTestParent {
             self.send_routed_message(
                 bound_state,
                 ClientStorageRoutedMsg {
-                    id: bound_state.id,
+                    global_id: bound_state.global_id,
                     data: msg,
                 },
             );
@@ -103,7 +106,7 @@ impl ClientStorageTestParent {
 
     fn recv_delete(self: &Rc<Self>) {
         if let Some(bound_state) = self.bound_state.borrow().as_ref() {
-            bound_state.thread.unregister_actor(bound_state.id);
+            bound_state.thread.unregister_actor(bound_state.global_id);
         }
     }
 }

@@ -8,7 +8,7 @@ use super::mixed_msg::ClientStorageMixedMsg;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ClientStorageRoutedMsg {
-    pub id: u64,
+    pub global_id: u64,
     pub data: ClientStorageMixedMsg,
 }
 

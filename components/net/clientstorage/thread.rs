@@ -23,7 +23,7 @@ pub struct ClientStorageThread {
     msg_sender: Sender<ClientStorageThreadMsg>,
     msg_receiver: Receiver<ClientStorageThreadMsg>,
     actors: RefCell<HashMap<u64, ClientStorageParent>>,
-    next_id: Cell<u64>,
+    next_global_id: Cell<u64>,
     exiting: Cell<bool>,
 }
 
@@ -40,7 +40,7 @@ impl ClientStorageThread {
             msg_sender,
             msg_receiver,
             actors: RefCell::new(HashMap::new()),
-            next_id: Cell::new(1),
+            next_global_id: Cell::new(1),
             exiting: Cell::new(false),
         })
     }
@@ -73,9 +73,9 @@ impl ClientStorageThread {
                 parent_to_child_sender,
                 sender,
             } => {
-                let id =
+                let global_id =
                     self.recv_test_constructor(child_to_parent_receiver, parent_to_child_sender);
-                let _ = sender.send(id);
+                let _ = sender.send(global_id);
             },
 
             ClientStorageThreadMsg::Routed(msg) => {
@@ -96,8 +96,8 @@ impl ClientStorageThread {
     ) -> u64 {
         let msg_sender = self.msg_sender.clone();
 
-        let id = self.next_id.get();
-        self.next_id.set(id + 1);
+        let global_id = self.next_global_id.get();
+        self.next_global_id.set(global_id + 1);
 
         ROUTER.add_typed_route(
             child_to_parent_receiver,
@@ -109,16 +109,16 @@ impl ClientStorageThread {
 
         let actor = ClientStorageTestParent::new();
 
-        actor.bind(Rc::clone(self), parent_to_child_sender, id);
+        actor.bind(Rc::clone(self), parent_to_child_sender, global_id);
 
-        id
+        global_id
     }
 
     fn recv_routed_message(self: &Rc<Self>, msg: ClientStorageRoutedMsg) {
         if let Some((actor, msg)) = {
             let actors = self.actors.borrow();
 
-            let actor = actors.get(&msg.id).unwrap();
+            let actor = actors.get(&msg.global_id).unwrap();
 
             match (actor, msg.data) {
                 (
@@ -135,12 +135,12 @@ impl ClientStorageThread {
         self.exiting.set(true);
     }
 
-    pub fn register_actor(self: &Rc<Self>, id: u64, actor: ClientStorageParent) {
-        self.actors.borrow_mut().insert(id, actor);
+    pub fn register_actor(self: &Rc<Self>, global_id: u64, actor: ClientStorageParent) {
+        self.actors.borrow_mut().insert(global_id, actor);
     }
 
-    pub fn unregister_actor(self: &Rc<Self>, id: u64) {
-        self.actors.borrow_mut().remove(&id);
+    pub fn unregister_actor(self: &Rc<Self>, global_id: u64) {
+        self.actors.borrow_mut().remove(&global_id);
     }
 }
 

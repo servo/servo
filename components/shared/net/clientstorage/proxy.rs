@@ -66,7 +66,7 @@ impl ClientStorageProxy {
                 sender,
             })
             .unwrap();
-        let id = receiver.recv().unwrap();
+        let global_id = receiver.recv().unwrap();
 
         ROUTER.add_typed_route(
             parent_to_child_receiver,
@@ -81,7 +81,7 @@ impl ClientStorageProxy {
             }),
         );
 
-        actor.bind(Rc::clone(self), child_to_parent_sender, id);
+        actor.bind(Rc::clone(self), child_to_parent_sender, global_id);
     }
 
     pub fn send_exit(self: &Rc<Self>) {
@@ -104,7 +104,7 @@ impl ClientStorageProxy {
         if let Some((actor, msg)) = {
             let actors = self.actors.borrow();
 
-            let actor = actors.get(&msg.id).unwrap();
+            let actor = actors.get(&msg.global_id).unwrap();
 
             match (actor, msg.data) {
                 (
@@ -117,12 +117,12 @@ impl ClientStorageProxy {
         }
     }
 
-    pub fn register_actor(self: &Rc<Self>, id: u64, actor: ClientStorageChild) {
-        self.actors.borrow_mut().insert(id, actor);
+    pub fn register_actor(self: &Rc<Self>, global_id: u64, actor: ClientStorageChild) {
+        self.actors.borrow_mut().insert(global_id, actor);
     }
 
-    pub fn unregister_actor(self: &Rc<Self>, id: u64) {
-        self.actors.borrow_mut().remove(&id);
+    pub fn unregister_actor(self: &Rc<Self>, global_id: u64) {
+        self.actors.borrow_mut().remove(&global_id);
     }
 }
 

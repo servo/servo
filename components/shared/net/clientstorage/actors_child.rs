@@ -17,7 +17,7 @@ use super::test_msg::ClientStorageTestMsg;
 struct BoundState {
     proxy: Rc<ClientStorageProxy>,
     ipc_sender: IpcSender<ClientStorageRoutedMsg>,
-    id: u64,
+    global_id: u64,
 }
 
 type PongCallback = Box<dyn Fn()>;
@@ -39,14 +39,17 @@ impl ClientStorageTestChild {
         self: &Rc<Self>,
         proxy: Rc<ClientStorageProxy>,
         ipc_sender: IpcSender<ClientStorageRoutedMsg>,
-        id: u64,
+        global_id: u64,
     ) {
-        proxy.register_actor(id, ClientStorageChild::ClientStorageTest(Rc::clone(self)));
+        proxy.register_actor(
+            global_id,
+            ClientStorageChild::ClientStorageTest(Rc::clone(self)),
+        );
 
         self.bound_state.borrow_mut().replace(BoundState {
             proxy,
             ipc_sender,
-            id,
+            global_id,
         });
     }
 
@@ -68,7 +71,7 @@ impl ClientStorageTestChild {
         if let Some(bound_state) = self.bound_state.borrow().as_ref() {
             self.send_message(bound_state, ClientStorageTestMsg::Delete);
 
-            bound_state.proxy.unregister_actor(bound_state.id);
+            bound_state.proxy.unregister_actor(bound_state.global_id);
         }
     }
 
@@ -80,7 +83,7 @@ impl ClientStorageTestChild {
         self.send_routed_message(
             bound_state,
             ClientStorageRoutedMsg {
-                id: bound_state.id,
+                global_id: bound_state.global_id,
                 data: msg,
             },
         );
