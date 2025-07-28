@@ -10,8 +10,8 @@ use std::thread;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use log::{debug, warn};
 use net_traits::indexeddb_thread::{
-    AsyncOperation, CreateObjectResult, DbResult, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath,
-    SyncOperation,
+    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
+    IndexedDBTxnMode, KeyPath, SyncOperation,
 };
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -103,7 +103,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     // Executes all requests for a transaction (without committing)
-    fn start_transaction(&mut self, txn: u64, sender: Option<IpcSender<DbResult<()>>>) {
+    fn start_transaction(&mut self, txn: u64, sender: Option<IpcSender<BackendResult<()>>>) {
         // FIXME:(arihant2math) find optimizations in this function
         //   rather than on the engine level code (less repetition)
         if let Some(txn) = self.transactions.remove(&txn) {
@@ -129,55 +129,56 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     fn create_index(
         &self,
-        sender: IpcSender<DbResult<CreateObjectResult>>,
         store_name: SanitizedName,
         index_name: String,
         key_path: KeyPath,
         unique: bool,
         multi_entry: bool,
-    ) {
-        let result =
-            self.engine
-                .create_index(store_name, index_name, key_path, unique, multi_entry);
-        let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
+    ) -> DbResult<CreateObjectResult> {
+        self.engine
+            .create_index(store_name, index_name, key_path, unique, multi_entry)
+            .map_err(|err| format!("{err:?}"))
     }
 
-    fn delete_index(
-        &self,
-        sender: IpcSender<DbResult<()>>,
-        store_name: SanitizedName,
-        index_name: String,
-    ) {
-        let result = self.engine.delete_index(store_name, index_name);
-        let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
+    fn delete_index(&self, store_name: SanitizedName, index_name: String) -> DbResult<()> {
+        self.engine
+            .delete_index(store_name, index_name)
+            .map_err(|err| format!("{err:?}"))
     }
 
     fn create_object_store(
         &mut self,
-        sender: IpcSender<DbResult<CreateObjectResult>>,
         store_name: SanitizedName,
         key_path: Option<KeyPath>,
         auto_increment: bool,
-    ) {
-        let result = self
-            .engine
-            .create_store(store_name, key_path, auto_increment);
-
-        let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
+    ) -> DbResult<CreateObjectResult> {
+        self.engine
+            .create_store(store_name, key_path, auto_increment)
+            .map_err(|err| format!("{err:?}"))
     }
 
-    fn delete_object_store(&mut self, sender: IpcSender<DbResult<()>>, store_name: SanitizedName) {
+    fn delete_object_store(&mut self, store_name: SanitizedName) -> DbResult<()> {
         let result = self.engine.delete_store(store_name);
-
-        let _ = match result {
-            Ok(_) => sender.send(Ok(())),
-            Err(e) => sender.send(Err(format!("{:?}", e))),
-        };
+        result.map_err(|err| format!("{err:?}"))
     }
 
-    fn delete_database(self, sender: IpcSender<DbResult<()>>) {
+    fn delete_database(self, sender: IpcSender<BackendResult<()>>) {
         let result = self.engine.delete_database();
-        let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
+        let _ = sender.send(
+            result
+                .map_err(|err| format!("{err:?}"))
+                .map_err(BackendError::from),
+        );
+    }
+
+    fn version(&self) -> DbResult<u64> {
+        self.engine.version().map_err(|err| format!("{err:?}"))
+    }
+
+    fn set_version(&mut self, version: u64) -> DbResult<()> {
+        self.engine
+            .set_version(version)
+            .map_err(|err| format!("{err:?}"))
     }
 }
 
@@ -273,7 +274,7 @@ impl IndexedDBManager {
                     name: db_name,
                 };
                 if let Some(_db) = self.databases.remove(&idb_description) {
-                    // TODO: maybe close store here?
+                    // TODO: maybe a close database function should be added to the trait and called here?
                 }
                 let _ = sender.send(Ok(()));
             },
@@ -292,11 +293,11 @@ impl IndexedDBManager {
                             &idb_description,
                             version.unwrap_or(0),
                         ));
-                        let _ = sender.send(db.engine.version());
+                        let _ = sender.send(db.version().unwrap_or(version.unwrap_or(0)));
                         e.insert(db);
                     },
                     Entry::Occupied(db) => {
-                        let _ = sender.send(db.get().engine.version());
+                        let _ = sender.send(db.get().version().unwrap_or(version.unwrap_or(0)));
                     },
                 }
             },
@@ -319,14 +320,14 @@ impl IndexedDBManager {
                 let result = self
                     .get_database(origin, db_name)
                     .map(|db| db.has_key_generator(store_name));
-                let _ = sender.send(result);
+                let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
             SyncOperation::KeyPath(sender, origin, db_name, store_name) => {
                 let store_name = SanitizedName::new(store_name);
                 let result = self
                     .get_database(origin, db_name)
                     .map(|db| db.key_path(store_name));
-                let _ = sender.send(result);
+                let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
             SyncOperation::CreateIndex(
                 sender,
@@ -340,20 +341,20 @@ impl IndexedDBManager {
             ) => {
                 let store_name = SanitizedName::new(store_name);
                 if let Some(db) = self.get_database(origin, db_name) {
-                    db.create_index(
-                        sender,
-                        store_name,
-                        index_name,
-                        key_path,
-                        unique,
-                        multi_entry,
-                    );
+                    let result =
+                        db.create_index(store_name, index_name, key_path, unique, multi_entry);
+                    let _ = sender.send(result.map_err(BackendError::from));
+                } else {
+                    let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
             SyncOperation::DeleteIndex(sender, origin, db_name, store_name, index_name) => {
                 let store_name = SanitizedName::new(store_name);
                 if let Some(db) = self.get_database(origin, db_name) {
-                    db.delete_index(sender, store_name, index_name)
+                    let result = db.delete_index(store_name, index_name);
+                    let _ = sender.send(result.map_err(BackendError::from));
+                } else {
+                    let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
             SyncOperation::Commit(sender, _origin, _db_name, _txn) => {
@@ -362,13 +363,13 @@ impl IndexedDBManager {
             },
             SyncOperation::UpgradeVersion(sender, origin, db_name, _txn, version) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
-                    if version > db.engine.version() {
-                        let _ = db.engine.set_version(version);
+                    if version > db.version().unwrap_or(0) {
+                        let _ = db.set_version(version);
                     }
                     // erroring out if the version is not upgraded can be and non-replicable
-                    let _ = sender.send(Some(db.engine.version()));
+                    let _ = sender.send(db.version().map_err(BackendError::from));
                 } else {
-                    let _ = sender.send(None);
+                    let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
             SyncOperation::CreateObjectStore(
@@ -381,24 +382,34 @@ impl IndexedDBManager {
             ) => {
                 let store_name = SanitizedName::new(store_name);
                 if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.create_object_store(sender, store_name, key_paths, auto_increment);
+                    let result = db.create_object_store(store_name, key_paths, auto_increment);
+                    let _ = sender.send(result.map_err(BackendError::from));
+                } else {
+                    let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
             SyncOperation::DeleteObjectStore(sender, origin, db_name, store_name) => {
                 let store_name = SanitizedName::new(store_name);
                 if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.delete_object_store(sender, store_name);
+                    let result = db.delete_object_store(store_name);
+                    let _ = sender.send(result.map_err(BackendError::from));
+                } else {
+                    let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
             SyncOperation::StartTransaction(sender, origin, db_name, txn) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.start_transaction(txn, Some(sender));
-                };
+                } else {
+                    let _ = sender.send(Err(BackendError::DbNotFound));
+                }
             },
             SyncOperation::Version(sender, origin, db_name) => {
                 if let Some(db) = self.get_database(origin, db_name) {
-                    let _ = sender.send(Ok(db.engine.version()));
-                };
+                    let _ = sender.send(db.version().map_err(BackendError::from));
+                } else {
+                    let _ = sender.send(Err(BackendError::DbNotFound));
+                }
             },
             SyncOperation::RegisterNewTxn(sender, origin, db_name) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {

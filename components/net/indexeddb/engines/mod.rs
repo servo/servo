@@ -96,6 +96,6 @@ pub trait KvsEngine {
         index_name: String,
     ) -> Result<(), Self::Error>;
 
-    fn version(&self) -> u64;
+    fn version(&self) -> Result<u64, Self::Error>;
     fn set_version(&self, version: u64) -> Result<(), Self::Error>;
 }

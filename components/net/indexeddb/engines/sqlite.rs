@@ -4,8 +4,8 @@
 use std::path::{Path, PathBuf};
 
 use net_traits::indexeddb_thread::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
-    IndexedDBKeyRange, KeyPath, PutItemResult,
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError,
+    CreateObjectResult, IndexedDBKeyRange, KeyPath, PutItemResult,
 };
 use sea_orm::prelude::*;
 use sea_orm::sea_query::IntoCondition;
@@ -106,26 +106,29 @@ impl SqliteEngine {
         db_info: &IndexedDBDescription,
         version: u64,
     ) -> Result<DatabaseConnection, DbErr> {
-        macro_rules! create_table {
-            ($connection:ident, $p:path) => {
-                let builder = $connection.get_database_backend();
-                let schema = sea_orm::Schema::new(builder);
-                let create_table_stmt = builder.build(&schema.create_table_from_entity($p));
-                $connection.execute(create_table_stmt).await?;
-            };
+        async fn create_table<T: EntityTrait>(
+            connection: &DatabaseConnection,
+            p: T,
+        ) -> Result<(), DbErr> {
+            let builder = connection.get_database_backend();
+            let schema = sea_orm::Schema::new(builder);
+            let create_table_stmt = builder.build(&schema.create_table_from_entity(p));
+            connection.execute(create_table_stmt).await?;
+            Ok(())
         }
+
         let connection = Self::get_connection(path).await?;
         for stmt in DB_INIT_PRAGMAS {
             connection.execute_unprepared(stmt).await?;
         }
-        create_table!(connection, database_model::Entity);
-        create_table!(connection, object_data_model::Entity);
-        create_table!(connection, object_store_index_model::Entity);
-        create_table!(connection, object_store_model::Entity);
+        create_table(&connection, database_model::Entity).await?;
+        create_table(&connection, object_data_model::Entity).await?;
+        create_table(&connection, object_store_index_model::Entity).await?;
+        create_table(&connection, object_store_model::Entity).await?;
         let info = database_model::ActiveModel {
             name: Set(db_info.name.to_owned()),
             origin: Set(db_info.origin.to_owned().ascii_serialization()),
-            version: Set(version as i32),
+            version: Set(i64::from_ne_bytes(version.to_ne_bytes())),
         };
         info.insert(&connection).await?;
         Ok(connection)
@@ -194,7 +197,14 @@ impl KvsEngine for SqliteEngine {
         HANDLE.block_on(async {
             self.connection.close().await?;
             if self.db_path.exists() {
-                std::fs::remove_dir_all(self.db_path.parent().unwrap()).unwrap();
+                // TODO: make custom error type instead.
+                tokio::fs::remove_dir_all(
+                    self.db_path
+                        .parent()
+                        .ok_or(Self::Error::Custom("No parent".to_string()))?,
+                )
+                .await
+                .map_err(|e| Self::Error::Custom(format!("{e:?}")))?;
             }
             Ok(())
         })
@@ -211,19 +221,25 @@ impl KvsEngine for SqliteEngine {
         HANDLE.spawn(async move {
             for request in transaction.requests {
                 let conn = connection.clone();
-                let object_store = match object_store_model::Entity::find()
+                let object_store = object_store_model::Entity::find()
                     .filter(object_store_model::Column::Name.eq(request.store_name.to_string()))
                     .one(&conn)
-                    .await
-                    .unwrap()
-                {
-                    Some(object_store) => object_store,
-                    None => {
-                        // TODO: This is also kinda wrong, but atleast we don't panic.
-                        tx.send(None).unwrap_or(());
-                        return;
-                    },
-                };
+                    .await;
+                macro_rules! process_object_store {
+                    ($object_store:ident, $sender:ident) => {
+                        match $object_store {
+                            Ok(Some(store)) => store,
+                            Ok(None) => {
+                                let _ = $sender.send(Err(BackendError::StoreNotFound));
+                                continue;
+                            },
+                            Err(e) => {
+                                let _ = $sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
+                                continue;
+                            },
+                        }
+                    };
+                }
 
                 match request.operation {
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
@@ -232,33 +248,39 @@ impl KvsEngine for SqliteEngine {
                         value,
                         should_overwrite,
                     }) => {
+                        let object_store = process_object_store!(object_store, sender);
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         let store = object_data_model::ActiveModel {
                             object_store_id: Set(object_store.id),
                             key: Set(serialized_key.clone()),
                             data: Set(value),
                         };
-                        if should_overwrite ||
-                            object_data_model::Entity::find()
-                                .filter(
-                                    object_data_model::Column::Key
-                                        .eq(serialized_key.clone())
-                                        .and(
-                                            object_data_model::Column::ObjectStoreId
-                                                .eq(object_store.id),
-                                        ),
-                                )
-                                .one(&conn)
-                                .await
-                                .unwrap() // TODO: handle
-                                .is_none()
+                        let existing_item = match object_data_model::Entity::find()
+                            .filter(
+                                object_data_model::Column::Key
+                                    .eq(serialized_key.clone())
+                                    .and(
+                                        object_data_model::Column::ObjectStoreId
+                                            .eq(object_store.id),
+                                    ),
+                            )
+                            .one(&conn)
+                            .await
                         {
+                            Ok(t) => t,
+                            Err(e) => {
+                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
+                                continue;
+                            },
+                        };
+                        if should_overwrite || existing_item.is_none() {
                             match store.insert(&conn).await {
                                 Ok(_) => {
                                     let _ = sender.send(Ok(PutItemResult::Success));
                                 },
                                 Err(e) => {
-                                    let _ = sender.send(Err(format!("{:?}", e)));
+                                    let _ =
+                                        sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
                                 },
                             }
                         } else {
@@ -269,6 +291,7 @@ impl KvsEngine for SqliteEngine {
                         sender,
                         key_range,
                     }) => {
+                        let object_store = process_object_store!(object_store, sender);
                         let result = object_data_model::Entity::find()
                             .filter(object_data_model::Column::ObjectStoreId.eq(object_store.id))
                             .filter(range_to_query(key_range))
@@ -280,7 +303,7 @@ impl KvsEngine for SqliteEngine {
                                 let _ = sender.send(Ok(result.map(|blob| blob.data.to_vec())));
                             },
                             Err(e) => {
-                                let _ = sender.send(Err(format!("{:?}", e)));
+                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
                             },
                         }
                     },
@@ -288,6 +311,7 @@ impl KvsEngine for SqliteEngine {
                         sender,
                         key,
                     }) => {
+                        let object_store = process_object_store!(object_store, sender);
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         // More ergonomic way to delete an item than querying first.
                         let result =
@@ -298,7 +322,7 @@ impl KvsEngine for SqliteEngine {
                                 .exec(&conn)
                                 .await;
                         if let Err(err) = result {
-                            let _ = sender.send(Err(format!("{:?}", err)));
+                            let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", err))));
                         } else {
                             let _ = sender.send(Ok(()));
                         }
@@ -307,6 +331,7 @@ impl KvsEngine for SqliteEngine {
                         sender,
                         key_range,
                     }) => {
+                        let object_store = process_object_store!(object_store, sender);
                         let res = object_data_model::Entity::find()
                             .filter(object_data_model::Column::ObjectStoreId.eq(object_store.id))
                             .filter(range_to_query(key_range))
@@ -318,24 +343,26 @@ impl KvsEngine for SqliteEngine {
                                 let _ = sender.send(Ok(list.len() as u64));
                             },
                             Err(e) => {
-                                let _ = sender.send(Err(format!("{:?}", e)));
+                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
                             },
                         }
                     },
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(sender)) => {
+                        let object_store = process_object_store!(object_store, sender);
                         let result = object_data_model::Entity::delete_many()
                             .filter(object_data_model::Column::ObjectStoreId.eq(object_store.id))
                             .exec(&conn)
                             .await;
                         let _ = match result {
                             Ok(_) => sender.send(Ok(())),
-                            Err(e) => sender.send(Err(format!("{:?}", e))),
+                            Err(e) => sender.send(Err(BackendError::DbErr(format!("{:?}", e)))),
                         };
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetKey {
                         sender,
                         key_range,
                     }) => {
+                        let object_store = process_object_store!(object_store, sender);
                         let result = object_data_model::Entity::find()
                             .filter(object_data_model::Column::ObjectStoreId.eq(object_store.id))
                             .filter(range_to_query(key_range))
@@ -350,12 +377,13 @@ impl KvsEngine for SqliteEngine {
                                             .map(|blob| bincode::deserialize(&blob.key).unwrap())));
                             },
                             Err(e) => {
-                                let _ = sender.send(Err(format!("{:?}", e)));
+                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
                             },
                         }
                     },
                 }
             }
+            let _ = tx.send(None);
         });
         rx
     }
@@ -468,26 +496,24 @@ impl KvsEngine for SqliteEngine {
         })
     }
 
-    fn version(&self) -> u64 {
+    fn version(&self) -> Result<u64, Self::Error> {
         HANDLE.block_on(async {
             let db_info = database_model::Entity::find()
                 .one(&self.connection)
-                .await
-                .unwrap()
+                .await?
                 .unwrap();
-            db_info.version
-        }) as u64
+            Ok(u64::from_ne_bytes(db_info.version.to_ne_bytes()))
+        })
     }
 
     fn set_version(&self, version: u64) -> Result<(), Self::Error> {
         HANDLE.block_on(async {
             let db_info = database_model::Entity::find()
                 .one(&self.connection)
-                .await
-                .unwrap()
+                .await?
                 .unwrap();
             let mut db_info = db_info.into_active_model();
-            db_info.version = Set(version as i32);
+            db_info.version = Set(i64::from_ne_bytes(version.to_ne_bytes()));
             db_info.save(&self.connection).await?;
             Ok(())
         })

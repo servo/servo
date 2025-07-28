@@ -7,7 +7,7 @@ use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use net_traits::IpcSend;
-use net_traits::indexeddb_thread::{DbResult, IndexedDBThreadMsg, SyncOperation};
+use net_traits::indexeddb_thread::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use profile_traits::ipc;
 use script_bindings::conversions::SafeToJSValConvertible;
 use stylo_atoms::Atom;
@@ -84,7 +84,7 @@ impl OpenRequestListener {
         }
     }
 
-    fn handle_delete_db(&self, result: DbResult<()>, can_gc: CanGc) {
+    fn handle_delete_db(&self, result: BackendResult<()>, can_gc: CanGc) {
         let open_request = self.open_request.root();
         let global = open_request.global();
         open_request.idbrequest.set_ready_state_done();

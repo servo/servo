@@ -14,7 +14,7 @@ use js::jsapi::{
 };
 use js::jsval::{DoubleValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
-use net_traits::indexeddb_thread::{DbResult, IndexedDBKeyRange, IndexedDBKeyType};
+use net_traits::indexeddb_thread::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
 use profile_traits::ipc;
 use profile_traits::ipc::IpcReceiver;
 use script_bindings::conversions::{SafeToJSValConvertible, root_from_object};
@@ -33,11 +33,11 @@ use crate::dom::idbobjectstore::KeyPath;
 
 pub fn create_channel<T>(
     global: DomRoot<GlobalScope>,
-) -> (IpcSender<DbResult<T>>, IpcReceiver<DbResult<T>>)
+) -> (IpcSender<BackendResult<T>>, IpcReceiver<BackendResult<T>>)
 where
     T: for<'a> Deserialize<'a> + Serialize,
 {
-    ipc::channel::<DbResult<T>>(global.time_profiler_chan().clone()).unwrap()
+    ipc::channel::<BackendResult<T>>(global.time_profiler_chan().clone()).unwrap()
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value

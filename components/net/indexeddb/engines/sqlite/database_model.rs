@@ -11,7 +11,7 @@ pub struct Model {
     pub name: String,
     pub origin: String,
     #[sea_orm(default_value = 0)]
-    pub version: i32,
+    pub version: i64,
     // TODO: Hold timestamp for vacuuming
     // TODO: implement vacuuming
 }

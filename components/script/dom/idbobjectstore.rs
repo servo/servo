@@ -169,7 +169,7 @@ impl IDBObjectStore {
     }
 
     /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
-    fn check_transaction_active(&self) -> Fallible<DomRoot<GlobalScope>> {
+    fn check_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
         let transaction = self.transaction.get().ok_or(Error::TransactionInactive)?;
 
@@ -178,12 +178,12 @@ impl IDBObjectStore {
             return Err(Error::TransactionInactive);
         }
 
-        Ok(transaction.global())
+        Ok(())
     }
 
     /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
     /// it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
-    fn check_readwrite_transaction_active(&self) -> Fallible<DomRoot<GlobalScope>> {
+    fn check_readwrite_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
         let transaction = self.transaction.get().ok_or(Error::TransactionInactive)?;
 
@@ -195,7 +195,7 @@ impl IDBObjectStore {
         if let IDBTransactionMode::Readonly = transaction.get_mode() {
             return Err(Error::ReadOnly);
         }
-        Ok(transaction.global())
+        Ok(())
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put
@@ -215,7 +215,7 @@ impl IDBObjectStore {
         // FIXME:(rasviitanen)
 
         // Steps 4-5
-        let global = self.check_readwrite_transaction_active()?;
+        self.check_readwrite_transaction_active()?;
 
         // Step 6: If store uses in-line keys and key was given, throw a "DataError" DOMException.
         if !key.is_undefined() && self.uses_inline_keys() {
@@ -252,7 +252,7 @@ impl IDBObjectStore {
 
         let serialized_value = structuredclone::write(cx, value, None)?;
 
-        let (sender, receiver) = indexed_db::create_channel(global);
+        let (sender, receiver) = indexed_db::create_channel(self.global());
 
         IDBRequest::execute_async(
             self,
@@ -296,12 +296,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // TODO: Step 2
         // TODO: Step 3
         // Steps 4-5
-        let global = self.check_readwrite_transaction_active()?;
+        self.check_readwrite_transaction_active()?;
         // Step 6
         // TODO: Convert to key range instead
         let serialized_query = convert_value_to_key(cx, query, None);
         // Step 7
-        let (sender, receiver) = indexed_db::create_channel(global);
+        let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
@@ -319,8 +319,8 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // TODO: Step 2
         // TODO: Step 3
         // Steps 4-5
-        let global = self.check_readwrite_transaction_active()?;
-        let (sender, receiver) = indexed_db::create_channel(global);
+        self.check_readwrite_transaction_active()?;
+        let (sender, receiver) = indexed_db::create_channel(self.global());
 
         IDBRequest::execute_async(
             self,
@@ -337,11 +337,11 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // TODO: Step 2
         // TODO: Step 3
         // Step 4
-        let global = self.check_transaction_active()?;
+        self.check_transaction_active()?;
         // Step 5
         let serialized_query = convert_value_to_key_range(cx, query, None);
         // Step 6
-        let (sender, receiver) = indexed_db::create_channel(global);
+        let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
@@ -362,11 +362,11 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // TODO: Step 2
         // TODO: Step 3
         // Step 4
-        let global = self.check_transaction_active()?;
+        self.check_transaction_active()?;
         // Step 5
         let serialized_query = convert_value_to_key_range(cx, query, None);
         // Step 6
-        let (sender, receiver) = indexed_db::create_channel(global);
+        let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
@@ -407,13 +407,13 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // TODO: Step 2
         // TODO: Step 3
         // Steps 4
-        let global = self.check_transaction_active()?;
+        self.check_transaction_active()?;
 
         // Step 5
         let serialized_query = convert_value_to_key_range(cx, query, None);
 
         // Step 6
-        let (sender, receiver) = indexed_db::create_channel(global);
+        let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,

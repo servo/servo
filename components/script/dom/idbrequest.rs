@@ -12,7 +12,8 @@ use js::jsval::{DoubleValue, JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, DbResult, IndexedDBKeyType, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,
+    AsyncOperation, BackendResult, IndexedDBKeyType, IndexedDBThreadMsg, IndexedDBTxnMode,
+    PutItemResult,
 };
 use profile_traits::ipc::IpcReceiver;
 use serde::{Deserialize, Serialize};
@@ -97,7 +98,7 @@ impl From<u64> for IdbResult {
 }
 
 impl RequestListener {
-    fn handle_async_request_finished(&self, result: DbResult<IdbResult>) {
+    fn handle_async_request_finished(&self, result: BackendResult<IdbResult>) {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
@@ -129,31 +130,8 @@ impl RequestListener {
                     // no-op
                 },
                 IdbResult::Error(_err) => {
-                    // FIXME:(arihant2math) duplicated
-
                     request.set_result(answer.handle());
-
-                    // FIXME:(rasviitanen)
-                    // Set the error of request to result
-
-                    let transaction = request
-                        .transaction
-                        .get()
-                        .expect("Request has no transaction");
-
-                    let event = Event::new(
-                        &global,
-                        Atom::from("error"),
-                        EventBubbles::Bubbles,
-                        EventCancelable::Cancelable,
-                        CanGc::note(),
-                    );
-
-                    transaction.set_active_flag(true);
-                    event
-                        .upcast::<Event>()
-                        .fire(request.upcast(), CanGc::note());
-                    transaction.set_active_flag(false);
+                    Self::handle_async_request_error(request, &global);
                     return;
                 },
             }
@@ -180,29 +158,32 @@ impl RequestListener {
             transaction.set_active_flag(false);
         } else {
             request.set_result(answer.handle());
-
-            // FIXME:(rasviitanen)
-            // Set the error of request to result
-
-            let transaction = request
-                .transaction
-                .get()
-                .expect("Request has no transaction");
-
-            let event = Event::new(
-                &global,
-                Atom::from("error"),
-                EventBubbles::Bubbles,
-                EventCancelable::Cancelable,
-                CanGc::note(),
-            );
-
-            transaction.set_active_flag(true);
-            event
-                .upcast::<Event>()
-                .fire(request.upcast(), CanGc::note());
-            transaction.set_active_flag(false);
+            Self::handle_async_request_error(request, &global);
         }
+    }
+
+    fn handle_async_request_error(request: DomRoot<IDBRequest>, global: &GlobalScope) {
+        // FIXME:(rasviitanen)
+        // Set the error of request to result
+
+        let transaction = request
+            .transaction
+            .get()
+            .expect("Request has no transaction");
+
+        let event = Event::new(
+            global,
+            Atom::from("error"),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            CanGc::note(),
+        );
+
+        transaction.set_active_flag(true);
+        event
+            .upcast::<Event>()
+            .fire(request.upcast(), CanGc::note());
+        transaction.set_active_flag(false);
     }
 }
 
@@ -265,7 +246,7 @@ impl IDBRequest {
     pub fn execute_async<T>(
         source: &IDBObjectStore,
         operation: AsyncOperation,
-        receiver: IpcReceiver<DbResult<T>>,
+        receiver: IpcReceiver<BackendResult<T>>,
         request: Option<DomRoot<IDBRequest>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>>

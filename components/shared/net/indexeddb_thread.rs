@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp::{Ordering, PartialEq, PartialOrd};
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
@@ -11,7 +13,33 @@ use servo_url::origin::ImmutableOrigin;
 
 // TODO Box<dyn Error> is not serializable, fix needs to be found
 pub type DbError = String;
+/// A DbResult wraps any part of a call that has to reach into the backend (in this case sqlite.rs)
+/// These errors could be anything, depending on the backend
 pub type DbResult<T> = Result<T, DbError>;
+
+/// Any error from the backend
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum BackendError {
+    DbNotFound,
+    StoreNotFound,
+    DbErr(DbError),
+}
+
+impl From<DbError> for BackendError {
+    fn from(value: DbError) -> Self {
+        BackendError::DbErr(value)
+    }
+}
+
+impl Display for BackendError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for BackendError {}
+
+pub type BackendResult<T> = Result<T, BackendError>;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum KeyPath {
@@ -205,7 +233,7 @@ impl IndexedDBKeyRange {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum PutItemResult {
     Success,
     CannotOverwrite,
@@ -215,16 +243,16 @@ pub enum PutItemResult {
 pub enum AsyncReadOnlyOperation {
     /// Gets the value associated with the given key in the associated idb data
     GetKey {
-        sender: IpcSender<DbResult<Option<IndexedDBKeyType>>>,
+        sender: IpcSender<BackendResult<Option<IndexedDBKeyType>>>,
         key_range: IndexedDBKeyRange,
     },
     GetItem {
-        sender: IpcSender<DbResult<Option<Vec<u8>>>>,
+        sender: IpcSender<BackendResult<Option<Vec<u8>>>>,
         key_range: IndexedDBKeyRange,
     },
 
     Count {
-        sender: IpcSender<DbResult<u64>>,
+        sender: IpcSender<BackendResult<u64>>,
         key_range: IndexedDBKeyRange,
     },
 }
@@ -233,19 +261,19 @@ pub enum AsyncReadOnlyOperation {
 pub enum AsyncReadWriteOperation {
     /// Sets the value of the given key in the associated idb data
     PutItem {
-        sender: IpcSender<DbResult<PutItemResult>>,
-        key: IndexedDBKeyType, // Key
+        sender: IpcSender<BackendResult<PutItemResult>>,
+        key: IndexedDBKeyType,
         value: Vec<u8>,
         should_overwrite: bool,
     },
 
     /// Removes the key/value pair for the given key in the associated idb data
     RemoveItem {
-        sender: IpcSender<DbResult<()>>,
+        sender: IpcSender<BackendResult<()>>,
         key: IndexedDBKeyType,
     },
     /// Clears all key/value pairs in the associated idb data
-    Clear(IpcSender<DbResult<()>>),
+    Clear(IpcSender<BackendResult<()>>),
 }
 
 /// Operations that are not executed instantly, but rather added to a
@@ -256,7 +284,7 @@ pub enum AsyncOperation {
     ReadWrite(AsyncReadWriteOperation),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum CreateObjectResult {
     Created,
     AlreadyExists,
@@ -266,7 +294,7 @@ pub enum CreateObjectResult {
 pub enum SyncOperation {
     /// Upgrades the version of the database
     UpgradeVersion(
-        IpcSender<Option<u64>>,
+        IpcSender<BackendResult<u64>>,
         ImmutableOrigin,
         String, // Database
         u64,    // Serial number for the transaction
@@ -274,14 +302,15 @@ pub enum SyncOperation {
     ),
     /// Checks if an object store has a key generator, used in e.g. Put
     HasKeyGenerator(
-        IpcSender<Option<bool>>,
+        IpcSender<BackendResult<bool>>,
         ImmutableOrigin,
         String, // Database
         String, // Store
     ),
-    /// Gets an object stores key path
+    /// Gets an object store's key path
     KeyPath(
-        IpcSender<Option<Option<KeyPath>>>,
+        /// Object stores do not have to have key paths
+        IpcSender<BackendResult<Option<KeyPath>>>,
         ImmutableOrigin,
         String, // Database
         String, // Store
@@ -289,7 +318,7 @@ pub enum SyncOperation {
 
     /// Commits changes of a transaction to the database
     Commit(
-        IpcSender<DbResult<()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
         u64,    // Transaction serial number
@@ -297,7 +326,7 @@ pub enum SyncOperation {
 
     /// Creates a new index for the database
     CreateIndex(
-        IpcSender<DbResult<CreateObjectResult>>,
+        IpcSender<BackendResult<CreateObjectResult>>,
         ImmutableOrigin,
         String,  // Database
         String,  // Store
@@ -308,7 +337,7 @@ pub enum SyncOperation {
     ),
     /// Delete an index
     DeleteIndex(
-        IpcSender<DbResult<()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
         String, // Store
@@ -317,7 +346,7 @@ pub enum SyncOperation {
 
     /// Creates a new store for the database
     CreateObjectStore(
-        IpcSender<DbResult<CreateObjectResult>>,
+        IpcSender<BackendResult<CreateObjectResult>>,
         ImmutableOrigin,
         String,          // Database
         String,          // Store
@@ -326,14 +355,14 @@ pub enum SyncOperation {
     ),
 
     DeleteObjectStore(
-        IpcSender<DbResult<()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
         String, // Store
     ),
 
     CloseDatabase(
-        IpcSender<DbResult<()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
     ),
@@ -347,7 +376,7 @@ pub enum SyncOperation {
 
     /// Deletes the database
     DeleteDatabase(
-        IpcSender<DbResult<()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
     ),
@@ -363,7 +392,7 @@ pub enum SyncOperation {
     /// Starts executing the requests of a transaction
     /// <https://www.w3.org/TR/IndexedDB-2/#transaction-start>
     StartTransaction(
-        IpcSender<DbResult<()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
         u64,    // The serial number of the mutating transaction
@@ -371,7 +400,7 @@ pub enum SyncOperation {
 
     /// Returns the version of the database
     Version(
-        IpcSender<DbResult<u64>>,
+        IpcSender<BackendResult<u64>>,
         ImmutableOrigin,
         String, // Database
     ),
