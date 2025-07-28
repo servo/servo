@@ -8,6 +8,7 @@ use std::rc::Rc;
 use ipc_channel::ipc::IpcSender;
 use log::debug;
 
+use super::actor_id::ClientStorageActorId;
 use super::child::ClientStorageChild;
 use super::mixed_msg::ClientStorageMixedMsg;
 use super::proxy::ClientStorageProxy;
@@ -17,7 +18,7 @@ use super::test_msg::ClientStorageTestMsg;
 struct BoundState {
     proxy: Rc<ClientStorageProxy>,
     ipc_sender: IpcSender<ClientStorageRoutedMsg>,
-    global_id: u64,
+    actor_id: ClientStorageActorId,
 }
 
 type PongCallback = Box<dyn Fn()>;
@@ -39,17 +40,17 @@ impl ClientStorageTestChild {
         self: &Rc<Self>,
         proxy: Rc<ClientStorageProxy>,
         ipc_sender: IpcSender<ClientStorageRoutedMsg>,
-        global_id: u64,
+        actor_id: ClientStorageActorId,
     ) {
         proxy.register_actor(
-            global_id,
+            actor_id,
             ClientStorageChild::ClientStorageTest(Rc::clone(self)),
         );
 
         self.bound_state.borrow_mut().replace(BoundState {
             proxy,
             ipc_sender,
-            global_id,
+            actor_id,
         });
     }
 
@@ -71,7 +72,7 @@ impl ClientStorageTestChild {
         if let Some(bound_state) = self.bound_state.borrow().as_ref() {
             self.send_message(bound_state, ClientStorageTestMsg::Delete);
 
-            bound_state.proxy.unregister_actor(bound_state.global_id);
+            bound_state.proxy.unregister_actor(bound_state.actor_id);
         }
     }
 
@@ -83,7 +84,7 @@ impl ClientStorageTestChild {
         self.send_routed_message(
             bound_state,
             ClientStorageRoutedMsg {
-                global_id: bound_state.global_id,
+                actor_id: bound_state.actor_id,
                 data: msg,
             },
         );

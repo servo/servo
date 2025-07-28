@@ -11,6 +11,7 @@ use crossbeam_channel::{self, Receiver, Sender, unbounded};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::debug;
+use net_traits::clientstorage::actor_id::ClientStorageActorId;
 use net_traits::clientstorage::mixed_msg::ClientStorageMixedMsg;
 use net_traits::clientstorage::routed_msg::ClientStorageRoutedMsg;
 use net_traits::clientstorage::thread_msg::ClientStorageThreadMsg;
@@ -22,7 +23,7 @@ pub struct ClientStorageThread {
     _base_dir: PathBuf,
     msg_sender: Sender<ClientStorageThreadMsg>,
     msg_receiver: Receiver<ClientStorageThreadMsg>,
-    actors: RefCell<HashMap<u64, ClientStorageParent>>,
+    actors: RefCell<HashMap<ClientStorageActorId, ClientStorageParent>>,
     next_global_id: Cell<u64>,
     exiting: Cell<bool>,
 }
@@ -73,9 +74,9 @@ impl ClientStorageThread {
                 parent_to_child_sender,
                 sender,
             } => {
-                let global_id =
+                let actor_id =
                     self.recv_test_constructor(child_to_parent_receiver, parent_to_child_sender);
-                let _ = sender.send(global_id);
+                let _ = sender.send(actor_id);
             },
 
             ClientStorageThreadMsg::Routed(msg) => {
@@ -93,11 +94,13 @@ impl ClientStorageThread {
         self: &Rc<Self>,
         child_to_parent_receiver: IpcReceiver<ClientStorageRoutedMsg>,
         parent_to_child_sender: IpcSender<ClientStorageRoutedMsg>,
-    ) -> u64 {
+    ) -> ClientStorageActorId {
         let msg_sender = self.msg_sender.clone();
 
         let global_id = self.next_global_id.get();
         self.next_global_id.set(global_id + 1);
+
+        let actor_id = ClientStorageActorId { global_id };
 
         ROUTER.add_typed_route(
             child_to_parent_receiver,
@@ -109,16 +112,16 @@ impl ClientStorageThread {
 
         let actor = ClientStorageTestParent::new();
 
-        actor.bind(Rc::clone(self), parent_to_child_sender, global_id);
+        actor.bind(Rc::clone(self), parent_to_child_sender, actor_id);
 
-        global_id
+        actor_id
     }
 
     fn recv_routed_message(self: &Rc<Self>, msg: ClientStorageRoutedMsg) {
         if let Some((actor, msg)) = {
             let actors = self.actors.borrow();
 
-            let actor = actors.get(&msg.global_id).unwrap();
+            let actor = actors.get(&msg.actor_id).unwrap();
 
             match (actor, msg.data) {
                 (
@@ -135,12 +138,16 @@ impl ClientStorageThread {
         self.exiting.set(true);
     }
 
-    pub fn register_actor(self: &Rc<Self>, global_id: u64, actor: ClientStorageParent) {
-        self.actors.borrow_mut().insert(global_id, actor);
+    pub fn register_actor(
+        self: &Rc<Self>,
+        actor_id: ClientStorageActorId,
+        actor: ClientStorageParent,
+    ) {
+        self.actors.borrow_mut().insert(actor_id, actor);
     }
 
-    pub fn unregister_actor(self: &Rc<Self>, global_id: u64) {
-        self.actors.borrow_mut().remove(&global_id);
+    pub fn unregister_actor(self: &Rc<Self>, actor_id: ClientStorageActorId) {
+        self.actors.borrow_mut().remove(&actor_id);
     }
 }
 

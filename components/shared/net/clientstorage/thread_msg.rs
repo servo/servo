@@ -5,6 +5,7 @@
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use serde::{Deserialize, Serialize};
 
+use super::actor_id::ClientStorageActorId;
 use super::routed_msg::ClientStorageRoutedMsg;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -12,7 +13,7 @@ pub enum ClientStorageThreadMsg {
     TestConstructor {
         child_to_parent_receiver: IpcReceiver<ClientStorageRoutedMsg>,
         parent_to_child_sender: IpcSender<ClientStorageRoutedMsg>,
-        sender: IpcSender<u64>,
+        sender: IpcSender<ClientStorageActorId>,
     },
 
     Routed(ClientStorageRoutedMsg),

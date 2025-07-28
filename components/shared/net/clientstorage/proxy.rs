@@ -11,6 +11,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::debug;
 
+use super::actor_id::ClientStorageActorId;
 use super::actors_child::ClientStorageTestChild;
 use super::child::ClientStorageChild;
 use super::mixed_msg::ClientStorageMixedMsg;
@@ -24,7 +25,7 @@ pub struct ClientStorageProxy {
     msg_sender: Box<dyn ClientStorageProxySender>,
     sync_sender: Sender<ClientStorageRoutedMsg>,
     sync_receiver: Receiver<ClientStorageRoutedMsg>,
-    actors: RefCell<HashMap<u64, ClientStorageChild>>,
+    actors: RefCell<HashMap<ClientStorageActorId, ClientStorageChild>>,
 }
 
 impl ClientStorageProxy {
@@ -66,7 +67,7 @@ impl ClientStorageProxy {
                 sender,
             })
             .unwrap();
-        let global_id = receiver.recv().unwrap();
+        let actor_id = receiver.recv().unwrap();
 
         ROUTER.add_typed_route(
             parent_to_child_receiver,
@@ -81,7 +82,7 @@ impl ClientStorageProxy {
             }),
         );
 
-        actor.bind(Rc::clone(self), child_to_parent_sender, global_id);
+        actor.bind(Rc::clone(self), child_to_parent_sender, actor_id);
     }
 
     pub fn send_exit(self: &Rc<Self>) {
@@ -104,7 +105,7 @@ impl ClientStorageProxy {
         if let Some((actor, msg)) = {
             let actors = self.actors.borrow();
 
-            let actor = actors.get(&msg.global_id).unwrap();
+            let actor = actors.get(&msg.actor_id).unwrap();
 
             match (actor, msg.data) {
                 (
@@ -117,12 +118,16 @@ impl ClientStorageProxy {
         }
     }
 
-    pub fn register_actor(self: &Rc<Self>, global_id: u64, actor: ClientStorageChild) {
-        self.actors.borrow_mut().insert(global_id, actor);
+    pub fn register_actor(
+        self: &Rc<Self>,
+        actor_id: ClientStorageActorId,
+        actor: ClientStorageChild,
+    ) {
+        self.actors.borrow_mut().insert(actor_id, actor);
     }
 
-    pub fn unregister_actor(self: &Rc<Self>, global_id: u64) {
-        self.actors.borrow_mut().remove(&global_id);
+    pub fn unregister_actor(self: &Rc<Self>, actor_id: ClientStorageActorId) {
+        self.actors.borrow_mut().remove(&actor_id);
     }
 }
 

@@ -4,11 +4,12 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::actor_id::ClientStorageActorId;
 use super::mixed_msg::ClientStorageMixedMsg;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ClientStorageRoutedMsg {
-    pub global_id: u64,
+    pub actor_id: ClientStorageActorId,
     pub data: ClientStorageMixedMsg,
 }
 

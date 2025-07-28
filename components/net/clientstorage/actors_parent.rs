@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use ipc_channel::ipc::IpcSender;
 use log::debug;
+use net_traits::clientstorage::actor_id::ClientStorageActorId;
 use net_traits::clientstorage::mixed_msg::ClientStorageMixedMsg;
 use net_traits::clientstorage::routed_msg::ClientStorageRoutedMsg;
 use net_traits::clientstorage::test_msg::ClientStorageTestMsg;
@@ -17,7 +18,7 @@ use super::thread::ClientStorageThread;
 struct BoundState {
     thread: Rc<ClientStorageThread>,
     ipc_sender: IpcSender<ClientStorageRoutedMsg>,
-    global_id: u64,
+    actor_id: ClientStorageActorId,
 }
 
 pub struct ClientStorageTestParent {
@@ -36,17 +37,17 @@ impl ClientStorageTestParent {
         self: &Rc<Self>,
         thread: Rc<ClientStorageThread>,
         ipc_sender: IpcSender<ClientStorageRoutedMsg>,
-        global_id: u64,
+        actor_id: ClientStorageActorId,
     ) {
         thread.register_actor(
-            global_id,
+            actor_id,
             ClientStorageParent::ClientStorageTest(Rc::clone(self)),
         );
 
         self.bound_state.borrow_mut().replace(BoundState {
             thread,
             ipc_sender,
-            global_id,
+            actor_id,
         });
     }
 
@@ -67,7 +68,7 @@ impl ClientStorageTestParent {
             self.send_routed_message(
                 bound_state,
                 ClientStorageRoutedMsg {
-                    global_id: bound_state.global_id,
+                    actor_id: bound_state.actor_id,
                     data: msg,
                 },
             );
@@ -106,7 +107,7 @@ impl ClientStorageTestParent {
 
     fn recv_delete(self: &Rc<Self>) {
         if let Some(bound_state) = self.bound_state.borrow().as_ref() {
-            bound_state.thread.unregister_actor(bound_state.global_id);
+            bound_state.thread.unregister_actor(bound_state.actor_id);
         }
     }
 }
