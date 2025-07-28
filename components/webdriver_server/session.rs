@@ -21,6 +21,8 @@ pub enum PageLoadStrategy {
     Normal,
 }
 
+// Need a different implementation for ToString than Display
+#[allow(clippy::to_string_trait_impl)]
 impl ToString for PageLoadStrategy {
     fn to_string(&self) -> String {
         match self {

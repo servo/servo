@@ -557,7 +557,10 @@ impl Handler {
                 "Session already created",
             ));
         }
-        
+
+        // Step 2. Skip because the step is only applied to an intermediary node.
+        // Step 3. Skip since all sessions are http for now.
+
         // Step 4. Let capabilities be the result of trying to process capabilities
         let mut servo_capabilities = ServoCapabilities::new();
         let processed_capabilities = parameters.match_browser(&mut servo_capabilities)?;
@@ -587,6 +590,9 @@ impl Handler {
 
         // Step 7. Let response be a JSON Object initialized with session's session ID and capabilities
         let response = NewSessionResponse::new(session_id.to_string(), Value::Object(capabilities));
+
+        // Step 9. Set the request queue to a new queue.
+        // Skip here because the requests are handled in the external crate.
 
         // Step 10. Return success with data body
         Ok(WebDriverResponse::NewSession(response))
