@@ -209,7 +209,7 @@ pub(crate) struct GlobalScope {
         HashMapTracedValues<ServiceWorkerRegistrationId, Dom<ServiceWorkerRegistration>>,
     >,
 
-    /// <https://wicg.github.io/cookie-store/#dom-window-cookiestore>
+    /// <https://cookiestore.spec.whatwg.org/#globals>
     cookie_store: MutNullableDom<CookieStore>,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>

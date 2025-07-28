@@ -1067,7 +1067,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .or_init(|| Storage::new(self, StorageType::Local, CanGc::note()))
     }
 
-    // https://wicg.github.io/cookie-store/
+    // https://cookiestore.spec.whatwg.org/#Window
     fn CookieStore(&self) -> DomRoot<CookieStore> {
         self.global().cookie_store(CanGc::note())
     }
