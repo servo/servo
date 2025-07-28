@@ -15,7 +15,9 @@ use crate::canvas_data::{Filter, TextRun};
 // This defines required methods for a DrawTarget (currently only implemented for raqote).  The
 // prototypes are derived from the now-removed Azure backend's methods.
 pub(crate) trait GenericDrawTarget {
-    type SourceSurface;
+    /// surfaces are expected to have cheap clone,
+    /// likely by using ref counting or similar methods
+    type SourceSurface: Clone;
 
     fn new(size: Size2D<u32>) -> Self;
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
@@ -48,7 +50,7 @@ pub(crate) trait GenericDrawTarget {
         &mut self,
         path: &Path,
         fill_rule: FillRule,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     );
@@ -56,14 +58,14 @@ pub(crate) trait GenericDrawTarget {
         &mut self,
         text_runs: Vec<TextRun>,
         start: Point2D<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     );
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     );
@@ -74,7 +76,7 @@ pub(crate) trait GenericDrawTarget {
     fn stroke(
         &mut self,
         path: &Path,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         line_options: LineOptions,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
@@ -82,7 +84,7 @@ pub(crate) trait GenericDrawTarget {
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         line_options: LineOptions,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,

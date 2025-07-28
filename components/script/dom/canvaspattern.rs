@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
+use canvas_traits::canvas::{
+    Canvas2dMsg, CanvasId, CanvasMsg, FillOrStrokeStyle, RepetitionStyle, SurfaceId, SurfaceStyle,
+};
 use dom_struct::dom_struct;
 use euclid::default::{Size2D, Transform2D};
-use pixels::{IpcSnapshot, Snapshot};
+use ipc_channel::ipc::IpcSender;
+use pixels::IpcSnapshot;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasPatternMethods;
@@ -23,7 +26,9 @@ use crate::script_runtime::CanGc;
 pub(crate) struct CanvasPattern {
     reflector_: Reflector,
     #[no_trace]
-    surface_data: IpcSnapshot,
+    canvas_id: CanvasId,
+    #[no_trace]
+    surface_id: SurfaceId,
     #[no_trace]
     surface_size: Size2D<u32>,
     repeat_x: bool,
@@ -31,14 +36,18 @@ pub(crate) struct CanvasPattern {
     #[no_trace]
     transform: DomRefCell<Transform2D<f32>>,
     origin_clean: bool,
+    #[no_trace]
+    sender: IpcSender<CanvasMsg>,
 }
 
 impl CanvasPattern {
     fn new_inherited(
-        surface_data: Snapshot,
+        canvas_id: CanvasId,
+        surface_id: SurfaceId,
         surface_size: Size2D<u32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
+        sender: IpcSender<CanvasMsg>,
     ) -> CanvasPattern {
         let (x, y) = match repeat {
             RepetitionStyle::Repeat => (true, true),
@@ -49,28 +58,45 @@ impl CanvasPattern {
 
         CanvasPattern {
             reflector_: Reflector::new(),
-            surface_data: surface_data.as_ipc(),
+            canvas_id,
+            surface_id,
             surface_size,
             repeat_x: x,
             repeat_y: y,
             transform: DomRefCell::new(Transform2D::identity()),
             origin_clean,
+            sender,
         }
     }
+
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
-        surface_data: Snapshot,
-        surface_size: Size2D<u32>,
+        canvas_id: CanvasId,
+        surface_id: SurfaceId,
+        snapshot: IpcSnapshot,
         repeat: RepetitionStyle,
         origin_clean: bool,
+        sender: IpcSender<CanvasMsg>,
         can_gc: CanGc,
     ) -> DomRoot<CanvasPattern> {
+        let size = snapshot.size();
+
+        if let Err(e) = sender.send(CanvasMsg::Canvas2d(
+            Canvas2dMsg::CreateSurfacePattern(surface_id, snapshot),
+            canvas_id,
+        )) {
+            error!("Error sending CreateSurfacePattern: {e:?}");
+        }
+
         reflect_dom_object(
             Box::new(CanvasPattern::new_inherited(
-                surface_data,
-                surface_size,
+                canvas_id,
+                surface_id,
+                size,
                 repeat,
                 origin_clean,
+                sender,
             )),
             global,
             can_gc,
@@ -108,10 +134,22 @@ impl CanvasPatternMethods<crate::DomTypeHolder> for CanvasPattern {
     }
 }
 
+impl Drop for CanvasPattern {
+    // This is OK because we only access non JS managed fields
+    fn drop(&mut self) {
+        if let Err(e) = self.sender.send(CanvasMsg::Canvas2d(
+            Canvas2dMsg::DropSurfacePattern(self.surface_id),
+            self.canvas_id,
+        )) {
+            error!("Error sending DropSurfacePattern: {e:?}");
+        }
+    }
+}
+
 impl ToFillOrStrokeStyle for &CanvasPattern {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         FillOrStrokeStyle::Surface(SurfaceStyle::new(
-            self.surface_data.clone(),
+            self.surface_id,
             self.surface_size,
             self.repeat_x,
             self.repeat_y,

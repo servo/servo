@@ -283,6 +283,12 @@ impl CanvasPaintThread {
                 sender.send(()).unwrap();
             },
             Canvas2dMsg::PopClip => self.canvas(canvas_id).pop_clip(),
+            Canvas2dMsg::CreateSurfacePattern(surface_id, snapshot) => self
+                .canvas(canvas_id)
+                .create_surface_pattern(surface_id, snapshot),
+            Canvas2dMsg::DropSurfacePattern(surface_id) => {
+                self.canvas(canvas_id).drop_surface(surface_id)
+            },
         }
     }
 
@@ -691,6 +697,34 @@ impl Canvas {
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.recreate(size),
             _ => unreachable!(),
+        }
+    }
+
+    fn create_surface_pattern(
+        &mut self,
+        surface_id: SurfaceId,
+        snapshot: Snapshot<ipc::IpcSharedMemory>,
+    ) {
+        match self {
+            #[cfg(feature = "raqote")]
+            Canvas::Raqote(canvas_data) => canvas_data.create_surface_pattern(surface_id, snapshot),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.create_surface_pattern(surface_id, snapshot),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => {
+                canvas_data.create_surface_pattern(surface_id, snapshot)
+            },
+        }
+    }
+
+    fn drop_surface(&mut self, surface_id: SurfaceId) {
+        match self {
+            #[cfg(feature = "raqote")]
+            Canvas::Raqote(canvas_data) => canvas_data.drop_surface(surface_id),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.drop_surface(surface_id),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.drop_surface(surface_id),
         }
     }
 }

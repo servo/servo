@@ -10,7 +10,7 @@ use std::sync::Arc;
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending, Direction,
     FillOrStrokeStyle, FillRule, LineCapStyle, LineJoinStyle, LineOptions, LinearGradientStyle,
-    Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextAlign, TextBaseline,
+    Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, SurfaceId, TextAlign, TextBaseline,
     TextMetrics as CanvasTextMetrics, TextOptions,
 };
 use constellation_traits::ScriptToConstellationMessage;
@@ -218,6 +218,8 @@ pub(crate) struct CanvasState {
     /// <https://html.spec.whatwg.org/multipage/#current-default-path>
     #[no_trace]
     current_default_path: DomRefCell<Path>,
+    #[no_trace]
+    next_surface_id: Cell<SurfaceId>,
 }
 
 impl CanvasState {
@@ -256,7 +258,14 @@ impl CanvasState {
             image_key,
             origin,
             current_default_path: DomRefCell::new(Path::new()),
+            next_surface_id: Cell::new(SurfaceId(0)),
         })
+    }
+
+    fn next_surface_id(&self) -> SurfaceId {
+        let surface_id = self.next_surface_id.get();
+        self.next_surface_id.set(SurfaceId(surface_id.0 + 1));
+        surface_id
     }
 
     pub(crate) fn get_ipc_renderer(&self) -> &IpcSender<CanvasMsg> {
@@ -1309,13 +1318,14 @@ impl CanvasState {
         }
 
         if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
-            let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
-                snapshot,
-                size.cast(),
+                self.canvas_id,
+                self.next_surface_id(),
+                snapshot.as_ipc(),
                 rep,
                 self.is_origin_clean(image),
+                self.get_ipc_renderer().clone(),
                 can_gc,
             )))
         } else {

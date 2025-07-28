@@ -198,7 +198,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         &mut self,
         path: &Path,
         fill_rule: FillRule,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
@@ -216,7 +216,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         &mut self,
         text_runs: Vec<TextRun>,
         start: Point2D<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
@@ -274,7 +274,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
@@ -321,7 +321,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     fn stroke(
         &mut self,
         path: &Path,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         line_options: LineOptions,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
@@ -338,7 +338,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         line_options: LineOptions,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
@@ -406,7 +406,7 @@ fn snapshot_as_pixmap(data: Snapshot) -> Arc<vello_cpu::Pixmap> {
     ))
 }
 
-impl Convert<vello_cpu::PaintType> for FillOrStrokeStyle {
+impl Convert<vello_cpu::PaintType> for FillOrStrokeStyle<Arc<vello_cpu::Pixmap>> {
     fn convert(self) -> vello_cpu::PaintType {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
         match self {
@@ -430,7 +430,21 @@ impl Convert<vello_cpu::PaintType> for FillOrStrokeStyle {
                 gradient.stops = style.stops.convert();
                 vello_cpu::PaintType::Gradient(gradient)
             },
-            Surface(surface_style) => {
+            Surface(surface_style) => vello_cpu::PaintType::Image(vello_cpu::Image {
+                source: vello_cpu::ImageSource::Pixmap(surface_style.surface_data),
+                x_extend: if surface_style.repeat_x {
+                    peniko::Extend::Repeat
+                } else {
+                    peniko::Extend::Pad
+                },
+                y_extend: if surface_style.repeat_y {
+                    peniko::Extend::Repeat
+                } else {
+                    peniko::Extend::Pad
+                },
+                quality: peniko::ImageQuality::Low,
+            }),
+            InPlaceSurface(surface_style) => {
                 let pixmap = snapshot_as_pixmap(surface_style.surface_data.to_owned());
                 vello_cpu::PaintType::Image(vello_cpu::Image {
                     source: vello_cpu::ImageSource::Pixmap(pixmap),
