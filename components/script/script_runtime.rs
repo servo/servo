@@ -256,7 +256,7 @@ unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> 
     let mut result = std::ptr::null();
     wrap_panic(&mut || {
         let mut interrupt_queues = Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
-        let mut new_queue = Rc::new(MicrotaskQueue::default());
+        let new_queue = Rc::new(MicrotaskQueue::default());
         result = Rc::as_ptr(&new_queue) as *const c_void;
         interrupt_queues.push(new_queue.clone());
         std::mem::forget(interrupt_queues);
@@ -269,7 +269,7 @@ unsafe extern "C" fn pop_interrupt_queue(interrupt_queues: *mut c_void) -> *cons
     let mut result = std::ptr::null();
     wrap_panic(&mut || {
         let mut interrupt_queues = Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
-        let mut popped_queue: Rc<MicrotaskQueue> =
+        let popped_queue: Rc<MicrotaskQueue> =
             interrupt_queues.pop().expect("Guaranteed by SpiderMonkey?");
         // Dangling, but jsglue.cpp will only use this for pointer comparison.
         result = Rc::as_ptr(&popped_queue) as *const c_void;
@@ -624,7 +624,7 @@ impl Runtime {
         // Extra queues for debugger scripts (“interrupts”) via AutoDebuggerJobQueueInterruption and saveJobQueue().
         // Moved indefinitely to mozjs via CreateJobQueue(), borrowed from mozjs via JobQueueTraps, and moved back from
         // mozjs for dropping via DeleteJobQueue().
-        let mut interrupt_queues: Box<Vec<Rc<MicrotaskQueue>>> = Box::new(vec![]);
+        let interrupt_queues: Box<Vec<Rc<MicrotaskQueue>>> = Box::default();
 
         let job_queue = CreateJobQueue(
             &JOB_QUEUE_TRAPS,
