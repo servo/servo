@@ -5,16 +5,16 @@
 use std::default::Default;
 use std::iter;
 
-use webrender_api::units::DeviceIntRect;
-use ipc_channel::ipc;
 use dom_struct::dom_struct;
+use embedder_traits::{EmbedderMsg, FormControl as EmbedderFormControl};
+use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
+use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, local_name};
+use ipc_channel::ipc;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
-use embedder_traits::{SelectElementOptionOrOptgroup, SelectElementOption};
-use euclid::{Size2D, Point2D, Rect};
-use embedder_traits::{FormControl as EmbedderFormControl, EmbedderMsg};
+use webrender_api::units::DeviceIntRect;
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};

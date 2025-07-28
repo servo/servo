@@ -24,6 +24,53 @@
 
 const batchNormTests = [
   {
+    'name': 'batchNormalization float32 1D tensor options.axis=0',
+    'graph': {
+      'inputs': {
+        'bnInput': {
+          'data': [
+            -41.30733108520508,  64.08863830566406, -63.376670837402344,
+            -46.790367126464844, 83.02227020263672, -80.08049011230469
+          ],
+          'descriptor': {shape: [6], dataType: 'float32'}
+        },
+        'bnMean': {
+          'data': [
+            -7.814267635345459, -95.64129638671875, 38.15440368652344,
+            -55.95203399658203, -87.86500549316406, -41.63645553588867
+          ],
+          'descriptor': {shape: [6], dataType: 'float32'},
+          'constant': true
+        },
+        'bnVariance': {
+          'data': [
+            60.31186294555664,  26.43260383605957, 53.275634765625,
+            40.146121978759766, 59.41098403930664, 35.99981689453125
+          ],
+          'descriptor': {shape: [6], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'batchNormalization',
+        'arguments': [
+          {'input': 'bnInput'}, {'mean': 'bnMean'}, {'variance': 'bnVariance'},
+          {'options': {'axis': 0}}
+        ],
+        'outputs': 'bnOutput'
+      }],
+      'expectedOutputs': {
+        'bnOutput': {
+          'data': [
+            -4.312741756439209, 31.068212509155273, -13.910240173339844,
+            1.4459478855133057, 22.170541763305664, -6.407354354858398
+          ],
+          'descriptor': {shape: [6], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name':
         'batchNormalization float32 2D tensor (mean and variance are non-constant) default options',
     'graph': {
@@ -701,6 +748,41 @@ const batchNormTests = [
 
   // float16 tests
   {
+    'name': 'batchNormalization float16 1D tensor options.axis=0',
+    'graph': {
+      'inputs': {
+        'bnInput': {
+          'data': [-41.3125, 64.0625, -63.375, -46.78125, 83, -80.0625],
+          'descriptor': {shape: [6], dataType: 'float16'}
+        },
+        'bnMean': {
+          'data': [-7.8125, -95.625, 38.15625, -55.9375, -87.875, -41.625],
+          'descriptor': {shape: [6], dataType: 'float16'},
+          'constant': true
+        },
+        'bnVariance': {
+          'data': [60.3125, 26.4375, 53.28125, 40.15625, 59.40625, 36],
+          'descriptor': {shape: [6], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'batchNormalization',
+        'arguments': [
+          {'input': 'bnInput'}, {'mean': 'bnMean'}, {'variance': 'bnVariance'},
+          {'options': {'axis': 0}}
+        ],
+        'outputs': 'bnOutput'
+      }],
+      'expectedOutputs': {
+        'bnOutput': {
+          'data': [-4.3125, 31.0625, -13.90625, 1.4453125, 22.171875, -6.40625],
+          'descriptor': {shape: [6], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
     'name':
         'batchNormalization float16 2D tensor (mean and variance are non-constant) default options',
     'graph': {
@@ -1285,7 +1367,7 @@ const batchNormTests = [
 ];
 
 if (navigator.ml) {
-  batchNormTests.forEach((test) => {
+  batchNormTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

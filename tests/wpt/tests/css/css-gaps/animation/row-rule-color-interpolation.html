@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+  <title>row-rule-color interpolation</title>
+  <link rel="author" title="Javier Contreras" href="mailto:javiercon@chromium.org">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-color">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/interpolation-testcommon.js"></script>
+<style>
+.parent {
+  row-rule-color: blue;
+}
+
+.target {
+  display: flex;
+  width: 20px;
+  row-gap: 10px
+  height: 100px;
+  background-color: black;
+  color: orange;
+  row-rule-style: solid;
+  row-rule-width: 10px;
+  row-rule-color: yellow;
+}
+</style>
+<body>
+<script>
+test_interpolation({
+  property: 'row-rule-color',
+  from: neutralKeyframe,
+  to: 'lime',
+}, [
+  {at: -5, expect: 'rgb(255, 255, 0)'},
+  {at: -0.4, expect: 'rgb(255, 255, 0)'},
+  {at: 0, expect: 'rgb(255, 255, 0)'},
+  {at: 0.2, expect: 'rgb(204, 255, 0)'},
+  {at: 0.6, expect: 'rgb(102, 255, 0)'},
+  {at: 1, expect: 'rgb(0, 255, 0)'},
+  {at: 1.5, expect: 'rgb(0, 255, 0)'},
+]);
+
+test_interpolation({
+  property: 'row-rule-color',
+  from: 'initial',
+  to: 'lime',
+}, [
+  {at: -5, expect: 'rgb(255, 0, 0)'},
+  {at: -0.4, expect: 'rgb(255, 129, 0)'},
+  {at: 0, expect: 'rgb(255, 165, 0)'},
+  {at: 0.2, expect: 'rgb(204, 183, 0)'},
+  {at: 0.6, expect: 'rgb(102, 219, 0)'},
+  {at: 1, expect: 'rgb(0, 255, 0)'},
+  {at: 1.5, expect: 'rgb(0, 255, 0)'},
+]);
+
+test_interpolation({
+  property: 'row-rule-color',
+  from: 'inherit',
+  to: 'lime',
+}, [
+  {at: -5, expect: 'rgb(0, 0, 255)'},
+  {at: -0.4, expect: 'rgb(0, 0, 255)'},
+  {at: 0, expect: 'rgb(0, 0, 255)'},
+  {at: 0.2, expect: 'rgb(0, 51, 204)'},
+  {at: 0.6, expect: 'rgb(0, 153, 102)'},
+  {at: 1, expect: 'rgb(0, 255, 0)'},
+  {at: 1.5, expect: 'rgb(0, 255, 0)'},
+]);
+
+test_interpolation({
+  property: 'row-rule-color',
+  from: 'unset',
+  to: 'lime',
+}, [
+  {at: -5, expect: 'rgb(255, 0, 0)'},
+  {at: -0.4, expect: 'rgb(255, 129, 0)'},
+  {at: 0, expect: 'rgb(255, 165, 0)'},
+  {at: 0.2, expect: 'rgb(204, 183, 0)'},
+  {at: 0.6, expect: 'rgb(102, 219, 0)'},
+  {at: 1, expect: 'rgb(0, 255, 0)'},
+  {at: 1.5, expect: 'rgb(0, 255, 0)'},
+]);
+
+test_interpolation({
+  property: 'row-rule-color',
+  from: 'orange',
+  to: 'blue'
+}, [
+  {at: -5, expect: '#ffff00'},
+  {at: -0.4, expect: '#ffe700'},
+  {at: 0, expect: 'orange'}, // ffa500
+  {at: 0.2, expect: '#cc8433'},
+  {at: 0.6, expect: '#664299'},
+  {at: 1, expect: 'blue'}, // 0000ff
+  {at: 1.5, expect: 'blue'}
+]);
+
+// Lists can only be interpolated if they have the same length.
+test_no_interpolation({
+  property: 'row-rule-color',
+  from: neutralKeyframe,
+  to: 'red blue blue',
+});
+test_no_interpolation({
+  property: 'row-rule-color',
+  from: 'red blue green',
+  to: 'red',
+});
+</script>
+</body>

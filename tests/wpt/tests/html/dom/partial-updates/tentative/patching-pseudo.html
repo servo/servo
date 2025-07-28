@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - :patching pseudo-class</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder">
+
+</div>
+<script>
+</script>
+
+<script>
+promise_test(async t => {
+    const popup = window.open();
+    t.add_cleanup(() => popup.close());
+    const doc = popup.document;
+    doc.write("<div id=placeholder></div>");
+    const placeholder = doc.getElementById("placeholder");
+    assert_false(placeholder.matches(":patching"), ":patching shouldn't match at start");
+    doc.write("<template id=mypatch patchfor=placeholder><p>content</p>");
+    assert_true(placeholder.matches(":patching"), ":patching should match while actively patching");
+    doc.write("</template>");
+    assert_false(placeholder.matches(":patching"), ":patching shouldn't match when patching is complete");
+}, "patching pseudo-class");
+
+promise_test(async t => {
+    const popup = window.open();
+    t.add_cleanup(() => popup.close());
+    const doc = popup.document;
+    doc.write(`
+        <style>
+            #placeholder { color: rgb(100, 0, 0); }
+            #placeholder:patching { color: rgb(0, 0, 100); }
+        </style>
+    `);
+    doc.write("<div id=placeholder></div>");
+    const placeholder = doc.getElementById("placeholder");
+    await new Promise(resolve => popup.requestAnimationFrame(resolve));
+    assert_equals(popup.getComputedStyle(placeholder).color, "rgb(100, 0, 0)");
+    doc.write("<template patchfor=placeholder>");
+    await new Promise(resolve => popup.requestAnimationFrame(resolve));
+    assert_equals(popup.getComputedStyle(placeholder).color, "rgb(0, 0, 100)");
+    doc.write("</template>");
+    await new Promise(resolve => popup.requestAnimationFrame(resolve));
+    assert_equals(popup.getComputedStyle(placeholder).color, "rgb(100, 0, 0)");
+}, "patching state change should invalidate style");
+
+</script>

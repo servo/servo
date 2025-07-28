@@ -1241,7 +1241,7 @@ const preluTests = [
 ];
 
 if (navigator.ml) {
-  preluTests.forEach((test) => {
+  preluTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

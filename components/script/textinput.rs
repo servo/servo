@@ -902,7 +902,6 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::RedrawSelection
             })
             .shortcut(CMD_OR_CONTROL, 'X', || {
-                // FIXME: this is unreachable because ClipboardEvent is fired instead of keydown
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_text(text);
                     self.delete_char(Direction::Backward);
@@ -910,6 +909,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::DispatchInput
             })
             .shortcut(CMD_OR_CONTROL, 'C', || {
+                // TODO(stevennovaryo): we should not provide text to clipboard for type=password
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_text(text);
                 }

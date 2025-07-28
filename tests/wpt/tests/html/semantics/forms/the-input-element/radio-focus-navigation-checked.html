@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Focus Navigation for the radio group</title>
+<link rel="author" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://issues.chromium.org/issues/421837104">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/focus-utils.js"></script>
+
+<input type="text" id="start">
+<form>
+  <input type="radio" name="radio" id="a">
+  <input type="radio" name="radio" id="b">
+</form>
+<input type="text" id="end">
+
+<script>
+const c = document.createElement('input');
+c.type = 'radio';
+c.name = 'radio';
+c.checked = true;
+
+promise_test(async () => {
+  start.focus();
+  assert_equals(document.activeElement, start);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, a);
+  // Append checked radio element.
+  document.querySelector('form').appendChild(c);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, c);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, end);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, c);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, start);
+}, 'Focus the new checked radio in the focused radio group.');
+
+promise_test(async () => {
+  assert_true(c.checked);
+  a.focus();
+  assert_equals(document.activeElement, a);
+}, 'Focusable radio can be focused even with a checked radio in the group.');
+
+promise_test(async () => {
+  start.focus();
+  assert_equals(document.activeElement, start);
+  assert_true(c.checked);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, c);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, end);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, c);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, start);
+}, 'Focus the checked radio in the group.');
+
+promise_test(async () => {
+  a.focus();
+  assert_equals(document.activeElement, a);
+  // Set as the checked radio.
+  b.checked = true;
+  assert_false(c.checked);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, b);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, end);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, b);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, start);
+}, 'Focus the checked radio in the focused radio group.');
+
+promise_test(async () => {
+  b.checked = false;
+  start.focus();
+  await navigateFocusForward();
+  assert_equals(document.activeElement, a);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, end);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, a);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, start);
+}, 'When `checked` is false on a radio element, focus navigation target the radio group first element.');
+</script>

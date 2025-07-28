@@ -62,6 +62,8 @@ webgpu = [
     "constellation/webgpu",
     "constellation_traits/webgpu",
 ]
+vello = ["constellation/vello"]
+vello_cpu = ["constellation/vello_cpu"]
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }

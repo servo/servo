@@ -346,7 +346,7 @@ impl HTMLSlotElement {
 
     /// <https://dom.spec.whatwg.org/#signal-a-slot-change>
     pub(crate) fn signal_a_slot_change(&self) {
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
 
         if self.is_in_agents_signal_slots.get() {
             return;

@@ -267,11 +267,17 @@ impl CompletedLoad {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct VectorImageData {
     #[conditional_malloc_size_of]
     svg_tree: Arc<usvg::Tree>,
     cors_status: CorsStatus,
+}
+
+impl std::fmt::Debug for VectorImageData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VectorImageData").finish()
+    }
 }
 
 enum DecodedImage {

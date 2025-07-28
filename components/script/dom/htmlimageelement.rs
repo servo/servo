@@ -162,6 +162,9 @@ pub(crate) struct HTMLImageElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
     source_set: DomRefCell<SourceSet>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-img-dimension-attribute-source>
+    /// Always non-null after construction.
+    dimension_attribute_source: MutNullableDom<Element>,
     last_selected_source: DomRefCell<Option<USVString>>,
     #[ignore_malloc_size_of = "promises are hard"]
     image_decode_promises: DomRefCell<Vec<Rc<Promise>>>,
@@ -737,9 +740,20 @@ impl HTMLImageElement {
             }
 
             // Step 4.9
-            self.normalise_source_densities(&mut source_set, width);
+            if element
+                .get_attribute(&ns!(), &local_name!("width"))
+                .is_some() ||
+                element
+                    .get_attribute(&ns!(), &local_name!("height"))
+                    .is_some()
+            {
+                self.dimension_attribute_source.set(Some(element));
+            }
 
             // Step 4.10
+            self.normalise_source_densities(&mut source_set, width);
+
+            // Step 4.11
             *self.source_set.borrow_mut() = source_set;
             return;
         }
@@ -1348,6 +1362,7 @@ impl HTMLImageElement {
             form_owner: Default::default(),
             generation: Default::default(),
             source_set: DomRefCell::new(SourceSet::new()),
+            dimension_attribute_source: Default::default(),
             last_selected_source: DomRefCell::new(None),
             image_decode_promises: DomRefCell::new(vec![]),
             line_number: creator.return_line_number(),
@@ -1363,14 +1378,18 @@ impl HTMLImageElement {
         creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLImageElement> {
-        Node::reflect_node_with_proto(
+        let image_element = Node::reflect_node_with_proto(
             Box::new(HTMLImageElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,
             proto,
             can_gc,
-        )
+        );
+        image_element
+            .dimension_attribute_source
+            .set(Some(image_element.upcast()));
+        image_element
     }
 
     pub(crate) fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
@@ -1487,6 +1506,16 @@ impl<'dom> LayoutDom<'dom, HTMLImageElement> {
     fn current_request(self) -> &'dom ImageRequest {
         unsafe { self.unsafe_get().current_request.borrow_for_layout() }
     }
+
+    #[allow(unsafe_code)]
+    fn dimension_attribute_source(self) -> LayoutDom<'dom, Element> {
+        unsafe {
+            self.unsafe_get()
+                .dimension_attribute_source
+                .get_inner_as_layout()
+                .expect("dimension attribute source should be always non-null")
+        }
+    }
 }
 
 impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
@@ -1504,18 +1533,16 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {
-        self.upcast::<Element>()
+        self.dimension_attribute_source()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
-            .map(AttrValue::as_dimension)
-            .cloned()
+            .map(|x| *AttrValue::from_dimension(x.to_string()).as_dimension())
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
     fn get_height(self) -> LengthOrPercentageOrAuto {
-        self.upcast::<Element>()
+        self.dimension_attribute_source()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
-            .map(AttrValue::as_dimension)
-            .cloned()
+            .map(|x| *AttrValue::from_dimension(x.to_string()).as_dimension())
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }

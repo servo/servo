@@ -9,16 +9,24 @@ use euclid::Angle;
 use euclid::approxeq::ApproxEq;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::IpcSender;
-use kurbo::{Affine, BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
+use kurbo::{BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
+use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::IpcSnapshot;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::servo_arc::Arc as ServoArc;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Path(pub BezPath);
+
+impl MallocSizeOf for Path {
+    fn size_of(&self, _ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        std::mem::size_of_val(self.0.elements())
+    }
+}
 
 pub struct IndexSizeError;
 
@@ -32,7 +40,7 @@ impl Path {
     }
 
     pub fn transform(&mut self, transform: Transform2D<f64>) {
-        self.0.apply_affine(Affine::new(transform.to_array()));
+        self.0.apply_affine(transform.into());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ensure-there-is-a-subpath>
@@ -146,7 +154,7 @@ impl Path {
         self.ensure_there_is_a_subpath(x1, y1);
 
         // Step 3. If either radius is negative, then throw an "IndexSizeError" DOMException.
-        if radius.is_sign_negative() {
+        if radius < 0.0 {
             return Err(IndexSizeError);
         }
 
@@ -166,7 +174,7 @@ impl Path {
         // all lie on a single straight line, then add the point (x1, y1) to the subpath,
         // and connect that point to the previous point (x0, y0) by a straight line.
         let direction = Triangle::from_coords((x0, y0), (x1, y1), (x2, y2)).area();
-        if direction == 0.0 {
+        if direction.approx_eq(&0.0) {
             self.0.line_to((x1, y1));
             return Ok(());
         }
@@ -209,25 +217,13 @@ impl Path {
         let angle_start = (tp1.y - cy).atan2(tp1.x - cx);
         let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
 
-        self.0.line_to((tp1.x, tp2.x));
+        self.0.line_to((tp1.x, tp1.y));
 
         self.arc(cx, cy, radius, angle_start, angle_end, anticlockwise)
     }
 
     pub fn last_point(&mut self) -> Option<Point> {
-        // https://github.com/linebender/kurbo/pull/462
-        match self.0.elements().last()? {
-            PathEl::ClosePath => self
-                .0
-                .elements()
-                .iter()
-                .rev()
-                .skip(1)
-                .take_while(|el| !matches!(el, PathEl::ClosePath))
-                .last()
-                .and_then(|el| el.end_point()),
-            other => other.end_point(),
-        }
+        self.0.current_position()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -280,7 +276,7 @@ impl Path {
         }
 
         // Step 2. If either radiusX or radiusY are negative, then throw an "IndexSizeError" DOMException.
-        if radius_x.is_sign_negative() || radius_y.is_sign_negative() {
+        if radius_x < 0.0 || radius_y < 0.0 {
             return Err(IndexSizeError);
         }
 
@@ -392,11 +388,7 @@ impl Path {
     }
 
     pub fn bounding_box(&self) -> Rect<f64> {
-        let rect = self.0.control_box();
-        Rect::new(
-            Point2D::new(rect.origin().x, rect.origin().y),
-            Size2D::new(rect.width(), rect.height()),
-        )
+        self.0.control_box().into()
     }
 }
 
@@ -409,67 +401,136 @@ pub enum FillRule {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct CompositionOptions {
+    pub alpha: f64,
+    pub composition_operation: CompositionOrBlending,
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ShadowOptions {
+    pub offset_x: f64,
+    pub offset_y: f64,
+    pub blur: f64,
+    pub color: AbsoluteColor,
+}
+
+impl ShadowOptions {
+    /// <https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn>
+    pub fn need_to_draw_shadow(&self) -> bool {
+        // Shadows are only drawn if the opacity component of the alpha component of the shadow color is nonzero
+        self.color.alpha != 0.0 &&
+        // and either the shadowBlur is nonzero, or the shadowOffsetX is nonzero, or the shadowOffsetY is nonzero.
+            (self.offset_x != 0.0 ||
+                self.offset_y != 0.0 ||
+                self.blur != 0.0)
+    }
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct LineOptions {
+    pub width: f64,
+    pub cap_style: LineCapStyle,
+    pub join_style: LineJoinStyle,
+    pub miter_limit: f64,
+    pub dash: Vec<f32>,
+    pub dash_offset: f64,
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct TextOptions {
+    #[ignore_malloc_size_of = "Arc"]
+    pub font: Option<ServoArc<FontStyleStruct>>,
+    pub align: TextAlign,
+    pub baseline: TextBaseline,
+}
+
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    FromScript(FromScriptMsg, CanvasId),
     Recreate(Option<Size2D<u64>>, CanvasId),
     Close(CanvasId),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Canvas2dMsg {
-    Arc(Point2D<f32>, f32, f32, f32, bool),
-    ArcTo(Point2D<f32>, Point2D<f32>, f32),
-    DrawImage(IpcSnapshot, Rect<f64>, Rect<f64>, bool),
-    DrawEmptyImage(Size2D<u32>, Rect<f64>, Rect<f64>),
-    DrawImageInOther(CanvasId, Size2D<u32>, Rect<f64>, Rect<f64>, bool),
-    BeginPath,
-    BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
-    ClearRect(Rect<f32>),
-    Clip,
-    ClipPath(Path),
-    ClosePath,
-    Ellipse(Point2D<f32>, f32, f32, f32, f32, f32, bool),
-    Fill(FillOrStrokeStyle),
-    FillPath(FillOrStrokeStyle, Path),
-    FillText(String, f64, f64, Option<f64>, FillOrStrokeStyle, bool),
-    FillRect(Rect<f32>, FillOrStrokeStyle),
-    GetImageData(Rect<u32>, Size2D<u32>, IpcSender<IpcSnapshot>),
-    IsPointInCurrentPath(f64, f64, FillRule, IpcSender<bool>),
-    LineTo(Point2D<f32>),
-    MoveTo(Point2D<f32>),
-    MeasureText(String, IpcSender<TextMetrics>),
+    DrawImage(
+        IpcSnapshot,
+        Rect<f64>,
+        Rect<f64>,
+        bool,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
+    DrawEmptyImage(
+        Size2D<u32>,
+        Rect<f64>,
+        Rect<f64>,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
+    DrawImageInOther(
+        CanvasId,
+        Rect<f64>,
+        Rect<f64>,
+        bool,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
+    ClearRect(Rect<f32>, Transform2D<f32>),
+    ClipPath(Path, FillRule, Transform2D<f32>),
+    PopClip,
+    FillPath(
+        FillOrStrokeStyle,
+        Path,
+        FillRule,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
+    FillText(
+        String,
+        f64,
+        f64,
+        Option<f64>,
+        FillOrStrokeStyle,
+        bool,
+        TextOptions,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
+    FillRect(
+        Rect<f32>,
+        FillOrStrokeStyle,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
+    GetImageData(Option<Rect<u32>>, IpcSender<IpcSnapshot>),
+    MeasureText(String, IpcSender<TextMetrics>, TextOptions),
     PutImageData(Rect<u32>, IpcSnapshot),
-    QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
-    Rect(Rect<f32>),
-    RestoreContext,
-    SaveContext,
-    StrokeRect(Rect<f32>, FillOrStrokeStyle),
-    Stroke(FillOrStrokeStyle),
-    StrokePath(FillOrStrokeStyle, Path),
-    SetLineWidth(f32),
-    SetLineCap(LineCapStyle),
-    SetLineJoin(LineJoinStyle),
-    SetMiterLimit(f32),
-    SetLineDash(Vec<f32>),
-    SetLineDashOffset(f32),
-    SetGlobalAlpha(f32),
-    SetGlobalComposition(CompositionOrBlending),
-    SetTransform(Transform2D<f32>),
-    SetShadowOffsetX(f64),
-    SetShadowOffsetY(f64),
-    SetShadowBlur(f64),
-    SetShadowColor(AbsoluteColor),
-    SetFont(FontStyleStruct),
-    SetTextAlign(TextAlign),
-    SetTextBaseline(TextBaseline),
+    StrokeRect(
+        Rect<f32>,
+        FillOrStrokeStyle,
+        LineOptions,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
+    StrokePath(
+        Path,
+        FillOrStrokeStyle,
+        LineOptions,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f32>,
+    ),
     UpdateImage(IpcSender<()>),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum FromScriptMsg {
-    SendPixels(IpcSender<IpcSnapshot>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -571,6 +632,48 @@ pub enum FillOrStrokeStyle {
     LinearGradient(LinearGradientStyle),
     RadialGradient(RadialGradientStyle),
     Surface(SurfaceStyle),
+}
+
+impl FillOrStrokeStyle {
+    pub fn is_zero_size_gradient(&self) -> bool {
+        match self {
+            Self::RadialGradient(pattern) => {
+                let centers_equal = (pattern.x0, pattern.y0) == (pattern.x1, pattern.y1);
+                let radii_equal = pattern.r0 == pattern.r1;
+                (centers_equal && radii_equal) || pattern.stops.is_empty()
+            },
+            Self::LinearGradient(pattern) => {
+                (pattern.x0, pattern.y0) == (pattern.x1, pattern.y1) || pattern.stops.is_empty()
+            },
+            Self::Color(..) | Self::Surface(..) => false,
+        }
+    }
+
+    pub fn x_bound(&self) -> Option<u32> {
+        match self {
+            Self::Surface(pattern) => {
+                if pattern.repeat_x {
+                    None
+                } else {
+                    Some(pattern.surface_size.width)
+                }
+            },
+            Self::Color(..) | Self::LinearGradient(..) | Self::RadialGradient(..) => None,
+        }
+    }
+
+    pub fn y_bound(&self) -> Option<u32> {
+        match self {
+            Self::Surface(pattern) => {
+                if pattern.repeat_y {
+                    None
+                } else {
+                    Some(pattern.surface_size.height)
+                }
+            },
+            Self::Color(..) | Self::LinearGradient(..) | Self::RadialGradient(..) => None,
+        }
+    }
 }
 
 #[derive(

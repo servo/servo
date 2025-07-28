@@ -518,7 +518,7 @@ const resample2dTests = [
 ];
 
 if (navigator.ml) {
-  resample2dTests.forEach((test) => {
+  resample2dTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

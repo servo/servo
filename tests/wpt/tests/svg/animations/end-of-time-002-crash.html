@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
+<html class="test-wait">
 <title>Seeking the time container to a large value does not cause a crash (or hang)</title>
 <svg>
   <rect height="100" width="100" fill="blue">
@@ -11,5 +11,5 @@
   let svg = document.querySelector("svg");
   svg.setCurrentTime(9000000000000000);
   let html = document.documentElement;
-  html.addEventListener("TestRendered", () => html.classList.remove("reftest-wait"));
+  html.addEventListener("TestRendered", () => html.classList.remove("test-wait"));
 </script>

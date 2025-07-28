@@ -510,7 +510,7 @@ const logTests = [
 ];
 
 if (navigator.ml) {
-  logTests.forEach((test) => {
+  logTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getLogPrecisionTolerance, test);
   });

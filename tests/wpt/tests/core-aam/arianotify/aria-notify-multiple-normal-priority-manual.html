@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ARIA Notify API Test: Multiple Normal Priority Messages</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2577">
+  <link rel="author" title="Jacques Newman" href="mailto:janewman@microsoft.com">
+  <script src="core-aam/arianotify/resources/aria-notify-helpers.js"></script>
+</head>
+<body>
+  <h1>ARIA Notify API Test: Multiple Normal Priority Messages</h1>
+  <p>This test checks the behavior of the <code>ariaNotify</code> API with multiple consecutive normal priority
+    messages.</p>
+
+  <h2>Setup Instructions</h2>
+  <p><strong>Setup:</strong> Use a screen reader (NVDA, JAWS, VoiceOver, etc.) or other assistive technology that
+    supports the ARIA Notify API.</p>
+  <p><strong>Instructions:</strong> Click the "Run Test" button and listen for the announced text from your screen reader.</p>
+
+  <div>
+    <h3>Test: Multiple Consecutive Normal Priority Messages</h3>
+    <p>A "Loading..." message followed by a "Loading failed." message, both at normal priority and fired against the
+      document.</p>
+    <p><strong>Expected:</strong> Screen reader should announce "Loading..." followed by "Loading failed." in sequence,
+      both at normal priority without interruption.</p>
+
+    <button onclick="test()">Run Test</button>
+    <div id="status"></div>
+
+    <script>
+      function test() {
+        // Fire the first message
+        let status = tryCallAriaNotify(document, 'Loading...', { priority: 'normal' });
+        // Fire the second message
+        status += ' ' + tryCallAriaNotify(document, 'Loading failed.', { priority: 'normal' });
+        document.getElementById('status').textContent = status;
+      }
+    </script>
+  </div>
+</body>
+
+</html>

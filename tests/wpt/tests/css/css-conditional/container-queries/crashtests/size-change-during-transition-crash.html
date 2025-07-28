@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
+<html class="test-wait">
 <meta charset="utf-8">
 <title>Container Queries - Size change during transitions crash</title>
-<script src="/common/reftest-wait.js"></script>
 <link rel="help" href="https://crbug.com/1451359">
 <style>
   #outer {
@@ -32,7 +31,7 @@
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       outer.style.width = "300px";
-      takeScreenshot();
+      document.documentElement.removeAttribute("class");
     });
   });
 </script>

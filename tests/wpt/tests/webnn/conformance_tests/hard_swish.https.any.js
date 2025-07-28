@@ -646,7 +646,7 @@ const hardSwishTests = [
 ];
 
 if (navigator.ml) {
-  hardSwishTests.forEach((test) => {
+  hardSwishTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

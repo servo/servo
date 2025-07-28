@@ -1915,7 +1915,7 @@ const lstmTests = [
 ];
 
 if (navigator.ml) {
-  lstmTests.forEach((test) => {
+  lstmTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getLstmPrecisionTolerance, test);
   });

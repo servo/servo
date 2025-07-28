@@ -56,7 +56,7 @@ use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
-use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
+use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation, parse_csp_list_from_metadata};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
@@ -860,21 +860,14 @@ impl ParserContext {
         let Some(policy_container) = policy_container else {
             return;
         };
-        let Some(parent_csp_list) = &policy_container.csp_list else {
-            return;
-        };
         let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
             return;
         };
-        let new_csp_list = match parser.document.get_csp_list() {
-            None => parent_csp_list.clone(),
-            Some(original_csp_list) => {
-                let mut appended_csp_list = original_csp_list.clone();
-                appended_csp_list.append(parent_csp_list.clone());
-                appended_csp_list.to_owned()
-            },
-        };
-        parser.document.set_csp_list(Some(new_csp_list));
+        let new_csp_list = parser
+            .document
+            .get_csp_list()
+            .concatenate(policy_container.csp_list.clone());
+        parser.document.set_csp_list(new_csp_list);
     }
 }
 
@@ -932,7 +925,6 @@ impl FetchResponseListener for ParserContext {
 
         let _realm = enter_realm(&*parser.document);
 
-        parser.document.set_csp_list(csp_list);
         if let Some(endpoints) = endpoints_list {
             parser.document.window().set_endpoints_list(endpoints);
         }
@@ -1008,12 +1000,14 @@ impl FetchResponseListener for ParserContext {
                     parser.parse_sync(CanGc::note());
                 },
                 Some(_) => {},
-                None => {},
+                None => parser.document.set_csp_list(csp_list),
             },
             (mime::TEXT, mime::XML, _) |
             (mime::APPLICATION, mime::XML, _) |
-            (mime::APPLICATION, mime::JSON, _) => {},
-            (mime::APPLICATION, subtype, Some(mime::XML)) if subtype == "xhtml" => {},
+            (mime::APPLICATION, mime::JSON, _) => parser.document.set_csp_list(csp_list),
+            (mime::APPLICATION, subtype, Some(mime::XML)) if subtype == "xhtml" => {
+                parser.document.set_csp_list(csp_list)
+            },
             (mime_type, subtype, _) => {
                 // Show warning page for unknown mime types.
                 let page = format!(

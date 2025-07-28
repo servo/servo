@@ -457,7 +457,7 @@ const ceilTests = [
 ];
 
 if (navigator.ml) {
-  ceilTests.forEach((test) => {
+  ceilTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getCeilPrecisionTolerance, test);
   });

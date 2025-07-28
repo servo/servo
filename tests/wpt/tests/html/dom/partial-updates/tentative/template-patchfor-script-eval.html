@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - patch updates script with plain text</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script id="placeholder">
+    window.state = "init";
+</script>
+<template patchfor="placeholder">window.state = 'patched';</template>
+<script>
+test(() => {
+    assert_equals(document.querySelector("#placeholder").firstElementChild, null);
+    assert_equals(document.querySelector("#placeholder").textContent, "window.state = 'patched';");
+    assert_equals(window.state, "init");
+});
+
+</script>

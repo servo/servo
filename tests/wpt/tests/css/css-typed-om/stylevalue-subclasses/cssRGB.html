@@ -84,33 +84,4 @@ for (const attr of ["r", "g", "b", "alpha"]) {
     }, `CSSRGB.${attr} can be updated with ${testCase.desc}`);
   }
 }
-
-test(() => {
-  const color = new CSSRGB(
-    new CSSMathSum(CSS.percent(10), CSS.percent(20)),
-    new CSSMathProduct(CSS.percent(10), CSS.number(2)),
-    new CSSMathMax(CSS.percent(10), CSS.percent(50))
-  );
-  assert_color_channel_approx_equals(color.r, new CSSMathSum(CSS.percent(10), CSS.percent(20)));
-  assert_color_channel_approx_equals(color.g, new CSSMathProduct(CSS.percent(10), CSS.number(2)));
-  assert_color_channel_approx_equals(color.b, new CSSMathMax(CSS.percent(10), CSS.percent(50)));
-  let result = color.toRGB();
-  assert_color_channel_approx_equals(result.r, CSS.percent(30));
-  assert_color_channel_approx_equals(result.g, CSS.percent(20));
-  assert_color_channel_approx_equals(result.b, CSS.percent(50));
-}, `toRGB function evaluates sum, product and max objects.`);
-
-test(() => {
-  const color = new CSSRGB(1, 0.5, CSS.number(0.3), CSS.percent(50));
-  let result = color.toRGB();
-  assert_color_channel_approx_equals(result.r, CSS.percent(100));
-  assert_color_channel_approx_equals(result.g, CSS.percent(50));
-  assert_color_channel_approx_equals(result.b, CSS.percent(30));
-  assert_color_channel_approx_equals(result.alpha, CSS.percent(50));
-  for (const attr of ["r", "g", "b", "alpha"]) {
-    color[attr] = 0.7;
-    result = color.toRGB();
-    assert_color_channel_approx_equals(result[attr], CSS.percent(70));
-  }
-}, "toRGB() function works as expected and values can be updated.");
 </script>

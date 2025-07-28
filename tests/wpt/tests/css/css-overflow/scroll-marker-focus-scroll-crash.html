@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
+<html class="test-wait">
 <meta charset="utf-8">
 <link rel="help" href="crbug.com/421471058">
 <script src="/resources/testdriver.js"></script>
@@ -54,7 +54,7 @@
       .send();
     // With a focused scroll marker, scroll to next target.
     document.querySelector('#scroller').scrollLeft = 600;
-    document.documentElement.classList.remove('reftest-wait');
+    document.documentElement.classList.remove('test-wait');
   }
   run();
 </script>

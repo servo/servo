@@ -1,8 +1,8 @@
 .customizable-select-in-page {
   display: inline-block;
   border: 1px solid;
-  overflow-inline: hidden;
-  overflow-block: scroll;
+  overflow-inline: auto;
+  overflow-block: auto;
 }
 
 .customizable-select-in-page.disabled {

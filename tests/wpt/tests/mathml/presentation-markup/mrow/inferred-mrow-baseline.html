@@ -20,7 +20,7 @@
   window.addEventListener("load", runTests);
   function runTests()
   {
-      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Mtd", "None", "Mprescripts"].forEach((tag) => {
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Mtd", "None", "Mprescripts", "Mfenced", "A"].forEach((tag) => {
           var x = document.getElementById(`above${tag}`).getBoundingClientRect();
           var y = document.getElementById(`below${tag}`).getBoundingClientRect();
           test(function() {
@@ -52,6 +52,8 @@
 ></mspace><mspace id="belowMtd" width="10px" depth="30px" style="background: blue"></mspace></mtd></mtr></mtable></math>
     <math><none><mspace id="aboveNone" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowNone" width="10px" depth="30px" style="background: blue"></mspace></none></math>
     <math><mprescripts><mspace id="aboveMprescripts" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowMprescripts" width="10px" depth="30px" style="background: blue"></mspace></none></math>
+    <math><mfenced><mspace id="aboveMfenced" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowMfenced" width="10px" depth="30px" style="background: blue"></mspace></none></math>
+    <math><a><mspace id="aboveA" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowA" width="10px" depth="30px" style="background: blue"></mspace></none></math>
   </p>
 </body>
 </html>

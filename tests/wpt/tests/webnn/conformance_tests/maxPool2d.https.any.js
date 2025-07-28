@@ -1208,7 +1208,7 @@ const maxPool2dTests = [
 ];
 
 if (navigator.ml) {
-  maxPool2dTests.forEach((test) => {
+  maxPool2dTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

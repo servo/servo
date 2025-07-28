@@ -533,7 +533,7 @@ const sinTests = [
 ];
 
 if (navigator.ml) {
-  sinTests.forEach((test) => {
+  sinTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getSinPrecisionTolerance, test);
   });

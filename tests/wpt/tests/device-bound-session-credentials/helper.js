@@ -49,10 +49,9 @@ export async function configureServer(obj) {
   assert_equals(response.status, 200);
 }
 
-export async function setupShardedServerState(testId) {
-  const obj = {};
-  if (testId !== undefined) {
-    obj.testId = testId;
+export async function setupShardedServerState(obj) {
+  if (obj === undefined) {
+    obj = {};
   }
   const response = await fetch('setup_sharded_server_state.py', {
     method: 'POST',

@@ -6,129 +6,81 @@
     </title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let sampleRate = 48000;
-      let testFrames = 100;
+    <script>
+      const sampleRate = 48000;
+      const testFrames = 100;
 
-      // Global context that can be used by the individual tasks. It must be
-      // defined by the initialize task.
-      let context;
+      // Global context that can be used by the individual tests.
+      const context = new OfflineAudioContext(1, testFrames, sampleRate);
 
-      let audit = Audit.createTaskRunner();
+      test(t => {
+        // If construction threw, the test would fail automatically.
+        assert_true(context instanceof OfflineAudioContext,
+                    'context should be an OfflineAudioContext');
+      }, 'initialize');
 
-      audit.define('initialize', (task, should) => {
-        should(() => {
-          context = new OfflineAudioContext(1, testFrames, sampleRate);
-        }, 'Initialize context for testing').notThrow();
-        task.done();
-      });
+      test(t => {
+        assert_true('createBiquadFilter' in context,
+                    'context.createBiquadFilter should exist');
+      }, 'existence');
 
-      audit.define('existence', (task, should) => {
-        should(context.createBiquadFilter, 'context.createBiquadFilter')
-            .exist();
-        task.done();
-      });
-
-      audit.define('parameters', (task, should) => {
+      test(t => {
         // Create a really simple IIR filter. Doesn't much matter what.
-        let coef = Float32Array.from([1]);
+        const coef = Float32Array.from([1]);
 
-        let f = context.createBiquadFilter(coef, coef);
+        const f = context.createBiquadFilter(coef, coef);
 
-        should(f.numberOfInputs, 'numberOfInputs').beEqualTo(1);
-        should(f.numberOfOutputs, 'numberOfOutputs').beEqualTo(1);
-        should(f.channelCountMode, 'channelCountMode').beEqualTo('max');
-        should(f.channelInterpretation, 'channelInterpretation')
-            .beEqualTo('speakers');
+        assert_equals(f.numberOfInputs, 1, 'numberOfInputs');
+        assert_equals(f.numberOfOutputs, 1, 'numberOfOutputs');
+        assert_equals(f.channelCountMode, 'max', 'channelCountMode');
+        assert_equals(f.channelInterpretation, 'speakers',
+                      'channelInterpretation');
+      }, 'parameters');
 
-        task.done();
-      });
+      test(t => {
+        // Two args are required.  Should _not_ throw.
+        context.createBiquadFilter();
+      }, 'exceptions-createBiquadFilter');
 
-      audit.define('exceptions-createBiquadFilter', (task, should) => {
-        should(function() {
-          // Two args are required.
-          context.createBiquadFilter();
-        }, 'createBiquadFilter()').notThrow();
-
-        task.done();
-      });
-
-      audit.define('exceptions-getFrequencyData', (task, should) => {
+      test(t => {
         // Create a really simple IIR filter. Doesn't much matter what.
-        let coef = Float32Array.from([1]);
+        const coef = Float32Array.from([1]);
+        const f = context.createBiquadFilter(coef, coef);
 
-        let f = context.createBiquadFilter(coef, coef);
+        // frequencyHz can't be null.
+        assert_throws_js(TypeError, () => {
+          f.getFrequencyResponse(
+              null, new Float32Array(1), new Float32Array(1));
+        }, 'frequencyHz is null');
 
-        should(
-            function() {
-              // frequencyHz can't be null.
-              f.getFrequencyResponse(
-                  null, new Float32Array(1), new Float32Array(1));
-            },
-            'getFrequencyResponse(' +
-                'null, ' +
-                'new Float32Array(1), ' +
-                'new Float32Array(1))')
-            .throw(TypeError);
+        // magResponse can't be null.
+        assert_throws_js(TypeError, () => {
+          f.getFrequencyResponse(
+              new Float32Array(1), null, new Float32Array(1));
+        }, 'magResponse is null');
 
-        should(
-            function() {
-              // magResponse can't be null.
-              f.getFrequencyResponse(
-                  new Float32Array(1), null, new Float32Array(1));
-            },
-            'getFrequencyResponse(' +
-                'new Float32Array(1), ' +
-                'null, ' +
-                'new Float32Array(1))')
-            .throw(TypeError);
+        // phaseResponse can't be null.
+        assert_throws_js(TypeError, () => {
+          f.getFrequencyResponse(
+              new Float32Array(1), new Float32Array(1), null);
+        }, 'phaseResponse is null');
 
-        should(
-            function() {
-              // phaseResponse can't be null.
-              f.getFrequencyResponse(
-                  new Float32Array(1), new Float32Array(1), null);
-            },
-            'getFrequencyResponse(' +
-                'new Float32Array(1), ' +
-                'new Float32Array(1), ' +
-                'null)')
-            .throw(TypeError);
+        // magResponse array must be the same length as frequencyHz
+        assert_throws_dom('InvalidAccessError', () => {
+          f.getFrequencyResponse(
+              new Float32Array(10), new Float32Array(1),
+              new Float32Array(20));
+        }, 'magResponse length mismatch');
 
-        should(
-            function() {
-              // magResponse array must the same length as frequencyHz
-              f.getFrequencyResponse(
-                  new Float32Array(10), new Float32Array(1),
-                  new Float32Array(20));
-            },
-            'getFrequencyResponse(' +
-                'new Float32Array(10), ' +
-                'new Float32Array(1), ' +
-                'new Float32Array(20))')
-            .throw(DOMException, 'InvalidAccessError');
-
-        should(
-            function() {
-              // phaseResponse array must be the same length as frequencyHz
-              f.getFrequencyResponse(
-                  new Float32Array(10), new Float32Array(20),
-                  new Float32Array(1));
-            },
-            'getFrequencyResponse(' +
-                'new Float32Array(10), ' +
-                'new Float32Array(20), ' +
-                'new Float32Array(1))')
-            .throw(DOMException, 'InvalidAccessError');
-
-        task.done();
-      });
-
-      audit.run();
+        // phaseResponse array must be the same length as frequencyHz
+        assert_throws_dom('InvalidAccessError', () => {
+          f.getFrequencyResponse(
+              new Float32Array(10), new Float32Array(20),
+              new Float32Array(1));
+        }, 'phaseResponse length mismatch');
+      }, 'exceptions-getFrequencyData');
     </script>
   </body>
 </html>

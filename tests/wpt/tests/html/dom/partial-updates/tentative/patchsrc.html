@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - patchsrc</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<div id="placeholder">Initial</div>
+<template patchsrc="resources/included.txt" patchfor="placeholder">Loading</template>
+<script>
+
+const {REMOTE_ORIGIN} = get_host_info();
+const REMOTE_PATH = new URL(new URL(location.href).pathname + "/..", REMOTE_ORIGIN).href;
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    await placeholder.currentPatch.finished;
+    assert_equals(placeholder.querySelector("#included").textContent, "Done");
+}, "patchsrc should load external content");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writer = document.body.patchAll().getWriter();
+    const patch_promise = new Promise(resolve => placeholder.addEventListener("patch", e => resolve(e.patch)));
+    await writer.write('<template patchfor="placeholder" patchsrc="/resources/404.html"></template>');
+    const patch = await patch_promise;
+    await promise_rejects_dom(t, "NotFoundError", patch.finished);
+}, "patchsrc should reject with NotFound when external content is not found");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writer = document.body.patchAll().getWriter();
+    const patch_promise = new Promise(resolve => placeholder.addEventListener("patch", e => resolve(e.patch)));
+    await writer.write(`<template patchfor="placeholder" patchsrc="${REMOTE_PATH}/resources/included.txt"></template>`);
+    const patch = await patch_promise;
+    await promise_rejects_dom(t, "NetworkError", patch.finished);
+}, "patchsrc should fail when loading a cross-origin patch without CORS headers");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writer = document.patchAll().getWriter();
+    const patch_promise = new Promise(resolve => placeholder.addEventListener("patch", e => resolve(e.patch)));
+    await writer.write(`<template patchfor="placeholder" patchsrc="${REMOTE_PATH}/resources/included.txt?pipe=header(Access-Control-Allow-Origin,*)"></template>`);
+    const patch = await patch_promise;
+    await patch.finished;
+    assert_equals(placeholder.querySelector("#included").textContent, "Done");
+}, "patchsrc should work with the appropriate CORS headers");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writer = document.patchAll().getWriter();
+    const patch_promise = new Promise(resolve => placeholder.addEventListener("patch", e => resolve(e.patch)));
+    await writer.write(`<template patchfor="placeholder" patchsrc="resources/delay.py?delay=2000">Wait</template>`);
+    const patch = await patch_promise;
+    assert_equals(placeholder.textContent, "Wait");
+    await patch.finished;
+    assert_equals(placeholder.textContent, "OK");
+}, "patchsrc should apply the inline content before the response arrives");
+
+</script>

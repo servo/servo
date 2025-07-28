@@ -76,6 +76,7 @@ pub(crate) struct WebViewRenderer {
     pub webview: Box<dyn WebViewTrait>,
     /// The root [`PipelineId`] of the currently displayed page in this WebView.
     pub root_pipeline_id: Option<PipelineId>,
+    /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     pub rect: DeviceRect,
     /// Tracks details about each active pipeline that the compositor knows about.
     pub pipelines: HashMap<PipelineId, PipelineDetails>,
@@ -88,7 +89,7 @@ pub(crate) struct WebViewRenderer {
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
     /// "Mobile-style" zoom that does not reflow the page.
-    viewport_zoom: PinchZoomFactor,
+    pinch_zoom: PinchZoomFactor,
     /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
     /// by the embedding layer.
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
@@ -129,8 +130,8 @@ impl WebViewRenderer {
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
-            page_zoom: Scale::new(1.0),
-            viewport_zoom: PinchZoomFactor::new(DEFAULT_ZOOM),
+            page_zoom: Scale::new(DEFAULT_ZOOM),
+            pinch_zoom: PinchZoomFactor::new(DEFAULT_ZOOM),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
             pending_point_input_events: Default::default(),
@@ -951,7 +952,7 @@ impl WebViewRenderer {
     }
 
     pub(crate) fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
-        Scale::new(self.viewport_zoom.get())
+        Scale::new(self.pinch_zoom.get())
     }
 
     fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
@@ -959,8 +960,8 @@ impl WebViewRenderer {
             zoom = viewport.clamp_zoom(zoom);
         }
 
-        let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
-        old_zoom != self.viewport_zoom
+        let old_zoom = std::mem::replace(&mut self.pinch_zoom, PinchZoomFactor::new(zoom));
+        old_zoom != self.pinch_zoom
     }
 
     pub(crate) fn set_page_zoom(&mut self, magnification: f32) {

@@ -13,8 +13,8 @@ use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, TraversalId, ViewportDetails,
+    Cursor, FocusId, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
+    MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
 use servo_geometry::DeviceIndependentPixel;
@@ -77,7 +77,7 @@ pub(crate) struct WebViewInner {
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
-
+    /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     rect: DeviceRect,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
@@ -293,6 +293,10 @@ impl WebView {
         self.delegate().notify_focus_changed(self, new_value);
     }
 
+    pub(crate) fn complete_focus(self, focus_id: FocusId) {
+        self.delegate().notify_focus_complete(self, focus_id);
+    }
+
     pub fn cursor(&self) -> Cursor {
         self.inner().cursor
     }
@@ -305,10 +309,15 @@ impl WebView {
         self.delegate().notify_cursor_changed(self, new_value);
     }
 
-    pub fn focus(&self) {
+    pub fn focus(&self) -> FocusId {
+        let focus_id = FocusId::new();
         self.inner()
             .constellation_proxy
-            .send(EmbedderToConstellationMessage::FocusWebView(self.id()));
+            .send(EmbedderToConstellationMessage::FocusWebView(
+                self.id(),
+                focus_id.clone(),
+            ));
+        focus_id
     }
 
     pub fn blur(&self) {
@@ -347,6 +356,13 @@ impl WebView {
             .compositor
             .borrow_mut()
             .move_resize_webview(self.id(), rect);
+    }
+
+    pub fn resize(&self, new_size: PhysicalSize<u32>) {
+        self.inner()
+            .compositor
+            .borrow_mut()
+            .resize_rendering_context(new_size);
     }
 
     pub fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
@@ -476,13 +492,6 @@ impl WebView {
 
     pub fn notify_vsync(&self) {
         self.inner().compositor.borrow_mut().on_vsync(self.id());
-    }
-
-    pub fn resize(&self, new_size: PhysicalSize<u32>) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .resize_rendering_context(new_size);
     }
 
     pub fn set_zoom(&self, new_zoom: f32) {

@@ -153,22 +153,22 @@ of using `dumpbin` and the errors that appear when starting Servo.
 """
 
 
-def windows_dlls():
+def windows_dlls() -> list[str]:
     return GSTREAMER_WIN_DEPENDENCY_LIBS + [f"{lib}-1.0-0.dll" for lib in GSTREAMER_BASE_LIBS]
 
 
-def windows_plugins():
+def windows_plugins() -> list[str]:
     libs = [*GSTREAMER_PLUGIN_LIBS, *GSTREAMER_WIN_PLUGIN_LIBS]
     return [f"{lib}.dll" for lib in libs]
 
 
-def macos_plugins():
+def macos_plugins() -> list[str]:
     plugins = [*GSTREAMER_PLUGIN_LIBS, *GSTREAMER_MAC_PLUGIN_LIBS]
 
     return [f"lib{plugin}.dylib" for plugin in plugins]
 
 
-def write_plugin_list(target):
+def write_plugin_list(target: str) -> None:
     plugins = []
     if "apple-" in target:
         plugins = macos_plugins()
@@ -191,7 +191,7 @@ def is_macos_system_library(library_path: str) -> bool:
     return library_path.startswith("/System/Library") or library_path.startswith("/usr/lib") or ".asan." in library_path
 
 
-def rewrite_dependencies_to_be_relative(binary: str, dependency_lines: Set[str], relative_path: str):
+def rewrite_dependencies_to_be_relative(binary: str, dependency_lines: Set[str], relative_path: str) -> None:
     """Given a path to a binary (either an executable or a dylib), rewrite the
     the given dependency lines to be found at the given relative path to
     the executable in which they are used. In our case, this is typically servoshell."""
@@ -207,7 +207,7 @@ def rewrite_dependencies_to_be_relative(binary: str, dependency_lines: Set[str],
             print(f"{arguments} install_name_tool exited with return value {exception.returncode}")
 
 
-def make_rpath_path_absolute(dylib_path_from_otool: str, rpath: str):
+def make_rpath_path_absolute(dylib_path_from_otool: str, rpath: str) -> str:
     """Given a dylib dependency from otool, resolve the path into a full path if it
     contains `@rpath`."""
     if not dylib_path_from_otool.startswith("@rpath/"):
@@ -228,6 +228,7 @@ def find_non_system_dependencies_with_otool(binary_path: str) -> Set[str]:
     """Given a binary path, find all dylib dependency lines that do not refer to
     system libraries."""
     process = subprocess.Popen(["/usr/bin/otool", "-L", binary_path], stdout=subprocess.PIPE)
+    assert process.stdout is not None
     output = set()
 
     for line in map(lambda line: line.decode("utf8"), process.stdout):
@@ -242,15 +243,17 @@ def find_non_system_dependencies_with_otool(binary_path: str) -> Set[str]:
     return output
 
 
-def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, target: BuildTarget):
+def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, target: BuildTarget) -> bool:
     """Copy all GStreamer dependencies to the "lib" subdirectory of a built version of
     Servo. Also update any transitive shared library paths so that they are relative to
     this subdirectory."""
 
     # This import only works when called from `mach`.
     import servo.platform
+    import servo.platform.macos
 
     gstreamer_root = servo.platform.get().gstreamer_root(target)
+    assert gstreamer_root is not None
     gstreamer_version = servo.platform.macos.GSTREAMER_PLUGIN_VERSION
     gstreamer_root_libs = os.path.join(gstreamer_root, "lib")
 

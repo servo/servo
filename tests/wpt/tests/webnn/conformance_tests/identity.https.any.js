@@ -521,7 +521,7 @@ const identityTests = [
 ];
 
 if (navigator.ml) {
-  identityTests.forEach((test) => {
+  identityTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

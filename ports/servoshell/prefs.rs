@@ -44,7 +44,7 @@ pub(crate) struct ServoShellPreferences {
     /// Overrides directives specified via `SERVO_TRACING` if set.
     /// See: <https://docs.rs/tracing-subscriber/0.3.19/tracing_subscriber/filter/struct.EnvFilter.html#directives>
     pub tracing_filter: Option<String>,
-    /// The initial requested size of the window.
+    /// The initial requested inner size of the window.
     pub initial_window_size: Size2D<u32, DeviceIndependentPixel>,
     /// An override for the screen resolution. This is useful for testing behavior on different screen sizes,
     /// such as the screen of a mobile device.

@@ -6,7 +6,6 @@ from collections import defaultdict, namedtuple
 from typing import Dict, List, Tuple
 
 from mozlog import structuredlog
-from six import ensure_str, ensure_text
 from sys import intern
 
 from . import manifestupdate
@@ -486,7 +485,7 @@ class ExpectedUpdater:
         self.run_info_by_subsuite[name] = run_info_intern.store(run_info)
 
     def test_start(self, data):
-        test_id = intern(ensure_str(data["test"]))
+        test_id = intern(data["test"])
         try:
             self.id_test_map[test_id]
         except KeyError:
@@ -496,8 +495,8 @@ class ExpectedUpdater:
         self.tests_visited[test_id] = set()
 
     def test_status(self, data):
-        test_id = intern(ensure_str(data["test"]))
-        subtest = intern(ensure_str(data["subtest"]))
+        test_id = intern(data["test"])
+        subtest = intern(data["subtest"])
         test_data = self.id_test_map.get(test_id)
         if test_data is None:
             return
@@ -516,7 +515,7 @@ class ExpectedUpdater:
         if data["status"] == "SKIP":
             return
 
-        test_id = intern(ensure_str(data["test"]))
+        test_id = intern(data["test"])
         test_data = self.id_test_map.get(test_id)
         if test_data is None:
             return
@@ -531,7 +530,7 @@ class ExpectedUpdater:
         del self.tests_visited[test_id]
 
     def assertion_count(self, data):
-        test_id = intern(ensure_str(data["test"]))
+        test_id = intern(data["test"])
         test_data = self.id_test_map.get(test_id)
         if test_data is None:
             return
@@ -542,7 +541,7 @@ class ExpectedUpdater:
 
     def test_for_scope(self, data):
         dir_path = data.get("scope", "/")
-        dir_id = intern(ensure_str(os.path.join(dir_path, "__dir__").replace(os.path.sep, "/")))
+        dir_id = intern(os.path.join(dir_path, "__dir__").replace(os.path.sep, "/"))
         if dir_id.startswith("/"):
             dir_id = dir_id[1:]
         return dir_id, self.id_test_map[dir_id]
@@ -590,13 +589,13 @@ def create_test_tree(metadata_path, test_manifest):
     assert all_types > exclude_types
     include_types = all_types - exclude_types
     for item_type, test_path, tests in test_manifest.itertypes(*include_types):
-        test_file_data = TestFileData(intern(ensure_str(test_manifest.url_base)),
-                                      intern(ensure_str(item_type)),
+        test_file_data = TestFileData(intern(test_manifest.url_base),
+                                      intern(item_type),
                                       metadata_path,
                                       test_path,
                                       tests)
         for test in tests:
-            id_test_map[intern(ensure_str(test.id))] = test_file_data
+            id_test_map[intern(test.id)] = test_file_data
 
         dir_path = os.path.dirname(test_path)
         while True:
@@ -605,7 +604,7 @@ def create_test_tree(metadata_path, test_manifest):
             if dir_id in id_test_map:
                 break
 
-            test_file_data = TestFileData(intern(ensure_str(test_manifest.url_base)),
+            test_file_data = TestFileData(intern(test_manifest.url_base),
                                           None,
                                           metadata_path,
                                           dir_meta_path,
@@ -675,7 +674,7 @@ class TestFileData:
         self.item_type = item_type
         self.test_path = test_path
         self.metadata_path = metadata_path
-        self.tests = {intern(ensure_str(item.id)) for item in tests}
+        self.tests = {intern(item.id) for item in tests}
         self._requires_update = False
         self.data = defaultdict(lambda: defaultdict(PackedResultList))
 
@@ -717,10 +716,10 @@ class TestFileData:
         rv = []
 
         for test_id, subtests in self.data.items():
-            test = expected.get_test(ensure_text(test_id))
+            test = expected.get_test(test_id)
             if not test:
                 continue
-            seen_subtests = {ensure_text(item) for item in subtests.keys() if item is not None}
+            seen_subtests = {item for item in subtests.keys() if item is not None}
             missing_subtests = set(test.subtests.keys()) - seen_subtests
             for item in missing_subtests:
                 expected_subtest = test.get_subtest(item)
@@ -792,7 +791,6 @@ class TestFileData:
             expected_by_test[test_id] = test_expected
 
         for test_id, test_data in self.data.items():
-            test_id = ensure_str(test_id)
             for subtest_id, results_list in test_data.items():
                 for prop, run_info, value in results_list:
                     # Special case directory metadata
@@ -809,7 +807,6 @@ class TestFileData:
                     if subtest_id is None:
                         item_expected = test_expected
                     else:
-                        subtest_id = ensure_text(subtest_id)
                         item_expected = test_expected.get_subtest(subtest_id)
 
                     if prop == "status":

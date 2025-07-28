@@ -1,0 +1,122 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - patch stream</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder">
+</div>
+<style id="style"></style>
+<p id="target"></p>
+<script>
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writable = placeholder.patchSelf();
+    assert_true(writable instanceof WritableStream, "node.patchSelf() returns a writable stream");
+    const response = new Response("Content", {headers: {"Content-Type": "text/html"}});
+    response.body.pipeTo(writable);
+    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    await placeholder.currentPatch.finished;
+    assert_equals(placeholder.textContent, "Content");
+    assert_equals(placeholder.currentPatch, null);
+    assert_true(response.bodyUsed);
+}, "streaming a response into node.patchSelf()");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writable = placeholder.patchSelf();
+    assert_true(writable instanceof WritableStream, "node.patchSelf() returns a writable stream");
+    const writer = writable.getWriter();
+    await writer.write("Text");
+    const {currentPatch} = placeholder;
+    assert_true(currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    writer.close();
+    await currentPatch.finished;
+    assert_equals(placeholder.textContent, "Text");
+    assert_equals(placeholder.currentPatch, null);
+}, "streaming text directly into node.patchSelf()");
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    placeholder.innerHTML = "Before";
+    const writable = placeholder.patchSelf();
+    assert_true(writable instanceof WritableStream, "node.patchSelf() returns a writable stream");
+    const writer = writable.getWriter();
+    const {currentPatch} = placeholder;
+    const reason = await writer.write(Symbol("sym")).catch(e => Promise.resolve(e));
+    const result = await currentPatch.finished.then(() => Promise.resolve("ok")).catch(e => Promise.resolve(e));
+    assert_true(result instanceof DOMException, `Expected a DOMException and received ${result}`);
+    assert_equals(result.name, "DataError");
+    assert_equals(result, reason);
+    assert_equals(placeholder.textContent, "");
+    assert_equals(placeholder.currentPatch, null);
+}, "streaming a Symbol directly into node.patchSelf()");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writable = placeholder.patchSelf();
+    assert_true(writable instanceof WritableStream, "node.patchSelf() returns a writable stream");
+    const writer = writable.getWriter();
+    await writer.write(12345);
+    const {currentPatch} = placeholder;
+    writer.close();
+    await currentPatch.finished;
+    assert_equals(placeholder.textContent, "12345");
+    assert_equals(placeholder.currentPatch, null);
+}, "streaming numbers directly into node.patchSelf()");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writable = placeholder.patchSelf();
+    assert_true(writable instanceof WritableStream, "node.patchSelf() returns a writable stream");
+    const writer = writable.getWriter();
+    await writer.write(null);
+    await writer.write(" ");
+    await writer.write(undefined);
+    const {currentPatch} = placeholder;
+    writer.close();
+    await currentPatch.finished;
+    assert_equals(placeholder.textContent, "null undefined");
+    assert_equals(placeholder.currentPatch, null);
+}, "streaming null or undefined directly into node.patchSelf()");
+
+promise_test(async t => {
+    const style = document.querySelector("#style");
+    const writable = style.patchSelf();
+    const response = new Response("#target { color: rgba(100, 0, 100); }", {headers: {"Content-Type": "text/css"}});
+    await response.body.pipeTo(writable);
+    assert_equals(getComputedStyle(document.querySelector("#target")).color, "rgb(100, 0, 100)");
+}, "patchSelf() can stream into elements that receive raw text like <style>");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writable = placeholder.patchSelf();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
+    await writer.write(encoder.encode("ABC"));
+    const patch = placeholder.currentPatch;
+    await writer.abort("abort-reason");
+    await writer.write(encoder.encode("DEF")).catch(() => {});
+    const result = await patch.finished.then(() =>
+        Promise.resolve("success")).catch(e => Promise.resolve(e));
+    assert_equals(placeholder.textContent, "ABC");
+    assert_equals(result, "abort-reason");
+}, "Aborting A node.patchSelf() stream");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    let writable = placeholder.patchSelf();
+    assert_true(writable instanceof WritableStream, "node.patchSelf() returns a writable stream");
+    const response1 = new Response("content1", {headers: {"Content-Type": "text/html"}});
+    const response2 = new Response("content2", {headers: {"Content-Type": "text/html"}});
+    response1.body.pipeTo(writable);
+    const first_patch = placeholder.currentPatch;
+    writable = placeholder.patchSelf();
+    const {currentPatch} = placeholder;
+    response2.body.pipeTo(writable);
+    await promise_rejects_dom(t, "AbortError", first_patch.finished);
+    await currentPatch.finished;
+    assert_equals(placeholder.textContent, "content2");
+    assert_equals(placeholder.currentPatch, null);
+}, "A newer patch aborts the old one with an AbortError");
+
+</script>

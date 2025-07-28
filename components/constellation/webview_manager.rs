@@ -67,11 +67,14 @@ impl<WebView> WebViewManager<WebView> {
         }
     }
 
-    pub fn focus(&mut self, webview_id: WebViewId) {
-        debug_assert!(self.webviews.contains_key(&webview_id));
+    pub fn focus(&mut self, webview_id: WebViewId) -> Result<(), ()> {
+        if !self.webviews.contains_key(&webview_id) {
+            return Err(());
+        }
         self.focus_order.retain(|b| *b != webview_id);
         self.focus_order.push(webview_id);
         self.is_focused = true;
+        Ok(())
     }
 
     pub fn unfocus(&mut self) {

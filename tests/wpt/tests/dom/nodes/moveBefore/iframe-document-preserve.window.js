@@ -6,14 +6,23 @@ promise_test(async t => {
   const iframe = document.createElement('iframe');
   t.add_cleanup(() => iframe.remove());
 
-  iframe.onload = e => iframeLoadCounter++;
+  const loadPromise = new Promise((resolve) => {
+    iframe.onload = () => {
+      iframeLoadCounter++;
+      resolve()
+    };
+  });
+
   div.append(iframe);
   document.body.append(div);
+  await loadPromise;
   assert_equals(iframeLoadCounter, 1, "iframe loads");
 
   const innerDocument = iframe.contentDocument;
   assert_true(innerDocument !== null, "about:blank Document is reachable");
 
+  iframe.onload = () => iframeLoadCounter++;
+  await new Promise(resolve => t.step_timeout(resolve, 50));
   document.body.moveBefore(iframe, null);
   assert_equals(iframe.contentDocument, innerDocument, "Document is preserved");
   assert_equals(iframeLoadCounter, 1, "iframe does not reload");

@@ -188,7 +188,7 @@ const signTests = [
 ];
 
 if (navigator.ml) {
-  signTests.forEach((test) => {
+  signTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getSignPrecisionTolerance, test);
   });

@@ -964,7 +964,7 @@ const divTests = [
 ];
 
 if (navigator.ml) {
-  divTests.forEach((test) => {
+  divTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getDivPrecisionTolerance, test);
   });

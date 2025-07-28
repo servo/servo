@@ -60,12 +60,12 @@ use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
 
 #[derive(Debug, PartialEq)]
-enum UnableToComposite {
+pub enum UnableToComposite {
     NotReadyToPaintImage(NotReadyToPaint),
 }
 
 #[derive(Debug, PartialEq)]
-enum NotReadyToPaint {
+pub enum NotReadyToPaint {
     JustNotifiedConstellation,
     WaitingOnConstellation,
 }
@@ -150,7 +150,7 @@ pub struct IOCompositor {
     /// The webrender renderer.
     webrender: Option<webrender::Renderer>,
 
-    /// The surfman instance that webrender targets
+    /// The surfman instance that webrender targets, which is the viewport.
     rendering_context: Rc<dyn RenderingContext>,
 
     /// The number of frames pending to receive from WebRender.
@@ -591,18 +591,6 @@ impl IOCompositor {
                 };
                 webview_renderer.on_touch_event_processed(result);
             },
-
-            CompositorMsg::CreatePng(webview_id, page_rect, reply) => {
-                let res = self.render_to_shared_memory(webview_id, page_rect);
-                if let Err(ref e) = res {
-                    info!("Error retrieving PNG: {:?}", e);
-                }
-                let img = res.unwrap_or(None);
-                if let Err(e) = reply.send(img) {
-                    warn!("Sending reply to create png failed ({:?}).", e);
-                }
-            },
-
             CompositorMsg::IsReadyToSaveImageReply(is_ready) => {
                 assert_eq!(
                     self.ready_to_save_state,
@@ -1351,7 +1339,7 @@ impl IOCompositor {
 
     /// Render the WebRender scene to the shared memory, without updating other state of this
     /// [`IOCompositor`]. If succesful return the output image in shared memory.
-    fn render_to_shared_memory(
+    pub fn render_to_shared_memory(
         &mut self,
         webview_id: WebViewId,
         page_rect: Option<Rect<f32, CSSPixel>>,

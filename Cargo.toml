@@ -33,6 +33,7 @@ base64 = "0.22.1"
 bincode = "1"
 bitflags = "2.9"
 bluetooth_traits = { path = "components/shared/bluetooth" }
+bytemuck = "1"
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }
 cbc = "0.1.2"
@@ -87,7 +88,7 @@ ipc-channel = "0.20"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 keyboard-types = "0.7"
-kurbo = "0.11"
+kurbo = { version = "0.11.3", features = ["euclid"] }
 libc = "0.2"
 log = "0.4"
 mach2 = "0.4"
@@ -105,6 +106,7 @@ num-traits = "0.2"
 num_cpus = "1.17.0"
 openxr = "0.19"
 parking_lot = "0.12"
+peniko = "0.4"
 percent-encoding = "2.3"
 proc-macro2 = "1"
 profile_traits = { path = "components/shared/profile" }
@@ -147,7 +149,7 @@ stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
 surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-taffy = { version = "0.8.3", default-features = false, features = ["detailed_layout_info", "grid", "serde", "std"] }
+taffy = { version = "0.8.3", default-features = false, features = ["detailed_layout_info", "grid", "std"] }
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
 time = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
@@ -166,6 +168,8 @@ unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.12.1", features = ["v4"] }
+vello = { git = "https://github.com/linebender/vello", rev = "daf940230a24cbb123a458b6de95721af47aef98" }
+vello_cpu = { git = "https://github.com/linebender/vello", rev = "daf940230a24cbb123a458b6de95721af47aef98" }
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"

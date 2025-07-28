@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
 <meta name="assert" content="Moving a selection to a different clipper should not crash">
-<html class=reftest-wait>
+<html class=test-wait>
   <script>
     function test() {
       document.designMode = "on";
@@ -19,7 +19,7 @@
           updated_range.setStart(b, 1);
           updated_range.setEnd(b, 1);
 
-          document.documentElement.classList.remove("reftest-wait");
+          document.documentElement.classList.remove("test-wait");
         });
       });
     }

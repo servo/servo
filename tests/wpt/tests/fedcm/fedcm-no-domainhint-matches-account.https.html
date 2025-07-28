@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API no domain hint matches an account.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+
+<script type="module">
+import {
+  fedcm_test,
+  request_options_with_domain_hint,
+  mark_signed_in,
+  fedcm_get_dialog_type_promise,
+  fedcm_expect_dialog,
+} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_in();
+
+  let options = request_options_with_domain_hint('manifest.py',
+    'nomatch');
+  const cred = navigator.credentials.get(options);
+  // We expect a mismatch dialog.
+  const type = await fedcm_expect_dialog(cred, fedcm_get_dialog_type_promise(t));
+  assert_equals(type, 'ConfirmIdpLogin');
+  window.test_driver.cancel_fedcm_dialog();
+
+  return promise_rejects_dom(t, "NetworkError", cred);
+}, "No domain hint matches an account.");
+  </script>

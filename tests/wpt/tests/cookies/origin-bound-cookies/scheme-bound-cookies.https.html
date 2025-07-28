@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>Scheme-bound Cookies</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+
+<body>
+<script>
+  async function getCookie(origin, name) {
+    const url = `${origin}/cookies/resources/list.py`;
+    const response = await credFetch(url);
+    const cookies = await response.json();
+    return cookies[name] || null;
+  }
+
+  const cookieName = "scheme-bound-cookie";
+  const cookieValue = "1";
+  const httpOrigin = get_host_info().HTTP_ORIGIN;
+  const httpsOrigin = get_host_info().HTTPS_ORIGIN;
+
+  promise_test(async t => {
+    // Set a cookie on the secure origin.
+    await credFetch(
+      `${httpsOrigin}/cookies/resources/set.py?${cookieName}=${cookieValue};Secure;Path=/`);
+
+    // Verify the cookie was set.
+    assert_equals(await getCookie(httpsOrigin, cookieName), cookieValue, "Cookie should be set on the secure origin");
+
+    // Open a window to the insecure version of this origin and run tests there.
+    // We cannot just use an insecure subresource due to mixed content rules.
+    const url = new URL("/cookies/origin-bound-cookies/resources/scheme-bound-cookies-window.html", httpOrigin);
+    const popup = window.open(url);
+    await fetch_tests_from_window(popup);
+  }, "Set a cookie on a secure origin and test it's not sent to an insecure origin.");
+</script>
+</body>

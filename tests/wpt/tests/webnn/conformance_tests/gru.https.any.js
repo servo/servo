@@ -2005,7 +2005,7 @@ const gruTests = [
 ];
 
 if (navigator.ml) {
-  gruTests.forEach((test) => {
+  gruTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getGruPrecisionTolerance, test);
   });

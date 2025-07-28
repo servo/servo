@@ -75,6 +75,14 @@ class NoSuchHistoryEntryException(BidiException):
     error_code = "no such history entry"
 
 
+class NoSuchNetworkCollectorException(BidiException):
+    error_code = "no such network collector"
+
+
+class NoSuchNetworkDataException(BidiException):
+    error_code = "no such network data"
+
+
 class NoSuchNodeException(BidiException):
     error_code = "no such node"
 
@@ -105,6 +113,10 @@ class UnableToSetCookieException(BidiException):
 
 class UnableToSetFileInputException(BidiException):
     error_code = "unable to set file input"
+
+
+class UnavailableNetworkDataException(BidiException):
+    error_code = "unavailable network data"
 
 
 class UnderspecifiedStoragePartitionException(BidiException):

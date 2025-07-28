@@ -32,7 +32,7 @@
     test_interpolation({
       property: 'row-rule-width',
       from: neutralKeyframe,
-      to: '40px',
+      to: '40px 40px 40px',
     }, [
       { at: -0.3, expect: '1px 1px 1px' },
       { at: 0, expect: '10px 10px 10px' },
@@ -45,7 +45,7 @@
     test_interpolation({
       property: 'column-rule-width',
       from: neutralKeyframe,
-      to: '40px',
+      to: '40px 40px 40px',
     }, [
       { at: -0.3, expect: '1px 7px 14px' },
       { at: 0, expect: '10px 15px 20px' },

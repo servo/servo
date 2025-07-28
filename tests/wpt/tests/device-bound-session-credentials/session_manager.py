@@ -46,6 +46,7 @@ class SessionManager:
         self.include_site = True
         self.refresh_endpoint_unavailable = False
         self.response_session_id_override = None
+        self.allowed_refresh_initiators = ["*"]
 
     def next_session_id(self):
         return len(self.session_to_key_map)
@@ -127,6 +128,10 @@ class SessionManager:
         if response_session_id_override is not None:
             self.response_session_id_override = response_session_id_override
 
+        allowed_refresh_initiators = configuration.get("allowedRefreshInitiators")
+        if allowed_refresh_initiators is not None:
+            self.allowed_refresh_initiators = allowed_refresh_initiators
+
     def get_should_refresh_end_session(self):
         return self.should_refresh_end_session
 
@@ -198,7 +203,8 @@ class SessionManager:
                     { "type": "exclude", "domain": request.url_parts.hostname, "path": "/device-bound-session-credentials/set_cookie.py" },
                 ]
             },
-            "credentials": self.get_sessions_instructions_response_credentials(session_id, request)
+            "credentials": self.get_sessions_instructions_response_credentials(session_id, request),
+            "allowed_refresh_initiators": self.allowed_refresh_initiators,
         }
         headers = self.get_session_instructions_response_set_cookie_headers(session_id, request) + [
             ("Content-Type", "application/json"),

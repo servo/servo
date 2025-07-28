@@ -8,7 +8,7 @@ export type CredentialMediationRequirement =
   | "silent";
 
 /**
- * @see https://w3c-fedid.github.io/digital-credentials/#dom-digitalcredentialrequest
+ * @see https://w3c-fedid.github.io/digital-credentials/#the-digitalcredentialgetrequest-dictionary
  */
 export interface DigitalCredentialGetRequest {
   protocol: string;
@@ -16,7 +16,7 @@ export interface DigitalCredentialGetRequest {
 }
 
 /**
- * @see https://w3c-fedid.github.io/digital-credentials/#dom-digitalcredentialrequestoptions
+ * @see https://w3c-fedid.github.io/digital-credentials/#the-digitalcredentialrequestoptions-dictionary
  */
 export interface DigitalCredentialRequestOptions {
   /**
@@ -26,18 +26,24 @@ export interface DigitalCredentialRequestOptions {
 }
 
 /**
- * @see https://w3c-fedid.github.io/digital-credentials/#extensions-to-credentialrequestoptions
+ * @see https://w3c-fedid.github.io/digital-credentials/#extensions-to-credentialrequestoptions-dictionary
  */
 export interface CredentialRequestOptions {
   digital: DigitalCredentialRequestOptions;
   mediation: CredentialMediationRequirement;
 }
 
+/**
+ * @see https://w3c-fedid.github.io/digital-credentials/#the-digitalcredentialcreaterequest-dictionary
+ */
 export interface DigitalCredentialCreateRequest {
   protocol: string;
   data: object;
 }
 
+/**
+ * @see https://w3c-fedid.github.io/digital-credentials/#the-digitalcredentialcreationoptions-dictionary
+ */
 export interface DigitalCredentialCreationOptions {
   /**
    * The list of credential requests.
@@ -45,6 +51,9 @@ export interface DigitalCredentialCreationOptions {
   requests: DigitalCredentialCreateRequest[] | any;
 }
 
+/**
+ * @see https://w3c-fedid.github.io/digital-credentials/#extensions-to-credentialcreationoptions-dictionary
+ */
 export interface CredentialCreationOptions {
   digital: DigitalCredentialCreationOptions;
   mediation: CredentialMediationRequirement;

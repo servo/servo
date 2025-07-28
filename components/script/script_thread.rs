@@ -107,7 +107,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
+    ConversionResult, SafeFromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -1133,7 +1133,7 @@ impl ScriptThread {
                     }
                 },
                 InputEvent::Wheel(wheel_event) => {
-                    document.handle_wheel_event(wheel_event, event.hit_test_result, can_gc);
+                    document.handle_wheel_event(wheel_event, &event, can_gc);
                 },
                 InputEvent::Keyboard(keyboard_event) => {
                     document.dispatch_key_event(keyboard_event, can_gc);
@@ -1148,7 +1148,7 @@ impl ScriptThread {
                     document.handle_editing_action(editing_action_event, can_gc);
                 },
                 InputEvent::Scroll(scroll_event) => {
-                    document.handle_scroll_event(scroll_event, can_gc);
+                    document.handle_embedder_scroll_event(scroll_event);
                 },
             }
         }
@@ -1254,9 +1254,6 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
             self.process_pending_input_events(*pipeline_id, can_gc);
 
-            // TODO(#31665): Implement the "run the scroll steps" from
-            // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
-
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
             if document.window().run_the_resize_steps(can_gc) {
                 // Evaluate media queries and report changes.
@@ -1268,6 +1265,9 @@ impl ScriptThread {
                 // As per the spec, this can be run at any time.
                 document.react_to_environment_changes()
             }
+
+            // > 9. For each doc of docs, run the scroll steps for doc.
+            document.run_the_scroll_steps(can_gc);
 
             // > 11. For each doc of docs, update animations and send events for doc, passing
             // > in relative high resolution time given frameTimestamp and doc's relevant
@@ -2087,6 +2087,14 @@ impl ScriptThread {
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)
             },
+            MainThreadScriptMsg::Common(CommonScriptMsg::ReportCspViolations(
+                pipeline_id,
+                violations,
+            )) => {
+                if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
+                    global.report_csp_violations(violations, None, None);
+                }
+            },
             MainThreadScriptMsg::NavigationResponse {
                 pipeline_id,
                 message,
@@ -2241,6 +2249,15 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::DeleteCookie(name, reply) => {
                 webdriver_handlers::handle_delete_cookie(&documents, pipeline_id, name, reply)
+            },
+            WebDriverScriptCommand::ElementClear(element_id, reply) => {
+                webdriver_handlers::handle_element_clear(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                    can_gc,
+                )
             },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
                 webdriver_handlers::handle_find_elements_css_selector(
@@ -3681,18 +3698,16 @@ impl ScriptThread {
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
-            unsafe {
-                let strval = DOMString::from_jsval(
-                    *GlobalScope::get_cx(),
-                    jsval.handle(),
-                    StringificationBehavior::Empty,
-                );
-                match strval {
-                    Ok(ConversionResult::Success(s)) => {
-                        Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
-                    },
-                    _ => None,
-                }
+            let strval = DOMString::safe_from_jsval(
+                GlobalScope::get_cx(),
+                jsval.handle(),
+                StringificationBehavior::Empty,
+            );
+            match strval {
+                Ok(ConversionResult::Success(s)) => {
+                    Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
+                },
+                _ => None,
             }
         } else {
             Some(JsEvalResult::NoContent)

@@ -586,7 +586,7 @@ const tanhTests = [
 ];
 
 if (navigator.ml) {
-  tanhTests.forEach((test) => {
+  tanhTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

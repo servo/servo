@@ -1215,7 +1215,7 @@ const reduceSumSquareTests = [
 ];
 
 if (navigator.ml) {
-  reduceSumSquareTests.forEach((test) => {
+  reduceSumSquareTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

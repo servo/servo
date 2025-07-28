@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - patch event</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder">
+</div>
+
+<script>
+promise_test(async t => {
+    const popup = window.open();
+    const doc = popup.document;
+    doc.write("<div id=placeholder></div>");
+    const placeholder = doc.getElementById("placeholder");
+    const sequence = [];
+    const observer = new MutationObserver(records => {
+        sequence.push({type: "mutation", records});
+    });
+    observer.observe(placeholder, {childList: true});
+    placeholder.addEventListener("patch", event => {
+        sequence.push({type: "event", event});
+    });
+    doc.write("<template patchfor=placeholder><p>content</p>");
+    await Promise.resolve();
+    assert_equals(sequence.length, 2);
+    assert_equals(sequence[0].type, "mutation");
+    assert_equals(sequence[1].type, "event");
+    assert_equals(sequence[1].event.patch, placeholder.currentPatch);
+}, "patch event timing");
+
+</script>

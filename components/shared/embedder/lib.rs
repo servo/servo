@@ -172,6 +172,14 @@ impl SimpleDialog {
         }
     }
 
+    pub fn set_message(&mut self, text: String) {
+        match self {
+            SimpleDialog::Alert { message, .. } => *message = text,
+            SimpleDialog::Confirm { message, .. } => *message = text,
+            SimpleDialog::Prompt { message, .. } => *message = text,
+        }
+    }
+
     pub fn dismiss(&self) {
         match self {
             SimpleDialog::Alert {
@@ -319,8 +327,19 @@ pub struct ScreenMetrics {
     pub available_size: DeviceIndependentIntSize,
 }
 
+/// An opaque identifier for a single webview focus operation.
+#[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct FocusId(String);
+
+impl FocusId {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self(Uuid::new_v4().to_string())
+    }
+}
+
 /// An opaque identifier for a single history traversal operation.
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TraversalId(String);
 
 impl TraversalId {
@@ -364,8 +383,10 @@ pub enum EmbedderMsg {
     AllowOpeningWebView(WebViewId, IpcSender<Option<(WebViewId, ViewportDetails)>>),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
-    /// A webview gained focus for keyboard events
-    WebViewFocused(WebViewId),
+    /// A webview potentially gained focus for keyboard events, as initiated
+    /// by the provided focus id. If the boolean value is false, the webiew
+    /// could not be focused.
+    WebViewFocused(WebViewId, FocusId, bool),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document
@@ -796,9 +817,10 @@ pub struct ScreenGeometry {
     /// toolbars, docks, and interface elements. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub available_size: DeviceIntSize,
-    /// The rectangle the `WebView`'s containing window in device pixels for the purposes of the
-    /// `window.screenLeft` and similar APIs. This will be converted to CSS pixels based
-    /// on the pixel scaling of the `WebView`.
+    /// The rectangle the `WebView`'s containing window (including OS decorations)
+    /// in device pixels for the purposes of the
+    /// `window.screenLeft`, `window.outerHeight` and similar APIs.
+    /// This will be converted to CSS pixels based on the pixel scaling of the `WebView`.
     pub window_rect: DeviceIntRect,
 }
 
