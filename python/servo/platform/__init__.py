@@ -14,7 +14,7 @@ from .windows import Windows
 __platform__ = None
 
 
-def host_platform():
+def host_platform() -> str:
     os_type = platform.system().lower()
     if os_type == "linux":
         os_type = "unknown-linux-gnu"
@@ -31,7 +31,7 @@ def host_platform():
     return os_type
 
 
-def host_triple():
+def host_triple() -> str:
     os_type = host_platform()
     cpu_type = platform.machine().lower()
     if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:

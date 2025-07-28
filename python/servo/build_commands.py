@@ -9,6 +9,7 @@
 
 import datetime
 import os
+from os import PathLike
 import os.path as path
 import pathlib
 import shutil
@@ -17,7 +18,7 @@ import subprocess
 import sys
 
 from time import time
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 
 from mach.decorators import (
     CommandArgument,
@@ -71,7 +72,7 @@ def get_rustc_llvm_version() -> Optional[List[int]]:
                 llvm_version = llvm_version.strip()
                 version = llvm_version.split(".")
                 print(f"Info: rustc is using LLVM version {'.'.join(version)}")
-                return version
+                return list(map(int, version))
         else:
             print(f"Error: Couldn't find LLVM version in output of `rustc --version --verbose`: `{result.stdout}`")
     except Exception as e:
@@ -101,7 +102,7 @@ class MachCommands(CommandBase):
         sanitizer: SanitizerKind = SanitizerKind.NONE,
         flavor=None,
         **kwargs,
-    ):
+    ) -> int:
         opts = params or []
 
         if build_type.is_release():
@@ -178,7 +179,7 @@ class MachCommands(CommandBase):
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                 # like Instruments.app.
                 try:
-                    import Cocoa
+                    import Cocoa  # pyrefly: ignore[import-error]
 
                     icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                     icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
@@ -192,14 +193,14 @@ class MachCommands(CommandBase):
         elapsed_delta = datetime.timedelta(seconds=int(elapsed))
         build_message = f"{'Succeeded' if status == 0 else 'Failed'} in {elapsed_delta}"
         print(build_message)
-
+        assert isinstance(status, int)
         return status
 
     @Command("clean", description="Clean the target/ and Python virtual environment directories", category="build")
     @CommandArgument("--manifest-path", default=None, help="Path to the manifest to the package to clean")
     @CommandArgument("--verbose", "-v", action="store_true", help="Print verbose output")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Cargo")
-    def clean(self, manifest_path=None, params=[], verbose=False):
+    def clean(self, manifest_path=None, params=[], verbose=False) -> None:
         self.ensure_bootstrapped()
 
         virtualenv_path = path.join(self.get_top_dir(), ".venv")
@@ -214,8 +215,8 @@ class MachCommands(CommandBase):
         return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
 
     def build_sanitizer_env(
-        self, env: Dict, opts: List[str], kwargs, target_triple, sanitizer: SanitizerKind = SanitizerKind.NONE
-    ):
+        self, env: Dict, opts: List[str], kwargs, target_triple: str, sanitizer: SanitizerKind = SanitizerKind.NONE
+    ) -> None:
         if sanitizer.is_none():
             return
         # do not use crown (clashes with different rust version)
@@ -293,7 +294,7 @@ def copy_windows_dlls_to_build_directory(servo_binary: str, target: BuildTarget)
 
     # Copy in the built EGL and GLES libraries from where they were built to
     # the final build dirctory
-    def find_and_copy_built_dll(dll_name):
+    def find_and_copy_built_dll(dll_name: str) -> None:
         try:
             file_to_copy = next(pathlib.Path(build_path).rglob(dll_name))
             shutil.copy(file_to_copy, servo_exe_dir)
@@ -315,7 +316,7 @@ def copy_windows_dlls_to_build_directory(servo_binary: str, target: BuildTarget)
     return True
 
 
-def package_gstreamer_dlls(servo_exe_dir: str, target: BuildTarget):
+def package_gstreamer_dlls(servo_exe_dir: str, target: BuildTarget) -> bool:
     gst_root = servo.platform.get().gstreamer_root(target)
     if not gst_root:
         print("Could not find GStreamer installation directory.")
@@ -354,8 +355,8 @@ def package_gstreamer_dlls(servo_exe_dir: str, target: BuildTarget):
     return not missing
 
 
-def package_msvc_dlls(servo_exe_dir: str, target: BuildTarget):
-    def copy_file(dll_path: Optional[str]) -> bool:
+def package_msvc_dlls(servo_exe_dir: str, target: BuildTarget) -> bool:
+    def copy_file(dll_path: Union[PathLike[str], str]) -> bool:
         if not dll_path or not os.path.exists(dll_path):
             print(f"WARNING: Could not find DLL at {dll_path}", file=sys.stderr)
             return False
