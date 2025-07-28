@@ -376,7 +376,4 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
     fn Delete_(&self, _options: &CookieStoreDeleteOptions, _can_gc: CanGc) -> Rc<Promise> {
         todo!();
     }
-
-    // https://wicg.github.io/cookie-store/#dom-cookiestore-onchange
-    event_handler!(change, GetOnchange, SetOnchange);
 }
