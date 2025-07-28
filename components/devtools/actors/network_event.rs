@@ -442,9 +442,7 @@ impl NetworkEventActor {
     }
 
     pub fn response_content(response: &DevtoolsHttpResponse) -> Option<ResponseContentMsg> {
-        if response.body.is_none() {
-            return None;
-        }
+        let _body = response.body.as_ref()?;
 
         let mime_type = response
             .headers
