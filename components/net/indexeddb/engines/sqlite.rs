@@ -20,18 +20,6 @@ mod database_model;
 mod object_data_model;
 mod object_store_index_model;
 mod object_store_model;
-// mod serialize;
-mod serialize {
-    use net_traits::indexeddb_thread::IndexedDBKeyType;
-
-    pub fn encode(key: &IndexedDBKeyType) -> Vec<u8> {
-        bincode::serialize(&key).unwrap()
-    }
-
-    pub fn decode(s: &[u8]) -> Option<IndexedDBKeyType> {
-        bincode::deserialize(s).ok()
-    }
-}
 
 // These pragmas need to be set once
 const DB_INIT_PRAGMAS: [&str; 2] = ["PRAGMA journal_mode = WAL;", "PRAGMA encoding = 'UTF-16';"];
@@ -47,12 +35,12 @@ const DB_PRAGMAS: [&str; 4] = [
 fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     // Special case for optimization
     if let Some(singleton) = range.as_singleton() {
-        let encoded = serialize::encode(singleton);
+        let encoded = bincode::serialize(singleton).unwrap();
         return object_data_model::Column::Data.eq(encoded).into_condition();
     }
     let mut parts = vec![];
     if let Some(upper) = range.upper.as_ref() {
-        let upper_bytes = serialize::encode(upper);
+        let upper_bytes = bincode::serialize(upper).unwrap();
         let query = if range.upper_open {
             object_data_model::Column::Data.lt(upper_bytes)
         } else {
@@ -61,7 +49,7 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
         parts.push(query);
     }
     if let Some(lower) = range.lower.as_ref() {
-        let lower_bytes = serialize::encode(lower);
+        let lower_bytes = bincode::serialize(lower).unwrap();
         let query = if range.upper_open {
             object_data_model::Column::Data.gt(lower_bytes)
         } else {
@@ -250,7 +238,7 @@ impl KvsEngine for SqliteEngine {
                         value,
                         should_overwrite,
                     }) => {
-                        let serialized_key: Vec<u8> = serialize::encode(&key);
+                        let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         let store = object_data_model::ActiveModel {
                             object_store_id: Set(object_store.id),
                             key: Set(serialized_key.clone()),
@@ -306,7 +294,7 @@ impl KvsEngine for SqliteEngine {
                         sender,
                         key,
                     }) => {
-                        let serialized_key: Vec<u8> = serialize::encode(&key);
+                        let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         // More ergonomic way to delete an item than querying first.
                         let result =
                             object_data_model::Entity::delete_many()
@@ -365,7 +353,7 @@ impl KvsEngine for SqliteEngine {
                                 let _ =
                                     sender
                                         .send(Ok(result
-                                            .map(|blob| serialize::decode(&blob.key).unwrap())));
+                                            .map(|blob| bincode::deserialize(&blob.key).unwrap())));
                             },
                             Err(e) => {
                                 let _ = sender.send(err!(e));
