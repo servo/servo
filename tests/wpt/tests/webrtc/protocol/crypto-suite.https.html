@@ -21,10 +21,12 @@
 const acceptableTlsVersions = new Set([
   'FEFD', // DTLS 1.2 - RFC 6437 section 4.1
   '0304', // TLS 1.3 - RFC 8446 section 5.1
+  'FEFC', // DTLS 1.3 - RFC 9147 section 5.3
 ]);
 
 const acceptableDtlsCiphersuites = new Set([
   'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256',
+  'TLS_AES_128_GCM_SHA256',
 ]);
 
 const acceptableSrtpCiphersuites = new Set([

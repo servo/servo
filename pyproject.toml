@@ -38,8 +38,7 @@ search-path = [
     "components/script_bindings/codegen",
 ]
 project-includes = [
-    "python/wpt/**/*.py",
-    "python/tidy/**/*.py",
+    "python/**/*.py",
     "components/script_bindings",
 ]
 project-excludes = [

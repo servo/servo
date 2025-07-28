@@ -515,7 +515,7 @@ const sqrtTests = [
 ];
 
 if (navigator.ml) {
-  sqrtTests.forEach((test) => {
+  sqrtTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getSqrtPrecisionTolerance, test);
   });

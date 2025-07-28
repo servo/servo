@@ -10,14 +10,14 @@ use std::rc::Rc;
 use euclid::num::Zero;
 use euclid::{Length, Point2D, Scale, Size2D};
 use servo::servo_geometry::{
-    DeviceIndependentIntRect, DeviceIndependentPixel, convert_size_to_css_pixel,
+    DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
-use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
-use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
+use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext, WebView};
 use winit::dpi::PhysicalSize;
 
 use super::app_state::RunningAppState;
-use crate::desktop::window_trait::WindowPortsMethods;
+use crate::desktop::window_trait::{MIN_INNER_HEIGHT, MIN_INNER_WIDTH, WindowPortsMethods};
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
@@ -25,6 +25,8 @@ pub struct Window {
     device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>,
     inner_size: Cell<DeviceIntSize>,
     screen_size: Size2D<i32, DevicePixel>,
+    // virtual top-left position of the window in device pixels.
+    window_position: Cell<Point2D<i32, DevicePixel>>,
     rendering_context: Rc<SoftwareRenderingContext>,
 }
 
@@ -45,7 +47,7 @@ impl Window {
 
         let screen_size = servoshell_preferences
             .screen_size_override
-            .map_or(inner_size, |screen_size_override| {
+            .map_or(inner_size * 2, |screen_size_override| {
                 (screen_size_override.to_f32() * hidpi_factor).to_i32()
             });
 
@@ -54,6 +56,7 @@ impl Window {
             device_pixel_ratio_override,
             inner_size: Cell::new(inner_size),
             screen_size,
+            window_position: Cell::new(Point2D::zero()),
             rendering_context: Rc::new(rendering_context),
         };
 
@@ -70,17 +73,26 @@ impl WindowPortsMethods for Window {
         ScreenGeometry {
             size: self.screen_size,
             available_size: self.screen_size,
-            window_rect: self.inner_size.get().into(),
+            window_rect: DeviceIntRect::from_origin_and_size(
+                self.window_position.get(),
+                self.inner_size.get(),
+            ),
         }
+    }
+
+    fn set_position(&self, point: DeviceIntPoint) {
+        self.window_position.set(point);
     }
 
     fn request_resize(
         &self,
-        webview: &::servo::WebView,
-        size: DeviceIntSize,
+        webview: &WebView,
+        outer_size: DeviceIntSize,
     ) -> Option<DeviceIntSize> {
-        // Surfman doesn't support zero-sized surfaces.
-        let new_size = DeviceIntSize::new(size.width.max(1), size.height.max(1));
+        let new_size = DeviceIntSize::new(
+            outer_size.width.max(MIN_INNER_WIDTH),
+            outer_size.height.max(MIN_INNER_HEIGHT),
+        );
         if self.inner_size.get() == new_size {
             return Some(new_size);
         }
@@ -90,7 +102,11 @@ impl WindowPortsMethods for Window {
         // Because we are managing the rendering surface ourselves, there will be no other
         // notification (such as from the display manager) that it has changed size, so we
         // must notify the compositor here.
-        webview.resize(PhysicalSize::new(size.width as u32, size.height as u32));
+        webview.move_resize(outer_size.to_f32().into());
+        webview.resize(PhysicalSize::new(
+            outer_size.width as u32,
+            outer_size.height as u32,
+        ));
 
         Some(new_size)
     }
@@ -138,12 +154,9 @@ impl WindowPortsMethods for Window {
     }
 
     fn window_rect(&self) -> DeviceIndependentIntRect {
-        let inner_size = self.inner_size.get();
-        let scale = self.hidpi_scale_factor();
-
-        DeviceIndependentIntRect::from_origin_and_size(
-            Point2D::zero(),
-            convert_size_to_css_pixel(inner_size, scale),
+        convert_rect_to_css_pixel(
+            DeviceIntRect::from_origin_and_size(self.window_position.get(), self.inner_size.get()),
+            self.hidpi_scale_factor(),
         )
     }
 
@@ -153,5 +166,18 @@ impl WindowPortsMethods for Window {
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
         self.rendering_context.clone()
+    }
+
+    fn maximize(&self, webview: &WebView) {
+        self.window_position.set(Point2D::zero());
+        self.inner_size.set(self.screen_size);
+        // Because we are managing the rendering surface ourselves, there will be no other
+        // notification (such as from the display manager) that it has changed size, so we
+        // must notify the compositor here.
+        webview.move_resize(self.screen_size.to_f32().into());
+        webview.resize(PhysicalSize::new(
+            self.screen_size.width as u32,
+            self.screen_size.height as u32,
+        ));
     }
 }

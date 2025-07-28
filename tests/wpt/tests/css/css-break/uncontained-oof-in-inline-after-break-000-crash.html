@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
+<html class="test-wait">
   <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
   <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1285743">
   <div style="columns:2; line-height:20px;">
@@ -18,7 +18,7 @@
       requestAnimationFrame(()=> {
         b.style.columns = "2";
         c.style.columns = "3";
-        document.documentElement.classList.remove("reftest-wait");
+        document.documentElement.classList.remove("test-wait");
       });
     });
   </script>

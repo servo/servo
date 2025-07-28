@@ -278,13 +278,40 @@ function assert_strict_constant_value(array, constantValue, message) {
  */
 function assert_array_approximately_equals(
     actual, expected, threshold, message) {
-      assert_equals(
-          actual.length,
-          expected.length,
-          `${message} - buffer lengths must match`);
-      for (let i = 0; i < actual.length; ++i) {
-        assert_approx_equals(
-            actual[i], expected[i], threshold,
-            `${message} at index ${i}`);
-      }
+  assert_equals(
+      actual.length,
+      expected.length,
+      `${message} - buffer lengths must match`);
+  for (let i = 0; i < actual.length; ++i) {
+    assert_approx_equals(
+        actual[i], expected[i], threshold,
+        `${message} at index ${i}`);
+  }
+}
+
+/**
+ * Asserts that two arrays are of equal length and that each corresponding
+ * element is within a specified epsilon of each other. Throws an assertion
+ * error if any element pair differs by more than epsilon or if the arrays
+ * have different lengths.
+ *
+ * @param {Array<number>} actual - The array of actual values to test.
+ * @param {Array<number>} expected - The array of expected values to compare
+ *   against.
+ * @param {number} epsilon - The maximum allowed difference between
+ *   corresponding elements.
+ * @param {string} desc - Description used in assertion error messages.
+ */
+function assert_close_to_array(actual, expected, epsilon, desc) {
+  assert_equals(
+      actual.length,
+      expected.length,
+      `${desc}: length mismatch`);
+  for (let i = 0; i < actual.length; ++i) {
+    const diff = Math.abs(actual[i] - expected[i]);
+    assert_less_than_equal(
+        diff,
+        epsilon,
+        `${desc}[${i}] |${actual[i]} - ${expected[i]}| = ${diff} > ${epsilon}`);
+  }
 }

@@ -1096,7 +1096,7 @@ const matmulTests = [
 ];
 
 if (navigator.ml) {
-  matmulTests.forEach((test) => {
+  matmulTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getMatmulPrecisionTolerance, test);
   });

@@ -129,7 +129,7 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
+    AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy, FocusId,
     FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
     KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
@@ -1347,8 +1347,8 @@ where
                 }
                 self.handle_panic(webview_id, error, None);
             },
-            EmbedderToConstellationMessage::FocusWebView(webview_id, response_sender) => {
-                self.handle_focus_web_view(webview_id, response_sender);
+            EmbedderToConstellationMessage::FocusWebView(webview_id, focus_id) => {
+                self.handle_focus_web_view(webview_id, focus_id);
             },
             EmbedderToConstellationMessage::BlurWebView => {
                 self.webviews.unfocus();
@@ -2755,20 +2755,13 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_focus_web_view(
-        &mut self,
-        webview_id: WebViewId,
-        response_sender: Option<IpcSender<bool>>,
-    ) {
-        if self.webviews.get(webview_id).is_none() {
-            if let Some(response_sender) = response_sender {
-                let _ = response_sender.send(false);
-            }
-            return warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
+    fn handle_focus_web_view(&mut self, webview_id: WebViewId, focus_id: FocusId) {
+        let focused = self.webviews.focus(webview_id).is_ok();
+        if !focused {
+            warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
         }
-        self.webviews.focus(webview_id);
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, response_sender));
+            .send(EmbedderMsg::WebViewFocused(webview_id, focus_id, focused));
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -4121,9 +4114,12 @@ where
         }
 
         // Focus the top-level browsing context.
-        self.webviews.focus(webview_id);
-        self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, None));
+        let focused = self.webviews.focus(webview_id);
+        self.embedder_proxy.send(EmbedderMsg::WebViewFocused(
+            webview_id,
+            FocusId::new(),
+            focused.is_ok(),
+        ));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
@@ -4426,6 +4422,7 @@ where
             WebDriverCommandMsg::GetWindowRect(..) |
             WebDriverCommandMsg::GetViewportSize(..) |
             WebDriverCommandMsg::SetWindowRect(..) |
+            WebDriverCommandMsg::MaximizeWebView(..) |
             WebDriverCommandMsg::LoadUrl(..) |
             WebDriverCommandMsg::Refresh(..) |
             WebDriverCommandMsg::SendKeys(..) |

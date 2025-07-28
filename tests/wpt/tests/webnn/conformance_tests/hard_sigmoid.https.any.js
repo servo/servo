@@ -1344,7 +1344,7 @@ const hardSigmoidTests = [
 ];
 
 if (navigator.ml) {
-  hardSigmoidTests.forEach((test) => {
+  hardSigmoidTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

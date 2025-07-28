@@ -626,7 +626,7 @@ const sliceTests = [
 ];
 
 if (navigator.ml) {
-  sliceTests.forEach((test) => {
+  sliceTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

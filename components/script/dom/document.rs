@@ -572,6 +572,8 @@ pub(crate) struct Document {
     /// Cached frozen array of [`Self::adopted_stylesheets`]
     #[ignore_malloc_size_of = "mozjs"]
     adopted_stylesheets_frozen_types: CachedFrozenArray,
+    /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-event-targets>
+    pending_scroll_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
 }
 
 #[allow(non_snake_case)]
@@ -2402,10 +2404,102 @@ impl Document {
         }
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps>
+    pub(crate) fn run_the_scroll_steps(&self, can_gc: CanGc) {
+        // Step 1.
+        // > Run the steps to dispatch pending scrollsnapchanging events for doc.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 2
+        // > For each item target in doc’s pending scroll event targets, in the order they
+        // > were added to the list, run these substeps:
+        for target in self.pending_scroll_event_targets.borrow().iter() {
+            // Step 2.1
+            // > If target is a Document, fire an event named scroll that bubbles at target.
+            if target.downcast::<Document>().is_some() {
+                target.fire_bubbling_event(Atom::from("scroll"), can_gc);
+            }
+
+            // Step 2.2
+            // > Otherwise, fire an event named scroll at target.
+            if target.downcast::<Element>().is_some() {
+                target.fire_event(Atom::from("scroll"), can_gc);
+            }
+        }
+
+        // Step 3.
+        // > Empty doc’s pending scroll event targets.
+        self.pending_scroll_event_targets.borrow_mut().clear();
+
+        // Step 4.
+        // > Run the steps to dispatch pending scrollsnapchange events for doc.
+        // TODO(#7673): Implement scroll snapping
+    }
+
+    /// Whenever a viewport gets scrolled (whether in response to user interaction or by an
+    /// API), the user agent must run these steps:
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    pub(crate) fn handle_viewport_scroll_event(&self) {
+        // Step 2.
+        // > If doc is a snap container, run the steps to update scrollsnapchanging targets
+        // > for doc with doc’s eventual snap target in the block axis as newBlockTarget and
+        // > doc’s eventual snap target in the inline axis as newInlineTarget.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 3.
+        // > If doc is already in doc’s pending scroll event targets, abort these steps.
+        let target = self.upcast::<EventTarget>();
+        if self
+            .pending_scroll_event_targets
+            .borrow()
+            .iter()
+            .any(|other_target| *other_target == target)
+        {
+            return;
+        }
+
+        // Step 4.
+        // > Append doc to doc’s pending scroll event targets.
+        self.pending_scroll_event_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+    }
+
+    /// Whenever an element gets scrolled (whether in response to user interaction or by an
+    /// API), the user agent must run these steps:
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    pub(crate) fn handle_element_scroll_event(&self, element: &Element) {
+        // Step 2.
+        // > If the element is a snap container, run the steps to update scrollsnapchanging
+        // > targets for the element with the element’s eventual snap target in the block
+        // > axis as newBlockTarget and the element’s eventual snap target in the inline axis
+        // > as newInlineTarget.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 3.
+        // > If the element is already in doc’s pending scroll event targets, abort these steps.
+        let target = element.upcast::<EventTarget>();
+        if self
+            .pending_scroll_event_targets
+            .borrow()
+            .iter()
+            .any(|other_target| *other_target == target)
+        {
+            return;
+        }
+
+        // Step 4.
+        // > Append the element to doc’s pending scroll event targets.
+        self.pending_scroll_event_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+    }
+
+    /// Handle scroll event triggered by user interactions from embedder side.
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
     #[allow(unsafe_code)]
-    pub(crate) fn handle_scroll_event(&self, event: ScrollEvent, can_gc: CanGc) {
-        // <https://drafts.csswg.org/cssom-view/#scrolling-events>
-        // If target is a Document, fire an event named scroll that bubbles at target.
+    pub(crate) fn handle_embedder_scroll_event(&self, event: ScrollEvent) {
+        // If it is a viewport scroll.
         if event.external_id.is_root() {
             let Some(document) = self
                 .node
@@ -2415,10 +2509,10 @@ impl Document {
             else {
                 return;
             };
-            DomRoot::upcast::<EventTarget>(document)
-                .fire_bubbling_event(Atom::from("scroll"), can_gc);
+
+            document.handle_viewport_scroll_event();
         } else {
-            // Otherwise, fire an event named scroll at target.
+            // Otherwise, check whether it is for a relevant element within the document.
             let Some(node_id) = node_id_from_scroll_id(event.external_id.0 as usize) else {
                 return;
             };
@@ -2432,7 +2526,8 @@ impl Document {
             else {
                 return;
             };
-            DomRoot::upcast::<EventTarget>(element).fire_event(Atom::from("scroll"), can_gc);
+
+            self.handle_element_scroll_event(&element);
         }
     }
 
@@ -4266,6 +4361,7 @@ impl Document {
             highlighted_dom_node: Default::default(),
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
+            pending_scroll_event_targets: Default::default(),
         }
     }
 

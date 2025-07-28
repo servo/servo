@@ -977,7 +977,7 @@ const equalTests = [
 ];
 
 if (navigator.ml) {
-  equalTests.forEach((test) => {
+  equalTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getZeroULPTolerance, test,
         /*cast_to_supported_type=*/true);

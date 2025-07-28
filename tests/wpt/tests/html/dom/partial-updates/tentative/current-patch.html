@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - reflection via element.currentPatch</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(async t => {
+    const doc = document.implementation.createHTMLDocument();
+    doc.write('<div id="placeholder">Old content</div>');
+    const placeholder = doc.getElementById("placeholder");
+    assert_equals(placeholder.currentPatch, null, "no patch active, currentPatch should be null");
+    doc.write('<template id=patchy patchfor="placeholder">');
+    const {currentPatch} = placeholder;
+    assert_true(currentPatch instanceof PatchStatus);
+    const {finished, source} = currentPatch;
+    assert_true(source instanceof HTMLTemplateElement);
+    assert_equals(source.id, "patchy");
+    let did_finish = false;
+    finished.then((() => {did_finish = true}));
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+    assert_false(did_finish, "we are not finished yet");
+    doc.write("<p>content</p>");
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+    assert_false(did_finish, "we are not finished yet");
+    assert_equals(placeholder.currentPatch, currentPatch);
+    doc.write("</template>");
+    assert_equals(placeholder.currentPatch, null, "template is closed, currentPatch is null");
+    const result = await finished;
+    assert_equals(result, undefined);
+}, "currentPatch lifecycle");
+
+</script>

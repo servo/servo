@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Replaced sizing should account properly for border-box sizing</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1978106">
+<link rel="match" href="intrinsic-ratio-replaced-box-sizing-ref.html">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<style>
+svg, img {
+  margin: 5px;
+  border: 10px solid grey;
+}
+
+.border-box {
+  box-sizing: border-box;
+}
+
+div {
+  display: inline-block;
+  margin: 10px;
+  border: 1px solid black;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div>
+  <img src="data:image/svg+xml;charset=UTF-8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' fill='lime'/></svg>">
+</div>
+<div>
+  <img src="data:image/svg+xml;charset=UTF-8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' fill='lime'/></svg>" class="border-box">
+</div>
+<div>
+  <svg viewBox="0 0 100 100"><rect width="100%" height="100%" fill="lime"></rect></svg>
+</div>
+<div>
+  <svg viewBox="0 0 100 100" class="border-box"><rect width="100%" height="100%" fill="lime"></rect></svg>
+</div>

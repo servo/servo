@@ -138,6 +138,8 @@ pub enum WebDriverCommandMsg {
         DeviceIndependentIntRect,
         IpcSender<DeviceIndependentIntRect>,
     ),
+    /// Maximize the window. Send back result window rectangle.
+    MaximizeWebView(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Take a screenshot of the viewport.
     TakeScreenshot(
         WebViewId,
@@ -184,6 +186,7 @@ pub enum WebDriverScriptCommand {
     ),
     DeleteCookies(IpcSender<Result<(), ErrorStatus>>),
     DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
+    ElementClear(String, IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementsCSSSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),

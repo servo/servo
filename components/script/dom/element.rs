@@ -1119,25 +1119,16 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             ));
         }
 
+        // Textual input, specifically text entry and domain specific input has
+        // a default preferred size.
+        //
+        // <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+        // <https://html.spec.whatwg.org/multipage/#the-input-element-as-domain-specific-widgets>
         let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
             // FIXME(pcwalton): More use of atoms, please!
             match self.get_attr_val_for_layout(&ns!(), &local_name!("type")) {
-                // Not text entry widget
-                Some("hidden") |
-                Some("date") |
-                Some("month") |
-                Some("week") |
-                Some("time") |
-                Some("datetime-local") |
-                Some("number") |
-                Some("range") |
-                Some("color") |
-                Some("checkbox") |
-                Some("radio") |
-                Some("file") |
-                Some("submit") |
-                Some("image") |
-                Some("reset") |
+                Some("hidden") | Some("range") | Some("color") | Some("checkbox") |
+                Some("radio") | Some("file") | Some("submit") | Some("image") | Some("reset") |
                 Some("button") => None,
                 // Others
                 _ => match this.size_for_layout() {
@@ -1737,6 +1728,24 @@ impl Element {
         } else {
             // Other focusable elements that are not input fields.
             None
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#document-element>
+    pub(crate) fn is_document_element(&self) -> bool {
+        if let Some(document_element) = self.owner_document().GetDocumentElement() {
+            *document_element == *self
+        } else {
+            false
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-activeelement>
+    pub(crate) fn is_active_element(&self) -> bool {
+        if let Some(active_element) = self.owner_document().GetActiveElement() {
+            *active_element == *self
+        } else {
+            false
         }
     }
 

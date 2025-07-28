@@ -193,4 +193,4 @@ skip = [
 
 # github.com organizations to allow git sources for
 [sources.allow-org]
-github = ["pcwalton", "servo"]
+github = ["pcwalton", "servo", "linebender"]

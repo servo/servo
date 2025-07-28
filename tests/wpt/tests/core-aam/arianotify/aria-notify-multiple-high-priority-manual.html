@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ARIA Notify API Test: Multiple High Priority Messages</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2577">
+  <link rel="author" title="Jacques Newman" href="mailto:janewman@microsoft.com">
+  <script src="core-aam/arianotify/resources/aria-notify-helpers.js"></script>
+</head>
+<body>
+  <h1>ARIA Notify API Test: Multiple High Priority Messages</h1>
+  <p>This test checks the behavior of the <code>ariaNotify</code> API with multiple consecutive high priority messages.
+  </p>
+
+  <h2>Setup Instructions</h2>
+  <p><strong>Setup:</strong> Use a screen reader (NVDA, JAWS, VoiceOver, etc.) or other assistive technology that
+    supports the ARIA Notify API.</p>
+  <p><strong>Instructions:</strong> Click the "Run Test" button and listen for the announced text from your screen reader.</p>
+
+  <h2>Test Expectations</h2>
+  <ul>
+    <li>Screen reader should announce "Loading..." followed by "Loading failed." in sequence, both at high priority with
+      potential for rapid delivery</li>
+  </ul>
+
+  <p><strong>Note:</strong> If the ariaNotify API is not supported in your browser, the test will show an appropriate
+    error message.</p>
+
+  <div>
+    <h3>Test: Multiple Consecutive High Priority Messages</h3>
+    <p>A "Loading..." message followed by a "Loading failed." message, both at high priority and fired against the
+      document.</p>
+    <p><strong>Expected:</strong> Screen reader should announce "Loading..." followed by "Loading failed." in sequence,
+      both at high priority with potential for rapid delivery.</p>
+
+    <button onclick="test()">Run Test</button>
+    <div id="status"></div>
+
+    <script>
+      function test() {
+        // Fire the first message
+        let status = tryCallAriaNotify(document, 'Loading...', { priority: 'high' });
+        // Fire the second message
+        status += ' ' + tryCallAriaNotify(document, 'Loading failed.', { priority: 'high' });
+        document.getElementById('status').textContent = status;
+      }
+    </script>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: patching via innerHTML</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+test(() => {
+    const container = document.getElementById("container");
+    container.innerHTML = `<div id="placeholder">Old content in innerHTML</div><template patchfor="placeholder">New content</template>`;
+    // <template patchfor> doesn't work within an innerHTML fragment, so the
+    // placeholder should be intact and the <template> element remain in tree.
+    const placeholder = container.querySelector("div");
+    assert_equals(placeholder.id, "placeholder");
+    assert_equals(placeholder.textContent, "Old content in innerHTML");
+    assert_not_equals(container.querySelector("template"), null);
+}, "<template patchfor> in innerHTML patching inner element");
+</script>

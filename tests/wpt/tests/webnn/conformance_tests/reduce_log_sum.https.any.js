@@ -1074,7 +1074,7 @@ const reduceLogSumTests = [
 ];
 
 if (navigator.ml) {
-  reduceLogSumTests.forEach((test) => {
+  reduceLogSumTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

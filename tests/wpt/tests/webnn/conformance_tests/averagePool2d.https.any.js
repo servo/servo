@@ -1745,7 +1745,7 @@ const averagePool2dTests = [
 ];
 
 if (navigator.ml) {
-  averagePool2dTests.forEach((test) => {
+  averagePool2dTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

@@ -667,7 +667,7 @@ const reluTests = [
 ];
 
 if (navigator.ml) {
-  reluTests.forEach((test) => {
+  reluTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

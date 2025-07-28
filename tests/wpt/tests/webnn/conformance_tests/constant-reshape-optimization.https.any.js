@@ -87,7 +87,7 @@ const tests = [{
 }];
 
 if (navigator.ml) {
-  tests.forEach((test) => {
+  tests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getInstanceNormPrecisionTolerance, test);
   });

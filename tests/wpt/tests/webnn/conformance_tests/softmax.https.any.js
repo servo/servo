@@ -365,7 +365,7 @@ const softmaxTests = [
 ];
 
 if (navigator.ml) {
-  softmaxTests.forEach((test) => {
+  softmaxTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

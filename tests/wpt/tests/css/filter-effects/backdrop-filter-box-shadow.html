@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter should not extend into box-shadow area</title>
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-10000">
+<link rel="author" href="wangsongjin@microsoft.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="reference/backdrop-filter-box-shadow-ref.html">
+
+<div>
+  <p>Expected: A green background with an overlapping element that has backdrop-filter and box-shadow.</p>
+  <p>The inverted area should NOT appear in the gray shadow area.</p>
+</div>
+
+<div class="background"></div>
+<div class="filter-element"></div>
+
+<style>
+.background {
+  position: absolute;
+  width: 200px;
+  height: 150px;
+  top: 100px;
+  left: 50px;
+  background: green;
+}
+
+.filter-element {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  top: 125px;
+  left: 75px;
+  backdrop-filter: invert(1);
+  box-shadow: 20px 20px 10px 0 #888888;
+}
+</style>

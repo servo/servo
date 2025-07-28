@@ -1101,7 +1101,7 @@ const layerNormTests = [
 ];
 
 if (navigator.ml) {
-  layerNormTests.forEach((test) => {
+  layerNormTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getLayerNormPrecisionTolerance, test);
   });

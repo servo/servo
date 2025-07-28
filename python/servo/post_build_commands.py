@@ -11,6 +11,7 @@ import json
 import os
 import os.path as path
 import subprocess
+from subprocess import CompletedProcess
 from shutil import copy2
 from typing import List
 
@@ -30,12 +31,12 @@ from servo.command_base import (
     check_call,
     is_linux,
 )
-
+from servo.platform.build_target import is_android
 
 ANDROID_APP_NAME = "org.servo.servoshell"
 
 
-def read_file(filename, if_exists=False):
+def read_file(filename, if_exists=False) -> str | None:
     if if_exists and not path.exists(filename):
         return None
     with open(filename) as f:
@@ -43,7 +44,7 @@ def read_file(filename, if_exists=False):
 
 
 # Copied from Python 3.3+'s shlex.quote()
-def shell_quote(arg):
+def shell_quote(arg: str):
     # use single quotes, and put single quotes into double quotes
     # the string $'b is then quoted as '$'"'"'b'
     return "'" + arg.replace("'", "'\"'\"'") + "'"
@@ -81,7 +82,7 @@ class PostBuildCommands(CommandBase):
         software=False,
         emulator=False,
         usb=False,
-    ):
+    ) -> int | None:
         return self._run(servo_binary, params, debugger, debugger_cmd, headless, software, emulator, usb)
 
     def _run(
@@ -94,7 +95,7 @@ class PostBuildCommands(CommandBase):
         software=False,
         emulator=False,
         usb=False,
-    ):
+    ) -> int | None:
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
         if software:
@@ -109,7 +110,7 @@ class PostBuildCommands(CommandBase):
         if debugger_cmd:
             debugger = True
 
-        if self.is_android():
+        if is_android(self.target):
             if debugger:
                 print("Android on-device debugging is not supported by mach yet. See")
                 print("https://github.com/servo/servo/wiki/Building-for-Android#debugging-on-device")
@@ -141,7 +142,7 @@ class PostBuildCommands(CommandBase):
             if usb:
                 args += ["-d"]
             shell = subprocess.Popen(args + ["shell"], stdin=subprocess.PIPE)
-            shell.communicate(bytes("\n".join(script) + "\n", "utf8"))
+            shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
         args = [servo_binary]
@@ -193,8 +194,9 @@ class PostBuildCommands(CommandBase):
 
     @Command("android-emulator", description="Run the Android emulator", category="post-build")
     @CommandArgument("args", nargs="...", help="Command-line arguments to be passed through to the emulator")
-    def android_emulator(self, args=None):
+    def android_emulator(self, args=None) -> int:
         if not args:
+            args = []
             print("AVDs created by `./mach bootstrap-android` are servo-arm and servo-x86.")
         emulator = self.android_emulator_path(self.build_env())
         return subprocess.call([emulator] + args)
@@ -202,7 +204,7 @@ class PostBuildCommands(CommandBase):
     @Command("rr-record", description="Run Servo whilst recording execution with rr", category="post-build")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def rr_record(self, servo_binary: str, params=[]):
+    def rr_record(self, servo_binary: str, params=[]) -> None:
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -221,7 +223,7 @@ class PostBuildCommands(CommandBase):
         description="Replay the most recent execution of Servo that was recorded with rr",
         category="post-build",
     )
-    def rr_replay(self):
+    def rr_replay(self) -> None:
         try:
             check_call(["rr", "--fatal-errors", "replay"])
         except OSError as e:
@@ -233,7 +235,7 @@ class PostBuildCommands(CommandBase):
     @Command("doc", description="Generate documentation", category="post-build")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to cargo doc")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def doc(self, params: List[str], **kwargs):
+    def doc(self, params: List[str], **kwargs) -> CompletedProcess[bytes] | int | None:
         self.ensure_bootstrapped()
 
         docs = path.join(servo.util.get_target_dir(), "doc")

@@ -21,7 +21,7 @@ use std::{env, fmt, process, thread};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use cookie::{CookieBuilder, Expiration};
+use cookie::{CookieBuilder, Expiration, SameSite};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
     EventLoopWaker, MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverFrameId,
@@ -44,6 +44,7 @@ use servo_config::prefs::{self, PrefValue, Preferences};
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
+use time::OffsetDateTime;
 use uuid::Uuid;
 use webdriver::actions::{
     ActionSequence, ActionsType, PointerAction, PointerActionItem, PointerActionParameters,
@@ -911,7 +912,6 @@ impl Handler {
 
         // (TODO) Step 14. Fully exit fullscreen.
         // (TODO) Step 15. Restore the window.
-        let (sender, receiver) = ipc::channel().unwrap();
 
         let current = LazyCell::new(|| {
             let WebDriverResponse::WindowRect(current) = self
@@ -929,7 +929,7 @@ impl Handler {
             params.width.unwrap_or_else(|| current.width),
             params.height.unwrap_or_else(|| current.height),
         );
-
+        let (sender, receiver) = ipc::channel().unwrap();
         // Step 16 - 17. Set the width/height in CSS pixels.
         // This should be done as long as one of width/height is not null.
 
@@ -941,8 +941,40 @@ impl Handler {
                 Point2D::new(x, y),
                 Size2D::new(width, height),
             ),
-            sender.clone(),
+            sender,
         ))?;
+
+        let window_rect = wait_for_script_response(receiver)?;
+        debug!("Result window_rect: {window_rect:?}");
+        let window_size_response = WindowRectResponse {
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
+        };
+        Ok(WebDriverResponse::WindowRect(window_size_response))
+    }
+
+    /// <https://w3c.github.io/webdriver/#maximize-window>
+    fn handle_maximize_window(&mut self) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If the remote end does not support the Maximize Window command for session's
+        // current top-level browsing context for any reason,
+        // return error with error code unsupported operation.
+        let webview_id = self.session()?.webview_id;
+        // Step 2. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
+        // Step 3. Try to handle any user prompts with session.
+        self.handle_any_user_prompts(self.session()?.webview_id)?;
+
+        // Step 4. (TODO) Fully exit fullscreen.
+
+        // Step 5. (TODO) Restore the window.
+
+        // Step 6. Maximize the window of session's current top-level browsing context.
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::MaximizeWebView(webview_id, sender))?;
 
         let window_rect = wait_for_script_response(receiver)?;
         debug!("Result window_rect: {window_rect:?}");
@@ -1780,17 +1812,32 @@ impl Handler {
         self.handle_any_user_prompts(self.session()?.webview_id)?;
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cookie_builder = CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
-            .secure(params.secure)
-            .http_only(params.httpOnly);
-        let cookie_builder = match params.domain {
-            Some(ref domain) => cookie_builder.domain(domain.to_owned()),
-            _ => cookie_builder,
-        };
-        let cookie_builder = match params.path {
-            Some(ref path) => cookie_builder.path(path.to_owned()),
-            _ => cookie_builder,
-        };
+        let mut cookie_builder =
+            CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
+                .secure(params.secure)
+                .http_only(params.httpOnly);
+        if let Some(ref domain) = params.domain {
+            cookie_builder = cookie_builder.domain(domain.clone());
+        }
+        if let Some(ref path) = params.path {
+            cookie_builder = cookie_builder.path(path.clone());
+        }
+        if let Some(ref expiry) = params.expiry {
+            if let Ok(datetime) = OffsetDateTime::from_unix_timestamp(expiry.0 as i64) {
+                cookie_builder = cookie_builder.expires(datetime);
+            }
+        }
+        if let Some(ref same_site) = params.sameSite {
+            cookie_builder = match same_site.as_str() {
+                "None" => Ok(cookie_builder.same_site(SameSite::None)),
+                "Lax" => Ok(cookie_builder.same_site(SameSite::Lax)),
+                "Strict" => Ok(cookie_builder.same_site(SameSite::Strict)),
+                _ => Err(WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    "invalid argument",
+                )),
+            }?;
+        }
 
         let cmd = WebDriverScriptCommand::AddCookie(cookie_builder.build(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -2109,6 +2156,26 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)?;
 
         Ok(WebDriverResponse::Void)
+    }
+
+    /// <https://w3c.github.io/webdriver/#element-clear>
+    fn handle_element_clear(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If session's current browsing context is no longer open,
+        // return ErrorStatus::NoSuchWindow.
+        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+
+        // Step 2. Try to handle any user prompt.
+        self.handle_any_user_prompts(self.session()?.webview_id)?;
+
+        // Step 3-11 handled in script thread.
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+
+        match wait_for_script_response(receiver)? {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
     }
 
     /// <https://w3c.github.io/webdriver/#element-click>
@@ -2463,6 +2530,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetWindowHandles => self.handle_window_handles(),
             WebDriverCommand::NewWindow(ref parameters) => self.handle_new_window(parameters),
             WebDriverCommand::CloseWindow => self.handle_close_window(),
+            WebDriverCommand::MaximizeWindow => self.handle_maximize_window(),
             WebDriverCommand::SwitchToFrame(ref parameters) => {
                 self.handle_switch_to_frame(parameters)
             },
@@ -2513,6 +2581,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::ElementClear(ref element) => self.handle_element_clear(element),
             WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::AcceptAlert => self.handle_accept_alert(),

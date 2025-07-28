@@ -24,7 +24,7 @@ GSTREAMER_ROOT = "/Library/Frameworks/GStreamer.framework/Versions/1.0"
 
 
 class MacOS(Base):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.is_macos = True
 
@@ -38,7 +38,7 @@ class MacOS(Base):
         # Servo only supports the official GStreamer distribution on MacOS.
         return not target.is_cross_build() and os.path.exists(GSTREAMER_ROOT)
 
-    def _platform_bootstrap(self, _force: bool) -> bool:
+    def _platform_bootstrap(self, force: bool) -> bool:
         installed_something = False
         try:
             brewfile = os.path.join(util.SERVO_ROOT, "support", "macos", "Brewfile")

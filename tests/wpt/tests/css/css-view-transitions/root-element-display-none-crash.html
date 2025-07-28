@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html class=test-wait>
 <title>View transitions: html display none</title>
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
 <link rel="author" href="mailto:vmpstr@chromium.org">
 
-<script src="/common/reftest-wait.js"></script>
 <style>
 html {
   display: none;
@@ -12,11 +11,18 @@ html {
 </style>
 
 <script>
-failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+function finish() {
+  document.documentElement.removeAttribute("class");
+}
 
 async function runTest() {
-  document.startViewTransition().finished.then(takeScreenshot, takeScreenshot);
+  if (!document.startViewTransition) {
+    document.body.textContent = "Precondition Failed: Missing document.startViewTransition";
+    finish();
+    return;
+  }
 
+  document.startViewTransition().finished.then(finish, finish);
 }
 onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
 </script>

@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::realms::InRealm;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
@@ -22,6 +24,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::GenericBindings::CSSRuleListBinding::CSSRuleList_Binding::CSSRuleListMethods;
 use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{
     DomGlobal, reflect_dom_object, reflect_dom_object_with_proto,
 };
@@ -34,8 +37,10 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::stylesheetlist::StyleSheetListOwner;
+use crate::dom::types::Promise;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
+use crate::test::TrustedPromise;
 
 #[dom_struct]
 pub(crate) struct CSSStyleSheet {
@@ -60,6 +65,9 @@ pub(crate) struct CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-constructor-document>
     constructor_document: Option<Dom<Document>>,
 
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-disallow-modification-flag>
+    disallow_modification: Cell<bool>,
+
     /// Documents or shadow DOMs thats adopt this stylesheet, they will be notified whenever
     /// the stylesheet is modified.
     adopters: DomRefCell<Vec<StyleSheetListOwner>>,
@@ -82,6 +90,7 @@ impl CSSStyleSheet {
             origin_clean: Cell::new(true),
             constructor_document: constructor_document.map(Dom::from_ref),
             adopters: Default::default(),
+            disallow_modification: Cell::new(false),
         }
     }
 
@@ -231,6 +240,11 @@ impl CSSStyleSheet {
             adopter.invalidate_stylesheets();
         }
     }
+
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-disallow-modification-flag>
+    pub(crate) fn disallow_modification(&self) -> bool {
+        self.disallow_modification.get()
+    }
 }
 
 impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
@@ -287,17 +301,30 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule>
     fn InsertRule(&self, rule: DOMString, index: u32, can_gc: CanGc) -> Fallible<u32> {
+        // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
             return Err(Error::Security);
         }
+
+        // Step 2. If the disallow modification flag is set, throw a NotAllowedError DOMException.
+        if self.disallow_modification() {
+            return Err(Error::NotAllowed);
+        }
+
         self.rulelist(can_gc)
             .insert_rule(&rule, index, CssRuleTypes::default(), None, can_gc)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule>
     fn DeleteRule(&self, index: u32, can_gc: CanGc) -> ErrorResult {
+        // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
             return Err(Error::Security);
+        }
+
+        // Step 2. If the disallow modification flag is set, throw a NotAllowedError DOMException.
+        if self.disallow_modification() {
+            return Err(Error::NotAllowed);
         }
         self.rulelist(can_gc).remove_rule(index)
     }
@@ -345,10 +372,68 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         Ok(-1)
     }
 
-    /// <https://drafts.csswg.org/cssom/#synchronously-replace-the-rules-of-a-cssstylesheet>
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replace>
+    fn Replace(&self, text: USVString, comp: InRealm, can_gc: CanGc) -> Fallible<Rc<Promise>> {
+        // Step 1. Let promise be a promise.
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+
+        // Step 2. If the constructed flag is not set, or the disallow modification flag is set,
+        // reject promise with a NotAllowedError DOMException and return promise.
+        if !self.is_constructed() || self.disallow_modification() {
+            return Err(Error::NotAllowed);
+        }
+
+        // Step 3. Set the disallow modification flag.
+        self.disallow_modification.set(true);
+
+        // Step 4. In parallel, do these steps:
+        let trusted_sheet = Trusted::new(self);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(cssstylesheet_replace: move || {
+                let sheet = trusted_sheet.root();
+
+                // Step 4.1. Let rules be the result of running parse a stylesheet’s contents from text.
+                // Step 4.2. If rules contains one or more @import rules, remove those rules from rules.
+                // We are disallowing import rules in parsing
+                let global = sheet.global();
+                let window = global.as_window();
+
+                StyleStyleSheet::update_from_str(
+                    &sheet.style_stylesheet,
+                    &text,
+                    UrlExtraData(window.get_url().get_arc()),
+                    None,
+                    window.css_error_reporter(),
+                    AllowImportRules::No,
+                );
+
+                // Step 4.3. Set sheet’s CSS rules to rules.
+                // We reset our rule list, which will be initialized properly
+                // at the next getter access.
+                sheet.rulelist.set(None);
+
+                // Notify invalidation to update the styles immediately.
+                sheet.notify_invalidations();
+
+                // Step 4.4. Unset sheet’s disallow modification flag.
+                sheet.disallow_modification.set(false);
+
+                // Step 4.5. Resolve promise with sheet.
+                trusted_promise.root().resolve_native(&sheet, CanGc::note());
+            }));
+
+        Ok(promise)
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replacesync>
     fn ReplaceSync(&self, text: USVString) -> Result<(), Error> {
-        // Step 1. If the constructed flag is not set throw a NotAllowedError
-        if !self.is_constructed() {
+        // Step 1. If the constructed flag is not set, or the disallow modification flag is set,
+        // throw a NotAllowedError DOMException.
+        if !self.is_constructed() || self.disallow_modification() {
             return Err(Error::NotAllowed);
         }
 

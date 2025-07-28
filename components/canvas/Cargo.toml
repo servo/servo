@@ -11,8 +11,13 @@ rust-version.workspace = true
 name = "canvas"
 path = "lib.rs"
 
+[features]
+vello = ["dep:vello", "dep:pollster", "dep:futures-intrusive", "dep:peniko"]
+vello_cpu = ["dep:vello_cpu", "dep:peniko"]
+
 [dependencies]
 app_units = { workspace = true }
+bytemuck = { workspace = true, features = ["extern_crate_alloc"] }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -23,8 +28,8 @@ fonts = { path = "../fonts" }
 ipc-channel = { workspace = true }
 kurbo = { workspace = true }
 log = { workspace = true }
-lyon_geom = "1.0.4"
 net_traits = { workspace = true }
+peniko = { workspace = true, optional = true }
 pixels = { path = "../pixels" }
 range = { path = "../range" }
 raqote = "0.8.5"
@@ -32,3 +37,8 @@ servo_arc = { workspace = true }
 stylo = { workspace = true }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }
+servo_config = { path = "../config" }
+vello = { workspace = true, optional = true }
+vello_cpu = { workspace = true, optional = true }
+pollster = { version = "0.4", optional = true }
+futures-intrusive = { version = "0.5", optional = true }

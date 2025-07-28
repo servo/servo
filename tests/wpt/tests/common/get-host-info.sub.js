@@ -20,6 +20,7 @@ function get_host_info() {
   var REMOTE_HOST = (ORIGINAL_HOST === 'localhost') ? '127.0.0.1' : ('www1.' + ORIGINAL_HOST);
   var OTHER_HOST = '{{domains[www2]}}';
   var NOTSAMESITE_HOST = (ORIGINAL_HOST === 'localhost') ? '127.0.0.1' : ('{{hosts[alt][]}}');
+  var OTHER_NOTSAMESITE_HOST = '{{hosts[alt][www2]}}';
 
   return {
     HTTP_PORT: HTTP_PORT,
@@ -45,6 +46,7 @@ function get_host_info() {
     HTTPS_REMOTE_ORIGIN: 'https://' + REMOTE_HOST + HTTPS_PORT_ELIDED,
     HTTPS_REMOTE_ORIGIN_WITH_CREDS: 'https://foo:bar@' + REMOTE_HOST + HTTPS_PORT_ELIDED,
     HTTPS_NOTSAMESITE_ORIGIN: 'https://' + NOTSAMESITE_HOST + HTTPS_PORT_ELIDED,
+    HTTPS_OTHER_NOTSAMESITE_ORIGIN: 'https://' + OTHER_NOTSAMESITE_HOST + HTTPS_PORT_ELIDED,
     UNAUTHENTICATED_ORIGIN: 'http://' + OTHER_HOST + HTTP_PORT_ELIDED,
     AUTHENTICATED_ORIGIN: 'https://' + OTHER_HOST + HTTPS_PORT_ELIDED
   };

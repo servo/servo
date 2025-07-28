@@ -2374,7 +2374,7 @@ const concatTests = [
 ];
 
 if (navigator.ml) {
-  concatTests.forEach((test) => {
+  concatTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

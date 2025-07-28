@@ -16,6 +16,8 @@ bluetooth = ["bluetooth_traits"]
 default = []
 tracing = ["dep:tracing"]
 webgpu = ["script_traits/webgpu"]
+vello = ["canvas/vello"]
+vello_cpu = ["canvas/vello_cpu"]
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }

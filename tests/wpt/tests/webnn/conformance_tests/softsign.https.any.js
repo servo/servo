@@ -647,7 +647,7 @@ const softsignTests = [
 ];
 
 if (navigator.ml) {
-  softsignTests.forEach((test) => {
+  softsignTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

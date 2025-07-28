@@ -13,6 +13,11 @@
 <script>
 test_computed_value("text-overflow", 'clip');
 test_computed_value("text-overflow", 'ellipsis');
+
+// <string>
+test_computed_value("text-overflow", `""`);
+test_computed_value("text-overflow", `"-"`);
+test_computed_value("text-overflow", `"marker string"`);
 </script>
 </body>
 </html>

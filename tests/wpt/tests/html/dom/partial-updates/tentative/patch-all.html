@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - patch stream</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target">Default</div>
+<div id="placeholder">
+<style id="style"></style>
+<p id=text>Hello <span id="content"></span></p>
+</div>
+<div id="placeholder2">
+    <span id="target"></span>
+</div>
+
+<script>
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writable = placeholder.patchAll();
+    assert_true(writable instanceof WritableStream, "node.patchAll() returns a writable stream");
+    const response = new Response(`
+        <div>before </div>
+        <template patchfor=content>world</template>
+        after
+        <template patchfor=style>#content { color: rgb(100, 0, 100); }</template>
+        `, {headers: {"Content-Type": "text/html"}});
+    const done = response.body.pipeTo(writable);
+    const content = placeholder.querySelector("#content");
+    let did_fire_event = false;
+    content.addEventListener("patch", () => {
+        did_fire_event = true;
+    });
+    assert_equals(placeholder.currentPatch, null);
+    await done;
+    assert_equals(content.textContent, "world");
+    assert_equals(getComputedStyle(content).color, "rgb(100, 0, 100)");
+    assert_equals(placeholder.querySelector("#text").textContent, "Hello world");
+    assert_true(did_fire_event);
+}, "Streaming into node.patchAll() updates subtree by ID");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder2");
+    const writable = placeholder.patchAll();
+    const response = new Response("<template patchfor=target>content</template>", {headers: {"Content-Type": "text/html"}});
+    const inner_target = placeholder.querySelector("#target");
+    const outer_target = document.body.querySelector("#target");
+    await response.body.pipeTo(writable);
+    assert_equals(inner_target.textContent, "content");
+    assert_equals(outer_target.textContent, "Default");
+}, "IDs are scoped to the patchAll target");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    placeholder.innerHTML = "before";
+    const writable = placeholder.patchAll();
+    const response = new Response("<template patchfor=placeholder>after</template>", {headers: {"Content-Type": "text/html"}});
+    await response.body.pipeTo(writable);
+    assert_equals(placeholder.textContent, "before");
+}, "ID of the root node itself is ignored");
+
+</script>

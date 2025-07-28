@@ -414,54 +414,17 @@ impl ReplacedContents {
         AspectRatio::from_content_ratio(2.0)
     }
 
-    /// The default object size in the inline axis.
-    /// <https://drafts.csswg.org/css-images-3/#default-object-size>
-    pub(crate) fn default_inline_size(writing_mode: WritingMode) -> Au {
-        if writing_mode.is_horizontal() {
-            Au::from_px(300)
-        } else {
-            Au::from_px(150)
-        }
-    }
-
-    /// The default object size in the block axis.
-    /// <https://drafts.csswg.org/css-images-3/#default-object-size>
-    pub(crate) fn default_block_size(writing_mode: WritingMode) -> Au {
-        if writing_mode.is_horizontal() {
-            Au::from_px(150)
-        } else {
-            Au::from_px(300)
-        }
-    }
-
-    /// The natural size in the inline axis.
-    /// <https://drafts.csswg.org/css-images-3/#natural-dimensions>
-    pub(crate) fn natural_inline_size(&self, writing_mode: WritingMode) -> Option<Au> {
-        if writing_mode.is_horizontal() {
-            self.natural_size.width
-        } else {
-            self.natural_size.height
-        }
-    }
-
-    /// The natural size in the block axis.
-    /// <https://drafts.csswg.org/css-images-3/#natural-dimensions>
-    pub(crate) fn natural_block_size(&self, writing_mode: WritingMode) -> Option<Au> {
-        if writing_mode.is_horizontal() {
-            self.natural_size.height
-        } else {
-            self.natural_size.width
-        }
-    }
-
     /// The inline size that would result from combining the natural size
     /// and the default object size, but disregarding the specified size.
     /// <https://drafts.csswg.org/css-images-3/#natural-dimensions>
     /// <https://drafts.csswg.org/css-images-3/#default-object-size>
     /// <https://drafts.csswg.org/css-images-3/#specified-size>
     pub(crate) fn fallback_inline_size(&self, writing_mode: WritingMode) -> Au {
-        self.natural_inline_size(writing_mode)
-            .unwrap_or_else(|| Self::default_inline_size(writing_mode))
+        if writing_mode.is_horizontal() {
+            self.natural_size.width.unwrap_or_else(|| Au::from_px(300))
+        } else {
+            self.natural_size.height.unwrap_or_else(|| Au::from_px(150))
+        }
     }
 
     /// The block size that would result from combining the natural size
@@ -470,8 +433,11 @@ impl ReplacedContents {
     /// <https://drafts.csswg.org/css-images-3/#default-object-size>
     /// <https://drafts.csswg.org/css-images-3/#specified-size>
     pub(crate) fn fallback_block_size(&self, writing_mode: WritingMode) -> Au {
-        self.natural_block_size(writing_mode)
-            .unwrap_or_else(|| Self::default_block_size(writing_mode))
+        if writing_mode.is_horizontal() {
+            self.natural_size.height.unwrap_or_else(|| Au::from_px(150))
+        } else {
+            self.natural_size.width.unwrap_or_else(|| Au::from_px(300))
+        }
     }
 
     #[inline]

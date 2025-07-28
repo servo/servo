@@ -629,7 +629,7 @@ const instanceNormTests = [
 ];
 
 if (navigator.ml) {
-  instanceNormTests.forEach((test) => {
+  instanceNormTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getInstanceNormPrecisionTolerance, test);
   });

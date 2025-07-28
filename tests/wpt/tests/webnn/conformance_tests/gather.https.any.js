@@ -1702,7 +1702,7 @@ const gatherTests = [
 ];
 
 if (navigator.ml) {
-  gatherTests.forEach((test) => {
+  gatherTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

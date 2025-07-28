@@ -1,5 +1,5 @@
 <!doctype html>
-<html class="reftest-wait">
+<html class="test-wait">
 <link rel="help" href="https://crbug.com/1312699">
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
@@ -9,7 +9,7 @@
     let video = document.querySelector("video");
     await video.requestFullscreen();
     video.width = null;
-    document.documentElement.classList.remove("reftest-wait");
+    document.documentElement.classList.remove("test-wait");
   }
   document.addEventListener("click", () => crash(), false);
 

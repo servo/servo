@@ -982,7 +982,7 @@ const powTests = [
 ];
 
 if (navigator.ml) {
-  powTests.forEach((test) => {
+  powTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getPowPrecisionTolerance, test);
   });

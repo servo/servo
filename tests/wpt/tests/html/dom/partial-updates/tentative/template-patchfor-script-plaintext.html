@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - patch updates script with plain text</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script id="placeholder"></script>
+<template patchfor="placeholder">'<div id=dontparseme></div>'</template>
+<script>
+test(() => {
+    assert_equals(document.querySelector("#placeholder").firstElementChild, null);
+    assert_equals(document.querySelector("#placeholder").textContent, "'<div id=dontparseme></div>'");
+}, "<template patchfor> should apply directly to its target");
+
+</script>

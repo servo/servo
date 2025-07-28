@@ -195,8 +195,15 @@ const kContextOptionsForVariant = {
   },
 };
 
-const variant = location.search.substring(1);
+const searchParams = new URLSearchParams(location.search);
+const variant = searchParams.get('device') || location.search.substring(1);
 const contextOptions = kContextOptionsForVariant[variant];
+
+const tcNameArray = searchParams.getAll('tc');
+
+function isTargetTest(test) {
+  return tcNameArray.length === 0 || tcNameArray.includes(test.name);
+}
 
 const assertDescriptorsEquals = (outputOperand, expected) => {
   const dataType =

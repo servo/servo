@@ -13,8 +13,8 @@ use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, TraversalId, ViewportDetails,
+    Cursor, FocusId, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
+    MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
 use servo_geometry::DeviceIndependentPixel;
@@ -25,7 +25,7 @@ use webrender_api::units::{DeviceIntPoint, DevicePixel, DeviceRect};
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
-use crate::{ConstellationProxy, IpcSender, Servo, WebRenderDebugOption};
+use crate::{ConstellationProxy, Servo, WebRenderDebugOption};
 
 /// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
 /// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
@@ -293,6 +293,10 @@ impl WebView {
         self.delegate().notify_focus_changed(self, new_value);
     }
 
+    pub(crate) fn complete_focus(self, focus_id: FocusId) {
+        self.delegate().notify_focus_complete(self, focus_id);
+    }
+
     pub fn cursor(&self) -> Cursor {
         self.inner().cursor
     }
@@ -305,22 +309,15 @@ impl WebView {
         self.delegate().notify_cursor_changed(self, new_value);
     }
 
-    pub fn focus(&self) {
+    pub fn focus(&self) -> FocusId {
+        let focus_id = FocusId::new();
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::FocusWebView(
                 self.id(),
-                None,
+                focus_id.clone(),
             ));
-    }
-
-    pub fn focus_from_webdriver(&self, response_sender: IpcSender<bool>) {
-        self.inner()
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::FocusWebView(
-                self.id(),
-                Some(response_sender),
-            ));
+        focus_id
     }
 
     pub fn blur(&self) {
@@ -359,6 +356,13 @@ impl WebView {
             .compositor
             .borrow_mut()
             .move_resize_webview(self.id(), rect);
+    }
+
+    pub fn resize(&self, new_size: PhysicalSize<u32>) {
+        self.inner()
+            .compositor
+            .borrow_mut()
+            .resize_rendering_context(new_size);
     }
 
     pub fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
@@ -488,13 +492,6 @@ impl WebView {
 
     pub fn notify_vsync(&self) {
         self.inner().compositor.borrow_mut().on_vsync(self.id());
-    }
-
-    pub fn resize(&self, new_size: PhysicalSize<u32>) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .resize_rendering_context(new_size);
     }
 
     pub fn set_zoom(&self, new_zoom: f32) {

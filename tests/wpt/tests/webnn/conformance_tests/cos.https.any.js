@@ -527,7 +527,7 @@ const cosTests = [
 ];
 
 if (navigator.ml) {
-  cosTests.forEach((test) => {
+  cosTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getCosPrecisionTolerance, test);
   });

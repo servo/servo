@@ -24,14 +24,14 @@
 }
 .spacer {
   height: 10px;
-  background: pink;
+  background: silver;
 }
 .anchor1 {
   anchor-name: --a1;
   margin-left: 10px;
   width: 50px;
   height: 90px;
-  background: blue;
+  background: yellow;
 }
 .target {
   position: absolute;
@@ -44,26 +44,37 @@
   top: anchor(--a1 top);
   width: anchor-size(--a1 width);
   height: anchor-size(--a1 height);
-  background: lime;
-  opacity: .3;
+  border: dashed 4px aqua;
+  opacity: .2;
+  box-sizing: border-box;
 }
 .target1-rb {
   right: anchor(--a1 right);
   bottom: anchor(--a1 bottom);
   width: 10px;
   height: 10px;
+  background: teal;
+}
+
+.inner .target1 {
+  border-color: fuchsia;
+  border-style: solid;
+}
+.inner .target1-rb {
   background: purple;
 }
+
 </style>
 <body onload="checkLayoutForAnchorPos('.target')">
-  <p>The green box should be a union of blue boxes,
-    and the purple box should be at the right-bottom of the green box.
-  </p>
+  <p>The dashed aqua rectangle should encompass both yellow fragments,
+    and the teal box should be at the bottom-right of the aqua box.
+  <p>The fuchsia rectangle should match the edge of the yellow box except where it's split across columns,
+    and the purple box should be at the bottom-right of the fuchsia rectangle.
   <div class="spacer" style="height: 10px"></div>
-  <div class="cb">
+  <div class="cb outer">
     <div class="columns">
       <div class="spacer" style="height: 30px"></div>
-      <div class="cb">
+      <div class="cb inner">
         <!-- This spacer fills up to the middle of the 2nd column. -->
         <div class="spacer" style="height: 130px"></div>
         <div class="anchor1"></div>

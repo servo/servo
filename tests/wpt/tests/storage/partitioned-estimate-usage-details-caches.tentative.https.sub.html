@@ -7,9 +7,12 @@
 
 <body>
   <script>
+    // Helper function to obtain cache usage data for this test window.
     const usageDetails = async () =>
       (await navigator.storage.estimate()).usageDetails.caches || 0;
 
+    // Helper function to create usage of the cache so that our test
+    // can estimate that usage.
     const createSomeUsage = async () => {
       const cache_name = token();
       const cache_url = `/foo-${cache_name}`;
@@ -18,36 +21,91 @@
       return [cache, cache_url];
     }
 
+    // Helper function for creating pathnames to test resources.
     const testPath = () => location.pathname.split("/").slice(0, -1).join("/");
 
+    // Define our test variables.
     let alt_origin = "https://{{hosts[alt][]}}:{{ports[https][0]}}";
     let details = {};
 
+    // Step 0: Construct an iframe. The content of this iframe includes
+    // a script that will intercept and send postMessages back to this test
+    // window. The iframe will be same-site with the window that opened it.
     const iframe = document.createElement("iframe");
     iframe.src = `https://{{host}}:{{ports[https][0]}}${testPath()}` +
       `/resources/partitioned-estimate-usage-details-caches-helper-frame.html`
     document.body.appendChild(iframe);
 
-
+    // Our test will perform the following steps to demonstrate the partitioning
+    // of storage estimate usage details for cache. Some steps are defined in:
+    // wpt/storage/resources/partitioned-estimate-usage-details-caches-helper-frame.html
+    // --------------------
+    // (0) Construct a same-site iframe on our test page. The content of this
+    // iframe includes a script that will intercept and send postMessages back
+    // to this test window.
+    // (1) The same-site iframe sends a postMessage notifying that the iframe
+    // was constructed and we are ready to proceed with the test.
+    // (2) Our test window intercepts this "iframe-is-ready" message.
+    // (3) We create some cache usage and ensure that the cache usage data
+    // reflects that increase in the test window.
+    // (4) postMessage the same-site iframe to obtain cache usage data from that
+    // frame.
+    // (5) Our same-site iframe intercepts the "get-details" postMessage,
+    // obtains the cache usage details available to the iframe, and postMessages
+    // the usage back to the test window.
+    // (6) Our test window intercepts the "same-site" message from the same-site
+    // iframe containing usage data obtained there.
+    // (7) We record the same-site usage data. Then, we open a cross-site window
+    // containing this test script. As a result, Step 0 will be repeated, and a
+    // cross-site iframe will be created in that cross-site window. Our cross-
+    // site iframe will receive the same script as our same-site iframe. We then
+    // return early to avoid running another instance of this test.
+    // (8) Once created and loaded, our cross-site iframe has an on-load
+    // listener that is triggered. To check that our script is executing in the
+    // cross-site iframe (and not the same-site iframe), we check that our
+    // parent has a valid opener value.
+    // (9) Then, our cross-site iframe obtains the cache usage details available
+    // to it and postMessages the usage back to the test window.
+    // (10) Our test window intercepts the "cross-site" message from the cross-
+    // site iframe containing the usage data obtained there.
+    // (11) We record the cross-site usage data. Then we make our final
+    // assertions.
     async_test(test => {
+      // Since this script is loaded in two windows (our original test window
+      // and the cross-site window opened later in the test), and we only want
+      // to run the test body in the original test window, we return early
+      // if our origin matches the "cross-site" window.
       if (location.origin === alt_origin)
         return;
 
-
+      // Step 2: Our test window intercepts the "iframe-is-ready" message from
+      // the same-site iframe.
       let cache, cache_url;
       window.addEventListener("message", test.step_func(async event => {
         if (event.data === "iframe-is-ready") {
+          // Step 3: We create some cache usage and ensure that the cache usage
+          // data reflects that increase in the test window.
           details.init = await usageDetails();
           [cache, cache_url] = await createSomeUsage(test);
           details.after = await usageDetails();
           assert_greater_than(details.after, details.init);
 
+          // Step 4: postMessage the same-site iframe to request that cache
+          // usage data be obtained and sent from that frame.
           iframe.contentWindow.postMessage("get-details", iframe.origin);
         }
       }));
 
       window.addEventListener("message", test.step_func(event => {
+        // Step 6: Our test window intercepts the "same-site" message from the
+        // same-site iframe containing usage data obtained there.
         if (event.data.source === "same-site") {
+          // Step 7: We record the same-site data here. Then, we open a
+          // cross-site window containing this test script. As a result, Step 0
+          // will be repeated, and a cross-site iframe will be created in that
+          // cross-site window. Our cross-site iframe will receive the same
+          // script as our same-site iframe. We then return early to avoid
+          // running another instance of this test.
           details.same_site = event.data;
 
           const cross_site_window = window
@@ -55,12 +113,21 @@
 
           test.add_cleanup(() => cross_site_window.close());
         }
+        // Step 10: Our test window intercepts the "cross-site" message from
+        // the cross-site iframe containing the usage data obtained there.
         if (event.data.source === "cross-site") {
+          // Step 11: We record the cross-site data. Then we make our final
+          // assertions.
           details.cross_site = event.data;
 
-          // Some cleanup
+          // Some cleanup.
           test.step(async () => await cache.delete(cache_url));
 
+          // Usage data is correctly partitioned if:
+          // a. Our cross-site iframe recorded no cache usage data AND
+          // b. The cache usage data for our test window (after the usage was
+          // created) is equal to the cache usage data recorded by our
+          // same-site iframe.
           test.step(() => {
             assert_true(details.cross_site.init == 0, "Usage should be 0.");
             assert_equals(details.same_site.init, details.after);

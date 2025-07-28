@@ -21,12 +21,11 @@ bitflags! {
 
 impl LayoutDamage {
     pub fn recollect_box_tree_children() -> RestyleDamage {
-        RestyleDamage::from_bits_retain(LayoutDamage::RECOLLECT_BOX_TREE_CHILDREN.bits()) |
-            RestyleDamage::RELAYOUT
+        RestyleDamage::from_bits_retain(LayoutDamage::RECOLLECT_BOX_TREE_CHILDREN.bits())
     }
 
     pub fn rebuild_box_tree() -> RestyleDamage {
-        RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits()) | RestyleDamage::RELAYOUT
+        RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits())
     }
 
     pub fn has_box_damage(&self) -> bool {

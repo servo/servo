@@ -2362,7 +2362,7 @@ const reshapeTests = [
 ];
 
 if (navigator.ml) {
-  reshapeTests.forEach((test) => {
+  reshapeTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

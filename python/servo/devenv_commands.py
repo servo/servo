@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from subprocess import CompletedProcess
 import json
 
 from mach.decorators import (
@@ -26,13 +27,14 @@ class MachCommands(CommandBase):
         "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo check"
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def check(self, params, **kwargs):
+    def check(self, params, **kwargs) -> int:
         if not params:
             params = []
 
         self.ensure_bootstrapped()
         self.ensure_clobbered()
         status = self.run_cargo_build_like_command("check", params, **kwargs)
+        assert isinstance(status, int)
         if status == 0:
             print("Finished checking, binary NOT updated. Consider ./mach build before ./mach run")
 
@@ -40,7 +42,7 @@ class MachCommands(CommandBase):
 
     @Command("rustc", description="Run the Rust compiler", category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to rustc")
-    def rustc(self, params):
+    def rustc(self, params) -> int:
         if params is None:
             params = []
 
@@ -52,13 +54,15 @@ class MachCommands(CommandBase):
         "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo-fix"
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_fix(self, params, **kwargs):
+    def cargo_fix(self, params, **kwargs) -> int:
         if not params:
             params = []
 
         self.ensure_bootstrapped()
         self.ensure_clobbered()
-        return self.run_cargo_build_like_command("fix", params, **kwargs)
+        status = self.run_cargo_build_like_command("fix", params, **kwargs)
+        assert isinstance(status, int)
+        return status
 
     @Command("clippy", description='Run "cargo clippy"', category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
@@ -69,7 +73,7 @@ class MachCommands(CommandBase):
         help="Emit the clippy warnings in the Github Actions annotations format",
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_clippy(self, params, github_annotations=False, **kwargs):
+    def cargo_clippy(self, params, github_annotations=False, **kwargs) -> int:
         if not params:
             params = []
 
@@ -85,6 +89,7 @@ class MachCommands(CommandBase):
             github_annotation_manager = GitHubAnnotationManager("clippy")
 
             results = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
+            assert isinstance(results, CompletedProcess)
             if results.returncode == 0:
                 return 0
             try:
@@ -94,9 +99,11 @@ class MachCommands(CommandBase):
             except json.JSONDecodeError:
                 pass
             return results.returncode
-        return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
+        status = self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
+        assert isinstance(status, int)
+        return status
 
     @Command("fetch", description="Fetch Rust, Cargo and Cargo dependencies", category="devenv")
-    def fetch(self):
+    def fetch(self) -> int:
         self.ensure_bootstrapped()
         return call(["cargo", "fetch"], env=self.build_env())

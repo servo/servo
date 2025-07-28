@@ -637,7 +637,7 @@ const expTests = [
 ];
 
 if (navigator.ml) {
-  expTests.forEach((test) => {
+  expTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getExpPrecisionTolerance, test);
   });
