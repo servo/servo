@@ -68,12 +68,12 @@ impl CanvasRenderingContext2D {
         global: &GlobalScope,
         canvas: HTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
-    ) -> CanvasRenderingContext2D {
+    ) -> Option<CanvasRenderingContext2D> {
         let canvas_state =
-            CanvasState::new(global, Size2D::new(size.width as u64, size.height as u64));
+            CanvasState::new(global, Size2D::new(size.width as u64, size.height as u64))?;
         let ipc_sender = canvas_state.get_ipc_renderer().clone();
         let canvas_id = canvas_state.get_canvas_id();
-        CanvasRenderingContext2D {
+        Some(CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas,
             canvas_state,
@@ -81,21 +81,22 @@ impl CanvasRenderingContext2D {
                 ipc_sender,
                 canvas_id,
             },
-        }
+        })
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         canvas: &HTMLCanvasElement,
         size: Size2D<u32>,
         can_gc: CanGc,
-    ) -> DomRoot<CanvasRenderingContext2D> {
+    ) -> Option<DomRoot<CanvasRenderingContext2D>> {
         let boxed = Box::new(CanvasRenderingContext2D::new_inherited(
             global,
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
             size,
-        ));
-        reflect_dom_object(boxed, global, can_gc)
+        )?);
+        Some(reflect_dom_object(boxed, global, can_gc))
     }
 
     // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state

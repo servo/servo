@@ -4368,24 +4368,32 @@ where
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
         size: UntypedSize2D<u64>,
-        response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
+        response_sender: IpcSender<Option<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>>,
     ) {
         let (canvas_data_sender, canvas_data_receiver) = unbounded();
         let (canvas_sender, canvas_ipc_sender) = self
             .canvas
             .get_or_init(|| self.create_canvas_paint_thread());
 
-        if let Err(e) = canvas_sender.send(ConstellationCanvasMsg::Create {
+        let response = if let Err(e) = canvas_sender.send(ConstellationCanvasMsg::Create {
             sender: canvas_data_sender,
             size,
         }) {
-            return warn!("Create canvas paint thread failed ({})", e);
-        }
-        let (canvas_id, image_key) = match canvas_data_receiver.recv() {
-            Ok(canvas_data) => canvas_data,
-            Err(e) => return warn!("Create canvas paint thread id response failed ({})", e),
+            warn!("Create canvas paint thread failed ({})", e);
+            None
+        } else {
+            match canvas_data_receiver.recv() {
+                Ok(Some((canvas_id, image_key))) => {
+                    Some((canvas_ipc_sender.clone(), canvas_id, image_key))
+                },
+                Ok(None) => None,
+                Err(e) => {
+                    warn!("Create canvas paint thread id response failed ({})", e);
+                    None
+                },
+            }
         };
-        if let Err(e) = response_sender.send((canvas_ipc_sender.clone(), canvas_id, image_key)) {
+        if let Err(e) = response_sender.send(response) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }

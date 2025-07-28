@@ -535,7 +535,7 @@ pub enum ScriptToConstellationMessage {
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(
         UntypedSize2D<u64>,
-        IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
+        IpcSender<Option<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>>,
     ),
     /// Notifies the constellation that this pipeline is requesting focus.
     ///

@@ -39,29 +39,31 @@ pub(crate) struct OffscreenCanvasRenderingContext2D {
 }
 
 impl OffscreenCanvasRenderingContext2D {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         global: &GlobalScope,
         canvas: &OffscreenCanvas,
-    ) -> OffscreenCanvasRenderingContext2D {
+    ) -> Option<OffscreenCanvasRenderingContext2D> {
         let size = canvas.get_size().cast();
-        OffscreenCanvasRenderingContext2D {
+        Some(OffscreenCanvasRenderingContext2D {
             context: CanvasRenderingContext2D::new_inherited(
                 global,
                 HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(DomRoot::from_ref(canvas)),
                 size,
-            ),
-        }
+            )?,
+        })
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         canvas: &OffscreenCanvas,
         can_gc: CanGc,
-    ) -> DomRoot<OffscreenCanvasRenderingContext2D> {
+    ) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
         let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
             global, canvas,
-        ));
-        reflect_dom_object(boxed, global, can_gc)
+        )?);
+        Some(reflect_dom_object(boxed, global, can_gc))
     }
 
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {

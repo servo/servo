@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>empty canvas context with invalid backend pref</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="c">
+<script>
+    test(function() {
+        assert_equals(document.getElementById('c').getContext('2d'), null);
+    }, "Invalid canvas backend returns null context");
+</script>

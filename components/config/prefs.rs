@@ -76,10 +76,14 @@ pub struct Preferences {
     pub dom_allow_scripts_to_close_windows: bool,
     pub dom_canvas_capture_enabled: bool,
     pub dom_canvas_text_enabled: bool,
-    /// Uses vello as canvas backend
-    pub dom_canvas_vello_enabled: bool,
-    /// Uses vello_cpu as canvas backend
-    pub dom_canvas_vello_cpu_enabled: bool,
+    /// Selects canvas backend
+    ///
+    /// Available values:
+    /// - ` `/`auto`
+    /// - raqote
+    /// - vello
+    /// - vello_cpu
+    pub dom_canvas_backend: String,
     pub dom_clipboardevent_enabled: bool,
     pub dom_composition_event_enabled: bool,
     pub dom_cookiestore_enabled: bool,
@@ -259,8 +263,7 @@ impl Preferences {
             dom_bluetooth_testing_enabled: false,
             dom_canvas_capture_enabled: false,
             dom_canvas_text_enabled: true,
-            dom_canvas_vello_enabled: false,
-            dom_canvas_vello_cpu_enabled: false,
+            dom_canvas_backend: String::new(),
             dom_clipboardevent_enabled: true,
             dom_composition_event_enabled: false,
             dom_cookiestore_enabled: false,
