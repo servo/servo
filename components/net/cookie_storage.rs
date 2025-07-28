@@ -205,7 +205,7 @@ impl CookieStorage {
         }
     }
 
-    /// <https://wicg.github.io/cookie-store/#query-cookies>
+    /// <https://cookiestore.spec.whatwg.org/#query-cookies>
     pub fn query_cookies(&mut self, url: &ServoUrl, name: Option<String>) -> Vec<Cookie<'static>> {
         // 1. Retrieve cookie-list given request-uri and "non-HTTP" source
         let cookie_list = self.cookies_data_for_url(url, CookieSource::NonHTTP);
