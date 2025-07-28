@@ -2197,6 +2197,14 @@ impl CanvasState {
     }
 }
 
+impl Drop for CanvasState {
+    fn drop(&mut self) {
+        if let Err(err) = self.ipc_sender.send(CanvasMsg::Close(self.canvas_id)) {
+            warn!("Could not close canvas: {}", err)
+        }
+    }
+}
+
 pub(crate) fn parse_color(
     canvas: Option<&HTMLCanvasElement>,
     string: &str,
