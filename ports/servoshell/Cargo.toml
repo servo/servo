@@ -54,6 +54,7 @@ webgpu = ["libservo/webgpu"]
 webxr = ["libservo/webxr"]
 vello = ["libservo/vello"]
 vello_cpu = ["libservo/vello_cpu"]
+raqote = ["libservo/raqote"]
 
 [dependencies]
 cfg-if = { workspace = true }
