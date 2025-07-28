@@ -21,6 +21,19 @@ struct BoundState {
     actor_id: ClientStorageActorId,
 }
 
+impl BoundState {
+    pub fn send_mixed_message(&self, msg: ClientStorageMixedMsg) {
+        self.send_routed_message(ClientStorageRoutedMsg {
+            actor_id: self.actor_id,
+            data: msg,
+        });
+    }
+
+    pub fn send_routed_message(&self, msg: ClientStorageRoutedMsg) {
+        self.ipc_sender.send(msg).unwrap();
+    }
+}
+
 pub struct ClientStorageTestParent {
     bound_state: RefCell<Option<BoundState>>,
 }
@@ -60,23 +73,9 @@ impl ClientStorageTestParent {
     }
 
     fn send_message(&self, msg: ClientStorageTestMsg) {
-        self.send_mixed_message(ClientStorageMixedMsg::ClientStorageTest(msg));
-    }
-
-    fn send_mixed_message(&self, msg: ClientStorageMixedMsg) {
         if let Some(bound_state) = self.bound_state.borrow().as_ref() {
-            self.send_routed_message(
-                bound_state,
-                ClientStorageRoutedMsg {
-                    actor_id: bound_state.actor_id,
-                    data: msg,
-                },
-            );
+            bound_state.send_mixed_message(ClientStorageMixedMsg::ClientStorageTest(msg));
         }
-    }
-
-    fn send_routed_message(&self, bound_state: &BoundState, msg: ClientStorageRoutedMsg) {
-        bound_state.ipc_sender.send(msg).unwrap();
     }
 
     pub fn recv_message(self: &Rc<Self>, msg: ClientStorageTestMsg) {
