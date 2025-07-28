@@ -4,6 +4,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use canvas_traits::canvas::*;
 use compositing_traits::SerializableImageData;
@@ -85,7 +86,7 @@ impl RadialGradientPattern {
 
 #[derive(Clone)]
 pub struct SurfacePattern {
-    image: Snapshot,
+    image: Rc<raqote::DrawTarget>,
     filter: raqote::FilterMode,
     extend: raqote::ExtendMode,
     transform: Transform2D<f32>,
@@ -93,7 +94,7 @@ pub struct SurfacePattern {
 
 impl SurfacePattern {
     fn new(
-        image: Snapshot,
+        image: Rc<raqote::DrawTarget>,
         filter: raqote::FilterMode,
         repeat: Repetition,
         transform: Transform2D<f32>,
@@ -156,9 +157,9 @@ pub fn source(pattern: &Pattern) -> raqote::Source {
         ),
         Pattern::Surface(pattern) => raqote::Source::Image(
             raqote::Image {
-                width: pattern.image.size().width as i32,
-                height: pattern.image.size().height as i32,
-                data: bytemuck::cast_slice(pattern.image.as_raw_bytes()),
+                width: pattern.image.width(),
+                height: pattern.image.height(),
+                data: pattern.image.get_data(),
             },
             pattern.extend,
             pattern.filter,
@@ -178,7 +179,7 @@ fn create_gradient_stops(gradient_stops: Vec<CanvasGradientStop>) -> Vec<raqote:
 }
 
 impl GenericDrawTarget for raqote::DrawTarget {
-    type SourceSurface = Vec<u32>; // TODO: See if we can avoid the alloc (probably?)
+    type SourceSurface = Rc<raqote::DrawTarget>; // TODO: See if we can avoid the alloc (probably?)
 
     fn new(size: Size2D<u32>) -> Self {
         raqote::DrawTarget::new(size.width as i32, size.height as i32)
@@ -202,26 +203,14 @@ impl GenericDrawTarget for raqote::DrawTarget {
         source: Rect<i32>,
         destination: Point2D<i32>,
     ) {
-        let dt = raqote::DrawTarget::from_vec(source.size.width, source.size.height, surface);
-        raqote::DrawTarget::copy_surface(self, &dt, source.to_box2d(), destination);
+        raqote::DrawTarget::copy_surface(self, &surface, source.to_box2d(), destination);
     }
 
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self {
         raqote::DrawTarget::new(size.width, size.height)
     }
-    fn create_source_surface_from_data(&self, data: Snapshot) -> Option<Self::SourceSurface> {
-        Some(
-            bytemuck::try_cast_vec(
-                data.to_vec(
-                    Some(SnapshotAlphaMode::Transparent {
-                        premultiplied: true,
-                    }),
-                    Some(SnapshotPixelFormat::BGRA),
-                )
-                .0,
-            )
-            .unwrap_or_else(|(_, surface)| bytemuck::pod_collect_to_vec(&surface)),
-        )
+    fn create_source_surface_from_data(&self, snapshot: Snapshot) -> Option<Self::SourceSurface> {
+        Some(snapshot_to_surface(snapshot))
     }
     fn draw_surface(
         &mut self,
@@ -256,7 +245,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
                 raqote::Image {
                     width: size.width,
                     height: size.height,
-                    data: &surface,
+                    data: surface.get_data(),
                 },
                 raqote::ExtendMode::Pad,
                 filter.to_raqote(),
@@ -278,7 +267,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         &mut self,
         path: &canvas_traits::canvas::Path,
         fill_rule: FillRule,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
@@ -297,7 +286,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         &mut self,
         text_runs: Vec<TextRun>,
         start: Point2D<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
@@ -360,7 +349,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
@@ -406,12 +395,16 @@ impl GenericDrawTarget for raqote::DrawTarget {
         self.push_clip_rect(rect.to_box2d());
     }
     fn surface(&mut self) -> Self::SourceSurface {
-        self.get_data().to_vec()
+        Rc::new(raqote::DrawTarget::from_vec(
+            self.width(),
+            self.height(),
+            self.get_data().to_vec(),
+        ))
     }
     fn stroke(
         &mut self,
         path: &canvas_traits::canvas::Path,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         line_options: LineOptions,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
@@ -429,7 +422,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         line_options: LineOptions,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
@@ -480,6 +473,26 @@ impl GenericDrawTarget for raqote::DrawTarget {
             self.get_data_u8().to_vec(),
         )
     }
+}
+
+fn snapshot_to_surface(snapshot: Snapshot) -> Rc<raqote::DrawTarget> {
+    let size = snapshot.size().cast();
+
+    Rc::new(raqote::DrawTarget::from_vec(
+        size.width,
+        size.height,
+        bytemuck::try_cast_vec(
+            snapshot
+                .to_vec(
+                    Some(SnapshotAlphaMode::Transparent {
+                        premultiplied: true,
+                    }),
+                    Some(SnapshotPixelFormat::BGRA),
+                )
+                .0,
+        )
+        .unwrap_or_else(|(_, surface)| bytemuck::pod_collect_to_vec(&surface)),
+    ))
 }
 
 fn fill_draw_target(
@@ -623,7 +636,7 @@ impl ToRaqoteGradientStop for CanvasGradientStop {
     }
 }
 
-impl ToRaqotePattern for FillOrStrokeStyle {
+impl ToRaqotePattern for FillOrStrokeStyle<Rc<raqote::DrawTarget>> {
     fn to_raqote_pattern(self) -> Pattern {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
 
@@ -657,15 +670,17 @@ impl ToRaqotePattern for FillOrStrokeStyle {
             },
             Surface(style) => {
                 let repeat = Repetition::from_xy(style.repeat_x, style.repeat_y);
-                let mut snapshot = style.surface_data.to_owned();
-                snapshot.transform(
-                    SnapshotAlphaMode::Transparent {
-                        premultiplied: true,
-                    },
-                    SnapshotPixelFormat::BGRA,
-                );
                 Pattern::Surface(SurfacePattern::new(
-                    snapshot,
+                    style.surface_data,
+                    raqote::FilterMode::Nearest,
+                    repeat,
+                    style.transform,
+                ))
+            },
+            InPlaceSurface(style) => {
+                let repeat = Repetition::from_xy(style.repeat_x, style.repeat_y);
+                Pattern::Surface(SurfacePattern::new(
+                    snapshot_to_surface(style.surface_data.to_owned()),
                     raqote::FilterMode::Nearest,
                     repeat,
                     style.transform,

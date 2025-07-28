@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::mem;
 use std::sync::Arc;
 
@@ -107,6 +108,7 @@ pub(crate) struct CanvasData<DrawTarget: GenericDrawTarget> {
     compositor_api: CrossProcessCompositorApi,
     image_key: ImageKey,
     font_context: Arc<FontContext>,
+    pattern_surfaces: HashMap<SurfaceId, DrawTarget::SourceSurface>,
 }
 
 impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
@@ -125,11 +127,19 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             compositor_api,
             image_key,
             font_context,
+            pattern_surfaces: HashMap::new(),
         }
     }
 
     pub(crate) fn image_key(&self) -> ImageKey {
         self.image_key
+    }
+
+    fn resolve_style(
+        &self,
+        style: FillOrStrokeStyle,
+    ) -> FillOrStrokeStyle<DrawTarget::SourceSurface> {
+        style.resolve_surface(|surface_id| self.pattern_surfaces.get(&surface_id).unwrap().clone())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -494,7 +504,12 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
                 composition_options,
                 transform,
                 |new_draw_target, transform| {
-                    new_draw_target.fill_rect(rect, style, composition_options, transform);
+                    new_draw_target.fill_rect(
+                        rect,
+                        self.resolve_style(style),
+                        composition_options,
+                        transform,
+                    );
                 },
             );
         } else {
@@ -538,7 +553,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
                 |new_draw_target, transform| {
                     new_draw_target.stroke_rect(
                         rect,
-                        style,
+                        self.resolve_style(style),
                         line_options,
                         composition_options,
                         transform,
@@ -701,10 +716,11 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         transform: Transform2D<f32>,
         draw_shape: F,
     ) where
-        F: FnOnce(&mut Self, FillOrStrokeStyle),
+        F: FnOnce(&mut Self, FillOrStrokeStyle<DrawTarget::SourceSurface>),
     {
         let x_bound = style.x_bound();
         let y_bound = style.y_bound();
+        let style = self.resolve_style(style);
         // Clear operations are also unbounded.
         if matches!(
             composition_options.composition_operation,
@@ -749,6 +765,29 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
 
     pub(crate) fn pop_clip(&mut self) {
         self.drawtarget.pop_clip();
+    }
+
+    pub(crate) fn create_surface_pattern(
+        &mut self,
+        surface_id: SurfaceId,
+        snapshot: Snapshot<ipc_channel::ipc::IpcSharedMemory>,
+    ) {
+        assert!(
+            self.pattern_surfaces
+                .insert(
+                    surface_id,
+                    self.drawtarget
+                        .create_source_surface_from_data(snapshot.to_owned())
+                        .unwrap()
+                )
+                .is_none()
+        )
+    }
+
+    pub(crate) fn drop_surface(&mut self, surface_id: SurfaceId) {
+        if self.pattern_surfaces.remove(&surface_id).is_none() {
+            warn!("Unable to remove non existing surface {surface_id:?}")
+        }
     }
 }
 

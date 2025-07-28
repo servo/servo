@@ -115,7 +115,7 @@ impl Convert<kurbo::Stroke> for LineOptions {
     }
 }
 
-impl Convert<peniko::Brush> for FillOrStrokeStyle {
+impl Convert<peniko::Brush> for FillOrStrokeStyle<peniko::Blob<u8>> {
     fn convert(self) -> peniko::Brush {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
         match self {
@@ -139,7 +139,25 @@ impl Convert<peniko::Brush> for FillOrStrokeStyle {
                 gradient.stops = style.stops.convert();
                 peniko::Brush::Gradient(gradient)
             },
-            Surface(surface_style) => {
+            Surface(surface_style) => peniko::Brush::Image(peniko::Image {
+                data: surface_style.surface_data,
+                format: peniko::ImageFormat::Rgba8,
+                width: surface_style.surface_size.width,
+                height: surface_style.surface_size.height,
+                x_extend: if surface_style.repeat_x {
+                    peniko::Extend::Repeat
+                } else {
+                    peniko::Extend::Pad
+                },
+                y_extend: if surface_style.repeat_y {
+                    peniko::Extend::Repeat
+                } else {
+                    peniko::Extend::Pad
+                },
+                quality: peniko::ImageQuality::Low,
+                alpha: 1.0,
+            }),
+            InPlaceSurface(surface_style) => {
                 let data = surface_style
                     .surface_data
                     .to_owned()

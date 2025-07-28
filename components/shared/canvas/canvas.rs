@@ -401,6 +401,9 @@ pub enum FillRule {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct SurfaceId(pub u64);
+
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CompositionOptions {
     pub alpha: f64,
@@ -484,8 +487,10 @@ pub enum Canvas2dMsg {
     ClearRect(Rect<f32>, Transform2D<f32>),
     ClipPath(Path, FillRule, Transform2D<f32>),
     PopClip,
+    CreateSurfacePattern(SurfaceId, IpcSnapshot),
+    DropSurfacePattern(SurfaceId),
     FillPath(
-        FillOrStrokeStyle,
+        FillOrStrokeStyle<SurfaceId>,
         Path,
         FillRule,
         ShadowOptions,
@@ -497,7 +502,7 @@ pub enum Canvas2dMsg {
         f64,
         f64,
         Option<f64>,
-        FillOrStrokeStyle,
+        FillOrStrokeStyle<SurfaceId>,
         bool,
         TextOptions,
         ShadowOptions,
@@ -506,7 +511,7 @@ pub enum Canvas2dMsg {
     ),
     FillRect(
         Rect<f32>,
-        FillOrStrokeStyle,
+        FillOrStrokeStyle<SurfaceId>,
         ShadowOptions,
         CompositionOptions,
         Transform2D<f32>,
@@ -516,7 +521,7 @@ pub enum Canvas2dMsg {
     PutImageData(Rect<u32>, IpcSnapshot),
     StrokeRect(
         Rect<f32>,
-        FillOrStrokeStyle,
+        FillOrStrokeStyle<SurfaceId>,
         LineOptions,
         ShadowOptions,
         CompositionOptions,
@@ -524,7 +529,7 @@ pub enum Canvas2dMsg {
     ),
     StrokePath(
         Path,
-        FillOrStrokeStyle,
+        FillOrStrokeStyle<SurfaceId>,
         LineOptions,
         ShadowOptions,
         CompositionOptions,
@@ -600,17 +605,17 @@ impl RadialGradientStyle {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct SurfaceStyle {
-    pub surface_data: IpcSnapshot,
+pub struct SurfaceStyle<T> {
+    pub surface_data: T,
     pub surface_size: Size2D<u32>,
     pub repeat_x: bool,
     pub repeat_y: bool,
     pub transform: Transform2D<f32>,
 }
 
-impl SurfaceStyle {
+impl<T> SurfaceStyle<T> {
     pub fn new(
-        surface_data: IpcSnapshot,
+        surface_data: T,
         surface_size: Size2D<u32>,
         repeat_x: bool,
         repeat_y: bool,
@@ -624,17 +629,44 @@ impl SurfaceStyle {
             transform,
         }
     }
+
+    pub fn map<U>(self, map: impl FnOnce(T) -> U) -> SurfaceStyle<U> {
+        SurfaceStyle {
+            surface_data: map(self.surface_data),
+            surface_size: self.surface_size,
+            repeat_x: self.repeat_x,
+            repeat_y: self.repeat_y,
+            transform: self.transform,
+        }
+    }
+
+    pub fn x_bound(&self) -> Option<u32> {
+        if self.repeat_x {
+            None
+        } else {
+            Some(self.surface_size.width)
+        }
+    }
+
+    pub fn y_bound(&self) -> Option<u32> {
+        if self.repeat_y {
+            None
+        } else {
+            Some(self.surface_size.height)
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum FillOrStrokeStyle {
+pub enum FillOrStrokeStyle<T = SurfaceId> {
     Color(AbsoluteColor),
     LinearGradient(LinearGradientStyle),
     RadialGradient(RadialGradientStyle),
-    Surface(SurfaceStyle),
+    Surface(SurfaceStyle<T>),
+    InPlaceSurface(SurfaceStyle<IpcSnapshot>),
 }
 
-impl FillOrStrokeStyle {
+impl<T> FillOrStrokeStyle<T> {
     pub fn is_zero_size_gradient(&self) -> bool {
         match self {
             Self::RadialGradient(pattern) => {
@@ -645,33 +677,33 @@ impl FillOrStrokeStyle {
             Self::LinearGradient(pattern) => {
                 (pattern.x0, pattern.y0) == (pattern.x1, pattern.y1) || pattern.stops.is_empty()
             },
-            Self::Color(..) | Self::Surface(..) => false,
+            Self::Color(..) | Self::Surface(..) | Self::InPlaceSurface(..) => false,
         }
     }
 
     pub fn x_bound(&self) -> Option<u32> {
         match self {
-            Self::Surface(pattern) => {
-                if pattern.repeat_x {
-                    None
-                } else {
-                    Some(pattern.surface_size.width)
-                }
-            },
+            Self::Surface(pattern) => pattern.x_bound(),
+            Self::InPlaceSurface(pattern) => pattern.x_bound(),
             Self::Color(..) | Self::LinearGradient(..) | Self::RadialGradient(..) => None,
         }
     }
 
     pub fn y_bound(&self) -> Option<u32> {
         match self {
-            Self::Surface(pattern) => {
-                if pattern.repeat_y {
-                    None
-                } else {
-                    Some(pattern.surface_size.height)
-                }
-            },
+            Self::Surface(pattern) => pattern.y_bound(),
+            Self::InPlaceSurface(pattern) => pattern.y_bound(),
             Self::Color(..) | Self::LinearGradient(..) | Self::RadialGradient(..) => None,
+        }
+    }
+
+    pub fn resolve_surface<U>(self, map: impl FnOnce(T) -> U) -> FillOrStrokeStyle<U> {
+        match self {
+            Self::Color(color) => FillOrStrokeStyle::Color(color),
+            Self::LinearGradient(gradient) => FillOrStrokeStyle::LinearGradient(gradient),
+            Self::RadialGradient(gradient) => FillOrStrokeStyle::RadialGradient(gradient),
+            Self::Surface(surface) => FillOrStrokeStyle::Surface(surface.map(map)),
+            Self::InPlaceSurface(surface) => FillOrStrokeStyle::InPlaceSurface(surface),
         }
     }
 }

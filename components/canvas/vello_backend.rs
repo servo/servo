@@ -155,7 +155,7 @@ impl VelloDrawTarget {
 }
 
 impl GenericDrawTarget for VelloDrawTarget {
-    type SourceSurface = Vec<u8>; // TODO: this should be texture
+    type SourceSurface = peniko::Blob<u8>; // TODO: this should be texture
 
     fn new(size: Size2D<u32>) -> Self {
         // TODO: we should read prefs instead of env
@@ -206,7 +206,12 @@ impl GenericDrawTarget for VelloDrawTarget {
         self.scene.pop_layer();
     }
 
-    fn copy_surface(&mut self, surface: Vec<u8>, source: Rect<i32>, destination: Point2D<i32>) {
+    fn copy_surface(
+        &mut self,
+        surface: Self::SourceSurface,
+        source: Rect<i32>,
+        destination: Point2D<i32>,
+    ) {
         let destination: kurbo::Point = destination.cast::<f64>().into();
         let rect = kurbo::Rect::from_origin_size(destination, source.size.cast());
 
@@ -225,7 +230,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             peniko::Fill::NonZero,
             kurbo::Affine::IDENTITY,
             &peniko::Image {
-                data: peniko::Blob::from(surface),
+                data: surface,
                 format: peniko::ImageFormat::Rgba8,
                 width: source.size.width as u32,
                 height: source.size.height as u32,
@@ -253,7 +258,7 @@ impl GenericDrawTarget for VelloDrawTarget {
 
     fn draw_surface(
         &mut self,
-        surface: Vec<u8>,
+        surface: Self::SourceSurface,
         dest: Rect<f64>,
         source: Rect<f64>,
         filter: Filter,
@@ -267,7 +272,7 @@ impl GenericDrawTarget for VelloDrawTarget {
                 peniko::Fill::NonZero,
                 transform.cast().into(),
                 &peniko::Image {
-                    data: peniko::Blob::from(surface),
+                    data: surface,
                     format: peniko::ImageFormat::Rgba8,
                     width: source.size.width as u32,
                     height: source.size.height as u32,
@@ -294,7 +299,7 @@ impl GenericDrawTarget for VelloDrawTarget {
 
     fn draw_surface_with_shadow(
         &self,
-        _surface: Vec<u8>,
+        _surface: Self::SourceSurface,
         _dest: &Point2D<f32>,
         _shadow_options: ShadowOptions,
         _composition_options: CompositionOptions,
@@ -312,7 +317,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         &mut self,
         path: &Path,
         fill_rule: FillRule,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
@@ -333,7 +338,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         &mut self,
         text_runs: Vec<TextRun>,
         start: Point2D<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
@@ -395,7 +400,7 @@ impl GenericDrawTarget for VelloDrawTarget {
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
@@ -439,7 +444,7 @@ impl GenericDrawTarget for VelloDrawTarget {
     fn stroke(
         &mut self,
         path: &Path,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         line_options: LineOptions,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
@@ -460,7 +465,7 @@ impl GenericDrawTarget for VelloDrawTarget {
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,
-        style: FillOrStrokeStyle,
+        style: FillOrStrokeStyle<Self::SourceSurface>,
         line_options: LineOptions,
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
@@ -530,17 +535,17 @@ impl GenericDrawTarget for VelloDrawTarget {
         })
     }
 
-    fn surface(&mut self) -> Vec<u8> {
-        self.snapshot().to_vec(None, None).0
+    fn surface(&mut self) -> Self::SourceSurface {
+        self.snapshot().to_vec(None, None).0.into()
     }
 
-    fn create_source_surface_from_data(&self, data: Snapshot) -> Option<Vec<u8>> {
+    fn create_source_surface_from_data(&self, data: Snapshot) -> Option<Self::SourceSurface> {
         let (data, _, _) = data.to_vec(
             Some(SnapshotAlphaMode::Transparent {
                 premultiplied: false,
             }),
             Some(SnapshotPixelFormat::RGBA),
         );
-        Some(data)
+        Some(data.into())
     }
 }
