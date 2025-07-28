@@ -259,10 +259,6 @@ impl CanvasState {
         })
     }
 
-    pub(crate) fn get_ipc_renderer(&self) -> &IpcSender<CanvasMsg> {
-        &self.ipc_renderer
-    }
-
     pub(crate) fn image_key(&self) -> ImageKey {
         self.image_key
     }
@@ -2194,6 +2190,14 @@ impl CanvasState {
             .borrow_mut()
             .ellipse(x, y, rx, ry, rotation, start, end, ccw)
             .map_err(|_| Error::IndexSize)
+    }
+}
+
+impl Drop for CanvasState {
+    fn drop(&mut self) {
+        if let Err(err) = self.ipc_renderer.send(CanvasMsg::Close(self.canvas_id)) {
+            warn!("Could not close canvas: {}", err)
+        }
     }
 }
 
