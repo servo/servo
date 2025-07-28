@@ -37,7 +37,7 @@ ProductName = "Servo"
 [features]
 crown = ["libservo/crown"]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "webgpu", "webxr", "raqote"]
+default = ["max_log_level", "webgpu", "webxr"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 max_log_level = ["log/release_max_level_info"]
