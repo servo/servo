@@ -557,7 +557,7 @@ impl Handler {
                 "Session already created",
             ));
         }
-
+        
         // Step 4. Let capabilities be the result of trying to process capabilities
         let mut servo_capabilities = ServoCapabilities::new();
         let processed_capabilities = parameters.match_browser(&mut servo_capabilities)?;

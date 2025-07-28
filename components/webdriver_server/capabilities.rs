@@ -27,7 +27,7 @@ impl ServoCapabilities {
             set_window_rect: true,
             strict_file_interactability: false,
             accept_proxy: false,
-            accept_custom: false,
+            accept_custom: true,
         }
     }
 }

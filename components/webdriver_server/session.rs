@@ -133,7 +133,7 @@ impl Handler {
         );
 
         // Step 10. Process any extension capabilities in capabilities in an implementation-defined manner
-        
+        // Nothing to processed
 
         // Step 11. Run any WebDriver new session algorithm defined in external specifications
         capabilities.insert(
