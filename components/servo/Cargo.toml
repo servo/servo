@@ -64,6 +64,7 @@ webgpu = [
 ]
 vello = ["constellation/vello"]
 vello_cpu = ["constellation/vello_cpu"]
+raqote = ["constellation/raqote"]
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }

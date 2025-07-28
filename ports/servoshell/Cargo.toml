@@ -37,7 +37,7 @@ ProductName = "Servo"
 [features]
 crown = ["libservo/crown"]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "webgpu", "webxr"]
+default = ["max_log_level", "webgpu", "webxr", "raqote"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 max_log_level = ["log/release_max_level_info"]
@@ -54,6 +54,7 @@ webgpu = ["libservo/webgpu"]
 webxr = ["libservo/webxr"]
 vello = ["libservo/vello"]
 vello_cpu = ["libservo/vello_cpu"]
+raqote = ["libservo/raqote"]
 
 [dependencies]
 cfg-if = { workspace = true }
