@@ -109,7 +109,7 @@ impl CanvasPaintThread {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
-        let canvas = Canvas::new(size, self.compositor_api.clone(), self.font_context.clone());
+        let canvas = Canvas::new(size, self.compositor_api.clone(), self.font_context.clone())?;
         let image_key = canvas.image_key();
         self.canvases.insert(canvas_id, canvas);
 
@@ -304,16 +304,33 @@ impl Canvas {
         size: Size2D<u64>,
         compositor_api: CrossProcessCompositorApi,
         font_context: Arc<FontContext>,
-    ) -> Self {
-        #[cfg(feature = "vello")]
-        if servo_config::pref!(dom_canvas_vello_enabled) {
-            return Self::Vello(CanvasData::new(size, compositor_api, font_context));
+    ) -> Option<Self> {
+        match servo_config::pref!(dom_canvas_backend)
+            .to_lowercase()
+            .as_str()
+        {
+            #[cfg(feature = "vello")]
+            "vello" => Some(Self::Vello(CanvasData::new(
+                size,
+                compositor_api,
+                font_context,
+            ))),
+            #[cfg(feature = "vello_cpu")]
+            "vello_cpu" => Some(Self::VelloCPU(CanvasData::new(
+                size,
+                compositor_api,
+                font_context,
+            ))),
+            "" | "auto" | "raqote" => Some(Self::Raqote(CanvasData::new(
+                size,
+                compositor_api,
+                font_context,
+            ))),
+            s => {
+                warn!("Unknown 2D canvas backend: `{s}`");
+                None
+            },
         }
-        #[cfg(feature = "vello_cpu")]
-        if servo_config::pref!(dom_canvas_vello_cpu_enabled) {
-            return Self::VelloCPU(CanvasData::new(size, compositor_api, font_context));
-        }
-        Self::Raqote(CanvasData::new(size, compositor_api, font_context))
     }
 
     fn image_key(&self) -> ImageKey {
