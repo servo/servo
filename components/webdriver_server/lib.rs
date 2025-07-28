@@ -8,6 +8,8 @@
 
 mod actions;
 mod capabilities;
+mod session;
+mod timeout;
 mod user_prompt;
 
 use std::borrow::ToOwned;
@@ -67,9 +69,9 @@ use webdriver::response::{
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{ActionItem, InputSourceState, PointerInputState};
-use crate::user_prompt::{
-    UserPromptHandler, default_unhandled_prompt_behavior, deserialize_unhandled_prompt_behaviour,
-};
+use crate::session::PageLoadStrategy;
+use crate::timeout::TimeoutsConfiguration;
+use crate::user_prompt::UserPromptHandler;
 
 #[derive(Default)]
 pub struct WebDriverMessageIdGenerator {
@@ -173,18 +175,9 @@ pub struct WebDriverSession {
     /// <https://www.w3.org/TR/webdriver2/#dfn-window-handles>
     window_handles: HashMap<WebViewId, String>,
 
-    /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
-    /// specifies that the script should run indefinitely.
-    script_timeout: Option<u64>,
+    timeouts: TimeoutsConfiguration,
 
-    /// Time to wait for a page to finish loading upon navigation.
-    load_timeout: u64,
-
-    /// Time to wait for the element location strategy when retrieving elements, and when
-    /// waiting for an element to become interactable.
-    implicit_wait_timeout: u64,
-
-    page_loading_strategy: String,
+    page_loading_strategy: PageLoadStrategy,
 
     strict_file_interactability: bool,
 
@@ -207,17 +200,11 @@ impl WebDriverSession {
             id: Uuid::new_v4(),
             webview_id,
             browsing_context_id,
-
             window_handles,
-
-            script_timeout: Some(30_000),
-            load_timeout: 300_000,
-            implicit_wait_timeout: 0,
-
-            page_loading_strategy: "normal".to_string(),
+            timeouts: TimeoutsConfiguration::default(),
+            page_loading_strategy: PageLoadStrategy::Normal,
             strict_file_interactability: false,
             user_prompt_handler: UserPromptHandler::new(),
-
             input_state_table: RefCell::new(HashMap::new()),
             input_cancel_list: RefCell::new(Vec::new()),
         }
@@ -562,143 +549,53 @@ impl Handler {
             thread::sleep(Duration::from_secs(seconds));
         }
 
-        let mut servo_capabilities = ServoCapabilities::new();
-        let processed_capabilities = parameters.match_browser(&mut servo_capabilities)?;
-
         // Step 1. If the list of active HTTP sessions is not empty
         // return error with error code session not created.
         if self.session.is_some() {
-            Err(WebDriverError::new(
+            return Err(WebDriverError::new(
                 ErrorStatus::SessionNotCreated,
                 "Session already created",
-            ))
-        } else {
-            match processed_capabilities {
-                Some(mut processed) => {
-                    let webview_id = self.focus_webview_id()?;
-                    let browsing_context_id = BrowsingContextId::from(webview_id);
-                    let mut session = WebDriverSession::new(browsing_context_id, webview_id);
+            ));
+        }
 
-                    match processed.get("pageLoadStrategy") {
-                        Some(strategy) => session.page_loading_strategy = strategy.to_string(),
-                        None => {
-                            processed.insert(
-                                "pageLoadStrategy".to_string(),
-                                json!(session.page_loading_strategy),
-                            );
-                        },
-                    }
+        // Step 2. Skip because the step is only applied to an intermediary node.
+        // Step 3. Skip since all sessions are http for now.
 
-                    match processed.get("strictFileInteractability") {
-                        Some(strict_file_interactability) => {
-                            session.strict_file_interactability =
-                                strict_file_interactability.as_bool().unwrap()
-                        },
-                        None => {
-                            processed.insert(
-                                "strictFileInteractability".to_string(),
-                                json!(session.strict_file_interactability),
-                            );
-                        },
-                    }
+        // Step 4. Let capabilities be the result of trying to process capabilities
+        let mut servo_capabilities = ServoCapabilities::new();
+        let processed_capabilities = parameters.match_browser(&mut servo_capabilities)?;
 
-                    match processed.get("proxy") {
-                        Some(_) => (),
-                        None => {
-                            processed.insert("proxy".to_string(), json!({}));
-                        },
-                    }
-
-                    if let Some(timeouts) = processed.get("timeouts") {
-                        if let Some(script_timeout_value) = timeouts.get("script") {
-                            session.script_timeout = script_timeout_value.as_u64();
-                        }
-                        if let Some(load_timeout_value) = timeouts.get("pageLoad") {
-                            if let Some(load_timeout) = load_timeout_value.as_u64() {
-                                session.load_timeout = load_timeout;
-                            }
-                        }
-                        if let Some(implicit_wait_timeout_value) = timeouts.get("implicit") {
-                            if let Some(implicit_wait_timeout) =
-                                implicit_wait_timeout_value.as_u64()
-                            {
-                                session.implicit_wait_timeout = implicit_wait_timeout;
-                            }
-                        }
-                    }
-                    processed.insert(
-                        "timeouts".to_string(),
-                        json!({
-                            "script": session.script_timeout,
-                            "pageLoad": session.load_timeout,
-                            "implicit": session.implicit_wait_timeout,
-                        }),
-                    );
-
-                    match processed.get("acceptInsecureCerts") {
-                        Some(_accept_insecure_certs) => {
-                            // FIXME do something here?
-                        },
-                        None => {
-                            processed.insert(
-                                "acceptInsecureCerts".to_string(),
-                                json!(servo_capabilities.accept_insecure_certs),
-                            );
-                        },
-                    }
-
-                    match processed.get("unhandledPromptBehavior") {
-                        Some(unhandled_prompt_behavior) => {
-                            session.user_prompt_handler = deserialize_unhandled_prompt_behaviour(
-                                unhandled_prompt_behavior.clone(),
-                            )?;
-                        },
-                        None => {
-                            processed.insert(
-                                "unhandledPromptBehavior".to_string(),
-                                json!(default_unhandled_prompt_behavior()),
-                            );
-                        },
-                    }
-
-                    processed.insert(
-                        "browserName".to_string(),
-                        json!(servo_capabilities.browser_name),
-                    );
-                    processed.insert(
-                        "browserVersion".to_string(),
-                        json!(servo_capabilities.browser_version),
-                    );
-                    processed.insert(
-                        "platformName".to_string(),
-                        json!(
-                            servo_capabilities
-                                .platform_name
-                                .unwrap_or("unknown".to_string())
-                        ),
-                    );
-                    processed.insert(
-                        "setWindowRect".to_string(),
-                        json!(servo_capabilities.set_window_rect),
-                    );
-                    processed.insert(
-                        "userAgent".to_string(),
-                        servo_config::pref!(user_agent).into(),
-                    );
-
-                    let response =
-                        NewSessionResponse::new(session.id.to_string(), Value::Object(processed));
-                    self.session = Some(session);
-                    Ok(WebDriverResponse::NewSession(response))
-                },
-                // Step 5. If capabilities's is null,
-                // return error with error code session not created.
-                None => Err(WebDriverError::new(
+        // Step 5. If capabilities's is null, return error with error code session not created.
+        let mut capabilities = match processed_capabilities {
+            Some(capabilities) => capabilities,
+            None => {
+                return Err(WebDriverError::new(
                     ErrorStatus::SessionNotCreated,
                     "Session not created due to invalid capabilities",
-                )),
-            }
-        }
+                ));
+            },
+        };
+
+        // Step 6. Create a session
+        // Step 8. Set session' current top-level browsing context
+        let webview_id = self.focus_webview_id()?;
+        let browsing_context_id = BrowsingContextId::from(webview_id);
+        // Create and append session to the handler
+        let session_id = self.create_session(
+            &mut capabilities,
+            &servo_capabilities,
+            webview_id,
+            browsing_context_id,
+        )?;
+
+        // Step 7. Let response be a JSON Object initialized with session's session ID and capabilities
+        let response = NewSessionResponse::new(session_id.to_string(), Value::Object(capabilities));
+
+        // Step 9. Set the request queue to a new queue.
+        // Skip here because the requests are handled in the external crate.
+
+        // Step 10. Return success with data body
+        Ok(WebDriverResponse::NewSession(response))
     }
 
     fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
@@ -798,7 +695,7 @@ impl Handler {
 
         // Step 1. If session's page loading strategy is "none",
         // return success with data null.
-        if session.page_loading_strategy == "none" {
+        if session.page_loading_strategy == PageLoadStrategy::None {
             return Ok(WebDriverResponse::Void);
         }
 
@@ -812,7 +709,7 @@ impl Handler {
         }
 
         // Step 3. let timeout be the session's page load timeout.
-        let timeout = self.session()?.load_timeout;
+        let timeout = self.session()?.timeouts.page_load;
 
         // TODO: Step 4. Implement timer parameter
 
@@ -1886,9 +1783,9 @@ impl Handler {
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         let timeouts = TimeoutsResponse {
-            script: session.script_timeout,
-            page_load: session.load_timeout,
-            implicit: session.implicit_wait_timeout,
+            script: session.timeouts.script,
+            page_load: session.timeouts.page_load,
+            implicit: session.timeouts.implicit_wait,
         };
 
         Ok(WebDriverResponse::Timeouts(timeouts))
@@ -1904,13 +1801,13 @@ impl Handler {
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         if let Some(timeout) = parameters.script {
-            session.script_timeout = timeout;
+            session.timeouts.script = timeout;
         }
         if let Some(timeout) = parameters.page_load {
-            session.load_timeout = timeout
+            session.timeouts.page_load = timeout
         }
         if let Some(timeout) = parameters.implicit {
-            session.implicit_wait_timeout = timeout
+            session.timeouts.implicit_wait = timeout
         }
 
         Ok(WebDriverResponse::Void)
@@ -2054,7 +1951,7 @@ impl Handler {
             .collect();
         args_string.push("resolve".to_string());
 
-        let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
+        let timeout_script = if let Some(script_timeout) = self.session()?.timeouts.script {
             format!("setTimeout(webdriverTimeout, {});", script_timeout)
         } else {
             "".into()
