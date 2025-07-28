@@ -135,11 +135,6 @@ pub use crate::webview_delegate::{
     PermissionRequest, SelectElement, WebResourceLoad, WebViewDelegate,
 };
 
-#[cfg(feature = "webdriver")]
-fn webdriver(port: u16, constellation: Sender<EmbedderToConstellationMessage>) {
-    webdriver_server::start_server(port, constellation);
-}
-
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
     #[cfg(any(windows, target_os = "macos"))]
