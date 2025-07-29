@@ -808,7 +808,11 @@ class MachCommands(CommandBase):
             return 1
 
         try_string = " ".join(try_strings)
-        config = servo.try_parser.Config(try_string)
+        try:
+            config = servo.try_parser.Config(try_string)
+        except ValueError as err:
+            print(f"Failed to parse `try` config because of {err}")
+            return 1
         print(f"Trying on {remote} ({remote_url}) with following configuration:")
         print()
         print(textwrap.indent(config.to_json(indent=2), prefix="  "))
