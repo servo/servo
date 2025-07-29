@@ -170,7 +170,7 @@ pub trait BackgroundHangMonitorRegister: BackgroundHangMonitorClone + Send {
         component: MonitoredComponentId,
         transient_hang_timeout: Duration,
         permanent_hang_timeout: Duration,
-        exit_signal: Option<Box<dyn BackgroundHangMonitorExitSignal>>,
+        exit_signal: Box<dyn BackgroundHangMonitorExitSignal>,
     ) -> Box<dyn BackgroundHangMonitor>;
 }
 

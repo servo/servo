@@ -892,7 +892,7 @@ impl ScriptThread {
             MonitoredComponentId(state.id, MonitoredComponentType::Script),
             Duration::from_millis(1000),
             Duration::from_millis(5000),
-            Some(Box::new(background_hang_monitor_exit_signal)),
+            Box::new(background_hang_monitor_exit_signal),
         );
 
         let (image_cache_sender, image_cache_receiver) = unbounded();
