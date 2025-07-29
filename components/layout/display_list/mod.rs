@@ -14,7 +14,7 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
-use layout_api::{HitTestResult, ReflowRequest};
+use layout_api::{HitTestFlags, HitTestResult, HitTestResultItem, ReflowRequest};
 use log::debug;
 use net_traits::image_cache::Image as CachedImage;
 use range::Range as ServoRange;
@@ -967,10 +967,17 @@ impl Fragment {
     pub(crate) fn hit_test_fragment(
         &self,
         hit_test_location: LayoutPoint,
+        hit_test_flags: &HitTestFlags,
         hit_test_result: &mut HitTestResult,
         containing_block: &PhysicalRect<Au>,
         is_hit_test_for_scrollable_overflow: bool,
     ) -> bool {
+        // if is hit test for scrollable, but this fragment is not scrollable, return false.
+        if hit_test_flags.contains(HitTestFlags::FOR_SCROLLABLE_OVERFLOW) &&
+            !is_hit_test_for_scrollable_overflow
+        {
+            return false;
+        }
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
                 debug!(
@@ -985,6 +992,7 @@ impl Fragment {
                             .translate(containing_block.origin.to_vector());
                         self.hit_test_fragment_in_rect(
                             hit_test_location,
+                            hit_test_flags,
                             hit_test_result,
                             webrender_border_rect,
                             &box_fragment.style,
@@ -1002,6 +1010,7 @@ impl Fragment {
                     .translate(containing_block.origin.to_vector());
                 self.hit_test_fragment_in_rect(
                     hit_test_location,
+                    hit_test_flags,
                     hit_test_result,
                     rect,
                     &positioning_fragment.style,
@@ -1022,6 +1031,7 @@ impl Fragment {
                         let parent_style = text.inline_styles.style.borrow();
                         self.hit_test_fragment_in_rect(
                             hit_test_location,
+                            hit_test_flags,
                             hit_test_result,
                             rect,
                             &parent_style,
@@ -1038,6 +1048,7 @@ impl Fragment {
     pub(crate) fn hit_test_fragment_in_rect(
         &self,
         hit_test_location: LayoutPoint,
+        hit_test_flags: &HitTestFlags,
         hit_test_result: &mut HitTestResult,
         border_rect: PhysicalRect<Au>,
         style: &ComputedValues,
@@ -1075,14 +1086,15 @@ impl Fragment {
             if border_radius.is_zero() {
                 // if not has border radius hit test in rect.
                 if webrender_border_rect.contains(hit_test_location) {
-                    hit_test_result.node = Some(tag.node);
-                    hit_test_result.point_in_target =
-                        hit_test_location - webrender_border_rect.min.to_vector();
+                    let point_in_target = hit_test_location - webrender_border_rect.min.to_vector();
                     debug!(
-                        "Fragment::hit_test_fragment_in_rect true point_in_target:{:?}",
-                        hit_test_result.point_in_target
+                        "Fragment::hit_test_fragment_in_rect true point_in_target:{point_in_target:?}"
                     );
-                    return true;
+                    hit_test_result.items.push(HitTestResultItem {
+                        opaque_node: tag.node,
+                        point_in_target,
+                    });
+                    return !hit_test_flags.contains(HitTestFlags::FIND_ALL);
                 }
             } else {
                 // if has border radius, handle clip region.
@@ -1091,14 +1103,15 @@ impl Fragment {
                     &webrender_border_rect,
                     &border_radius,
                 ) {
-                    hit_test_result.node = Some(tag.node);
-                    hit_test_result.point_in_target =
-                        hit_test_location - webrender_border_rect.min.to_vector();
+                    let point_in_target = hit_test_location - webrender_border_rect.min.to_vector();
                     debug!(
-                        "Fragment::hit_test_fragment_in_rect true point_in_target:{:?}",
-                        hit_test_result.point_in_target
+                        "Fragment::hit_test_fragment_in_rect true point_in_target:{point_in_target:?}"
                     );
-                    return true;
+                    hit_test_result.items.push(HitTestResultItem {
+                        opaque_node: tag.node,
+                        point_in_target,
+                    });
+                    return !hit_test_flags.contains(HitTestFlags::FIND_ALL);
                 }
             }
         }

@@ -32,9 +32,9 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
-    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
-    WebDriverJSResult, WebDriverLoadStatus,
+    AlertResponse, CompositorHitTestResult, ConfirmResponse, EmbedderMsg, GamepadEvent,
+    GamepadSupportedHapticEffects, GamepadUpdateType, PromptResponse, SimpleDialog, Theme,
+    ViewportDetails, WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -51,9 +51,9 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    FragmentType, HitTestResult, Layout, PendingImage, PendingImageState,
-    PendingRasterizationImage, QueryMsg, ReflowGoal, ReflowRequest, ReflowRequestRestyle,
-    RestyleReason, TrustedNodeAddress, combine_id_with_fragment_type,
+    FragmentType, HitTestFlags, Layout, PendingImage, PendingImageState, PendingRasterizationImage,
+    QueryMsg, ReflowGoal, ReflowRequest, ReflowRequestRestyle, RestyleReason, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -3062,12 +3062,16 @@ impl Window {
         }
     }
 
-    pub(crate) fn hit_test(&self, hit_test_location: DevicePoint) -> HitTestResult {
+    pub(crate) fn hit_test(
+        &self,
+        hit_test_location: DevicePoint,
+        flags: HitTestFlags,
+    ) -> Vec<CompositorHitTestResult> {
         // div device_pixel_ratio.
         let dpr = self.device_pixel_ratio();
         let hit_test_css_point = hit_test_location / dpr;
         let hit_test_layout_point = LayoutPoint::from_untyped(hit_test_css_point.to_untyped());
-        self.layout.borrow().hit_test(hit_test_layout_point)
+        self.layout.borrow().hit_test(hit_test_layout_point, flags)
     }
 }
 

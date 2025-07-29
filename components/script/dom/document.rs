@@ -43,9 +43,9 @@ use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use keyboard_types::{Code, Key, KeyState, Modifiers};
 use layout_api::{
-    PendingRestyle, ReflowGoal, RestyleReason, TrustedNodeAddress, node_id_from_scroll_id,
+    HitTestFlags, PendingRestyle, ReflowGoal, RestyleReason, TrustedNodeAddress,
+    node_id_from_scroll_id,
 };
-use libc::c_void;
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -1620,28 +1620,12 @@ impl Document {
         }
     }
 
-    #[allow(unsafe_code)]
     fn hit_test(&self, hit_test_location: DevicePoint) -> Option<CompositorHitTestResult> {
         // hit test
-        let hit_test_result = self.window().hit_test(hit_test_location);
-        if let Some(opaque_node) = hit_test_result.node {
-            let node_addr = UntrustedNodeAddress(opaque_node.0 as *const c_void);
-            Some(CompositorHitTestResult {
-                pipeline_id: self.window.pipeline_id(),
-                point_in_viewport: Point2D::from_untyped(hit_test_result.client_point.to_untyped()),
-                point_relative_to_initial_containing_block: Point2D::from_untyped(
-                    hit_test_result.page_point.to_untyped(),
-                ),
-                point_relative_to_item: Point2D::from_untyped(
-                    hit_test_result.point_in_target.to_untyped(),
-                ),
-                node: node_addr,
-                cursor: None,
-                scroll_tree_node: base::id::ScrollTreeNodeId { index: 1 },
-            })
-        } else {
-            None
-        }
+        let hit_test_result = self
+            .window()
+            .hit_test(hit_test_location, HitTestFlags::empty());
+        hit_test_result.first().cloned()
     }
 
     /// <https://www.w3.org/TR/uievents/#maybe-show-context-menu>

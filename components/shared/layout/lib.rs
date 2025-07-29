@@ -23,7 +23,7 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::LoadData;
-use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{CompositorHitTestResult, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -202,16 +202,33 @@ pub struct LayoutConfig {
 
 #[derive(Debug, Default)]
 pub struct HitTestResult {
-    /// hit test target node
-    pub node: Option<OpaqueNode>,
+    /// List of items that are match the hit-test query.
+    pub items: Vec<HitTestResultItem>,
     /// point in html page
     pub page_point: LayoutPoint,
     /// point in window client
     pub client_point: LayoutPoint,
+}
+
+/// Describe an item that matched a hit-test query.
+#[derive(Debug)]
+pub struct HitTestResultItem {
+    /// hit test target node
+    pub opaque_node: OpaqueNode,
     /// point in the target item.
     pub point_in_target: LayoutPoint,
 }
 
+bitflags! {
+    pub struct HitTestFlags: u8 {
+        /// find all targets flag
+        const FIND_ALL = 0b00000001;
+        /// hit test point is page point.
+        const POINT_RELATIVE_TO_PIPELINE_VIEWPORT = 0b00000010;
+        /// find scrollable element flag
+        const FOR_SCROLLABLE_OVERFLOW = 0b00000100;
+    }
+}
 pub trait LayoutFactory: Send + Sync {
     fn create(&self, config: LayoutConfig) -> Box<dyn Layout>;
 }
@@ -298,7 +315,11 @@ pub trait Layout {
     ) -> Option<ServoArc<Font>>;
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
     fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
-    fn hit_test(&self, hit_test_location: LayoutPoint) -> HitTestResult;
+    fn hit_test(
+        &self,
+        hit_test_location: LayoutPoint,
+        flags: HitTestFlags,
+    ) -> Vec<CompositorHitTestResult>;
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`

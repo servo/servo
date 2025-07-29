@@ -18,7 +18,7 @@ use compositing_traits::display_list::{
 use embedder_traits::ViewportDetails;
 use euclid::SideOffsets2D;
 use euclid::default::{Point2D, Rect, Size2D};
-use layout_api::HitTestResult;
+use layout_api::{HitTestFlags, HitTestResult};
 use log::{debug, warn};
 use servo_config::opts::DebugOptions;
 use style::Zero;
@@ -74,6 +74,8 @@ pub(crate) struct ContainingBlock {
 pub(crate) struct HitTestData<'a> {
     /// hit test location
     client_point: LayoutPoint,
+    /// hit test flags
+    flags: HitTestFlags,
     /// we need scroll_tree and clip_store in StackingContextTree
     stacking_context_tree: &'a StackingContextTree,
 }
@@ -81,10 +83,12 @@ pub(crate) struct HitTestData<'a> {
 impl<'a> HitTestData<'a> {
     pub(crate) fn new(
         client_point: LayoutPoint,
+        flags: HitTestFlags,
         stacking_context_tree: &'a StackingContextTree,
     ) -> Self {
         HitTestData {
             client_point,
+            flags,
             stacking_context_tree,
         }
     }
@@ -512,6 +516,7 @@ impl StackingContextContent {
                     let hit_test_location = handle_spatial_node(hit_test_data, scroll_node_id);
                     fragment.hit_test_fragment(
                         hit_test_location,
+                        &hit_test_data.flags,
                         hit_test_result,
                         containing_block,
                         *is_hit_test_for_scrollable_overflow,

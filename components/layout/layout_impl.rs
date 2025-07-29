@@ -17,7 +17,7 @@ use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use compositing_traits::display_list::ScrollType;
-use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{CompositorHitTestResult, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D};
 use fnv::FnvHashMap;
@@ -478,7 +478,11 @@ impl Layout for LayoutThread {
             .and_then(|tree| tree.compositor_info.scroll_tree.scroll_offset(id))
     }
 
-    fn hit_test(&self, hit_test_location: LayoutPoint) -> HitTestResult {
+    fn hit_test(
+        &self,
+        hit_test_location: LayoutPoint,
+        flags: layout_api::HitTestFlags,
+    ) -> Vec<CompositorHitTestResult> {
         let mut hit_test_result = HitTestResult::default();
         if !self.need_new_display_list.get() {
             if let Some(stacking_context_tree) = self.stacking_context_tree.borrow().as_ref() {
@@ -487,17 +491,42 @@ impl Layout for LayoutThread {
                     .scroll_tree
                     .scroll_offset(self.id.root_scroll_id())
                     .unwrap_or_default();
-                // The page_point in the hit test result is only related to the scroll offset of the root node.
-                hit_test_result.page_point = hit_test_location + root_scroll_offset;
-                // The client_point in the test result will not be modified.
-                hit_test_result.client_point = hit_test_location;
-                let mut hit_test_data = HitTestData::new(hit_test_location, stacking_context_tree);
+                if flags.contains(layout_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT) {
+                    // The page_point is same as hit_test_location.
+                    hit_test_result.page_point = hit_test_location;
+                    // The client_point is page_point minus the offset of the root node.
+                    hit_test_result.client_point = hit_test_location - root_scroll_offset;
+                } else {
+                    // The page_point in the hit test result is only related to the scroll offset of the root node.
+                    hit_test_result.page_point = hit_test_location + root_scroll_offset;
+                    // The client_point in the test result will not be modified.
+                    hit_test_result.client_point = hit_test_location;
+                }
+                let mut hit_test_data =
+                    HitTestData::new(hit_test_result.client_point, flags, stacking_context_tree);
                 stacking_context_tree
                     .root_stacking_context
                     .hit_test_stacking_context(&mut hit_test_data, &mut hit_test_result);
             }
         }
         hit_test_result
+            .items
+            .iter()
+            .map(|hit_test_item| CompositorHitTestResult {
+                pipeline_id: self.id,
+                point_in_viewport: Point2D::from_untyped(hit_test_result.client_point.to_untyped()),
+                point_relative_to_initial_containing_block: Point2D::from_untyped(
+                    hit_test_result.page_point.to_untyped(),
+                ),
+                point_relative_to_item: Point2D::from_untyped(
+                    hit_test_item.point_in_target.to_untyped(),
+                ),
+                node: UntrustedNodeAddress::from_id(hit_test_item.opaque_node.0),
+                cursor: None,
+                // TODO: if hit test scrollable elememt save its scroll node id.
+                scroll_tree_node: base::id::ScrollTreeNodeId { index: 1 },
+            })
+            .collect()
     }
 }
 
