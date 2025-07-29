@@ -71,8 +71,9 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                         [
                             Source("srcScript", f"{self.base_urls[0]}/classic.js"),
                             Source("inlineScript", f"{self.base_urls[0]}/test.html"),
-                            Source("srcScript", f"{self.base_urls[1]}/classic.js"),
                             Source("inlineScript", f"{self.base_urls[0]}/test.html"),
+                            Source("srcScript", f"{self.base_urls[1]}/classic.js"),
+                            Source("importedModule", f"{self.base_urls[0]}/module.js"),
                         ]
                     ),
                     tuple([Source("Worker", f"{self.base_urls[0]}/classic_worker.js")]),
@@ -116,7 +117,6 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     # Sources list for `introductionType` = `importedModule`
 
-    @unittest.expectedFailure
     def test_sources_list_with_static_import_module(self):
         self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
         self.run_servoshell(url=f"{self.base_urls[0]}/test_sources_list_with_static_import_module.html")
@@ -135,7 +135,6 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-    @unittest.expectedFailure
     def test_sources_list_with_dynamic_import_module(self):
         self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
         self.run_servoshell(url=f"{self.base_urls[0]}/test_sources_list_with_dynamic_import_module.html")
@@ -194,6 +193,302 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                     ),
                 ]
             ),
+        )
+
+    # Sources list for `introductionType` set to values that require `displayURL` (`//# sourceURL`)
+
+    def test_sources_list_with_injected_script_write_and_display_url(self):
+        self.run_servoshell(
+            url='data:text/html,<script>document.write("<script>//%23 sourceURL=http://test</scr"+"ipt>")</script>'
+        )
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source(
+                                "inlineScript",
+                                'data:text/html,<script>document.write("<script>//%23 sourceURL=http://test</scr"+"ipt>")</script>',
+                            ),
+                            Source("injectedScript", "http://test/"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_injected_script_write_but_no_display_url(self):
+        self.run_servoshell(url='data:text/html,<script>document.write("<script>1</scr"+"ipt>")</script>')
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source(
+                                "inlineScript",
+                                'data:text/html,<script>document.write("<script>1</scr"+"ipt>")</script>',
+                            ),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_injected_script_append_and_display_url(self):
+        script = 's=document.createElement("script");s.append("//%23 sourceURL=http://test");document.body.append(s)'
+        self.run_servoshell(url=f"data:text/html,<body><script>{script}</script>")
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source(
+                                "inlineScript",
+                                f"data:text/html,<body><script>{script}</script>",
+                            ),
+                            Source("injectedScript", "http://test/"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_injected_script_append_but_no_display_url(self):
+        script = 's=document.createElement("script");s.append("1");document.body.append(s)'
+        self.run_servoshell(url=f"data:text/html,<body><script>{script}</script>")
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source(
+                                "inlineScript",
+                                f"data:text/html,<body><script>{script}</script>",
+                            ),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_eval_and_display_url(self):
+        self.run_servoshell(url='data:text/html,<script>eval("//%23 sourceURL=http://test")</script>')
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source(
+                                "inlineScript", 'data:text/html,<script>eval("//%23 sourceURL=http://test")</script>'
+                            ),
+                            Source("eval", "http://test/"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_eval_but_no_display_url(self):
+        self.run_servoshell(url='data:text/html,<script>eval("1")</script>')
+        self.assert_sources_list(set([tuple([Source("inlineScript", 'data:text/html,<script>eval("1")</script>')])]))
+
+    def test_sources_list_with_debugger_eval_and_display_url(self):
+        pass
+
+    def test_sources_list_with_debugger_eval_but_no_display_url(self):
+        pass
+
+    def test_sources_list_with_function_and_display_url(self):
+        self.run_servoshell(url='data:text/html,<script>new Function("//%23 sourceURL=http://test")</script>')
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source(
+                                "inlineScript",
+                                'data:text/html,<script>new Function("//%23 sourceURL=http://test")</script>',
+                            ),
+                            Source("Function", "http://test/"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_function_but_no_display_url(self):
+        self.run_servoshell(url='data:text/html,<script>new Function("1")</script>')
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source("inlineScript", 'data:text/html,<script>new Function("1")</script>'),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_javascript_url_and_display_url(self):
+        # “1” prefix is a workaround for <https://github.com/servo/servo/issues/38547>
+        self.run_servoshell(
+            url='data:text/html,<a href="javascript:1//%23 sourceURL=http://test"></a><script>document.querySelector("a").click()</script>'
+        )
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source(
+                                "inlineScript",
+                                'data:text/html,<a href="javascript:1//%23 sourceURL=http://test"></a><script>document.querySelector("a").click()</script>',
+                            ),
+                            Source("javascriptURL", "http://test/"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_javascript_url_but_no_display_url(self):
+        self.run_servoshell(url='data:text/html,<a href="javascript:1"></a>')
+        self.assert_sources_list(set([tuple([])]))
+
+    @unittest.expectedFailure
+    def test_sources_list_with_event_handler_and_display_url(self):
+        self.run_servoshell(url='data:text/html,<a onclick="//%23 sourceURL=http://test"></a>')
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source("eventHandler", "http://test/"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_event_handler_but_no_display_url(self):
+        self.run_servoshell(url='data:text/html,<a onclick="1"></a>')
+        self.assert_sources_list(set([tuple([])]))
+
+    @unittest.expectedFailure
+    def test_sources_list_with_dom_timer_and_display_url(self):
+        self.run_servoshell(url='data:text/html,<script>setTimeout("//%23 sourceURL=http://test",0)</script>')
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source("domTimer", "http://test/"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    @unittest.expectedFailure
+    def test_sources_list_with_dom_timer_but_no_display_url(self):
+        self.run_servoshell(url='data:text/html,<script>setTimeout("1",0)</script>')
+        self.assert_sources_list(set([tuple([])]))
+
+    # Sources list for scripts with `displayURL` (`//# sourceURL`), despite not being required by `introductionType`
+
+    def test_sources_list_with_inline_script_and_display_url(self):
+        self.run_servoshell(url="data:text/html,<script>//%23 sourceURL=http://test</script>")
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source("inlineScript", "http://test/"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    # Extra test case for situation where `//# sourceURL` can’t be parsed with page url as base.
+    def test_sources_list_with_inline_script_but_invalid_display_url(self):
+        self.run_servoshell(url="data:text/html,<script>//%23 sourceURL=test</script>")
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source("inlineScript", "data:text/html,<script>//%23 sourceURL=test</script>"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    def test_sources_list_with_inline_script_but_no_display_url(self):
+        self.run_servoshell(url="data:text/html,<script>1</script>")
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source("inlineScript", "data:text/html,<script>1</script>"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    # Sources list for inline scripts in `<iframe srcdoc>`
+
+    @unittest.expectedFailure
+    def test_sources_list_with_iframe_srcdoc_and_display_url(self):
+        self.run_servoshell(url='data:text/html,<iframe srcdoc="<script>//%23 sourceURL=http://test</script>">')
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source("inlineScript", "http://test/"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    @unittest.expectedFailure
+    def test_sources_list_with_iframe_srcdoc_but_no_display_url(self):
+        self.run_servoshell(url='data:text/html,<iframe srcdoc="<script>1</script>">')
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            # FIXME: it’s not really gonna be 0
+                            Source("inlineScript", "about:srcdoc#0"),
+                        ]
+                    )
+                ]
+            )
+        )
+
+    @unittest.expectedFailure
+    def test_sources_list_with_iframe_srcdoc_multiple_inline_scripts(self):
+        self.run_servoshell(
+            url='data:text/html,<iframe srcdoc="<script>//%23 sourceURL=http://test</script><script>2</script>">'
+        )
+        self.assert_sources_list(
+            set(
+                [
+                    tuple(
+                        [
+                            Source("inlineScript", "http://test/"),
+                            # FIXME: it’s not really gonna be 0
+                            Source("inlineScript", "about:srcdoc#0"),
+                        ]
+                    )
+                ]
+            )
         )
 
     # Source contents

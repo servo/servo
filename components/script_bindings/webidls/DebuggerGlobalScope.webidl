@@ -6,4 +6,21 @@
 // web pages.
 [Global=DebuggerGlobalScope, Exposed=DebuggerGlobalScope]
 interface DebuggerGlobalScope: GlobalScope {
+    undefined notifyNewSource(NotifyNewSource args);
+};
+
+// http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
+dictionary NotifyNewSource {
+    required PipelineIdInit pipelineId;
+    required DOMString? workerId;
+    required unsigned long spidermonkeyId;
+    required DOMString url;
+    required DOMString? urlOverride;
+    required DOMString text;
+    required DOMString? introductionType;
+};
+
+dictionary PipelineIdInit {
+    required unsigned long namespaceId;
+    required unsigned long index;
 };

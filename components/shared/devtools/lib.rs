@@ -598,8 +598,9 @@ impl fmt::Display for ShadowRootMode {
 pub struct SourceInfo {
     pub url: ServoUrl,
     pub introduction_type: String,
-    pub external: bool,
+    pub inline: bool,
     pub worker_id: Option<WorkerId>,
     pub content: Option<String>,
     pub content_type: Option<String>,
+    pub spidermonkey_id: u32,
 }
