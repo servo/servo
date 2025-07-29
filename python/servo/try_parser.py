@@ -197,6 +197,7 @@ class Config(object):
             input = "full"
 
         words: list[str] = input.split(" ")
+        invalid_words: list[str] = list()
 
         for word in words:
             # Handle keywords.
@@ -220,9 +221,13 @@ class Config(object):
             job = handle_preset(word)
             job = handle_modifier(job, word)
             if job is None:
+                invalid_words.append(word)
                 print(f"Ignoring unknown preset {word}")
             else:
                 self.add_or_merge_job_to_matrix(job)
+
+        if len(invalid_words) > 0:
+            raise ValueError(f"Invalid `try` argument: {', '.join(invalid_words)}")
 
     def add_or_merge_job_to_matrix(self, job: JobConfig) -> None:
         for existing_job in self.matrix:
