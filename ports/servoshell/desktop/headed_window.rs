@@ -58,9 +58,6 @@ use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     screen_size: Size2D<u32, DeviceIndependentPixel>,
-    /// The inner size of the window in physical pixels which excludes OS decorations.
-    /// It equals viewport size + (0, toolbar height).
-    inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     monitor: winit::monitor::MonitorHandle,
     webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
@@ -72,11 +69,6 @@ pub struct Window {
     device_pixel_ratio_override: Option<f32>,
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
     modifiers_state: Cell<ModifiersState>,
-
-    /// The RenderingContext that renders directly onto the Window. This is used as
-    /// the target of egui rendering and also where Servo rendering results are finally
-    /// blitted.
-    window_rendering_context: Rc<WindowRenderingContext>,
 
     /// The `RenderingContext` of Servo itself. This is used to render Servo results
     /// temporarily until they can be blitted into the egui scene.
@@ -166,14 +158,12 @@ impl Window {
             last_pressed: Cell::new(None),
             keys_down: RefCell::new(HashMap::new()),
             fullscreen: Cell::new(false),
-            inner_size: Cell::new(inner_size),
             monitor,
             screen_size,
             device_pixel_ratio_override: servoshell_preferences.device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
-            window_rendering_context,
             rendering_context,
         }
     }
@@ -680,13 +670,6 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::CloseRequested => {
                 state.servo().start_shutting_down();
-            },
-            WindowEvent::Resized(new_inner_size) => {
-                if self.inner_size.get() != new_inner_size {
-                    self.inner_size.set(new_inner_size);
-                    // `WebView::move_resize` was already called in `Minibrowser::update`.
-                    self.window_rendering_context.resize(new_inner_size);
-                }
             },
             WindowEvent::ThemeChanged(theme) => {
                 webview.notify_theme_change(match theme {
