@@ -590,6 +590,8 @@ pub(crate) mod testworkletglobalscope;
 pub(crate) mod text;
 pub(crate) mod textcontrol;
 pub(crate) mod textdecoder;
+pub(crate) mod textdecodercommon;
+pub(crate) mod textdecoderstream;
 pub(crate) mod textencoder;
 pub(crate) mod textmetrics;
 pub(crate) mod texttrack;

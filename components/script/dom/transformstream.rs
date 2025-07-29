@@ -36,6 +36,7 @@ use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_alg
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{ReadableStream, create_readable_stream};
+use crate::dom::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::PromiseNativeHandler;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::writablestream::create_writable_stream;
@@ -436,6 +437,60 @@ impl TransformStream {
         )
     }
 
+    /// Creates and set up the newly created transform stream following
+    /// <https://streams.spec.whatwg.org/#transformstream-set-up>
+    pub(crate) fn set_up(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        transformer_type: TransformerType,
+        can_gc: CanGc,
+    ) -> Fallible<()> {
+        // Step1. Let writableHighWaterMark be 1.
+        let writable_high_water_mark = 1.0;
+
+        // Step 2. Let writableSizeAlgorithm be an algorithm that returns 1.
+        let writable_size_algorithm = extract_size_algorithm(&Default::default(), can_gc);
+
+        // Step 3. Let readableHighWaterMark be 0.
+        let readable_high_water_mark = 0.0;
+
+        // Step 4. Let readableSizeAlgorithm be an algorithm that returns 1.
+        let readable_size_algorithm = extract_size_algorithm(&Default::default(), can_gc);
+
+        // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+        // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+        // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+        // NOTE: These steps are implemented in `TransformStreamDefaultController::new`
+
+        // Step 8. Let startPromise be a promise resolved with undefined.
+        let start_promise = Promise::new_resolved(global, cx, (), can_gc);
+
+        // Step 9. Perform ! InitializeTransformStream(stream, startPromise,
+        // writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark,
+        // readableSizeAlgorithm).
+        self.initialize(
+            cx,
+            global,
+            start_promise.clone(),
+            writable_high_water_mark,
+            writable_size_algorithm,
+            readable_high_water_mark,
+            readable_size_algorithm,
+            can_gc,
+        )?;
+
+        // Step 10. Let controller be a new TransformStreamDefaultController.
+        let controller = TransformStreamDefaultController::new(global, transformer_type, can_gc);
+
+        // Step 11. Perform ! SetUpTransformStreamDefaultController(stream,
+        // controller, transformAlgorithmWrapper, flushAlgorithmWrapper,
+        // cancelAlgorithmWrapper).
+        self.set_up_transform_stream_default_controller(&controller);
+
+        Ok(())
+    }
+
     pub(crate) fn get_controller(&self) -> DomRoot<TransformStreamDefaultController> {
         self.controller.get().expect("controller is not set")
     }
@@ -568,7 +623,8 @@ impl TransformStream {
         can_gc: CanGc,
     ) {
         // Let controller be a new TransformStreamDefaultController.
-        let controller = TransformStreamDefaultController::new(global, transformer, can_gc);
+        let transformer_type = TransformerType::new_from_js_transformer(transformer);
+        let controller = TransformStreamDefaultController::new(global, transformer_type, can_gc);
 
         // Let transformAlgorithm be the following steps, taking a chunk argument:
         // Let result be TransformStreamDefaultControllerEnqueue(controller, chunk).
@@ -892,6 +948,7 @@ impl TransformStream {
     }
 }
 
+#[allow(non_snake_case)]
 impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
     /// <https://streams.spec.whatwg.org/#ts-constructor>
     #[allow(unsafe_code)]
