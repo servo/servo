@@ -27,10 +27,10 @@ use kurbo::Shape as _;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use range::Range;
 use vello::wgpu::{
-    BackendOptions, Backends, BufferDescriptor, BufferUsages, CommandEncoderDescriptor, Device,
-    Extent3d, Instance, InstanceDescriptor, InstanceFlags, MapMode, Queue, TexelCopyBufferInfo,
-    TexelCopyBufferLayout, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-    TextureViewDescriptor,
+    BackendOptions, Backends, Buffer, BufferDescriptor, BufferUsages, CommandEncoderDescriptor,
+    Device, Extent3d, Instance, InstanceDescriptor, InstanceFlags, MapMode, Queue,
+    TexelCopyBufferInfo, TexelCopyBufferLayout, Texture, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
 };
 use vello::{kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
@@ -53,6 +53,7 @@ pub(crate) struct VelloDrawTarget {
     scene: vello::Scene,
     size: Size2D<u32>,
     clips: Vec<Path>,
+    downloader: GPUTextureDownloader,
 }
 
 fn options() -> vello::RendererOptions {
@@ -61,6 +62,96 @@ fn options() -> vello::RendererOptions {
         num_init_threads: NonZeroUsize::new(1),
         antialiasing_support: vello::AaSupport::area_only(),
         pipeline_cache: None,
+    }
+}
+
+#[derive(Clone, Debug)]
+struct GPUTextureDownloader {
+    device: Device,
+    queue: Queue,
+    texture: Texture,
+    texture_view: TextureView,
+    buffer: Buffer,
+    padded_byte_width: u32,
+    size: Extent3d,
+}
+
+impl GPUTextureDownloader {
+    fn new(device: &Device, queue: &Queue, size: Size2D<u32>) -> Self {
+        let size = Extent3d {
+            width: size.width,
+            height: size.height,
+            depth_or_array_layers: 1,
+        };
+        let texture = device.create_texture(&TextureDescriptor {
+            label: Some("Target texture"),
+            size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Rgba8Unorm,
+            usage: TextureUsages::STORAGE_BINDING | TextureUsages::COPY_SRC,
+            view_formats: &[],
+        });
+        let texture_view = texture.create_view(&TextureViewDescriptor::default());
+        let padded_byte_width = (size.width * 4).next_multiple_of(256);
+        let buffer_size = padded_byte_width as u64 * size.height as u64;
+        let buffer = device.create_buffer(&BufferDescriptor {
+            label: Some("val"),
+            size: buffer_size,
+            usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        Self {
+            device: device.clone(),
+            queue: queue.clone(),
+            texture,
+            texture_view,
+            buffer,
+            padded_byte_width,
+            size,
+        }
+    }
+
+    fn view(&self) -> &TextureView {
+        &self.texture_view
+    }
+
+    fn download<R>(&self, f: impl FnOnce(u32, Option<&[u8]>) -> R) -> R {
+        // TODO(perf): do a render pass that will multiply with alpha on GPU
+        let mut encoder = self
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor {
+                label: Some("Copy out buffer"),
+            });
+        encoder.copy_texture_to_buffer(
+            self.texture.as_image_copy(),
+            TexelCopyBufferInfo {
+                buffer: &self.buffer,
+                layout: TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(self.padded_byte_width),
+                    rows_per_image: None,
+                },
+            },
+            self.size,
+        );
+        self.queue.submit([encoder.finish()]);
+        let result = {
+            let buf_slice = self.buffer.slice(..);
+            let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
+            buf_slice.map_async(MapMode::Read, move |v| sender.send(v).unwrap());
+            if let Err(error) =
+                vello::util::block_on_wgpu(&self.device, receiver.receive()).unwrap()
+            {
+                log::warn!("VELLO WGPU MAP ASYNC ERROR {error}");
+                return f(self.padded_byte_width, None);
+            }
+            let data = buf_slice.get_mapped_range();
+            f(self.padded_byte_width, Some(&data))
+        };
+        self.buffer.unmap();
+        result
     }
 }
 
@@ -80,29 +171,13 @@ impl VelloDrawTarget {
     where
         F: FnOnce(u32, Option<&[u8]>) -> R,
     {
-        let size = Extent3d {
-            width: self.size.width,
-            height: self.size.height,
-            depth_or_array_layers: 1,
-        };
-        let target = self.device.create_texture(&TextureDescriptor {
-            label: Some("Target texture"),
-            size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8Unorm,
-            usage: TextureUsages::STORAGE_BINDING | TextureUsages::COPY_SRC,
-            view_formats: &[],
-        });
-        let view = target.create_view(&TextureViewDescriptor::default());
         self.renderer
             .borrow_mut()
             .render_to_texture(
                 &self.device,
                 &self.queue,
                 &self.scene,
-                &view,
+                self.downloader.view(),
                 &vello::RenderParams {
                     base_color: peniko::color::AlphaColor::TRANSPARENT,
                     width: self.size.width,
@@ -111,48 +186,7 @@ impl VelloDrawTarget {
                 },
             )
             .unwrap();
-        // TODO(perf): do a render pass that will multiply with alpha on GPU
-        let padded_byte_width = (self.size.width * 4).next_multiple_of(256);
-        let buffer_size = padded_byte_width as u64 * self.size.height as u64;
-        let buffer = self.device.create_buffer(&BufferDescriptor {
-            label: Some("val"),
-            size: buffer_size,
-            usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        let mut encoder = self
-            .device
-            .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("Copy out buffer"),
-            });
-        encoder.copy_texture_to_buffer(
-            target.as_image_copy(),
-            TexelCopyBufferInfo {
-                buffer: &buffer,
-                layout: TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(padded_byte_width),
-                    rows_per_image: None,
-                },
-            },
-            size,
-        );
-        self.queue.submit([encoder.finish()]);
-        let result = {
-            let buf_slice = buffer.slice(..);
-            let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
-            buf_slice.map_async(MapMode::Read, move |v| sender.send(v).unwrap());
-            if let Err(error) =
-                vello::util::block_on_wgpu(&self.device, receiver.receive()).unwrap()
-            {
-                log::warn!("VELLO WGPU MAP ASYNC ERROR {error}");
-                return f(padded_byte_width, None);
-            }
-            let data = buf_slice.get_mapped_range();
-            f(padded_byte_width, Some(&data))
-        };
-        buffer.unmap();
-        result
+        self.downloader.download(f)
     }
 
     fn ignore_clips(&mut self, f: impl FnOnce(&mut Self)) {
@@ -213,6 +247,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         device.on_uncaptured_error(Box::new(|error| {
             log::error!("VELLO WGPU ERROR: {error}");
         }));
+        let downloader = GPUTextureDownloader::new(&device, &queue, size);
         Self {
             device,
             queue,
@@ -220,6 +255,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             scene,
             size,
             clips: Vec::new(),
+            downloader,
         }
     }
 
@@ -283,6 +319,11 @@ impl GenericDrawTarget for VelloDrawTarget {
             scene: vello::Scene::new(),
             size: size.cast(),
             clips: Vec::new(),
+            downloader: if size.cast() == self.size {
+                self.downloader.clone()
+            } else {
+                GPUTextureDownloader::new(&self.device, &self.queue, size.cast())
+            },
         }
     }
 
