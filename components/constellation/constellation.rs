@@ -2430,14 +2430,9 @@ where
         // even when currently hanging(on JS or sync XHR).
         // This must be done before starting the process of closing all pipelines.
         for chan in &self.background_monitor_control_senders {
-            let (exit_ipc_sender, exit_ipc_receiver) =
-                ipc::channel().expect("Failed to create IPC channel!");
-            if let Err(e) = chan.send(BackgroundHangMonitorControlMsg::Exit(exit_ipc_sender)) {
+            if let Err(e) = chan.send(BackgroundHangMonitorControlMsg::Exit) {
                 warn!("error communicating with bhm: {}", e);
                 continue;
-            }
-            if exit_ipc_receiver.recv().is_err() {
-                warn!("Failed to receive exit confirmation from BHM.");
             }
         }
 

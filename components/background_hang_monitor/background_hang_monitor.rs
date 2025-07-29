@@ -444,16 +444,15 @@ impl BackgroundHangMonitorWorker {
                         }
                         None
                     },
-                    Ok(BackgroundHangMonitorControlMsg::Exit(sender)) => {
+                    Ok(BackgroundHangMonitorControlMsg::Exit) => {
                         for component in self.monitored_components.values_mut() {
                             component.exit_signal.signal_to_exit();
                         }
 
-                        // Confirm exit with to the constellation.
-                        let _ = sender.send(());
-
-                        // Also exit the BHM.
-                        return false;
+                        // Keep running; this worker thread will shutdown
+                        // when the monitored components have shutdown, 
+                        // which we know has happened when the tether chan disconnects.
+                        None
                     },
                     Err(_) => return false,
                 }
