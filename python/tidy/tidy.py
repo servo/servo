@@ -319,7 +319,7 @@ def check_length(file_name: str, idx: int, line: bytes) -> Iterator[tuple[int, s
 
     # Prefer shorter lines when shell scripting.
     max_length = 80 if file_name.endswith(".sh") else 120
-    if len(line.rstrip(b"\n")) > max_length and not is_unsplittable(file_name, line):
+    if len(line.decode("utf-8").rstrip("\n")) > max_length and not is_unsplittable(file_name, line):
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
