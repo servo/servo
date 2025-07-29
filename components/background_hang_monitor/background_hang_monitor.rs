@@ -336,7 +336,7 @@ impl BackgroundHangMonitorWorker {
                         }
 
                         // Note the start of shutdown,
-                        // to ensure exit propagates, 
+                        // to ensure exit propagates,
                         // even to components that have yet to register themselves,
                         // from this point on.
                         self.shutting_down = true;
