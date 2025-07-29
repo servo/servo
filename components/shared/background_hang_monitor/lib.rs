@@ -10,7 +10,6 @@ use std::time::Duration;
 use std::{fmt, mem};
 
 use base::id::PipelineId;
-use ipc_channel::ipc::IpcSender;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]

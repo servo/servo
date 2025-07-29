@@ -1271,10 +1271,9 @@ pub fn run_content_process(token: String) {
             );
 
             // Since wait_for_completion is true,
-            // here we "sort of" know that the script-thread
-            // has exited,
+            // here we know that the script-thread
+            // will exit(or already has),
             // and so we can join on the BHM worker thread.
-            // TODO: remove "sort of", by joining on the script-thread.
             join_handle
                 .join()
                 .expect("Failed to join on the BHM background thread.");

@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Weak};
 use std::thread::{self, Builder, JoinHandle};
 use std::time::{Duration, Instant};
 
@@ -16,13 +14,12 @@ use background_hang_monitor_api::{
 use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use log::warn;
 
 use crate::sampler::{NativeStack, Sampler};
 
 #[derive(Clone)]
 pub struct HangMonitorRegister {
-    sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
+    sender: MonitoredComponentSender,
     monitoring_enabled: bool,
 }
 
@@ -152,21 +149,18 @@ enum MonitoredComponentMsg {
     NotifyWait,
 }
 
-/// Stable equivalent to the `!` type
-enum Never {}
-
 /// A wrapper around a sender to the monitor,
 /// which will send the Id of the monitored component along with each message,
 /// and keep track of whether the monitor is still listening on the other end.
 struct BackgroundHangMonitorChan {
-    sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
+    sender: MonitoredComponentSender,
     component_id: MonitoredComponentId,
     monitoring_enabled: bool,
 }
 
 impl BackgroundHangMonitorChan {
     fn new(
-        sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
+        sender: MonitoredComponentSender,
         component_id: MonitoredComponentId,
         monitoring_enabled: bool,
     ) -> Self {
