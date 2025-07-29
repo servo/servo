@@ -180,7 +180,7 @@ wgpu-core = "25"
 wgpu-types = "25"
 winapi = "0.3"
 windows-sys = "0.59"
-winit = "0.30.11"
+winit = "0.30.12"
 wio = "0.2"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.67" }
 xi-unicode = "0.3.0"
