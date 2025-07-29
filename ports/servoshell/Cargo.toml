@@ -123,7 +123,7 @@ serde_json = { workspace = true }
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
-winit = "0.30.11"
+winit = { workspace = true }
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
 sig = "1.0"
