@@ -578,9 +578,7 @@ impl Handler {
                 // This happens when there is no open webview.
                 // We need to create a new one. See https://github.com/servo/servo/issues/37408
                 let (sender, receiver) = ipc::channel().unwrap();
-                self.send_message_to_embedder(WebDriverCommandMsg::NewWebView(
-                    sender, None,
-                ))?;
+                self.send_message_to_embedder(WebDriverCommandMsg::NewWebView(sender, None))?;
                 let webview_id = receiver
                     .recv()
                     .expect("IPC failure when creating new webview for new session");
@@ -589,7 +587,7 @@ impl Handler {
             },
         };
         let browsing_context_id = BrowsingContextId::from(webview_id);
-        
+
         // Create and append session to the handler
         let session_id = self.create_session(
             &mut capabilities,
