@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+    <div id="host">
+        <template shadowRootMode="open">
+            <div><div style="display: none;"><slot></slot></div></div>
+        </template>
+    </div>
+    <span id="span">Text in light DOM</span>
+<script>
+    test(t => {
+        const host = document.getElementById("host");
+        const span = document.getElementById("span");
+        assert_true(span.getBoundingClientRect().width > 0);
+        host.moveBefore(span, null);
+        assert_true(span.getBoundingClientRect().width == 0);
+    });
+</script>

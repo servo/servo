@@ -30,11 +30,11 @@ class VisualStudioInstallation:
     installation_path: str
     vc_install_path: str
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.version_number < other.version_number
 
 
-def find_vswhere():
+def find_vswhere() -> str | None:
     for path in [PROGRAM_FILES, PROGRAM_FILES_X86]:
         if not path:
             continue
@@ -145,11 +145,11 @@ def find_msvc_redist_dirs(vs_platform: str) -> Generator[str, None, None]:
                 path1 = os.path.join(vs_platform, "Microsoft.{}.CRT".format(redist_version))
                 path2 = os.path.join("onecore", vs_platform, "Microsoft.{}.CRT".format(redist_version))
                 for path in [path1, path2]:
-                    path = os.path.join(redist_path, path)
-                    if os.path.isdir(path):
-                        yield path
+                    full_path = os.path.join(redist_path, path)
+                    if os.path.isdir(full_path):
+                        yield full_path
                     else:
-                        tried.append(path)
+                        tried.append(full_path)
 
     print("Couldn't locate MSVC redistributable directory. Tried:", file=sys.stderr)
     for path in tried:
@@ -169,7 +169,10 @@ def find_windows_sdk_installation_path() -> str:
     # https://stackoverflow.com/questions/35119223/how-to-programmatically-detect-and-locate-the-windows-10-sdk
     key_path = r"SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0"
     try:
-        with winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, key_path) as key:
-            return str(winreg.QueryValueEx(key, "InstallationFolder")[0])
+        if sys.platform == "win32":
+            with winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, key_path) as key:
+                return str(winreg.QueryValueEx(key, "InstallationFolder")[0])
+        else:
+            raise EnvironmentError("Couldn't locate HKEY_LOCAL_MACHINE because it's only available on Windows system")
     except FileNotFoundError:
         raise Exception(f"Couldn't find Windows SDK installation path in registry at path ({key_path})")

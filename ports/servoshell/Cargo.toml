@@ -48,10 +48,12 @@ refcell_backtrace = ["libservo/refcell_backtrace"]
 tracing = ["dep:tracing", "dep:tracing-subscriber", "libservo/tracing"]
 tracing-hitrace = ["tracing", "dep:hitrace"]
 tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
-webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 webgpu = ["libservo/webgpu"]
 webxr = ["libservo/webxr"]
+vello = ["libservo/vello"]
+vello_cpu = ["libservo/vello_cpu"]
+raqote = ["libservo/raqote"]
 
 [dependencies]
 cfg-if = { workspace = true }

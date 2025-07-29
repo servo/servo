@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("load", async () => {
+  const slot = document.createElement("slot");
+  const mspace = document.getElementById("id_0");
+  const metadata = document.getElementById("id_1");
+  document.documentElement.appendChild(slot);
+  mspace.outerHTML = "<mark id='id_2' contenteditable='true'><meta id='id_3'></mark>";
+  try {
+    await timeout(metadata.requestFullScreen());
+  } catch (e) {}
+  getSelection().selectAllChildren(document.querySelector("#id_2"));
+  slot.contentEditable = "true";
+  getSelection().collapseToEnd();
+  getSelection().extend(document.querySelector("#id_3"), 0);
+  document.designMode = "on";
+  document.execCommand("insertText", false, "");
+});
+</script>
+</head><body><math>
+  <mspace id="id_0"></mspace>
+  <metadata id="id_1"></metadata>
+</math>
+</body></html>

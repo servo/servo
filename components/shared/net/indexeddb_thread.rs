@@ -5,6 +5,7 @@
 use std::cmp::{PartialEq, PartialOrd};
 
 use ipc_channel::ipc::IpcSender;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
 
@@ -17,13 +18,12 @@ pub enum IndexedDBTxnMode {
 }
 
 /// <https://www.w3.org/TR/IndexedDB-2/#key-type>
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum IndexedDBKeyType {
     Number(f64),
     String(String),
     Binary(Vec<u8>),
-    // FIXME:(arihant2math) Date should not be stored as a Vec<u8>
-    Date(Vec<u8>),
+    Date(f64),
     Array(Vec<IndexedDBKeyType>),
     // FIXME:(arihant2math) implment ArrayBuffer
 }
@@ -114,7 +114,7 @@ impl PartialEq for IndexedDBKeyType {
 }
 
 // <https://www.w3.org/TR/IndexedDB-2/#key-range>
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 #[allow(unused)]
 pub struct IndexedDBKeyRange {
     pub lower: Option<IndexedDBKeyType>,
@@ -134,6 +134,42 @@ impl From<IndexedDBKeyType> for IndexedDBKeyRange {
 }
 
 impl IndexedDBKeyRange {
+    pub fn only(key: IndexedDBKeyType) -> Self {
+        Self::from(key)
+    }
+
+    pub fn new(
+        lower: Option<IndexedDBKeyType>,
+        upper: Option<IndexedDBKeyType>,
+        lower_open: bool,
+        upper_open: bool,
+    ) -> Self {
+        IndexedDBKeyRange {
+            lower,
+            upper,
+            lower_open,
+            upper_open,
+        }
+    }
+
+    pub fn lower_bound(key: IndexedDBKeyType, open: bool) -> Self {
+        IndexedDBKeyRange {
+            lower: Some(key),
+            upper: None,
+            lower_open: open,
+            upper_open: false,
+        }
+    }
+
+    pub fn upper_bound(key: IndexedDBKeyType, open: bool) -> Self {
+        IndexedDBKeyRange {
+            lower: None,
+            upper: Some(key),
+            lower_open: false,
+            upper_open: open,
+        }
+    }
+
     // <https://www.w3.org/TR/IndexedDB-2/#in>
     pub fn contains(&self, key: &IndexedDBKeyType) -> bool {
         // A key is in a key range if both of the following conditions are fulfilled:
@@ -150,6 +186,17 @@ impl IndexedDBKeyRange {
             .as_ref()
             .is_none_or(|upper| key < upper || (!self.upper_open && key == upper));
         lower_bound_condition && upper_bound_condition
+    }
+
+    pub fn is_singleton(&self) -> bool {
+        self.lower == self.upper && !self.lower_open && !self.upper_open
+    }
+
+    pub fn as_singleton(&self) -> Option<&IndexedDBKeyType> {
+        if self.is_singleton() {
+            return Some(self.lower.as_ref().unwrap());
+        }
+        None
     }
 }
 

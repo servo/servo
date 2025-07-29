@@ -88,6 +88,9 @@ static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getIncumbentGlobal: Some(get_incumbent_global),
     enqueuePromiseJob: Some(enqueue_promise_job),
     empty: Some(empty),
+    pushNewInterruptQueue: Some(push_new_interrupt_queue),
+    popInterruptQueue: Some(pop_interrupt_queue),
+    dropInterruptQueues: Some(drop_interrupt_queues),
 };
 
 static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
@@ -246,6 +249,41 @@ unsafe extern "C" fn empty(extra: *const c_void) -> bool {
         result = microtask_queue.empty()
     });
     result
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> *const c_void {
+    let mut result = std::ptr::null();
+    wrap_panic(&mut || {
+        let mut interrupt_queues = Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
+        let new_queue = Rc::new(MicrotaskQueue::default());
+        result = Rc::as_ptr(&new_queue) as *const c_void;
+        interrupt_queues.push(new_queue.clone());
+        std::mem::forget(interrupt_queues);
+    });
+    result
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn pop_interrupt_queue(interrupt_queues: *mut c_void) -> *const c_void {
+    let mut result = std::ptr::null();
+    wrap_panic(&mut || {
+        let mut interrupt_queues = Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
+        let popped_queue: Rc<MicrotaskQueue> =
+            interrupt_queues.pop().expect("Guaranteed by SpiderMonkey?");
+        // Dangling, but jsglue.cpp will only use this for pointer comparison.
+        result = Rc::as_ptr(&popped_queue) as *const c_void;
+        std::mem::forget(interrupt_queues);
+    });
+    result
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn drop_interrupt_queues(interrupt_queues: *mut c_void) {
+    wrap_panic(&mut || {
+        let interrupt_queues = Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
+        drop(interrupt_queues);
+    });
 }
 
 /// SM callback for promise job resolution. Adds a promise callback to the current
@@ -474,6 +512,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
 #[derive(JSTraceable)]
 pub(crate) struct Runtime {
     rt: RustRuntime,
+    /// Our actual microtask queue, which is preserved and untouched by the debugger when running debugger scripts.
     pub(crate) microtask_queue: Rc<MicrotaskQueue>,
     job_queue: *mut JobQueue,
     networking_task_src: Option<Box<SendableTaskSource>>,
@@ -581,9 +620,16 @@ impl Runtime {
         InitConsumeStreamCallback(cx, Some(consume_stream), Some(report_stream_error));
 
         let microtask_queue = Rc::new(MicrotaskQueue::default());
+
+        // Extra queues for debugger scripts (“interrupts”) via AutoDebuggerJobQueueInterruption and saveJobQueue().
+        // Moved indefinitely to mozjs via CreateJobQueue(), borrowed from mozjs via JobQueueTraps, and moved back from
+        // mozjs for dropping via DeleteJobQueue().
+        let interrupt_queues: Box<Vec<Rc<MicrotaskQueue>>> = Box::default();
+
         let job_queue = CreateJobQueue(
             &JOB_QUEUE_TRAPS,
             &*microtask_queue as *const _ as *const c_void,
+            Box::into_raw(interrupt_queues) as *mut c_void,
         );
         SetJobQueue(cx, job_queue);
         SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
@@ -742,8 +788,10 @@ impl Runtime {
 impl Drop for Runtime {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
+        // Clear our main microtask_queue.
         self.microtask_queue.clear();
 
+        // Delete the RustJobQueue in mozjs, which will destroy our interrupt queues.
         unsafe {
             DeleteJobQueue(self.job_queue);
         }

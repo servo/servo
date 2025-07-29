@@ -403,7 +403,7 @@ const gatherElementsTests = [
 ];
 
 if (navigator.ml) {
-  gatherElementsTests.forEach((test) => {
+  gatherElementsTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

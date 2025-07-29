@@ -658,8 +658,33 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             false
         };
 
+        let text_shaping_needs_recollect = || {
+            if old.clone_direction() != new.clone_direction() ||
+                old.clone_unicode_bidi() != new.clone_unicode_bidi()
+            {
+                return true;
+            }
+
+            let old_text = old.get_inherited_text().clone();
+            let new_text = new.get_inherited_text().clone();
+            if old_text.white_space_collapse != new_text.white_space_collapse ||
+                old_text.text_transform != new_text.text_transform ||
+                old_text.word_break != new_text.word_break ||
+                old_text.overflow_wrap != new_text.overflow_wrap ||
+                old_text.letter_spacing != new_text.letter_spacing ||
+                old_text.word_spacing != new_text.word_spacing ||
+                old_text.text_rendering != new_text.text_rendering
+            {
+                return true;
+            }
+
+            false
+        };
+
         if box_tree_needs_rebuild() {
             RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits())
+        } else if text_shaping_needs_recollect() {
+            RestyleDamage::from_bits_retain(LayoutDamage::RECOLLECT_BOX_TREE_CHILDREN.bits())
         } else {
             // This element needs to be laid out again, but does not have any damage to
             // its box. In the future, we will distinguish between types of damage to the

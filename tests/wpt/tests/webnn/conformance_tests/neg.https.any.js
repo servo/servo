@@ -636,7 +636,7 @@ const negTests = [
 ];
 
 if (navigator.ml) {
-  negTests.forEach((test) => {
+  negTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getNegPrecisionTolerance, test);
   });

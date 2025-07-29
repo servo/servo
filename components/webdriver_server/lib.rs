@@ -8,6 +8,8 @@
 
 mod actions;
 mod capabilities;
+mod session;
+mod timeout;
 mod user_prompt;
 
 use std::borrow::ToOwned;
@@ -21,14 +23,14 @@ use std::{env, fmt, process, thread};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use cookie::{CookieBuilder, Expiration};
+use cookie::{CookieBuilder, Expiration, SameSite};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
     EventLoopWaker, MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverFrameId,
     WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverMessageId,
     WebDriverScriptCommand,
 };
-use euclid::{Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -41,8 +43,10 @@ use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use servo_config::prefs::{self, PrefValue, Preferences};
+use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
+use time::OffsetDateTime;
 use uuid::Uuid;
 use webdriver::actions::{
     ActionSequence, ActionsType, PointerAction, PointerActionItem, PointerActionParameters,
@@ -65,9 +69,9 @@ use webdriver::response::{
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{ActionItem, InputSourceState, PointerInputState};
-use crate::user_prompt::{
-    UserPromptHandler, default_unhandled_prompt_behavior, deserialize_unhandled_prompt_behaviour,
-};
+use crate::session::PageLoadStrategy;
+use crate::timeout::TimeoutsConfiguration;
+use crate::user_prompt::UserPromptHandler;
 
 #[derive(Default)]
 pub struct WebDriverMessageIdGenerator {
@@ -171,18 +175,9 @@ pub struct WebDriverSession {
     /// <https://www.w3.org/TR/webdriver2/#dfn-window-handles>
     window_handles: HashMap<WebViewId, String>,
 
-    /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
-    /// specifies that the script should run indefinitely.
-    script_timeout: Option<u64>,
+    timeouts: TimeoutsConfiguration,
 
-    /// Time to wait for a page to finish loading upon navigation.
-    load_timeout: u64,
-
-    /// Time to wait for the element location strategy when retrieving elements, and when
-    /// waiting for an element to become interactable.
-    implicit_wait_timeout: u64,
-
-    page_loading_strategy: String,
+    page_loading_strategy: PageLoadStrategy,
 
     strict_file_interactability: bool,
 
@@ -205,17 +200,11 @@ impl WebDriverSession {
             id: Uuid::new_v4(),
             webview_id,
             browsing_context_id,
-
             window_handles,
-
-            script_timeout: Some(30_000),
-            load_timeout: 300_000,
-            implicit_wait_timeout: 0,
-
-            page_loading_strategy: "normal".to_string(),
+            timeouts: TimeoutsConfiguration::default(),
+            page_loading_strategy: PageLoadStrategy::Normal,
             strict_file_interactability: false,
             user_prompt_handler: UserPromptHandler::new(),
-
             input_state_table: RefCell::new(HashMap::new()),
             input_cancel_list: RefCell::new(Vec::new()),
         }
@@ -560,143 +549,53 @@ impl Handler {
             thread::sleep(Duration::from_secs(seconds));
         }
 
-        let mut servo_capabilities = ServoCapabilities::new();
-        let processed_capabilities = parameters.match_browser(&mut servo_capabilities)?;
-
         // Step 1. If the list of active HTTP sessions is not empty
         // return error with error code session not created.
         if self.session.is_some() {
-            Err(WebDriverError::new(
+            return Err(WebDriverError::new(
                 ErrorStatus::SessionNotCreated,
                 "Session already created",
-            ))
-        } else {
-            match processed_capabilities {
-                Some(mut processed) => {
-                    let webview_id = self.focus_webview_id()?;
-                    let browsing_context_id = BrowsingContextId::from(webview_id);
-                    let mut session = WebDriverSession::new(browsing_context_id, webview_id);
+            ));
+        }
 
-                    match processed.get("pageLoadStrategy") {
-                        Some(strategy) => session.page_loading_strategy = strategy.to_string(),
-                        None => {
-                            processed.insert(
-                                "pageLoadStrategy".to_string(),
-                                json!(session.page_loading_strategy),
-                            );
-                        },
-                    }
+        // Step 2. Skip because the step is only applied to an intermediary node.
+        // Step 3. Skip since all sessions are http for now.
 
-                    match processed.get("strictFileInteractability") {
-                        Some(strict_file_interactability) => {
-                            session.strict_file_interactability =
-                                strict_file_interactability.as_bool().unwrap()
-                        },
-                        None => {
-                            processed.insert(
-                                "strictFileInteractability".to_string(),
-                                json!(session.strict_file_interactability),
-                            );
-                        },
-                    }
+        // Step 4. Let capabilities be the result of trying to process capabilities
+        let mut servo_capabilities = ServoCapabilities::new();
+        let processed_capabilities = parameters.match_browser(&mut servo_capabilities)?;
 
-                    match processed.get("proxy") {
-                        Some(_) => (),
-                        None => {
-                            processed.insert("proxy".to_string(), json!({}));
-                        },
-                    }
-
-                    if let Some(timeouts) = processed.get("timeouts") {
-                        if let Some(script_timeout_value) = timeouts.get("script") {
-                            session.script_timeout = script_timeout_value.as_u64();
-                        }
-                        if let Some(load_timeout_value) = timeouts.get("pageLoad") {
-                            if let Some(load_timeout) = load_timeout_value.as_u64() {
-                                session.load_timeout = load_timeout;
-                            }
-                        }
-                        if let Some(implicit_wait_timeout_value) = timeouts.get("implicit") {
-                            if let Some(implicit_wait_timeout) =
-                                implicit_wait_timeout_value.as_u64()
-                            {
-                                session.implicit_wait_timeout = implicit_wait_timeout;
-                            }
-                        }
-                    }
-                    processed.insert(
-                        "timeouts".to_string(),
-                        json!({
-                            "script": session.script_timeout,
-                            "pageLoad": session.load_timeout,
-                            "implicit": session.implicit_wait_timeout,
-                        }),
-                    );
-
-                    match processed.get("acceptInsecureCerts") {
-                        Some(_accept_insecure_certs) => {
-                            // FIXME do something here?
-                        },
-                        None => {
-                            processed.insert(
-                                "acceptInsecureCerts".to_string(),
-                                json!(servo_capabilities.accept_insecure_certs),
-                            );
-                        },
-                    }
-
-                    match processed.get("unhandledPromptBehavior") {
-                        Some(unhandled_prompt_behavior) => {
-                            session.user_prompt_handler = deserialize_unhandled_prompt_behaviour(
-                                unhandled_prompt_behavior.clone(),
-                            )?;
-                        },
-                        None => {
-                            processed.insert(
-                                "unhandledPromptBehavior".to_string(),
-                                json!(default_unhandled_prompt_behavior()),
-                            );
-                        },
-                    }
-
-                    processed.insert(
-                        "browserName".to_string(),
-                        json!(servo_capabilities.browser_name),
-                    );
-                    processed.insert(
-                        "browserVersion".to_string(),
-                        json!(servo_capabilities.browser_version),
-                    );
-                    processed.insert(
-                        "platformName".to_string(),
-                        json!(
-                            servo_capabilities
-                                .platform_name
-                                .unwrap_or("unknown".to_string())
-                        ),
-                    );
-                    processed.insert(
-                        "setWindowRect".to_string(),
-                        json!(servo_capabilities.set_window_rect),
-                    );
-                    processed.insert(
-                        "userAgent".to_string(),
-                        servo_config::pref!(user_agent).into(),
-                    );
-
-                    let response =
-                        NewSessionResponse::new(session.id.to_string(), Value::Object(processed));
-                    self.session = Some(session);
-                    Ok(WebDriverResponse::NewSession(response))
-                },
-                // Step 5. If capabilities's is null,
-                // return error with error code session not created.
-                None => Err(WebDriverError::new(
+        // Step 5. If capabilities's is null, return error with error code session not created.
+        let mut capabilities = match processed_capabilities {
+            Some(capabilities) => capabilities,
+            None => {
+                return Err(WebDriverError::new(
                     ErrorStatus::SessionNotCreated,
                     "Session not created due to invalid capabilities",
-                )),
-            }
-        }
+                ));
+            },
+        };
+
+        // Step 6. Create a session
+        // Step 8. Set session' current top-level browsing context
+        let webview_id = self.focus_webview_id()?;
+        let browsing_context_id = BrowsingContextId::from(webview_id);
+        // Create and append session to the handler
+        let session_id = self.create_session(
+            &mut capabilities,
+            &servo_capabilities,
+            webview_id,
+            browsing_context_id,
+        )?;
+
+        // Step 7. Let response be a JSON Object initialized with session's session ID and capabilities
+        let response = NewSessionResponse::new(session_id.to_string(), Value::Object(capabilities));
+
+        // Step 9. Set the request queue to a new queue.
+        // Skip here because the requests are handled in the external crate.
+
+        // Step 10. Return success with data body
+        Ok(WebDriverResponse::NewSession(response))
     }
 
     fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
@@ -796,7 +695,7 @@ impl Handler {
 
         // Step 1. If session's page loading strategy is "none",
         // return success with data null.
-        if session.page_loading_strategy == "none" {
+        if session.page_loading_strategy == PageLoadStrategy::None {
             return Ok(WebDriverResponse::Void);
         }
 
@@ -810,7 +709,7 @@ impl Handler {
         }
 
         // Step 3. let timeout be the session's page load timeout.
-        let timeout = self.session()?.load_timeout;
+        let timeout = self.session()?.timeouts.page_load;
 
         // TODO: Step 4. Implement timer parameter
 
@@ -889,7 +788,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#set-window-rect>
-    fn handle_set_window_size(
+    fn handle_set_window_rect(
         &self,
         params: &WindowRectParameters,
     ) -> WebDriverResult<WebDriverResponse> {
@@ -908,17 +807,8 @@ impl Handler {
         // Step 13. Handle any user prompt.
         self.handle_any_user_prompts(webview_id)?;
 
-        // We don't current allow modifying the window x/y positions, so we can just
-        // return the current window rectangle if not changing dimension.
-        if params.width.is_none() && params.height.is_none() {
-            return self.handle_window_rect(VerifyBrowsingContextIsOpen::No);
-        }
         // (TODO) Step 14. Fully exit fullscreen.
         // (TODO) Step 15. Restore the window.
-        let (sender, receiver) = ipc::channel().unwrap();
-
-        // Step 16 - 17. Set the width/height in CSS pixels.
-        // This should be done as long as one of width/height is not null.
 
         let current = LazyCell::new(|| {
             let WebDriverResponse::WindowRect(current) = self
@@ -930,24 +820,66 @@ impl Handler {
             current
         });
 
-        let (width, height) = (
+        let (x, y, width, height) = (
+            params.x.unwrap_or_else(|| current.x),
+            params.y.unwrap_or_else(|| current.y),
             params.width.unwrap_or_else(|| current.width),
             params.height.unwrap_or_else(|| current.height),
         );
+        let (sender, receiver) = ipc::channel().unwrap();
+        // Step 16 - 17. Set the width/height in CSS pixels.
+        // This should be done as long as one of width/height is not null.
 
-        self.send_message_to_embedder(WebDriverCommandMsg::SetWindowSize(
+        // Step 18 - 19. Set the screen x/y in CSS pixels.
+        // This should be done as long as one of width/height is not null.
+        self.send_message_to_embedder(WebDriverCommandMsg::SetWindowRect(
             webview_id,
-            Size2D::new(width, height),
-            sender.clone(),
+            DeviceIndependentIntRect::from_origin_and_size(
+                Point2D::new(x, y),
+                Size2D::new(width, height),
+            ),
+            sender,
         ))?;
 
-        let window_size = wait_for_script_response(receiver)?;
-        debug!("window_size after resizing: {window_size:?}");
+        let window_rect = wait_for_script_response(receiver)?;
+        debug!("Result window_rect: {window_rect:?}");
         let window_size_response = WindowRectResponse {
-            x: 0,
-            y: 0,
-            width: window_size.width,
-            height: window_size.height,
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
+        };
+        Ok(WebDriverResponse::WindowRect(window_size_response))
+    }
+
+    /// <https://w3c.github.io/webdriver/#maximize-window>
+    fn handle_maximize_window(&mut self) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If the remote end does not support the Maximize Window command for session's
+        // current top-level browsing context for any reason,
+        // return error with error code unsupported operation.
+        let webview_id = self.session()?.webview_id;
+        // Step 2. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
+        // Step 3. Try to handle any user prompts with session.
+        self.handle_any_user_prompts(self.session()?.webview_id)?;
+
+        // Step 4. (TODO) Fully exit fullscreen.
+
+        // Step 5. (TODO) Restore the window.
+
+        // Step 6. Maximize the window of session's current top-level browsing context.
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::MaximizeWebView(webview_id, sender))?;
+
+        let window_rect = wait_for_script_response(receiver)?;
+        debug!("Result window_rect: {window_rect:?}");
+        let window_size_response = WindowRectResponse {
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
@@ -1777,17 +1709,32 @@ impl Handler {
         self.handle_any_user_prompts(self.session()?.webview_id)?;
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cookie_builder = CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
-            .secure(params.secure)
-            .http_only(params.httpOnly);
-        let cookie_builder = match params.domain {
-            Some(ref domain) => cookie_builder.domain(domain.to_owned()),
-            _ => cookie_builder,
-        };
-        let cookie_builder = match params.path {
-            Some(ref path) => cookie_builder.path(path.to_owned()),
-            _ => cookie_builder,
-        };
+        let mut cookie_builder =
+            CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
+                .secure(params.secure)
+                .http_only(params.httpOnly);
+        if let Some(ref domain) = params.domain {
+            cookie_builder = cookie_builder.domain(domain.clone());
+        }
+        if let Some(ref path) = params.path {
+            cookie_builder = cookie_builder.path(path.clone());
+        }
+        if let Some(ref expiry) = params.expiry {
+            if let Ok(datetime) = OffsetDateTime::from_unix_timestamp(expiry.0 as i64) {
+                cookie_builder = cookie_builder.expires(datetime);
+            }
+        }
+        if let Some(ref same_site) = params.sameSite {
+            cookie_builder = match same_site.as_str() {
+                "None" => Ok(cookie_builder.same_site(SameSite::None)),
+                "Lax" => Ok(cookie_builder.same_site(SameSite::Lax)),
+                "Strict" => Ok(cookie_builder.same_site(SameSite::Strict)),
+                _ => Err(WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    "invalid argument",
+                )),
+            }?;
+        }
 
         let cmd = WebDriverScriptCommand::AddCookie(cookie_builder.build(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1836,9 +1783,9 @@ impl Handler {
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         let timeouts = TimeoutsResponse {
-            script: session.script_timeout,
-            page_load: session.load_timeout,
-            implicit: session.implicit_wait_timeout,
+            script: session.timeouts.script,
+            page_load: session.timeouts.page_load,
+            implicit: session.timeouts.implicit_wait,
         };
 
         Ok(WebDriverResponse::Timeouts(timeouts))
@@ -1854,13 +1801,13 @@ impl Handler {
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         if let Some(timeout) = parameters.script {
-            session.script_timeout = timeout;
+            session.timeouts.script = timeout;
         }
         if let Some(timeout) = parameters.page_load {
-            session.load_timeout = timeout
+            session.timeouts.page_load = timeout
         }
         if let Some(timeout) = parameters.implicit {
-            session.implicit_wait_timeout = timeout
+            session.timeouts.implicit_wait = timeout
         }
 
         Ok(WebDriverResponse::Void)
@@ -2004,7 +1951,7 @@ impl Handler {
             .collect();
         args_string.push("resolve".to_string());
 
-        let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
+        let timeout_script = if let Some(script_timeout) = self.session()?.timeouts.script {
             format!("setTimeout(webdriverTimeout, {});", script_timeout)
         } else {
             "".into()
@@ -2106,6 +2053,26 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)?;
 
         Ok(WebDriverResponse::Void)
+    }
+
+    /// <https://w3c.github.io/webdriver/#element-clear>
+    fn handle_element_clear(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If session's current browsing context is no longer open,
+        // return ErrorStatus::NoSuchWindow.
+        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+
+        // Step 2. Try to handle any user prompt.
+        self.handle_any_user_prompts(self.session()?.webview_id)?;
+
+        // Step 3-11 handled in script thread.
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+
+        match wait_for_script_response(receiver)? {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
     }
 
     /// <https://w3c.github.io/webdriver/#element-click>
@@ -2449,7 +2416,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetWindowRect => {
                 self.handle_window_rect(VerifyBrowsingContextIsOpen::Yes)
             },
-            WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_size(size),
+            WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_rect(size),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
             WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
             WebDriverCommand::GoBack => self.handle_go_back(),
@@ -2460,6 +2427,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetWindowHandles => self.handle_window_handles(),
             WebDriverCommand::NewWindow(ref parameters) => self.handle_new_window(parameters),
             WebDriverCommand::CloseWindow => self.handle_close_window(),
+            WebDriverCommand::MaximizeWindow => self.handle_maximize_window(),
             WebDriverCommand::SwitchToFrame(ref parameters) => {
                 self.handle_switch_to_frame(parameters)
             },
@@ -2510,6 +2478,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
+            WebDriverCommand::ElementClear(ref element) => self.handle_element_clear(element),
             WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::AcceptAlert => self.handle_accept_alert(),

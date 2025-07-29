@@ -563,7 +563,9 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
         }
 
         // Step 19.
-        let context = PaintRenderingContext2D::new(self, CanGc::note());
+        let Some(context) = PaintRenderingContext2D::new(self, CanGc::note()) else {
+            return Err(Error::Operation);
+        };
         let definition = PaintDefinition::new(
             paint_val.handle(),
             paint_function.handle(),

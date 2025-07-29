@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
 
@@ -18,16 +17,10 @@ use fonts::{
 use log::warn;
 use pixels::Snapshot;
 use range::Range;
-use servo_arc::Arc as ServoArc;
-use style::color::AbsoluteColor;
-use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
 use webrender_api::ImageKey;
 
-use crate::backend::{
-    Backend, DrawOptionsHelpers as _, GenericDrawTarget as _, PatternHelpers,
-    StrokeOptionsHelpers as _,
-};
+use crate::backend::GenericDrawTarget;
 
 // Asserts on WR texture cache update for zero sized image with raw data.
 // https://github.com/servo/webrender/blob/main/webrender/src/texture_cache.rs#L1475
@@ -109,33 +102,26 @@ pub(crate) enum Filter {
     Nearest,
 }
 
-pub(crate) struct CanvasData<'a, B: Backend> {
-    backend: B,
-    drawtarget: B::DrawTarget,
-    state: CanvasPaintState<'a, B>,
-    saved_states: Vec<CanvasPaintState<'a, B>>,
+pub(crate) struct CanvasData<DrawTarget: GenericDrawTarget> {
+    drawtarget: DrawTarget,
     compositor_api: CrossProcessCompositorApi,
     image_key: ImageKey,
     font_context: Arc<FontContext>,
 }
 
-impl<'a, B: Backend> CanvasData<'a, B> {
+impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     pub(crate) fn new(
         size: Size2D<u64>,
         compositor_api: CrossProcessCompositorApi,
         font_context: Arc<FontContext>,
-        backend: B,
-    ) -> CanvasData<'a, B> {
+    ) -> CanvasData<DrawTarget> {
         let size = size.max(MIN_WR_IMAGE_SIZE);
-        let draw_target = backend.create_drawtarget(size);
+        let mut draw_target = DrawTarget::new(size.cast());
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
         let (descriptor, data) = draw_target.image_descriptor_and_serializable_data();
         compositor_api.add_image(image_key, descriptor, data);
         CanvasData {
-            state: backend.new_paint_state(),
-            backend,
             drawtarget: draw_target,
-            saved_states: vec![],
             compositor_api,
             image_key,
             font_context,
@@ -146,12 +132,16 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         self.image_key
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn draw_image(
         &mut self,
         snapshot: Snapshot,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
+        shadow_options: ShadowOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f32>,
     ) {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
@@ -162,42 +152,37 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             snapshot
         };
 
-        let draw_options = self.state.draw_options.clone();
-        let writer = |draw_target: &mut B::DrawTarget| {
-            write_image::<B>(
+        let writer = |draw_target: &mut DrawTarget, transform| {
+            write_image::<DrawTarget>(
                 draw_target,
                 snapshot,
                 dest_rect,
                 smoothing_enabled,
-                &draw_options,
+                composition_options,
+                transform,
             );
         };
 
-        if self.need_to_draw_shadow() {
+        if shadow_options.need_to_draw_shadow() {
             let rect = Rect::new(
                 Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32),
             );
 
             // TODO(pylbrecht) pass another closure for raqote
-            self.draw_with_shadow(&rect, writer);
+            self.draw_with_shadow(
+                &rect,
+                shadow_options,
+                composition_options,
+                transform,
+                writer,
+            );
         } else {
-            writer(&mut self.drawtarget);
+            writer(&mut self.drawtarget, transform);
         }
     }
 
-    pub(crate) fn save_context_state(&mut self) {
-        self.saved_states.push(self.state.clone());
-    }
-
-    pub(crate) fn restore_context_state(&mut self) {
-        if let Some(state) = self.saved_states.pop() {
-            let _ = mem::replace(&mut self.state, state);
-            self.drawtarget.set_transform(&self.state.transform);
-            self.drawtarget.pop_clip();
-        }
-    }
-
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn fill_text_with_size(
         &mut self,
         text: String,
@@ -206,13 +191,17 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         max_width: Option<f64>,
         is_rtl: bool,
         size: f64,
+        style: FillOrStrokeStyle,
+        text_options: &TextOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f32>,
     ) {
         // > Step 2: Replace all ASCII whitespace in text with U+0020 SPACE characters.
         let text = replace_ascii_whitespace(text);
 
         // > Step 3: Let font be the current font of target, as given by that object's font
         // > attribute.
-        let Some(ref font_style) = self.state.font_style else {
+        let Some(ref font_style) = text_options.font else {
             return;
         };
 
@@ -250,7 +239,18 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         if let Some(max_width) = max_width {
             let new_size = (max_width / total_advance * size).floor().max(5.);
             if total_advance > max_width && new_size != size {
-                self.fill_text_with_size(text, x, y, Some(max_width), is_rtl, new_size);
+                self.fill_text_with_size(
+                    text,
+                    x,
+                    y,
+                    Some(max_width),
+                    is_rtl,
+                    new_size,
+                    style,
+                    text_options,
+                    composition_options,
+                    transform,
+                );
                 return;
             }
         }
@@ -262,6 +262,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             &first_font.metrics,
             total_advance as f32,
             is_rtl,
+            text_options,
         );
 
         // > Step 8: Let result be an array constructed by iterating over each glyph in the inline box
@@ -269,19 +270,23 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         // > as it is in the inline box, positioned on a coordinate space using CSS pixels with its
         // > origin is at the anchor point.
         self.maybe_bound_shape_with_pattern(
-            self.state.fill_style.clone(),
+            style,
+            composition_options,
             &Rect::from_size(Size2D::new(total_advance, size)),
-            |self_| {
+            transform,
+            |self_, style| {
                 self_.drawtarget.fill_text(
                     shaped_runs,
                     start,
-                    &self_.state.fill_style,
-                    &self_.state.draw_options,
+                    style,
+                    composition_options,
+                    transform,
                 );
             },
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#text-preparation-algorithm>
     pub(crate) fn fill_text(
         &mut self,
@@ -290,21 +295,37 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         y: f64,
         max_width: Option<f64>,
         is_rtl: bool,
+        style: FillOrStrokeStyle,
+        text_options: TextOptions,
+        _shadow_options: ShadowOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f32>,
     ) {
-        let Some(ref font_style) = self.state.font_style else {
+        let Some(ref font_style) = text_options.font else {
             return;
         };
 
         let size = font_style.font_size.computed_size();
-        self.fill_text_with_size(text, x, y, max_width, is_rtl, size.px() as f64);
+        self.fill_text_with_size(
+            text,
+            x,
+            y,
+            max_width,
+            is_rtl,
+            size.px() as f64,
+            style,
+            &text_options,
+            composition_options,
+            transform,
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#text-preparation-algorithm>
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-measuretext>
-    pub(crate) fn measure_text(&mut self, text: String) -> TextMetrics {
+    pub(crate) fn measure_text(&mut self, text: String, text_options: TextOptions) -> TextMetrics {
         // > Step 2: Replace all ASCII whitespace in text with U+0020 SPACE characters.
         let text = replace_ascii_whitespace(text);
-        let Some(ref font_style) = self.state.font_style else {
+        let Some(ref font_style) = text_options.font else {
             return TextMetrics::default();
         };
 
@@ -349,13 +370,13 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             },
         };
 
-        let anchor_x = match self.state.text_align {
+        let anchor_x = match text_options.align {
             TextAlign::End => total_advance,
             TextAlign::Center => total_advance / 2.,
             TextAlign::Right => total_advance,
             _ => 0.,
         };
-        let anchor_y = match self.state.text_baseline {
+        let anchor_y = match text_options.baseline {
             TextBaseline::Top => ascent,
             TextBaseline::Hanging => hanging_baseline,
             TextBaseline::Ideographic => ideographic_baseline,
@@ -425,8 +446,9 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         metrics: &FontMetrics,
         width: f32,
         is_rtl: bool,
+        text_options: &TextOptions,
     ) -> Point2D<f32> {
-        let text_align = match self.state.text_align {
+        let text_align = match text_options.align {
             TextAlign::Start if is_rtl => TextAlign::Right,
             TextAlign::Start => TextAlign::Left,
             TextAlign::End if is_rtl => TextAlign::Left,
@@ -441,7 +463,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
         let ascent = metrics.ascent.to_f32_px();
         let descent = metrics.descent.to_f32_px();
-        let anchor_y = match self.state.text_baseline {
+        let anchor_y = match text_options.baseline {
             TextBaseline::Top => ascent,
             TextBaseline::Hanging => ascent * HANGING_BASELINE_DEFAULT,
             TextBaseline::Ideographic => -descent * IDEOGRAPHIC_BASELINE_DEFAULT,
@@ -453,152 +475,154 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         point2(x + anchor_x, y + anchor_y)
     }
 
-    pub(crate) fn fill_rect(&mut self, rect: &Rect<f32>) {
-        if self.state.fill_style.is_zero_size_gradient() {
+    pub(crate) fn fill_rect(
+        &mut self,
+        rect: &Rect<f32>,
+        style: FillOrStrokeStyle,
+        shadow_options: ShadowOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f32>,
+    ) {
+        if style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
-        if self.need_to_draw_shadow() {
-            self.draw_with_shadow(rect, |new_draw_target: &mut B::DrawTarget| {
-                new_draw_target.fill_rect(rect, &self.state.fill_style, &self.state.draw_options);
-            });
+        if shadow_options.need_to_draw_shadow() {
+            self.draw_with_shadow(
+                rect,
+                shadow_options,
+                composition_options,
+                transform,
+                |new_draw_target, transform| {
+                    new_draw_target.fill_rect(rect, style, composition_options, transform);
+                },
+            );
         } else {
             self.maybe_bound_shape_with_pattern(
-                self.state.fill_style.clone(),
+                style,
+                composition_options,
                 &rect.cast(),
-                |self_| {
-                    self_.drawtarget.fill_rect(
-                        rect,
-                        &self_.state.fill_style,
-                        &self_.state.draw_options,
-                    );
+                transform,
+                |self_, style| {
+                    self_
+                        .drawtarget
+                        .fill_rect(rect, style, composition_options, transform);
                 },
             );
         }
     }
 
-    pub(crate) fn clear_rect(&mut self, rect: &Rect<f32>) {
-        self.drawtarget.clear_rect(rect);
+    pub(crate) fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
+        self.drawtarget.clear_rect(rect, transform);
     }
 
-    pub(crate) fn stroke_rect(&mut self, rect: &Rect<f32>) {
-        if self.state.stroke_style.is_zero_size_gradient() {
+    pub(crate) fn stroke_rect(
+        &mut self,
+        rect: &Rect<f32>,
+        style: FillOrStrokeStyle,
+        line_options: LineOptions,
+        shadow_options: ShadowOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f32>,
+    ) {
+        if style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
-        if self.need_to_draw_shadow() {
-            self.draw_with_shadow(rect, |new_draw_target: &mut B::DrawTarget| {
-                new_draw_target.stroke_rect(
-                    rect,
-                    &self.state.stroke_style,
-                    &self.state.stroke_opts,
-                    &self.state.draw_options,
-                );
-            });
+        if shadow_options.need_to_draw_shadow() {
+            self.draw_with_shadow(
+                rect,
+                shadow_options,
+                composition_options,
+                transform,
+                |new_draw_target, transform| {
+                    new_draw_target.stroke_rect(
+                        rect,
+                        style,
+                        line_options,
+                        composition_options,
+                        transform,
+                    );
+                },
+            );
         } else {
             self.maybe_bound_shape_with_pattern(
-                self.state.stroke_style.clone(),
+                style,
+                composition_options,
                 &rect.cast(),
-                |self_| {
+                transform,
+                |self_, style| {
                     self_.drawtarget.stroke_rect(
                         rect,
-                        &self_.state.stroke_style,
-                        &self_.state.stroke_opts,
-                        &self_.state.draw_options,
+                        style,
+                        line_options,
+                        composition_options,
+                        transform,
                     );
                 },
             )
         }
     }
 
-    pub(crate) fn fill_path(&mut self, path: &Path) {
-        if self.state.fill_style.is_zero_size_gradient() {
+    pub(crate) fn fill_path(
+        &mut self,
+        path: &Path,
+        fill_rule: FillRule,
+        style: FillOrStrokeStyle,
+        _shadow_options: ShadowOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f32>,
+    ) {
+        if style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
         self.maybe_bound_shape_with_pattern(
-            self.state.fill_style.clone(),
+            style,
+            composition_options,
             &path.bounding_box(),
-            |self_| {
+            transform,
+            |self_, style| {
                 self_
                     .drawtarget
-                    .fill(path, &self_.state.fill_style, &self_.state.draw_options)
+                    .fill(path, fill_rule, style, composition_options, transform)
             },
         )
     }
 
-    pub(crate) fn stroke_path(&mut self, path: &Path) {
-        if self.state.stroke_style.is_zero_size_gradient() {
+    pub(crate) fn stroke_path(
+        &mut self,
+        path: &Path,
+        style: FillOrStrokeStyle,
+        line_options: LineOptions,
+        _shadow_options: ShadowOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f32>,
+    ) {
+        if style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
         self.maybe_bound_shape_with_pattern(
-            self.state.stroke_style.clone(),
+            style,
+            composition_options,
             &path.bounding_box(),
-            |self_| {
-                self_.drawtarget.stroke(
-                    path,
-                    &self_.state.stroke_style,
-                    &self_.state.stroke_opts,
-                    &self_.state.draw_options,
-                );
+            transform,
+            |self_, style| {
+                self_
+                    .drawtarget
+                    .stroke(path, style, line_options, composition_options, transform);
             },
         )
     }
 
-    pub(crate) fn clip_path(&mut self, path: &Path) {
-        self.drawtarget.push_clip(path);
-    }
-
-    pub(crate) fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
-        self.backend
-            .set_fill_style(style, &mut self.state, &self.drawtarget);
-    }
-
-    pub(crate) fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
-        self.backend
-            .set_stroke_style(style, &mut self.state, &self.drawtarget);
-    }
-
-    pub(crate) fn set_line_width(&mut self, width: f32) {
-        self.state.stroke_opts.set_line_width(width);
-    }
-
-    pub(crate) fn set_line_cap(&mut self, cap: LineCapStyle) {
-        self.state.stroke_opts.set_line_cap(cap);
-    }
-
-    pub(crate) fn set_line_join(&mut self, join: LineJoinStyle) {
-        self.state.stroke_opts.set_line_join(join);
-    }
-
-    pub(crate) fn set_miter_limit(&mut self, limit: f32) {
-        self.state.stroke_opts.set_miter_limit(limit);
-    }
-
-    pub(crate) fn set_line_dash(&mut self, items: Vec<f32>) {
-        self.state.stroke_opts.set_line_dash(items);
-    }
-
-    pub(crate) fn set_line_dash_offset(&mut self, offset: f32) {
-        self.state.stroke_opts.set_line_dash_offset(offset);
-    }
-
-    pub(crate) fn get_transform(&self) -> Transform2D<f32> {
-        self.drawtarget.get_transform()
-    }
-
-    pub(crate) fn set_transform(&mut self, transform: &Transform2D<f32>) {
-        self.state.transform = *transform;
-        self.drawtarget.set_transform(transform);
-    }
-
-    pub(crate) fn set_global_alpha(&mut self, alpha: f32) {
-        self.state.draw_options.set_alpha(alpha);
-    }
-
-    pub(crate) fn set_global_composition(&mut self, op: CompositionOrBlending) {
-        self.backend.set_global_composition(op, &mut self.state);
+    pub(crate) fn clip_path(
+        &mut self,
+        path: &Path,
+        fill_rule: FillRule,
+        transform: Transform2D<f32>,
+    ) {
+        self.drawtarget.push_clip(path, fill_rule, transform);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state>
@@ -608,16 +632,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             .max(MIN_WR_IMAGE_SIZE);
 
         // Step 1. Clear canvas's bitmap to transparent black.
-        self.drawtarget = self
-            .backend
-            .create_drawtarget(Size2D::new(size.width, size.height));
-
-        // Step 3. Clear the context's drawing state stack.
-        self.saved_states.clear();
-
-        // Step 4. Reset everything that drawing state consists of to their
-        // initial values.
-        self.state = self.backend.new_paint_state();
+        self.drawtarget = DrawTarget::new(Size2D::new(size.width, size.height).cast());
 
         self.update_image_rendering();
     }
@@ -644,71 +659,35 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         );
     }
 
-    pub(crate) fn set_shadow_offset_x(&mut self, value: f64) {
-        self.state.shadow_offset_x = value;
-    }
-
-    pub(crate) fn set_shadow_offset_y(&mut self, value: f64) {
-        self.state.shadow_offset_y = value;
-    }
-
-    pub(crate) fn set_shadow_blur(&mut self, value: f64) {
-        self.state.shadow_blur = value;
-    }
-
-    pub(crate) fn set_shadow_color(&mut self, value: AbsoluteColor) {
-        self.backend.set_shadow_color(value, &mut self.state);
-    }
-
-    pub(crate) fn set_font(&mut self, font_style: FontStyleStruct) {
-        self.state.font_style = Some(ServoArc::new(font_style))
-    }
-
-    pub(crate) fn set_text_align(&mut self, text_align: TextAlign) {
-        self.state.text_align = text_align;
-    }
-
-    pub(crate) fn set_text_baseline(&mut self, text_baseline: TextBaseline) {
-        self.state.text_baseline = text_baseline;
-    }
-
-    // https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn
-    fn need_to_draw_shadow(&self) -> bool {
-        self.backend.need_to_draw_shadow(&self.state.shadow_color) &&
-            (self.state.shadow_offset_x != 0.0f64 ||
-                self.state.shadow_offset_y != 0.0f64 ||
-                self.state.shadow_blur != 0.0f64)
-    }
-
-    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> B::DrawTarget {
-        let mut draw_target = self.drawtarget.create_similar_draw_target(&Size2D::new(
+    fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> DrawTarget {
+        self.drawtarget.create_similar_draw_target(&Size2D::new(
             source_rect.size.width as i32,
             source_rect.size.height as i32,
-        ));
-        let matrix = self.state.transform.then(
-            &Transform2D::identity().pre_translate(-source_rect.origin.to_vector().cast::<f32>()),
-        );
-        draw_target.set_transform(&matrix);
-        draw_target
+        ))
     }
 
-    fn draw_with_shadow<F>(&self, rect: &Rect<f32>, draw_shadow_source: F)
-    where
-        F: FnOnce(&mut B::DrawTarget),
+    fn draw_with_shadow<F>(
+        &self,
+        rect: &Rect<f32>,
+        shadow_options: ShadowOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f32>,
+        draw_shadow_source: F,
+    ) where
+        F: FnOnce(&mut DrawTarget, Transform2D<f32>),
     {
-        let shadow_src_rect = self.state.transform.outer_transformed_rect(rect);
+        let shadow_src_rect = transform.outer_transformed_rect(rect);
         let mut new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
-        draw_shadow_source(&mut new_draw_target);
+        let shadow_transform = transform.then(
+            &Transform2D::identity()
+                .pre_translate(-shadow_src_rect.origin.to_vector().cast::<f32>()),
+        );
+        draw_shadow_source(&mut new_draw_target, shadow_transform);
         self.drawtarget.draw_surface_with_shadow(
             new_draw_target.surface(),
             &Point2D::new(shadow_src_rect.origin.x, shadow_src_rect.origin.y),
-            &self.state.shadow_color,
-            &Vector2D::new(
-                self.state.shadow_offset_x as f32,
-                self.state.shadow_offset_y as f32,
-            ),
-            (self.state.shadow_blur / 2.0f64) as f32,
-            self.backend.get_composition_op(&self.state.draw_options),
+            shadow_options,
+            composition_options,
         );
     }
 
@@ -716,17 +695,23 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     /// of the given pattern.
     fn maybe_bound_shape_with_pattern<F>(
         &mut self,
-        pattern: B::Pattern<'_>,
+        style: FillOrStrokeStyle,
+        composition_options: CompositionOptions,
         path_bound_box: &Rect<f64>,
+        transform: Transform2D<f32>,
         draw_shape: F,
     ) where
-        F: FnOnce(&mut Self),
+        F: FnOnce(&mut Self, FillOrStrokeStyle),
     {
-        let x_bound = pattern.x_bound();
-        let y_bound = pattern.y_bound();
+        let x_bound = style.x_bound();
+        let y_bound = style.y_bound();
         // Clear operations are also unbounded.
-        if self.state.draw_options.is_clear() || (x_bound.is_none() && y_bound.is_none()) {
-            draw_shape(self);
+        if matches!(
+            composition_options.composition_operation,
+            CompositionOrBlending::Composition(CompositionStyle::Clear)
+        ) || (x_bound.is_none() && y_bound.is_none())
+        {
+            draw_shape(self, style);
             return;
         }
         let rect = Rect::from_size(Size2D::new(
@@ -734,9 +719,9 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             y_bound.unwrap_or(path_bound_box.size.height.ceil() as u32),
         ))
         .cast();
-        let rect = self.get_transform().outer_transformed_rect(&rect);
+        let rect = transform.outer_transformed_rect(&rect);
         self.drawtarget.push_clip_rect(&rect.cast());
-        draw_shape(self);
+        draw_shape(self, style);
         self.drawtarget.pop_clip();
     }
 
@@ -744,12 +729,8 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
     #[allow(unsafe_code)]
-    pub(crate) fn read_pixels(
-        &self,
-        read_rect: Option<Rect<u32>>,
-        canvas_size: Option<Size2D<u32>>,
-    ) -> Snapshot {
-        let canvas_size = canvas_size.unwrap_or(self.drawtarget.get_size().cast());
+    pub(crate) fn read_pixels(&mut self, read_rect: Option<Rect<u32>>) -> Snapshot {
+        let canvas_size = self.drawtarget.get_size().cast();
 
         if let Some(read_rect) = read_rect {
             let canvas_rect = Rect::from_size(canvas_size);
@@ -765,9 +746,13 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             self.drawtarget.snapshot()
         }
     }
+
+    pub(crate) fn pop_clip(&mut self) {
+        self.drawtarget.pop_clip();
+    }
 }
 
-impl<B: Backend> Drop for CanvasData<'_, B> {
+impl<D: GenericDrawTarget> Drop for CanvasData<D> {
     fn drop(&mut self) {
         self.compositor_api.delete_image(self.image_key);
     }
@@ -776,24 +761,6 @@ impl<B: Backend> Drop for CanvasData<'_, B> {
 const HANGING_BASELINE_DEFAULT: f32 = 0.8;
 const IDEOGRAPHIC_BASELINE_DEFAULT: f32 = 0.5;
 
-#[derive(Clone)]
-pub(crate) struct CanvasPaintState<'a, B: Backend> {
-    pub(crate) draw_options: B::DrawOptions,
-    pub(crate) fill_style: B::Pattern<'a>,
-    pub(crate) stroke_style: B::Pattern<'a>,
-    pub(crate) stroke_opts: B::StrokeOptions,
-    /// The current 2D transform matrix.
-    pub(crate) transform: Transform2D<f32>,
-    pub(crate) shadow_offset_x: f64,
-    pub(crate) shadow_offset_y: f64,
-    pub(crate) shadow_blur: f64,
-    pub(crate) shadow_color: B::Color,
-    pub(crate) font_style: Option<ServoArc<FontStyleStruct>>,
-    pub(crate) text_align: TextAlign,
-    pub(crate) text_baseline: TextBaseline,
-    pub(crate) _backend: PhantomData<B>,
-}
-
 /// It writes an image to the destination target
 /// draw_target: the destination target where the image_data will be copied
 /// image_data: Pixel information of the image to be written. It takes RGBA8
@@ -801,12 +768,13 @@ pub(crate) struct CanvasPaintState<'a, B: Backend> {
 /// dest_rect: Area of the destination target where the pixels will be copied
 /// smoothing_enabled: It determines if smoothing is applied to the image result
 /// premultiply: Determines whenever the image data should be premultiplied or not
-fn write_image<B: Backend>(
-    draw_target: &mut B::DrawTarget,
+fn write_image<DrawTarget: GenericDrawTarget>(
+    draw_target: &mut DrawTarget,
     snapshot: Snapshot,
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
-    draw_options: &B::DrawOptions,
+    composition_options: CompositionOptions,
+    transform: Transform2D<f32>,
 ) {
     if snapshot.size().is_empty() {
         return;
@@ -828,7 +796,14 @@ fn write_image<B: Backend>(
         .create_source_surface_from_data(snapshot)
         .unwrap();
 
-    draw_target.draw_surface(source_surface, dest_rect, image_rect, filter, draw_options);
+    draw_target.draw_surface(
+        source_surface,
+        dest_rect,
+        image_rect,
+        filter,
+        composition_options,
+        transform,
+    );
 }
 
 pub(crate) trait RectToi32 {

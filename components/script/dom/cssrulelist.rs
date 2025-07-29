@@ -120,7 +120,7 @@ impl CSSRuleList {
         let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
         let owner = self
             .parent_stylesheet
-            .get_owner()
+            .owner_node()
             .and_then(DomRoot::downcast::<HTMLElement>);
         let loader = owner
             .as_ref()

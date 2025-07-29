@@ -508,7 +508,7 @@ const softplusTests = [
 ];
 
 if (navigator.ml) {
-  softplusTests.forEach((test) => {
+  softplusTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

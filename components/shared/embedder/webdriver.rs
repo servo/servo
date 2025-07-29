@@ -16,7 +16,7 @@ use keyboard_types::KeyboardEvent;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use pixels::RasterImage;
 use serde::{Deserialize, Serialize};
-use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
+use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
@@ -132,12 +132,14 @@ pub enum WebDriverCommandMsg {
         // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
     ),
-    /// Set the window size.
-    SetWindowSize(
+    /// Set the outer window rectangle.
+    SetWindowRect(
         WebViewId,
-        DeviceIndependentIntSize,
-        IpcSender<Size2D<i32, DeviceIndependentPixel>>,
+        DeviceIndependentIntRect,
+        IpcSender<DeviceIndependentIntRect>,
     ),
+    /// Maximize the window. Send back result window rectangle.
+    MaximizeWebView(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Take a screenshot of the viewport.
     TakeScreenshot(
         WebViewId,
@@ -184,6 +186,7 @@ pub enum WebDriverScriptCommand {
     ),
     DeleteCookies(IpcSender<Result<(), ErrorStatus>>),
     DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
+    ElementClear(String, IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementsCSSSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
@@ -243,7 +246,7 @@ pub enum WebDriverScriptCommand {
     IsEnabled(String, IpcSender<Result<bool, ErrorStatus>>),
     IsSelected(String, IpcSender<Result<bool, ErrorStatus>>),
     GetTitle(IpcSender<String>),
-    /// Match the element type before sending the event for webdriver `element send keys`.
+    /// Deal with the case of input element for Element Send Keys, which does not send keys.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
     IsDocumentReadyStateComplete(IpcSender<bool>),
 }

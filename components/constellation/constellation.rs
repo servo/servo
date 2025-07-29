@@ -129,11 +129,11 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
+    AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy, FocusId,
     FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
     KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverCommandResponse, WebDriverLoadStatus,
+    WebDriverCommandResponse,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -159,7 +159,6 @@ use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
@@ -397,8 +396,8 @@ pub struct Constellation<STF, SWF> {
     /// and the namespaces are allocated by the constellation.
     next_pipeline_namespace_id: PipelineNamespaceId,
 
-    /// Bits of state used to interact with the webdriver implementation
-    webdriver: WebDriverData,
+    /// An [`IpcSender`] to forward responses from the `ScriptThread` to the WebDriver server.
+    webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
     document_states: HashMap<PipelineId, DocumentState>,
@@ -504,24 +503,6 @@ pub struct InitialConstellationState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
-}
-
-/// Data needed for webdriver
-struct WebDriverData {
-    load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
-    resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
-    // Forward responses from the script thread to the webdriver server.
-    input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
-}
-
-impl WebDriverData {
-    fn new() -> WebDriverData {
-        WebDriverData {
-            load_channel: None,
-            resize_channel: None,
-            input_command_response_sender: None,
-        }
-    }
 }
 
 /// When we are running reftests, we save an image to compare against a reference.
@@ -685,7 +666,7 @@ where
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
-                    webdriver: WebDriverData::new(),
+                    webdriver_input_command_reponse_sender: None,
                     document_states: HashMap::new(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
@@ -1352,7 +1333,7 @@ where
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
             EmbedderToConstellationMessage::NewWebView(url, webview_id, viewport_details) => {
-                self.handle_new_top_level_browsing_context(url, webview_id, viewport_details, None);
+                self.handle_new_top_level_browsing_context(url, webview_id, viewport_details);
             },
             // Close a top level browsing context.
             EmbedderToConstellationMessage::CloseWebView(webview_id) => {
@@ -1366,8 +1347,8 @@ where
                 }
                 self.handle_panic(webview_id, error, None);
             },
-            EmbedderToConstellationMessage::FocusWebView(webview_id, response_sender) => {
-                self.handle_focus_web_view(webview_id, response_sender);
+            EmbedderToConstellationMessage::FocusWebView(webview_id, focus_id) => {
+                self.handle_focus_web_view(webview_id, focus_id);
             },
             EmbedderToConstellationMessage::BlurWebView => {
                 self.webviews.unfocus();
@@ -1473,7 +1454,7 @@ where
                 }
             },
             EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
-                self.webdriver.input_command_response_sender = Some(sender);
+                self.webdriver_input_command_reponse_sender = Some(sender);
             },
         }
     }
@@ -1874,14 +1855,14 @@ where
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
             ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
-                if let Some(ref reply_sender) = self.webdriver.input_command_response_sender {
+                if let Some(ref reply_sender) = self.webdriver_input_command_reponse_sender {
                     reply_sender
                         .send(WebDriverCommandResponse { id: msg_id })
                         .unwrap_or_else(|_| {
                             warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
                         });
                 } else {
-                    warn!("No WebDriver input_command_response_sender");
+                    warn!("No webdriver_input_command_reponse_sender");
                 }
             },
         }
@@ -2774,20 +2755,13 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_focus_web_view(
-        &mut self,
-        webview_id: WebViewId,
-        response_sender: Option<IpcSender<bool>>,
-    ) {
-        if self.webviews.get(webview_id).is_none() {
-            if let Some(response_sender) = response_sender {
-                let _ = response_sender.send(false);
-            }
-            return warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
+    fn handle_focus_web_view(&mut self, webview_id: WebViewId, focus_id: FocusId) {
+        let focused = self.webviews.focus(webview_id).is_ok();
+        if !focused {
+            warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
         }
-        self.webviews.focus(webview_id);
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, response_sender));
+            .send(EmbedderMsg::WebViewFocused(webview_id, focus_id, focused));
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -2945,7 +2919,6 @@ where
         url: ServoUrl,
         webview_id: WebViewId,
         viewport_details: ViewportDetails,
-        response_sender: Option<IpcSender<WebDriverLoadStatus>>,
     ) {
         let pipeline_id = PipelineId::new();
         let browsing_context_id = BrowsingContextId::from(webview_id);
@@ -3002,10 +2975,6 @@ where
             }),
             viewport_details,
         });
-
-        if let Some(response_sender) = response_sender {
-            self.webdriver.load_channel = Some((pipeline_id, response_sender));
-        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3628,18 +3597,6 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_load_complete_msg(&mut self, webview_id: WebViewId, pipeline_id: PipelineId) {
-        let mut webdriver_reset = false;
-        if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
-            if expected_pipeline_id == pipeline_id {
-                debug!("Sending load for {:?} to WebDriver", expected_pipeline_id);
-                let _ = reply_chan.send(WebDriverLoadStatus::Complete);
-                webdriver_reset = true;
-            }
-        }
-        if webdriver_reset {
-            self.webdriver.load_channel = None;
-        }
-
         if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
             debug!("{}: Marking as loaded", pipeline_id);
             pipeline.completely_loaded = true;
@@ -4157,9 +4114,12 @@ where
         }
 
         // Focus the top-level browsing context.
-        self.webviews.focus(webview_id);
-        self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, None));
+        let focused = self.webviews.focus(webview_id);
+        self.embedder_proxy.send(EmbedderMsg::WebViewFocused(
+            webview_id,
+            FocusId::new(),
+            focused.is_ok(),
+        ));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
@@ -4408,24 +4368,32 @@ where
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
         size: UntypedSize2D<u64>,
-        response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
+        response_sender: IpcSender<Option<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>>,
     ) {
         let (canvas_data_sender, canvas_data_receiver) = unbounded();
         let (canvas_sender, canvas_ipc_sender) = self
             .canvas
             .get_or_init(|| self.create_canvas_paint_thread());
 
-        if let Err(e) = canvas_sender.send(ConstellationCanvasMsg::Create {
+        let response = if let Err(e) = canvas_sender.send(ConstellationCanvasMsg::Create {
             sender: canvas_data_sender,
             size,
         }) {
-            return warn!("Create canvas paint thread failed ({})", e);
-        }
-        let (canvas_id, image_key) = match canvas_data_receiver.recv() {
-            Ok(canvas_data) => canvas_data,
-            Err(e) => return warn!("Create canvas paint thread id response failed ({})", e),
+            warn!("Create canvas paint thread failed ({})", e);
+            None
+        } else {
+            match canvas_data_receiver.recv() {
+                Ok(Some((canvas_id, image_key))) => {
+                    Some((canvas_ipc_sender.clone(), canvas_id, image_key))
+                },
+                Ok(None) => None,
+                Err(e) => {
+                    warn!("Create canvas paint thread id response failed ({})", e);
+                    None
+                },
+            }
         };
-        if let Err(e) = response_sender.send((canvas_ipc_sender.clone(), canvas_id, image_key)) {
+        if let Err(e) = response_sender.send(response) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }
@@ -4461,7 +4429,8 @@ where
             WebDriverCommandMsg::IsWebViewOpen(..) |
             WebDriverCommandMsg::GetWindowRect(..) |
             WebDriverCommandMsg::GetViewportSize(..) |
-            WebDriverCommandMsg::SetWindowSize(..) |
+            WebDriverCommandMsg::SetWindowRect(..) |
+            WebDriverCommandMsg::MaximizeWebView(..) |
             WebDriverCommandMsg::LoadUrl(..) |
             WebDriverCommandMsg::Refresh(..) |
             WebDriverCommandMsg::SendKeys(..) |
@@ -4930,10 +4899,6 @@ where
 
         let browsing_context_id = BrowsingContextId::from(webview_id);
         self.resize_browsing_context(new_viewport_details, size_type, browsing_context_id);
-
-        if let Some(response_sender) = self.webdriver.resize_channel.take() {
-            let _ = response_sender.send(new_viewport_details.size);
-        }
     }
 
     /// Called when the window exits from fullscreen mode

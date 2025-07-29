@@ -1155,7 +1155,7 @@ const reduceMeanTests = [
 ];
 
 if (navigator.ml) {
-  reduceMeanTests.forEach((test) => {
+  reduceMeanTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

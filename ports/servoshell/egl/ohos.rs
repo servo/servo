@@ -818,6 +818,7 @@ struct HostCallbacks {
     ime_proxy: RefCell<Option<ohos_ime::ImeProxy>>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 enum ImeError {
     TextEditorProxy(CreateTextEditorProxyError),
@@ -1007,7 +1008,7 @@ impl HostTrait for HostCallbacks {
         if ime_proxy.is_none() {
             *ime_proxy = match self.try_create_ime_proxy(input_type, multiline) {
                 Err(ref e) => {
-                    error!("Couold not show keyboard because of {e:?}");
+                    error!("Could not show keyboard because of {e:?}");
                     None
                 },
                 Ok(proxy) => Some(proxy),

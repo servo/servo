@@ -263,7 +263,7 @@ const reverseTests = [
 ];
 
 if (navigator.ml) {
-  reverseTests.forEach((test) => {
+  reverseTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

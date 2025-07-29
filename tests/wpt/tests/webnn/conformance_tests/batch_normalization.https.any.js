@@ -1367,7 +1367,7 @@ const batchNormTests = [
 ];
 
 if (navigator.ml) {
-  batchNormTests.forEach((test) => {
+  batchNormTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

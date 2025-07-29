@@ -135,7 +135,7 @@ impl OffscreenCanvas {
                 _ => None,
             };
         }
-        let context = OffscreenCanvasRenderingContext2D::new(&self.global(), self, can_gc);
+        let context = OffscreenCanvasRenderingContext2D::new(&self.global(), self, can_gc)?;
         *self.context.borrow_mut() = Some(OffscreenRenderingContext::Context2d(Dom::from_ref(
             &*context,
         )));

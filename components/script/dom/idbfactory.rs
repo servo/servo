@@ -1,17 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 use dom_struct::dom_struct;
+use js::rust::HandleValue;
 use servo_url::origin::ImmutableOrigin;
 
 use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::IDBFactoryMethods;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbopendbrequest::IDBOpenDBRequest;
+use crate::indexed_db::convert_value_to_key;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -89,9 +91,20 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
     // fn Databases(&self) -> Rc<Promise> {
     //     unimplemented!();
     // }
-    //
-    // // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp
-    // fn Cmp(&self, _cx: SafeJSContext, _first: HandleValue, _second: HandleValue) -> i16 {
-    //     unimplemented!();
-    // }
+
+    // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp
+    fn Cmp(&self, cx: SafeJSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
+        let first_key = convert_value_to_key(cx, first, None)?;
+        let second_key = convert_value_to_key(cx, second, None)?;
+        let cmp = first_key.partial_cmp(&second_key);
+        if let Some(cmp) = cmp {
+            match cmp {
+                std::cmp::Ordering::Less => Ok(-1),
+                std::cmp::Ordering::Equal => Ok(0),
+                std::cmp::Ordering::Greater => Ok(1),
+            }
+        } else {
+            Ok(i16::MAX)
+        }
+    }
 }

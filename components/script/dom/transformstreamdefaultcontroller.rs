@@ -14,17 +14,20 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 
 use super::bindings::cell::DomRefCell;
 use super::bindings::codegen::Bindings::TransformerBinding::{
-    Transformer, TransformerCancelCallback, TransformerFlushCallback, TransformerTransformCallback,
+    TransformerCancelCallback, TransformerFlushCallback, TransformerTransformCallback,
 };
 use super::types::TransformStream;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
+use crate::dom::bindings::codegen::Bindings::TransformerBinding::Transformer;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::textdecodercommon::TextDecoderCommon;
+use crate::dom::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -51,26 +54,49 @@ impl Callback for TransformTransformPromiseRejection {
     }
 }
 
+/// The type of transformer algorithms we are using
+#[derive(JSTraceable)]
+pub(crate) enum TransformerType {
+    /// Algorithms provided by Js callbacks
+    Js {
+        /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-cancelalgorithm>
+        cancel: RefCell<Option<Rc<TransformerCancelCallback>>>,
+
+        /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-flushalgorithm>
+        flush: RefCell<Option<Rc<TransformerFlushCallback>>>,
+
+        /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-transformalgorithm>
+        transform: RefCell<Option<Rc<TransformerTransformCallback>>>,
+
+        /// The JS object used as `this` when invoking sink algorithms.
+        transform_obj: Heap<*mut JSObject>,
+    },
+    /// Algorithms supporting `TextDecoderStream` are implemented in Rust
+    ///
+    /// <https://encoding.spec.whatwg.org/#textdecodercommon>
+    Decoder(Rc<TextDecoderCommon>),
+}
+
+impl TransformerType {
+    pub(crate) fn new_from_js_transformer(transformer: &Transformer) -> TransformerType {
+        TransformerType::Js {
+            cancel: RefCell::new(transformer.cancel.clone()),
+            flush: RefCell::new(transformer.flush.clone()),
+            transform: RefCell::new(transformer.transform.clone()),
+            transform_obj: Default::default(),
+        }
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller>
 #[dom_struct]
 pub struct TransformStreamDefaultController {
     reflector_: Reflector,
 
-    /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-cancelalgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    cancel: RefCell<Option<Rc<TransformerCancelCallback>>>,
-
-    /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-flushalgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    flush: RefCell<Option<Rc<TransformerFlushCallback>>>,
-
-    /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-transformalgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    transform: RefCell<Option<Rc<TransformerTransformCallback>>>,
-
-    /// The JS object used as `this` when invoking sink algorithms.
-    #[ignore_malloc_size_of = "mozjs"]
-    transform_obj: Heap<*mut JSObject>,
+    /// The type of the underlying transformer used. Besides the JS variant,
+    /// there will be other variant(s) for `TextDecoderStream`
+    #[ignore_malloc_size_of = "transformer_type"]
+    transformer_type: TransformerType,
 
     /// <https://streams.spec.whatwg.org/#TransformStreamDefaultController-stream>
     stream: MutNullableDom<TransformStream>,
@@ -82,34 +108,39 @@ pub struct TransformStreamDefaultController {
 
 impl TransformStreamDefaultController {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn new_inherited(transformer: &Transformer) -> TransformStreamDefaultController {
+    fn new_inherited(transformer_type: TransformerType) -> TransformStreamDefaultController {
         TransformStreamDefaultController {
             reflector_: Reflector::new(),
-            cancel: RefCell::new(transformer.cancel.clone()),
-            flush: RefCell::new(transformer.flush.clone()),
-            transform: RefCell::new(transformer.transform.clone()),
-            finish_promise: DomRefCell::new(None),
+            transformer_type,
             stream: MutNullableDom::new(None),
-            transform_obj: Default::default(),
+            finish_promise: DomRefCell::new(None),
         }
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
-        transformer: &Transformer,
+        transformer_type: TransformerType,
         can_gc: CanGc,
     ) -> DomRoot<TransformStreamDefaultController> {
         reflect_dom_object(
-            Box::new(TransformStreamDefaultController::new_inherited(transformer)),
+            Box::new(TransformStreamDefaultController::new_inherited(
+                transformer_type,
+            )),
             global,
             can_gc,
         )
     }
 
     /// Setting the JS object after the heap has settled down.
+    ///
+    /// Note that this has no effect if the transformer type is not `TransformerType::Js`
     pub(crate) fn set_transform_obj(&self, this_object: SafeHandleObject) {
-        self.transform_obj.set(*this_object);
+        if let TransformerType::Js { transform_obj, .. } = &self.transformer_type {
+            transform_obj.set(*this_object)
+        } else {
+            unreachable!("Non-Js transformer type should not set transform_obj")
+        }
     }
 
     pub(crate) fn set_stream(&self, stream: &TransformStream) {
@@ -160,41 +191,71 @@ impl TransformStreamDefaultController {
         chunk: SafeHandleValue,
         can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
-        // If transformerDict["transform"] exists, set transformAlgorithm to an algorithm which
-        // takes an argument chunk and returns the result of invoking transformerDict["transform"] with argument list
-        // « chunk, controller » and callback this value transformer.
-        let algo = self.transform.borrow().clone();
-        let result = if let Some(transform) = algo {
-            rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = transform.Call_(
-                &this_object.handle(),
-                chunk,
-                self,
-                ExceptionHandling::Rethrow,
-                can_gc,
-            );
-            match call_result {
-                Ok(p) => p,
-                Err(e) => {
-                    let p = Promise::new(global, can_gc);
-                    p.reject_error(e, can_gc);
-                    p
-                },
-            }
-        } else {
-            // Let transformAlgorithm be the following steps, taking a chunk argument:
-            // Let result be TransformStreamDefaultControllerEnqueue(controller, chunk).
-            // If result is an abrupt completion, return a promise rejected with result.[[Value]].
-            let promise = if let Err(error) = self.enqueue(cx, global, chunk, can_gc) {
-                rooted!(in(*cx) let mut error_val = UndefinedValue());
-                error.to_jsval(cx, global, error_val.handle_mut(), can_gc);
-                Promise::new_rejected(global, cx, error_val.handle(), can_gc)
-            } else {
-                // Otherwise, return a promise resolved with undefined.
-                Promise::new_resolved(global, cx, (), can_gc)
-            };
-
-            promise
+        let result = match &self.transformer_type {
+            // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
+            TransformerType::Js {
+                transform,
+                transform_obj,
+                ..
+            } => {
+                // Step 5. If transformerDict["transform"] exists, set
+                // transformAlgorithm to an algorithm which takes an argument
+                // chunk and returns the result of invoking
+                // transformerDict["transform"] with argument list « chunk,
+                // controller » and callback this value transformer.
+                let algo = transform.borrow().clone();
+                if let Some(transform) = algo {
+                    rooted!(in(*cx) let this_object = transform_obj.get());
+                    transform
+                        .Call_(
+                            &this_object.handle(),
+                            chunk,
+                            self,
+                            ExceptionHandling::Rethrow,
+                            can_gc,
+                        )
+                        .unwrap_or_else(|e| {
+                            let p = Promise::new(global, can_gc);
+                            p.reject_error(e, can_gc);
+                            p
+                        })
+                } else {
+                    // Step 2. Let transformAlgorithm be the following steps, taking a chunk argument:
+                    // Let result be TransformStreamDefaultControllerEnqueue(controller, chunk).
+                    // If result is an abrupt completion, return a promise rejected with result.[[Value]].
+                    if let Err(error) = self.enqueue(cx, global, chunk, can_gc) {
+                        rooted!(in(*cx) let mut error_val = UndefinedValue());
+                        error.to_jsval(cx, global, error_val.handle_mut(), can_gc);
+                        Promise::new_rejected(global, cx, error_val.handle(), can_gc)
+                    } else {
+                        // Otherwise, return a promise resolved with undefined.
+                        Promise::new_resolved(global, cx, (), can_gc)
+                    }
+                }
+            },
+            TransformerType::Decoder(decoder) => {
+                // <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
+                // Step 7. Let transformAlgorithm be an algorithm which takes a
+                // chunk argument and runs the decode and enqueue a chunk
+                // algorithm with this and chunk.
+                decode_and_enqueue_a_chunk(cx, global, chunk, decoder, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+                    // Step 5.1 Let result be the result of running transformAlgorithm given chunk.
+                    // Step 5.2 If result is a Promise, then return result.
+                    // Note: not applicable, the spec does NOT require deode_and_enqueue_a_chunk() to return a Promise
+                    // Step 5.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx, (), can_gc))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 5.1 If this throws an exception e,
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
+                        // return a promise rejected with e.
+                        p.reject_error(e, can_gc);
+                        p
+                    })
+            },
         };
 
         Ok(result)
@@ -207,29 +268,49 @@ impl TransformStreamDefaultController {
         chunk: SafeHandleValue,
         can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
-        // If transformerDict["cancel"] exists, set cancelAlgorithm to an algorithm which takes an argument
-        // reason and returns the result of invoking transformerDict["cancel"] with argument list « reason »
-        // and callback this value transformer.
-        let algo = self.cancel.borrow().clone();
-        let result = if let Some(cancel) = algo {
-            rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = cancel.Call_(
-                &this_object.handle(),
-                chunk,
-                ExceptionHandling::Rethrow,
-                can_gc,
-            );
-            match call_result {
-                Ok(p) => p,
-                Err(e) => {
-                    let p = Promise::new(global, can_gc);
-                    p.reject_error(e, can_gc);
-                    p
-                },
-            }
-        } else {
-            // Let cancelAlgorithm be an algorithm which returns a promise resolved with undefined.
-            Promise::new_resolved(global, cx, (), can_gc)
+        let result = match &self.transformer_type {
+            // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
+            TransformerType::Js {
+                cancel,
+                transform_obj,
+                ..
+            } => {
+                // Step 7. If transformerDict["cancel"] exists, set
+                // cancelAlgorithm to an algorithm which takes an argument
+                // reason and returns the result of invoking
+                // transformerDict["cancel"] with argument list « reason » and
+                // callback this value transformer.
+                let algo = cancel.borrow().clone();
+                if let Some(cancel) = algo {
+                    rooted!(in(*cx) let this_object = transform_obj.get());
+                    cancel
+                        .Call_(
+                            &this_object.handle(),
+                            chunk,
+                            ExceptionHandling::Rethrow,
+                            can_gc,
+                        )
+                        .unwrap_or_else(|e| {
+                            let p = Promise::new(global, can_gc);
+                            p.reject_error(e, can_gc);
+                            p
+                        })
+                } else {
+                    // Step 4. Let cancelAlgorithm be an algorithm which returns a promise resolved with undefined.
+                    Promise::new_resolved(global, cx, (), can_gc)
+                }
+            },
+            TransformerType::Decoder(_) => {
+                // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
+                //      if cancelAlgorithm was given, or null otherwise
+                // Note: `TextDecoderStream` does NOT specify a cancel algorithm.
+                // Step 7.2 If result is a Promise, then return result.
+                // Note: Not applicable.
+                // Step 7.3 Return a promise resolved with undefined.
+                Promise::new_resolved(global, cx, (), can_gc)
+            },
         };
 
         Ok(result)
@@ -241,28 +322,60 @@ impl TransformStreamDefaultController {
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
-        // If transformerDict["flush"] exists, set flushAlgorithm to an algorithm which returns the result of
-        // invoking transformerDict["flush"] with argument list « controller » and callback this value transformer.
-        let algo = self.flush.borrow().clone();
-        let result = if let Some(flush) = algo {
-            rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = flush.Call_(
-                &this_object.handle(),
-                self,
-                ExceptionHandling::Rethrow,
-                can_gc,
-            );
-            match call_result {
-                Ok(p) => p,
-                Err(e) => {
-                    let p = Promise::new(global, can_gc);
-                    p.reject_error(e, can_gc);
-                    p
-                },
-            }
-        } else {
-            // Let flushAlgorithm be an algorithm which returns a promise resolved with undefined.
-            Promise::new_resolved(global, cx, (), can_gc)
+        let result = match &self.transformer_type {
+            // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
+            TransformerType::Js {
+                flush,
+                transform_obj,
+                ..
+            } => {
+                // Step 6. If transformerDict["flush"] exists, set flushAlgorithm to an
+                // algorithm which returns the result of invoking
+                // transformerDict["flush"] with argument list « controller »
+                // and callback this value transformer.
+                let algo = flush.borrow().clone();
+                if let Some(flush) = algo {
+                    rooted!(in(*cx) let this_object = transform_obj.get());
+                    flush
+                        .Call_(
+                            &this_object.handle(),
+                            self,
+                            ExceptionHandling::Rethrow,
+                            can_gc,
+                        )
+                        .unwrap_or_else(|e| {
+                            let p = Promise::new(global, can_gc);
+                            p.reject_error(e, can_gc);
+                            p
+                        })
+                } else {
+                    // Step 3. Let flushAlgorithm be an algorithm which returns a promise resolved with undefined.
+                    Promise::new_resolved(global, cx, (), can_gc)
+                }
+            },
+            TransformerType::Decoder(decoder) => {
+                // <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
+                // Step 8. Let flushAlgorithm be an algorithm which takes no
+                // arguments and runs the flush and enqueue algorithm with this.
+                flush_and_enqueue(cx, global, decoder, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+                    // Step 6.1 Let result be the result of running flushAlgorithm,
+                    //      if flushAlgorithm was given, or null otherwise.
+                    // Step 6.2 If result is a Promise, then return result.
+                    // Note: Not applicable. The spec does NOT require flush_and_enqueue algo to return a Promise
+                    // Step 6.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx, (), can_gc))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 6.1 If this throws an exception e,
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
+                        // return a promise rejected with e.
+                        p.reject_error(e, can_gc);
+                        p
+                    })
+            },
         };
 
         Ok(result)
@@ -349,14 +462,22 @@ impl TransformStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-clear-algorithms>
     pub(crate) fn clear_algorithms(&self) {
-        // Set controller.[[transformAlgorithm]] to undefined.
-        self.transform.replace(None);
+        if let TransformerType::Js {
+            cancel,
+            flush,
+            transform,
+            ..
+        } = &self.transformer_type
+        {
+            // Set controller.[[transformAlgorithm]] to undefined.
+            transform.replace(None);
 
-        // Set controller.[[flushAlgorithm]] to undefined.
-        self.flush.replace(None);
+            // Set controller.[[flushAlgorithm]] to undefined.
+            flush.replace(None);
 
-        // Set controller.[[cancelAlgorithm]] to undefined.
-        self.cancel.replace(None);
+            // Set controller.[[cancelAlgorithm]] to undefined.
+            cancel.replace(None);
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-terminate>
@@ -381,6 +502,7 @@ impl TransformStreamDefaultController {
     }
 }
 
+#[allow(non_snake_case)]
 impl TransformStreamDefaultControllerMethods<crate::DomTypeHolder>
     for TransformStreamDefaultController
 {

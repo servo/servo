@@ -18,10 +18,11 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
-    KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
-    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FocusId, FormControl,
+    GamepadHapticEffectType, KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate,
+    ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverJSValue, WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder,
+    WebViewDelegate,
 };
 use url::Url;
 
@@ -45,7 +46,8 @@ pub(crate) enum AppState {
 struct WebDriverSenders {
     pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
     pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
-    pub pending_traversals: HashMap<WebViewId, (TraversalId, IpcSender<WebDriverLoadStatus>)>,
+    pub pending_traversals: HashMap<TraversalId, IpcSender<WebDriverLoadStatus>>,
+    pub pending_focus: HashMap<FocusId, IpcSender<bool>>,
 }
 
 pub(crate) struct RunningAppState {
@@ -159,10 +161,6 @@ impl RunningAppState {
         self.webdriver_receiver.as_ref()
     }
 
-    pub(crate) fn forward_webdriver_command(&self, command: WebDriverCommandMsg) {
-        self.servo().execute_webdriver_command(command);
-    }
-
     pub(crate) fn hidpi_scale_factor_changed(&self) {
         let inner = self.inner();
         let new_scale_factor = inner.window.hidpi_scale_factor();
@@ -271,7 +269,9 @@ impl RunningAppState {
             .and_then(|id| inner.webviews.get(id));
 
         match last_created {
-            Some(last_created_webview) => last_created_webview.focus(),
+            Some(last_created_webview) => {
+                last_created_webview.focus();
+            },
             None => self.servo.start_shutting_down(),
         }
     }
@@ -450,16 +450,22 @@ impl RunningAppState {
             });
     }
 
+    pub(crate) fn set_pending_focus(&self, focus_id: FocusId, sender: IpcSender<bool>) {
+        self.webdriver_senders
+            .borrow_mut()
+            .pending_focus
+            .insert(focus_id, sender);
+    }
+
     pub(crate) fn set_pending_traversal(
         &self,
-        webview_id: WebViewId,
         traversal_id: TraversalId,
         sender: IpcSender<WebDriverLoadStatus>,
     ) {
         self.webdriver_senders
             .borrow_mut()
             .pending_traversals
-            .insert(webview_id, (traversal_id, sender));
+            .insert(traversal_id, sender);
     }
 
     pub(crate) fn set_load_status_sender(
@@ -543,13 +549,11 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn notify_traversal_complete(&self, webview: servo::WebView, traversal_id: TraversalId) {
+    fn notify_traversal_complete(&self, _webview: servo::WebView, traversal_id: TraversalId) {
         let mut webdriver_state = self.webdriver_senders.borrow_mut();
-        if let Entry::Occupied(entry) = webdriver_state.pending_traversals.entry(webview.id()) {
-            if entry.get().0 == traversal_id {
-                let (_, sender) = entry.remove();
-                let _ = sender.send(WebDriverLoadStatus::Complete);
-            }
+        if let Entry::Occupied(entry) = webdriver_state.pending_traversals.entry(traversal_id) {
+            let sender = entry.remove();
+            let _ = sender.send(WebDriverLoadStatus::Complete);
         }
     }
 
@@ -557,11 +561,11 @@ impl WebViewDelegate for RunningAppState {
         self.inner().window.set_position(new_position);
     }
 
-    fn request_resize_to(&self, webview: servo::WebView, new_outer_size: DeviceIntSize) {
-        let mut rect = webview.rect();
-        rect.set_size(new_outer_size.to_f32());
-        webview.move_resize(rect);
-        self.inner().window.request_resize(&webview, new_outer_size);
+    fn request_resize_to(&self, webview: servo::WebView, requested_outer_size: DeviceIntSize) {
+        // We need to update compositor's view later as we not sure about resizing result.
+        self.inner()
+            .window
+            .request_resize(&webview, requested_outer_size);
     }
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
@@ -640,6 +644,14 @@ impl WebViewDelegate for RunningAppState {
 
     fn notify_closed(&self, webview: servo::WebView) {
         self.close_webview(webview.id());
+    }
+
+    fn notify_focus_complete(&self, webview: servo::WebView, focus_id: FocusId) {
+        let mut webdriver_state = self.webdriver_senders.borrow_mut();
+        if let Entry::Occupied(entry) = webdriver_state.pending_focus.entry(focus_id) {
+            let sender = entry.remove();
+            let _ = sender.send(webview.focused());
+        }
     }
 
     fn notify_focus_changed(&self, webview: servo::WebView, focused: bool) {

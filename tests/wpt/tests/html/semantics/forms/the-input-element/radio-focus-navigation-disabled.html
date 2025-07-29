@@ -30,7 +30,7 @@ promise_test(async () => {
     await navigateFocusForward();
     assert_equals(document.activeElement, end);
     await navigateFocusBackward();
-    assert_equals(document.activeElement, c);
+    assert_equals(document.activeElement, b);
     await navigateFocusBackward();
     assert_equals(document.activeElement, start);
 }, 'Should be able to tab focus in radio group even when the checked radio button is disabled.');

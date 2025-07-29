@@ -14,7 +14,6 @@ path = "lib.rs"
 [dependencies]
 base = { workspace = true }
 base64 = { workspace = true }
-constellation_traits = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
@@ -28,7 +27,9 @@ pixels = { path = "../pixels" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }
+servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 stylo_traits = { workspace = true }
+time = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }

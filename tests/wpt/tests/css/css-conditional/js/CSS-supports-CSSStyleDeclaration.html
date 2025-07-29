@@ -34,7 +34,9 @@ const properties = [
   "-moz-animation-name",
   "-moz-animation-play-state",
   "-moz-animation-timing-function",
-  "-moz-appearance",
+  // -moz-appearance may be disabled from CSSStyleProperties.
+  // See also https://bugzilla.mozilla.org/show_bug.cgi?id=1977489
+  // "-moz-appearance",
   "-moz-backface-visibility",
   "-moz-binding",
   "-moz-border-bottom-colors",

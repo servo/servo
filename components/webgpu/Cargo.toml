@@ -22,7 +22,6 @@ pixels = { path = "../pixels" }
 serde = { workspace = true, features = ["serde_derive"] }
 servo_config = { path = "../config" }
 webgpu_traits = { workspace = true }
-webrender = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
 wgpu-types = { workspace = true }

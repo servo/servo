@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg, FromScriptMsg};
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc;
 use pixels::Snapshot;
-use profile_traits::ipc;
 use script_bindings::inheritance::Castable;
 use servo_url::ServoUrl;
 use webrender_api::ImageKey;
@@ -38,29 +37,12 @@ use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
 
-#[derive(JSTraceable, MallocSizeOf)]
-struct DroppableCanvasRenderingContext2D {
-    #[no_trace]
-    ipc_sender: IpcSender<CanvasMsg>,
-    #[no_trace]
-    canvas_id: CanvasId,
-}
-
-impl Drop for DroppableCanvasRenderingContext2D {
-    fn drop(&mut self) {
-        if let Err(err) = self.ipc_sender.send(CanvasMsg::Close(self.canvas_id)) {
-            warn!("Could not close canvas: {}", err)
-        }
-    }
-}
-
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
 pub(crate) struct CanvasRenderingContext2D {
     reflector_: Reflector,
     canvas: HTMLCanvasElementOrOffscreenCanvas,
     canvas_state: CanvasState,
-    droppable: DroppableCanvasRenderingContext2D,
 }
 
 impl CanvasRenderingContext2D {
@@ -69,34 +51,29 @@ impl CanvasRenderingContext2D {
         global: &GlobalScope,
         canvas: HTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
-    ) -> CanvasRenderingContext2D {
+    ) -> Option<CanvasRenderingContext2D> {
         let canvas_state =
-            CanvasState::new(global, Size2D::new(size.width as u64, size.height as u64));
-        let ipc_sender = canvas_state.get_ipc_renderer().clone();
-        let canvas_id = canvas_state.get_canvas_id();
-        CanvasRenderingContext2D {
+            CanvasState::new(global, Size2D::new(size.width as u64, size.height as u64))?;
+        Some(CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas,
             canvas_state,
-            droppable: DroppableCanvasRenderingContext2D {
-                ipc_sender,
-                canvas_id,
-            },
-        }
+        })
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         canvas: &HTMLCanvasElement,
         size: Size2D<u32>,
         can_gc: CanGc,
-    ) -> DomRoot<CanvasRenderingContext2D> {
+    ) -> Option<DomRoot<CanvasRenderingContext2D>> {
         let boxed = Box::new(CanvasRenderingContext2D::new_inherited(
             global,
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
             size,
-        ));
-        reflect_dom_object(boxed, global, can_gc)
+        )?);
+        Some(reflect_dom_object(boxed, global, can_gc))
     }
 
     // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
@@ -162,10 +139,9 @@ impl CanvasContext for CanvasRenderingContext2D {
             return None;
         }
 
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), self.get_canvas_id());
-        self.canvas_state.get_ipc_renderer().send(msg).unwrap();
-
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.canvas_state
+            .send_canvas_2d_msg(Canvas2dMsg::GetImageData(None, sender));
         Some(receiver.recv().unwrap().to_owned())
     }
 

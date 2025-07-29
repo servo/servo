@@ -259,7 +259,7 @@ const cumulativeSumTests = [
 ];
 
 if (navigator.ml) {
-  cumulativeSumTests.forEach((test) => {
+  cumulativeSumTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getCumulativeSumPrecisionTolerance, test);
   });

@@ -20,11 +20,21 @@ test(() => {
     doc.write('<template patchfor="placeholder">');
     assert_equals(doc.querySelector("template"), null);
     assert_equals(doc.querySelector("#placeholder").innerText, "");
-    doc.write('New');
+    doc.write('<span>New</span>');
     assert_equals(doc.querySelector("#placeholder").innerText, "New");
-    doc.write(' content</template>');
+    doc.write('<span> content</span></template>');
     assert_equals(doc.querySelector("#placeholder").innerText, "New content");
     assert_equals(doc.querySelector("template"), null);
 }, "<template patchfor> should work when chunked");
+
+test(() => {
+    const doc = document.implementation.createHTMLDocument();
+    doc.write('<div id="placeholder">Old content</div>');
+    assert_equals(doc.querySelector("#placeholder").textContent, "Old content");
+    doc.write('<template patchfor="placeholder">');
+    doc.write('<div id=main>Hello ');
+    doc.write('main</div></template>');
+    assert_equals(doc.querySelector("#placeholder #main").textContent, "Hello main");
+}, "<template patchfor> should work when elements are sliced in the middle");
 
 </script>

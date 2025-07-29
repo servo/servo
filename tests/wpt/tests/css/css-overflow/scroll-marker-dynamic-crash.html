@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
+<html class="test-wait">
 <style>
   #container {
     columns: 1;
@@ -22,7 +22,7 @@
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       container.style.width = "501px";
-      document.documentElement.classList.remove("reftest-wait");
+      document.documentElement.classList.remove("test-wait");
     });
   });
 </script>

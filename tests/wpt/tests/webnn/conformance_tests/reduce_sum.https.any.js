@@ -1129,7 +1129,7 @@ const reduceSumTests = [
 ];
 
 if (navigator.ml) {
-  reduceSumTests.forEach((test) => {
+  reduceSumTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {

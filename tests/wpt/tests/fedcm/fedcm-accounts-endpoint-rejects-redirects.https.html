@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API endpoint redirect rejects promise.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        select_manifest,
+        mark_signed_in,
+        fedcm_get_dialog_type_promise} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_in();
+
+  let test_options = request_options_with_mediation_required("manifest_redirect_accounts.json");
+  await select_manifest(t, test_options);
+
+  const cred = navigator.credentials.get(test_options);
+  // We expect a mismatch dialog.
+  const type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, 'ConfirmIdpLogin');
+  window.test_driver.cancel_fedcm_dialog();
+  return promise_rejects_dom(t, 'NetworkError', cred);
+}, 'Test that promise is rejected if accounts endpoint redirects');
+  </script>

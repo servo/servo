@@ -981,7 +981,7 @@ const greaterTests = [
 ];
 
 if (navigator.ml) {
-  greaterTests.forEach((test) => {
+  greaterTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getZeroULPTolerance, test,
         /*cast_to_supported_type=*/true);

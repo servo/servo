@@ -38,6 +38,7 @@ use url::Url;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext, RenderingContext};
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -150,7 +151,10 @@ impl CanvasContextState {
 
     fn text_options(&self) -> TextOptions {
         TextOptions {
-            font: self.font_style.clone(),
+            font: self
+                .font_style
+                .as_ref()
+                .map(|font| servo_arc::Arc::new(font.clone())),
             align: self.text_align,
             baseline: self.text_baseline,
         }
@@ -217,7 +221,7 @@ pub(crate) struct CanvasState {
 }
 
 impl CanvasState {
-    pub(crate) fn new(global: &GlobalScope, size: Size2D<u64>) -> CanvasState {
+    pub(crate) fn new(global: &GlobalScope, size: Size2D<u64>) -> Option<CanvasState> {
         debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
@@ -229,7 +233,7 @@ impl CanvasState {
                 size, sender,
             ))
             .unwrap();
-        let (ipc_renderer, canvas_id, image_key) = receiver.recv().unwrap();
+        let (ipc_renderer, canvas_id, image_key) = receiver.recv().ok()??;
         debug!("Done.");
         // Worklets always receive a unique origin. This messes with fetching
         // cached images in the case of paint worklets, since the image cache
@@ -239,7 +243,7 @@ impl CanvasState {
         } else {
             global.origin().immutable().clone()
         };
-        CanvasState {
+        Some(CanvasState {
             ipc_renderer,
             canvas_id,
             size: Cell::new(size),
@@ -252,11 +256,7 @@ impl CanvasState {
             image_key,
             origin,
             current_default_path: DomRefCell::new(Path::new()),
-        }
-    }
-
-    pub(crate) fn get_ipc_renderer(&self) -> &IpcSender<CanvasMsg> {
-        &self.ipc_renderer
+        })
     }
 
     pub(crate) fn image_key(&self) -> ImageKey {
@@ -438,23 +438,6 @@ impl CanvasState {
                 ImageResponse::None
             },
         }
-    }
-
-    pub(crate) fn get_rect(&self, canvas_size: Size2D<u32>, rect: Rect<u32>) -> Vec<u8> {
-        assert!(self.origin_is_clean());
-        assert!(Rect::from_size(canvas_size).contains_rect(&rect));
-
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
-        let snapshot = receiver.recv().unwrap().to_owned();
-        snapshot
-            .to_vec(
-                Some(SnapshotAlphaMode::Transparent {
-                    premultiplied: false,
-                }),
-                Some(SnapshotPixelFormat::RGBA),
-            )
-            .0
     }
 
     ///
@@ -698,7 +681,6 @@ impl CanvasState {
                 OffscreenRenderingContext::Context2d(ref context) => {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                         self.get_canvas_id(),
-                        image_size,
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -778,7 +760,6 @@ impl CanvasState {
                 RenderingContext::Context2d(ref context) => {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                         self.get_canvas_id(),
-                        image_size,
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -810,7 +791,6 @@ impl CanvasState {
                         OffscreenRenderingContext::Context2d(ref context) => context
                             .send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                                 self.get_canvas_id(),
-                                image_size,
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
@@ -1344,7 +1324,6 @@ impl CanvasState {
         self.saved_states
             .borrow_mut()
             .push(self.state.borrow().clone());
-        self.send_canvas_2d_msg(Canvas2dMsg::SaveContext);
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -1353,7 +1332,7 @@ impl CanvasState {
         let mut saved_states = self.saved_states.borrow_mut();
         if let Some(state) = saved_states.pop() {
             self.state.borrow_mut().clone_from(&state);
-            self.send_canvas_2d_msg(Canvas2dMsg::RestoreContext);
+            self.send_canvas_2d_msg(Canvas2dMsg::PopClip);
         }
     }
 
@@ -1753,7 +1732,19 @@ impl CanvasState {
         };
 
         let data = if self.is_paintable() {
-            Some(self.get_rect(canvas_size, read_rect))
+            let (sender, receiver) = ipc::channel().unwrap();
+            self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(Some(read_rect), sender));
+            let snapshot = receiver.recv().unwrap().to_owned();
+            Some(
+                snapshot
+                    .to_vec(
+                        Some(SnapshotAlphaMode::Transparent {
+                            premultiplied: false,
+                        }),
+                        Some(SnapshotPixelFormat::RGBA),
+                    )
+                    .0,
+            )
         } else {
             None
         };
@@ -1933,12 +1924,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
-    pub(crate) fn fill_(&self, path: Path, _fill_rule: CanvasFillRule) {
-        // TODO: Process fill rule
+    pub(crate) fn fill_(&self, path: Path, fill_rule: CanvasFillRule) {
         let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
         self.send_canvas_2d_msg(Canvas2dMsg::FillPath(
             style,
             path,
+            fill_rule.convert(),
             self.state.borrow().shadow_options(),
             self.state.borrow().composition_options(),
             self.state.borrow().transform,
@@ -1970,9 +1961,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
-    pub(crate) fn clip_(&self, path: Path, _fill_rule: CanvasFillRule) {
-        // TODO: Process fill rule
-        self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(path, self.state.borrow().transform));
+    pub(crate) fn clip_(&self, path: Path, fill_rule: CanvasFillRule) {
+        self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(
+            path,
+            fill_rule.convert(),
+            self.state.borrow().transform,
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
@@ -2199,6 +2193,14 @@ impl CanvasState {
     }
 }
 
+impl Drop for CanvasState {
+    fn drop(&mut self) {
+        if let Err(err) = self.ipc_renderer.send(CanvasMsg::Close(self.canvas_id)) {
+            warn!("Could not close canvas: {}", err)
+        }
+    }
+}
+
 pub(crate) fn parse_color(
     canvas: Option<&HTMLCanvasElement>,
     string: &str,
@@ -2336,5 +2338,14 @@ fn adjust_canvas_size(size: Size2D<u64>) -> Size2D<u64> {
         size
     } else {
         Size2D::zero()
+    }
+}
+
+impl Convert<FillRule> for CanvasFillRule {
+    fn convert(self) -> FillRule {
+        match self {
+            CanvasFillRule::Nonzero => FillRule::Nonzero,
+            CanvasFillRule::Evenodd => FillRule::Evenodd,
+        }
     }
 }

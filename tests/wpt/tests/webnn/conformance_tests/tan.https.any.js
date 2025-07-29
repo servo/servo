@@ -533,7 +533,7 @@ const tanTests = [
 ];
 
 if (navigator.ml) {
-  tanTests.forEach((test) => {
+  tanTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(
         buildAndExecuteGraph, getTanPrecisionTolerance, test);
   });

@@ -40,7 +40,7 @@ use fnv::FnvHashMap;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
-use js::rust::{HandleObject, HandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use keyboard_types::{Code, Key, KeyState, Modifiers};
 use layout_api::{
     PendingRestyle, ReflowGoal, RestyleReason, TrustedNodeAddress, node_id_from_scroll_id,
@@ -58,6 +58,7 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
 use script_bindings::interfaces::DocumentHelpers;
+use script_bindings::script_runtime::JSContext;
 use script_traits::{ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_config::pref;
@@ -114,6 +115,7 @@ use crate::dom::bindings::domname::{
     self, is_valid_attribute_local_name, is_valid_element_local_name, namespace_from_domstring,
 };
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
+use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -564,6 +566,14 @@ pub(crate) struct Document {
     active_keyboard_modifiers: Cell<Modifiers>,
     /// The node that is currently highlighted by the devtools
     highlighted_dom_node: MutNullableDom<Node>,
+    /// The constructed stylesheet that is adopted by this [Document].
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
+    adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
+    /// Cached frozen array of [`Self::adopted_stylesheets`]
+    #[ignore_malloc_size_of = "mozjs"]
+    adopted_stylesheets_frozen_types: CachedFrozenArray,
+    /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-event-targets>
+    pending_scroll_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
 }
 
 #[allow(non_snake_case)]
@@ -1548,11 +1558,14 @@ impl Document {
                 return;
             }
 
+            // For a node within a text input UA shadow DOM, delegate the focus target into its shadow host.
+            // TODO: This focus delegation should be done with shadow DOM delegateFocus attribute.
+            let target_el = el.find_focusable_shadow_host_if_necessary();
+
             self.begin_focus_transaction();
-            // Try to focus `el`. If it's not focusable, focus the document
-            // instead.
+            // Try to focus `el`. If it's not focusable, focus the document instead.
             self.request_focus(None, FocusInitiator::Local, can_gc);
-            self.request_focus(Some(&*el), FocusInitiator::Local, can_gc);
+            self.request_focus(target_el.as_deref(), FocusInitiator::Local, can_gc);
         }
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
@@ -2391,10 +2404,102 @@ impl Document {
         }
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps>
+    pub(crate) fn run_the_scroll_steps(&self, can_gc: CanGc) {
+        // Step 1.
+        // > Run the steps to dispatch pending scrollsnapchanging events for doc.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 2
+        // > For each item target in doc’s pending scroll event targets, in the order they
+        // > were added to the list, run these substeps:
+        for target in self.pending_scroll_event_targets.borrow().iter() {
+            // Step 2.1
+            // > If target is a Document, fire an event named scroll that bubbles at target.
+            if target.downcast::<Document>().is_some() {
+                target.fire_bubbling_event(Atom::from("scroll"), can_gc);
+            }
+
+            // Step 2.2
+            // > Otherwise, fire an event named scroll at target.
+            if target.downcast::<Element>().is_some() {
+                target.fire_event(Atom::from("scroll"), can_gc);
+            }
+        }
+
+        // Step 3.
+        // > Empty doc’s pending scroll event targets.
+        self.pending_scroll_event_targets.borrow_mut().clear();
+
+        // Step 4.
+        // > Run the steps to dispatch pending scrollsnapchange events for doc.
+        // TODO(#7673): Implement scroll snapping
+    }
+
+    /// Whenever a viewport gets scrolled (whether in response to user interaction or by an
+    /// API), the user agent must run these steps:
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    pub(crate) fn handle_viewport_scroll_event(&self) {
+        // Step 2.
+        // > If doc is a snap container, run the steps to update scrollsnapchanging targets
+        // > for doc with doc’s eventual snap target in the block axis as newBlockTarget and
+        // > doc’s eventual snap target in the inline axis as newInlineTarget.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 3.
+        // > If doc is already in doc’s pending scroll event targets, abort these steps.
+        let target = self.upcast::<EventTarget>();
+        if self
+            .pending_scroll_event_targets
+            .borrow()
+            .iter()
+            .any(|other_target| *other_target == target)
+        {
+            return;
+        }
+
+        // Step 4.
+        // > Append doc to doc’s pending scroll event targets.
+        self.pending_scroll_event_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+    }
+
+    /// Whenever an element gets scrolled (whether in response to user interaction or by an
+    /// API), the user agent must run these steps:
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    pub(crate) fn handle_element_scroll_event(&self, element: &Element) {
+        // Step 2.
+        // > If the element is a snap container, run the steps to update scrollsnapchanging
+        // > targets for the element with the element’s eventual snap target in the block
+        // > axis as newBlockTarget and the element’s eventual snap target in the inline axis
+        // > as newInlineTarget.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 3.
+        // > If the element is already in doc’s pending scroll event targets, abort these steps.
+        let target = element.upcast::<EventTarget>();
+        if self
+            .pending_scroll_event_targets
+            .borrow()
+            .iter()
+            .any(|other_target| *other_target == target)
+        {
+            return;
+        }
+
+        // Step 4.
+        // > Append the element to doc’s pending scroll event targets.
+        self.pending_scroll_event_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+    }
+
+    /// Handle scroll event triggered by user interactions from embedder side.
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
     #[allow(unsafe_code)]
-    pub(crate) fn handle_scroll_event(&self, event: ScrollEvent, can_gc: CanGc) {
-        // <https://drafts.csswg.org/cssom-view/#scrolling-events>
-        // If target is a Document, fire an event named scroll that bubbles at target.
+    pub(crate) fn handle_embedder_scroll_event(&self, event: ScrollEvent) {
+        // If it is a viewport scroll.
         if event.external_id.is_root() {
             let Some(document) = self
                 .node
@@ -2404,10 +2509,10 @@ impl Document {
             else {
                 return;
             };
-            DomRoot::upcast::<EventTarget>(document)
-                .fire_bubbling_event(Atom::from("scroll"), can_gc);
+
+            document.handle_viewport_scroll_event();
         } else {
-            // Otherwise, fire an event named scroll at target.
+            // Otherwise, check whether it is for a relevant element within the document.
             let Some(node_id) = node_id_from_scroll_id(event.external_id.0 as usize) else {
                 return;
             };
@@ -2421,7 +2526,8 @@ impl Document {
             else {
                 return;
             };
-            DomRoot::upcast::<EventTarget>(element).fire_event(Atom::from("scroll"), can_gc);
+
+            self.handle_element_scroll_event(&element);
         }
     }
 
@@ -4253,6 +4359,9 @@ impl Document {
             intersection_observers: Default::default(),
             active_keyboard_modifiers: Cell::new(Modifiers::empty()),
             highlighted_dom_node: Default::default(),
+            adopted_stylesheets: Default::default(),
+            adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
+            pending_scroll_event_targets: Default::default(),
         }
     }
 
@@ -4898,26 +5007,30 @@ impl Document {
             .and_then(|s| s.owner.get_cssom_object())
     }
 
-    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
-    /// correct tree position.
+    /// Add a stylesheet owned by `owner_node` to the list of document sheets, in the
+    /// correct tree position. Additionally, ensure that the owned stylesheet is inserted
+    /// before any constructed stylesheet.
+    ///
+    /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
 
-        // TODO(stevennovayo): support constructed stylesheet for adopted stylesheet and its ordering
-        let insertion_point = match &owner {
-            StylesheetSource::Element(owner_elem) => stylesheets
-                .iter()
-                .map(|(sheet, _origin)| sheet)
-                .find(|sheet_in_doc| match sheet_in_doc.owner {
-                    StylesheetSource::Element(ref other_elem) => {
-                        owner_elem.upcast::<Node>().is_before(other_elem.upcast())
+        // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
+        let insertion_point = stylesheets
+            .iter()
+            .map(|(sheet, _origin)| sheet)
+            .find(|sheet_in_doc| {
+                match &sheet_in_doc.owner {
+                    StylesheetSource::Element(other_node) => {
+                        owner_node.upcast::<Node>().is_before(other_node.upcast())
                     },
-                    StylesheetSource::Constructed(_) => unreachable!(),
-                })
-                .cloned(),
-            StylesheetSource::Constructed(_) => unreachable!(),
-        };
+                    // Non-constructed stylesheet should be ordered before the
+                    // constructed ones.
+                    StylesheetSource::Constructed(_) => true,
+                }
+            })
+            .cloned();
 
         if self.has_browsing_context() {
             self.window.layout_mut().add_stylesheet(
@@ -4927,7 +5040,40 @@ impl Document {
         }
 
         DocumentOrShadowRoot::add_stylesheet(
-            owner,
+            StylesheetSource::Element(Dom::from_ref(owner_node)),
+            StylesheetSetRef::Document(stylesheets),
+            sheet,
+            insertion_point,
+            self.style_shared_lock(),
+        );
+    }
+
+    /// Append a constructed stylesheet to the back of document stylesheet set. Because
+    /// it would be the last element, we therefore would not mess with the ordering.
+    ///
+    /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+        debug_assert!(cssom_stylesheet.is_constructed());
+
+        let stylesheets = &mut *self.stylesheets.borrow_mut();
+        let sheet = cssom_stylesheet.style_stylesheet_arc().clone();
+
+        let insertion_point = stylesheets
+            .iter()
+            .last()
+            .map(|(sheet, _origin)| sheet)
+            .cloned();
+
+        if self.has_browsing_context() {
+            self.window.layout_mut().add_stylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+            );
+        }
+
+        DocumentOrShadowRoot::add_stylesheet(
+            StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
@@ -6718,6 +6864,40 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             result,
             can_gc,
         )
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
+    fn AdoptedStyleSheets(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+        self.adopted_stylesheets_frozen_types.get_or_init(
+            || {
+                self.adopted_stylesheets
+                    .borrow()
+                    .clone()
+                    .iter()
+                    .map(|sheet| sheet.as_rooted())
+                    .collect()
+            },
+            context,
+            retval,
+            can_gc,
+        );
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
+    fn SetAdoptedStyleSheets(&self, context: JSContext, val: HandleValue) -> ErrorResult {
+        let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
+            context,
+            self.adopted_stylesheets.borrow_mut().as_mut(),
+            val,
+            &StyleSheetListOwner::Document(Dom::from_ref(self)),
+        );
+
+        // If update is successful, clear the FrozenArray cache.
+        if result.is_ok() {
+            self.adopted_stylesheets_frozen_types.clear()
+        }
+
+        result
     }
 }
 

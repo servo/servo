@@ -1119,25 +1119,16 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             ));
         }
 
+        // Textual input, specifically text entry and domain specific input has
+        // a default preferred size.
+        //
+        // <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+        // <https://html.spec.whatwg.org/multipage/#the-input-element-as-domain-specific-widgets>
         let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
             // FIXME(pcwalton): More use of atoms, please!
             match self.get_attr_val_for_layout(&ns!(), &local_name!("type")) {
-                // Not text entry widget
-                Some("hidden") |
-                Some("date") |
-                Some("month") |
-                Some("week") |
-                Some("time") |
-                Some("datetime-local") |
-                Some("number") |
-                Some("range") |
-                Some("color") |
-                Some("checkbox") |
-                Some("radio") |
-                Some("file") |
-                Some("submit") |
-                Some("image") |
-                Some("reset") |
+                Some("hidden") | Some("range") | Some("color") | Some("checkbox") |
+                Some("radio") | Some("file") | Some("submit") | Some("image") | Some("reset") |
                 Some("button") => None,
                 // Others
                 _ => match this.size_for_layout() {
@@ -1740,6 +1731,24 @@ impl Element {
         }
     }
 
+    /// <https://dom.spec.whatwg.org/#document-element>
+    pub(crate) fn is_document_element(&self) -> bool {
+        if let Some(document_element) = self.owner_document().GetDocumentElement() {
+            *document_element == *self
+        } else {
+            false
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-activeelement>
+    pub(crate) fn is_active_element(&self) -> bool {
+        if let Some(active_element) = self.owner_document().GetActiveElement() {
+            *active_element == *self
+        } else {
+            false
+        }
+    }
+
     pub(crate) fn is_focusable_area(&self) -> bool {
         if self.is_actually_disabled() {
             return false;
@@ -1762,6 +1771,29 @@ impl Element {
                 HTMLElementTypeId::HTMLTextAreaElement,
             ))
         )
+    }
+
+    /// Returns the focusable shadow host if this is a text control inner editor.
+    /// This is a workaround for the focus delegation of shadow DOM and should be
+    /// used only to delegate focusable inner editor of [HTMLInputElement] and
+    /// [HTMLTextAreaElement].
+    pub(crate) fn find_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
+        if self.is_focusable_area() {
+            Some(DomRoot::from_ref(self))
+        } else if self.upcast::<Node>().implemented_pseudo_element() ==
+            Some(PseudoElement::ServoTextControlInnerEditor)
+        {
+            let containing_shadow_host = self.containing_shadow_root().map(|root| root.Host());
+            debug_assert!(
+                containing_shadow_host
+                    .as_ref()
+                    .is_some_and(|e| e.is_focusable_area()),
+                "Containing shadow host is not focusable"
+            );
+            containing_shadow_host
+        } else {
+            None
+        }
     }
 
     pub(crate) fn is_actually_disabled(&self) -> bool {

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Overflow: parsing text-overflow with invalid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-text-overflow">
-<meta name="assert" content="text-overflow supports only the grammar 'clip | ellipsis'.">
+<meta name="assert" content="text-overflow supports only the grammar 'clip | ellipsis | <string>'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -14,6 +14,8 @@
 test_invalid_value("text-overflow", 'auto');
 
 test_invalid_value("text-overflow", 'clip ellipsis clip');
+
+test_invalid_value('text-overflow', '"marker string" clip clip');
 </script>
 </body>
 </html>

@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
-import urllib
+import urllib.error
 
 import toml
 
@@ -40,7 +40,7 @@ class MachCommands(CommandBase):
     @CommandArgument("--force", "-f", action="store_true", help="Boostrap without confirmation")
     @CommandArgument("--skip-platform", action="store_true", help="Skip platform bootstrapping.")
     @CommandArgument("--skip-lints", action="store_true", help="Skip tool necessary for linting.")
-    def bootstrap(self, force=False, skip_platform=False, skip_lints=False):
+    def bootstrap(self, force=False, skip_platform=False, skip_lints=False) -> int:
         # Note: This entry point isn't actually invoked by ./mach bootstrap.
         # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
         # it can install dependencies without needing mach's dependencies
@@ -57,7 +57,7 @@ class MachCommands(CommandBase):
         category="bootstrap",
     )
     @CommandArgument("--force", "-f", action="store_true", help="Boostrap without confirmation")
-    def bootstrap_gstreamer(self, force=False):
+    def bootstrap_gstreamer(self, force=False) -> int:
         try:
             servo.platform.get().bootstrap_gstreamer(force)
         except NotImplementedError as exception:
@@ -66,7 +66,7 @@ class MachCommands(CommandBase):
         return 0
 
     @Command("update-hsts-preload", description="Download the HSTS preload list", category="bootstrap")
-    def bootstrap_hsts_preload(self, force=False):
+    def bootstrap_hsts_preload(self, force=False) -> None:
         preload_filename = "hsts_preload.fstmap"
         preload_path = path.join(self.context.topdir, "resources")
 
@@ -104,7 +104,7 @@ class MachCommands(CommandBase):
         description="Download the public domains list and update resources/public_domains.txt",
         category="bootstrap",
     )
-    def bootstrap_pub_suffix(self, force=False):
+    def bootstrap_pub_suffix(self, force=False) -> None:
         list_url = "https://publicsuffix.org/list/public_suffix_list.dat"
         dst_filename = path.join(self.context.topdir, "resources", "public_domains.txt")
         not_implemented_case = re.compile(r"^[^*]+\*")
@@ -122,12 +122,12 @@ class MachCommands(CommandBase):
             for suffix in suffixes:
                 if not_implemented_case.match(suffix):
                     print("Warning: the new list contains a case that servo can't handle: %s" % suffix)
-                fo.write(suffix.encode("idna") + "\n")
+                fo.write(suffix.encode("idna") + b"\n")
 
     @Command("clean-nightlies", description="Clean unused nightly builds of Rust and Cargo", category="bootstrap")
     @CommandArgument("--force", "-f", action="store_true", help="Actually remove stuff")
     @CommandArgument("--keep", default="1", help="Keep up to this many most recent nightlies")
-    def clean_nightlies(self, force=False, keep=None):
+    def clean_nightlies(self, force: bool, keep: str | int) -> None:
         print(f"Current Rust version for Servo: {self.rust_toolchain()}")
         old_toolchains = []
         keep = int(keep)
@@ -158,8 +158,8 @@ class MachCommands(CommandBase):
     @CommandArgument("--force", "-f", action="store_true", help="Actually remove stuff")
     @CommandArgument("--show-size", "-s", action="store_true", help="Show packages size")
     @CommandArgument("--keep", default="1", help="Keep up to this many most recent dependencies")
-    def clean_cargo_cache(self, force=False, show_size=False, keep=None):
-        def get_size(path):
+    def clean_cargo_cache(self, force: bool, show_size: bool, keep: str) -> None:
+        def get_size(path: str) -> float:
             if os.path.isfile(path):
                 return os.path.getsize(path) / (1024 * 1024.0)
             total_size = 0
@@ -177,7 +177,7 @@ class MachCommands(CommandBase):
         import toml
 
         if os.environ.get("CARGO_HOME", ""):
-            cargo_dir = os.environ.get("CARGO_HOME")
+            cargo_dir = os.environ["CARGO_HOME"]
         else:
             home_dir = os.path.expanduser("~")
             cargo_dir = path.join(home_dir, ".cargo")
@@ -265,7 +265,7 @@ class MachCommands(CommandBase):
                     }
                 packages["crates"][crate_name]["exist"].append(d)
 
-        total_size = 0
+        total_size = 0.0
         for packages_type in ["git", "crates"]:
             sorted_packages = sorted(packages[packages_type])
             for crate_name in sorted_packages:
@@ -309,7 +309,7 @@ class MachCommands(CommandBase):
                                 crate_paths.append(path.join(crates_cache_dir, "{}.crate".format(exist)))
                                 crate_paths.append(path.join(crates_src_dir, exist))
 
-                            size = sum(get_size(p) for p in crate_paths) if show_size else 0
+                            size = sum((get_size(p) for p in crate_paths), 0.0) if show_size else 0.0
                             total_size += size
                             print_msg = (exist_name, " ({}MB)".format(round(size, 2)) if show_size else "", cargo_dir)
                             if force:

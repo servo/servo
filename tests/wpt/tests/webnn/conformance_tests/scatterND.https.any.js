@@ -164,7 +164,7 @@ const scatterNDTests = [
 ];
 
 if (navigator.ml) {
-  scatterNDTests.forEach((test) => {
+  scatterNDTests.filter(isTargetTest).forEach((test) => {
     webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {

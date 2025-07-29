@@ -18,18 +18,18 @@ const tests = [
   },
   {
     name:
-        '[quantizeLinear] Test scale\'s shape = [5] and zeroPoint\'s shape = [5] which is unidirectionally broadcastable to input\'s shape.',
+        '[quantizeLinear] Test scale\'s shape = [1, 1, 5] and zeroPoint\'s shape = [1, 1, 5] which is unidirectionally broadcastable to input\'s shape.',
     input: {dataType: 'float32', shape: [3, 2, 5]},
-    scale: {dataType: 'float32', shape: [5]},
-    zeroPoint: {dataType: 'int8', shape: [5]},
+    scale: {dataType: 'float32', shape: [1, 1, 5]},
+    zeroPoint: {dataType: 'int8', shape: [1, 1, 5]},
     output: {dataType: 'int8', shape: [3, 2, 5]},
   },
   {
     name:
-        '[quantizeLinear] Test scale\'s shape = [] and zeroPoint\'s shape = [] which is unidirectionally broadcastable to input\'s shape.',
+        '[quantizeLinear] Test scale\'s shape = [1, 1, 1] and zeroPoint\'s shape = [1, 1, 1] which is unidirectionally broadcastable to input\'s shape.',
     input: {dataType: 'float32', shape: [3, 2, 5]},
-    scale: {dataType: 'float32', shape: []},
-    zeroPoint: {dataType: 'int8', shape: []},
+    scale: {dataType: 'float32', shape: [1, 1, 1]},
+    zeroPoint: {dataType: 'int8', shape: [1, 1, 1]},
     output: {dataType: 'int8', shape: [3, 2, 5]},
   },
   {
@@ -39,6 +39,13 @@ const tests = [
     scale: {dataType: 'float32', shape: [2, 2, 1]},
     zeroPoint: {dataType: 'int8', shape: [2, 2, 1]},
     output: {dataType: 'int8', shape: [6, 4, 5]},
+  },
+  {
+    name:
+        '[quantizeLinear] Throw if the scale rank is not equal to input rank.',
+    input: {dataType: 'float32', shape: [3, 2, 5]},
+    scale: {dataType: 'float32', shape: [5]},
+    zeroPoint: {dataType: 'int8', shape: [5]},
   },
   {
     name:

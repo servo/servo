@@ -91,6 +91,86 @@
    }
   },
   "reftest": {
+   "appearance": {
+    "input-textual-definite-width.html": [
+     "59f1797fab3d1889bbcb7863178c6c5ef9e54f19",
+     [
+      "appearance/input-textual-definite-width.html",
+      [
+       [
+        "/_mozilla/appearance/input-textual-definite-width-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-textual-empty.html": [
+     "c85214b6c681b657a30a06b44670c796cdaeda11",
+     [
+      "appearance/input-textual-empty.html",
+      [
+       [
+        "/_mozilla/appearance/input-textual-empty-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-textual-nonempty-placeholder.html": [
+     "83670d37e310954e6d3a69114577ff92b4126a98",
+     [
+      "appearance/input-textual-nonempty-placeholder.html",
+      [
+       [
+        "/_mozilla/appearance/input-textual-nonempty-placeholder-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-textual-overflow.html": [
+     "ad1f0aa70285e227153f7d05983b2ef9caa798f9",
+     [
+      "appearance/input-textual-overflow.html",
+      [
+       [
+        "/_mozilla/appearance/input-textual-overflow-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-textual-placeholder-overflow.html": [
+     "9bc84f26b8c1ae0718085ddb069889cca2e0322a",
+     [
+      "appearance/input-textual-placeholder-overflow.html",
+      [
+       [
+        "/_mozilla/appearance/input-textual-placeholder-overflow-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "input-textual-placeholder.html": [
+     "68287721ce67ecece6e746b44fd3fd1d92763085",
+     [
+      "appearance/input-textual-placeholder.html",
+      [
+       [
+        "/_mozilla/appearance/input-textual-placeholder-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ]
+   },
    "css": {
     "abs-overflow-stackingcontext.html": [
      "264df01aa64e0abe9ea3a75e57452c27d53a904f",
@@ -3569,19 +3649,6 @@
       [
        [
         "/_mozilla/css/input_line_height_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
-    "input_placeholder.html": [
-     "f74cec8d54c04755bf5277db2e127fb0a37f855e",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/input_placeholder_ref.html",
         "=="
        ]
       ],
@@ -8062,6 +8129,38 @@
     "b485d435a63ada28eabe976b49a8a580725e7508",
     []
    ],
+   "appearance": {
+    "input-textual-definite-width-ref.html": [
+     "7a256be23b3c084bb8477d7380a8b1801ec07f05",
+     []
+    ],
+    "input-textual-empty-ref.html": [
+     "6cbaa3e40e5a7fa6ea96710f126d6e6d4d4d633e",
+     []
+    ],
+    "input-textual-nonempty-placeholder-ref.html": [
+     "7a256be23b3c084bb8477d7380a8b1801ec07f05",
+     []
+    ],
+    "input-textual-overflow-ref.html": [
+     "f8e22c9d11dc68dd244a3fc5b8f5946a707a2660",
+     []
+    ],
+    "input-textual-placeholder-overflow-ref.html": [
+     "ee297a94cacb3838375b94c3a546f288adb464f1",
+     []
+    ],
+    "input-textual-placeholder-ref.html": [
+     "d30f13a2a1bab16989ec585a57ba7b7bd0b1c329",
+     []
+    ],
+    "supports": {
+     "input-textual-ref.css": [
+      "7cdabb05d5dd7eb39df521fcb5ce24e39fea840f",
+      []
+     ]
+    }
+   },
    "bluetooth": {
     "bluetooth-helpers.js": [
      "16a280cca298bcaa5796b36b48d331bfd15baae8",
@@ -9193,10 +9292,6 @@
     ],
     "input_line_height_ref.html": [
      "f29e061cc35625fa039473e702f78dbc5a7d9c14",
-     []
-    ],
-    "input_placeholder_ref.html": [
-     "1caffed07f2cdd341ad26ab7489e02233a6ae26c",
      []
     ],
     "input_selection_incremental_ref.html": [
@@ -12875,6 +12970,13 @@
        null,
        {}
       ]
+     ],
+     "invalid.html": [
+      "d50ff1030c48794dfc92083b6fecde3f97524b7e",
+      [
+       null,
+       {}
+      ]
      ]
     },
     "canvas-oversize-serialization.html": [
@@ -13623,14 +13725,14 @@
      ]
     ],
     "interfaces.https.html": [
-     "641c5ba19d389390b7b51da7644f011b0c42f33a",
+     "efb780c382456b1fda514b33fe5b317c447fa09e",
      [
       null,
       {}
      ]
     ],
     "interfaces.worker.js": [
-     "463bfc25211014203a5094baae4b4e2d890bf9aa",
+     "a02605ff8e63db701c77d734037fcb33d76418d0",
      [
       "mozilla/interfaces.worker.html",
       {}
