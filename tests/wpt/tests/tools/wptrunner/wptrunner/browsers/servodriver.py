@@ -123,3 +123,6 @@ class ServoWebDriverBrowser(WebDriverBrowser):
     def cleanup(self):
         super().cleanup()
         os.remove(self.hosts_path)
+
+    def check_crash(self, process, test):
+        return not super().is_alive()
