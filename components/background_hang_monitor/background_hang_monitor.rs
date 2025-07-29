@@ -345,7 +345,7 @@ impl BackgroundHangMonitorWorker {
 
                         // Keep running; this worker thread will shutdown
                         // when the monitored components have shutdown,
-                        // which we know has happened when the tether chan disconnects.
+                        // which we know has happened when `self.port` disconnects.
                         None
                     },
                     Err(_) => return false,
