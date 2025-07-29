@@ -336,7 +336,9 @@ impl BackgroundHangMonitorWorker {
                         }
 
                         // Note the start of shutdown,
-                        // to prevent registration from this point on.
+                        // to ensure exit propagates, 
+                        // even to components that have yet to register themselves,
+                        // from this point on.
                         self.shutting_down = true;
 
                         // Keep running; this worker thread will shutdown
@@ -385,10 +387,10 @@ impl BackgroundHangMonitorWorker {
             ) => {
                 // If we are shutting down,
                 // propagate it to the component,
-                // and do not register it.
+                // and register it(the component will unregister itself
+                // as part of handling the exit).
                 if self.shutting_down {
                     exit_signal.signal_to_exit();
-                    return;
                 }
 
                 let component = MonitoredComponent {
