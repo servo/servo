@@ -15,6 +15,7 @@ use super::{BoxFragment, ContainingBlockManager, Fragment};
 use crate::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::geom::PhysicalRect;
+use crate::style_ext::ComputedValuesExt;
 
 #[derive(MallocSizeOf)]
 pub struct FragmentTree {
@@ -117,8 +118,15 @@ impl FragmentTree {
             let scrollable_overflow = self.root_fragments.iter().fold(
                 self.initial_containing_block,
                 |overflow, fragment| {
+                    let overflow_style = match fragment {
+                        Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                            let fragment_flags = fragment.borrow().base.flags;
+                            Some(fragment.borrow().style.effective_overflow(fragment_flags))
+                        },
+                        _ => None,
+                    };
                     fragment
-                        .calculate_scrollable_overflow_for_parent()
+                        .calculate_scrollable_overflow_for_parent(overflow_style)
                         .union(&overflow)
                 },
             );
