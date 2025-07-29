@@ -41,6 +41,7 @@ use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
@@ -74,9 +75,14 @@ use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
-use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
+use crate::fetch::methods::{
+    CancellationListener, Data, DoneChannel, FetchContext, Target, main_fetch,
+};
+use crate::filemanager_thread::FileManager;
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
+use crate::protocols::ProtocolRegistry;
+use crate::request_interceptor::RequestInterceptor;
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 
 /// The various states an entry of the HttpCache can be in.
@@ -434,25 +440,17 @@ pub fn send_request_to_devtools(
 }
 
 pub fn send_response_to_devtools(
-    request: &mut Request,
+    request: &Request,
     context: &FetchContext,
     response: &Response,
     body_data: Option<Vec<u8>>,
 ) {
-    // let meta = match response
-    //     .metadata()
-    //     .expect("Response metadata should exist at this stage")
-    // {
-    //     FetchMetadata::Unfiltered(m) => m,
-    //     FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-    // };
     let meta = match response.metadata() {
         Ok(FetchMetadata::Unfiltered(m)) => m,
         Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
         Err(_) => {
-            // Could log, skip sending to devtools, or use a default
             log::warn!("No metadata available, skipping devtools response.");
-            return; // or `continue`, or whatever makes sense contextually
+            return;
         },
     };
     send_response_values_to_devtools(
@@ -460,7 +458,15 @@ pub fn send_response_to_devtools(
         meta.status,
         body_data,
         request,
-        context,
+        context.state.clone(),
+        context.user_agent.clone(),
+        context.devtools_chan.clone(),
+        context.filemanager.clone(),
+        context.file_token.clone(),
+        context.request_interceptor.clone(),
+        context.cancellation_listener.clone(),
+        context.timing.clone(),
+        context.protocols.clone(),
     );
 }
 
@@ -468,9 +474,29 @@ pub fn send_response_values_to_devtools(
     headers: Option<HeaderMap>,
     status: HttpStatus,
     body: Option<Vec<u8>>,
-    request: &mut Request,
-    context: &FetchContext,
+    request: &Request,
+    state: StdArc<HttpState>,
+    user_agent: String,
+    devtools_chan: Option<StdArc<Mutex<Sender<DevtoolsControlMsg>>>>,
+    filemanager: StdArc<Mutex<FileManager>>,
+    file_token: FileTokenCheck,
+    request_interceptor: StdArc<Mutex<RequestInterceptor>>,
+    cancellation_listener: StdArc<CancellationListener>,
+    timing: Arc<Mutex<ResourceFetchTiming>>,
+    protocols: StdArc<ProtocolRegistry>,
 ) {
+    let context = FetchContext {
+        state,
+        user_agent,
+        devtools_chan,
+        filemanager,
+        file_token,
+        request_interceptor,
+        cancellation_listener,
+        timing,
+        protocols,
+    };
+
     if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
         context.devtools_chan.as_ref(),
         request.pipeline_id,
@@ -497,7 +523,7 @@ pub fn send_response_values_to_devtools(
     }
 }
 
-pub fn send_early_httprequest_to_devtools(request: &mut Request, context: &FetchContext) {
+pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
     if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
         context.devtools_chan.as_ref(),
         request.target_webview_id.map(|id| id.0),
@@ -1935,7 +1961,6 @@ async fn http_network_fetch(
 
     // Step 1: Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
-    let context = Arc::new(context.clone());
 
     // Step 2
     // TODO be able to create connection using current url's origin and credentials
@@ -2093,12 +2118,21 @@ async fn http_network_fetch(
     let timing_ptr2 = context.timing.clone();
     let timing_ptr3 = context.timing.clone();
     let mut devtools_request = request.clone();
-    let devtools_context = context.clone();
     let url1 = devtools_request.url();
     let url2 = url1.clone();
 
     let status = response.status.clone();
     let headers = response.headers.clone();
+
+    let state = context.state.clone();
+    let user_agent = context.user_agent.clone();
+    let devtools_chan = context.devtools_chan.clone();
+    let filemanager = context.filemanager.clone();
+    let file_token = context.file_token.clone();
+    let request_interceptor = context.request_interceptor.clone();
+    let timing = context.timing.clone();
+    let protocols = context.protocols.clone();
+    let dev_cancellation_listener = cancellation_listener.clone();
 
     HANDLE.spawn(
         res.into_body()
@@ -2132,7 +2166,15 @@ async fn http_network_fetch(
                     status,
                     Some(devtools_response_body),
                     &mut devtools_request,
-                    &devtools_context,
+                    state,
+                    user_agent,
+                    devtools_chan,
+                    filemanager,
+                    file_token,
+                    request_interceptor,
+                    dev_cancellation_listener,
+                    timing,
+                    protocols,
                 );
                 timing_ptr2
                     .lock()

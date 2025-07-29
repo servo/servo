@@ -62,7 +62,6 @@ pub enum Data {
     Cancelled,
 }
 
-#[derive(Clone)]
 pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
@@ -748,13 +747,7 @@ async fn wait_for_response(
                     target.process_response_chunk(request, vec);
                 },
                 Some(Data::Done) => {
-                    let mut devtools_request = request.clone();
-                    send_response_to_devtools(
-                        &mut devtools_request,
-                        context,
-                        response,
-                        devtools_body,
-                    );
+                    send_response_to_devtools(&request, context, response, devtools_body);
                     break;
                 },
                 Some(Data::Cancelled) => {
