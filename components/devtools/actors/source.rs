@@ -52,14 +52,14 @@ pub struct SourceActor {
     pub is_black_boxed: bool,
 
     pub content: Option<String>,
-    pub content_type: String,
+    pub content_type: Option<String>,
 }
 
 #[derive(Serialize)]
 struct SourceContentReply {
     from: String,
     #[serde(rename = "contentType")]
-    content_type: String,
+    content_type: Option<String>,
     source: String,
 }
 
@@ -90,7 +90,7 @@ impl SourceActor {
         name: String,
         url: ServoUrl,
         content: Option<String>,
-        content_type: String,
+        content_type: Option<String>,
     ) -> SourceActor {
         SourceActor {
             name,
@@ -106,7 +106,7 @@ impl SourceActor {
         pipeline_id: PipelineId,
         url: ServoUrl,
         content: Option<String>,
-        content_type: String,
+        content_type: Option<String>,
     ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
 
