@@ -114,7 +114,7 @@ use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::MessageEvent;
+use crate::dom::types::{DebuggerGlobalScope, MessageEvent};
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -2530,6 +2530,9 @@ impl GlobalScope {
             // https://drafts.css-houdini.org/worklets/#script-settings-for-worklets
             return worklet.base_url();
         }
+        if let Some(_debugger_global) = self.downcast::<DebuggerGlobalScope>() {
+            return self.creation_url.clone();
+        }
         unreachable!();
     }
 
@@ -2544,6 +2547,9 @@ impl GlobalScope {
         if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
             // TODO: is this the right URL to return?
             return worklet.base_url();
+        }
+        if let Some(_debugger_global) = self.downcast::<DebuggerGlobalScope>() {
+            return self.creation_url.clone();
         }
         unreachable!();
     }
