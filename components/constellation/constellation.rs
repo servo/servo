@@ -2440,6 +2440,9 @@ where
         // even when currently hanging(on JS or sync XHR).
         // This must be done before starting the process of closing all pipelines.
         for chan in &self.background_monitor_control_senders {
+            // Note: the bhm worker thread will continue to run 
+            // until all monitored components have exited,
+            // at which point we can join on the thread(done in `handle_shutdown`).
             if let Err(e) = chan.send(BackgroundHangMonitorControlMsg::Exit) {
                 warn!("error communicating with bhm: {}", e);
                 continue;
