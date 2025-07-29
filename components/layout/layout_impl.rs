@@ -75,7 +75,7 @@ use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use url::Url;
-use webrender_api::units::{DevicePixel, DevicePoint, LayoutSize, LayoutVector2D};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
@@ -960,12 +960,6 @@ impl LayoutThread {
             return;
         }
 
-        let viewport_size = self.stylist.device().au_viewport_size();
-        let viewport_size = LayoutSize::new(
-            viewport_size.width.to_f32_px(),
-            viewport_size.height.to_f32_px(),
-        );
-
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let old_scroll_offsets = stacking_context_tree
             .as_ref()
@@ -976,7 +970,7 @@ impl LayoutThread {
         // applicable spatial and clip nodes.
         let mut new_stacking_context_tree = StackingContextTree::new(
             fragment_tree,
-            viewport_size,
+            reflow_request.viewport_details,
             self.id.into(),
             !self.have_ever_generated_display_list.get(),
             &self.debug,

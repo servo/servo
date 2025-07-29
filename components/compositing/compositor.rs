@@ -227,6 +227,11 @@ pub(crate) struct PipelineDetails {
     /// The paint metric status of the first contentful paint.
     pub first_contentful_paint_metric: PaintMetricState,
 
+    /// The CSS pixel to device pixel scale of the viewport of this pipeline, including
+    /// page zoom, but not including any pinch zoom amount. This is used to detect
+    /// situations where the current display list is for an old scale.
+    pub viewport_scale: Option<Scale<f32, CSSPixel, DevicePixel>>,
+
     /// Which parts of Servo have reported that this `Pipeline` has exited. Only when all
     /// have done so will it be discarded.
     pub exited: PipelineExitSource,
@@ -248,6 +253,7 @@ impl PipelineDetails {
             pipeline: None,
             parent_pipeline_id: None,
             most_recent_display_list_epoch: None,
+            viewport_scale: None,
             animations_running: false,
             animation_callbacks_running: false,
             throttled: false,
@@ -761,14 +767,18 @@ impl IOCompositor {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return warn!("Could not find WebView for incoming display list");
                 };
+
                 // WebRender is not ready until we receive "NewWebRenderFrameReady"
                 webview_renderer.webrender_frame_ready.set(false);
+                let old_scale = webview_renderer.device_pixels_per_page_pixel();
 
                 let pipeline_id = display_list_info.pipeline_id;
                 let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
                 details.most_recent_display_list_epoch = Some(display_list_info.epoch);
                 details.hit_test_items = display_list_info.hit_test_info;
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
+                details.viewport_scale =
+                    Some(display_list_info.viewport_details.hidpi_scale_factor);
 
                 let epoch = display_list_info.epoch;
                 let first_reflow = display_list_info.first_reflow;
@@ -783,6 +793,14 @@ impl IOCompositor {
                 }
 
                 let mut transaction = Transaction::new();
+
+                let is_root_pipeline =
+                    Some(pipeline_id.into()) == webview_renderer.root_pipeline_id;
+                if is_root_pipeline && old_scale != webview_renderer.device_pixels_per_page_pixel()
+                {
+                    self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+                }
+
                 transaction
                     .set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
                 self.update_transaction_with_all_scroll_offsets(&mut transaction);
@@ -1227,9 +1245,8 @@ impl IOCompositor {
         }
 
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.set_page_zoom(1.0);
+            webview_renderer.set_page_zoom(Scale::new(1.0));
         }
-        self.send_root_pipeline_display_list();
     }
 
     pub fn on_zoom_window_event(&mut self, webview_id: WebViewId, magnification: f32) {
@@ -1238,9 +1255,9 @@ impl IOCompositor {
         }
 
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.set_page_zoom(magnification);
+            let current_page_zoom = webview_renderer.page_zoom();
+            webview_renderer.set_page_zoom(current_page_zoom * Scale::new(magnification));
         }
-        self.send_root_pipeline_display_list();
     }
 
     fn details_for_pipeline(&self, pipeline_id: PipelineId) -> Option<&PipelineDetails> {
