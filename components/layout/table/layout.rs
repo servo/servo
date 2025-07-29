@@ -1091,11 +1091,14 @@ impl<'a> TableLayout<'a> {
                 .padding(containing_block_for_table.style.writing_mode)
                 .percentages_relative_to(self.basis_for_cell_padding_percentage);
             let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
+            let border_spacing_spanned =
+                self.table.border_spacing().inline * (cell.colspan - 1) as i32;
 
             let mut total_cell_width: Au = (coordinate.x..coordinate.x + cell.colspan)
                 .map(|column_index| self.distributed_column_widths[column_index])
                 .sum::<Au>() -
-                inline_border_padding_sum;
+                inline_border_padding_sum +
+                border_spacing_spanned;
             total_cell_width = total_cell_width.max(Au::zero());
 
             let containing_block_for_children = ContainingBlock {
