@@ -944,6 +944,7 @@ impl ScriptThread {
         let debugger_global = DebuggerGlobalScope::new(
             &js_runtime.clone(),
             senders.self_sender.clone(),
+            senders.devtools_server_sender.clone(),
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
             script_to_constellation_chan,

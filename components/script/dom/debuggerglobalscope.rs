@@ -54,6 +54,7 @@ impl DebuggerGlobalScope {
     pub(crate) fn new(
         runtime: &Runtime,
         script_chan: Sender<MainThreadScriptMsg>,
+        devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
@@ -63,7 +64,7 @@ impl DebuggerGlobalScope {
         let global = Box::new(Self {
             global_scope: GlobalScope::new_inherited(
                 PipelineId::new(), // ??? or TEST_PIPELINE_ID, but that seems worse
-                None,              // ? if needed, see script_thread:745
+                devtools_chan,
                 mem_profiler_chan,
                 time_profiler_chan,
                 script_to_constellation_chan, // wrap it in a ScriptToConstellationChan
