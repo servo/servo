@@ -2089,7 +2089,7 @@ impl Handler {
         let webview_id = self.session()?.webview_id;
         let browsing_context_id = self.session()?.browsing_context_id;
 
-        // Steps 1 - 7 + Step 8 for <option>
+        // Steps 3-7 + Step 8 for <option> are handled in script thread.
         let cmd = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
