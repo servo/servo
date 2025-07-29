@@ -42,8 +42,8 @@ use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
     self as wr, BorderDetails, BoxShadowClipMode, BuiltDisplayList, ClipChainId, ClipMode,
-    CommonItemProperties, ComplexClipRegion, ImageRendering, NinePatchBorder,
-    NinePatchBorderSource, PropertyBinding, SpatialId, SpatialTreeItemKey, units,
+    CommonItemProperties, ComplexClipRegion, NinePatchBorder, NinePatchBorderSource,
+    PropertyBinding, SpatialId, SpatialTreeItemKey, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -1501,7 +1501,8 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                 width = size.width;
                 height = size.height;
-                NinePatchBorderSource::Image(key, ImageRendering::Auto)
+                let rendering = self.fragment.style.clone_image_rendering().to_webrender();
+                NinePatchBorderSource::Image(key, rendering)
             },
             Ok(ResolvedImage::Gradient(gradient)) => {
                 match gradient::build(&self.fragment.style, gradient, border_image_size, builder) {
