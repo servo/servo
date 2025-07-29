@@ -587,4 +587,5 @@ pub struct SourceInfo {
     pub worker_id: Option<WorkerId>,
     pub content: Option<String>,
     pub content_type: Option<String>,
+    pub spidermonkey_id: u32,
 }
