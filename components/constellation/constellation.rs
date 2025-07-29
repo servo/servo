@@ -3528,13 +3528,12 @@ where
                 };
                 if let Err(e) = result {
                     self.handle_send_error(parent_pipeline_id, e);
-                } else {
-                    if let Some((sender, id)) = &self.webdriver_load_status_sender {
-                        if source_id == *id {
-                            let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                        }
+                } else if let Some((sender, id)) = &self.webdriver_load_status_sender {
+                    if source_id == *id {
+                        let _ = sender.send(WebDriverLoadStatus::NavigationStop);
                     }
                 }
+
                 None
             },
             None => {
