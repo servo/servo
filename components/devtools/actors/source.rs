@@ -56,6 +56,9 @@ pub struct SourceActor {
     pub content: Option<String>,
     pub content_type: Option<String>,
 
+    // TODO: use it in #37667, then remove this allow
+    #[allow(unused)]
+    pub spidermonkey_id: u32,
     /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
     pub introduction_type: String,
 }
@@ -96,6 +99,7 @@ impl SourceActor {
         url: ServoUrl,
         content: Option<String>,
         content_type: Option<String>,
+        spidermonkey_id: u32,
         introduction_type: String,
     ) -> SourceActor {
         SourceActor {
@@ -104,6 +108,7 @@ impl SourceActor {
             content,
             content_type,
             is_black_boxed: false,
+            spidermonkey_id,
             introduction_type,
         }
     }
@@ -114,6 +119,7 @@ impl SourceActor {
         url: ServoUrl,
         content: Option<String>,
         content_type: Option<String>,
+        spidermonkey_id: u32,
         introduction_type: String,
     ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
@@ -123,6 +129,7 @@ impl SourceActor {
             url,
             content,
             content_type,
+            spidermonkey_id,
             introduction_type,
         );
         actors.register(Box::new(source_actor));
@@ -160,6 +167,10 @@ impl Actor for SourceActor {
                 let reply = SourceContentReply {
                     from: self.name(),
                     content_type: self.content_type.clone(),
+                    // TODO: if needed, fetch the page again, in the same way as in the original request.
+                    // Fetch it from cache, even if the original request was non-idempotent (e.g. POST).
+                    // If we can’t fetch it from cache, we should probably give up, because with a real
+                    // fetch, the server could return a different response.
                     // TODO: do we want to wait instead of giving up immediately, in cases where the content could
                     // become available later (e.g. after a fetch)?
                     source: self

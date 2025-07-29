@@ -1254,20 +1254,36 @@ pub(crate) use script_bindings::script_runtime::CanGc;
 // TODO: squish `scriptElement` <https://searchfox.org/mozilla-central/rev/202069c4c5113a1a9052d84fa4679d4c1b22113e/devtools/server/actors/source.js#199-201>
 pub(crate) struct IntroductionType;
 impl IntroductionType {
+    /// `introductionType` for code passed to `eval`.
+    pub const EVAL: &CStr = c"eval";
+    pub const EVAL_STR: &str = "eval";
+
     /// `introductionType` for code evaluated by debugger.
     /// This includes code run via the devtools repl, even if the thread is not paused.
     pub const DEBUGGER_EVAL: &CStr = c"debugger eval";
+    pub const DEBUGGER_EVAL_STR: &str = "debugger eval";
+
+    /// `introductionType` for code passed to the `Function` constructor.
+    pub const FUNCTION: &CStr = c"Function";
+    pub const FUNCTION_STR: &str = "Function";
 
     /// `introductionType` for code loaded by worklet.
     pub const WORKLET: &CStr = c"Worklet";
+    pub const WORKLET_STR: &str = "Worklet";
+
+    /// `introductionType` for code assigned to DOM elements’ event handler IDL attributes as a string.
+    pub const EVENT_HANDLER: &CStr = c"eventHandler";
+    pub const EVENT_HANDLER_STR: &str = "eventHandler";
 
     /// `introductionType` for code belonging to `<script src="file.js">` elements.
     /// This includes `<script type="module" src="...">`.
     pub const SRC_SCRIPT: &CStr = c"srcScript";
+    pub const SRC_SCRIPT_STR: &str = "srcScript";
 
     /// `introductionType` for code belonging to `<script>code;</script>` elements.
     /// This includes `<script type="module" src="...">`.
     pub const INLINE_SCRIPT: &CStr = c"inlineScript";
+    pub const INLINE_SCRIPT_STR: &str = "inlineScript";
 
     /// `introductionType` for code belonging to scripts that *would* be `"inlineScript"` except that they were not
     /// part of the initial file itself.
@@ -1275,18 +1291,24 @@ impl IntroductionType {
     /// - `document.write("<script>code;</script>")`
     /// - `var s = document.createElement("script"); s.text = "code";`
     pub const INJECTED_SCRIPT: &CStr = c"injectedScript";
+    pub const INJECTED_SCRIPT_STR: &str = "injectedScript";
 
     /// `introductionType` for code that was loaded indirectly by being imported by another script
     /// using ESM static or dynamic imports.
     pub const IMPORTED_MODULE: &CStr = c"importedModule";
+    pub const IMPORTED_MODULE_STR: &str = "importedModule";
 
     /// `introductionType` for code presented in `javascript:` URLs.
     pub const JAVASCRIPT_URL: &CStr = c"javascriptURL";
+    pub const JAVASCRIPT_URL_STR: &str = "javascriptURL";
 
     /// `introductionType` for code passed to `setTimeout`/`setInterval` as a string.
     pub const DOM_TIMER: &CStr = c"domTimer";
+    pub const DOM_TIMER_STR: &str = "domTimer";
 
     /// `introductionType` for web workers.
-    /// <https://searchfox.org/mozilla-central/rev/202069c4c5113a1a9052d84fa4679d4c1b22113e/devtools/docs/user/debugger-api/debugger.source/index.rst#96>
+    /// FIXME: only documented in older(?) devtools user docs
+    /// <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.source/index.html>
     pub const WORKER: &CStr = c"Worker";
+    pub const WORKER_STR: &str = "Worker";
 }
