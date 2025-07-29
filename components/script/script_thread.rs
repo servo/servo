@@ -3060,6 +3060,8 @@ impl ScriptThread {
 
     /// Handles a request to exit the script thread and shut down layout.
     fn handle_exit_script_thread_msg(&self, can_gc: CanGc) {
+        debug!("Exiting script thread.");
+
         let mut webview_and_pipeline_ids = Vec::new();
         webview_and_pipeline_ids.extend(
             self.incomplete_loads
