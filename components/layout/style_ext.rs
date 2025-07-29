@@ -63,6 +63,15 @@ pub struct AxesOverflow {
     pub y: Overflow,
 }
 
+impl Default for AxesOverflow {
+    fn default() -> Self {
+        AxesOverflow {
+            x: Overflow::Visible,
+            y: Overflow::Visible,
+        }
+    }
+}
+
 impl DisplayGeneratingBox {
     pub(crate) fn display_inside(&self) -> DisplayInside {
         match *self {

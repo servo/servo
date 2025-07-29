@@ -11,6 +11,7 @@ use style::properties::ComputedValues;
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
 use crate::cell::ArcRefCell;
 use crate::geom::PhysicalRect;
+use crate::style_ext::AxesOverflow;
 
 /// Can contain child fragments with relative coordinates, but does not contribute to painting
 /// itself. [`PositioningFragment`]s may be completely anonymous, or just non-painting Fragments
@@ -79,7 +80,7 @@ impl PositioningFragment {
             |acc, child| {
                 acc.union(
                     &child
-                        .calculate_scrollable_overflow_for_parent()
+                        .calculate_scrollable_overflow_for_parent(AxesOverflow::default())
                         .translate(self.rect.origin.to_vector()),
                 )
             },

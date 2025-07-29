@@ -23,7 +23,7 @@ use super::{
 use crate::cell::ArcRefCell;
 use crate::flow::inline::SharedInlineStyles;
 use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{AxesOverflow, ComputedValuesExt};
 
 #[derive(Clone, MallocSizeOf)]
 pub(crate) enum Fragment {
@@ -168,14 +168,19 @@ impl Fragment {
                 let fragment = fragment.borrow();
                 fragment.offset_by_containing_block(&fragment.scrollable_overflow())
             },
-            _ => self.scrollable_overflow_for_parent(),
+            _ => self.scrollable_overflow_for_parent(AxesOverflow::default()),
         }
     }
 
-    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+    pub(crate) fn scrollable_overflow_for_parent(
+        &self,
+        overflow_style: AxesOverflow,
+    ) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                return fragment.borrow().scrollable_overflow_for_parent();
+                return fragment
+                    .borrow()
+                    .scrollable_overflow_for_parent(overflow_style);
             },
             Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
             Fragment::Positioning(fragment) => fragment.borrow().scrollable_overflow_for_parent(),
@@ -185,9 +190,12 @@ impl Fragment {
         }
     }
 
-    pub(crate) fn calculate_scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+    pub(crate) fn calculate_scrollable_overflow_for_parent(
+        &self,
+        overflow_style: AxesOverflow,
+    ) -> PhysicalRect<Au> {
         self.calculate_scrollable_overflow();
-        self.scrollable_overflow_for_parent()
+        self.scrollable_overflow_for_parent(overflow_style)
     }
 
     pub(crate) fn calculate_scrollable_overflow(&self) {
