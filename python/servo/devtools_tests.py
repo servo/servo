@@ -146,15 +146,12 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.run_servoshell()
         self.assert_source_breakable_lines_and_positions(
             f"{self.base_url}/test.html",
-            list(range(1, 8)),
+            [4, 5, 6, 7],
             {
-                "1": list(range(15)),
-                "2": list(range(22)),
-                "3": list(range(8)),
-                "4": list(range(35)),
-                "5": list(range(46)),  # includes 3 surrogate pairs
-                "6": list(range(46)),  # includes 1 surrogate pair
-                "7": list(range(9)),
+                "4": [5, 13, 21, 29],
+                "5": [15, 23, 31, 39],  # includes 3 surrogate pairs
+                "6": [15, 23, 31, 39],  # includes 1 surrogate pair
+                "7": [0],
             },
         )
 
