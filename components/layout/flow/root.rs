@@ -225,7 +225,6 @@ impl BoxTree {
             layout_context,
             &mut positioning_context,
             &(&initial_containing_block).into(),
-            false, /* depends_on_block_constraints */
         );
 
         let mut root_fragments = independent_layout.fragments.into_iter().collect::<Vec<_>>();

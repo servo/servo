@@ -205,7 +205,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     &content_box_size_override,
                     containing_block,
                     preferred_aspect_ratio,
-                    false, /* depends_on_block_constraints */
                     &lazy_block_size,
                 );
 

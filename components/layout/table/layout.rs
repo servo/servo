@@ -1114,7 +1114,6 @@ impl<'a> TableLayout<'a> {
                 layout_context,
                 &mut positioning_context,
                 &containing_block_for_children,
-                false, /* depends_on_block_constraints */
             );
 
             Some(CellLayout {
@@ -1545,15 +1544,10 @@ impl<'a> TableLayout<'a> {
         positioning_context: &mut PositioningContext,
         containing_block_for_children: &ContainingBlock,
         containing_block_for_table: &ContainingBlock,
-        depends_on_block_constraints: bool,
     ) -> CacheableLayoutResult {
         let table_writing_mode = containing_block_for_children.style.writing_mode;
         self.compute_border_collapse(table_writing_mode);
         let layout_style = self.table.layout_style(Some(&self));
-        let depends_on_block_constraints = depends_on_block_constraints ||
-            layout_style
-                .content_box_sizes_and_padding_border_margin(&containing_block_for_table.into())
-                .depends_on_block_constraints;
 
         self.pbm = layout_style
             .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
@@ -1592,7 +1586,7 @@ impl<'a> TableLayout<'a> {
             content_block_size: Zero::zero(),
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
-            depends_on_block_constraints,
+            depends_on_block_constraints: true,
             specific_layout_info: Some(SpecificLayoutInfo::TableWrapper),
             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
         };
@@ -2700,14 +2694,12 @@ impl Table {
         positioning_context: &mut PositioningContext,
         containing_block_for_children: &ContainingBlock,
         containing_block_for_table: &ContainingBlock,
-        depends_on_block_constraints: bool,
     ) -> CacheableLayoutResult {
         TableLayout::new(self).layout(
             layout_context,
             positioning_context,
             containing_block_for_children,
             containing_block_for_table,
-            depends_on_block_constraints,
         )
     }
 }
