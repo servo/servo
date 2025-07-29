@@ -5,6 +5,7 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::thread::JoinHandle;
 
 use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
@@ -558,7 +559,7 @@ impl UnprivilegedPipelineContent {
 
     pub fn register_with_background_hang_monitor(
         &mut self,
-    ) -> Box<dyn BackgroundHangMonitorRegister> {
+    ) -> (Box<dyn BackgroundHangMonitorRegister>, JoinHandle<()>) {
         HangMonitorRegister::init(
             self.background_hang_monitor_to_constellation_chan.clone(),
             self.bhm_control_port.take().expect("no sampling profiler?"),

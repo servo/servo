@@ -92,6 +92,7 @@ use std::marker::PhantomData;
 use std::mem::replace;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
 use std::{process, thread};
 
 use background_hang_monitor::HangMonitorRegister;
@@ -280,6 +281,9 @@ pub struct Constellation<STF, SWF> {
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
     background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
+
+    /// In single process mode, a join handle on the BHM worker thread.
+    background_monitor_register_join_handle: Option<JoinHandle<()>>,
 
     /// Channels to control all background-hang monitors.
     /// TODO: store them on the relevant BrowsingContextGroup,
@@ -595,23 +599,28 @@ where
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
-                let (background_monitor_register, background_hang_monitor_control_ipc_senders) =
-                    if opts::get().multiprocess {
-                        (None, vec![])
-                    } else {
-                        let (
-                            background_hang_monitor_control_ipc_sender,
-                            background_hang_monitor_control_ipc_receiver,
-                        ) = ipc::channel().expect("ipc channel failure");
-                        (
-                            Some(HangMonitorRegister::init(
-                                background_hang_monitor_ipc_sender.clone(),
-                                background_hang_monitor_control_ipc_receiver,
-                                opts::get().background_hang_monitor,
-                            )),
-                            vec![background_hang_monitor_control_ipc_sender],
-                        )
-                    };
+                let (
+                    background_monitor_register,
+                    background_monitor_register_join_handle,
+                    background_hang_monitor_control_ipc_senders,
+                ) = if opts::get().multiprocess {
+                    (None, None, vec![])
+                } else {
+                    let (
+                        background_hang_monitor_control_ipc_sender,
+                        background_hang_monitor_control_ipc_receiver,
+                    ) = ipc::channel().expect("ipc channel failure");
+                    let (register, join_handle) = HangMonitorRegister::init(
+                        background_hang_monitor_ipc_sender.clone(),
+                        background_hang_monitor_control_ipc_receiver,
+                        opts::get().background_hang_monitor,
+                    );
+                    (
+                        Some(register),
+                        Some(join_handle),
+                        vec![background_hang_monitor_control_ipc_sender],
+                    )
+                };
 
                 let swmanager_receiver =
                     route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
@@ -636,6 +645,7 @@ where
                     background_hang_monitor_sender: background_hang_monitor_ipc_sender,
                     background_hang_monitor_receiver,
                     background_monitor_register,
+                    background_monitor_register_join_handle,
                     background_monitor_control_senders: background_hang_monitor_control_ipc_senders,
                     script_receiver,
                     compositor_receiver,
@@ -2492,6 +2502,14 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_shutdown(&mut self) {
         debug!("Handling shutdown.");
+
+        // In single process mode, join on the background hang monitor worker thread.
+        drop(self.background_monitor_register.take());
+        if let Some(join_handle) = self.background_monitor_register_join_handle.take() {
+            join_handle
+                .join()
+                .expect("Failed to join on the BHM background thread.");
+        }
 
         // At this point, there are no active pipelines,
         // so we can safely block on other threads, without worrying about deadlock.

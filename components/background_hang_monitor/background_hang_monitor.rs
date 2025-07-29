@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Weak};
-use std::thread;
+use std::thread::{self, Builder, JoinHandle};
 use std::time::{Duration, Instant};
 
 use background_hang_monitor_api::{
@@ -32,7 +32,7 @@ impl HangMonitorRegister {
         constellation_chan: IpcSender<HangMonitorAlert>,
         control_port: IpcReceiver<BackgroundHangMonitorControlMsg>,
         monitoring_enabled: bool,
-    ) -> Box<dyn BackgroundHangMonitorRegister> {
+    ) -> (Box<dyn BackgroundHangMonitorRegister>, JoinHandle<()>) {
         // Create a channel to pass messages of type `MonitoredComponentMsg`.
         // See the discussion in `<HangMonitorRegister as
         // BackgroundHangMonitorRegister>::register_component` for why we wrap
@@ -41,7 +41,7 @@ impl HangMonitorRegister {
         let (sender, port) = unbounded();
         let sender_clone = sender.clone();
 
-        let _ = thread::Builder::new()
+        let join_handle = Builder::new()
             .name("BackgroundHangMonitor".to_owned())
             .spawn(move || {
                 let mut monitor = BackgroundHangMonitorWorker::new(
@@ -55,10 +55,13 @@ impl HangMonitorRegister {
                 }
             })
             .expect("Couldn't start BHM worker.");
-        Box::new(HangMonitorRegister {
-            sender: sender_clone,
-            monitoring_enabled,
-        })
+        (
+            Box::new(HangMonitorRegister {
+                sender: sender_clone,
+                monitoring_enabled,
+            }),
+            join_handle,
+        )
     }
 }
 
