@@ -22,8 +22,7 @@ use crate::sampler::{NativeStack, Sampler};
 
 #[derive(Clone)]
 pub struct HangMonitorRegister {
-    sender: Weak<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>,
-    tether: Sender<Never>,
+    sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
     monitoring_enabled: bool,
 }
 
@@ -40,13 +39,7 @@ impl HangMonitorRegister {
         // the sender with `Arc` and why `HangMonitorRegister` only maintains
         // a weak reference to it.
         let (sender, port) = unbounded();
-        let sender = Arc::new(sender);
-        let sender_weak = Arc::downgrade(&sender);
-
-        // Create a "tether" channel, whose sole purpose is to keep the worker
-        // thread alive. The worker thread will terminates when all copies of
-        // `tether` are dropped.
-        let (tether, tether_port) = unbounded();
+        let sender_clone = sender.clone();
 
         let _ = thread::Builder::new()
             .name("BackgroundHangMonitor".to_owned())
@@ -54,8 +47,7 @@ impl HangMonitorRegister {
                 let mut monitor = BackgroundHangMonitorWorker::new(
                     constellation_chan,
                     control_port,
-                    (sender, port),
-                    tether_port,
+                    port,
                     monitoring_enabled,
                 );
                 while monitor.run() {
@@ -64,8 +56,7 @@ impl HangMonitorRegister {
             })
             .expect("Couldn't start BHM worker.");
         Box::new(HangMonitorRegister {
-            sender: sender_weak,
-            tether,
+            sender: sender_clone,
             monitoring_enabled,
         })
     }
@@ -84,7 +75,6 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
     ) -> Box<dyn BackgroundHangMonitor> {
         let bhm_chan = BackgroundHangMonitorChan::new(
             self.sender.clone(),
-            self.tether.clone(),
             component_id,
             self.monitoring_enabled,
         );
@@ -124,22 +114,12 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         ))]
         let sampler = crate::sampler::DummySampler::new_boxed();
 
-        // If the tether is dropped after this call, the worker thread might
-        // exit before processing the `Register` message because there's no
-        // implicit ordering guarantee between two channels. If this happens,
-        // an exit signal will be sent despite we haven't received a
-        // corresponding exit request. To enforce the correct ordering and
-        // prevent a false exit signal from being sent, we include a copy of
-        // `self.tether` in the `Register` message.
-        let tether = self.tether.clone();
-
         bhm_chan.send(MonitoredComponentMsg::Register(
             sampler,
             thread::current().name().map(str::to_owned),
             transient_hang_timeout,
             permanent_hang_timeout,
             exit_signal,
-            tether,
         ));
         Box::new(bhm_chan)
     }
@@ -160,7 +140,6 @@ enum MonitoredComponentMsg {
         Duration,
         Duration,
         Box<dyn BackgroundHangMonitorExitSignal>,
-        Sender<Never>,
     ),
     /// Unregister component for monitoring.
     Unregister,
@@ -177,47 +156,28 @@ enum Never {}
 /// which will send the Id of the monitored component along with each message,
 /// and keep track of whether the monitor is still listening on the other end.
 struct BackgroundHangMonitorChan {
-    sender: Weak<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>,
-    _tether: Sender<Never>,
+    sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
     component_id: MonitoredComponentId,
-    disconnected: Cell<bool>,
     monitoring_enabled: bool,
 }
 
 impl BackgroundHangMonitorChan {
     fn new(
-        sender: Weak<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>,
-        tether: Sender<Never>,
+        sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
         component_id: MonitoredComponentId,
         monitoring_enabled: bool,
     ) -> Self {
         BackgroundHangMonitorChan {
             sender,
-            _tether: tether,
             component_id,
-            disconnected: Default::default(),
             monitoring_enabled,
         }
     }
 
     fn send(&self, msg: MonitoredComponentMsg) {
-        if self.disconnected.get() {
-            return;
-        }
-
-        // The worker thread owns both the receiver *and* the only strong
-        // reference to the sender. An `upgrade` failure means the latter is
-        // gone, and a `send` failure means the former is gone. They are dropped
-        // simultaneously, but we might observe an intermediate state.
-        if self
-            .sender
-            .upgrade()
-            .and_then(|sender| sender.send((self.component_id.clone(), msg)).ok())
-            .is_none()
-        {
-            warn!("BackgroundHangMonitor has gone away");
-            self.disconnected.set(true);
-        }
+        self.sender
+            .send((self.component_id.clone(), msg))
+            .expect("BHM is gone");
     }
 }
 
@@ -259,8 +219,6 @@ struct BackgroundHangMonitorWorker {
     monitored_components: HashMap<MonitoredComponentId, MonitoredComponent>,
     constellation_chan: IpcSender<HangMonitorAlert>,
     port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
-    _port_sender: Arc<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>,
-    tether_port: Receiver<Never>,
     control_port: Receiver<BackgroundHangMonitorControlMsg>,
     sampling_duration: Option<Duration>,
     sampling_max_duration: Option<Duration>,
@@ -279,8 +237,7 @@ impl BackgroundHangMonitorWorker {
     fn new(
         constellation_chan: IpcSender<HangMonitorAlert>,
         control_port: IpcReceiver<BackgroundHangMonitorControlMsg>,
-        (port_sender, port): (Arc<MonitoredComponentSender>, MonitoredComponentReceiver),
-        tether_port: Receiver<Never>,
+        port: MonitoredComponentReceiver,
         monitoring_enabled: bool,
     ) -> Self {
         let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(control_port);
@@ -289,8 +246,6 @@ impl BackgroundHangMonitorWorker {
             monitored_components: Default::default(),
             constellation_chan,
             port,
-            _port_sender: port_sender,
-            tether_port,
             control_port,
             sampling_duration: None,
             sampling_max_duration: None,
@@ -358,15 +313,14 @@ impl BackgroundHangMonitorWorker {
 
         let received = select! {
             recv(self.port) -> event => {
-                // Since we own the `Arc<Sender<_>>`, the channel never
-                // gets disconnected.
-                Some(event.unwrap())
-            },
-            recv(self.tether_port) -> _ => {
-                // This arm can only reached by a tether disconnection
-                // All associated `HangMonitorRegister` and
-                // `BackgroundHangMonitorChan` have been dropped.
-                return false;
+                if let Ok(event) = event {
+                    Some(event)
+                } else {
+                    // All senders have dropped,
+                    // which means all monitored components have shut down,
+                    // and so we can as well.
+                    return false;
+                }
             },
             recv(self.control_port) -> event => {
                 match event {
@@ -434,7 +388,6 @@ impl BackgroundHangMonitorWorker {
                     transient_hang_timeout,
                     permanent_hang_timeout,
                     exit_signal,
-                    _tether,
                 ),
             ) => {
                 // If we are shutting down,
