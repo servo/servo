@@ -207,6 +207,6 @@ pub trait BackgroundHangMonitorExitSignal: Send {
 pub enum BackgroundHangMonitorControlMsg {
     /// Toggle the sampler, with a given sampling rate and max total sampling duration.
     ToggleSampler(Duration, Duration),
-    /// Propaget exit signal to monitored components, and shutdown when they have.
+    /// Propagate exit signal to monitored components, and shutdown when they have.
     Exit,
 }
