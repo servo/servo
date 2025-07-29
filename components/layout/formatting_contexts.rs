@@ -295,10 +295,7 @@ impl IndependentFormattingContext {
         }
     }
 
-    #[servo_tracing::instrument(
-        name = "IndependentFormattingContext::layout_with_caching",
-        skip_all
-    )]
+    #[servo_tracing::instrument(name = "IndependentFormattingContext::layout", skip_all)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn layout(
         &self,
@@ -324,7 +321,7 @@ impl IndependentFormattingContext {
             }
             #[cfg(feature = "tracing")]
             tracing::debug!(
-                name: "NonReplaced cache miss",
+                name: "IndependentFormattingContext::layout cache miss",
                 cached = ?cache.containing_block_for_children_size,
                 required = ?containing_block_for_children.size,
             );
