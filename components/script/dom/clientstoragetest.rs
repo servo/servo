@@ -9,7 +9,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use net_traits::clientstorage::actors_child::ClientStorageTestChild;
+use net_traits::clientstorage::actors_child::{
+    ClientStorageTestChild, ClientStorageTestCursorChild,
+};
 use script_bindings::inheritance::Castable;
 use stylo_atoms::Atom;
 
@@ -17,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::ClientStorageTestBinding::ClientSto
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::clientstoragetestcursor::ClientStorageTestCursor;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -104,6 +107,20 @@ impl ClientStorageTestMethods<crate::DomTypeHolder> for ClientStorageTest {
         });
 
         child.send_ping();
+    }
+
+    fn OpenCursor(&self) -> DomRoot<ClientStorageTestCursor> {
+        let cursor = ClientStorageTestCursor::new(&self.global(), None, CanGc::note());
+
+        let cursor_child = ClientStorageTestCursorChild::new();
+
+        let child = self.get_or_create_child();
+
+        child.send_test_cursor_constructor(&cursor_child);
+
+        cursor.set_child(cursor_child);
+
+        cursor
     }
 
     event_handler!(pong, GetOnpong, SetOnpong);

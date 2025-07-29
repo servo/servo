@@ -252,6 +252,7 @@ pub(crate) mod channelsplitternode;
 pub(crate) mod characterdata;
 pub(crate) mod client;
 pub(crate) mod clientstoragetest;
+pub(crate) mod clientstoragetestcursor;
 pub(crate) mod clipboard;
 pub(crate) mod clipboardevent;
 pub(crate) mod clipboarditem;

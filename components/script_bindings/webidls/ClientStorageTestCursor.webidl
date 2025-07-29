@@ -6,14 +6,8 @@
 // web pages.
 
 [Exposed=(Window, Worker), Pref="dom_clientstorage_testing_enabled"]
-interface ClientStorageTest : EventTarget {
-   constructor();
+interface ClientStorageTestCursor : EventTarget {
+   [BinaryName="Continue_"] undefined continue_();
 
-   long test();
-
-   undefined ping();
-
-   [NewObject] ClientStorageTestCursor openCursor();
-
-   attribute EventHandler onpong;
+   attribute EventHandler onresponse;
 };
