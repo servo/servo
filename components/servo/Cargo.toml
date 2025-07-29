@@ -140,8 +140,7 @@ http = { workspace = true }
 libservo = { path = ".", features = ["tracing"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 tracing = { workspace = true }
-winit = "0.30.11"
-
+winit = { workspace = true }
 
 [[test]]
 name = "webview"
