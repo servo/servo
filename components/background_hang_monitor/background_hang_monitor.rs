@@ -269,6 +269,7 @@ struct BackgroundHangMonitorWorker {
     sampling_baseline: Instant,
     samples: VecDeque<Sample>,
     monitoring_enabled: bool,
+    shutting_down: bool,
 }
 
 type MonitoredComponentSender = Sender<(MonitoredComponentId, MonitoredComponentMsg)>;
@@ -298,6 +299,7 @@ impl BackgroundHangMonitorWorker {
             creation: Instant::now(),
             samples: Default::default(),
             monitoring_enabled,
+            shutting_down: Default::default(),
         }
     }
 
@@ -386,6 +388,10 @@ impl BackgroundHangMonitorWorker {
                             component.exit_signal.signal_to_exit();
                         }
 
+                        // Note the start of shutdown,
+                        // to prevent registration from this point on.
+                        self.shutting_down = true;
+
                         // Keep running; this worker thread will shutdown
                         // when the monitored components have shutdown,
                         // which we know has happened when the tether chan disconnects.
@@ -431,6 +437,14 @@ impl BackgroundHangMonitorWorker {
                     _tether,
                 ),
             ) => {
+                // If we are shutting down,
+                // propagate it to the component,
+                // and do not register it.
+                if self.shutting_down {
+                    exit_signal.signal_to_exit();
+                    return;
+                }
+
                 let component = MonitoredComponent {
                     sampler,
                     last_activity: Instant::now(),
