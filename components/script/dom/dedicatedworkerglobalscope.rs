@@ -9,7 +9,7 @@ use std::thread::{self, JoinHandle};
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, SourceInfo};
+use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcReceiver;
@@ -60,9 +60,7 @@ use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{
-    CanGc, IntroductionType, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext,
-};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 
@@ -536,24 +534,6 @@ impl DedicatedWorkerGlobalScope {
                 ));
                 global_scope.set_https_state(metadata.https_state);
                 let source = String::from_utf8_lossy(&bytes);
-                if let Some(chan) = global_scope.devtools_chan() {
-                    let pipeline_id = global_scope.pipeline_id();
-                    let source_info = SourceInfo {
-                        url: metadata.final_url,
-                        introduction_type: IntroductionType::WORKER
-                            .to_str()
-                            .expect("Guaranteed by definition")
-                            .to_owned(),
-                        external: true, // Worker scripts are always external.
-                        worker_id: Some(global.upcast::<WorkerGlobalScope>().get_worker_id()),
-                        content: Some(source.to_string()),
-                        content_type: metadata.content_type.map(|c_type| c_type.0.to_string()),
-                    };
-                    let _ = chan.send(ScriptToDevtoolsControlMsg::CreateSourceActor(
-                        pipeline_id,
-                        source_info,
-                    ));
-                }
 
                 unsafe {
                     // Handle interrupt requests
