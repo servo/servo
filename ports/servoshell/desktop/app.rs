@@ -725,6 +725,7 @@ impl ApplicationHandler<AppEvent> for App {
                             state,
                             "Sync WebView size with Window Resize event",
                         );
+                        window.set_toolbar_height(minibrowser.toolbar_height);
                     }
                     if response.repaint && *event != WindowEvent::RedrawRequested {
                         // Request a winit redraw event, so we can recomposite, update and paint
