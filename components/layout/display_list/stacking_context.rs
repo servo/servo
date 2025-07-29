@@ -1346,9 +1346,7 @@ impl BoxFragment {
                 });
         }
 
-        if let Fragment::Box(box_fragment) = &fragment {
-            *box_fragment.borrow().spatial_tree_node.borrow_mut() = Some(new_scroll_node_id);
-        }
+        *self.spatial_tree_node.borrow_mut() = Some(new_scroll_node_id);
     }
 
     fn build_clip_frame_if_necessary(
