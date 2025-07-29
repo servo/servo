@@ -747,7 +747,7 @@ async fn wait_for_response(
                     target.process_response_chunk(request, vec);
                 },
                 Some(Data::Done) => {
-                    send_response_to_devtools(&request, context, response, devtools_body);
+                    send_response_to_devtools(request, context, response, devtools_body);
                     break;
                 },
                 Some(Data::Cancelled) => {
@@ -769,13 +769,8 @@ async fn wait_for_response(
             if context.devtools_chan.is_some() {
                 // Now that we've replayed the entire cached body,
                 // notify the DevTools server with the full Response.
-                let mut devtools_request = request.clone();
-                send_response_to_devtools(
-                    &mut devtools_request,
-                    context,
-                    response,
-                    Some(vec.clone()),
-                );
+                let devtools_request = request.clone();
+                send_response_to_devtools(&devtools_request, context, response, Some(vec.clone()));
             }
         } else {
             assert_eq!(*body, ResponseBody::Empty)

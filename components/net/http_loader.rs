@@ -470,6 +470,7 @@ pub fn send_response_to_devtools(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn send_response_values_to_devtools(
     headers: Option<HeaderMap>,
     status: HttpStatus,
@@ -2016,7 +2017,7 @@ async fn http_network_fetch(
         Some(&request_id),
         request.destination,
         is_xhr,
-        &context,
+        context,
         fetch_terminated_sender,
         browsing_context_id,
     );
@@ -2117,7 +2118,7 @@ async fn http_network_fetch(
     let done_sender3 = done_sender.clone();
     let timing_ptr2 = context.timing.clone();
     let timing_ptr3 = context.timing.clone();
-    let mut devtools_request = request.clone();
+    let devtools_request = request.clone();
     let url1 = devtools_request.url();
     let url2 = url1.clone();
 
@@ -2165,7 +2166,7 @@ async fn http_network_fetch(
                     Some(headers),
                     status,
                     Some(devtools_response_body),
-                    &mut devtools_request,
+                    &devtools_request,
                     state,
                     user_agent,
                     devtools_chan,
