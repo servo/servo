@@ -10,7 +10,7 @@ use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use embedder_traits::{Cursor, ViewportDetails};
-use euclid::SideOffsets2D;
+use euclid::{SideOffsets2D, Transform3D};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::specified::Overflow;
@@ -423,6 +423,53 @@ impl ScrollTree {
             SpatialTreeNodeInfo::Scroll(ref info) if info.external_id == id => Some(info.offset),
             _ => None,
         })
+    }
+
+    /// Traverse a scroll node to its root to calculate the transform.
+    ///
+    /// TODO(stevennovaryo): Add caching mechanism for this.
+    pub fn cumulative_node_transform(&self, node_id: &ScrollTreeNodeId) -> LayoutTransform {
+        let current_node = self.get_node(node_id);
+
+        let change_basis =
+            |transform: &Transform3D<f32, LayoutPixel, LayoutPixel>, x: f32, y: f32, z: f32| {
+                let pre_translation = Transform3D::translation(x, y, z);
+                let post_translation = Transform3D::translation(-x, -y, -z);
+                post_translation.then(transform).then(&pre_translation)
+            };
+
+        // FIXME(stevennovaryo): Ideally we should optimize the computation of simpler
+        //                       transformation like translate as it could be done
+        //                       in smaller amount of operation compared to a normal
+        //                       matrix multiplication.
+        let node_transform = match &current_node.info {
+            // To apply a transformation we need to make sure the rectangle's
+            // coordinate space is the same as reference frame's coordinate space.
+            // TODO(stevennovaryo): contrary to how Firefox are handling the coordinate space,
+            //                      we are ignoring zoom in transforming the coordinate
+            //                      space, and we might need to consider zoom here if it was
+            //                      implemented completely.
+            SpatialTreeNodeInfo::ReferenceFrame(info) => change_basis(
+                &info.transform,
+                info.frame_origin_for_query.x,
+                info.frame_origin_for_query.y,
+                0.0,
+            ),
+            SpatialTreeNodeInfo::Scroll(info) => {
+                Transform3D::translation(-info.offset.x, -info.offset.y, 0.0)
+            },
+            // TODO(stevennovaryo): Need to consider sticky frame accurately.
+            SpatialTreeNodeInfo::Sticky(_) => Default::default(),
+        };
+
+        match current_node.parent {
+            // If a node is not a root, accumulate the transforms.
+            Some(parent_id) => {
+                let ancestors_transform = self.cumulative_node_transform(&parent_id);
+                node_transform.then(&ancestors_transform)
+            },
+            None => node_transform,
+        }
     }
 }
 

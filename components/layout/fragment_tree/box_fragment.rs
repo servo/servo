@@ -111,9 +111,11 @@ pub(crate) struct BoxFragment {
     /// Additional information for block-level boxes.
     pub block_level_layout_info: Option<Box<BlockLevelLayoutInfo>>,
 
-    /// The lowest scroll tree node that would affect this fragment's border. It is used to
-    /// calculate the post composite queries (e.g., bounding box query).
-    pub scroll_tree_node_id_for_query: AtomicRefCell<Option<ScrollTreeNodeId>>,
+    /// The containing spatial tree node of this [`BoxFragment`]. This is assigned during
+    /// `StackingContextTree` construction, so isn't available before that time. This is
+    /// used to for determining final viewport size and position of this node and will
+    /// also be used in the future for hit testing.
+    pub spatial_tree_node: AtomicRefCell<Option<ScrollTreeNodeId>>,
 }
 
 impl BoxFragment {
@@ -143,7 +145,7 @@ impl BoxFragment {
             background_mode: BackgroundMode::Normal,
             specific_layout_info,
             block_level_layout_info: None,
-            scroll_tree_node_id_for_query: AtomicRefCell::default(),
+            spatial_tree_node: AtomicRefCell::default(),
         }
     }
 

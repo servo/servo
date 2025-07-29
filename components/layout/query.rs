@@ -6,10 +6,9 @@
 use std::rc::Rc;
 
 use app_units::Au;
-use base::id::ScrollTreeNodeId;
-use compositing_traits::display_list::{ScrollTree, SpatialTreeNodeInfo};
+use compositing_traits::display_list::ScrollTree;
 use euclid::default::{Point2D, Rect};
-use euclid::{SideOffsets2D, Size2D, Transform3D};
+use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
@@ -49,86 +48,28 @@ use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, cap
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
-use crate::style_ext::TransformExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
-/// Traverse a scroll node to its root to calculate the transform.
-// TODO(stevennovaryo): Add caching mechanism for this.
-fn cumulative_scroll_node_transform_for_node(
+/// Get a scroll node that would represents this [`ServoLayoutNode`]'s transform and
+/// calculate its cumlative transform from its root scroll node to the scroll node.
+fn root_transform_for_layout_node(
     scroll_tree: &ScrollTree,
-    node_id: &ScrollTreeNodeId,
-) -> LayoutTransform {
-    let current_node = scroll_tree.get_node(node_id);
-
-    // FIXME(stevennovaryo): Ideally we should optimize the computation of simpler
-    //                       transformation like translate as it could be done
-    //                       in smaller amount of operation compared to a normal
-    //                       matrix multiplication.
-    let node_transform = match &current_node.info {
-        // To apply a transformation we need to make sure the rectangle's
-        // coordinate space is the same as reference frame's coordinate space.
-        // TODO(stevennovaryo): contrary to how Firefox are handling the coordinate space,
-        //                      we are ignoring zoom in transforming the coordinate
-        //                      space, and we might need to consider zoom here if it was
-        //                      implemented completely.
-        SpatialTreeNodeInfo::ReferenceFrame(info) => info.transform.change_basis(
-            info.frame_origin_for_query.x,
-            info.frame_origin_for_query.y,
-            0.0,
-        ),
-        SpatialTreeNodeInfo::Scroll(info) => {
-            Transform3D::translation(-info.offset.x, -info.offset.y, 0.0)
-        },
-        // TODO(stevennovaryo): Need to consider sticky frame accurately.
-        SpatialTreeNodeInfo::Sticky(_) => Default::default(),
-    };
-
-    match current_node.parent {
-        // If a node is not a root, accumulate the transforms.
-        Some(parent_id) => {
-            let ancestors_transform =
-                cumulative_scroll_node_transform_for_node(scroll_tree, &parent_id);
-            node_transform.then(&ancestors_transform)
-        },
-        None => node_transform,
-    }
-}
-
-/// Get a scroll node that would represents this [ServoLayoutNode]'s transform and
-/// calculate its transfrom from its root scroll node to the scroll node.
-fn layout_node_to_root_transform(
-    scroll_tree: Option<&ScrollTree>,
     node: ServoLayoutNode<'_>,
 ) -> Option<LayoutTransform> {
-    let scroll_tree = scroll_tree?;
-
     let fragments = node.fragments_for_pseudo(None);
     let box_fragment = fragments
         .first()
         .and_then(Fragment::retrieve_box_fragment)?
         .borrow();
-    let scroll_tree_node_id = (*box_fragment.scroll_tree_node_id_for_query.borrow())?;
-
-    Some(cumulative_scroll_node_transform_for_node(
-        scroll_tree,
-        &scroll_tree_node_id,
-    ))
-}
-
-fn apply_post_composite_transform(
-    rect_to_transform: Rect<Au>,
-    transform: LayoutTransform,
-) -> Rect<Au> {
-    let layout_rect_union = au_rect_to_f32_rect(rect_to_transform).cast_unit();
-
-    transform
-        .outer_transformed_rect(&layout_rect_union)
-        .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()))
-        .unwrap_or(rect_to_transform)
+    let scroll_tree_node_id = box_fragment
+        .spatial_tree_node
+        .borrow()
+        .expect("Should always have a scroll tree node when querying bounding box.");
+    Some(scroll_tree.cumulative_node_transform(&scroll_tree_node_id))
 }
 
 pub(crate) fn process_content_box_request(
-    stacking_context_tree: Option<&StackingContextTree>,
+    stacking_context_tree: &StackingContextTree,
     node: ServoLayoutNode<'_>,
 ) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
@@ -143,16 +84,17 @@ pub(crate) fn process_content_box_request(
         rect.to_untyped().union(&unioned_rect)
     });
 
-    let scroll_tree = stacking_context_tree.map(|tree| &tree.compositor_info.scroll_tree);
-    let Some(transform) = layout_node_to_root_transform(scroll_tree, node) else {
+    let Some(transform) =
+        root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
+    else {
         return Some(rect_union);
     };
 
-    Some(apply_post_composite_transform(rect_union, transform))
+    Some(transform_au_rectangle(rect_union, transform))
 }
 
 pub(crate) fn process_content_boxes_request(
-    stacking_context_tree: Option<&StackingContextTree>,
+    stacking_context_tree: &StackingContextTree,
     node: ServoLayoutNode<'_>,
 ) -> Vec<Rect<Au>> {
     let fragments = node.fragments_for_pseudo(None);
@@ -161,13 +103,14 @@ pub(crate) fn process_content_boxes_request(
         .filter_map(Fragment::cumulative_border_box_rect)
         .map(|rect| rect.to_untyped());
 
-    let scroll_tree = stacking_context_tree.map(|tree| &tree.compositor_info.scroll_tree);
-    let Some(transform) = layout_node_to_root_transform(scroll_tree, node) else {
+    let Some(transform) =
+        root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
+    else {
         return content_boxes.collect();
     };
 
     content_boxes
-        .map(|rect| apply_post_composite_transform(rect, transform))
+        .map(|rect| transform_au_rectangle(rect, transform))
         .collect()
 }
 
@@ -1205,4 +1148,11 @@ where
         resolve_for_declarations::<E>(context, Some(&*parent_style), declarations, shared_lock);
 
     Some(computed_values.clone_font())
+}
+
+fn transform_au_rectangle(rect_to_transform: Rect<Au>, transform: LayoutTransform) -> Rect<Au> {
+    transform
+        .outer_transformed_rect(&au_rect_to_f32_rect(rect_to_transform).cast_unit())
+        .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()))
+        .unwrap_or(rect_to_transform)
 }

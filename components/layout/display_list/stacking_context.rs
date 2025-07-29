@@ -1186,13 +1186,6 @@ impl BoxFragment {
             .style
             .establishes_containing_block_for_absolute_descendants(self.base.flags);
 
-        if let Fragment::Box(box_fragment) = &fragment {
-            *box_fragment
-                .borrow()
-                .scroll_tree_node_id_for_query
-                .borrow_mut() = Some(new_scroll_node_id);
-        }
-
         let reference_frame_scroll_node_id_for_fragments =
             if establishes_containing_block_for_all_descendants {
                 new_scroll_node_id
@@ -1351,6 +1344,10 @@ impl BoxFragment {
                     is_collapsed_table_borders: true,
                     text_decorations: text_decorations.clone(),
                 });
+        }
+
+        if let Fragment::Box(box_fragment) = &fragment {
+            *box_fragment.borrow().spatial_tree_node.borrow_mut() = Some(new_scroll_node_id);
         }
     }
 
