@@ -524,7 +524,6 @@ pub fn send_response_values_to_devtools(
 }
 
 pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
-pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
     if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
         context.devtools_chan.as_ref(),
         request.target_webview_id.map(|id| id.0),
