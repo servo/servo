@@ -24,17 +24,13 @@ pub struct HangMonitorRegister {
 }
 
 impl HangMonitorRegister {
-    /// Start a new hang monitor worker, and return a handle to register components for monitoring.
+    /// Start a new hang monitor worker, and return a handle to register components for monitoring,
+    /// as well as a join handle on the worker thread.
     pub fn init(
         constellation_chan: IpcSender<HangMonitorAlert>,
         control_port: IpcReceiver<BackgroundHangMonitorControlMsg>,
         monitoring_enabled: bool,
     ) -> (Box<dyn BackgroundHangMonitorRegister>, JoinHandle<()>) {
-        // Create a channel to pass messages of type `MonitoredComponentMsg`.
-        // See the discussion in `<HangMonitorRegister as
-        // BackgroundHangMonitorRegister>::register_component` for why we wrap
-        // the sender with `Arc` and why `HangMonitorRegister` only maintains
-        // a weak reference to it.
         let (sender, port) = unbounded();
         let sender_clone = sender.clone();
 
