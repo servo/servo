@@ -3430,8 +3430,9 @@ impl ScriptThread {
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
         );
+        // TODO: call this for workers too
         self.debugger_global
-            .execute_with_global(can_gc, window.upcast());
+            .execute_new_global(can_gc, window.upcast(), incomplete.pipeline_id);
 
         let _realm = enter_realm(&*window);
 
