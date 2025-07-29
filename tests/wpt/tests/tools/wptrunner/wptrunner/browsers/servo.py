@@ -120,3 +120,6 @@ class ServoWdspecBrowser(WebDriverBrowser):
         if self.binary_args:
             command += self.binary_args
         return command
+
+    def check_crash(self, process, test):
+        return not super().is_alive()
