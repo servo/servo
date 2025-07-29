@@ -320,9 +320,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             self_.scene.fill(
                 fill_rule.convert(),
                 transform.cast().into(),
-                &style
-                    .convert()
-                    .multiply_alpha(composition_options.alpha as f32),
+                &convert_to_brush(style, composition_options),
                 None,
                 &path.0,
             );
@@ -337,9 +335,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
-        let pattern = style
-            .convert()
-            .multiply_alpha(composition_options.alpha as f32);
+        let pattern = convert_to_brush(style, composition_options);
         let transform = transform.cast().into();
         self.with_draw_options(&composition_options, |self_| {
             let mut advance = 0.;
@@ -399,9 +395,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
-        let pattern = style
-            .convert()
-            .multiply_alpha(composition_options.alpha as f32);
+        let pattern = convert_to_brush(style, composition_options);
         let transform = transform.cast().into();
         let rect: kurbo::Rect = rect.cast().into();
         self.with_draw_options(&composition_options, |self_| {
@@ -448,9 +442,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             self_.scene.stroke(
                 &line_options.convert(),
                 transform.cast().into(),
-                &style
-                    .convert()
-                    .multiply_alpha(composition_options.alpha as f32),
+                &convert_to_brush(style, composition_options),
                 None,
                 &path.0,
             );
@@ -470,9 +462,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             self_.scene.stroke(
                 &line_options.convert(),
                 transform.cast().into(),
-                &style
-                    .convert()
-                    .multiply_alpha(composition_options.alpha as f32),
+                &convert_to_brush(style, composition_options),
                 None,
                 &rect,
             );
@@ -543,4 +533,12 @@ impl GenericDrawTarget for VelloDrawTarget {
         );
         Some(data)
     }
+}
+
+fn convert_to_brush(
+    style: FillOrStrokeStyle,
+    composition_options: CompositionOptions,
+) -> peniko::Brush {
+    let brush: peniko::Brush = style.convert();
+    brush.multiply_alpha(composition_options.alpha as f32)
 }
