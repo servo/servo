@@ -850,14 +850,14 @@ class TestRunnerManager(threading.Thread):
                              stack=file_result.stack,
                              subsuite=self.state.subsuite)
 
-        restart_before_next = (self.retry_index > 0 or test.restart_after or
+        restart_before_next = (self.retry_index > 0 or test.restart_after or status == "CRASH" or
                                file_result.status in ("CRASH", "EXTERNAL-TIMEOUT", "INTERNAL-ERROR") or
                                ((subtest_unexpected or is_unexpected) and
                                 self.restart_on_unexpected))
         force_stop = test.test_type == "wdspec" and file_result.status == "EXTERNAL-TIMEOUT"
 
         self.recording.set(["testrunner", "after-test"])
-        if (not file_result.status == "CRASH" and
+        if (not status == "CRASH" and
             self.pause_after_test or
             (self.pause_on_unexpected and (subtest_unexpected or is_unexpected))):
             self.logger.info("Pausing until the browser exits")
