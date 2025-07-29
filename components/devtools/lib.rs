@@ -548,7 +548,8 @@ impl DevtoolsInstance {
             pipeline_id,
             source_info.url,
             source_info.content,
-            source_info.content_type.unwrap(),
+            source_info.content_type,
+            source_info.spidermonkey_id,
         );
         let source_actor_name = source_actor.name.clone();
         let source_form = source_actor.source_form();

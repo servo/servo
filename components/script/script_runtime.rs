@@ -87,6 +87,7 @@ use crate::task_source::SendableTaskSource;
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getIncumbentGlobal: Some(get_incumbent_global),
     enqueuePromiseJob: Some(enqueue_promise_job),
+    runJobs: Some(run_jobs),
     empty: Some(empty),
     pushNewInterruptQueue: Some(push_new_interrupt_queue),
     popInterruptQueue: Some(pop_interrupt_queue),
@@ -239,6 +240,17 @@ unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut RawJSContext
             .unwrap_or(ptr::null_mut())
     });
     result
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn run_jobs(microtask_queue: *const c_void, cx: *mut RawJSContext) {
+    let cx = JSContext::from_ptr(cx);
+    wrap_panic(&mut || {
+        let microtask_queue = &*(microtask_queue as *const MicrotaskQueue);
+        // TODO: run Promise- and User-variant Microtasks, and do #notify-about-rejected-promises.
+        // Those will require real `target_provider` and `globalscopes` values.
+        microtask_queue.checkpoint(cx, |_| None, vec![], CanGc::note());
+    });
 }
 
 #[allow(unsafe_code)]

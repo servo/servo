@@ -14,11 +14,6 @@ interface mixin WindowOrWorkerGlobalScope {
   [Throws] DOMString btoa(DOMString data);
   [Throws] DOMString atob(DOMString data);
 
-  // timers
-  long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
-  undefined clearTimeout(optional long handle = 0);
-  long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
-  undefined clearInterval(optional long handle = 0);
 
   // microtask queuing
   undefined queueMicrotask(VoidFunction callback);
@@ -31,6 +26,15 @@ interface mixin WindowOrWorkerGlobalScope {
   // structured cloning
   [Throws]
   any structuredClone(any value, optional StructuredSerializeOptions options = {});
+};
+
+// Servo internal subset of WindowOrWorkerGlobalScope
+interface mixin TimersAndIntervals {
+  // timers
+  long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
+  undefined clearTimeout(optional long handle = 0);
+  long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
+  undefined clearInterval(optional long handle = 0);
 };
 
 // https://w3c.github.io/hr-time/#the-performance-attribute
@@ -52,3 +56,6 @@ partial interface mixin WindowOrWorkerGlobalScope {
 
 Window includes WindowOrWorkerGlobalScope;
 WorkerGlobalScope includes WindowOrWorkerGlobalScope;
+Window includes TimersAndIntervals;
+WorkerGlobalScope includes TimersAndIntervals;
+DebuggerGlobalScope includes TimersAndIntervals;

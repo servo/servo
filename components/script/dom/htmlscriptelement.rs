@@ -1091,40 +1091,6 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        if let Some(chan) = self.global().devtools_chan() {
-            let pipeline_id = self.global().pipeline_id();
-
-            let (url, content, content_type, is_external) = if script.external {
-                let content = match &script.code {
-                    SourceCode::Text(text) => text.to_string(),
-                    SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
-                };
-
-                // content_type: https://html.spec.whatwg.org/multipage/#scriptingLanguages
-                (script.url.clone(), Some(content), "text/javascript", true)
-            } else {
-                // TODO: if needed, fetch the page again, in the same way as in the original request.
-                // Fetch it from cache, even if the original request was non-idempotent (e.g. POST).
-                // If we can’t fetch it from cache, we should probably give up, because with a real
-                // fetch, the server could return a different response.
-
-                // TODO: handle cases where Content-Type is not text/html.
-                (doc.url(), None, "text/html", false)
-            };
-
-            let source_info = SourceInfo {
-                url,
-                external: is_external,
-                worker_id: None,
-                content,
-                content_type: Some(content_type.to_string()),
-            };
-            let _ = chan.send(ScriptToDevtoolsControlMsg::CreateSourceActor(
-                pipeline_id,
-                source_info,
-            ));
-        }
-
         if script.type_ == ScriptType::Classic {
             unminify_js(&mut script);
             self.substitute_with_local_script(&mut script);

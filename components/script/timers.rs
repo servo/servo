@@ -32,7 +32,7 @@ use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
-use crate::dom::types::{Window, WorkerGlobalScope};
+use crate::dom::types::{DebuggerGlobalScope, Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::CanGc;
@@ -600,6 +600,8 @@ pub enum TimerSource {
     FromWindow(PipelineId),
     /// The event was requested from a worker (`DedicatedGlobalWorkerScope`).
     FromWorker,
+    /// The event was requested from the internal debugger script.
+    FromInternalDebugger,
 }
 
 /// The id to be used for a [`TimerEvent`] is defined by the corresponding [`TimerEventRequest`].
@@ -633,11 +635,14 @@ impl TimerListener {
                 let TimerEvent(source, id) = event;
                 match source {
                     TimerSource::FromWorker => {
-                        global.downcast::<WorkerGlobalScope>().expect("Window timer delivered to worker");
+                        global.downcast::<WorkerGlobalScope>().expect("Non-worker timer delivered to worker");
                     },
                     TimerSource::FromWindow(pipeline) => {
                         assert_eq!(pipeline, global.pipeline_id());
-                        global.downcast::<Window>().expect("Worker timer delivered to window");
+                        global.downcast::<Window>().expect("Non-window timer delivered to window");
+                    },
+                    TimerSource::FromInternalDebugger => {
+                        global.downcast::<DebuggerGlobalScope>().expect("Non-debugger timer delivered to debugger");
                     },
                 };
                 // Step 7, substeps run in a task.

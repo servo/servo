@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use base::id::PipelineId;
 use serde::Serialize;
@@ -52,15 +52,29 @@ pub struct SourceActor {
     pub is_black_boxed: bool,
 
     pub content: Option<String>,
-    pub content_type: String,
+    pub content_type: Option<String>,
+
+    pub spidermonkey_id: u32,
 }
 
 #[derive(Serialize)]
 struct SourceContentReply {
     from: String,
     #[serde(rename = "contentType")]
-    content_type: String,
+    content_type: Option<String>,
     source: String,
+}
+
+#[derive(Serialize)]
+struct GetBreakableLinesReply {
+    from: String,
+    lines: Vec<usize>,
+}
+
+#[derive(Serialize)]
+struct GetBreakpointPositionsCompressedReply {
+    from: String,
+    positions: BTreeMap<usize, Vec<usize>>,
 }
 
 impl SourceManager {
@@ -90,7 +104,8 @@ impl SourceActor {
         name: String,
         url: ServoUrl,
         content: Option<String>,
-        content_type: String,
+        content_type: Option<String>,
+        spidermonkey_id: u32,
     ) -> SourceActor {
         SourceActor {
             name,
@@ -98,6 +113,7 @@ impl SourceActor {
             content,
             content_type,
             is_black_boxed: false,
+            spidermonkey_id,
         }
     }
 
@@ -106,11 +122,18 @@ impl SourceActor {
         pipeline_id: PipelineId,
         url: ServoUrl,
         content: Option<String>,
-        content_type: String,
+        content_type: Option<String>,
+        spidermonkey_id: u32,
     ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
 
-        let source_actor = SourceActor::new(source_actor_name.clone(), url, content, content_type);
+        let source_actor = SourceActor::new(
+            source_actor_name.clone(),
+            url,
+            content,
+            content_type,
+            spidermonkey_id,
+        );
         actors.register(Box::new(source_actor));
         actors.register_source_actor(pipeline_id, &source_actor_name);
 
@@ -152,6 +175,45 @@ impl Actor for SourceActor {
                         .as_deref()
                         .unwrap_or("<!-- not available; please reload! -->")
                         .to_owned(),
+                };
+                request.reply_final(&reply)?
+            },
+            // Client wants to know which lines can have breakpoints.
+            // Sent when opening a source in the Sources panel, and controls whether the line numbers can be clicked.
+            "getBreakableLines" => {
+                // Tell the client that every line is breakable.
+                // TODO: determine which lines are actually breakable.
+                let line_count = self
+                    .content
+                    .as_ref()
+                    .map_or(0, |content| content.lines().count());
+                let reply = GetBreakableLinesReply {
+                    from: self.name(),
+                    // Line numbers are one-based.
+                    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+                    lines: (1..=line_count).collect(),
+                };
+                request.reply_final(&reply)?
+            },
+            // Client wants to know which columns in the line can have breakpoints.
+            // Sent when the user tries to set a breakpoint by clicking a line number in a source.
+            "getBreakpointPositionsCompressed" => {
+                // Tell the client that every column is breakable.
+                // TODO: determine which columns are actually breakable.
+                let mut positions = BTreeMap::default();
+                if let Some(content) = self.content.as_ref() {
+                    for (line_number, line) in content.lines().enumerate() {
+                        // Column numbers are in UTF-16 code units, not Unicode scalar values or grapheme clusters.
+                        let column_count = line.encode_utf16().count();
+                        // Line number are one-based. Column numbers are zero-based.
+                        // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
+                        // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+                        positions.insert(line_number + 1, (0..column_count).collect());
+                    }
+                }
+                let reply = GetBreakpointPositionsCompressedReply {
+                    from: self.name(),
+                    positions,
                 };
                 request.reply_final(&reply)?
             },
