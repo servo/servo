@@ -1383,7 +1383,7 @@ if {argc} > {index} {{
         return self.converter.define()
 
 
-def wrapForType(jsvalRef, result='result', successCode='true', pre=''):
+def wrapForType(jsvalRef: str, result: str = 'result', successCode: str = 'true', pre: str = '') -> str:
     """
     Reflect a Rust value into JS.
 
@@ -4093,7 +4093,7 @@ class CGPerSignatureCall(CGThing):
     def getArgs(self):
         return "args" if self.argCount > 0 else ""
 
-    def getArgc(self):
+    def getArgc(self) -> str:
         return "argc"
 
     def getArguments(self):
@@ -4209,7 +4209,6 @@ class CGSetterCall(CGPerSignatureCall):
         # We have no return value
         return "\ntrue"
 
-    # pyrefly: ignore  # bad-override
     def getArgc(self):
         return "1"
 
@@ -4713,7 +4712,6 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
                 result += self.defineJitInfo(setterinfo, setter, "Setter",
                                              False, False, "AliasEverything",
                                              False, False, "0",
-                                             # pyrefly: ignore  # missing-attribute
                                              [BuiltinTypes[IDLBuiltinType.Types.undefined]],
                                              None)
             return result
