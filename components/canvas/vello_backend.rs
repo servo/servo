@@ -27,10 +27,10 @@ use kurbo::Shape as _;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use range::Range;
 use vello::wgpu::{
-    BackendOptions, Backends, Buffer, BufferDescriptor, BufferUsages, CommandEncoderDescriptor,
-    Device, Extent3d, Instance, InstanceDescriptor, InstanceFlags, MapMode, Queue,
-    TexelCopyBufferInfo, TexelCopyBufferLayout, Texture, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
+    BackendOptions, Backends, Buffer, BufferDescriptor, BufferUsages, COPY_BYTES_PER_ROW_ALIGNMENT,
+    CommandEncoderDescriptor, Device, Extent3d, Instance, InstanceDescriptor, InstanceFlags,
+    MapMode, Queue, TexelCopyBufferInfo, TexelCopyBufferLayout, Texture, TextureDescriptor,
+    TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
 };
 use vello::{kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
@@ -54,105 +54,7 @@ pub(crate) struct VelloDrawTarget {
     size: Size2D<u32>,
     clips: Vec<Path>,
     downloader: GPUTextureDownloader,
-}
-
-fn options() -> vello::RendererOptions {
-    vello::RendererOptions {
-        use_cpu: false,
-        num_init_threads: NonZeroUsize::new(1),
-        antialiasing_support: vello::AaSupport::area_only(),
-        pipeline_cache: None,
-    }
-}
-
-#[derive(Clone, Debug)]
-struct GPUTextureDownloader {
-    device: Device,
-    queue: Queue,
-    texture: Texture,
-    texture_view: TextureView,
-    buffer: Buffer,
-    padded_byte_width: u32,
-    size: Extent3d,
-}
-
-impl GPUTextureDownloader {
-    fn new(device: &Device, queue: &Queue, size: Size2D<u32>) -> Self {
-        let size = Extent3d {
-            width: size.width,
-            height: size.height,
-            depth_or_array_layers: 1,
-        };
-        let texture = device.create_texture(&TextureDescriptor {
-            label: Some("Target texture"),
-            size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8Unorm,
-            usage: TextureUsages::STORAGE_BINDING | TextureUsages::COPY_SRC,
-            view_formats: &[],
-        });
-        let texture_view = texture.create_view(&TextureViewDescriptor::default());
-        let padded_byte_width = (size.width * 4).next_multiple_of(256);
-        let buffer_size = padded_byte_width as u64 * size.height as u64;
-        let buffer = device.create_buffer(&BufferDescriptor {
-            label: Some("val"),
-            size: buffer_size,
-            usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        Self {
-            device: device.clone(),
-            queue: queue.clone(),
-            texture,
-            texture_view,
-            buffer,
-            padded_byte_width,
-            size,
-        }
-    }
-
-    fn view(&self) -> &TextureView {
-        &self.texture_view
-    }
-
-    fn download<R>(&self, f: impl FnOnce(u32, Option<&[u8]>) -> R) -> R {
-        // TODO(perf): do a render pass that will multiply with alpha on GPU
-        let mut encoder = self
-            .device
-            .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("Copy out buffer"),
-            });
-        encoder.copy_texture_to_buffer(
-            self.texture.as_image_copy(),
-            TexelCopyBufferInfo {
-                buffer: &self.buffer,
-                layout: TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(self.padded_byte_width),
-                    rows_per_image: None,
-                },
-            },
-            self.size,
-        );
-        self.queue.submit([encoder.finish()]);
-        let result = {
-            let buf_slice = self.buffer.slice(..);
-            let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
-            buf_slice.map_async(MapMode::Read, move |v| sender.send(v).unwrap());
-            if let Err(error) =
-                vello::util::block_on_wgpu(&self.device, receiver.receive()).unwrap()
-            {
-                log::warn!("VELLO WGPU MAP ASYNC ERROR {error}");
-                return f(self.padded_byte_width, None);
-            }
-            let data = buf_slice.get_mapped_range();
-            f(self.padded_byte_width, Some(&data))
-        };
-        self.buffer.unmap();
-        result
-    }
+    render_texture: Texture,
 }
 
 impl VelloDrawTarget {
@@ -167,17 +69,16 @@ impl VelloDrawTarget {
         self.scene.pop_layer();
     }
 
-    fn render_and_download<F, R>(&self, f: F) -> R
-    where
-        F: FnOnce(u32, Option<&[u8]>) -> R,
-    {
+    fn render(&self) {
         self.renderer
             .borrow_mut()
             .render_to_texture(
                 &self.device,
                 &self.queue,
                 &self.scene,
-                self.downloader.view(),
+                &self
+                    .render_texture
+                    .create_view(&TextureViewDescriptor::default()),
                 &vello::RenderParams {
                     base_color: peniko::color::AlphaColor::TRANSPARENT,
                     width: self.size.width,
@@ -186,7 +87,6 @@ impl VelloDrawTarget {
                 },
             )
             .unwrap();
-        self.downloader.download(f)
     }
 
     fn ignore_clips(&mut self, f: impl FnOnce(&mut Self)) {
@@ -242,11 +142,24 @@ impl GenericDrawTarget for VelloDrawTarget {
         let device_handle = &mut context.devices[device_id];
         let device = device_handle.device.clone();
         let queue = device_handle.queue.clone();
-        let renderer = vello::Renderer::new(&device, options()).unwrap();
+        let renderer = vello::Renderer::new(
+            &device,
+            vello::RendererOptions {
+                use_cpu: false,
+                num_init_threads: NonZeroUsize::new(1),
+                antialiasing_support: vello::AaSupport::area_only(),
+                pipeline_cache: None,
+            },
+        )
+        .unwrap();
         let scene = vello::Scene::new();
         device.on_uncaptured_error(Box::new(|error| {
             log::error!("VELLO WGPU ERROR: {error}");
         }));
+        let texture = device.create_texture(&create_texture_descriptor(
+            size,
+            TextureUsages::COPY_SRC | TextureUsages::STORAGE_BINDING,
+        ));
         let downloader = GPUTextureDownloader::new(&device, &queue, size);
         Self {
             device,
@@ -255,6 +168,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             scene,
             size,
             clips: Vec::new(),
+            render_texture: texture,
             downloader,
         }
     }
@@ -324,6 +238,10 @@ impl GenericDrawTarget for VelloDrawTarget {
             } else {
                 GPUTextureDownloader::new(&self.device, &self.queue, size.cast())
             },
+            render_texture: self.device.create_texture(&create_texture_descriptor(
+                size.cast(),
+                TextureUsages::COPY_SRC | TextureUsages::STORAGE_BINDING,
+            )),
         }
     }
 
@@ -554,51 +472,56 @@ impl GenericDrawTarget for VelloDrawTarget {
         &mut self,
     ) -> (ImageDescriptor, SerializableImageData) {
         let size = self.size;
-        self.render_and_download(|stride, data| {
-            let image_desc = ImageDescriptor {
-                format: webrender_api::ImageFormat::RGBA8,
-                size: size.cast().cast_unit(),
-                stride: data.map(|_| stride as i32),
-                offset: 0,
-                flags: ImageDescriptorFlags::empty(),
-            };
-            let data = SerializableImageData::Raw(if let Some(data) = data {
-                let mut data = IpcSharedMemory::from_bytes(data);
-                #[allow(unsafe_code)]
-                unsafe {
-                    pixels::generic_transform_inplace::<1, false, false>(data.deref_mut());
+        self.render();
+        self.downloader
+            .download_texture(&self.render_texture, |stride, data| {
+                let image_desc = ImageDescriptor {
+                    format: webrender_api::ImageFormat::RGBA8,
+                    size: size.cast().cast_unit(),
+                    stride: data.map(|_| stride as i32),
+                    offset: 0,
+                    flags: ImageDescriptorFlags::empty(),
                 };
-                data
-            } else {
-                IpcSharedMemory::from_byte(0, size.area() as usize * 4)
-            });
-            (image_desc, data)
-        })
+                let data = SerializableImageData::Raw(if let Some(data) = data {
+                    let mut data = IpcSharedMemory::from_bytes(data);
+                    #[allow(unsafe_code)]
+                    unsafe {
+                        pixels::generic_transform_inplace::<1, false, false>(data.deref_mut());
+                    };
+                    data
+                } else {
+                    IpcSharedMemory::from_byte(0, size.area() as usize * 4)
+                });
+                (image_desc, data)
+            })
     }
 
     fn snapshot(&mut self) -> pixels::Snapshot {
         let size = self.size;
-        self.render_and_download(|padded_byte_width, data| {
-            let data = data
-                .map(|data| {
-                    let mut result_unpadded = Vec::<u8>::with_capacity(size.area() as usize * 4);
-                    for row in 0..self.size.height {
-                        let start = (row * padded_byte_width).try_into().unwrap();
+        self.render();
+        self.downloader
+            .download_texture(&self.render_texture, |padded_byte_width, data| {
+                let data = data
+                    .map(|data| {
+                        let mut result_unpadded =
+                            Vec::<u8>::with_capacity(size.area() as usize * 4);
+                        for row in 0..self.size.height {
+                            let start = (row * padded_byte_width).try_into().unwrap();
+                            result_unpadded
+                                .extend(&data[start..start + (self.size.width * 4) as usize]);
+                        }
                         result_unpadded
-                            .extend(&data[start..start + (self.size.width * 4) as usize]);
-                    }
-                    result_unpadded
-                })
-                .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
-            Snapshot::from_vec(
-                size,
-                SnapshotPixelFormat::RGBA,
-                SnapshotAlphaMode::Transparent {
-                    premultiplied: false,
-                },
-                data,
-            )
-        })
+                    })
+                    .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
+                Snapshot::from_vec(
+                    size,
+                    SnapshotPixelFormat::RGBA,
+                    SnapshotAlphaMode::Transparent {
+                        premultiplied: false,
+                    },
+                    data,
+                )
+            })
     }
 
     fn surface(&mut self) -> Vec<u8> {
@@ -622,4 +545,96 @@ fn convert_to_brush(
 ) -> peniko::Brush {
     let brush: peniko::Brush = style.convert();
     brush.multiply_alpha(composition_options.alpha as f32)
+}
+
+fn extend3d(size: Size2D<u32>) -> Extent3d {
+    Extent3d {
+        width: size.width,
+        height: size.height,
+        depth_or_array_layers: 1,
+    }
+}
+
+fn create_texture_descriptor(
+    size: Size2D<u32>,
+    usage: TextureUsages,
+) -> TextureDescriptor<'static> {
+    TextureDescriptor {
+        label: None,
+        size: extend3d(size),
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: TextureDimension::D2,
+        format: TextureFormat::Rgba8Unorm,
+        usage,
+        view_formats: &[],
+    }
+}
+
+#[derive(Clone, Debug)]
+struct GPUTextureDownloader {
+    device: Device,
+    queue: Queue,
+    buffer: Buffer,
+    padded_byte_width: u32,
+    size: Size2D<u32>,
+}
+
+impl GPUTextureDownloader {
+    fn new(device: &Device, queue: &Queue, size: Size2D<u32>) -> Self {
+        let padded_byte_width = (size.width * 4).next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT);
+        let buffer_size = padded_byte_width as u64 * size.height as u64;
+        let buffer = device.create_buffer(&BufferDescriptor {
+            label: Some("val"),
+            size: buffer_size,
+            usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        Self {
+            device: device.clone(),
+            queue: queue.clone(),
+            buffer,
+            padded_byte_width,
+            size,
+        }
+    }
+
+    fn download_texture<R>(&self, texture: &Texture, f: impl FnOnce(u32, Option<&[u8]>) -> R) -> R {
+        let size = extend3d(self.size);
+        assert_eq!(texture.size(), size);
+        // TODO(perf): do a render pass that will multiply with alpha on GPU
+        let mut encoder = self
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor {
+                label: Some("Copy out buffer"),
+            });
+        encoder.copy_texture_to_buffer(
+            texture.as_image_copy(),
+            TexelCopyBufferInfo {
+                buffer: &self.buffer,
+                layout: TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(self.padded_byte_width),
+                    rows_per_image: None,
+                },
+            },
+            size,
+        );
+        self.queue.submit([encoder.finish()]);
+        let result = {
+            let buf_slice = self.buffer.slice(..);
+            let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
+            buf_slice.map_async(MapMode::Read, move |v| sender.send(v).unwrap());
+            if let Err(error) =
+                vello::util::block_on_wgpu(&self.device, receiver.receive()).unwrap()
+            {
+                log::warn!("VELLO WGPU MAP ASYNC ERROR {error}");
+                return f(self.padded_byte_width, None);
+            }
+            let data = buf_slice.get_mapped_range();
+            f(self.padded_byte_width, Some(&data))
+        };
+        self.buffer.unmap();
+        result
+    }
 }
