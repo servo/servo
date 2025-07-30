@@ -65,6 +65,7 @@ pub(crate) fn handle_evaluate_js(
             ScriptFetchOptions::default_classic_script(global),
             global.api_base_url(),
             can_gc,
+            None,
         );
 
         if rval.is_undefined() {

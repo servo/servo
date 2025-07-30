@@ -6,6 +6,7 @@
 //! related to `type=module` for script thread or worker threads.
 
 use std::collections::{HashMap, HashSet};
+use std::ffi::CStr;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
@@ -467,11 +468,15 @@ impl ModuleTree {
         mut module_script: RustMutableHandleObject,
         inline: bool,
         can_gc: CanGc,
+        introduction_type: Option<&'static CStr>,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
-        let compile_options = unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), 1) };
+        let mut compile_options = unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), 1) };
+        if let Some(introduction_type) = introduction_type {
+            compile_options.set_introduction_type(introduction_type);
+        }
         let mut module_source = ModuleSource {
             source: module_script_text,
             unminified_dir: global.unminified_js_dir(),
@@ -1331,6 +1336,7 @@ impl FetchResponseListener for ModuleContext {
                     compiled_module.handle_mut(),
                     false,
                     CanGc::note(),
+                    None,
                 );
 
                 match compiled_module_result {
@@ -1895,6 +1901,7 @@ pub(crate) fn fetch_inline_module_script(
         compiled_module.handle_mut(),
         true,
         can_gc,
+        Some(c"inlineScript"),
     );
 
     match compiled_module_result {

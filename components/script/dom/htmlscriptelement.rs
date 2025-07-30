@@ -4,6 +4,7 @@
 #![allow(unused_imports)]
 use core::ffi::c_void;
 use std::cell::Cell;
+use std::ffi::CStr;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::process::Command;
@@ -1145,6 +1146,7 @@ impl HTMLScriptElement {
         // Step 6.
         let document = self.owner_document();
         let old_script = document.GetCurrentScript();
+        let introduction_type = (!script.external).then_some(c"inlineScript");
 
         match script.type_ {
             ScriptType::Classic => {
@@ -1153,7 +1155,7 @@ impl HTMLScriptElement {
                 } else {
                     document.set_current_script(Some(self))
                 }
-                self.run_a_classic_script(&script, can_gc);
+                self.run_a_classic_script(&script, can_gc, introduction_type);
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
@@ -1179,7 +1181,12 @@ impl HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-a-classic-script
-    pub(crate) fn run_a_classic_script(&self, script: &ScriptOrigin, can_gc: CanGc) {
+    pub(crate) fn run_a_classic_script(
+        &self,
+        script: &ScriptOrigin,
+        can_gc: CanGc,
+        introduction_type: Option<&'static CStr>,
+    ) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = self.owner_document();
@@ -1205,6 +1212,7 @@ impl HTMLScriptElement {
                 script.fetch_options.clone(),
                 script.url.clone(),
                 can_gc,
+                introduction_type,
             );
     }
 
