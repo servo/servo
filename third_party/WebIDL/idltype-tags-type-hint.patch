@@ -1,5 +1,5 @@
 diff --git a/third_party/WebIDL/WebIDL.py b/third_party/WebIDL/WebIDL.py
-index bad5cbe54ca..b9ccd53f5f4 100644
+index e1e8340fc8b..b9ccd53f5f4 100644
 --- a/third_party/WebIDL/WebIDL.py
 +++ b/third_party/WebIDL/WebIDL.py
 @@ -12,6 +12,7 @@ import string
@@ -10,7 +10,7 @@ index bad5cbe54ca..b9ccd53f5f4 100644
  
  from ply import lex, yacc
  
-@@ -43,18 +44,28 @@ def parseInt(literal):
+@@ -43,9 +44,14 @@ def parseInt(literal):
      return value * sign
  
  
@@ -21,35 +21,8 @@ index bad5cbe54ca..b9ccd53f5f4 100644
 +
  # This is surprisingly faster than using the enum.IntEnum type (which doesn't
  # support 'base' anyway)
--def enum(*names, base=None):
+-def enum(*names: str, base = None):
 +def enum(*names: str, base = None) -> CustomEnum:
      if base is not None:
          names = base.attrs + names
  
-     class CustomEnumType(object):
--        attrs = names
-+        attrs: tuple[str, ...] = names
- 
-         def __setattr__(self, name, value):  # this makes it read-only
-             raise NotImplementedError
- 
-+        def __getattr__(self, name: str) -> int:
-+            if name in self.attrs:
-+                return self.attrs.index(name)
-+            raise AttributeError(f"{name} is not a valid enum type")
-+
-     for v, k in enumerate(names):
-         setattr(CustomEnumType, k, v)
- 
-diff --git a/third_party/WebIDL/update.sh b/third_party/WebIDL/update.sh
-index 794331dc9bf..6b320976f56 100755
---- a/third_party/WebIDL/update.sh
-+++ b/third_party/WebIDL/update.sh
-@@ -8,6 +8,7 @@ patch < like-as-iterable.patch
- patch < builtin-array.patch
- patch < array-type.patch
- patch < transferable.patch
-+patch < idltype-tags-type-hint.patch
- 
- wget https://hg.mozilla.org/mozilla-central/archive/tip.zip/dom/bindings/parser/tests/ -O tests.zip
- rm -r tests
