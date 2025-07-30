@@ -12,7 +12,7 @@ use fonts_traits::ByteIndex;
 use html5ever::{local_name, ns};
 use layout_api::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
 use layout_api::{
-    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleData,
+    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGElementData, StyleData,
     TrustedNodeAddress,
 };
 use net_traits::image_cache::Image;
@@ -399,7 +399,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         this.media_data()
     }
 
-    fn svg_data(&self) -> Option<SVGSVGData> {
+    fn svg_data(&self) -> Option<SVGElementData> {
         let this = unsafe { self.get_jsmanaged() };
         this.svg_data()
     }

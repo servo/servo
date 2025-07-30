@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://svgwg.org/svg2-draft/embedded.html#InterfaceSVGImageElement
-[Exposed=Window, Pref="dom_svg_enabled"]
+[Exposed=Window]
 interface SVGImageElement : SVGGraphicsElement {
   //[SameObject] readonly attribute SVGAnimatedLength x;
   //[SameObject] readonly attribute SVGAnimatedLength y;

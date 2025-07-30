@@ -4,7 +4,6 @@
 
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
-use servo_config::pref;
 
 use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::reflector::DomGlobal;
@@ -109,10 +108,6 @@ fn create_svg_element(
             DomRoot::upcast(obj)
         })
     );
-
-    if !pref!(dom_svg_enabled) {
-        return Element::new(name.local, name.ns, prefix, document, proto, CanGc::note());
-    }
 
     match name.local {
         local_name!("image") => make!(SVGImageElement),

@@ -27,7 +27,7 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
-    SVGSVGData, StyleData, TrustedNodeAddress,
+    SVGElementData, StyleData, TrustedNodeAddress,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -1673,7 +1673,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
     fn canvas_data(self) -> Option<HTMLCanvasData>;
     fn media_data(self) -> Option<HTMLMediaData>;
-    fn svg_data(self) -> Option<SVGSVGData>;
+    fn svg_data(self) -> Option<SVGElementData>;
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(self) -> Option<PipelineId>;
     fn opaque(self) -> OpaqueNode;
@@ -1962,7 +1962,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .map(|media| media.data())
     }
 
-    fn svg_data(self) -> Option<SVGSVGData> {
+    fn svg_data(self) -> Option<SVGElementData> {
         self.downcast::<SVGSVGElement>().map(|svg| svg.data())
     }
 
