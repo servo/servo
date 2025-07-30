@@ -507,7 +507,7 @@ impl Dialog {
                 }
 
                 let modal = Modal::new("select_element_picker".into()).area(area);
-                modal.show(ctx, |ui| {
+                let backdrop_response = modal.show(ctx, |ui| {
                     egui::ScrollArea::vertical().show(ui, |ui| {
                         for option_or_optgroup in prompt.options() {
                             match &option_or_optgroup {
@@ -536,7 +536,11 @@ impl Dialog {
                             }
                         }
                     });
-                });
+                }).backdrop_response;
+
+                if backdrop_response.clicked() {
+                    is_open = false;
+                }
 
                 prompt.select(selected_option);
 
@@ -564,7 +568,7 @@ impl Dialog {
                     .fixed_pos(egui::pos2(position.min.x as f32, position.max.y as f32));
 
                 let modal = Modal::new("select_element_picker".into()).area(area);
-                modal.show(ctx, |ui| {
+                let backdrop_response = modal.show(ctx, |ui| {
                     egui::widgets::color_picker::color_picker_color32(
                         ui,
                         current_color,
@@ -588,7 +592,11 @@ impl Dialog {
                         };
                         prompt.select(Some(selected_color));
                     }
-                });
+                }).backdrop_response;
+
+                if backdrop_response.clicked() {
+                    is_open = false;
+                }
 
                 is_open
             },
