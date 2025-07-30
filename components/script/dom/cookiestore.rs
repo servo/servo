@@ -13,6 +13,7 @@ use dom_struct::dom_struct;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use itertools::Itertools;
 use js::jsval::NullValue;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{CookieAsyncResponse, CookieData, CoreResourceMsg, IpcSend};
@@ -75,6 +76,15 @@ impl CookieListener {
                         promise.resolve_native(&NullValue(), CanGc::note());
                     }
                 },
+                CookieData::GetAll(cookies) => {
+                    // If list is failure, then reject p with a TypeError and abort these steps.
+                    promise.resolve_native(
+                        &cookies
+                        .into_iter()
+                        .map(|cookie| cookie_to_list_item(cookie.0))
+                        .collect_vec(),
+                    CanGc::note());
+                },
                 _ => {promise.resolve_native(&(), CanGc::note());}
             }
         }));
@@ -124,21 +134,6 @@ impl CookieStore {
                 self.store_id,
                 cookie_sender,
                 self.global().creation_url().clone(),
-            ));
-    }
-
-    fn query_cookies(&self, url: &ServoUrl, name: Option<USVString>) {
-        // 1. Perform the steps defined in Cookies § Retrieval Model to compute the "cookie-string from a given cookie
-        // store" with url as request-uri. The cookie-string itself is ignored, but the intermediate cookie-list is
-        // used in subsequent steps.
-        // For the purposes of the steps, the cookie-string is being generated for a "non-HTTP" API.
-        let _ = self
-            .global()
-            .resource_threads()
-            .send(CoreResourceMsg::GetCookieDataForUrlAsync(
-                self.store_id,
-                url.clone(),
-                name.map(|val| val.0),
             ));
     }
 }
@@ -205,11 +200,14 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         self.in_flight.borrow_mut().push_back(p.clone());
 
         // 6. Run the following steps in parallel:
-        // 6.1. Let list be the results of running query cookies with url and name.
-        // 6.2. If list is failure, then reject p with a TypeError and abort these steps.
-        // 6.3. If list is empty, then resolve p with null.
-        // 6.4. Otherwise, resolve p with the first item of list.
-        self.query_cookies(creation_url, Some(name));
+        let _ = self
+            .global()
+            .resource_threads()
+            .send(CoreResourceMsg::GetCookieDataForUrlAsync(
+                self.store_id,
+                creation_url.clone(),
+                Some(name.to_string()),
+            ));
 
         // 7. Return p.
         p
@@ -281,19 +279,132 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
         self.in_flight.borrow_mut().push_back(p.clone());
 
-        self.query_cookies(&final_url, options.name.clone());
+        // 6. Run the following steps in parallel:
+        let _ = self
+            .global()
+            .resource_threads()
+            .send(CoreResourceMsg::GetCookieDataForUrlAsync(
+                self.store_id,
+                final_url.clone(),
+                options.name.clone().map(|val| val.0),
+            ));
 
         p
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestore-getall>
-    fn GetAll(&self, _name: USVString, _can_gc: CanGc) -> Rc<Promise> {
-        todo!();
+    fn GetAll(&self, name: USVString, can_gc: CanGc) -> Rc<Promise> {
+        // 1. Let settings be this’s relevant settings object.
+        let global = self.global();
+
+        // 2. Let origin be settings’s origin.
+        let origin = global.origin();
+
+        // 5. Let p be a new promise.
+        let p = Promise::new(&global, can_gc);
+
+        // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
+        if !origin.is_tuple() {
+            p.reject_error(Error::Security, can_gc);
+            return p;
+        }
+        // 4. Let url be settings’s creation URL.
+        let creation_url = global.creation_url();
+
+        self.in_flight.borrow_mut().push_back(p.clone());
+
+        // 6. Run the following steps in parallel:
+        let _ =
+            self.global()
+                .resource_threads()
+                .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
+                    self.store_id,
+                    creation_url.clone(),
+                    Some(name.to_string()),
+                ));
+
+        // 7. Return p.
+        p
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestore-getall-options>
-    fn GetAll_(&self, _options: &CookieStoreGetOptions, _can_gc: CanGc) -> Rc<Promise> {
-        todo!();
+    fn GetAll_(&self, options: &CookieStoreGetOptions, can_gc: CanGc) -> Rc<Promise> {
+        // 1. Let settings be this’s relevant settings object.
+        let global = self.global();
+
+        // 2. Let origin be settings’s origin.
+        let origin = global.origin();
+
+        // 7. Let p be a new promise.
+        let p = Promise::new(&global, can_gc);
+
+        // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
+        if !origin.is_tuple() {
+            p.reject_error(Error::Security, can_gc);
+            return p;
+        }
+
+        // 4. Let url be settings’s creation URL.
+        let creation_url = global.creation_url();
+
+        // 5. If options is empty, then return a promise rejected with a TypeError.
+        // "is empty" is not strictly defined anywhere in the spec but the only value we require here is "url"
+        if options.url.is_none() && options.name.is_none() {
+            p.reject_error(Error::Type("Options cannot be empty".to_string()), can_gc);
+            return p;
+        }
+
+        let mut final_url = creation_url.clone();
+        // 6. If options["url"] is present, then run these steps:
+        if let Some(get_url) = &options.url {
+            // 6.1. Let parsed be the result of parsing options["url"] with settings’s API base URL.
+            let parsed_url = ServoUrl::parse_with_base(Some(&global.api_base_url()), get_url);
+
+            // 6.2. If this’s relevant global object is a Window object and parsed does not equal url,
+            // then return a promise rejected with a TypeError.
+            if let Some(_window) = DomRoot::downcast::<Window>(self.global()) {
+                if parsed_url
+                    .as_ref()
+                    .is_ok_and(|parsed| parsed.as_url() != creation_url.as_url())
+                {
+                    p.reject_error(
+                        Error::Type("URL does not match context".to_string()),
+                        can_gc,
+                    );
+                    return p;
+                }
+            }
+
+            // 6.3. If parsed’s origin and url’s origin are not the same origin,
+            // then return a promise rejected with a TypeError.
+            if parsed_url
+                .as_ref()
+                .is_ok_and(|parsed| creation_url.origin() != parsed.origin())
+            {
+                p.reject_error(Error::Type("Not same origin".to_string()), can_gc);
+                return p;
+            }
+
+            // 6.4. Set url to parsed.
+            if parsed_url.is_ok() {
+                final_url = parsed_url.unwrap();
+            }
+        }
+
+        self.in_flight.borrow_mut().push_back(p.clone());
+
+        // 6. Run the following steps in parallel:
+        let _ =
+            self.global()
+                .resource_threads()
+                .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
+                    self.store_id,
+                    final_url.clone(),
+                    options.name.clone().map(|val| val.0),
+                ));
+
+        // 8. Return p
+        p
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestore-set>
@@ -323,9 +434,12 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .secure(true)
             .same_site(SameSite::Strict)
             .partitioned(false);
+        // TODO: This currently doesn't implement all the "set a cookie" steps which involves
+        // additional processing of the name and value
 
         self.in_flight.borrow_mut().push_back(p.clone());
 
+        // 10. Run the following steps in parallel:
         let _ = self
             .global()
             .resource_threads()
@@ -335,12 +449,55 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 Serde(cookie.build()),
                 NonHTTP,
             ));
+
+        // 11. Return p.
         p
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestore-set-options>
-    fn Set_(&self, _options: &CookieInit, _can_gc: CanGc) -> Rc<Promise> {
-        todo!();
+    fn Set_(&self, options: &CookieInit, can_gc: CanGc) -> Rc<Promise> {
+        // 1. Let settings be this’s relevant settings object.
+        let global = self.global();
+
+        // 2. Let origin be settings’s origin.
+        let origin = global.origin();
+
+        // 5. Let p be a new promise.
+        let p = Promise::new(&global, can_gc);
+
+        // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
+        if !origin.is_tuple() {
+            p.reject_error(Error::Security, can_gc);
+            return p;
+        }
+
+        // 4. Let url be settings’s creation URL.
+        let creation_url = global.creation_url();
+
+        // 6.1. Let r be the result of running set a cookie with url, options["name"], options["value"],
+        // options["expires"], options["domain"], options["path"], options["sameSite"], and options["partitioned"].
+        let cookie = Cookie::build((
+            Cow::Owned(options.name.to_string()),
+            Cow::Owned(options.value.to_string()),
+        ));
+        // TODO: This currently doesn't implement all the "set a cookie" steps which involves
+        // additional processing of the name and value
+
+        self.in_flight.borrow_mut().push_back(p.clone());
+
+        // 6. Run the following steps in parallel:
+        let _ = self
+            .global()
+            .resource_threads()
+            .send(CoreResourceMsg::SetCookieForUrlAsync(
+                self.store_id,
+                creation_url.clone(),
+                Serde(cookie.build()),
+                NonHTTP,
+            ));
+
+        // 7. Return p
+        p
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestore-delete>
@@ -351,7 +508,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 2. Let origin be settings’s origin.
         let origin = global.origin();
 
-        // 7. Let p be a new promise.
+        // 5. Let p be a new promise.
         let p = Promise::new(&global, can_gc);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
@@ -361,6 +518,9 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         }
 
         self.in_flight.borrow_mut().push_back(p.clone());
+
+        // 6. Run the following steps in parallel:
+        // TODO: the spec passes additional parameters to _delete a cookie_ that we don't handle yet
         let _ = global
             .resource_threads()
             .send(CoreResourceMsg::DeleteCookieAsync(
@@ -369,11 +529,40 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 name.0,
             ));
 
+        // 7. Return p.
         p
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestore-delete-options>
-    fn Delete_(&self, _options: &CookieStoreDeleteOptions, _can_gc: CanGc) -> Rc<Promise> {
-        todo!();
+    fn Delete_(&self, options: &CookieStoreDeleteOptions, can_gc: CanGc) -> Rc<Promise> {
+        // 1. Let settings be this’s relevant settings object.
+        let global = self.global();
+
+        // 2. Let origin be settings’s origin.
+        let origin = global.origin();
+
+        // 5. Let p be a new promise.
+        let p = Promise::new(&global, can_gc);
+
+        // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
+        if !origin.is_tuple() {
+            p.reject_error(Error::Security, can_gc);
+            return p;
+        }
+
+        self.in_flight.borrow_mut().push_back(p.clone());
+
+        // 6. Run the following steps in parallel:
+        // TODO: the spec passes additional parameters to _delete a cookie_ that we don't handle yet
+        let _ = global
+            .resource_threads()
+            .send(CoreResourceMsg::DeleteCookieAsync(
+                self.store_id,
+                global.creation_url().clone(),
+                options.name.to_string(),
+            ));
+
+        // 7. Return p.
+        p
     }
 }
