@@ -33,8 +33,8 @@ use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
-    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
-    WebDriverJSResult,
+    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, UntrustedNodeAddress, ViewportDetails,
+    WebDriverJSError, WebDriverJSResult,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -92,6 +92,7 @@ use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
+use super::types::SVGSVGElement;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -2258,6 +2259,7 @@ impl Window {
         self.handle_pending_images_post_reflow(
             results.pending_images,
             results.pending_rasterization_images,
+            results.pending_svg_elements_for_serialization,
         );
         document
             .iframes_mut()
@@ -2989,6 +2991,7 @@ impl Window {
         &self,
         pending_images: Vec<PendingImage>,
         pending_rasterization_images: Vec<PendingRasterizationImage>,
+        pending_svg_element_for_serialization: Vec<UntrustedNodeAddress>,
     ) {
         let pipeline_id = self.pipeline_id();
         for image in pending_images {
@@ -3036,6 +3039,13 @@ impl Window {
             if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
                 nodes.push(Dom::from_ref(&*node));
             }
+        }
+
+        for node in pending_svg_element_for_serialization.into_iter() {
+            let node = unsafe { from_untrusted_node_address(node) };
+            let svg = node.downcast::<SVGSVGElement>().unwrap();
+            svg.serialize_and_cache_subtree();
+            node.dirty(NodeDamage::Other);
         }
     }
 }

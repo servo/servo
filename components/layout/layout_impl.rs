@@ -660,6 +660,7 @@ impl LayoutThread {
             resolved_images_cache: self.resolved_images_cache.clone(),
             pending_images: Mutex::default(),
             pending_rasterization_images: Mutex::default(),
+            pending_svg_elements_for_serialization: Mutex::default(),
             node_to_animating_image_map: reflow_request.node_to_animating_image_map.clone(),
             animation_timeline_value: reflow_request.animation_timeline_value,
         });
@@ -682,11 +683,14 @@ impl LayoutThread {
         let pending_images = std::mem::take(&mut *image_resolver.pending_images.lock());
         let pending_rasterization_images =
             std::mem::take(&mut *image_resolver.pending_rasterization_images.lock());
+        let pending_svg_elements_for_serialization =
+            std::mem::take(&mut *image_resolver.pending_svg_elements_for_serialization.lock());
 
         Some(ReflowResult {
             built_display_list,
             pending_images,
             pending_rasterization_images,
+            pending_svg_elements_for_serialization,
             iframe_sizes,
         })
     }
