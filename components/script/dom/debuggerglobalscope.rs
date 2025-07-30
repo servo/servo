@@ -21,6 +21,7 @@ use script_bindings::reflector::DomObject;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
+use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::CustomTraceable;
@@ -55,6 +56,7 @@ impl DebuggerGlobalScope {
         script_to_constellation_chan: ScriptToConstellationChan,
         resource_threads: ResourceThreads,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let global = Box::new(Self {
             global_scope: GlobalScope::new_inherited(
@@ -83,9 +85,10 @@ impl DebuggerGlobalScope {
         };
 
         let realm = enter_realm(&*global);
-        define_all_exposed_interfaces(global.upcast(), InRealm::entered(&realm), CanGc::note());
-        // TODO: what invariants do we need to uphold for the unsafe call?
+        define_all_exposed_interfaces(global.upcast(), InRealm::entered(&realm), can_gc);
         assert!(unsafe {
+            // Invariants: `cx` must be a non-null, valid JSContext pointer,
+            // and `obj` must be a handle to a JS global object.
             JS_DefineDebuggerObject(
                 *Self::get_cx(),
                 global.global_scope.reflector().get_jsobject(),
@@ -113,7 +116,8 @@ impl DebuggerGlobalScope {
 
     pub(crate) fn execute(&self, can_gc: CanGc) {
         if !self.evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc) {
-            warn!("Failed to execute debugger request");
+            let ar = enter_realm(self);
+            report_pending_exception(Self::get_cx(), true, InRealm::Entered(&ar), can_gc);
         }
     }
 }

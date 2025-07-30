@@ -951,6 +951,7 @@ impl ScriptThread {
             state.resource_threads.clone(),
             #[cfg(feature = "webgpu")]
             gpu_id_hub.clone(),
+            CanGc::note(),
         );
         debugger_global.execute(CanGc::note());
 
