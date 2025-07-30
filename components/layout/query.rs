@@ -6,6 +6,7 @@
 use std::rc::Rc;
 
 use app_units::Au;
+use compositing_traits::display_list::ScrollTree;
 use euclid::default::{Point2D, Rect};
 use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
@@ -13,6 +14,7 @@ use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafe
 use layout_api::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
 use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
@@ -37,8 +39,10 @@ use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
 use style::values::specified::text::TextTransformCase;
 use style_traits::{ParsingMode, ToCss};
+use webrender_api::units::LayoutTransform;
 
 use crate::ArcRefCell;
+use crate::display_list::StackingContextTree;
 use crate::dom::NodeExt;
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
 use crate::fragment_tree::{
@@ -46,7 +50,28 @@ use crate::fragment_tree::{
 };
 use crate::taffy::SpecificTaffyGridInfo;
 
-pub fn process_content_box_request(node: ServoLayoutNode<'_>) -> Option<Rect<Au>> {
+/// Get a scroll node that would represents this [`ServoLayoutNode`]'s transform and
+/// calculate its cumlative transform from its root scroll node to the scroll node.
+fn root_transform_for_layout_node(
+    scroll_tree: &ScrollTree,
+    node: ServoLayoutNode<'_>,
+) -> Option<LayoutTransform> {
+    let fragments = node.fragments_for_pseudo(None);
+    let box_fragment = fragments
+        .first()
+        .and_then(Fragment::retrieve_box_fragment)?
+        .borrow();
+    let scroll_tree_node_id = box_fragment
+        .spatial_tree_node
+        .borrow()
+        .expect("Should always have a scroll tree node when querying bounding box.");
+    Some(scroll_tree.cumulative_node_transform(&scroll_tree_node_id))
+}
+
+pub(crate) fn process_content_box_request(
+    stacking_context_tree: &StackingContextTree,
+    node: ServoLayoutNode<'_>,
+) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
         .iter()
@@ -55,17 +80,37 @@ pub fn process_content_box_request(node: ServoLayoutNode<'_>) -> Option<Rect<Au>
     if rects.is_empty() {
         return None;
     }
-
-    Some(rects.iter().fold(Rect::zero(), |unioned_rect, rect| {
+    let rect_union = rects.iter().fold(Rect::zero(), |unioned_rect, rect| {
         rect.to_untyped().union(&unioned_rect)
-    }))
+    });
+
+    let Some(transform) =
+        root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
+    else {
+        return Some(rect_union);
+    };
+
+    Some(transform_au_rectangle(rect_union, transform))
 }
 
-pub fn process_content_boxes_request(node: ServoLayoutNode<'_>) -> Vec<Rect<Au>> {
-    node.fragments_for_pseudo(None)
+pub(crate) fn process_content_boxes_request(
+    stacking_context_tree: &StackingContextTree,
+    node: ServoLayoutNode<'_>,
+) -> Vec<Rect<Au>> {
+    let fragments = node.fragments_for_pseudo(None);
+    let content_boxes = fragments
         .iter()
         .filter_map(Fragment::cumulative_border_box_rect)
-        .map(|rect| rect.to_untyped())
+        .map(|rect| rect.to_untyped());
+
+    let Some(transform) =
+        root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
+    else {
+        return content_boxes.collect();
+    };
+
+    content_boxes
+        .map(|rect| transform_au_rectangle(rect, transform))
         .collect()
 }
 
@@ -1103,4 +1148,11 @@ where
         resolve_for_declarations::<E>(context, Some(&*parent_style), declarations, shared_lock);
 
     Some(computed_values.clone_font())
+}
+
+fn transform_au_rectangle(rect_to_transform: Rect<Au>, transform: LayoutTransform) -> Rect<Au> {
+    transform
+        .outer_transformed_rect(&au_rect_to_f32_rect(rect_to_transform).cast_unit())
+        .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()))
+        .unwrap_or(rect_to_transform)
 }

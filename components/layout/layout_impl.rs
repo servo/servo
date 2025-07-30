@@ -253,16 +253,34 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
+    /// Return the union of this node's content boxes in the coordinate space of the Document.
+    /// to implement `getBoundingClientRect()`.
+    ///
+    /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>
+    /// TODO(stevennovaryo): Rename and parameterize the function, allowing padding area
+    ///                      query and possibly, query without consideration of transform.
     #[servo_tracing::instrument(skip_all)]
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_box_request(node)
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let stacking_context_tree = stacking_context_tree
+            .as_ref()
+            .expect("Should always have a StackingContextTree for geometry queries");
+        process_content_box_request(stacking_context_tree, node)
     }
 
+    /// Get a `Vec` of bounding boxes of this node's `Fragement`s in the coordinate space of the
+    /// Document. This is used to implement `getClientRects()`.
+    ///
+    /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_boxes_request(node)
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let stacking_context_tree = stacking_context_tree
+            .as_ref()
+            .expect("Should always have a StackingContextTree for geometry queries");
+        process_content_boxes_request(stacking_context_tree, node)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1431,12 +1449,11 @@ impl ReflowPhases {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
-                QueryMsg::ResolvedStyleQuery | QueryMsg::ScrollingAreaOrOffsetQuery => {
-                    Self::StackingContextTreeConstruction
-                },
-                QueryMsg::ClientRectQuery |
                 QueryMsg::ContentBox |
                 QueryMsg::ContentBoxes |
+                QueryMsg::ResolvedStyleQuery |
+                QueryMsg::ScrollingAreaOrOffsetQuery => Self::StackingContextTreeConstruction,
+                QueryMsg::ClientRectQuery |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::OffsetParentQuery |

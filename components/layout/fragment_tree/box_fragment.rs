@@ -4,6 +4,7 @@
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::AtomicRefCell;
+use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
@@ -109,6 +110,12 @@ pub(crate) struct BoxFragment {
 
     /// Additional information for block-level boxes.
     pub block_level_layout_info: Option<Box<BlockLevelLayoutInfo>>,
+
+    /// The containing spatial tree node of this [`BoxFragment`]. This is assigned during
+    /// `StackingContextTree` construction, so isn't available before that time. This is
+    /// used to for determining final viewport size and position of this node and will
+    /// also be used in the future for hit testing.
+    pub spatial_tree_node: AtomicRefCell<Option<ScrollTreeNodeId>>,
 }
 
 impl BoxFragment {
@@ -138,6 +145,7 @@ impl BoxFragment {
             background_mode: BackgroundMode::Normal,
             specific_layout_info,
             block_level_layout_info: None,
+            spatial_tree_node: AtomicRefCell::default(),
         }
     }
 
@@ -268,6 +276,10 @@ impl BoxFragment {
 
     pub fn offset_by_containing_block(&self, rect: &PhysicalRect<Au>) -> PhysicalRect<Au> {
         rect.translate(self.cumulative_containing_block_rect.origin.to_vector())
+    }
+
+    pub(crate) fn cumulative_border_box_rect(&self) -> PhysicalRect<Au> {
+        self.offset_by_containing_block(&self.border_rect())
     }
 
     pub(crate) fn padding_rect(&self) -> PhysicalRect<Au> {

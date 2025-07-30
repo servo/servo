@@ -205,8 +205,7 @@ impl Fragment {
     pub(crate) fn cumulative_border_box_rect(&self) -> Option<PhysicalRect<Au>> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                let fragment = fragment.borrow();
-                Some(fragment.offset_by_containing_block(&fragment.border_rect()))
+                Some(fragment.borrow().cumulative_border_box_rect())
             },
             Fragment::Positioning(fragment) => {
                 let fragment = fragment.borrow();
@@ -323,6 +322,13 @@ impl Fragment {
             Fragment::Text(..) => unreachable!("Should never try to repair style of TextFragment"),
             Fragment::Image(image_fragment) => image_fragment.borrow_mut().style = style.clone(),
             Fragment::IFrame(iframe_fragment) => iframe_fragment.borrow_mut().style = style.clone(),
+        }
+    }
+
+    pub(crate) fn retrieve_box_fragment(&self) -> Option<&ArcRefCell<BoxFragment>> {
+        match self {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => Some(box_fragment),
+            _ => None,
         }
     }
 }
