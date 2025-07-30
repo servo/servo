@@ -84,6 +84,8 @@ pub struct ActorRegistry {
 
     /// Lookup table for SourceActor names associated with a given PipelineId.
     source_actor_names: RefCell<HashMap<PipelineId, Vec<String>>>,
+    /// Lookup table for inline source content associated with a given PipelineId.
+    inline_source_content: RefCell<HashMap<PipelineId, String>>,
 
     shareable: Option<Arc<Mutex<ActorRegistry>>>,
     next: Cell<u32>,
@@ -99,6 +101,7 @@ impl ActorRegistry {
             old_actors: RefCell::new(vec![]),
             script_actors: RefCell::new(HashMap::new()),
             source_actor_names: RefCell::new(HashMap::new()),
+            inline_source_content: RefCell::new(HashMap::new()),
             shareable: None,
             next: Cell::new(0),
             start_stamp: CrossProcessInstant::now(),
@@ -261,5 +264,21 @@ impl ActorRegistry {
         }
 
         vec![]
+    }
+
+    pub fn set_inline_source_content(&mut self, pipeline_id: PipelineId, content: String) {
+        assert!(
+            self.inline_source_content
+                .borrow_mut()
+                .insert(pipeline_id, content)
+                .is_none()
+        );
+    }
+
+    pub fn inline_source_content(&mut self, pipeline_id: PipelineId) -> Option<String> {
+        self.inline_source_content
+            .borrow()
+            .get(&pipeline_id)
+            .cloned()
     }
 }

@@ -112,6 +112,14 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         expected_content = open(self.get_test_path("sources/test.html")).read()
         self.assert_source_content(f"{self.base_url}/test.html", expected_content)
 
+    def test_source_content_with_inline_module_import_external(self):
+        self.start_web_server(test_dir=self.get_test_path("sources_content_with_inline_module_import_external"))
+        self.run_servoshell()
+        expected_content = open(
+            self.get_test_path("sources_content_with_inline_module_import_external/test.html")
+        ).read()
+        self.assert_source_content(f"{self.base_urls[0]}/test.html", expected_content)
+
     # Test case that uses innerHTML and would actually need the HTML parser
     # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
     def test_source_content_inline_script_with_inner_html(self):
