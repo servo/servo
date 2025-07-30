@@ -543,11 +543,14 @@ impl DevtoolsInstance {
     fn handle_create_source_actor(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
         let mut actors = self.actors.lock().unwrap();
 
+        let source_content = source_info
+            .content
+            .or_else(|| actors.inline_source_content(pipeline_id));
         let source_actor = SourceActor::new_registered(
             &mut actors,
             pipeline_id,
             source_info.url,
-            source_info.content,
+            source_content,
             source_info.content_type,
         );
         let source_actor_name = source_actor.name.clone();
@@ -613,6 +616,10 @@ impl DevtoolsInstance {
                 source_actor.content = Some(source_content.clone());
             }
         }
+
+        // Store the source content separately for any future source actors that get created *after* we finish parsing
+        // the HTML. For example, adding an `import` to an inline module script can delay it until after parsing.
+        actors.set_inline_source_content(pipeline_id, source_content);
     }
 }
 
