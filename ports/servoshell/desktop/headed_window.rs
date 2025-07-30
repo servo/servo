@@ -750,7 +750,7 @@ impl WindowPortsMethods for Window {
         // this prevents a crash in the compositor due to invalid surface size
         self.winit_window.set_min_inner_size(Some(PhysicalSize::new(
             MIN_INNER_WIDTH,
-            MIN_INNER_HEIGHT.max((self.toolbar_height() * self.hidpi_scale_factor()).0 as i32),
+            MIN_INNER_HEIGHT.max(2 + (self.toolbar_height() * self.hidpi_scale_factor()).0 as i32),
         )));
     }
 
