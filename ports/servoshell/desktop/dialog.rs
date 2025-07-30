@@ -500,6 +500,10 @@ impl Dialog {
                     if clickable_area.hovered() && option.is_disabled {
                         ui.ctx().set_cursor_icon(egui::CursorIcon::NotAllowed);
                     }
+
+                    if ui.ctx().input(|i| i.key_pressed(egui::Key::Escape)) {
+                        *is_open = false;
+                    }
                 }
 
                 let modal = Modal::new("select_element_picker".into()).area(area);
@@ -569,7 +573,9 @@ impl Dialog {
 
                     ui.add_space(10.);
 
-                    if ui.button("Dismiss").clicked() {
+                    if ui.button("Dismiss").clicked() ||
+                        ui.input(|i| i.key_pressed(egui::Key::Escape))
+                    {
                         is_open = false;
                         prompt.select(None);
                     }
