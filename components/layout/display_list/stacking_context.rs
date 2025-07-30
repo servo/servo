@@ -1217,6 +1217,11 @@ impl BoxFragment {
             add_fragment(StackingContextSection::Outline);
         }
 
+        // Spatial tree node that will affect the transform of the fragment. Note that the next frame,
+        // scroll frame, does not affect the transform of the fragment but affect the transform of it
+        // children.
+        *self.spatial_tree_node.borrow_mut() = Some(new_scroll_node_id);
+
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
         if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
@@ -1345,8 +1350,6 @@ impl BoxFragment {
                     text_decorations: text_decorations.clone(),
                 });
         }
-
-        *self.spatial_tree_node.borrow_mut() = Some(new_scroll_node_id);
     }
 
     fn build_clip_frame_if_necessary(
