@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
 use base::id::ScrollTreeNodeId;
 use compositing_traits::display_list::{
     AxesScrollSensitivity, ScrollTree, ScrollType, ScrollableNodeInfo, SpatialTreeNodeInfo,
@@ -33,6 +35,7 @@ fn add_mock_scroll_node(tree: &mut ScrollTree) -> ScrollTreeNodeId {
                 y: ScrollType::Script | ScrollType::InputEvents,
             },
             offset: LayoutVector2D::zero(),
+            offset_changed: Cell::new(false),
         }),
     )
 }

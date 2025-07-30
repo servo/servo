@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use core::f32;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::mem;
 use std::sync::Arc;
 
@@ -235,6 +235,7 @@ impl StackingContextTree {
                 clip_rect,
                 scroll_sensitivity,
                 offset: LayoutVector2D::zero(),
+                offset_changed: Cell::new(false),
             }),
         )
     }

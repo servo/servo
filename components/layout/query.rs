@@ -65,7 +65,7 @@ fn root_transform_for_layout_node(
         .spatial_tree_node
         .borrow()
         .expect("Should always have a scroll tree node when querying bounding box.");
-    Some(scroll_tree.cumulative_node_transform(&scroll_tree_node_id))
+    Some(scroll_tree.cumulative_node_to_root_transform(&scroll_tree_node_id))
 }
 
 pub(crate) fn process_content_box_request(
