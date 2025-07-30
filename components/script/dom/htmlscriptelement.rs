@@ -18,6 +18,7 @@ use encoding_rs::Encoding;
 use html5ever::serialize::TraversalScope;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use ipc_channel::ipc;
+use js::glue::IntroductionType;
 use js::jsval::UndefinedValue;
 use js::rust::{CompileOptionsWrapper, HandleObject, Stencil, transform_str_to_source_text};
 use net_traits::http_status::HttpStatus;
@@ -1145,6 +1146,11 @@ impl HTMLScriptElement {
         // Step 6.
         let document = self.owner_document();
         let old_script = document.GetCurrentScript();
+        let introduction_type = if script.external {
+            IntroductionType::Undefined
+        } else {
+            IntroductionType::InlineScript
+        };
 
         match script.type_ {
             ScriptType::Classic => {
@@ -1153,7 +1159,7 @@ impl HTMLScriptElement {
                 } else {
                     document.set_current_script(Some(self))
                 }
-                self.run_a_classic_script(&script, can_gc);
+                self.run_a_classic_script(&script, can_gc, introduction_type);
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
@@ -1179,7 +1185,12 @@ impl HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-a-classic-script
-    pub(crate) fn run_a_classic_script(&self, script: &ScriptOrigin, can_gc: CanGc) {
+    pub(crate) fn run_a_classic_script(
+        &self,
+        script: &ScriptOrigin,
+        can_gc: CanGc,
+        introduction_type: IntroductionType,
+    ) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = self.owner_document();
@@ -1205,6 +1216,7 @@ impl HTMLScriptElement {
                 script.fetch_options.clone(),
                 script.url.clone(),
                 can_gc,
+                introduction_type,
             );
     }
 

@@ -14,6 +14,7 @@ use std::rc::Rc;
 use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
+use js::glue::IntroductionType;
 use js::jsapi::JS_GetFunctionObject;
 use js::jsval::JSVal;
 use js::rust::wrappers::CompileFunction;
@@ -642,7 +643,12 @@ impl EventTarget {
 
         let cx = GlobalScope::get_cx();
         let options = unsafe {
-            CompileOptionsWrapper::new(*cx, &handler.url.to_string(), handler.line as u32)
+            CompileOptionsWrapper::new(
+                *cx,
+                &handler.url.to_string(),
+                handler.line as u32,
+                IntroductionType::Undefined,
+            )
         };
 
         // Step 3.9, subsection Scope steps 1-6

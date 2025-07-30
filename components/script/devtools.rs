@@ -12,6 +12,7 @@ use devtools_traits::{
     NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
 use ipc_channel::ipc::IpcSender;
+use js::glue::IntroductionType;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
 use servo_config::pref;
@@ -65,6 +66,7 @@ pub(crate) fn handle_evaluate_js(
             ScriptFetchOptions::default_classic_script(global),
             global.api_base_url(),
             can_gc,
+            IntroductionType::Undefined,
         );
 
         if rval.is_undefined() {
