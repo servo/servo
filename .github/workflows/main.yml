@@ -13,6 +13,10 @@ on:
     types: [checks_requested]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   decision:
     name: Generate Try Configuration
