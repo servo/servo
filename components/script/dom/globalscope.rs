@@ -2818,7 +2818,6 @@ impl GlobalScope {
                     compiled_script.set(script);
                 },
             };
-
             assert!(!compiled_script.is_null());
 
             rooted!(in(*cx) let mut script_private = UndefinedValue());
