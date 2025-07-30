@@ -28,9 +28,7 @@ use crate::flow::float::{
     Clear, ContainingBlockPositionInfo, FloatBox, FloatSide, PlacementAmongFloats,
     SequentialLayoutState,
 };
-use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
-};
+use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BaseFragmentInfo, BlockLevelLayoutInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
     Fragment, FragmentFlags,

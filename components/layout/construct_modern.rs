@@ -69,10 +69,10 @@ impl<'dom> ModernContainerJob<'dom> {
                     BlockContainer::InlineFormattingContext(inline_formatting_context),
                 );
                 let info: &NodeAndStyleInfo = anonymous_info;
-                let formatting_context = IndependentFormattingContext {
-                    base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                    contents: IndependentFormattingContextContents::Flow(block_formatting_context),
-                };
+                let formatting_context = IndependentFormattingContext::new(
+                    LayoutBoxBase::new(info.into(), info.style.clone()),
+                    IndependentFormattingContextContents::Flow(block_formatting_context),
+                );
 
                 Some(ModernItem {
                     kind: ModernItemKind::InFlow(formatting_context),
