@@ -23,6 +23,7 @@ use compositing_traits::SerializableImageData;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods as _};
 use ipc_channel::ipc::IpcSharedMemory;
+use kurbo::Shape as _;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use range::Range;
 use vello::wgpu::{
@@ -51,6 +52,7 @@ pub(crate) struct VelloDrawTarget {
     renderer: Rc<RefCell<vello::Renderer>>,
     scene: vello::Scene,
     size: Size2D<u32>,
+    clips: Vec<Path>,
 }
 
 fn options() -> vello::RendererOptions {
@@ -152,6 +154,35 @@ impl VelloDrawTarget {
         buffer.unmap();
         result
     }
+
+    fn ignore_clips(&mut self, f: impl FnOnce(&mut Self)) {
+        // pop all clip layers
+        for _ in &self.clips {
+            self.scene.pop_layer();
+        }
+        f(self);
+        // push all clip layers back
+        for path in &self.clips {
+            self.scene
+                .push_layer(peniko::Mix::Clip, 1.0, kurbo::Affine::IDENTITY, &path.0);
+        }
+    }
+
+    fn is_viewport_cleared(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) -> bool {
+        let transformed_rect = transform.outer_transformed_rect(rect);
+        if transformed_rect.is_empty() {
+            return false;
+        }
+        let viewport: Rect<f64> = Rect::from_size(self.get_size().cast());
+        let Some(clip) = self.clips.iter().try_fold(viewport, |acc, e| {
+            acc.intersection(&e.0.bounding_box().into())
+        }) else {
+            // clip makes no visible side effects
+            return false;
+        };
+        transformed_rect.cast().contains_rect(&viewport) // whole viewport is cleared
+        && clip.contains_rect(&viewport) // viewport is not clipped
+    }
 }
 
 impl GenericDrawTarget for VelloDrawTarget {
@@ -188,10 +219,18 @@ impl GenericDrawTarget for VelloDrawTarget {
             renderer: Rc::new(RefCell::new(renderer)),
             scene,
             size,
+            clips: Vec::new(),
         }
     }
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
+        // vello scene only ever grows,
+        // so we need to use every opportunity to shrink it
+        if self.is_viewport_cleared(rect, transform) {
+            self.scene.reset();
+            self.clips.clear(); // no clips are affecting rendering
+            return;
+        }
         let rect: kurbo::Rect = rect.cast().into();
         let transform = transform.cast().into();
         self.scene
@@ -210,35 +249,30 @@ impl GenericDrawTarget for VelloDrawTarget {
         let destination: kurbo::Point = destination.cast::<f64>().into();
         let rect = kurbo::Rect::from_origin_size(destination, source.size.cast());
 
-        // TODO: ignore clip from prev layers
-        // this will require creating a stacks of applicable clips
-        // that will be popped and reinserted after
-        // or we could impl this in vello directly
+        self.ignore_clips(|self_| {
+            self_
+                .scene
+                .push_layer(peniko::Compose::Copy, 1.0, kurbo::Affine::IDENTITY, &rect);
 
-        // then there is also this nasty vello bug where clipping does not work correctly:
-        // https://xi.zulipchat.com/#narrow/channel/197075-vello/topic/Servo.202D.20canvas.20backend/near/525153593
+            self_.scene.fill(
+                peniko::Fill::NonZero,
+                kurbo::Affine::IDENTITY,
+                &peniko::Image {
+                    data: peniko::Blob::from(surface),
+                    format: peniko::ImageFormat::Rgba8,
+                    width: source.size.width as u32,
+                    height: source.size.height as u32,
+                    x_extend: peniko::Extend::Pad,
+                    y_extend: peniko::Extend::Pad,
+                    quality: peniko::ImageQuality::Low,
+                    alpha: 1.0,
+                },
+                Some(kurbo::Affine::translate(destination.to_vec2())),
+                &rect,
+            );
 
-        self.scene
-            .push_layer(peniko::Compose::Copy, 1.0, kurbo::Affine::IDENTITY, &rect);
-
-        self.scene.fill(
-            peniko::Fill::NonZero,
-            kurbo::Affine::IDENTITY,
-            &peniko::Image {
-                data: peniko::Blob::from(surface),
-                format: peniko::ImageFormat::Rgba8,
-                width: source.size.width as u32,
-                height: source.size.height as u32,
-                x_extend: peniko::Extend::Pad,
-                y_extend: peniko::Extend::Pad,
-                quality: peniko::ImageQuality::Low,
-                alpha: 1.0,
-            },
-            Some(kurbo::Affine::translate(destination.to_vec2())),
-            &rect,
-        );
-
-        self.scene.pop_layer();
+            self_.scene.pop_layer();
+        });
     }
 
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self {
@@ -248,6 +282,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             renderer: self.renderer.clone(),
             scene: vello::Scene::new(),
             size: size.cast(),
+            clips: Vec::new(),
         }
     }
 
@@ -410,12 +445,17 @@ impl GenericDrawTarget for VelloDrawTarget {
     }
 
     fn pop_clip(&mut self) {
-        self.scene.pop_layer();
+        if self.clips.pop().is_some() {
+            self.scene.pop_layer();
+        }
     }
 
     fn push_clip(&mut self, path: &Path, _fill_rule: FillRule, transform: Transform2D<f32>) {
         self.scene
             .push_layer(peniko::Mix::Clip, 1.0, transform.cast().into(), &path.0);
+        let mut path = path.clone();
+        path.transform(transform.cast());
+        self.clips.push(path);
     }
 
     fn push_clip_rect(&mut self, rect: &Rect<i32>) {
