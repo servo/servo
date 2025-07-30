@@ -323,9 +323,12 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .secure(true)
             .same_site(SameSite::Strict)
             .partitioned(false);
+        // TODO: This currently doesn't implement all the "set a cookie" steps which involves
+        // additional processing of the name and value
 
         self.in_flight.borrow_mut().push_back(p.clone());
 
+        // 10. Run the following steps in parallel:
         let _ = self
             .global()
             .resource_threads()
@@ -335,12 +338,53 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 Serde(cookie.build()),
                 NonHTTP,
             ));
+
+        // 11. Return p.
         p
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestore-set-options>
-    fn Set_(&self, _options: &CookieInit, _can_gc: CanGc) -> Rc<Promise> {
-        todo!();
+    fn Set_(&self, options: &CookieInit, can_gc: CanGc) -> Rc<Promise> {
+        // 1. Let settings be this’s relevant settings object.
+        let global = self.global();
+
+        // 2. Let origin be settings’s origin.
+        let origin = global.origin();
+
+        // 5. Let p be a new promise.
+        let p = Promise::new(&global, can_gc);
+
+        // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
+        if !origin.is_tuple() {
+            p.reject_error(Error::Security, can_gc);
+            return p;
+        }
+
+        // 4. Let url be settings’s creation URL.
+        let creation_url = global.creation_url();
+
+        // 6.1. Let r be the result of running set a cookie with url, options["name"], options["value"],
+        // options["expires"], options["domain"], options["path"], options["sameSite"], and options["partitioned"].
+        let cookie = Cookie::build((
+            Cow::Owned(options.name.to_string()),
+            Cow::Owned(options.value.to_string()),
+        ));
+        // TODO: This currently doesn't implement all the "set a cookie" steps which involves
+        // additional processing of the name and value
+
+        // 6. Run the following steps in parallel:
+        let _ = self
+            .global()
+            .resource_threads()
+            .send(CoreResourceMsg::SetCookieForUrlAsync(
+                self.store_id,
+                creation_url.clone(),
+                Serde(cookie.build()),
+                NonHTTP,
+            ));
+
+        // 7. Return p
+        p
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestore-delete>
@@ -351,7 +395,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 2. Let origin be settings’s origin.
         let origin = global.origin();
 
-        // 7. Let p be a new promise.
+        // 5. Let p be a new promise.
         let p = Promise::new(&global, can_gc);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
@@ -361,6 +405,9 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         }
 
         self.in_flight.borrow_mut().push_back(p.clone());
+
+        // 6. Run the following steps in parallel:
+        // TODO: the spec passes additional parameters to _delete a cookie_ that we don't handle yet
         let _ = global
             .resource_threads()
             .send(CoreResourceMsg::DeleteCookieAsync(
@@ -369,11 +416,40 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 name.0,
             ));
 
+        // 7. Return p.
         p
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestore-delete-options>
-    fn Delete_(&self, _options: &CookieStoreDeleteOptions, _can_gc: CanGc) -> Rc<Promise> {
-        todo!();
+    fn Delete_(&self, options: &CookieStoreDeleteOptions, can_gc: CanGc) -> Rc<Promise> {
+        // 1. Let settings be this’s relevant settings object.
+        let global = self.global();
+
+        // 2. Let origin be settings’s origin.
+        let origin = global.origin();
+
+        // 5. Let p be a new promise.
+        let p = Promise::new(&global, can_gc);
+
+        // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
+        if !origin.is_tuple() {
+            p.reject_error(Error::Security, can_gc);
+            return p;
+        }
+
+        self.in_flight.borrow_mut().push_back(p.clone());
+
+        // 6. Run the following steps in parallel:
+        // TODO: the spec passes additional parameters to _delete a cookie_ that we don't handle yet
+        let _ = global
+            .resource_threads()
+            .send(CoreResourceMsg::DeleteCookieAsync(
+                self.store_id,
+                global.creation_url().clone(),
+                options.name.to_string(),
+            ));
+
+        // 7. Return p.
+        p
     }
 }
