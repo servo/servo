@@ -4,6 +4,7 @@
 
 use std::rc::Rc;
 
+use js::glue::IntroductionType;
 use js::jsval::UndefinedValue;
 use script_bindings::root::DomRoot;
 
@@ -39,6 +40,7 @@ pub(crate) fn load_script(head: &HTMLHeadElement) {
                 ScriptFetchOptions::default_classic_script(global_scope),
                 global_scope.api_base_url(),
                 CanGc::note(),
+                IntroductionType::Undefined,
             );
         }
     }));

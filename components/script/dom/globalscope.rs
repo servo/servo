@@ -28,7 +28,7 @@ use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::glue::{IsWrapper, UnwrapObjectDynamic};
+use js::glue::{IntroductionType, IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
     Compile1, CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap,
     InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
@@ -2768,6 +2768,7 @@ impl GlobalScope {
             fetch_options,
             script_base_url,
             can_gc,
+            IntroductionType::Undefined,
         )
     }
 
@@ -2783,6 +2784,7 @@ impl GlobalScope {
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
         can_gc: CanGc,
+        introduction_type: IntroductionType,
     ) -> bool {
         let cx = GlobalScope::get_cx();
 
@@ -2794,7 +2796,8 @@ impl GlobalScope {
             rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
             match code {
                 SourceCode::Text(text_code) => {
-                    let options = CompileOptionsWrapper::new(*cx, filename, line_number);
+                    let options =
+                        CompileOptionsWrapper::new(*cx, filename, line_number, introduction_type);
 
                     debug!("compiling dom string");
                     compiled_script.set(Compile1(

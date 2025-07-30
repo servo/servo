@@ -16,6 +16,7 @@ use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::{IndexMap, IndexSet};
+use js::glue::IntroductionType;
 use js::jsapi::{
     CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport, GetModuleRequestSpecifier,
     GetModuleResolveHook, GetRequestedModuleSpecifier, GetRequestedModulesCount,
@@ -468,11 +469,13 @@ impl ModuleTree {
         mut module_script: RustMutableHandleObject,
         inline: bool,
         can_gc: CanGc,
+        introduction_type: IntroductionType,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
-        let compile_options = unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), 1) };
+        let compile_options =
+            unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), 1, introduction_type) };
         let mut module_source = ModuleSource {
             source: module_script_text,
             unminified_dir: global.unminified_js_dir(),
@@ -1332,6 +1335,7 @@ impl FetchResponseListener for ModuleContext {
                     compiled_module.handle_mut(),
                     false,
                     CanGc::note(),
+                    IntroductionType::Undefined,
                 );
 
                 match compiled_module_result {
@@ -1896,6 +1900,7 @@ pub(crate) fn fetch_inline_module_script(
         compiled_module.handle_mut(),
         true,
         can_gc,
+        IntroductionType::InlineScript,
     );
 
     match compiled_module_result {
