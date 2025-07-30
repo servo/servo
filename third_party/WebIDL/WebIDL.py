@@ -12,7 +12,7 @@ import string
 import traceback
 from collections import OrderedDict, defaultdict
 from itertools import chain
-from typing import Any
+from typing import Protocol
 
 from ply import lex, yacc
 
@@ -44,17 +44,27 @@ def parseInt(literal):
     return value * sign
 
 
+class CustomEnum(Protocol):
+    attrs: tuple[str, ...]
+
+    def __getattr__(self, name: str) -> int: ...
+
 # This is surprisingly faster than using the enum.IntEnum type (which doesn't
 # support 'base' anyway)
-def enum(*names, base=None) -> Any:
+def enum(*names: str, base = None) -> CustomEnum:
     if base is not None:
         names = base.attrs + names
 
     class CustomEnumType(object):
-        attrs = names
+        attrs: tuple[str, ...] = names
 
         def __setattr__(self, name, value):  # this makes it read-only
             raise NotImplementedError
+
+        def __getattr__(self, name: str) -> int:
+            if name in self.attrs:
+                return self.attrs.index(name)
+            raise AttributeError(f"{name} is not a valid enum type")
 
     for v, k in enumerate(names):
         setattr(CustomEnumType, k, v)
