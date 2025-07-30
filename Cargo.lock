@@ -9148,7 +9148,7 @@ checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 [[package]]
 name = "vello"
 version = "0.5.0"
-source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
+source = "git+https://github.com/linebender/vello?rev=65975d7612e38c199afaa547268763e1b4b826c9#65975d7612e38c199afaa547268763e1b4b826c9"
 dependencies = [
  "bytemuck",
  "futures-intrusive",
@@ -9166,7 +9166,7 @@ dependencies = [
 [[package]]
 name = "vello_common"
 version = "0.0.1"
-source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
+source = "git+https://github.com/linebender/vello?rev=65975d7612e38c199afaa547268763e1b4b826c9#65975d7612e38c199afaa547268763e1b4b826c9"
 dependencies = [
  "bytemuck",
  "fearless_simd",
@@ -9180,7 +9180,7 @@ dependencies = [
 [[package]]
 name = "vello_cpu"
 version = "0.0.1"
-source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
+source = "git+https://github.com/linebender/vello?rev=65975d7612e38c199afaa547268763e1b4b826c9#65975d7612e38c199afaa547268763e1b4b826c9"
 dependencies = [
  "bytemuck",
  "vello_common",
@@ -9189,7 +9189,7 @@ dependencies = [
 [[package]]
 name = "vello_encoding"
 version = "0.5.0"
-source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
+source = "git+https://github.com/linebender/vello?rev=65975d7612e38c199afaa547268763e1b4b826c9#65975d7612e38c199afaa547268763e1b4b826c9"
 dependencies = [
  "bytemuck",
  "guillotiere",
@@ -9201,7 +9201,7 @@ dependencies = [
 [[package]]
 name = "vello_shaders"
 version = "0.5.0"
-source = "git+https://github.com/linebender/vello?rev=daf940230a24cbb123a458b6de95721af47aef98#daf940230a24cbb123a458b6de95721af47aef98"
+source = "git+https://github.com/linebender/vello?rev=65975d7612e38c199afaa547268763e1b4b826c9#65975d7612e38c199afaa547268763e1b4b826c9"
 dependencies = [
  "bytemuck",
  "log",
