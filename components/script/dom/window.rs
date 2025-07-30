@@ -34,7 +34,7 @@ use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
     GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
-    WebDriverJSResult,
+    WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -310,6 +310,10 @@ pub(crate) struct Window {
     /// A channel for communicating results of async scripts back to the webdriver server
     #[no_trace]
     webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
+
+    /// A channel to notify webdriver if there is a navigation
+    #[no_trace]
+    webdriver_load_status_sender: RefCell<Option<IpcSender<WebDriverLoadStatus>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -2641,6 +2645,11 @@ impl Window {
             // Step 6
             // TODO: Fragment handling appears to have moved to step 13
             if let Some(fragment) = load_data.url.fragment() {
+                let webdriver_sender = self.webdriver_load_status_sender.borrow().clone();
+                if let Some(ref sender) = webdriver_sender {
+                    let _ = sender.send(WebDriverLoadStatus::NavigationStart);
+                }
+
                 self.send_to_constellation(ScriptToConstellationMessage::NavigatedToFragment(
                     load_data.url.clone(),
                     history_handling,
@@ -2660,6 +2669,9 @@ impl Window {
                         new_url,
                         CanGc::note());
                     event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
+                    if let Some(sender) = webdriver_sender {
+                        let _ = sender.send(WebDriverLoadStatus::NavigationStop);
+                    }
                 });
                 self.as_global_scope()
                     .task_manager()
@@ -2713,6 +2725,10 @@ impl Window {
             } else {
                 NavigationHistoryBehavior::Push
             };
+
+            if let Some(sender) = self.webdriver_load_status_sender.borrow().as_ref() {
+                let _ = sender.send(WebDriverLoadStatus::NavigationStart);
+            }
 
             // Step 13
             ScriptThread::navigate(pipeline_id, load_data, resolved_history_handling);
@@ -2843,6 +2859,13 @@ impl Window {
 
     pub(crate) fn set_webdriver_script_chan(&self, chan: Option<IpcSender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
+    }
+
+    pub(crate) fn set_webdriver_load_status_sender(
+        &self,
+        sender: Option<IpcSender<WebDriverLoadStatus>>,
+    ) {
+        *self.webdriver_load_status_sender.borrow_mut() = sender;
     }
 
     pub(crate) fn is_alive(&self) -> bool {
@@ -3139,6 +3162,7 @@ impl Window {
             devtools_marker_sender: Default::default(),
             devtools_markers: Default::default(),
             webdriver_script_chan: Default::default(),
+            webdriver_load_status_sender: Default::default(),
             error_reporter,
             media_query_lists: DOMTracker::new(),
             #[cfg(feature = "bluetooth")]

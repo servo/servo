@@ -169,8 +169,6 @@ pub enum WebDriverCommandMsg {
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),
-    AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
-    RemoveLoadStatusSender(WebViewId),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -247,7 +245,8 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
     /// Deal with the case of input element for Element Send Keys, which does not send keys.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
-    IsDocumentReadyStateComplete(IpcSender<bool>),
+    AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
+    RemoveLoadStatusSender(WebViewId),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -292,8 +291,13 @@ pub struct WebDriverCommandResponse {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverLoadStatus {
+    NavigationStart,
+    // Navigation stops for any reason
+    NavigationStop,
+    // Document ready state is complete
     Complete,
+    // Load timeout
     Timeout,
-    Canceled,
+    // Navigation is blocked by a user prompt
     Blocked,
 }

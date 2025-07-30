@@ -8,7 +8,9 @@ use std::ptr::NonNull;
 
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
-use embedder_traits::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
+use embedder_traits::{
+    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+};
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -33,9 +35,7 @@ use webdriver::error::ErrorStatus;
 use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
-};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -1926,19 +1926,23 @@ pub(crate) fn handle_is_selected(
         .unwrap();
 }
 
-pub(crate) fn handle_try_wait_for_document_navigation(
+pub(crate) fn handle_add_load_status_sender(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<bool>,
+    reply: IpcSender<WebDriverLoadStatus>,
 ) {
-    let document = match documents.find_document(pipeline) {
-        Some(document) => document,
-        None => {
-            return reply.send(false).unwrap();
-        },
-    };
+    if let Some(document) = documents.find_document(pipeline) {
+        let window = document.window();
+        window.set_webdriver_load_status_sender(Some(reply));
+    }
+}
 
-    let wait_for_document_ready = document.ReadyState() != DocumentReadyState::Complete;
-
-    reply.send(wait_for_document_ready).unwrap();
+pub(crate) fn handle_remove_load_status_sender(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+) {
+    if let Some(document) = documents.find_document(pipeline) {
+        let window = document.window();
+        window.set_webdriver_load_status_sender(None);
+    }
 }

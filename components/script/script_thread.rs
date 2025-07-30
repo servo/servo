@@ -1091,11 +1091,7 @@ impl ScriptThread {
         for event in document.take_pending_input_events().into_iter() {
             document.update_active_keyboard_modifiers(event.active_keyboard_modifiers);
 
-            // We do this now, because the event is consumed below, but the order doesn't really
-            // matter as the event will be handled before any new ScriptThread messages are processed.
-            self.notify_webdriver_input_event_completed(pipeline_id, &event.event);
-
-            match event.event {
+            match event.event.clone() {
                 InputEvent::MouseButton(mouse_button_event) => {
                     document.handle_mouse_button_event(mouse_button_event, &event, can_gc);
                 },
@@ -1151,21 +1147,37 @@ impl ScriptThread {
                     document.handle_embedder_scroll_event(scroll_event);
                 },
             }
+
+            self.notify_webdriver_input_event_completed(pipeline_id, event.event, &document);
         }
         ScriptThread::set_user_interacting(false);
     }
 
-    fn notify_webdriver_input_event_completed(&self, pipeline_id: PipelineId, event: &InputEvent) {
+    fn notify_webdriver_input_event_completed(
+        &self,
+        pipeline_id: PipelineId,
+        event: InputEvent,
+        document: &Document,
+    ) {
         let Some(id) = event.webdriver_message_id() else {
             return;
         };
 
-        if let Err(error) = self.senders.pipeline_to_constellation_sender.send((
-            pipeline_id,
-            ScriptToConstellationMessage::WebDriverInputComplete(id),
-        )) {
-            warn!("ScriptThread failed to send WebDriverInputComplete {id:?}: {error:?}",);
-        }
+        let sender = self.senders.pipeline_to_constellation_sender.clone();
+
+        // Webdriver should be notified once all current dom events have been processed.
+        document
+            .owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(notify_webdriver_input_event_completed: move || {
+                if let Err(error) = sender.send((
+                    pipeline_id,
+                    ScriptToConstellationMessage::WebDriverInputComplete(id),
+                )) {
+                    warn!("ScriptThread failed to send WebDriverInputComplete {id:?}: {error:?}",);
+                }
+            }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
@@ -2516,12 +2528,15 @@ impl ScriptThread {
                 reply,
                 can_gc,
             ),
-            WebDriverScriptCommand::IsDocumentReadyStateComplete(response_sender) => {
-                webdriver_handlers::handle_try_wait_for_document_navigation(
+            WebDriverScriptCommand::AddLoadStatusSender(_, response_sender) => {
+                webdriver_handlers::handle_add_load_status_sender(
                     &documents,
                     pipeline_id,
                     response_sender,
                 )
+            },
+            WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
+                webdriver_handlers::handle_remove_load_status_sender(&documents, pipeline_id)
             },
             _ => (),
         }
