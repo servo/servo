@@ -19,7 +19,6 @@ jobs:
   mac-wpt:
     name: WPT
     runs-on: macos-13
-    timeout-minutes: 60
     env:
       max_chunk_id: 5
     strategy:
@@ -41,6 +40,7 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Prep test environment
+        timeout-minutes: 30
         run: |
           gtar -xzf target.tar.gz
           ./mach bootstrap --skip-lints
