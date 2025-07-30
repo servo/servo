@@ -8,6 +8,7 @@
 
 mod actions;
 mod capabilities;
+mod elements;
 mod session;
 mod timeout;
 mod user_prompt;
@@ -1955,7 +1956,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-execute-script>
     fn handle_execute_script(
         &self,
-        parameters: &JavascriptCommandParameters,
+        parameters: JavascriptCommandParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
@@ -1963,14 +1964,9 @@ impl Handler {
         // Step 3. Handle any user prompt.
         self.handle_any_user_prompts(self.session()?.webview_id)?;
 
-        let func_body = &parameters.script;
-        let args_string: Vec<_> = parameters
-            .args
-            .as_deref()
-            .unwrap_or(&[])
-            .iter()
-            .map(webdriver_value_to_js_argument)
-            .collect();
+        // Step 1. Let body and arguments be the result of trying to extract the script arguments
+        // from a request with argument parameters.
+        let (func_body, args_string) = self.extract_script_arguments(parameters)?;
 
         // This is pretty ugly; we really want something that acts like
         // new Function() and then takes the resulting function and executes
@@ -1991,7 +1987,7 @@ impl Handler {
 
     fn handle_execute_async_script(
         &self,
-        parameters: &JavascriptCommandParameters,
+        parameters: JavascriptCommandParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
@@ -1999,14 +1995,7 @@ impl Handler {
         // Step 3. Handle any user prompt.
         self.handle_any_user_prompts(self.session()?.webview_id)?;
 
-        let func_body = &parameters.script;
-        let mut args_string: Vec<_> = parameters
-            .args
-            .as_deref()
-            .unwrap_or(&[])
-            .iter()
-            .map(webdriver_value_to_js_argument)
-            .collect();
+        let (func_body, mut args_string) = self.extract_script_arguments(parameters)?;
         args_string.push("resolve".to_string());
 
         let timeout_script = if let Some(script_timeout) = self.session()?.timeouts.script {
@@ -2524,8 +2513,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_perform_actions(actions_parameters)
             },
             WebDriverCommand::ReleaseActions => self.handle_release_actions(),
-            WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
-            WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
+            WebDriverCommand::ExecuteScript(x) => self.handle_execute_script(x),
+            WebDriverCommand::ExecuteAsyncScript(x) => self.handle_execute_async_script(x),
             WebDriverCommand::ElementSendKeys(ref element, ref keys) => {
                 self.handle_element_send_keys(element, keys)
             },
@@ -2568,45 +2557,6 @@ const FRAME_IDENTIFIER: &str = "frame-075b-4da1-b6ba-e579c2d3230a";
 const WINDOW_IDENTIFIER: &str = "window-fcc6-11e5-b4f8-330a88ab9d7f";
 /// <https://w3c.github.io/webdriver/#dfn-shadow-root-identifier>
 const SHADOW_ROOT_IDENTIFIER: &str = "shadow-6066-11e4-a52e-4f735466cecf";
-
-fn webdriver_value_to_js_argument(v: &Value) -> String {
-    match v {
-        Value::String(s) => format!("\"{}\"", s),
-        Value::Null => "null".to_string(),
-        Value::Bool(b) => b.to_string(),
-        Value::Number(n) => n.to_string(),
-        Value::Array(list) => {
-            let elems = list
-                .iter()
-                .map(|v| webdriver_value_to_js_argument(v).to_string())
-                .collect::<Vec<_>>();
-            format!("[{}]", elems.join(", "))
-        },
-        Value::Object(map) => {
-            let key = map.keys().next().map(String::as_str);
-            match (key, map.values().next()) {
-                (Some(ELEMENT_IDENTIFIER), Some(id)) => {
-                    return format!("window.webdriverElement({})", id);
-                },
-                (Some(FRAME_IDENTIFIER), Some(id)) => {
-                    return format!("window.webdriverFrame({})", id);
-                },
-                (Some(WINDOW_IDENTIFIER), Some(id)) => {
-                    return format!("window.webdriverWindow({})", id);
-                },
-                (Some(SHADOW_ROOT_IDENTIFIER), Some(id)) => {
-                    return format!("window.webdriverShadowRoot({})", id);
-                },
-                _ => {},
-            }
-            let elems = map
-                .iter()
-                .map(|(k, v)| format!("{}: {}", k, webdriver_value_to_js_argument(v)))
-                .collect::<Vec<_>>();
-            format!("{{{}}}", elems.join(", "))
-        },
-    }
-}
 
 fn wait_for_ipc_response<T>(receiver: IpcReceiver<T>) -> Result<T, WebDriverError>
 where
