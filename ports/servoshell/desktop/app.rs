@@ -203,8 +203,7 @@ impl App {
         running_state.create_and_focus_toplevel_webview(self.initial_url.clone().into_url());
 
         if let Some(ref mut minibrowser) = self.minibrowser {
-            minibrowser.update(window.winit_window().unwrap(), &running_state, "init");
-            window.set_toolbar_height(minibrowser.toolbar_height);
+            minibrowser.update(&**window, &running_state, "init");
         }
 
         self.state = AppState::Running(running_state);
@@ -683,7 +682,7 @@ impl ApplicationHandler<AppEvent> for App {
             // WARNING: do not defer painting or presenting to some later tick of the event
             // loop or servoshell may become unresponsive! (servo#30312)
             if let Some(ref mut minibrowser) = self.minibrowser {
-                minibrowser.update(window.winit_window().unwrap(), state, "RedrawRequested");
+                minibrowser.update(&*window, state, "RedrawRequested");
                 minibrowser.paint(window.winit_window().unwrap());
             }
         }
@@ -721,11 +720,10 @@ impl ApplicationHandler<AppEvent> for App {
                     // Update minibrowser if there's resize event to sync up with window.
                     if let WindowEvent::Resized(_) = event {
                         minibrowser.update(
-                            window.winit_window().unwrap(),
+                            &*window,
                             state,
                             "Sync WebView size with Window Resize event",
                         );
-                        window.set_toolbar_height(minibrowser.toolbar_height);
                     }
                     if response.repaint && *event != WindowEvent::RedrawRequested {
                         // Request a winit redraw event, so we can recomposite, update and paint
