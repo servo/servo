@@ -26,7 +26,7 @@ use style::stylist::RuleInclusion;
 
 use crate::{
     FragmentType, GenericLayoutData, GenericLayoutDataTrait, HTMLCanvasData, HTMLMediaData,
-    LayoutNodeType, SVGSVGData, StyleData,
+    LayoutNodeType, SVGElementData, StyleData,
 };
 
 pub trait LayoutDataTrait: GenericLayoutDataTrait + Default + Send + Sync + 'static {}
@@ -226,7 +226,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
-    fn svg_data(&self) -> Option<SVGSVGData>;
+    fn svg_data(&self) -> Option<SVGElementData>;
 
     fn media_data(&self) -> Option<HTMLMediaData>;
 
