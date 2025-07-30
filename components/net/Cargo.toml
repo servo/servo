@@ -36,7 +36,6 @@ futures-core = { version = "0.3.30", default-features = false }
 futures-util = { version = "0.3.30", default-features = false }
 generic-array = "0.14"
 headers = { workspace = true }
-heed = "0.20"
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true, features = ["client", "http1", "http2"] }
