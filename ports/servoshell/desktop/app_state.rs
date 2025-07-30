@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
 use euclid::Vector2D;
-use keyboard_types::{Key, Modifiers, ShortcutMatcher};
+use keyboard_types::{Key, Modifiers, NamedKey, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
 use servo::config::pref;
@@ -418,39 +418,39 @@ impl RunningAppState {
             .shortcut(CMD_OR_CONTROL, '0', || {
                 webview.reset_zoom();
             })
-            .shortcut(Modifiers::empty(), Key::PageDown, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageDown), || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
                     self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
                 webview.notify_scroll_event(scroll_location, origin);
             })
-            .shortcut(Modifiers::empty(), Key::PageUp, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageUp), || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
                     -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
                 webview.notify_scroll_event(scroll_location, origin);
             })
-            .shortcut(Modifiers::empty(), Key::Home, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Home), || {
                 webview.notify_scroll_event(ScrollLocation::Start, origin);
             })
-            .shortcut(Modifiers::empty(), Key::End, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::End), || {
                 webview.notify_scroll_event(ScrollLocation::End, origin);
             })
-            .shortcut(Modifiers::empty(), Key::ArrowUp, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowUp), || {
                 let location = ScrollLocation::Delta(Vector2D::new(0.0, -1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
-            .shortcut(Modifiers::empty(), Key::ArrowDown, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowDown), || {
                 let location = ScrollLocation::Delta(Vector2D::new(0.0, 1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
-            .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowLeft), || {
                 let location = ScrollLocation::Delta(Vector2D::new(-LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             })
-            .shortcut(Modifiers::empty(), Key::ArrowRight, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowRight), || {
                 let location = ScrollLocation::Delta(Vector2D::new(LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             });

@@ -628,6 +628,7 @@ pub(crate) unsafe fn windowproxy_from_handlevalue<D: crate::DomTypes>(
     Ok(DomRoot::from_ref(&*ptr))
 }
 
+#[allow(deprecated)]
 impl<D: crate::DomTypes> EventModifierInit<D> {
     pub fn modifiers(&self) -> Modifiers {
         let mut modifiers = Modifiers::empty();

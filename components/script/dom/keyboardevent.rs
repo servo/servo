@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use keyboard_types::{Key, Modifiers};
+use keyboard_types::{Key, Modifiers, NamedKey};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding;
@@ -43,7 +43,7 @@ impl KeyboardEvent {
         KeyboardEvent {
             uievent: UIEvent::new_inherited(),
             key: DomRefCell::new(DOMString::new()),
-            typed_key: DomRefCell::new(Key::Unidentified),
+            typed_key: DomRefCell::new(Key::Named(NamedKey::Unidentified)),
             code: DomRefCell::new(DOMString::new()),
             location: Cell::new(0),
             modifiers: Cell::new(Modifiers::empty()),
@@ -180,7 +180,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
             init.parent.parent.parent.cancelable,
             init.parent.parent.view.as_deref(),
             init.parent.parent.detail,
-            Key::Unidentified,
+            Key::Named(NamedKey::Unidentified),
             init.code.clone(),
             init.location,
             init.repeat,

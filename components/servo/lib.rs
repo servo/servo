@@ -85,7 +85,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use javascript_evaluator::JavaScriptEvaluator;
 pub use keyboard_types::{
-    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers,
+    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
 };
 use layout::LayoutFactoryImpl;
 use log::{Log, Metadata, Record, debug, error, warn};
