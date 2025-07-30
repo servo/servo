@@ -151,14 +151,16 @@ def containsDomInterface(t: IDLType, logging: bool = False) -> bool:
         t = t.inner
     if t.isEnum():
         return False
-    if t.isUnion() and isinstance(t, IDLUnionType):
-        return any(map(lambda x: containsDomInterface(x), cast(list[IDLType], t.flatMemberTypes)))
-    if t.isDictionary() and isinstance(t, IDLDictionary):
-        return any(map(lambda x: containsDomInterface(x),
-        cast(list[IDLType],t.members))) or (t.parent is not None and containsDomInterface(cast(IDLType, t.parent)))
+    if t.isUnion():
+        # pyrefly: ignore  # missing-attribute
+        return any(map(lambda x: containsDomInterface(x), t.flatMemberTypes))
+    if t.isDictionary():
+        # pyrefly: ignore  # missing-attribute, bad-argument-type
+        return any(map(lambda x: containsDomInterface(x), t.members)) or (t.parent and containsDomInterface(t.parent))
     if isDomInterface(t):
         return True
-    if t.isSequence() and isinstance(t, IDLSequenceType):
+    if t.isSequence():
+        # pyrefly: ignore  # missing-attribute
         return containsDomInterface(t.inner)
     return False
 
@@ -185,7 +187,7 @@ def toBindingModuleFile(arg) -> str:
     return re.sub("((_workers)?$)", "Binding\\1", MakeNativeName(arg))
 
 
-def toBindingModuleFileFromDescriptor(desc) -> str:
+def toBindingModuleFileFromDescriptor(desc: Descriptor) -> str:
     if desc.maybeGetSuperModule() is not None:
         return toBindingModuleFile(desc.maybeGetSuperModule())
     else:
@@ -459,7 +461,7 @@ class CGMethodCall(CGThing):
             # Doesn't matter which of the possible signatures we use, since
             # they all have the same types up to that point; just use
             # possibleSignatures[0]
-            caseBody: list = [
+            caseBody: list[CGThing] = [
                 CGArgumentConverter(possibleSignatures[0][1][i],
                                     i, "args", "argc", descriptor)
                 for i in range(0, distinguishingIndex)]
@@ -581,7 +583,7 @@ class CGMethodCall(CGThing):
             argCountCases.append(CGCase(str(argCount),
                                         CGList(caseBody, "\n")))
 
-        overloadCGThings: list = []
+        overloadCGThings: list[CGThing] = []
         overloadCGThings.append(
             CGGeneric(f"let argcount = cmp::min(argc, {maxArgCount});"))
         overloadCGThings.append(
@@ -1246,7 +1248,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
 def instantiateJSToNativeConversionTemplate(templateBody, replacements,
                                             declType, declName,
-                                            needsAutoRoot=False):
+                                            needsAutoRoot=False) -> CGThing:
     """
     Take the templateBody and declType as returned by
     getJSToNativeConversionInfo, a set of replacements as required by the
@@ -1337,7 +1339,6 @@ class CGArgumentConverter(CGThing):
                                                CGGeneric(template)).define()
                 else:
                     assert not default
-                    assert declType is not None
                     declType = CGWrapper(declType, pre="Option<", post=">")
                     template = CGIfElseWrapper(condition,
                                                CGGeneric("None"),
@@ -1356,7 +1357,7 @@ class CGArgumentConverter(CGThing):
             variadicConversion = {
                 "val": f"HandleValue::from_raw({args}.get(variadicArg))",
             }
-            innerConverter: list = [instantiateJSToNativeConversionTemplate(
+            innerConverter = [instantiateJSToNativeConversionTemplate(
                 template, variadicConversion, declType, "slot")]
 
             arg = f"arg{index}"
@@ -2696,17 +2697,17 @@ def UnionTypes(
     unionStructs = dict()
     for (t, descriptor) in getAllTypes(descriptors, dictionaries, callbacks, typedefs):
         t = t.unroll()
-        if not t.isUnion() or not isinstance(t, IDLUnionType):
+        if not t.isUnion():
             continue
-        if t.flatMemberTypes is not None:
-            for memberType in t.flatMemberTypes:
-                if memberType.isDictionary() or memberType.isEnum() or memberType.isCallback():
-                    memberModule = getModuleFromObject(memberType)
-                    memberName = (memberType.callback.identifier.name
-                                  if memberType.isCallback() else memberType.inner.identifier.name)
-                    imports.append(f"{memberModule}::{memberName}")
-                    if memberType.isEnum():
-                        imports.append(f"{memberModule}::{memberName}Values")
+        # pyrefly: ignore  # missing-attribute
+        for memberType in t.flatMemberTypes:
+            if memberType.isDictionary() or memberType.isEnum() or memberType.isCallback():
+                memberModule = getModuleFromObject(memberType)
+                memberName = (memberType.callback.identifier.name
+                              if memberType.isCallback() else memberType.inner.identifier.name)
+                imports.append(f"{memberModule}::{memberName}")
+                if memberType.isEnum():
+                    imports.append(f"{memberModule}::{memberName}Values")
         name = str(t)
         if name not in unionStructs:
             provider = descriptor or config.getDescriptorProvider()
@@ -3763,7 +3764,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
         self.id = f"{idPrefix}::{MakeNativeName(self.descriptor.name)}"
         self.variant = self.id.split('::')[-2]
 
-    def definition_body(self) -> CGGeneric | CGList:
+    def definition_body(self) -> CGThing:
         return CGGeneric(
             "get_per_interface_object_handle"
             f"(cx, global, ProtoOrIfaceIndex::{self.variant}({self.id}), CreateInterfaceObjects::<D>, rval)"
@@ -4230,7 +4231,7 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor, name, "bool", args, extern=True, templateArgs=templateArgs)
         self.exposureSet = descriptor.interface.exposureSet
 
-    def definition_body(self) -> CGList | CGWrapper:
+    def definition_body(self) -> CGThing:
         preamble = """\
 let args = CallArgs::from_vp(vp, argc);
 let global = D::GlobalScope::from_object(args.callee());
@@ -4490,7 +4491,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                 Argument('JSJitSetterCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args, templateArgs=["D: DomTypes"])
 
-    def definition_body(self) -> CGWrapper | CGGeneric:
+    def definition_body(self) -> CGThing:
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
                                                         self.attr)
         return CGWrapper(
@@ -5505,7 +5506,7 @@ class ClassBase(ClassItem):
     def declare(self, cgClass):
         return f'{self.visibility} {self.name}'
 
-    def define(self, cgClass) -> str:
+    def define(self, cgClass) -> str | None:
         # Only in the header
         return ''
 
@@ -6543,7 +6544,7 @@ let this = native_from_object_static::<{self.descriptor.concreteType}>(obj).unwr
             self.generate_code(),
         ])
 
-    def generate_code(self) -> CGGeneric | CGList:
+    def generate_code(self) -> CGThing:
         raise NotImplementedError  # Override me!
 
 
@@ -7808,37 +7809,47 @@ class CGBindingRoot(CGThing):
         return stripTrailingWhitespace(self.root.define())
 
 
-def type_needs_tracing(t: IDLType | IDLObject):
+def type_needs_tracing(t: IDLObject):
     assert isinstance(t, IDLObject), (t, type(t))
 
-    if t.isType() and isinstance(t, IDLType):
+    if t.isType():
         if isinstance(t, IDLWrapperType):
             return type_needs_tracing(t.inner)
 
-        if t.nullable() and isinstance(t, IDLNullableType):
+        # pyrefly: ignore  # missing-attribute
+        if t.nullable():
+            # pyrefly: ignore  # missing-attribute
             return type_needs_tracing(t.inner)
 
+        # pyrefly: ignore  # missing-attribute
         if t.isAny():
             return True
 
+        # pyrefly: ignore  # missing-attribute
         if t.isObject():
             return True
 
-        if t.isSequence() and isinstance(t, IDLSequenceType):
+        # pyrefly: ignore  # missing-attribute
+        if t.isSequence() :
+            # pyrefly: ignore  # missing-attribute
             return type_needs_tracing(t.inner)
 
-        if t.isUnion() and isinstance(t, IDLUnionType) and t.flatMemberTypes is not None:
+        if t.isUnion():
+            # pyrefly: ignore  # missing-attribute
             return any(type_needs_tracing(member) for member in t.flatMemberTypes)
 
+        # pyrefly: ignore  # bad-argument-type
         if is_typed_array(t):
             return True
 
         return False
 
-    if t.isDictionary() and isinstance(t, IDLDictionary):
+    if t.isDictionary():
+        # pyrefly: ignore  # missing-attribute, bad-argument-type
         if t.parent and type_needs_tracing(t.parent):
             return True
 
+        # pyrefly: ignore  # missing-attribute
         if any(type_needs_tracing(member.type) for member in t.members):
             return True
 
@@ -7881,7 +7892,6 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
         ty, descriptorProvider, isArgument=True,
         isAutoRooted=type_needs_auto_root(ty))
     declType = info.declType
-    assert isinstance(declType, CGThing)
     if variadic:
         if ty.isGeckoInterface():
             declType = CGWrapper(declType, pre="&[", post="]")
@@ -7896,6 +7906,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
     if type_needs_auto_root(ty):
         declType = CGTemplatedType("CustomAutoRooterGuard", declType)
 
+    assert declType is not None
     return declType.define()
 
 
@@ -8174,11 +8185,11 @@ class CallbackMember(CGNativeMember):
 
     @abstractmethod
     def getRvalDecl(self) -> str:
-        raise NotImplementedError  # Override me!
+        raise NotImplementedError
 
     @abstractmethod
     def getCall(self) -> str:
-        raise NotImplementedError  # Override me!
+        raise NotImplementedError
 
     def getImpl(self):
         argvDecl = (
