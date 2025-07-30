@@ -99,8 +99,8 @@ impl VelloCPUDrawTarget {
             // clip makes no visible side effects
             return false;
         };
-        transformed_rect.cast().contains_rect(&viewport) // whole viewport is cleared
-        && clip.contains_rect(&viewport) // viewport is not clipped
+        transformed_rect.cast().contains_rect(&viewport) && // whole viewport is cleared
+            clip.contains_rect(&viewport) // viewport is not clipped
     }
 }
 
