@@ -195,7 +195,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 url: ServoUrl::parse(args.url.str()).expect("Failed to parse url"),
                 external: true,  // TODO
                 worker_id: None, // TODO
-                content: Some(args.text.to_string()),
+                content: (!args.isInline).then(|| args.text.to_string()),
                 content_type: None, // TODO
                 spidermonkey_id: args.spidermonkeyId,
             };

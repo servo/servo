@@ -15,6 +15,7 @@ dictionary NotifyNewSource {
     required unsigned long spidermonkeyId;
     required DOMString url;
     required DOMString text;
+    required boolean isInline;
 
     // FIXME: error[E0599]: the method `trace` exists for reference `&Option<TypedArray<Uint8, *mut JSObject>>`, but
     // its trait bounds were not satisfied

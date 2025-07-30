@@ -19,6 +19,7 @@ if (!("dbg" in this)) {
                 spidermonkeyId: script.source.id,
                 url: script.source.url,
                 text: script.source.text,
+                isInline: script.source.introductionType == "inlineScript",
             });
         } catch (error) {
             logError(error);
