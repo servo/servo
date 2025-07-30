@@ -504,17 +504,11 @@ impl Handler {
         self.session().unwrap().webview_id
     }
 
-    fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {
+    fn focused_webview_id(&self) -> WebDriverResult<Option<WebViewId>> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender.clone()))?;
         // Wait until the document is ready before returning the top-level browsing context id.
-        match wait_for_script_response(receiver)? {
-            Some(webview_id) => Ok(webview_id),
-            None => Err(WebDriverError::new(
-                ErrorStatus::NoSuchWindow,
-                "No focused webview found",
-            )),
-        }
+        wait_for_script_response(receiver)
     }
 
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
@@ -578,8 +572,22 @@ impl Handler {
 
         // Step 6. Create a session
         // Step 8. Set session' current top-level browsing context
-        let webview_id = self.focus_webview_id()?;
+        let webview_id = match self.focused_webview_id()? {
+            Some(webview_id) => webview_id,
+            None => {
+                // This happens when there is no open webview.
+                // We need to create a new one. See https://github.com/servo/servo/issues/37408
+                let (sender, receiver) = ipc::channel().unwrap();
+                self.send_message_to_embedder(WebDriverCommandMsg::NewWebView(sender, None))?;
+                let webview_id = receiver
+                    .recv()
+                    .expect("IPC failure when creating new webview for new session");
+                self.focus_webview(webview_id)?;
+                webview_id
+            },
+        };
         let browsing_context_id = BrowsingContextId::from(webview_id);
+
         // Create and append session to the handler
         let session_id = self.create_session(
             &mut capabilities,
@@ -1085,7 +1093,8 @@ impl Handler {
         // Step 3. Handle any user prompt.
         self.handle_any_user_prompts(session.webview_id)?;
 
-        let cmd_msg = WebDriverCommandMsg::NewWebView(sender, self.load_status_sender.clone());
+        let cmd_msg =
+            WebDriverCommandMsg::NewWebView(sender, Some(self.load_status_sender.clone()));
         // Step 5. Create a new top-level browsing context by running the window open steps.
         // This MUST be done without invoking the focusing steps.
         self.send_message_to_embedder(cmd_msg)?;
@@ -1189,14 +1198,7 @@ impl Handler {
             let webview_id = *webview_id;
             session.webview_id = webview_id;
             session.browsing_context_id = BrowsingContextId::from(webview_id);
-            let (sender, receiver) = ipc::channel().unwrap();
-            let msg = WebDriverCommandMsg::FocusWebView(webview_id, sender);
-            self.send_message_to_embedder(msg)?;
-            if wait_for_script_response(receiver)? {
-                debug!("Focus new webview successfully");
-            } else {
-                debug!("Focus new webview failed, it may not exist anymore");
-            }
+            self.focus_webview(webview_id)?;
             Ok(WebDriverResponse::Void)
         } else {
             Err(WebDriverError::new(
@@ -2386,6 +2388,17 @@ impl Handler {
         } else {
             Ok(())
         }
+    }
+
+    fn focus_webview(&self, webview_id: WebViewId) -> Result<(), WebDriverError> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::FocusWebView(webview_id, sender))?;
+        if wait_for_script_response(receiver)? {
+            debug!("Focus new webview successfully");
+        } else {
+            debug!("Focus new webview failed, it may not exist anymore");
+        }
+        Ok(())
     }
 }
 
