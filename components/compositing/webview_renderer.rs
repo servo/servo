@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::collections::hash_map::{Entry, Keys};
-use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
@@ -27,7 +27,7 @@ use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
-use crate::compositor::{HitTestError, PipelineDetails, ServoRenderer};
+use crate::compositor::{PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
 
 #[derive(Clone, Copy)]
@@ -96,10 +96,6 @@ pub(crate) struct WebViewRenderer {
     /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
     /// active animations or animation frame callbacks.
     animating: bool,
-    /// Pending input events queue. Priavte and only this thread pushes events to it.
-    pending_point_input_events: RefCell<VecDeque<InputEvent>>,
-    /// WebRender is not ready between `SendDisplayList` and `WebRenderFrameReady` messages.
-    pub webrender_frame_ready: Cell<bool>,
     /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
     /// and initial values for zoom derived from the `viewport` meta tag in web content.
     viewport_description: Option<ViewportDescription>,
@@ -135,8 +131,6 @@ impl WebViewRenderer {
             pinch_zoom: PinchZoomFactor::new(1.0),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
-            pending_point_input_events: Default::default(),
-            webrender_frame_ready: Cell::default(),
             viewport_description: None,
         }
     }
@@ -339,40 +333,14 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_point_input_event(&self, event: InputEvent) -> bool {
-        self.dispatch_point_input_event_internal(event, true)
-    }
-
-    pub(crate) fn dispatch_pending_point_input_events(&self) {
-        while let Some(event) = self.pending_point_input_events.borrow_mut().pop_front() {
-            // TODO: Add multiple retry later if needed.
-            self.dispatch_point_input_event_internal(event, false);
-        }
-    }
-
-    pub(crate) fn dispatch_point_input_event_internal(
-        &self,
-        mut event: InputEvent,
-        retry_on_error: bool,
-    ) -> bool {
+    fn dispatch_point_input_event(&self, mut event: InputEvent) -> bool {
         // Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
         let Some(point) = event.point() else {
             return false;
         };
 
-        // Delay the event if the epoch is not synchronized yet (new frame is not ready),
-        // or hit test result would fail and the event is rejected anyway.
-        if retry_on_error &&
-            (!self.webrender_frame_ready.get() ||
-                !self.pending_point_input_events.borrow().is_empty())
-        {
-            self.pending_point_input_events
-                .borrow_mut()
-                .push_back(event);
-            return false;
-        }
-
+        // TODO: delete this after update_cursor_from_hittest move to layout.
         // If we can't find a pipeline to send this event to, we cannot continue.
         let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
         let result = match self
@@ -381,12 +349,6 @@ impl WebViewRenderer {
             .hit_test_at_point(point, get_pipeline_details)
         {
             Ok(hit_test_results) => Some(hit_test_results),
-            Err(HitTestError::EpochMismatch) if retry_on_error => {
-                self.pending_point_input_events
-                    .borrow_mut()
-                    .push_back(event.clone());
-                return false;
-            },
             _ => None,
         };
 
@@ -398,6 +360,7 @@ impl WebViewRenderer {
             InputEvent::MouseLeave(_) |
             InputEvent::MouseMove(_) |
             InputEvent::Wheel(_) => {
+                // TODO: update_cursor_from_hittest move to layout.
                 if let Some(ref result) = result {
                     self.global
                         .borrow_mut()
@@ -410,7 +373,7 @@ impl WebViewRenderer {
         }
 
         if let Err(error) = self.global.borrow().constellation_sender.send(
-            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, result),
+            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
             false
@@ -861,10 +824,7 @@ impl WebViewRenderer {
             self.send_scroll_positions_to_layout_for_pipeline(
                 scroll_result.hit_test_result.pipeline_id,
             );
-            self.dispatch_scroll_event(
-                scroll_result.external_scroll_id,
-                scroll_result.hit_test_result,
-            );
+            self.dispatch_scroll_event(scroll_result.external_scroll_id);
         }
 
         let pinch_zoom_result =
@@ -936,17 +896,9 @@ impl WebViewRenderer {
         None
     }
 
-    fn dispatch_scroll_event(
-        &self,
-        external_id: ExternalScrollId,
-        hit_test_result: CompositorHitTestResult,
-    ) {
+    fn dispatch_scroll_event(&self, external_id: ExternalScrollId) {
         let event = InputEvent::Scroll(EmbedderScrollEvent { external_id });
-        let msg = EmbedderToConstellationMessage::ForwardInputEvent(
-            self.id,
-            event,
-            Some(hit_test_result),
-        );
+        let msg = EmbedderToConstellationMessage::ForwardInputEvent(self.id, event);
         if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
             warn!("Sending scroll event to constellation failed ({:?}).", e);
         }

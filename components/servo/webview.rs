@@ -480,7 +480,6 @@ impl WebView {
             .send(EmbedderToConstellationMessage::ForwardInputEvent(
                 self.id(),
                 event,
-                None, /* hit_test */
             ))
     }
 

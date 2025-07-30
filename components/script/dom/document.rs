@@ -30,8 +30,8 @@ use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, AnimationState, CompositorHitTestResult, ContextMenuResult, EditingActionEvent,
     EmbedderMsg, FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton,
-    MouseButtonAction, MouseButtonEvent, ScrollEvent, TouchEvent, TouchEventType, TouchId,
-    UntrustedNodeAddress, WheelEvent,
+    MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent, ScrollEvent, TouchEvent,
+    TouchEventType, TouchId, UntrustedNodeAddress, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
@@ -43,7 +43,8 @@ use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use keyboard_types::{Code, Key, KeyState, Modifiers};
 use layout_api::{
-    PendingRestyle, ReflowGoal, RestyleReason, TrustedNodeAddress, node_id_from_scroll_id,
+    HitTestFlags, PendingRestyle, ReflowGoal, RestyleReason, TrustedNodeAddress,
+    node_id_from_scroll_id,
 };
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
@@ -78,7 +79,7 @@ use url::Host;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUContextId;
-use webrender_api::units::DeviceIntRect;
+use webrender_api::units::{DeviceIntRect, DevicePoint};
 
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
@@ -1530,8 +1531,10 @@ impl Document {
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
+        // hit test
+        let hit_test_result = &self.hit_test(event.point);
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = hit_test_result else {
             return;
         };
 
@@ -1615,6 +1618,14 @@ impl Document {
         if let (MouseButtonAction::Down, MouseButton::Right) = (event.action, event.button) {
             self.maybe_show_context_menu(node.upcast(), hit_test_result, input_event, can_gc);
         }
+    }
+
+    fn hit_test(&self, hit_test_location: DevicePoint) -> Option<CompositorHitTestResult> {
+        // hit test
+        let hit_test_result = self
+            .window()
+            .hit_test(hit_test_location, HitTestFlags::empty());
+        hit_test_result.first().cloned()
     }
 
     /// <https://www.w3.org/TR/uievents/#maybe-show-context-menu>
@@ -1980,12 +1991,15 @@ impl Document {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn handle_mouse_move_event(
         &self,
+        event: MouseMoveEvent,
         input_event: &ConstellationInputEvent,
         prev_mouse_over_target: &MutNullableDom<Element>,
         can_gc: CanGc,
     ) {
+        // hit test
+        let hit_test_result = &self.hit_test(event.point);
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = hit_test_result else {
             return;
         };
 
@@ -2106,11 +2120,14 @@ impl Document {
     #[allow(unsafe_code)]
     pub(crate) fn handle_mouse_leave_event(
         &self,
+        event: MouseLeaveEvent,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
+        // hit test
+        let hit_test_result = &self.hit_test(event.point);
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = hit_test_result else {
             return;
         };
 
@@ -2204,8 +2221,10 @@ impl Document {
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
+        // hit test
+        let hit_test_result = &self.hit_test(event.point);
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = hit_test_result else {
             return;
         };
 
@@ -2264,12 +2283,9 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn handle_touch_event(
-        &self,
-        event: TouchEvent,
-        hit_test_result: Option<CompositorHitTestResult>,
-        can_gc: CanGc,
-    ) -> TouchEventResult {
+    pub(crate) fn handle_touch_event(&self, event: TouchEvent, can_gc: CanGc) -> TouchEventResult {
+        // hit test
+        let hit_test_result = &self.hit_test(event.point);
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = hit_test_result else {
             self.update_active_touch_points_when_early_return(event);
@@ -3666,6 +3682,7 @@ impl Document {
     //
     // Returns true if a reflow occured.
     pub(crate) fn update_the_rendering(&self, can_gc: CanGc) -> bool {
+        // error!("Document::update_the_rendering");
         self.update_animating_images();
 
         // All dirty canvases are flushed before updating the rendering.

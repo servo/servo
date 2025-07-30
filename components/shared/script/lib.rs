@@ -28,8 +28,8 @@ use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, FocusSequenceNumber, InputEvent, JavaScriptEvaluationId,
-    MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
+    FocusSequenceNumber, InputEvent, JavaScriptEvaluationId, MediaSessionActionType, Theme,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -274,8 +274,6 @@ pub enum DocumentState {
 /// Input events from the embedder that are sent via the `Constellation`` to the `ScriptThread`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConstellationInputEvent {
-    /// The hit test result of this input event, if any.
-    pub hit_test_result: Option<CompositorHitTestResult>,
     /// The pressed mouse button state of the constellation when this input
     /// event was triggered.
     pub pressed_mouse_buttons: u16,
