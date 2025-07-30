@@ -1501,8 +1501,8 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                 width = size.width;
                 height = size.height;
-                let rendering = self.fragment.style.clone_image_rendering().to_webrender();
-                NinePatchBorderSource::Image(key, rendering)
+                let image_rendering = self.fragment.style.clone_image_rendering().to_webrender();
+                NinePatchBorderSource::Image(key, image_rendering)
             },
             Ok(ResolvedImage::Gradient(gradient)) => {
                 match gradient::build(&self.fragment.style, gradient, border_image_size, builder) {
