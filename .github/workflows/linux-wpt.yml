@@ -42,6 +42,7 @@ jobs:
   linux-wpt:
     name: WPT
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     needs: chunks
     strategy:
       fail-fast: false

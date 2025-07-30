@@ -19,6 +19,7 @@ jobs:
   mac-wpt:
     name: WPT
     runs-on: macos-13
+    timeout-minutes: 60
     env:
       max_chunk_id: 5
     strategy:
