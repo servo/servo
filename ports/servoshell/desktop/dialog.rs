@@ -507,36 +507,38 @@ impl Dialog {
                 }
 
                 let modal = Modal::new("select_element_picker".into()).area(area);
-                let backdrop_response = modal.show(ctx, |ui| {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        for option_or_optgroup in prompt.options() {
-                            match &option_or_optgroup {
-                                SelectElementOptionOrOptgroup::Option(option) => {
-                                    display_option(
-                                        ui,
-                                        option,
-                                        &mut selected_option,
-                                        &mut is_open,
-                                        false,
-                                    );
-                                },
-                                SelectElementOptionOrOptgroup::Optgroup { label, options } => {
-                                    ui.label(egui::RichText::new(label).strong());
-
-                                    for option in options {
+                let backdrop_response = modal
+                    .show(ctx, |ui| {
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            for option_or_optgroup in prompt.options() {
+                                match &option_or_optgroup {
+                                    SelectElementOptionOrOptgroup::Option(option) => {
                                         display_option(
                                             ui,
                                             option,
                                             &mut selected_option,
                                             &mut is_open,
-                                            true,
+                                            false,
                                         );
-                                    }
-                                },
+                                    },
+                                    SelectElementOptionOrOptgroup::Optgroup { label, options } => {
+                                        ui.label(egui::RichText::new(label).strong());
+
+                                        for option in options {
+                                            display_option(
+                                                ui,
+                                                option,
+                                                &mut selected_option,
+                                                &mut is_open,
+                                                true,
+                                            );
+                                        }
+                                    },
+                                }
                             }
-                        }
-                    });
-                }).backdrop_response;
+                        });
+                    })
+                    .backdrop_response;
 
                 if backdrop_response.clicked() {
                     is_open = false;
@@ -568,31 +570,33 @@ impl Dialog {
                     .fixed_pos(egui::pos2(position.min.x as f32, position.max.y as f32));
 
                 let modal = Modal::new("select_element_picker".into()).area(area);
-                let backdrop_response = modal.show(ctx, |ui| {
-                    egui::widgets::color_picker::color_picker_color32(
-                        ui,
-                        current_color,
-                        egui::widgets::color_picker::Alpha::Opaque,
-                    );
+                let backdrop_response = modal
+                    .show(ctx, |ui| {
+                        egui::widgets::color_picker::color_picker_color32(
+                            ui,
+                            current_color,
+                            egui::widgets::color_picker::Alpha::Opaque,
+                        );
 
-                    ui.add_space(10.);
+                        ui.add_space(10.);
 
-                    if ui.button("Dismiss").clicked() ||
-                        ui.input(|i| i.key_pressed(egui::Key::Escape))
-                    {
-                        is_open = false;
-                        prompt.select(None);
-                    }
-                    if ui.button("Select").clicked() {
-                        is_open = false;
-                        let selected_color = RgbColor {
-                            red: current_color.r(),
-                            green: current_color.g(),
-                            blue: current_color.b(),
-                        };
-                        prompt.select(Some(selected_color));
-                    }
-                }).backdrop_response;
+                        if ui.button("Dismiss").clicked() ||
+                            ui.input(|i| i.key_pressed(egui::Key::Escape))
+                        {
+                            is_open = false;
+                            prompt.select(None);
+                        }
+                        if ui.button("Select").clicked() {
+                            is_open = false;
+                            let selected_color = RgbColor {
+                                red: current_color.r(),
+                                green: current_color.g(),
+                                blue: current_color.b(),
+                            };
+                            prompt.select(Some(selected_color));
+                        }
+                    })
+                    .backdrop_response;
 
                 if backdrop_response.clicked() {
                     is_open = false;
