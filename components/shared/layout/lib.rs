@@ -393,6 +393,8 @@ pub struct ReflowResult {
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages.
     pub iframe_sizes: IFrameSizes,
+    /// Whether the reflow target for a [ReflowGoal::UpdateScrollNode] is scrolled.
+    pub reflow_target_scrolled: bool,
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle
