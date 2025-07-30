@@ -12,7 +12,7 @@ import string
 import traceback
 from collections import OrderedDict, defaultdict
 from itertools import chain
-from typing import Protocol
+from typing import Any
 
 from ply import lex, yacc
 
@@ -44,19 +44,14 @@ def parseInt(literal):
     return value * sign
 
 
-class CustomEnum(Protocol):
-    attrs: tuple[str, ...]
-
-    def __getattr__(self, name: str) -> int: ...
-
 # This is surprisingly faster than using the enum.IntEnum type (which doesn't
 # support 'base' anyway)
-def enum(*names: str, base = None) -> CustomEnum:
+def enum(*names, base=None):
     if base is not None:
         names = base.attrs + names
 
     class CustomEnumType(object):
-        attrs: tuple[str, ...] = names
+        attrs = names
 
         def __setattr__(self, name, value):  # this makes it read-only
             raise NotImplementedError
@@ -2533,7 +2528,7 @@ class IDLEnum(IDLObjectWithIdentifier):
 
 
 class IDLType(IDLObject):
-    Tags = enum(
+    Tags: Any = enum(
         # The integer types
         "int8",
         "uint8",

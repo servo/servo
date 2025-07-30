@@ -4061,7 +4061,7 @@ class CGPerSignatureCall(CGThing):
         self.argsPre = argsPre
         self.arguments = arguments
         self.argCount = len(arguments)
-        cgThings: list = []
+        cgThings: list[CGThing] = []
         cgThings.extend([CGArgumentConverter(arguments[i], i, self.getArgs(),
                                              self.getArgc(), self.descriptor,
                                              invalidEnumValueFatal=not setter) for
@@ -5405,7 +5405,7 @@ class CGUnionConversionStruct(CGThing):
                 typename = get_name(memberType)
                 return CGGeneric(get_match(typename))
 
-            other: list = []
+            other: list[CGThing] = []
             stringConversion = list(map(getStringOrPrimitiveConversion, stringTypes))
             numericConversion = list(map(getStringOrPrimitiveConversion, numericTypes))
             booleanConversion = list(map(getStringOrPrimitiveConversion, booleanTypes))
