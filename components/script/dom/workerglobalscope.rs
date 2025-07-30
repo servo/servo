@@ -17,6 +17,7 @@ use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
+use js::glue::IntroductionType;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
@@ -433,6 +434,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 url.as_str(),
                 1,
                 rval.handle_mut(),
+                IntroductionType::Undefined,
             );
 
             maybe_resume_unwind();
@@ -645,6 +647,7 @@ impl WorkerGlobalScope {
             self.worker_url.borrow().as_str(),
             1,
             rval.handle_mut(),
+            IntroductionType::Undefined,
         ) {
             Ok(_) => (),
             Err(_) => {

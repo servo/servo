@@ -18,6 +18,7 @@ use encoding_rs::Encoding;
 use html5ever::serialize::TraversalScope;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use ipc_channel::ipc;
+use js::glue::IntroductionType;
 use js::jsval::UndefinedValue;
 use js::rust::{CompileOptionsWrapper, HandleObject, Stencil, transform_str_to_source_text};
 use net_traits::http_status::HttpStatus;
@@ -1091,40 +1092,6 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        if let Some(chan) = self.global().devtools_chan() {
-            let pipeline_id = self.global().pipeline_id();
-
-            let (url, content, content_type, is_external) = if script.external {
-                let content = match &script.code {
-                    SourceCode::Text(text) => text.to_string(),
-                    SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
-                };
-
-                // content_type: https://html.spec.whatwg.org/multipage/#scriptingLanguages
-                (script.url.clone(), Some(content), "text/javascript", true)
-            } else {
-                // TODO: if needed, fetch the page again, in the same way as in the original request.
-                // Fetch it from cache, even if the original request was non-idempotent (e.g. POST).
-                // If we can’t fetch it from cache, we should probably give up, because with a real
-                // fetch, the server could return a different response.
-
-                // TODO: handle cases where Content-Type is not text/html.
-                (doc.url(), None, "text/html", false)
-            };
-
-            let source_info = SourceInfo {
-                url,
-                external: is_external,
-                worker_id: None,
-                content,
-                content_type: Some(content_type.to_string()),
-            };
-            let _ = chan.send(ScriptToDevtoolsControlMsg::CreateSourceActor(
-                pipeline_id,
-                source_info,
-            ));
-        }
-
         if script.type_ == ScriptType::Classic {
             unminify_js(&mut script);
             self.substitute_with_local_script(&mut script);
@@ -1145,6 +1112,11 @@ impl HTMLScriptElement {
         // Step 6.
         let document = self.owner_document();
         let old_script = document.GetCurrentScript();
+        let introduction_type = if script.external {
+            IntroductionType::Undefined
+        } else {
+            IntroductionType::InlineScript
+        };
 
         match script.type_ {
             ScriptType::Classic => {
@@ -1153,7 +1125,7 @@ impl HTMLScriptElement {
                 } else {
                     document.set_current_script(Some(self))
                 }
-                self.run_a_classic_script(&script, can_gc);
+                self.run_a_classic_script(&script, can_gc, introduction_type);
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
@@ -1179,7 +1151,12 @@ impl HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-a-classic-script
-    pub(crate) fn run_a_classic_script(&self, script: &ScriptOrigin, can_gc: CanGc) {
+    pub(crate) fn run_a_classic_script(
+        &self,
+        script: &ScriptOrigin,
+        can_gc: CanGc,
+        introduction_type: IntroductionType,
+    ) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = self.owner_document();
@@ -1205,6 +1182,7 @@ impl HTMLScriptElement {
                 script.fetch_options.clone(),
                 script.url.clone(),
                 can_gc,
+                introduction_type,
             );
     }
 

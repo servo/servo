@@ -28,7 +28,7 @@ use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::glue::{IsWrapper, UnwrapObjectDynamic};
+use js::glue::{IntroductionType, IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
     Compile1, CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap,
     InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
@@ -114,7 +114,7 @@ use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::MessageEvent;
+use crate::dom::types::{DebuggerGlobalScope, MessageEvent};
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -2530,6 +2530,9 @@ impl GlobalScope {
             // https://drafts.css-houdini.org/worklets/#script-settings-for-worklets
             return worklet.base_url();
         }
+        if let Some(_debugger_global) = self.downcast::<DebuggerGlobalScope>() {
+            return self.creation_url.clone();
+        }
         unreachable!();
     }
 
@@ -2544,6 +2547,9 @@ impl GlobalScope {
         if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
             // TODO: is this the right URL to return?
             return worklet.base_url();
+        }
+        if let Some(_debugger_global) = self.downcast::<DebuggerGlobalScope>() {
+            return self.creation_url.clone();
         }
         unreachable!();
     }
@@ -2762,6 +2768,7 @@ impl GlobalScope {
             fetch_options,
             script_base_url,
             can_gc,
+            IntroductionType::Undefined,
         )
     }
 
@@ -2777,6 +2784,7 @@ impl GlobalScope {
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
         can_gc: CanGc,
+        introduction_type: IntroductionType,
     ) -> bool {
         let cx = GlobalScope::get_cx();
 
@@ -2788,7 +2796,8 @@ impl GlobalScope {
             rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
             match code {
                 SourceCode::Text(text_code) => {
-                    let options = CompileOptionsWrapper::new(*cx, filename, line_number);
+                    let options =
+                        CompileOptionsWrapper::new(*cx, filename, line_number, introduction_type);
 
                     debug!("compiling dom string");
                     compiled_script.set(Compile1(
