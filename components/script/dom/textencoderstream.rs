@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{JS_ClearPendingException, JS_GetTwoByteStringCharsAndLength};
+use js::jsapi::JS_GetTwoByteStringCharsAndLength;
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, ToString};
 
@@ -24,14 +24,28 @@ use crate::script_runtime::{JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct Encoder {
-    unpaired_surrogate: Cell<Option<u16>>,
+    leading_surrogate: Cell<Option<u16>>,
 }
 
 impl Encoder {
     fn new() -> Self {
         Self {
-            unpaired_surrogate: Cell::new(None)
+            leading_surrogate: Cell::new(None)
         }
+    }
+}
+
+enum CodePointType {
+    ScalarValue,
+    LeadingSurrogate,
+    TrailingSurrogate,
+}
+
+fn code_point_type(value: u16) -> CodePointType {
+    match value {
+        0xD800..=0xDBFF => CodePointType::LeadingSurrogate,
+        0xDC00..=0xDFFF => CodePointType::TrailingSurrogate,
+        _ => CodePointType::ScalarValue,
     }
 }
 
@@ -62,10 +76,36 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     let mut output = String::with_capacity(len);
     for result in char::decode_utf16(maybe_ill_formed_code_units.iter().cloned()) {
         match result {
-            Ok(c) => output.push(c),
+            Ok(c) => {
+                if let Some(_leading_surrogate) = encoder.leading_surrogate.take() {
+                    output.push('\u{FFFD}');
+                }
+
+                output.push(c);
+            },
             Err(error) => {
-                output.push('\u{FFFD}');
-                encoder.unpaired_surrogate.replace(Some(error.unpaired_surrogate()));
+                // output.push('\u{FFFD}');
+                // encoder.unpaired_surrogate.replace(Some(error.unpaired_surrogate()));
+                let unpaired_surrogate = error.unpaired_surrogate();
+                match code_point_type(unpaired_surrogate) {
+                    CodePointType::ScalarValue => unreachable!(),
+                    CodePointType::LeadingSurrogate => {
+                        if let Some(_leading_surrogate) = encoder.leading_surrogate.take() {
+                            output.push('\u{FFFD}');
+                        }
+
+                        encoder.leading_surrogate.replace(Some(unpaired_surrogate));
+                    },
+                    CodePointType::TrailingSurrogate => match encoder.leading_surrogate.take() {
+                        Some(leading_surrogate) => {
+                            let c = char::decode_utf16([leading_surrogate, unpaired_surrogate]).next()
+                                .expect("A pair of surrogate is supplied")
+                                .expect("Decoding a pair of surrogate cannot fail");
+                            output.push(c);
+                        },
+                        None => output.push('\u{FFFD}'),
+                    },
+                }
             },
         }
     }
@@ -90,18 +130,11 @@ pub(crate) fn encode_and_flush(
     controller: &TransformStreamDefaultController,
     can_gc: CanGc
 ) -> Fallible<()> {
-    if let Some(u) = encoder.unpaired_surrogate.take() {
-        match u {
-            // <https://infra.spec.whatwg.org/#leading-surrogate>
-            0xD800..=0xDBFF => {
-                // leading surrogate
-                let output = [0xEF_u8, 0xBF, 0xBD];
-                rooted!(in(*cx) let mut chunk = UndefinedValue());
-                unsafe { output.to_jsval(*cx, chunk.handle_mut()); }
-                return controller.enqueue(cx, global, chunk.handle(), can_gc)
-            },
-            _ => {}
-        }
+    if encoder.leading_surrogate.get().is_some() {
+        let output = [0xEF_u8, 0xBF, 0xBD];
+        rooted!(in(*cx) let mut chunk = UndefinedValue());
+        unsafe { output.to_jsval(*cx, chunk.handle_mut()); }
+        return controller.enqueue(cx, global, chunk.handle(), can_gc)
     }
 
     Ok(())
