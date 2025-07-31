@@ -5,7 +5,7 @@
  * https://dom.spec.whatwg.org/#interface-eventtarget
  */
 
-[Exposed=(Window,Worker,Worklet,DissimilarOriginWindow)]
+[Exposed=(Window,Worker,Worklet,DissimilarOriginWindow,DebuggerGlobalScope)]
 interface EventTarget {
   [Throws] constructor();
   undefined addEventListener(
