@@ -119,6 +119,8 @@ impl Handler {
             capabilities.get("strictFileInteractability")
         {
             session.strict_file_interactability = *strict_file_interactability;
+        } else {
+            capabilities.insert(String::from("strictFileInteractability"), json!(false));
         }
 
         // Step 9.3. Let timeouts be the result of getting a property "timeouts" from capabilities.
