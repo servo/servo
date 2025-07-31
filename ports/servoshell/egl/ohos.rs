@@ -111,6 +111,7 @@ pub(super) enum ServoAction {
     },
     FocusWebview(u32),
     NewWebview(XComponentWrapper, WindowWrapper),
+    HandleWebDriverMessages,
 }
 
 /// Queue length for the thread-safe function to submit URL updates to ArkTS
@@ -257,6 +258,9 @@ impl ServoAction {
                     .get()
                     .map(|f| f.call(url, ThreadsafeFunctionCallMode::Blocking));
             },
+            HandleWebDriverMessages => {
+                servo.handle_webdriver_messages();
+            },
         };
     }
 }
@@ -345,6 +349,8 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             while let Ok(action) = rx.recv() {
                 trace!("Wakeup message received!");
                 action.do_action(&servo);
+                // Also handle any pending WebDriver messages
+                servo.handle_webdriver_messages();
             }
 
             info!("Sender disconnected - Terminating main surface thread");
