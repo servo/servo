@@ -33,6 +33,7 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             Resource::AboutMemoryHTML => {
                 &include_bytes!("../../../../resources/about-memory.html")[..]
             },
+            Resource::DebuggerJS => &include_bytes!("../../../../resources/debugger.js")[..],
         })
     }
 
