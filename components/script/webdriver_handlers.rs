@@ -1898,7 +1898,17 @@ pub(crate) fn handle_element_click(
 
 /// <https://w3c.github.io/webdriver/#dfn-in-view>
 fn is_element_in_view(element: &Element, document: &Document, can_gc: CanGc) -> bool {
-    element.enabled_state() &&
+    use style::computed_values::pointer_events::T as PointerEvents;
+    // https://w3c.github.io/webdriver/#dfn-pointer-events-are-not-disabled
+    // An element is said to have pointer events disabled
+    // if the resolved value of its "pointer-events" style property is "none".
+    let pointer_events_enabled = element.style(can_gc).map_or(true, |style| {
+        style.get_inherited_ui().pointer_events != PointerEvents::None
+    });
+
+    // An element is in view if it is a member of its own pointer-interactable paint tree,
+    // given the pretense that its pointer events are not disabled.
+    pointer_events_enabled &&
         get_element_pointer_interactable_paint_tree(element, document, can_gc)
             .contains(&DomRoot::from_ref(element))
 }
