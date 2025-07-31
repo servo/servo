@@ -21,7 +21,7 @@ use nom::multi::{many0, many1, separated_list1};
 use nom::sequence::{delimited, preceded, terminated, tuple};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use time::{Date, Month, OffsetDateTime, Time};
+use time::{Date, Duration, Month, OffsetDateTime, Time};
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
@@ -84,18 +84,27 @@ impl ServoCookie {
             // 1. Set the cookie's persistent-flag to true.
             persistent = true;
 
+            // The user agent MUST limit the maximum value of the Max-Age attribute.
+            // The limit SHOULD NOT be greater than 400 days (34560000 seconds) in the future.
+            let clamped_max_age = max_age.min(Duration::seconds(34560000));
+
             // 2. Set the cookie's expiry-time to attribute-value of the last
             // attribute in the cookie-attribute-list with an attribute-name of "Max-Age".
-            expiry_time = Some(SystemTime::now() + max_age);
+            expiry_time = Some(SystemTime::now() + clamped_max_age);
         }
         // Otherwise, if the cookie-attribute-list contains an attribute with an attribute-name of "Expires":
         else if let Some(date_time) = cookie.expires_datetime() {
             // 1. Set the cookie's persistent-flag to true.
             persistent = true;
 
+            // The user agent MUST limit the maximum value of the Expires attribute.
+            // The limit SHOULD NOT be greater than 400 days (34560000 seconds) in the future.
+            let clamped_date_time =
+                date_time.min(OffsetDateTime::now_utc() + Duration::seconds(34560000));
+
             // 2. Set the cookie's expiry-time to attribute-value of the last attribute in the
             // cookie-attribute-list with an attribute-name of "Expires".
-            expiry_time = Some(date_time.into());
+            expiry_time = Some(clamped_date_time.into());
         }
         //  Otherwise:
         else {

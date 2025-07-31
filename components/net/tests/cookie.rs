@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::time::{Duration, SystemTime};
+
 use net::cookie::ServoCookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
@@ -101,6 +103,14 @@ fn fn_cookie_constructor() {
     let u = &ServoUrl::parse("http://example.com/foobar").unwrap();
     let cookie = cookie::Cookie::parse("foobar=value;path=/").unwrap();
     assert!(ServoCookie::new_wrapped(cookie, u, CookieSource::HTTP).is_some());
+
+    let cookie = cookie::Cookie::parse("foo=bar; max-age=99999999999999999999999999999").unwrap();
+    let cookie = ServoCookie::new_wrapped(cookie, u, CookieSource::HTTP).unwrap();
+    assert!(
+        cookie
+            .expiry_time
+            .is_some_and(|exp| exp < SystemTime::now() + Duration::from_secs(401 * 24 * 60 * 60))
+    );
 }
 
 #[test]
