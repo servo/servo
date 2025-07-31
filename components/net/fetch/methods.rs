@@ -769,7 +769,7 @@ async fn wait_for_response(
             if context.devtools_chan.is_some() {
                 // Now that we've replayed the entire cached body,
                 // notify the DevTools server with the full Response.
-                send_response_to_devtools(&request, context, response, Some(vec.clone()));
+                send_response_to_devtools(request, context, response, Some(vec.clone()));
             }
         } else {
             assert_eq!(*body, ResponseBody::Empty)
