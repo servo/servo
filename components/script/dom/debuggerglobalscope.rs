@@ -46,7 +46,7 @@ pub(crate) struct DebuggerGlobalScope {
 
 impl DebuggerGlobalScope {
     /// Create a new heap-allocated `DebuggerGlobalScope`.
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn new(
         runtime: &Runtime,
         script_chan: Sender<MainThreadScriptMsg>,
