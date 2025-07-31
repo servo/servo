@@ -56,11 +56,6 @@ def enum(*names, base=None):
         def __setattr__(self, name, value):  # this makes it read-only
             raise NotImplementedError
 
-        def __getattr__(self, name: str) -> int:
-            if name in self.attrs:
-                return self.attrs.index(name)
-            raise AttributeError(f"{name} is not a valid enum type")
-
     for v, k in enumerate(names):
         setattr(CustomEnumType, k, v)
 
