@@ -265,11 +265,7 @@ impl WebViewRenderer {
         self.pipelines
             .iter_mut()
             .filter(|(id, _)| !attached_pipelines.contains(id))
-            .for_each(|(_, details)| {
-                details.scroll_tree.nodes.iter_mut().for_each(|node| {
-                    node.set_offset(LayoutVector2D::zero());
-                })
-            })
+            .for_each(|(_, details)| details.scroll_tree.reset_all_scroll_offsets());
     }
 
     /// Sets or unsets the animations-running flag for the given pipeline. Returns
