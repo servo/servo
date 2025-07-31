@@ -28,6 +28,7 @@ use net_traits::CoreResourceMsg::{
 use net_traits::IpcSend;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
+use script_bindings::num::Finite;
 use servo_url::ServoUrl;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
@@ -1829,10 +1830,16 @@ pub(crate) fn handle_element_click(
                 };
 
                 // Step 5
-                // TODO: scroll into view
+                // TODO: scroll into view is not implemented in Servo
 
-                // Step 6
-                // TODO: return error if still not in view
+                // Step 6. If element's container is still not in view
+                // return error with error code element not interactable.
+                let document = documents
+                    .find_document(pipeline)
+                    .expect("Document existence guaranteed by `get_known_element`");
+                if !is_element_in_view(&element, &document, can_gc) {
+                    return Err(ErrorStatus::ElementNotInteractable);
+                }
 
                 // Step 7
                 // TODO: return error if obscured
@@ -1887,6 +1894,40 @@ pub(crate) fn handle_element_click(
             }),
         )
         .unwrap();
+}
+
+/// <https://w3c.github.io/webdriver/#dfn-in-view>
+fn is_element_in_view(element: &Element, document: &Document, can_gc: CanGc) -> bool {
+    element.enabled_state() &&
+        get_element_pointer_interactable_paint_tree(element, document, can_gc)
+            .contains(&DomRoot::from_ref(element))
+}
+
+/// <https://w3c.github.io/webdriver/#dfn-pointer-interactable-paint-tree>
+fn get_element_pointer_interactable_paint_tree(
+    element: &Element,
+    document: &Document,
+    can_gc: CanGc,
+) -> Vec<DomRoot<Element>> {
+    // Step 2. Let rectangles be the DOMRect sequence returned by calling getClientRects()
+    let rect = element.GetClientRects(can_gc);
+
+    if rect.first().is_some() {
+        // Step 4. Let center point be the in-view center point of
+        // the first indexed element in rectangles.
+        match get_element_in_view_center_point(element, can_gc) {
+            // Step 5. Return the elements from point given the coordinates center point
+            Some(center_point) => document.ElementsFromPoint(
+                Finite::wrap(center_point.x as f64),
+                Finite::wrap(center_point.y as f64),
+                can_gc,
+            ),
+            None => Vec::new(),
+        }
+    } else {
+        // Step 3. If rectangles has the length of 0, return an empty sequence
+        Vec::new()
+    }
 }
 
 pub(crate) fn handle_is_enabled(
