@@ -449,7 +449,7 @@ pub struct HttpRequest {
     pub browsing_context_id: BrowsingContextId,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct HttpResponse {
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,

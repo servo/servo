@@ -41,7 +41,6 @@ use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
@@ -75,14 +74,9 @@ use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
-use crate::fetch::methods::{
-    CancellationListener, Data, DoneChannel, FetchContext, Target, main_fetch,
-};
-use crate::filemanager_thread::FileManager;
+use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
-use crate::protocols::ProtocolRegistry;
-use crate::request_interceptor::RequestInterceptor;
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 
 /// The various states an entry of the HttpCache can be in.
@@ -458,15 +452,7 @@ pub fn send_response_to_devtools(
         meta.status,
         body_data,
         request,
-        context.state.clone(),
-        context.user_agent.clone(),
         context.devtools_chan.clone(),
-        context.filemanager.clone(),
-        context.file_token.clone(),
-        context.request_interceptor.clone(),
-        context.cancellation_listener.clone(),
-        context.timing.clone(),
-        context.protocols.clone(),
     );
 }
 
@@ -476,30 +462,10 @@ pub fn send_response_values_to_devtools(
     status: HttpStatus,
     body: Option<Vec<u8>>,
     request: &Request,
-    state: StdArc<HttpState>,
-    user_agent: String,
     devtools_chan: Option<StdArc<Mutex<Sender<DevtoolsControlMsg>>>>,
-    filemanager: StdArc<Mutex<FileManager>>,
-    file_token: FileTokenCheck,
-    request_interceptor: StdArc<Mutex<RequestInterceptor>>,
-    cancellation_listener: StdArc<CancellationListener>,
-    timing: Arc<Mutex<ResourceFetchTiming>>,
-    protocols: StdArc<ProtocolRegistry>,
 ) {
-    let context = FetchContext {
-        state,
-        user_agent,
-        devtools_chan,
-        filemanager,
-        file_token,
-        request_interceptor,
-        cancellation_listener,
-        timing,
-        protocols,
-    };
-
     if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
-        context.devtools_chan.as_ref(),
+        devtools_chan,
         request.pipeline_id,
         request.target_webview_id,
     ) {
@@ -990,8 +956,6 @@ pub async fn http_fetch(
         .try_code()
         .is_some_and(is_redirect_status)
     {
-        // Notify devtools before handling redirect
-        send_response_to_devtools(request, context, &response, None);
         // Substep 1.
         if response.actual_response().status != StatusCode::SEE_OTHER {
             // TODO: send RST_STREAM frame
@@ -2124,16 +2088,7 @@ async fn http_network_fetch(
 
     let status = response.status.clone();
     let headers = response.headers.clone();
-
-    let state = context.state.clone();
-    let user_agent = context.user_agent.clone();
     let devtools_chan = context.devtools_chan.clone();
-    let filemanager = context.filemanager.clone();
-    let file_token = context.file_token.clone();
-    let request_interceptor = context.request_interceptor.clone();
-    let timing = context.timing.clone();
-    let protocols = context.protocols.clone();
-    let dev_cancellation_listener = cancellation_listener.clone();
 
     HANDLE.spawn(
         res.into_body()
@@ -2167,15 +2122,7 @@ async fn http_network_fetch(
                     status,
                     Some(devtools_response_body),
                     &devtools_request,
-                    state,
-                    user_agent,
                     devtools_chan,
-                    filemanager,
-                    file_token,
-                    request_interceptor,
-                    dev_cancellation_listener,
-                    timing,
-                    protocols,
                 );
                 timing_ptr2
                     .lock()

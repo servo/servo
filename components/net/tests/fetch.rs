@@ -1356,7 +1356,7 @@ fn test_fetch_with_devtools() {
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
         status: HttpStatus::default(),
-        body: devhttpresponse.clone().body,
+        body: Some(content.as_bytes().to_vec()),
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };

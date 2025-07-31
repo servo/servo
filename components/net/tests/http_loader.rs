@@ -68,21 +68,17 @@ fn assert_cookie_for_domain(
 }
 
 fn recv_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
-    loop {
-        match devtools_port.recv().unwrap() {
-            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
-                _,
-                net_event,
-            )) => match net_event {
-                NetworkEvent::HttpRequest(req) => return req,
-                NetworkEvent::HttpRequestUpdate(req) => return req,
-                _other => continue,
-            },
-            other => panic!("Expected NetworkEvent but got: {:?}", other),
-        }
+    match devtools_port.recv().unwrap() {
+        DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
+            match net_event {
+                NetworkEvent::HttpRequest(req) => req,
+                NetworkEvent::HttpRequestUpdate(req) => req,
+                other => panic!("Expected HttpRequest but got: {:?}", other),
+            }
+        },
+        other => panic!("Expected NetworkEvent but got: {:?}", other),
     }
 }
-
 pub fn expect_devtools_http_request(
     devtools_port: &Receiver<DevtoolsControlMsg>,
 ) -> (DevtoolsHttpRequest, DevtoolsHttpRequest) {
@@ -371,7 +367,7 @@ fn test_request_and_response_data_with_network_messages() {
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
         status: HttpStatus::default(),
-        body: devhttpresponse.clone().body,
+        body: Some(content.as_bytes().to_vec()),
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };
