@@ -286,13 +286,13 @@ class Linux(Base):
             return False
 
         def check_sudo() -> bool:
-            if os.geteuid() != 0:
+            if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
                 if shutil.which("sudo") is None:
                     return False
             return True
 
         def run_as_root(command: list[str], force: bool = False) -> int:
-            if os.geteuid() != 0:
+            if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
                 command.insert(0, "sudo")
             if force:
                 command.append("-y")
