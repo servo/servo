@@ -11,7 +11,7 @@
 pub mod input_events;
 pub mod resources;
 pub mod user_content_manager;
-mod webdriver;
+pub mod webdriver;
 
 use std::collections::HashMap;
 use std::ffi::c_void;

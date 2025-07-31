@@ -60,6 +60,7 @@ cfg-if = { workspace = true }
 constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
+embedder_traits = { path = "../../components/shared/embedder" }
 euclid = { workspace = true }
 getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
