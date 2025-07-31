@@ -1898,7 +1898,7 @@ pub(crate) fn handle_element_click(
 
 /// <https://w3c.github.io/webdriver/#dfn-in-view>
 fn is_element_in_view(element: &Element, document: &Document, can_gc: CanGc) -> bool {
-    element.enabled_state() &&
+    !element.disabled_state() &&
         get_element_pointer_interactable_paint_tree(element, document, can_gc)
             .contains(&DomRoot::from_ref(element))
 }
