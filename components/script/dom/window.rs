@@ -225,6 +225,25 @@ impl LayoutBlocker {
 
 type PendingImageRasterizationKey = (PendingImageId, DeviceIntSize);
 
+/// Feedbacks of the reflow that is required by the one who is initiating the reflow.
+pub(crate) struct WindowReflowResult {
+    /// Whether the reflow actually happened and it sends a new display list to the embedder.
+    pub reflow_issued: bool,
+    /// Whether the reflow is for [ReflowGoal::UpdateScrollNode] and the target is scrolled.
+    /// Specifically, a node is scrolled whenever the scroll position of it changes. Note
+    /// that reflow that is cancalled would not scroll the target.
+    pub update_scroll_reflow_target_scrolled: bool,
+}
+
+impl WindowReflowResult {
+    fn new_empty() -> Self {
+        WindowReflowResult {
+            reflow_issued: false,
+            update_scroll_reflow_target_scrolled: false,
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
@@ -2144,27 +2163,22 @@ impl Window {
         element: Option<&Element>,
         can_gc: CanGc,
     ) {
-        // We are recording the scroll offset here, to know whether the element is scrolled and
-        // we need to fire events related to it.
-        let initial_scroll_offset =
-            self.scroll_offset_query_with_external_scroll_id_no_reflow(scroll_id);
-
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        self.reflow(
+        let WindowReflowResult {
+            update_scroll_reflow_target_scrolled,
+            ..
+        } = self.reflow(
             ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)),
             can_gc,
         );
-
-        let updated_scroll_offset =
-            self.scroll_offset_query_with_external_scroll_id_no_reflow(scroll_id);
 
         // > If the scroll position did not change as a result of the user interaction or programmatic
         // > invocation, where no translations were applied as a result, then no scrollend event fires
         // > because no scrolling occurred.
         // Even though the note mention the scrollend, it is relevant to the scroll as well.
-        if initial_scroll_offset != updated_scroll_offset {
+        if update_scroll_reflow_target_scrolled {
             match element {
                 Some(el) => self.Document().handle_element_scroll_event(el),
                 None => self.Document().handle_viewport_scroll_event(),
@@ -2198,11 +2212,9 @@ impl Window {
     /// no reflow is performed. If reflow is suppressed, no reflow will be performed for ForDisplay
     /// goals.
     ///
-    /// Returns true if layout actually happened and it sent a new display list to the renderer.
-    ///
     /// NOTE: This method should almost never be called directly! Layout and rendering updates should
     /// happen as part of the HTML event loop via *update the rendering*.
-    fn force_reflow(&self, reflow_goal: ReflowGoal) -> bool {
+    fn force_reflow(&self, reflow_goal: ReflowGoal) -> WindowReflowResult {
         let document = self.Document();
         document.ensure_safe_to_run_script_or_layout();
 
@@ -2214,7 +2226,7 @@ impl Window {
             self.layout_blocker.get().layout_blocked()
         {
             debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
-            return false;
+            return WindowReflowResult::new_empty();
         }
 
         debug!("script: performing reflow for goal {reflow_goal:?}");
@@ -2266,7 +2278,7 @@ impl Window {
         };
 
         let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
-            return false;
+            return WindowReflowResult::new_empty();
         };
 
         debug!("script: layout complete");
@@ -2278,13 +2290,18 @@ impl Window {
             results.pending_images,
             results.pending_rasterization_images,
         );
-        document
-            .iframes_mut()
-            .handle_new_iframe_sizes_after_layout(self, results.iframe_sizes);
+        if let Some(iframe_sizes) = results.iframe_sizes {
+            document
+                .iframes_mut()
+                .handle_new_iframe_sizes_after_layout(self, iframe_sizes);
+        }
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 
-        results.built_display_list
+        WindowReflowResult {
+            reflow_issued: results.built_display_list,
+            update_scroll_reflow_target_scrolled: results.update_scroll_reflow_target_scrolled,
+        }
     }
 
     /// Reflows the page if it's possible to do so and the page is dirty. Returns true if layout
@@ -2293,10 +2310,10 @@ impl Window {
     /// NOTE: This method should almost never be called directly! Layout and rendering updates
     /// should happen as part of the HTML event loop via *update the rendering*. Currerntly, the
     /// only exceptions are script queries and scroll requests.
-    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> bool {
+    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> WindowReflowResult {
         // Never reflow inactive Documents.
         if !self.Document().is_fully_active() {
-            return false;
+            return WindowReflowResult::new_empty();
         }
 
         // Count the pending web fonts before layout, in case a font loads during the layout.
@@ -2305,7 +2322,7 @@ impl Window {
         self.Document().ensure_safe_to_run_script_or_layout();
 
         let updating_the_rendering = reflow_goal == ReflowGoal::UpdateTheRendering;
-        let issued_reflow = self.force_reflow(reflow_goal);
+        let reflow_result = self.force_reflow(reflow_goal);
 
         let document = self.Document();
         let font_face_set = document.Fonts(can_gc);
@@ -2363,7 +2380,7 @@ impl Window {
             }
         }
 
-        issued_reflow
+        reflow_result
     }
 
     /// If parsing has taken a long time and reflows are still waiting for the `load` event,
@@ -2443,8 +2460,9 @@ impl Window {
         let _ = receiver.recv();
     }
 
-    pub(crate) fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) -> bool {
-        self.reflow(ReflowGoal::LayoutQuery(query_msg), can_gc)
+    /// Trigger a reflow that is required by a certain queries.
+    pub(crate) fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) {
+        self.reflow(ReflowGoal::LayoutQuery(query_msg), can_gc);
     }
 
     pub(crate) fn resolved_font_style_query(

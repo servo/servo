@@ -3699,7 +3699,9 @@ impl Document {
             receiver.recv().unwrap();
         }
 
-        self.window().reflow(ReflowGoal::UpdateTheRendering, can_gc)
+        self.window()
+            .reflow(ReflowGoal::UpdateTheRendering, can_gc)
+            .reflow_issued
     }
 
     pub(crate) fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {

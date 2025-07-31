@@ -344,7 +344,8 @@ pub enum ReflowGoal {
     LayoutQuery(QueryMsg),
 
     /// Tells layout about a single new scrolling offset from the script. The rest will
-    /// remain untouched and layout won't forward this back to script.
+    /// remain untouched. Layout will forward whether the element is scrolled thru
+    /// [ReflowResult].
     UpdateScrollNode(ExternalScrollId, LayoutVector2D),
 }
 
@@ -391,10 +392,27 @@ pub struct ReflowResult {
     pub pending_rasterization_images: Vec<PendingRasterizationImage>,
     /// The list of iframes in this layout and their sizes, used in order
     /// to communicate them with the Constellation and also the `Window`
-    /// element of their content pages.
-    pub iframe_sizes: IFrameSizes,
-    /// Whether the reflow target for a [ReflowGoal::UpdateScrollNode] is scrolled.
-    pub reflow_target_scrolled: bool,
+    /// element of their content pages. Returning None if incremental reflow
+    /// finished before reaching this stage of the layout. I.e., no update
+    /// required.
+    pub iframe_sizes: Option<IFrameSizes>,
+    /// Whether the reflow is for [ReflowGoal::UpdateScrollNode] and the target is scrolled.
+    /// Specifically, a node is scrolled whenever the scroll position of it changes.
+    pub update_scroll_reflow_target_scrolled: bool,
+}
+
+impl ReflowResult {
+    /// In incremental reflow, we could skip the layout calculation completely, if it is deemed
+    /// unecessary. In those cases, many of the [ReflowResult] would be irrelevant.
+    pub fn new_without_relayout(update_scroll_reflow_target_scrolled: bool) -> Self {
+        ReflowResult {
+            built_display_list: Default::default(),
+            pending_images: Default::default(),
+            pending_rasterization_images: Default::default(),
+            iframe_sizes: Default::default(),
+            update_scroll_reflow_target_scrolled,
+        }
+    }
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle
