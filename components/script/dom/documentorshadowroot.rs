@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashSet;
+use std::ffi::c_void;
 use std::fmt;
 
 use embedder_traits::UntrustedNodeAddress;
-use euclid::default::Point2D;
 use js::rust::HandleValue;
-use layout_api::{NodesFromPointQueryType, QueryMsg};
+use layout_api::{ElementsFromPointFlags, ElementsFromPointResult, QueryMsg};
 use script_bindings::error::{Error, ErrorResult};
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
@@ -19,6 +19,7 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuar
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::stylesheets::{Stylesheet, StylesheetContents};
 use stylo_atoms::Atom;
+use webrender_api::units::LayoutPoint;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
@@ -136,15 +137,13 @@ impl DocumentOrShadowRoot {
         }
     }
 
-    pub(crate) fn nodes_from_point(
+    pub(crate) fn query_elements_from_point(
         &self,
-        client_point: &Point2D<f32>,
-        query_type: NodesFromPointQueryType,
-    ) -> Vec<UntrustedNodeAddress> {
-        self.window.layout_reflow(QueryMsg::NodesFromPointQuery);
-        self.window
-            .layout()
-            .query_nodes_from_point(*client_point, query_type)
+        point: LayoutPoint,
+        flags: ElementsFromPointFlags,
+    ) -> Vec<ElementsFromPointResult> {
+        self.window.layout_reflow(QueryMsg::ElementsFromPoint);
+        self.window.layout().query_elements_from_point(point, flags)
     }
 
     #[allow(unsafe_code)]
@@ -158,7 +157,6 @@ impl DocumentOrShadowRoot {
     ) -> Option<DomRoot<Element>> {
         let x = *x as f32;
         let y = *y as f32;
-        let point = &Point2D::new(x, y);
         let viewport = self.window.viewport_details().size;
 
         if !has_browsing_context {
@@ -170,11 +168,14 @@ impl DocumentOrShadowRoot {
         }
 
         match self
-            .nodes_from_point(point, NodesFromPointQueryType::Topmost)
+            .query_elements_from_point(LayoutPoint::new(x, y), ElementsFromPointFlags::empty())
             .first()
         {
-            Some(address) => {
-                let node = unsafe { node::from_untrusted_node_address(*address) };
+            Some(result) => {
+                // SAFETY: This is safe because `Self::query_elements_from_point` has ensured that
+                // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
+                let address = UntrustedNodeAddress(result.node.0 as *const c_void);
+                let node = unsafe { node::from_untrusted_node_address(address) };
                 let parent_node = node.GetParentNode().unwrap();
                 let shadow_host = parent_node
                     .downcast::<ShadowRoot>()
@@ -205,7 +206,6 @@ impl DocumentOrShadowRoot {
     ) -> Vec<DomRoot<Element>> {
         let x = *x as f32;
         let y = *y as f32;
-        let point = &Point2D::new(x, y);
         let viewport = self.window.viewport_details().size;
 
         if !has_browsing_context {
@@ -218,11 +218,15 @@ impl DocumentOrShadowRoot {
         }
 
         // Step 1 and Step 3
-        let nodes = self.nodes_from_point(point, NodesFromPointQueryType::All);
+        let nodes =
+            self.query_elements_from_point(LayoutPoint::new(x, y), ElementsFromPointFlags::FindAll);
         let mut elements: Vec<DomRoot<Element>> = nodes
             .iter()
-            .flat_map(|&untrusted_node_address| {
-                let node = unsafe { node::from_untrusted_node_address(untrusted_node_address) };
+            .flat_map(|result| {
+                // SAFETY: This is safe because `Self::query_elements_from_point` has ensured that
+                // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
+                let address = UntrustedNodeAddress(result.node.0 as *const c_void);
+                let node = unsafe { node::from_untrusted_node_address(address) };
                 DomRoot::downcast::<Element>(node)
             })
             .collect();

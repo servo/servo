@@ -53,7 +53,7 @@ use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
-use webrender_api::units::{DeviceIntSize, LayoutVector2D};
+use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
@@ -266,11 +266,6 @@ pub trait Layout {
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
-    fn query_nodes_from_point(
-        &self,
-        point: Point2D<f32>,
-        query_type: NodesFromPointQueryType,
-    ) -> Vec<UntrustedNodeAddress>;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
     fn query_resolved_style(
         &self,
@@ -289,6 +284,11 @@ pub trait Layout {
     ) -> Option<ServoArc<Font>>;
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
     fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
+    fn query_elements_from_point(
+        &self,
+        point: LayoutPoint,
+        flags: ElementsFromPointFlags,
+    ) -> Vec<ElementsFromPointResult>;
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`
@@ -310,25 +310,20 @@ pub struct OffsetParentResponse {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum NodesFromPointQueryType {
-    All,
-    Topmost,
-}
-
-#[derive(Debug, PartialEq)]
 pub enum QueryMsg {
+    ClientRectQuery,
     ContentBox,
     ContentBoxes,
-    ClientRectQuery,
-    ScrollingAreaOrOffsetQuery,
-    OffsetParentQuery,
-    TextIndexQuery,
-    NodesFromPointQuery,
-    ResolvedStyleQuery,
-    StyleQuery,
     ElementInnerOuterTextQuery,
-    ResolvedFontStyleQuery,
+    ElementsFromPoint,
     InnerWindowDimensionsQuery,
+    NodesFromPointQuery,
+    OffsetParentQuery,
+    ResolvedFontStyleQuery,
+    ResolvedStyleQuery,
+    ScrollingAreaOrOffsetQuery,
+    StyleQuery,
+    TextIndexQuery,
 }
 
 /// The goal of a reflow request.
@@ -599,6 +594,25 @@ impl ImageAnimationState {
         self.active_frame = next_active_frame_id;
         self.last_update_time = now;
         true
+    }
+}
+
+/// Describe an item that matched a hit-test query.
+#[derive(Debug)]
+pub struct ElementsFromPointResult {
+    /// An [`OpaqueNode`] that contains a pointer to the node hit by
+    /// this hit test result.
+    pub node: OpaqueNode,
+    /// The [`LayoutPoint`] of the original query point relative to the
+    /// node fragment rectangle.
+    pub point_in_target: LayoutPoint,
+}
+
+bitflags! {
+    pub struct ElementsFromPointFlags: u8 {
+        /// Whether or not to find all of the items for a hit test or stop at the
+        /// first hit.
+        const FindAll = 0b00000001;
     }
 }
 

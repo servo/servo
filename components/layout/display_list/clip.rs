@@ -16,7 +16,7 @@ use super::{BuilderForBoxFragment, compute_margin_box_radius, normalize_radii};
 
 /// An identifier for a clip used during StackingContextTree construction. This is a simple index in
 /// a [`ClipStore`]s vector of clips.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct ClipId(pub usize);
 
 impl ClipId {
@@ -43,6 +43,10 @@ pub(crate) struct Clip {
 pub(crate) struct StackingContextTreeClipStore(pub Vec<Clip>);
 
 impl StackingContextTreeClipStore {
+    pub(super) fn get(&self, clip_id: ClipId) -> &Clip {
+        &self.0[clip_id.0]
+    }
+
     pub(crate) fn add(
         &mut self,
         radii: webrender_api::BorderRadius,

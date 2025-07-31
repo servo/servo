@@ -34,6 +34,7 @@ icu_locid = { workspace = true }
 icu_segmenter = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
+kurbo = { workspace = true }
 layout_api = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }

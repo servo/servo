@@ -17,7 +17,7 @@ use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use compositing_traits::display_list::ScrollType;
-use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{Theme, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D};
 use fnv::FnvHashMap;
@@ -26,9 +26,9 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use layout_api::{
-    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, NodesFromPointQueryType,
-    OffsetParentResponse, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowResult, TrustedNodeAddress,
+    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, OffsetParentResponse, QueryMsg,
+    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult,
+    TrustedNodeAddress,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -75,11 +75,11 @@ use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use url::Url;
-use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
-use webrender_api::{ExternalScrollId, HitTestFlags};
+use webrender_api::ExternalScrollId;
+use webrender_api::units::{DevicePixel, LayoutVector2D};
 
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
-use crate::display_list::{DisplayListBuilder, StackingContextTree};
+use crate::display_list::{DisplayListBuilder, HitTest, StackingContextTree};
 use crate::query::{
     get_the_text_steps, process_client_rect_request, process_content_box_request,
     process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
@@ -294,30 +294,6 @@ impl Layout for LayoutThread {
         let node = unsafe { ServoLayoutNode::new(&node) };
         get_the_text_steps(node)
     }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn query_nodes_from_point(
-        &self,
-        point: UntypedPoint2D<f32>,
-        query_type: NodesFromPointQueryType,
-    ) -> Vec<UntrustedNodeAddress> {
-        let mut flags = match query_type {
-            NodesFromPointQueryType::Topmost => HitTestFlags::empty(),
-            NodesFromPointQueryType::All => HitTestFlags::FIND_ALL,
-        };
-
-        // The point we get is not relative to the entire WebRender scene, but to this
-        // particular pipeline, so we need to tell WebRender about that.
-        flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
-
-        let client_point = DevicePoint::from_untyped(point);
-        let results = self
-            .compositor_api
-            .hit_test(Some(self.id.into()), client_point, flags);
-
-        results.iter().map(|result| result.node).collect()
-    }
-
     #[servo_tracing::instrument(skip_all)]
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse {
         let node = unsafe { ServoLayoutNode::new(&node) };
@@ -403,6 +379,19 @@ impl Layout for LayoutThread {
             Au::from_f32_px(point_in_node.y),
         );
         process_text_index_request(node, point_in_node)
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn query_elements_from_point(
+        &self,
+        point: webrender_api::units::LayoutPoint,
+        flags: layout_api::ElementsFromPointFlags,
+    ) -> Vec<layout_api::ElementsFromPointResult> {
+        self.stacking_context_tree
+            .borrow_mut()
+            .as_mut()
+            .map(|tree| HitTest::run(tree, point, flags))
+            .unwrap_or_default()
     }
 
     fn exit_now(&mut self) {}
@@ -1486,7 +1475,8 @@ impl ReflowPhases {
                 QueryMsg::ContentBox |
                 QueryMsg::ContentBoxes |
                 QueryMsg::ResolvedStyleQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery => Self::StackingContextTreeConstruction,
+                QueryMsg::ScrollingAreaOrOffsetQuery |
+                QueryMsg::ElementsFromPoint => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
