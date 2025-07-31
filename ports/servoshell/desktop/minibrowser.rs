@@ -409,6 +409,8 @@ impl Minibrowser {
                 let rect = Box2D::from_origin_and_size(Point2D::origin(), size);
                 if rect != webview.rect() {
                     webview.move_resize(rect);
+                    // rect right now is just viewport size, which is required by `OffscreenRenderingContext`
+                    // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
                     webview.resize(PhysicalSize::new(size.width as u32, size.height as u32))
                 }
 

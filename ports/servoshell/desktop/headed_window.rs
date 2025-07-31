@@ -62,6 +62,9 @@ pub struct Window {
     monitor: winit::monitor::MonitorHandle,
     webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
     last_pressed: Cell<Option<(KeyboardEvent, Option<LogicalKey>)>>,
+    /// The inner size of the window in physical pixels which excludes OS decorations.
+    /// It equals viewport size + (0, toolbar height).
+    inner_size: Cell<PhysicalSize<u32>>,
     /// A map of winit's key codes to key values that are interpreted from
     /// winit's ReceivedChar events.
     keys_down: RefCell<HashMap<LogicalKey, Key>>,
@@ -73,7 +76,10 @@ pub struct Window {
     /// The `RenderingContext` of Servo itself. This is used to render Servo results
     /// temporarily until they can be blitted into the egui scene.
     rendering_context: Rc<OffscreenRenderingContext>,
-
+    /// The RenderingContext that renders directly onto the Window. This is used as
+    /// the target of egui rendering and also where Servo rendering results are finally
+    /// blitted.
+    window_rendering_context: Rc<WindowRenderingContext>,
     // Keep this as the last field of the struct to ensure that the rendering context is
     // dropped first.
     // (https://github.com/servo/servo/issues/36711)
@@ -158,12 +164,14 @@ impl Window {
             last_pressed: Cell::new(None),
             keys_down: RefCell::new(HashMap::new()),
             fullscreen: Cell::new(false),
+            inner_size: Cell::new(inner_size),
             monitor,
             screen_size,
             device_pixel_ratio_override: servoshell_preferences.device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
+            window_rendering_context,
             rendering_context,
         }
     }
@@ -676,6 +684,13 @@ impl WindowPortsMethods for Window {
                     winit::window::Theme::Light => Theme::Light,
                     winit::window::Theme::Dark => Theme::Dark,
                 });
+            },
+            WindowEvent::Resized(new_inner_size) => {
+                if self.inner_size.get() != new_inner_size {
+                    // This should always be set to inner size.
+                    // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
+                    self.window_rendering_context.resize(new_inner_size);
+                }
             },
             WindowEvent::Ime(ime) => match ime {
                 Ime::Enabled => {
