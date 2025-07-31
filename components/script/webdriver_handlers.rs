@@ -1902,9 +1902,9 @@ fn is_element_in_view(element: &Element, document: &Document, can_gc: CanGc) -> 
     // https://w3c.github.io/webdriver/#dfn-pointer-events-are-not-disabled
     // An element is said to have pointer events disabled
     // if the resolved value of its "pointer-events" style property is "none".
-    let pointer_events_enabled = element.style(can_gc).map_or(true, |style| {
-        style.get_inherited_ui().pointer_events != PointerEvents::None
-    });
+    let pointer_events_enabled = element
+        .style(can_gc)
+        .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None);
 
     // An element is in view if it is a member of its own pointer-interactable paint tree,
     // given the pretense that its pointer events are not disabled.
