@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
-
 use base::id::PipelineId;
 use constellation_traits::ScriptToConstellationChan;
 use crossbeam_channel::Sender;
@@ -55,7 +53,7 @@ impl DebuggerGlobalScope {
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
         resource_threads: ResourceThreads,
-        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: std::sync::Arc<IdentityHub>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         let global = Box::new(Self {
@@ -71,6 +69,7 @@ impl DebuggerGlobalScope {
                     .expect("Guaranteed by argument"),
                 None,
                 Default::default(),
+                #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 None,
                 false,
