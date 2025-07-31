@@ -193,12 +193,12 @@ impl PipeTo {
         // Unless any shutdown action raise their own error,
         // in which case this error will be overwritten by the shutdown action error.
         {
-            let mut error = Some(Heap::default());
+            *self.shutdown_error.borrow_mut() = Some(Heap::default());
+            let Some(ref heap) = *self.shutdown_error.borrow() else {
+                unreachable!("Option set to Some(heap) above.");
+            };
             // Setting the value on the heap after it has been moved.
-            if let Some(heap) = error.as_mut() {
-                heap.set(reason.get())
-            }
-            *self.shutdown_error.borrow_mut() = error;
+            heap.set(reason.get())
         }
 
         // Let actions be an empty ordered set.
@@ -371,12 +371,12 @@ impl Callback for PipeTo {
                     // then it is an error
                     // and should overwrite the current shutdown error.
                     {
-                        let mut error = Some(Heap::default());
+                        *self.shutdown_error.borrow_mut() = Some(Heap::default());
+                        let Some(ref heap) = *self.shutdown_error.borrow() else {
+                            unreachable!("Option set to Some(heap) above.");
+                        };
                         // Setting the value on the heap after it has been moved.
-                        if let Some(heap) = error.as_mut() {
-                            heap.set(result.get())
-                        }
-                        *self.shutdown_error.borrow_mut() = error;
+                        heap.set(result.get())
                     }
                 }
                 self.finalize(cx, &global, can_gc);
@@ -503,12 +503,12 @@ impl PipeTo {
             rooted!(in(*cx) let mut source_error = UndefinedValue());
             source.get_stored_error(source_error.handle_mut());
             {
-                let mut error = Some(Heap::default());
+                *self.shutdown_error.borrow_mut() = Some(Heap::default());
+                let Some(ref heap) = *self.shutdown_error.borrow() else {
+                    unreachable!("Option set to Some(heap) above.");
+                };
                 // Setting the value on the heap after it has been moved.
-                if let Some(heap) = error.as_mut() {
-                    heap.set(source_error.get())
-                }
-                *self.shutdown_error.borrow_mut() = error;
+                heap.set(source_error.get())
             }
 
             // If preventAbort is false,
@@ -553,12 +553,12 @@ impl PipeTo {
             rooted!(in(*cx) let mut dest_error = UndefinedValue());
             dest.get_stored_error(dest_error.handle_mut());
             {
-                let mut error = Some(Heap::default());
+                *self.shutdown_error.borrow_mut() = Some(Heap::default());
+                let Some(ref heap) = *self.shutdown_error.borrow() else {
+                    unreachable!("Option set to Some(heap) above.");
+                };
                 // Setting the value on the heap after it has been moved.
-                if let Some(heap) = error.as_mut() {
-                    heap.set(dest_error.get())
-                }
-                *self.shutdown_error.borrow_mut() = error;
+                heap.set(dest_error.get())
             }
 
             // If preventCancel is false,
@@ -649,12 +649,12 @@ impl PipeTo {
                 Error::Type("Destination is closed or has closed queued or in flight".to_string());
             error.to_jsval(cx, global, dest_closed.handle_mut(), can_gc);
             {
-                let mut error = Some(Heap::default());
+                *self.shutdown_error.borrow_mut() = Some(Heap::default());
+                let Some(ref heap) = *self.shutdown_error.borrow() else {
+                    unreachable!("Option set to Some(heap) above.");
+                };
                 // Setting the value on the heap after it has been moved.
-                if let Some(heap) = error.as_mut() {
-                    heap.set(dest_closed.get())
-                }
-                *self.shutdown_error.borrow_mut() = error;
+                heap.set(dest_closed.get())
             }
 
             // If preventCancel is false,
