@@ -623,8 +623,12 @@ impl Handler {
         Ok(WebDriverResponse::NewSession(response))
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-delete-session>
     fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If session is http, close the session
         self.session = None;
+
+        // Step 2. Return success with data null
         Ok(WebDriverResponse::DeleteSession)
     }
 
@@ -2445,7 +2449,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
         match msg.command {
-            WebDriverCommand::NewSession(_) | WebDriverCommand::Status => {},
+            WebDriverCommand::NewSession(_) |
+            WebDriverCommand::Status |
+            WebDriverCommand::DeleteSession => {},
             _ => {
                 self.session()?;
             },
