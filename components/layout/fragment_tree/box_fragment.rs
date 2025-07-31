@@ -255,6 +255,13 @@ impl BoxFragment {
                     .calculate_scrollable_overflow_for_parent()
                     .translate(content_origin);
 
+                let scrollable_overflow_from_child = match child {
+                    Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                        fragment.borrow().scrollable_overflow()
+                    },
+                    _ => scrollable_overflow_from_child,
+                };
+
                 // Note that this doesn't just exclude scrollable overflow outside the
                 // wholly unrechable scrollable overflow area, but also clips it. This
                 // makes the resulting value more like the "scroll area" rather than the
