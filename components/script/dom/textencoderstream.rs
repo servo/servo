@@ -7,12 +7,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::JS_GetTwoByteStringCharsAndLength;
+use js::jsapi::{JS_ClearPendingException, JS_GetTwoByteStringCharsAndLength};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, ToString};
 
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Fallible, Error};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{DomRoot, Dom};
 use crate::dom::bindings::str::DOMString;
@@ -47,10 +47,14 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     // Step 1. Let input be the result of converting chunk to a DOMString. 
     // NOTE: DOMString is a wrapper over rust's String, which must be valid utf-8
     //      so we will need to inspect each u16
-    let js_str = unsafe {ToString(*cx, chunk)};
+    let js_str = unsafe {std::ptr::NonNull::new(ToString(*cx, chunk))
+        .ok_or_else(|| {
+            log::error!("ToString failed");
+            Error::JSFailed // ToString may set the exception
+        })?};
     let mut len = 0;
     let data = unsafe {
-        JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), js_str, &mut len)
+        JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), js_str.as_ptr(), &mut len)
     };
     // Step 2. Convert input to an I/O queue of code units. 
     let maybe_ill_formed_code_units = unsafe { std::slice::from_raw_parts(data, len) };
@@ -69,6 +73,8 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     if output.is_empty() {
         return Ok(())
     }
+
+    log::debug!("output: {:?}", output);
 
     let output = output.as_bytes();
     rooted!(in(*cx) let mut chunk = UndefinedValue());
