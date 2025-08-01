@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use log::error;
+use log::{error, info};
 use net_traits::indexeddb_thread::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError,
     CreateObjectResult, IndexedDBKeyRange, IndexedDBTxnMode, KeyPath, PutItemResult,
@@ -89,16 +89,13 @@ impl SqliteEngine {
         db_path.push(db_info.as_path());
         db_path.push("db.sqlite");
 
-        let connection = if db_path.exists() {
-            Self::get_connection(&db_path)
-        } else {
+        if !db_path.exists() {
             std::fs::create_dir_all(db_path.parent().unwrap()).unwrap();
             std::fs::File::create(&db_path).unwrap();
-            Self::init_db(&db_path, db_info, version)
         }
-        .unwrap();
+        let connection = Self::init_db(&db_path, db_info, version).unwrap();
 
-        for stmt in DB_PRAGMAS {
+            for stmt in DB_PRAGMAS {
             // TODO: Handle errors properly
             let _ = connection.execute(stmt, ());
         }
@@ -121,6 +118,11 @@ impl SqliteEngine {
         version: u64,
     ) -> Result<Connection, Error> {
         let connection = Self::get_connection(path)?;
+        if connection.table_exists(None, "database")? {
+            // Database already exists, no need to initialize
+            return Ok(connection);
+        }
+        info!("Initializing indexeddb database at {:?}", path);
         for stmt in DB_INIT_PRAGMAS {
             // FIXME(arihant2math): this fails occasionally
             let _ = connection.execute(stmt, ());
@@ -415,7 +417,10 @@ impl KvsEngine for SqliteEngine {
                     Ok(object_store.auto_increment)
                 })
             })
+            .optional()
             .unwrap()
+            // TODO: Wrong (change trait definition for this function)
+            .unwrap_or_default()
     }
 
     fn key_path(&self, store_name: SanitizedName) -> Option<KeyPath> {
@@ -429,7 +434,10 @@ impl KvsEngine for SqliteEngine {
                         .map(|key_path| bincode::deserialize(&key_path).unwrap()))
                 })
             })
+            .optional()
             .unwrap()
+            // TODO: Wrong, same issues as has_key_generator
+            .unwrap_or_default()
     }
 
     fn create_index(
