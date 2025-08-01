@@ -498,7 +498,7 @@ impl PipeTo {
         if source.is_errored() {
             rooted!(in(*cx) let mut source_error = UndefinedValue());
             source.get_stored_error(source_error.handle_mut());
-            self.set_shutdown_error(source_error);
+            self.set_shutdown_error(source_error.handle());
 
             // If preventAbort is false,
             if !self.prevent_abort {
@@ -541,7 +541,7 @@ impl PipeTo {
         if dest.is_errored() {
             rooted!(in(*cx) let mut dest_error = UndefinedValue());
             dest.get_stored_error(dest_error.handle_mut());
-            self.set_shutdown_error(dest_error);
+            self.set_shutdown_error(dest_error.handle());
 
             // If preventCancel is false,
             if !self.prevent_cancel {
@@ -630,7 +630,7 @@ impl PipeTo {
             let error =
                 Error::Type("Destination is closed or has closed queued or in flight".to_string());
             error.to_jsval(cx, global, dest_closed.handle_mut(), can_gc);
-            self.set_shutdown_error(dest_closed);
+            self.set_shutdown_error(dest_closed.handle());
 
             // If preventCancel is false,
             if !self.prevent_cancel {
