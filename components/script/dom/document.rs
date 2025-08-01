@@ -29,7 +29,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, AnimationState, CompositorHitTestResult, ContextMenuResult, EditingActionEvent,
-    EmbedderMsg, FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton,
+    EmbedderMsg, FocusSequenceNumber, ImeEvent, ImeType, InputEvent, LoadStatus, MouseButton,
     MouseButtonAction, MouseButtonEvent, ScrollEvent, TouchEvent, TouchEventType, TouchId,
     UntrustedNodeAddress, WheelEvent,
 };
@@ -2620,8 +2620,8 @@ impl Document {
     }
 
     pub(crate) fn dispatch_ime_event(&self, event: ImeEvent, can_gc: CanGc) {
-        let composition_event = match event {
-            ImeEvent::Dismissed => {
+        let composition_event = match event.event {
+            ImeType::Dismissed => {
                 self.request_focus(
                     self.GetBody().as_ref().map(|e| e.upcast()),
                     FocusInitiator::Local,
@@ -2629,7 +2629,7 @@ impl Document {
                 );
                 return;
             },
-            ImeEvent::Composition(composition_event) => composition_event,
+            ImeType::Composition(composition_event) => composition_event,
         };
 
         // spec: https://w3c.github.io/uievents/#compositionstart

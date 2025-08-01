@@ -2103,12 +2103,21 @@ impl Handler {
 
         let input_events = send_keys(&keys.text);
 
-        // TODO: there's a race condition caused by the focus command and the
-        // send keys command being two separate messages,
-        // so the constellation may have changed state between them.
-        // TODO: We should use `dispatch_action` to send the keys.
-        let cmd_msg = WebDriverCommandMsg::SendKeys(self.session()?.webview_id, input_events);
-        self.send_message_to_embedder(cmd_msg)?;
+        if !input_events.is_empty() {
+            // TODO: there's a race condition caused by the focus command and the
+            // send keys command being two separate messages,
+            // so the constellation may have changed state between them.
+            // TODO: We should use `dispatch_action` to send the keys.
+            let cmd_msg = WebDriverCommandMsg::SendKeys(self.session()?.webview_id, input_events);
+            self.send_message_to_embedder(cmd_msg)?;
+
+            // Here we wait for all the event to be dispatched
+            // like what we do in dispatch_action to make the command stable.
+            if let Err(error) = self.webdriver_response_receiver.recv() {
+                log::error!("Dispatch actions completed with IPC error: {error}");
+                return Err(WebDriverError::new(ErrorStatus::UnknownError, ""));
+            };
+        }
 
         Ok(WebDriverResponse::Void)
     }

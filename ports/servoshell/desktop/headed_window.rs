@@ -21,7 +21,7 @@ use servo::servo_geometry::{
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, Modifiers,
+    Cursor, ImeEvent, ImeType, InputEvent, Key, KeyState, KeyboardEvent, Modifiers,
     MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeaveEvent,
     MouseMoveEvent, NamedKey, OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme,
     TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent,
@@ -694,31 +694,31 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::Ime(ime) => match ime {
                 Ime::Enabled => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                        servo::CompositionEvent {
+                    webview.notify_input_event(InputEvent::Ime(ImeEvent::new(
+                        ImeType::Composition(servo::CompositionEvent {
                             state: servo::CompositionState::Start,
                             data: String::new(),
-                        },
+                        }),
                     )));
                 },
                 Ime::Preedit(text, _) => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                        servo::CompositionEvent {
+                    webview.notify_input_event(InputEvent::Ime(ImeEvent::new(
+                        ImeType::Composition(servo::CompositionEvent {
                             state: servo::CompositionState::Update,
                             data: text,
-                        },
+                        }),
                     )));
                 },
                 Ime::Commit(text) => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                        servo::CompositionEvent {
+                    webview.notify_input_event(InputEvent::Ime(ImeEvent::new(
+                        ImeType::Composition(servo::CompositionEvent {
                             state: servo::CompositionState::End,
                             data: text,
-                        },
+                        }),
                     )));
                 },
                 Ime::Disabled => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
+                    webview.notify_input_event(InputEvent::Ime(ImeEvent::new(ImeType::Dismissed)));
                 },
             },
             _ => {},
