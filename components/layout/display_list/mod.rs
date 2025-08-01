@@ -1553,13 +1553,11 @@ impl<'a> BuilderForBoxFragment<'a> {
         if width == 0.0 {
             return;
         }
-        let offset = outline
-            .outline_offset
-            .px()
-            .max(-self.border_rect.width() / 2.0)
-            .max(-self.border_rect.height() / 2.0) +
-            width;
-        let outline_rect = self.border_rect.inflate(offset, offset);
+        let offset = outline.outline_offset.px() + width;
+        let outline_rect = self.border_rect.inflate(
+            offset.max(-self.border_rect.width() / 2.0 + width),
+            offset.max(-self.border_rect.height() / 2.0 + width),
+        );
         let common = builder.common_properties(outline_rect, &self.fragment.style);
         let widths = SideOffsets2D::new_all_same(width);
         let border_style = match outline.outline_style {
