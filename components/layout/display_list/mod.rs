@@ -1553,6 +1553,14 @@ impl<'a> BuilderForBoxFragment<'a> {
         if width == 0.0 {
             return;
         }
+        // <https://drafts.csswg.org/css-ui-3/#outline-offset>
+        // > Negative values must cause the outline to shrink into the border box. Both
+        // > the height and the width of outside of the shape drawn by the outline should
+        // > not become smaller than twice the computed value of the outline-width
+        // > property, to make sure that an outline can be rendered even with large
+        // > negative values. User agents should apply this constraint independently in
+        // > each dimension. If the outline is drawn as multiple disconnected shapes, this
+        // > constraint applies to each shape separately.
         let offset = outline.outline_offset.px() + width;
         let outline_rect = self.border_rect.inflate(
             offset.max(-self.border_rect.width() / 2.0 + width),
