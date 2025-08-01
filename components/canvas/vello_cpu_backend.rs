@@ -30,6 +30,16 @@ thread_local! {
     static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::Font>> = RefCell::default();
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+enum State {
+    /// Scene is drawing. It will be consumed when rendered.
+    Drawing,
+    /// Scene is already rendered
+    /// Before next draw we need to put current rendering
+    /// in the background by calling [`VelloCPUDrawTarget::ensure_drawing`].
+    Rendered,
+}
+
 pub(crate) struct VelloCPUDrawTarget {
     /// Because this is stateful context
     /// caller cannot assume anything about transform, paint, stroke,
@@ -42,6 +52,7 @@ pub(crate) struct VelloCPUDrawTarget {
     ctx: vello_cpu::RenderContext,
     pixmap: vello_cpu::Pixmap,
     clips: Vec<Path>,
+    state: State,
 }
 
 impl VelloCPUDrawTarget {
@@ -72,13 +83,39 @@ impl VelloCPUDrawTarget {
         }
     }
 
+    fn ensure_drawing(&mut self) {
+        match self.state {
+            State::Drawing => {},
+            State::Rendered => {
+                self.ignore_clips(|self_| {
+                    self_.ctx.set_transform(kurbo::Affine::IDENTITY);
+                    self_.ctx.set_paint(vello_cpu::Image {
+                        source: vello_cpu::ImageSource::Pixmap(Arc::new(self_.pixmap.clone())),
+                        x_extend: peniko::Extend::Pad,
+                        y_extend: peniko::Extend::Pad,
+                        quality: peniko::ImageQuality::Low,
+                    });
+                    self_.ctx.fill_rect(&kurbo::Rect::from_origin_size(
+                        (0., 0.),
+                        self_.size().cast(),
+                    ));
+                });
+                self.state = State::Drawing;
+            },
+        }
+    }
+
     fn pixmap(&mut self) -> &[u8] {
-        self.ignore_clips(|self_| {
-            self_.ctx.flush();
-            self_
-                .ctx
-                .render_to_pixmap(&mut self_.pixmap, vello_cpu::RenderMode::OptimizeQuality)
-        });
+        if self.state == State::Drawing {
+            self.ignore_clips(|self_| {
+                self_.ctx.flush();
+                self_
+                    .ctx
+                    .render_to_pixmap(&mut self_.pixmap, vello_cpu::RenderMode::OptimizeQuality);
+                self_.ctx.reset();
+                self_.state = State::Rendered;
+            });
+        }
 
         self.pixmap.data_as_u8_slice()
     }
@@ -113,6 +150,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
             ctx: vello_cpu::RenderContext::new(size.width, size.height),
             pixmap: vello_cpu::Pixmap::new(size.width, size.height),
             clips: Vec::new(),
+            state: State::Rendered,
         }
     }
 
@@ -122,8 +160,10 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         if self.is_viewport_cleared(rect, transform) {
             self.ctx.reset();
             self.clips.clear(); // no clips are affecting rendering
+            self.state = State::Drawing;
             return;
         }
+        self.ensure_drawing();
         let rect: kurbo::Rect = rect.cast().into();
         let mut clip_path = rect.to_path(0.1);
         clip_path.apply_affine(transform.cast().into());
@@ -143,6 +183,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         source: Rect<i32>,
         destination: Point2D<i32>,
     ) {
+        self.ensure_drawing();
         let destination: kurbo::Point = destination.cast::<f64>().into();
         let rect = kurbo::Rect::from_origin_size(destination, source.size.cast());
         self.ctx.set_transform(kurbo::Affine::IDENTITY);
@@ -176,6 +217,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let scale_up = dest.size.width > source.size.width || dest.size.height > source.size.height;
         self.with_composition(&composition_options, move |self_| {
             self_.ctx.set_transform(transform.cast().into());
@@ -225,6 +267,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let paint: vello_cpu::PaintType = style.convert();
         self.with_composition(&composition_options, |self_| {
             self_.ctx.set_transform(transform.cast().into());
@@ -243,6 +286,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let style: vello_cpu::PaintType = style.convert();
         self.ctx.set_paint(style);
         self.ctx.set_transform(transform.cast().into());
@@ -301,6 +345,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let paint: vello_cpu::PaintType = style.convert();
         self.with_composition(&composition_options, |self_| {
             self_.ctx.set_transform(transform.cast().into());
@@ -349,6 +394,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let paint: vello_cpu::PaintType = style.convert();
         self.with_composition(&composition_options, |self_| {
             self_.ctx.set_transform(transform.cast().into());
@@ -366,6 +412,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let paint: vello_cpu::PaintType = style.convert();
         self.with_composition(&composition_options, |self_| {
             self_.ctx.set_transform(transform.cast().into());

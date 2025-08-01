@@ -27,9 +27,10 @@ use kurbo::Shape as _;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use range::Range;
 use vello::wgpu::{
-    BackendOptions, Backends, BufferDescriptor, BufferUsages, CommandEncoderDescriptor, Device,
-    Extent3d, Instance, InstanceDescriptor, InstanceFlags, MapMode, Queue, TexelCopyBufferInfo,
-    TexelCopyBufferLayout, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+    BackendOptions, Backends, Buffer, BufferDescriptor, BufferUsages, COPY_BYTES_PER_ROW_ALIGNMENT,
+    CommandEncoderDescriptor, Device, Extent3d, Instance, InstanceDescriptor, InstanceFlags,
+    MapMode, Origin3d, Queue, TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfoBase,
+    Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
     TextureViewDescriptor,
 };
 use vello::{kurbo, peniko};
@@ -53,18 +54,86 @@ pub(crate) struct VelloDrawTarget {
     scene: vello::Scene,
     size: Size2D<u32>,
     clips: Vec<Path>,
+    state: State,
+    render_texture: Texture,
+    render_texture_view: TextureView,
+    render_image: peniko::Image,
+    padded_byte_width: u32,
+    rendered_buffer: Buffer,
 }
 
-fn options() -> vello::RendererOptions {
-    vello::RendererOptions {
-        use_cpu: false,
-        num_init_threads: NonZeroUsize::new(1),
-        antialiasing_support: vello::AaSupport::area_only(),
-        pipeline_cache: None,
-    }
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+enum State {
+    /// Scene is drawing. It will be consumed when rendered.
+    Drawing,
+    /// Scene is already rendered
+    /// Before next draw we need to put current rendering
+    /// in the background by calling [`VelloDrawTarget::ensure_drawing`].
+    RenderedToTexture,
+    RenderedToBuffer,
 }
 
 impl VelloDrawTarget {
+    fn new_with_renderer(
+        device: Device,
+        queue: Queue,
+        renderer: Rc<RefCell<vello::Renderer>>,
+        size: Size2D<u32>,
+    ) -> Self {
+        let render_texture = device.create_texture(&TextureDescriptor {
+            label: None,
+            size: extend3d(size),
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Rgba8Unorm,
+            usage: TextureUsages::COPY_SRC | TextureUsages::STORAGE_BINDING,
+            view_formats: &[],
+        });
+        let render_texture_view = render_texture.create_view(&TextureViewDescriptor::default());
+        let render_image = peniko::Image {
+            data: vec![].into(),
+            format: peniko::ImageFormat::Rgba8,
+            width: size.width,
+            height: size.height,
+            x_extend: peniko::Extend::Pad,
+            y_extend: peniko::Extend::Pad,
+            quality: peniko::ImageQuality::Low,
+            alpha: 1.0,
+        };
+        renderer.borrow_mut().override_image(
+            &render_image,
+            Some(TexelCopyTextureInfoBase {
+                texture: render_texture.clone(),
+                mip_level: 0,
+                origin: Origin3d::ZERO,
+                aspect: vello::wgpu::TextureAspect::All,
+            }),
+        );
+        let padded_byte_width = (size.width * 4).next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT);
+        let buffer_size = padded_byte_width as u64 * size.height as u64;
+        let rendered_buffer = device.create_buffer(&BufferDescriptor {
+            label: Some("val"),
+            size: buffer_size,
+            usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        Self {
+            device,
+            queue,
+            renderer,
+            scene: vello::Scene::new(),
+            size,
+            clips: Vec::new(),
+            state: State::RenderedToBuffer,
+            render_texture,
+            render_texture_view,
+            render_image,
+            padded_byte_width,
+            rendered_buffer,
+        }
+    }
+
     fn with_draw_options<F: FnOnce(&mut Self)>(&mut self, draw_options: &CompositionOptions, f: F) {
         self.scene.push_layer(
             draw_options.composition_operation.convert(),
@@ -74,85 +143,6 @@ impl VelloDrawTarget {
         );
         f(self);
         self.scene.pop_layer();
-    }
-
-    fn render_and_download<F, R>(&self, f: F) -> R
-    where
-        F: FnOnce(u32, Option<&[u8]>) -> R,
-    {
-        let size = Extent3d {
-            width: self.size.width,
-            height: self.size.height,
-            depth_or_array_layers: 1,
-        };
-        let target = self.device.create_texture(&TextureDescriptor {
-            label: Some("Target texture"),
-            size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8Unorm,
-            usage: TextureUsages::STORAGE_BINDING | TextureUsages::COPY_SRC,
-            view_formats: &[],
-        });
-        let view = target.create_view(&TextureViewDescriptor::default());
-        self.renderer
-            .borrow_mut()
-            .render_to_texture(
-                &self.device,
-                &self.queue,
-                &self.scene,
-                &view,
-                &vello::RenderParams {
-                    base_color: peniko::color::AlphaColor::TRANSPARENT,
-                    width: self.size.width,
-                    height: self.size.height,
-                    antialiasing_method: vello::AaConfig::Area,
-                },
-            )
-            .unwrap();
-        // TODO(perf): do a render pass that will multiply with alpha on GPU
-        let padded_byte_width = (self.size.width * 4).next_multiple_of(256);
-        let buffer_size = padded_byte_width as u64 * self.size.height as u64;
-        let buffer = self.device.create_buffer(&BufferDescriptor {
-            label: Some("val"),
-            size: buffer_size,
-            usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        let mut encoder = self
-            .device
-            .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("Copy out buffer"),
-            });
-        encoder.copy_texture_to_buffer(
-            target.as_image_copy(),
-            TexelCopyBufferInfo {
-                buffer: &buffer,
-                layout: TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(padded_byte_width),
-                    rows_per_image: None,
-                },
-            },
-            size,
-        );
-        self.queue.submit([encoder.finish()]);
-        let result = {
-            let buf_slice = buffer.slice(..);
-            let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
-            buf_slice.map_async(MapMode::Read, move |v| sender.send(v).unwrap());
-            if let Err(error) =
-                vello::util::block_on_wgpu(&self.device, receiver.receive()).unwrap()
-            {
-                log::warn!("VELLO WGPU MAP ASYNC ERROR {error}");
-                return f(padded_byte_width, None);
-            }
-            let data = buf_slice.get_mapped_range();
-            f(padded_byte_width, Some(&data))
-        };
-        buffer.unmap();
-        result
     }
 
     fn ignore_clips(&mut self, f: impl FnOnce(&mut Self)) {
@@ -183,6 +173,20 @@ impl VelloDrawTarget {
         transformed_rect.cast().contains_rect(&viewport) && // whole viewport is cleared
             clip.contains_rect(&viewport) // viewport is not clipped
     }
+
+    fn ensure_drawing(&mut self) {
+        match self.state {
+            State::Drawing => {},
+            State::RenderedToBuffer | State::RenderedToTexture => {
+                self.ignore_clips(|self_| {
+                    self_
+                        .scene
+                        .draw_image(&self_.render_image, kurbo::Affine::IDENTITY);
+                });
+                self.state = State::Drawing;
+            },
+        }
+    }
 }
 
 impl GenericDrawTarget for VelloDrawTarget {
@@ -208,29 +212,32 @@ impl GenericDrawTarget for VelloDrawTarget {
         let device_handle = &mut context.devices[device_id];
         let device = device_handle.device.clone();
         let queue = device_handle.queue.clone();
-        let renderer = vello::Renderer::new(&device, options()).unwrap();
-        let scene = vello::Scene::new();
+        let renderer = vello::Renderer::new(
+            &device,
+            vello::RendererOptions {
+                use_cpu: false,
+                num_init_threads: NonZeroUsize::new(1),
+                antialiasing_support: vello::AaSupport::area_only(),
+                pipeline_cache: None,
+            },
+        )
+        .unwrap();
         device.on_uncaptured_error(Box::new(|error| {
             log::error!("VELLO WGPU ERROR: {error}");
         }));
-        Self {
-            device,
-            queue,
-            renderer: Rc::new(RefCell::new(renderer)),
-            scene,
-            size,
-            clips: Vec::new(),
-        }
+        Self::new_with_renderer(device, queue, Rc::new(RefCell::new(renderer)), size)
     }
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
         // vello scene only ever grows,
-        // so we need to use every opportunity to shrink it
+        // so we use every opportunity to shrink it
         if self.is_viewport_cleared(rect, transform) {
             self.scene.reset();
             self.clips.clear(); // no clips are affecting rendering
+            self.state = State::Drawing;
             return;
         }
+        self.ensure_drawing();
         let rect: kurbo::Rect = rect.cast().into();
         let transform = transform.cast().into();
         self.scene
@@ -246,6 +253,7 @@ impl GenericDrawTarget for VelloDrawTarget {
     }
 
     fn copy_surface(&mut self, surface: Vec<u8>, source: Rect<i32>, destination: Point2D<i32>) {
+        self.ensure_drawing();
         let destination: kurbo::Point = destination.cast::<f64>().into();
         let rect = kurbo::Rect::from_origin_size(destination, source.size.cast());
 
@@ -276,14 +284,12 @@ impl GenericDrawTarget for VelloDrawTarget {
     }
 
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self {
-        Self {
-            device: self.device.clone(),
-            queue: self.queue.clone(),
-            renderer: self.renderer.clone(),
-            scene: vello::Scene::new(),
-            size: size.cast(),
-            clips: Vec::new(),
-        }
+        Self::new_with_renderer(
+            self.device.clone(),
+            self.queue.clone(),
+            self.renderer.clone(),
+            size.cast(),
+        )
     }
 
     fn draw_surface(
@@ -295,6 +301,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let scale_up = dest.size.width > source.size.width || dest.size.height > source.size.height;
         let shape: kurbo::Rect = dest.into();
         self.with_draw_options(&composition_options, move |self_| {
@@ -351,6 +358,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         self.with_draw_options(&composition_options, |self_| {
             self_.scene.fill(
                 fill_rule.convert(),
@@ -370,6 +378,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let pattern = convert_to_brush(style, composition_options);
         let transform = transform.cast().into();
         self.with_draw_options(&composition_options, |self_| {
@@ -430,6 +439,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let pattern = convert_to_brush(style, composition_options);
         let transform = transform.cast().into();
         let rect: kurbo::Rect = rect.cast().into();
@@ -478,6 +488,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         self.with_draw_options(&composition_options, |self_| {
             self_.scene.stroke(
                 &line_options.convert(),
@@ -497,6 +508,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
+        self.ensure_drawing();
         let rect: kurbo::Rect = rect.cast().into();
         self.with_draw_options(&composition_options, |self_| {
             self_.scene.stroke(
@@ -513,7 +525,8 @@ impl GenericDrawTarget for VelloDrawTarget {
         &mut self,
     ) -> (ImageDescriptor, SerializableImageData) {
         let size = self.size;
-        self.render_and_download(|stride, data| {
+        let stride = self.padded_byte_width;
+        self.map_read(|data| {
             let image_desc = ImageDescriptor {
                 format: webrender_api::ImageFormat::RGBA8,
                 size: size.cast().cast_unit(),
@@ -537,14 +550,14 @@ impl GenericDrawTarget for VelloDrawTarget {
 
     fn snapshot(&mut self) -> pixels::Snapshot {
         let size = self.size;
-        self.render_and_download(|padded_byte_width, data| {
+        let padded_byte_width = self.padded_byte_width;
+        self.map_read(|data| {
             let data = data
                 .map(|data| {
                     let mut result_unpadded = Vec::<u8>::with_capacity(size.area() as usize * 4);
-                    for row in 0..self.size.height {
+                    for row in 0..size.height {
                         let start = (row * padded_byte_width).try_into().unwrap();
-                        result_unpadded
-                            .extend(&data[start..start + (self.size.width * 4) as usize]);
+                        result_unpadded.extend(&data[start..start + (size.width * 4) as usize]);
                     }
                     result_unpadded
                 })
@@ -575,10 +588,109 @@ impl GenericDrawTarget for VelloDrawTarget {
     }
 }
 
+impl Drop for VelloDrawTarget {
+    fn drop(&mut self) {
+        self.renderer
+            .borrow_mut()
+            .override_image(&self.render_image, None);
+    }
+}
+
 fn convert_to_brush(
     style: FillOrStrokeStyle,
     composition_options: CompositionOptions,
 ) -> peniko::Brush {
     let brush: peniko::Brush = style.convert();
     brush.multiply_alpha(composition_options.alpha as f32)
+}
+
+impl VelloDrawTarget {
+    fn render_to_texture(&mut self) {
+        if matches!(
+            self.state,
+            State::RenderedToTexture | State::RenderedToBuffer
+        ) {
+            return;
+        }
+
+        self.renderer
+            .borrow_mut()
+            .render_to_texture(
+                &self.device,
+                &self.queue,
+                &self.scene,
+                &self.render_texture_view,
+                &vello::RenderParams {
+                    base_color: peniko::color::AlphaColor::TRANSPARENT,
+                    width: self.size.width,
+                    height: self.size.height,
+                    antialiasing_method: vello::AaConfig::Area,
+                },
+            )
+            .unwrap();
+        self.state = State::RenderedToTexture;
+        // prune scene
+        self.scene.reset();
+        // push all clip layers back
+        for path in &self.clips {
+            self.scene
+                .push_layer(peniko::Mix::Clip, 1.0, kurbo::Affine::IDENTITY, &path.0);
+        }
+    }
+
+    fn render_to_buffer(&mut self) {
+        if matches!(self.state, State::RenderedToBuffer) {
+            return;
+        }
+        self.render_to_texture();
+
+        let size = extend3d(self.size);
+        // TODO(perf): do a render pass that will multiply with alpha on GPU
+        let mut encoder = self
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor {
+                label: Some("Copy out buffer"),
+            });
+        encoder.copy_texture_to_buffer(
+            self.render_texture.as_image_copy(),
+            TexelCopyBufferInfo {
+                buffer: &self.rendered_buffer,
+                layout: TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(self.padded_byte_width),
+                    rows_per_image: None,
+                },
+            },
+            size,
+        );
+        self.queue.submit([encoder.finish()]);
+        self.state = State::RenderedToBuffer;
+    }
+
+    fn map_read<R>(&mut self, f: impl FnOnce(Option<&[u8]>) -> R) -> R {
+        self.render_to_buffer();
+        let result = {
+            let buf_slice = self.rendered_buffer.slice(..);
+            let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
+            buf_slice.map_async(MapMode::Read, move |v| sender.send(v).unwrap());
+            if let Err(error) =
+                vello::util::block_on_wgpu(&self.device, receiver.receive()).unwrap()
+            {
+                log::warn!("VELLO WGPU MAP ASYNC ERROR {error}");
+                return f(None);
+            }
+            let data = buf_slice.get_mapped_range();
+            f(Some(&data))
+        };
+        self.rendered_buffer.unmap();
+        result
+    }
+}
+
+fn extend3d(size: Size2D<u32>) -> Extent3d {
+    Extent3d {
+        width: size.width,
+        height: size.height,
+        depth_or_array_layers: 1,
+    }
 }
