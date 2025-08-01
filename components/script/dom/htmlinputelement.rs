@@ -1963,7 +1963,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // check-tidy: no specs after this line
     fn SelectFiles(&self, paths: Vec<DOMString>, can_gc: CanGc) {
         if self.input_type() == InputType::File {
-            let _ = self.select_files(Some(paths), can_gc);
+            let _ = self.select_files(Some(paths), false, can_gc);
         }
     }
 
@@ -2282,6 +2282,7 @@ impl HTMLInputElement {
     pub(crate) fn select_files(
         &self,
         opt_test_paths: Option<Vec<DOMString>>,
+        append: bool,
         can_gc: CanGc,
     ) -> FileManagerResult<()> {
         let window = self.owner_window();
@@ -2295,6 +2296,21 @@ impl HTMLInputElement {
         let target = self.upcast::<EventTarget>();
 
         if self.Multiple() {
+            // When using WebDriver command element send keys,
+            // we are expected to append the files to the existing filelist.
+            if append {
+                let filelist = self.filelist.get();
+                if let Some(filelist) = filelist {
+                    for i in 0..filelist.Length() {
+                        files.push(
+                            filelist
+                                .Item(i)
+                                .expect("We should have iterate within filelist length"),
+                        );
+                    }
+                }
+            }
+
             let opt_test_paths = opt_test_paths.map(|paths| {
                 paths
                     .iter()
@@ -3464,7 +3480,7 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
             InputType::File => {
-                let _ = self.select_files(None, can_gc);
+                let _ = self.select_files(None, false, can_gc);
             },
             // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
             InputType::Color => {
