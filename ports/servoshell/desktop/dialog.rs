@@ -540,6 +540,7 @@ impl Dialog {
                     })
                     .backdrop_response;
 
+                //FIXME: Doesn't update until you move your mouse or press a key - why?
                 if backdrop_response.clicked() {
                     is_open = false;
                 }
@@ -598,6 +599,7 @@ impl Dialog {
                     })
                     .backdrop_response;
 
+                //FIXME: Doesn't update until you move your mouse or press a key - why?
                 if backdrop_response.clicked() {
                     is_open = false;
                 }
