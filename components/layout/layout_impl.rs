@@ -269,6 +269,15 @@ impl Layout for LayoutThread {
         process_content_box_request(stacking_context_tree, node)
     }
 
+    /// Same as [Layout::query_content_box], but without any layout checking assert. Queries
+    /// without any layout will returns None.
+    #[servo_tracing::instrument(skip_all)]
+    fn query_content_box_unchecked(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        process_content_box_request(stacking_context_tree.as_ref()?, node)
+    }
+
     /// Get a `Vec` of bounding boxes of this node's `Fragement`s in the coordinate space of the
     /// Document. This is used to implement `getClientRects()`.
     ///

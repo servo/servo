@@ -579,8 +579,7 @@ impl Window {
     /// Returns the window proxy of the webview, which is the top-level ancestor browsing context.
     /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
     pub(crate) fn webview_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
-        self.undiscarded_window_proxy()
-            .and_then(|window_proxy| ScriptThread::find_window_proxy(window_proxy.webview_id().0))
+        ScriptThread::find_window_proxy(self.undiscarded_window_proxy()?.webview_id().0)
     }
 
     #[cfg(feature = "bluetooth")]
@@ -2450,16 +2449,20 @@ impl Window {
         )
     }
 
-    // Query content box without considering any reflow
+    /// Query content box without considering any reflow. This is dangerous because we might queried
+    /// the layout that is not yet constructed. But some APIs, specifically its inner working, require
+    /// querying the layout as is, without any reflow.
     pub(crate) fn content_box_query_unchecked(&self, node: &Node) -> Option<UntypedRect<Au>> {
         self.layout
             .borrow()
-            .query_content_box(node.to_trusted_node_address())
+            .query_content_box_unchecked(node.to_trusted_node_address())
     }
 
     pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
         self.layout_reflow(QueryMsg::ContentBox, can_gc);
-        self.content_box_query_unchecked(node)
+        self.layout
+            .borrow()
+            .query_content_box(node.to_trusted_node_address())
     }
 
     pub(crate) fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {
