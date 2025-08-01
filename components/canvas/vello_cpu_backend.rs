@@ -86,6 +86,22 @@ impl VelloCPUDrawTarget {
     fn size(&self) -> Size2D<u32> {
         Size2D::new(self.ctx.width(), self.ctx.height()).cast()
     }
+
+    fn is_viewport_cleared(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) -> bool {
+        let transformed_rect = transform.outer_transformed_rect(rect);
+        if transformed_rect.is_empty() {
+            return false;
+        }
+        let viewport: Rect<f64> = Rect::from_size(self.get_size().cast());
+        let Some(clip) = self.clips.iter().try_fold(viewport, |acc, e| {
+            acc.intersection(&e.0.bounding_box().into())
+        }) else {
+            // clip makes no visible side effects
+            return false;
+        };
+        transformed_rect.cast().contains_rect(&viewport) && // whole viewport is cleared
+            clip.contains_rect(&viewport) // viewport is not clipped
+    }
 }
 
 impl GenericDrawTarget for VelloCPUDrawTarget {
@@ -101,6 +117,13 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     }
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
+        // vello_cpu RenderingContext only ever grows,
+        // so we need to use every opportunity to shrink it
+        if self.is_viewport_cleared(rect, transform) {
+            self.ctx.reset();
+            self.clips.clear(); // no clips are affecting rendering
+            return;
+        }
         let rect: kurbo::Rect = rect.cast().into();
         let mut clip_path = rect.to_path(0.1);
         clip_path.apply_affine(transform.cast().into());
