@@ -84,7 +84,7 @@ fn recv_all_network_events(devtools_port: Receiver<DevtoolsControlMsg>) -> Vec<N
     let mut events = vec![];
     while let Ok(msg) = devtools_port.recv() {
         match msg {
-           DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
+            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                 _,
                 net_event,
             )) => events.push(net_event),
