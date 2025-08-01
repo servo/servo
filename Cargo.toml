@@ -87,7 +87,7 @@ indexmap = { version = "2.10.0", features = ["std"] }
 ipc-channel = "0.20"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
-keyboard-types = "0.7"
+keyboard-types = { version = "0.8.0", features = ["webdriver", "serde"] }
 kurbo = { version = "0.11.3", features = ["euclid"] }
 libc = "0.2"
 log = "0.4"
@@ -168,8 +168,8 @@ unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.12.1", features = ["v4"] }
-vello = { git = "https://github.com/linebender/vello", rev = "daf940230a24cbb123a458b6de95721af47aef98" }
-vello_cpu = { git = "https://github.com/linebender/vello", rev = "daf940230a24cbb123a458b6de95721af47aef98" }
+vello = { git = "https://github.com/linebender/vello", rev = "65975d7612e38c199afaa547268763e1b4b826c9" }
+vello_cpu = { git = "https://github.com/linebender/vello", rev = "65975d7612e38c199afaa547268763e1b4b826c9" }
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"
@@ -180,6 +180,7 @@ wgpu-core = "25"
 wgpu-types = "25"
 winapi = "0.3"
 windows-sys = "0.59"
+winit = "0.30.12"
 wio = "0.2"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.67" }
 xi-unicode = "0.3.0"

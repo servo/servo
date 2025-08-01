@@ -92,6 +92,7 @@ use std::marker::PhantomData;
 use std::mem::replace;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
 use std::{process, thread};
 
 use background_hang_monitor::HangMonitorRegister;
@@ -133,7 +134,7 @@ use embedder_traits::{
     FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
     KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverCommandResponse,
+    WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -141,7 +142,7 @@ use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use keyboard_types::{Key, KeyState, Modifiers};
+use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
@@ -281,6 +282,9 @@ pub struct Constellation<STF, SWF> {
     /// None when in multiprocess mode.
     background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
 
+    /// In single process mode, a join handle on the BHM worker thread.
+    background_monitor_register_join_handle: Option<JoinHandle<()>>,
+
     /// Channels to control all background-hang monitors.
     /// TODO: store them on the relevant BrowsingContextGroup,
     /// so that they could be controlled on a "per-tab/event-loop" basis.
@@ -395,6 +399,9 @@ pub struct Constellation<STF, SWF> {
     /// Pipeline IDs are namespaced in order to avoid name collisions,
     /// and the namespaces are allocated by the constellation.
     next_pipeline_namespace_id: PipelineNamespaceId,
+
+    /// An [`IpcSender`] to notify navigation events to webdriver.
+    webdriver_load_status_sender: Option<(IpcSender<WebDriverLoadStatus>, PipelineId)>,
 
     /// An [`IpcSender`] to forward responses from the `ScriptThread` to the WebDriver server.
     webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
@@ -595,23 +602,28 @@ where
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
-                let (background_monitor_register, background_hang_monitor_control_ipc_senders) =
-                    if opts::get().multiprocess {
-                        (None, vec![])
-                    } else {
-                        let (
-                            background_hang_monitor_control_ipc_sender,
-                            background_hang_monitor_control_ipc_receiver,
-                        ) = ipc::channel().expect("ipc channel failure");
-                        (
-                            Some(HangMonitorRegister::init(
-                                background_hang_monitor_ipc_sender.clone(),
-                                background_hang_monitor_control_ipc_receiver,
-                                opts::get().background_hang_monitor,
-                            )),
-                            vec![background_hang_monitor_control_ipc_sender],
-                        )
-                    };
+                let (
+                    background_monitor_register,
+                    background_monitor_register_join_handle,
+                    background_hang_monitor_control_ipc_senders,
+                ) = if opts::get().multiprocess {
+                    (None, None, vec![])
+                } else {
+                    let (
+                        background_hang_monitor_control_ipc_sender,
+                        background_hang_monitor_control_ipc_receiver,
+                    ) = ipc::channel().expect("ipc channel failure");
+                    let (register, join_handle) = HangMonitorRegister::init(
+                        background_hang_monitor_ipc_sender.clone(),
+                        background_hang_monitor_control_ipc_receiver,
+                        opts::get().background_hang_monitor,
+                    );
+                    (
+                        Some(register),
+                        Some(join_handle),
+                        vec![background_hang_monitor_control_ipc_sender],
+                    )
+                };
 
                 let swmanager_receiver =
                     route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
@@ -636,6 +648,7 @@ where
                     background_hang_monitor_sender: background_hang_monitor_ipc_sender,
                     background_hang_monitor_receiver,
                     background_monitor_register,
+                    background_monitor_register_join_handle,
                     background_monitor_control_senders: background_hang_monitor_control_ipc_senders,
                     script_receiver,
                     compositor_receiver,
@@ -666,6 +679,7 @@ where
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
+                    webdriver_load_status_sender: None,
                     webdriver_input_command_reponse_sender: None,
                     document_states: HashMap::new(),
                     #[cfg(feature = "webgpu")]
@@ -1254,6 +1268,12 @@ where
                         if allowed {
                             self.load_url(webview_id, pipeline_id, load_data, history_handling);
                         } else {
+                            if let Some((sender, id)) = &self.webdriver_load_status_sender {
+                                if pipeline_id == *id {
+                                    let _ = sender.send(WebDriverLoadStatus::NavigationStop);
+                                }
+                            }
+
                             let pipeline_is_top_level_pipeline = self
                                 .browsing_contexts
                                 .get(&BrowsingContextId::from(webview_id))
@@ -2430,14 +2450,12 @@ where
         // even when currently hanging(on JS or sync XHR).
         // This must be done before starting the process of closing all pipelines.
         for chan in &self.background_monitor_control_senders {
-            let (exit_ipc_sender, exit_ipc_receiver) =
-                ipc::channel().expect("Failed to create IPC channel!");
-            if let Err(e) = chan.send(BackgroundHangMonitorControlMsg::Exit(exit_ipc_sender)) {
+            // Note: the bhm worker thread will continue to run
+            // until all monitored components have exited,
+            // at which point we can join on the thread(done in `handle_shutdown`).
+            if let Err(e) = chan.send(BackgroundHangMonitorControlMsg::Exit) {
                 warn!("error communicating with bhm: {}", e);
                 continue;
-            }
-            if exit_ipc_receiver.recv().is_err() {
-                warn!("Failed to receive exit confirmation from BHM.");
             }
         }
 
@@ -2497,6 +2515,14 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_shutdown(&mut self) {
         debug!("Handling shutdown.");
+
+        // In single process mode, join on the background hang monitor worker thread.
+        drop(self.background_monitor_register.take());
+        if let Some(join_handle) = self.background_monitor_register_join_handle.take() {
+            join_handle
+                .join()
+                .expect("Failed to join on the BHM background thread.");
+        }
 
         // At this point, there are no active pipelines,
         // so we can safely block on other threads, without worrying about deadlock.
@@ -2809,6 +2835,7 @@ where
         }
     }
 
+    #[allow(deprecated)]
     fn update_active_keybord_modifiers(&mut self, event: &KeyboardEvent) {
         self.active_keyboard_modifiers = event.event.modifiers;
 
@@ -2816,23 +2843,27 @@ where
         // either pressed or released, but `active_keyboard_modifiers` should track the subsequent
         // state. If this event will update that state, we need to ensure that we are tracking what
         // the event changes.
-        let modified_modifier = match event.event.key {
-            Key::Alt => Modifiers::ALT,
-            Key::AltGraph => Modifiers::ALT_GRAPH,
-            Key::CapsLock => Modifiers::CAPS_LOCK,
-            Key::Control => Modifiers::CONTROL,
-            Key::Fn => Modifiers::FN,
-            Key::FnLock => Modifiers::FN_LOCK,
-            Key::Meta => Modifiers::META,
-            Key::NumLock => Modifiers::NUM_LOCK,
-            Key::ScrollLock => Modifiers::SCROLL_LOCK,
-            Key::Shift => Modifiers::SHIFT,
-            Key::Symbol => Modifiers::SYMBOL,
-            Key::SymbolLock => Modifiers::SYMBOL_LOCK,
-            Key::Hyper => Modifiers::HYPER,
+        let Key::Named(named_key) = event.event.key else {
+            return;
+        };
+
+        let modified_modifier = match named_key {
+            NamedKey::Alt => Modifiers::ALT,
+            NamedKey::AltGraph => Modifiers::ALT_GRAPH,
+            NamedKey::CapsLock => Modifiers::CAPS_LOCK,
+            NamedKey::Control => Modifiers::CONTROL,
+            NamedKey::Fn => Modifiers::FN,
+            NamedKey::FnLock => Modifiers::FN_LOCK,
+            NamedKey::Meta => Modifiers::META,
+            NamedKey::NumLock => Modifiers::NUM_LOCK,
+            NamedKey::ScrollLock => Modifiers::SCROLL_LOCK,
+            NamedKey::Shift => Modifiers::SHIFT,
+            NamedKey::Symbol => Modifiers::SYMBOL,
+            NamedKey::SymbolLock => Modifiers::SYMBOL_LOCK,
+            NamedKey::Hyper => Modifiers::HYPER,
             // The web doesn't make a distinction between these keys (there is only
             // "meta") so map "super" to "meta".
-            Key::Super => Modifiers::META,
+            NamedKey::Super => Modifiers::META,
             _ => return,
         };
         match event.event.state {
@@ -3518,7 +3549,12 @@ where
                 };
                 if let Err(e) = result {
                     self.handle_send_error(parent_pipeline_id, e);
+                } else if let Some((sender, id)) = &self.webdriver_load_status_sender {
+                    if source_id == *id {
+                        let _ = sender.send(WebDriverLoadStatus::NavigationStop);
+                    }
                 }
+
                 None
             },
             None => {
@@ -4414,6 +4450,17 @@ where
                     .get(&browsing_context_id)
                     .expect("ScriptCommand: Browsing context must exist at this point")
                     .pipeline_id;
+
+                match &cmd {
+                    WebDriverScriptCommand::AddLoadStatusSender(_, sender) => {
+                        self.webdriver_load_status_sender = Some((sender.clone(), pipeline_id));
+                    },
+                    WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
+                        self.webdriver_load_status_sender = None;
+                    },
+                    _ => {},
+                };
+
                 let control_msg = ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, cmd);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(control_msg),

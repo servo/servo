@@ -79,6 +79,21 @@ fn recv_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHt
         other => panic!("Expected NetworkEvent but got: {:?}", other),
     }
 }
+
+fn recv_all_network_events(devtools_port: Receiver<DevtoolsControlMsg>) -> Vec<NetworkEvent> {
+    let mut events = vec![];
+    while let Ok(msg) = devtools_port.recv() {
+        match msg {
+            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
+                _,
+                net_event,
+            )) => events.push(net_event),
+            other => panic!("Expected NetworkEvent but got: {:?}", other),
+        }
+    }
+    events
+}
+
 pub fn expect_devtools_http_request(
     devtools_port: &Receiver<DevtoolsControlMsg>,
 ) -> (DevtoolsHttpRequest, DevtoolsHttpRequest) {
@@ -86,6 +101,46 @@ pub fn expect_devtools_http_request(
         recv_http_request(devtools_port),
         recv_http_request(devtools_port),
     )
+}
+
+fn pluck<F: Fn(&NetworkEvent) -> bool>(events: &mut Vec<NetworkEvent>, f: F) -> NetworkEvent {
+    let Some(idx) = events.iter().position(f) else {
+        panic!("No matching network event")
+    };
+    events.remove(idx)
+}
+
+#[track_caller]
+fn expect_request(events: &mut Vec<NetworkEvent>) -> DevtoolsHttpRequest {
+    let event = pluck(events, |event| {
+        matches!(event, NetworkEvent::HttpRequest(_))
+    });
+    match event {
+        NetworkEvent::HttpRequest(req) => req,
+        _ => unreachable!(),
+    }
+}
+
+#[track_caller]
+fn expect_request_update(events: &mut Vec<NetworkEvent>) -> DevtoolsHttpRequest {
+    let event = pluck(events, |event| {
+        matches!(event, NetworkEvent::HttpRequestUpdate(_))
+    });
+    match event {
+        NetworkEvent::HttpRequestUpdate(req) => req,
+        _ => unreachable!(),
+    }
+}
+
+#[track_caller]
+fn expect_response(events: &mut Vec<NetworkEvent>) -> DevtoolsHttpResponse {
+    let event = pluck(events, |event| {
+        matches!(event, NetworkEvent::HttpResponse(_))
+    });
+    match event {
+        NetworkEvent::HttpResponse(resp) => resp,
+        _ => unreachable!(),
+    }
 }
 
 pub fn expect_devtools_http_response(
@@ -441,22 +496,29 @@ fn test_redirected_request_to_devtools() {
     let _ = pre_server.close();
     let _ = post_server.close();
 
-    let devhttprequests = expect_devtools_http_request(&devtools_port);
-    let devhttpresponse = expect_devtools_http_response(&devtools_port);
+    let mut events = recv_all_network_events(devtools_port);
+    let first_request = expect_request(&mut events);
+    let first_request_update = expect_request_update(&mut events);
+    let first_response = expect_response(&mut events);
 
-    assert_eq!(devhttprequests.0.method, Method::POST);
-    assert_eq!(devhttprequests.0.url, pre_url);
+    assert_eq!(first_request.method, Method::POST);
+    assert_eq!(first_request.url, pre_url);
     assert_eq!(
-        devhttpresponse.status,
+        first_response.status,
         HttpStatus::from(StatusCode::MOVED_PERMANENTLY)
     );
+    assert_eq!(first_request.method, first_request_update.method);
+    assert_eq!(first_request.url, first_request_update.url);
 
-    let devhttprequests = expect_devtools_http_request(&devtools_port);
-    let devhttpresponse = expect_devtools_http_response(&devtools_port);
+    let second_request = expect_request(&mut events);
+    let second_request_update = expect_request_update(&mut events);
+    let second_response = expect_response(&mut events);
 
-    assert_eq!(devhttprequests.0.method, Method::GET);
-    assert_eq!(devhttprequests.0.url, post_url);
-    assert_eq!(devhttpresponse.status, HttpStatus::default());
+    assert_eq!(second_request.method, Method::GET);
+    assert_eq!(second_request.url, post_url);
+    assert_eq!(second_response.status, HttpStatus::default());
+    assert_eq!(second_request.method, second_request_update.method);
+    assert_eq!(second_request.url, second_request_update.url);
 }
 
 #[test]

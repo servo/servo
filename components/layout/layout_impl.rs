@@ -75,7 +75,7 @@ use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use url::Url;
-use webrender_api::units::{DevicePixel, DevicePoint, LayoutSize, LayoutVector2D};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
@@ -253,16 +253,34 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
+    /// Return the union of this node's content boxes in the coordinate space of the Document.
+    /// to implement `getBoundingClientRect()`.
+    ///
+    /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>
+    /// TODO(stevennovaryo): Rename and parameterize the function, allowing padding area
+    ///                      query and possibly, query without consideration of transform.
     #[servo_tracing::instrument(skip_all)]
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_box_request(node)
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let stacking_context_tree = stacking_context_tree
+            .as_ref()
+            .expect("Should always have a StackingContextTree for geometry queries");
+        process_content_box_request(stacking_context_tree, node)
     }
 
+    /// Get a `Vec` of bounding boxes of this node's `Fragement`s in the coordinate space of the
+    /// Document. This is used to implement `getClientRects()`.
+    ///
+    /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_boxes_request(node)
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let stacking_context_tree = stacking_context_tree
+            .as_ref()
+            .expect("Should always have a StackingContextTree for geometry queries");
+        process_content_boxes_request(stacking_context_tree, node)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -633,18 +651,30 @@ impl LayoutThread {
         );
     }
 
+    /// Checks whether we need to update the scroll node, and report whether the
+    /// node is scrolled. We need to update the scroll node whenever it is requested.
+    fn handle_update_scroll_node_request(&self, reflow_request: &ReflowRequest) -> bool {
+        if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) = reflow_request.reflow_goal
+        {
+            self.set_scroll_offset_from_script(external_scroll_id, offset)
+        } else {
+            false
+        }
+    }
+
     /// The high-level routine that performs layout.
     #[servo_tracing::instrument(skip_all)]
     fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
         self.maybe_print_reflow_event(&reflow_request);
 
         if self.can_skip_reflow_request_entirely(&reflow_request) {
-            if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) =
-                reflow_request.reflow_goal
-            {
-                self.set_scroll_offset_from_script(external_scroll_id, offset);
-            }
-            return None;
+            // We could skip the layout, but we might need to update the scroll node.
+            let update_scroll_reflow_target_scrolled =
+                self.handle_update_scroll_node_request(&reflow_request);
+
+            return Some(ReflowResult::new_without_relayout(
+                update_scroll_reflow_target_scrolled,
+            ));
         }
 
         let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
@@ -674,10 +704,8 @@ impl LayoutThread {
         self.build_stacking_context_tree(&reflow_request, damage);
         let built_display_list = self.build_display_list(&reflow_request, damage, &image_resolver);
 
-        if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) = reflow_request.reflow_goal
-        {
-            self.set_scroll_offset_from_script(external_scroll_id, offset);
-        }
+        let update_scroll_reflow_target_scrolled =
+            self.handle_update_scroll_node_request(&reflow_request);
 
         let pending_images = std::mem::take(&mut *image_resolver.pending_images.lock());
         let pending_rasterization_images =
@@ -687,7 +715,9 @@ impl LayoutThread {
             built_display_list,
             pending_images,
             pending_rasterization_images,
-            iframe_sizes,
+            iframe_sizes: Some(iframe_sizes),
+            update_scroll_reflow_target_scrolled,
+            processed_relayout: true,
         })
     }
 
@@ -960,12 +990,6 @@ impl LayoutThread {
             return;
         }
 
-        let viewport_size = self.stylist.device().au_viewport_size();
-        let viewport_size = LayoutSize::new(
-            viewport_size.width.to_f32_px(),
-            viewport_size.height.to_f32_px(),
-        );
-
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let old_scroll_offsets = stacking_context_tree
             .as_ref()
@@ -976,7 +1000,7 @@ impl LayoutThread {
         // applicable spatial and clip nodes.
         let mut new_stacking_context_tree = StackingContextTree::new(
             fragment_tree,
-            viewport_size,
+            reflow_request.viewport_details,
             self.id.into(),
             !self.have_ever_generated_display_list.get(),
             &self.debug,
@@ -1081,10 +1105,10 @@ impl LayoutThread {
         &self,
         external_scroll_id: ExternalScrollId,
         offset: LayoutVector2D,
-    ) {
+    ) -> bool {
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
-            return;
+            return false;
         };
 
         if let Some(offset) = stacking_context_tree
@@ -1102,6 +1126,9 @@ impl LayoutThread {
                 offset,
                 external_scroll_id,
             );
+            true
+        } else {
+            false
         }
     }
 
@@ -1437,12 +1464,11 @@ impl ReflowPhases {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
-                QueryMsg::ResolvedStyleQuery | QueryMsg::ScrollingAreaOrOffsetQuery => {
-                    Self::StackingContextTreeConstruction
-                },
-                QueryMsg::ClientRectQuery |
                 QueryMsg::ContentBox |
                 QueryMsg::ContentBoxes |
+                QueryMsg::ResolvedStyleQuery |
+                QueryMsg::ScrollingAreaOrOffsetQuery => Self::StackingContextTreeConstruction,
+                QueryMsg::ClientRectQuery |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::OffsetParentQuery |

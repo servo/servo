@@ -46,9 +46,15 @@ pub(crate) fn deserialize_as_timeouts_configuration(
                     })? as u64;
                 },
                 "script" => {
-                    config.script = Some(value.as_f64().ok_or_else(|| {
-                        WebDriverError::new(ErrorStatus::InvalidArgument, "Invalid script timeout")
-                    })? as u64);
+                    config.script = match value {
+                        Value::Null => None,
+                        _ => Some(value.as_f64().ok_or_else(|| {
+                            WebDriverError::new(
+                                ErrorStatus::InvalidArgument,
+                                "Invalid script timeout",
+                            )
+                        })? as u64),
+                    };
                 },
                 _ => {
                     return Err(WebDriverError::new(
@@ -69,9 +75,7 @@ pub(crate) fn deserialize_as_timeouts_configuration(
 
 pub(crate) fn serialize_timeouts_configuration(timeouts: &TimeoutsConfiguration) -> Value {
     let mut map = serde_json::Map::new();
-    if let Some(script_timeout) = timeouts.script {
-        map.insert("script".to_string(), Value::from(script_timeout));
-    }
+    map.insert("script".to_string(), Value::from(timeouts.script));
     map.insert("pageLoad".to_string(), Value::from(timeouts.page_load));
     map.insert("implicit".to_string(), Value::from(timeouts.implicit_wait));
     Value::Object(map)

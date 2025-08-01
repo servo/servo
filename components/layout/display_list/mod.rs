@@ -42,8 +42,8 @@ use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
     self as wr, BorderDetails, BoxShadowClipMode, BuiltDisplayList, ClipChainId, ClipMode,
-    CommonItemProperties, ComplexClipRegion, ImageRendering, NinePatchBorder,
-    NinePatchBorderSource, PropertyBinding, SpatialId, SpatialTreeItemKey, units,
+    CommonItemProperties, ComplexClipRegion, NinePatchBorder, NinePatchBorderSource,
+    PropertyBinding, SpatialId, SpatialTreeItemKey, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -1362,7 +1362,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build_collapsed_table_borders(&mut self, builder: &mut DisplayListBuilder) {
         let Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(table_info)) =
-            &self.fragment.specific_layout_info
+            self.fragment.specific_layout_info()
         else {
             return;
         };
@@ -1501,7 +1501,8 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                 width = size.width;
                 height = size.height;
-                NinePatchBorderSource::Image(key, ImageRendering::Auto)
+                let image_rendering = self.fragment.style.clone_image_rendering().to_webrender();
+                NinePatchBorderSource::Image(key, image_rendering)
             },
             Ok(ResolvedImage::Gradient(gradient)) => {
                 match gradient::build(&self.fragment.style, gradient, border_image_size, builder) {
@@ -1552,13 +1553,19 @@ impl<'a> BuilderForBoxFragment<'a> {
         if width == 0.0 {
             return;
         }
-        let offset = outline
-            .outline_offset
-            .px()
-            .max(-self.border_rect.width() / 2.0)
-            .max(-self.border_rect.height() / 2.0) +
-            width;
-        let outline_rect = self.border_rect.inflate(offset, offset);
+        // <https://drafts.csswg.org/css-ui-3/#outline-offset>
+        // > Negative values must cause the outline to shrink into the border box. Both
+        // > the height and the width of outside of the shape drawn by the outline should
+        // > not become smaller than twice the computed value of the outline-width
+        // > property, to make sure that an outline can be rendered even with large
+        // > negative values. User agents should apply this constraint independently in
+        // > each dimension. If the outline is drawn as multiple disconnected shapes, this
+        // > constraint applies to each shape separately.
+        let offset = outline.outline_offset.px() + width;
+        let outline_rect = self.border_rect.inflate(
+            offset.max(-self.border_rect.width() / 2.0 + width),
+            offset.max(-self.border_rect.height() / 2.0 + width),
+        );
         let common = builder.common_properties(outline_rect, &self.fragment.style);
         let widths = SideOffsets2D::new_all_same(width);
         let border_style = match outline.outline_style {

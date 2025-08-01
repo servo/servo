@@ -85,7 +85,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use javascript_evaluator::JavaScriptEvaluator;
 pub use keyboard_types::{
-    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers,
+    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
 };
 use layout::LayoutFactoryImpl;
 use log::{Log, Metadata, Record, debug, error, warn};
@@ -1258,7 +1258,8 @@ pub fn run_content_process(token: String) {
 
             set_logger(content.script_to_constellation_chan().clone());
 
-            let background_hang_monitor_register = content.register_with_background_hang_monitor();
+            let (background_hang_monitor_register, join_handle) =
+                content.register_with_background_hang_monitor();
             let layout_factory = Arc::new(LayoutFactoryImpl());
 
             content.register_system_memory_reporter();
@@ -1268,6 +1269,14 @@ pub fn run_content_process(token: String) {
                 layout_factory,
                 background_hang_monitor_register,
             );
+
+            // Since wait_for_completion is true,
+            // here we know that the script-thread
+            // will exit(or already has),
+            // and so we can join on the BHM worker thread.
+            join_handle
+                .join()
+                .expect("Failed to join on the BHM background thread.");
         },
         UnprivilegedContent::ServiceWorker(content) => {
             content.start::<ServiceWorkerManager>();

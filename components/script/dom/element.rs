@@ -2476,6 +2476,7 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
     pub(crate) fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior, can_gc: CanGc) {
         // Step 1.2 or 2.3
         let x = if x_.is_finite() { x_ } else { 0.0f64 };
@@ -2524,7 +2525,7 @@ impl Element {
         }
 
         // Step 11
-        win.scroll_node(node, x, y, behavior, can_gc);
+        win.scroll_an_element(self, x, y, behavior, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-parsing-algorithm-steps>
@@ -3180,6 +3181,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
+    // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
     fn SetScrollTop(&self, y_: f64, can_gc: CanGc) {
         let behavior = ScrollBehavior::Auto;
 
@@ -3229,7 +3231,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 11
-        win.scroll_node(node, self.ScrollLeft(can_gc), y, behavior, can_gc);
+        win.scroll_an_element(self, self.ScrollLeft(can_gc), y, behavior, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
@@ -3329,7 +3331,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 11
-        win.scroll_node(node, x, self.ScrollTop(can_gc), behavior, can_gc);
+        win.scroll_an_element(self, x, self.ScrollTop(can_gc), behavior, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth

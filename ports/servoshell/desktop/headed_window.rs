@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
-use keyboard_types::{Modifiers, ShortcutMatcher};
+use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_config::pref;
@@ -21,11 +21,11 @@ use servo::servo_geometry::{
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
-    OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType,
-    TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode,
-    WindowRenderingContext,
+    Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, Modifiers,
+    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeaveEvent,
+    MouseMoveEvent, NamedKey, OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme,
+    TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent,
+    WheelMode, WindowRenderingContext,
 };
 use surfman::{Context, Device};
 use url::Url;
@@ -34,7 +34,7 @@ use winit::event::{
     ElementState, Ime, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
 };
 use winit::event_loop::ActiveEventLoop;
-use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
+use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey as WinitNamedKey};
 #[cfg(target_os = "linux")]
 use winit::platform::wayland::WindowAttributesExtWayland;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -58,13 +58,13 @@ use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     screen_size: Size2D<u32, DeviceIndependentPixel>,
-    /// The inner size of the window in physical pixels which excludes OS decorations.
-    /// It equals viewport size + (0, toolbar height).
-    inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     monitor: winit::monitor::MonitorHandle,
     webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
     last_pressed: Cell<Option<(KeyboardEvent, Option<LogicalKey>)>>,
+    /// The inner size of the window in physical pixels which excludes OS decorations.
+    /// It equals viewport size + (0, toolbar height).
+    inner_size: Cell<PhysicalSize<u32>>,
     /// A map of winit's key codes to key values that are interpreted from
     /// winit's ReceivedChar events.
     keys_down: RefCell<HashMap<LogicalKey, Key>>,
@@ -73,15 +73,13 @@ pub struct Window {
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
     modifiers_state: Cell<ModifiersState>,
 
+    /// The `RenderingContext` of Servo itself. This is used to render Servo results
+    /// temporarily until they can be blitted into the egui scene.
+    rendering_context: Rc<OffscreenRenderingContext>,
     /// The RenderingContext that renders directly onto the Window. This is used as
     /// the target of egui rendering and also where Servo rendering results are finally
     /// blitted.
     window_rendering_context: Rc<WindowRenderingContext>,
-
-    /// The `RenderingContext` of Servo itself. This is used to render Servo results
-    /// temporarily until they can be blitted into the egui scene.
-    rendering_context: Rc<OffscreenRenderingContext>,
-
     // Keep this as the last field of the struct to ensure that the rendering context is
     // dropped first.
     // (https://github.com/servo/servo/issues/36711)
@@ -240,7 +238,7 @@ impl Window {
         }
 
         if keyboard_event.event.state == KeyState::Down &&
-            keyboard_event.event.key == Key::Unidentified
+            keyboard_event.event.key == Key::Named(NamedKey::Unidentified)
         {
             // If pressed and probably printable, we expect a ReceivedCharacter event.
             // Wait for that to be received and don't queue any event right now.
@@ -248,7 +246,7 @@ impl Window {
                 .set(Some((keyboard_event, Some(winit_event.logical_key))));
             return;
         } else if keyboard_event.event.state == KeyState::Up &&
-            keyboard_event.event.key == Key::Unidentified
+            keyboard_event.event.key == Key::Named(NamedKey::Unidentified)
         {
             // If release and probably printable, this is following a ReceiverCharacter event.
             if let Some(key) = self.keys_down.borrow_mut().remove(&winit_event.logical_key) {
@@ -256,7 +254,7 @@ impl Window {
             }
         }
 
-        if keyboard_event.event.key != Key::Unidentified {
+        if keyboard_event.event.key != Key::Named(NamedKey::Unidentified) {
             self.last_pressed.set(None);
             let xr_poses = self.xr_window_poses.borrow();
             for xr_window_pose in &*xr_poses {
@@ -335,19 +333,19 @@ impl Window {
                 focused_webview
                     .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Paste))
             })
-            .shortcut(Modifiers::CONTROL, Key::F9, || {
+            .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F9), || {
                 focused_webview.capture_webrender();
             })
-            .shortcut(Modifiers::CONTROL, Key::F10, || {
+            .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F10), || {
                 focused_webview.toggle_webrender_debugging(WebRenderDebugOption::RenderTargetDebug);
             })
-            .shortcut(Modifiers::CONTROL, Key::F11, || {
+            .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F11), || {
                 focused_webview.toggle_webrender_debugging(WebRenderDebugOption::TextureCacheDebug);
             })
-            .shortcut(Modifiers::CONTROL, Key::F12, || {
+            .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F12), || {
                 focused_webview.toggle_webrender_debugging(WebRenderDebugOption::Profiler);
             })
-            .shortcut(CMD_OR_ALT, Key::ArrowRight, || {
+            .shortcut(CMD_OR_ALT, Key::Named(NamedKey::ArrowRight), || {
                 focused_webview.go_forward(1);
             })
             .optional_shortcut(
@@ -358,7 +356,7 @@ impl Window {
                     focused_webview.go_forward(1);
                 },
             )
-            .shortcut(CMD_OR_ALT, Key::ArrowLeft, || {
+            .shortcut(CMD_OR_ALT, Key::Named(NamedKey::ArrowLeft), || {
                 focused_webview.go_back(1);
             })
             .optional_shortcut(
@@ -372,7 +370,7 @@ impl Window {
             .optional_shortcut(
                 self.get_fullscreen(),
                 Modifiers::empty(),
-                Key::Escape,
+                Key::Named(NamedKey::Escape),
                 || focused_webview.exit_fullscreen(),
             )
             // Select the first 8 tabs via shortcuts
@@ -391,12 +389,12 @@ impl Window {
                     state.focus_webview_by_index(len - 1)
                 }
             })
-            .shortcut(Modifiers::CONTROL, Key::PageDown, || {
+            .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::PageDown), || {
                 if let Some(index) = state.get_focused_webview_index() {
                     state.focus_webview_by_index((index + 1) % state.webviews().len())
                 }
             })
-            .shortcut(Modifiers::CONTROL, Key::PageUp, || {
+            .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::PageUp), || {
                 if let Some(index) = state.get_focused_webview_index() {
                     let new_index = if index == 0 {
                         state.webviews().len() - 1
@@ -681,18 +679,19 @@ impl WindowPortsMethods for Window {
             WindowEvent::CloseRequested => {
                 state.servo().start_shutting_down();
             },
-            WindowEvent::Resized(new_inner_size) => {
-                if self.inner_size.get() != new_inner_size {
-                    self.inner_size.set(new_inner_size);
-                    // `WebView::move_resize` was already called in `Minibrowser::update`.
-                    self.window_rendering_context.resize(new_inner_size);
-                }
-            },
             WindowEvent::ThemeChanged(theme) => {
                 webview.notify_theme_change(match theme {
                     winit::window::Theme::Light => Theme::Light,
                     winit::window::Theme::Dark => Theme::Dark,
                 });
+            },
+            WindowEvent::Resized(new_inner_size) => {
+                if self.inner_size.get() != new_inner_size {
+                    // This should always be set to inner size
+                    // because we are resizing `SurfmanRenderingContext`.
+                    // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
+                    self.window_rendering_context.resize(new_inner_size);
+                }
             },
             WindowEvent::Ime(ime) => match ime {
                 Ime::Enabled => {
@@ -927,10 +926,10 @@ impl XRWindowPose {
         let mut x = 0.0;
         let mut y = 0.0;
         match input.logical_key {
-            LogicalKey::Named(NamedKey::ArrowUp) => x = 1.0,
-            LogicalKey::Named(NamedKey::ArrowDown) => x = -1.0,
-            LogicalKey::Named(NamedKey::ArrowLeft) => y = 1.0,
-            LogicalKey::Named(NamedKey::ArrowRight) => y = -1.0,
+            LogicalKey::Named(WinitNamedKey::ArrowUp) => x = 1.0,
+            LogicalKey::Named(WinitNamedKey::ArrowDown) => x = -1.0,
+            LogicalKey::Named(WinitNamedKey::ArrowLeft) => y = 1.0,
+            LogicalKey::Named(WinitNamedKey::ArrowRight) => y = -1.0,
             _ => return,
         };
         if modifiers.shift_key() {

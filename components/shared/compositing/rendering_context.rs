@@ -381,6 +381,7 @@ impl RenderingContext for SoftwareRenderingContext {
 /// If you would like to paint to only a portion of the window, consider using
 /// [`OffscreenRenderingContext`] by calling [`WindowRenderingContext::offscreen_context`].
 pub struct WindowRenderingContext {
+    /// The inner size of the window in physical pixels which excludes OS decorations.
     size: Cell<PhysicalSize<u32>>,
     surfman_context: SurfmanRenderingContext,
 }

@@ -133,6 +133,7 @@ use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::servoparser::{ParserContext, ServoParser};
+use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
@@ -348,6 +349,8 @@ pub struct ScriptThread {
     /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
     /// animation tick.
     has_pending_animation_tick: Arc<AtomicBool>,
+
+    debugger_global: Dom<DebuggerGlobalScope>,
 }
 
 struct BHMExitSignal {
@@ -892,7 +895,7 @@ impl ScriptThread {
             MonitoredComponentId(state.id, MonitoredComponentType::Script),
             Duration::from_millis(1000),
             Duration::from_millis(5000),
-            Some(Box::new(background_hang_monitor_exit_signal)),
+            Box::new(background_hang_monitor_exit_signal),
         );
 
         let (image_cache_sender, image_cache_receiver) = unbounded();
@@ -928,6 +931,30 @@ impl ScriptThread {
             content_process_shutdown_sender: state.content_process_shutdown_sender,
         };
 
+        let microtask_queue = runtime.microtask_queue.clone();
+        let js_runtime = Rc::new(runtime);
+        #[cfg(feature = "webgpu")]
+        let gpu_id_hub = Arc::new(IdentityHub::default());
+
+        let pipeline_id = PipelineId::new();
+        let script_to_constellation_chan = ScriptToConstellationChan {
+            sender: senders.pipeline_to_constellation_sender.clone(),
+            pipeline_id,
+        };
+        let debugger_global = DebuggerGlobalScope::new(
+            &js_runtime.clone(),
+            senders.self_sender.clone(),
+            senders.devtools_server_sender.clone(),
+            senders.memory_profiler_sender.clone(),
+            senders.time_profiler_sender.clone(),
+            script_to_constellation_chan,
+            state.resource_threads.clone(),
+            #[cfg(feature = "webgpu")]
+            gpu_id_hub.clone(),
+            CanGc::note(),
+        );
+        debugger_global.execute(CanGc::note());
+
         ScriptThread {
             documents: DomRefCell::new(DocumentCollection::default()),
             last_render_opportunity_time: Default::default(),
@@ -942,8 +969,8 @@ impl ScriptThread {
             background_hang_monitor,
             closing,
             timer_scheduler: Default::default(),
-            microtask_queue: runtime.microtask_queue.clone(),
-            js_runtime: Rc::new(runtime),
+            microtask_queue,
+            js_runtime,
             topmost_mouse_over_target: MutNullableDom::new(Default::default()),
             closed_pipelines: DomRefCell::new(HashSet::new()),
             mutation_observer_microtask_queued: Default::default(),
@@ -967,12 +994,13 @@ impl ScriptThread {
             pipeline_to_node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
             #[cfg(feature = "webgpu")]
-            gpu_id_hub: Arc::new(IdentityHub::default()),
+            gpu_id_hub,
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
             scheduled_script_thread_animation_timer: Default::default(),
             has_pending_animation_tick: Arc::new(AtomicBool::new(false)),
+            debugger_global: debugger_global.as_traced(),
         }
     }
 
@@ -1091,11 +1119,7 @@ impl ScriptThread {
         for event in document.take_pending_input_events().into_iter() {
             document.update_active_keyboard_modifiers(event.active_keyboard_modifiers);
 
-            // We do this now, because the event is consumed below, but the order doesn't really
-            // matter as the event will be handled before any new ScriptThread messages are processed.
-            self.notify_webdriver_input_event_completed(pipeline_id, &event.event);
-
-            match event.event {
+            match event.event.clone() {
                 InputEvent::MouseButton(mouse_button_event) => {
                     document.handle_mouse_button_event(mouse_button_event, &event, can_gc);
                 },
@@ -1151,21 +1175,37 @@ impl ScriptThread {
                     document.handle_embedder_scroll_event(scroll_event);
                 },
             }
+
+            self.notify_webdriver_input_event_completed(pipeline_id, event.event, &document);
         }
         ScriptThread::set_user_interacting(false);
     }
 
-    fn notify_webdriver_input_event_completed(&self, pipeline_id: PipelineId, event: &InputEvent) {
+    fn notify_webdriver_input_event_completed(
+        &self,
+        pipeline_id: PipelineId,
+        event: InputEvent,
+        document: &Document,
+    ) {
         let Some(id) = event.webdriver_message_id() else {
             return;
         };
 
-        if let Err(error) = self.senders.pipeline_to_constellation_sender.send((
-            pipeline_id,
-            ScriptToConstellationMessage::WebDriverInputComplete(id),
-        )) {
-            warn!("ScriptThread failed to send WebDriverInputComplete {id:?}: {error:?}",);
-        }
+        let sender = self.senders.pipeline_to_constellation_sender.clone();
+
+        // Webdriver should be notified once all current dom events have been processed.
+        document
+            .owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(notify_webdriver_input_event_completed: move || {
+                if let Err(error) = sender.send((
+                    pipeline_id,
+                    ScriptToConstellationMessage::WebDriverInputComplete(id),
+                )) {
+                    warn!("ScriptThread failed to send WebDriverInputComplete {id:?}: {error:?}",);
+                }
+            }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
@@ -1255,8 +1295,14 @@ impl ScriptThread {
             self.process_pending_input_events(*pipeline_id, can_gc);
 
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
-            if document.window().run_the_resize_steps(can_gc) {
-                // Evaluate media queries and report changes.
+            let resized = document.window().run_the_resize_steps(can_gc);
+
+            // > 9. For each doc of docs, run the scroll steps for doc.
+            document.run_the_scroll_steps(can_gc);
+
+            // Media queries is only relevant when there are resizing.
+            if resized {
+                // 10. For each doc of docs, evaluate media queries and report changes for doc.
                 document
                     .window()
                     .evaluate_media_queries_and_report_changes(can_gc);
@@ -1265,9 +1311,6 @@ impl ScriptThread {
                 // As per the spec, this can be run at any time.
                 document.react_to_environment_changes()
             }
-
-            // > 9. For each doc of docs, run the scroll steps for doc.
-            document.run_the_scroll_steps(can_gc);
 
             // > 11. For each doc of docs, update animations and send events for doc, passing
             // > in relative high resolution time given frameTimestamp and doc's relevant
@@ -2516,12 +2559,15 @@ impl ScriptThread {
                 reply,
                 can_gc,
             ),
-            WebDriverScriptCommand::IsDocumentReadyStateComplete(response_sender) => {
-                webdriver_handlers::handle_try_wait_for_document_navigation(
+            WebDriverScriptCommand::AddLoadStatusSender(_, response_sender) => {
+                webdriver_handlers::handle_add_load_status_sender(
                     &documents,
                     pipeline_id,
                     response_sender,
                 )
+            },
+            WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
+                webdriver_handlers::handle_remove_load_status_sender(&documents, pipeline_id)
             },
             _ => (),
         }

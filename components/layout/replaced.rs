@@ -451,7 +451,6 @@ impl ReplacedContents {
         containing_block_for_children: &ContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
         base: &LayoutBoxBase,
-        depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         let writing_mode = base.style.writing_mode;
@@ -472,7 +471,7 @@ impl ReplacedContents {
             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
             content_block_size,
             content_inline_size_for_table: None,
-            depends_on_block_constraints,
+            depends_on_block_constraints: false,
             fragments: self.make_fragments(layout_context, &base.style, size),
             specific_layout_info: None,
         }

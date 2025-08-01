@@ -9,7 +9,7 @@ use std::cmp::min;
 use std::default::Default;
 use std::ops::{Add, AddAssign, Range};
 
-use keyboard_types::{Key, KeyState, Modifiers, ShortcutMatcher};
+use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::clipboard_provider::{ClipboardProvider, EmbedderClipboardProvider};
@@ -921,75 +921,102 @@ impl<T: ClipboardProvider> TextInput<T> {
                 }
                 KeyReaction::DispatchInput
             })
-            .shortcut(Modifiers::empty(), Key::Delete, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Delete), || {
                 if self.delete_char(Direction::Forward) {
                     KeyReaction::DispatchInput
                 } else {
                     KeyReaction::Nothing
                 }
             })
-            .shortcut(Modifiers::empty(), Key::Backspace, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Backspace), || {
                 if self.delete_char(Direction::Backward) {
                     KeyReaction::DispatchInput
                 } else {
                     KeyReaction::Nothing
                 }
             })
-            .optional_shortcut(macos, Modifiers::META, Key::ArrowLeft, || {
-                self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .optional_shortcut(macos, Modifiers::META, Key::ArrowRight, || {
-                self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .optional_shortcut(macos, Modifiers::META, Key::ArrowUp, || {
-                self.adjust_horizontal_to_limit(Direction::Backward, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .optional_shortcut(macos, Modifiers::META, Key::ArrowDown, || {
-                self.adjust_horizontal_to_limit(Direction::Forward, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::ALT, Key::ArrowLeft, || {
+            .optional_shortcut(
+                macos,
+                Modifiers::META,
+                Key::Named(NamedKey::ArrowLeft),
+                || {
+                    self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
+                    KeyReaction::RedrawSelection
+                },
+            )
+            .optional_shortcut(
+                macos,
+                Modifiers::META,
+                Key::Named(NamedKey::ArrowRight),
+                || {
+                    self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
+                    KeyReaction::RedrawSelection
+                },
+            )
+            .optional_shortcut(
+                macos,
+                Modifiers::META,
+                Key::Named(NamedKey::ArrowUp),
+                || {
+                    self.adjust_horizontal_to_limit(Direction::Backward, maybe_select);
+                    KeyReaction::RedrawSelection
+                },
+            )
+            .optional_shortcut(
+                macos,
+                Modifiers::META,
+                Key::Named(NamedKey::ArrowDown),
+                || {
+                    self.adjust_horizontal_to_limit(Direction::Forward, maybe_select);
+                    KeyReaction::RedrawSelection
+                },
+            )
+            .shortcut(Modifiers::ALT, Key::Named(NamedKey::ArrowLeft), || {
                 self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::ALT, Key::ArrowRight, || {
+            .shortcut(Modifiers::ALT, Key::Named(NamedKey::ArrowRight), || {
                 self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowLeft), || {
                 self.adjust_horizontal_by_one(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::empty(), Key::ArrowRight, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowRight), || {
                 self.adjust_horizontal_by_one(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::empty(), Key::ArrowUp, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowUp), || {
                 self.adjust_vertical(-1, maybe_select);
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::empty(), Key::ArrowDown, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowDown), || {
                 self.adjust_vertical(1, maybe_select);
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::empty(), Key::Enter, || self.handle_return())
-            .optional_shortcut(macos, Modifiers::empty(), Key::Home, || {
-                self.edit_point.index = UTF8Bytes::zero();
-                KeyReaction::RedrawSelection
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Enter), || {
+                self.handle_return()
             })
-            .optional_shortcut(macos, Modifiers::empty(), Key::End, || {
+            .optional_shortcut(
+                macos,
+                Modifiers::empty(),
+                Key::Named(NamedKey::Home),
+                || {
+                    self.edit_point.index = UTF8Bytes::zero();
+                    KeyReaction::RedrawSelection
+                },
+            )
+            .optional_shortcut(macos, Modifiers::empty(), Key::Named(NamedKey::End), || {
                 self.edit_point.index = self.current_line_length();
                 self.assert_ok_selection();
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::empty(), Key::PageUp, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageUp), || {
                 self.adjust_vertical(-28, maybe_select);
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::empty(), Key::PageDown, || {
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageDown), || {
                 self.adjust_vertical(28, maybe_select);
                 KeyReaction::RedrawSelection
             })
@@ -998,7 +1025,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                     self.insert_string(c.as_str());
                     return KeyReaction::DispatchInput;
                 }
-                if matches!(key, Key::Process) {
+                if matches!(key, Key::Named(NamedKey::Process)) {
                     return KeyReaction::DispatchInput;
                 }
                 KeyReaction::Nothing

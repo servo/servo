@@ -13,7 +13,7 @@ use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
-use keyboard_types::Key;
+use keyboard_types::{Key, NamedKey};
 use log::{LevelFilter, debug, error, info, trace, warn};
 use napi_derive_ohos::{module_exports, napi};
 use napi_ohos::bindgen_prelude::Function;
@@ -185,19 +185,19 @@ impl ServoAction {
             InsertText(text) => servo.ime_insert_text(text.clone()),
             ImeDeleteForward(len) => {
                 for _ in 0..*len {
-                    servo.key_down(Key::Delete);
-                    servo.key_up(Key::Delete);
+                    servo.key_down(Key::Named(NamedKey::Delete));
+                    servo.key_up(Key::Named(NamedKey::Delete));
                 }
             },
             ImeDeleteBackward(len) => {
                 for _ in 0..*len {
-                    servo.key_down(Key::Backspace);
-                    servo.key_up(Key::Backspace);
+                    servo.key_down(Key::Named(NamedKey::Backspace));
+                    servo.key_up(Key::Named(NamedKey::Backspace));
                 }
             },
             ImeSendEnter => {
-                servo.key_down(Key::Enter);
-                servo.key_up(Key::Enter);
+                servo.key_down(Key::Named(NamedKey::Enter));
+                servo.key_up(Key::Named(NamedKey::Enter));
             },
             Initialize(_init_opts) => {
                 panic!("Received Initialize event, even though servo is already initialized")

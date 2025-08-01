@@ -146,17 +146,16 @@ pub enum WebDriverCommandMsg {
         Option<Rect<f32, CSSPixel>>,
         IpcSender<Option<RasterImage>>,
     ),
-    /// Create a new webview that loads about:blank. The constellation will use
+    /// Create a new webview that loads about:blank. The embedder will use
     /// the provided channels to return the top level browsing context id
-    /// associated with the new webview, and a notification when the initial
-    /// load is complete.
-    NewWebView(IpcSender<WebViewId>, IpcSender<WebDriverLoadStatus>),
+    /// associated with the new webview, and sets a "load status sender" if provided.
+    NewWebView(IpcSender<WebViewId>, Option<IpcSender<WebDriverLoadStatus>>),
     /// Close the webview associated with the provided id.
     CloseWebView(WebViewId),
     /// Focus the webview associated with the provided id.
     /// Sends back a bool indicating whether the focus was successfully set.
     FocusWebView(WebViewId, IpcSender<bool>),
-    /// Get focused webview.
+    /// Get focused webview. For now, this is only used when start new session.
     GetFocusedWebView(IpcSender<Option<WebViewId>>),
     /// Check whether top-level browsing context is open.
     IsWebViewOpen(WebViewId, IpcSender<bool>),
@@ -170,8 +169,6 @@ pub enum WebDriverCommandMsg {
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),
-    AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
-    RemoveLoadStatusSender(WebViewId),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -248,7 +245,8 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
     /// Deal with the case of input element for Element Send Keys, which does not send keys.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
-    IsDocumentReadyStateComplete(IpcSender<bool>),
+    AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
+    RemoveLoadStatusSender(WebViewId),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -293,8 +291,13 @@ pub struct WebDriverCommandResponse {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverLoadStatus {
+    NavigationStart,
+    // Navigation stops for any reason
+    NavigationStop,
+    // Document ready state is complete
     Complete,
+    // Load timeout
     Timeout,
-    Canceled,
+    // Navigation is blocked by a user prompt
     Blocked,
 }

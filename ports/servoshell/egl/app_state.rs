@@ -7,7 +7,6 @@ use std::rc::Rc;
 
 use dpi::PhysicalSize;
 use ipc_channel::ipc::IpcSender;
-use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::id::WebViewId;
@@ -16,11 +15,12 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, Key, KeyState,
-    KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest,
-    RenderingContext, ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent,
-    TouchEventType, TouchId, WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
+    AllowOrDenyRequest, CompositionEvent, CompositionState, ContextMenuResult, ImeEvent,
+    InputEvent, InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
+    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NamedKey,
+    NavigationRequest, PermissionRequest, RenderingContext, ScreenGeometry, Servo, ServoDelegate,
+    ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewBuilder,
+    WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -613,7 +613,7 @@ impl RunningAppState {
         let active_webview = self.active_webview();
         active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
             KeyState::Down,
-            Key::Process,
+            Key::Named(NamedKey::Process),
         )));
         active_webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
             CompositionEvent {
@@ -623,7 +623,7 @@ impl RunningAppState {
         )));
         active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
             KeyState::Up,
-            Key::Process,
+            Key::Named(NamedKey::Process),
         )));
         self.perform_updates();
     }

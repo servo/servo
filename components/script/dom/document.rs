@@ -41,7 +41,7 @@ use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use keyboard_types::{Code, Key, KeyState, Modifiers};
+use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{
     PendingRestyle, ReflowGoal, RestyleReason, TrustedNodeAddress, node_id_from_scroll_id,
 };
@@ -2413,23 +2413,22 @@ impl Document {
         // Step 2
         // > For each item target in doc’s pending scroll event targets, in the order they
         // > were added to the list, run these substeps:
-        for target in self.pending_scroll_event_targets.borrow().iter() {
-            // Step 2.1
-            // > If target is a Document, fire an event named scroll that bubbles at target.
+        // Step 3.
+        // > Empty doc’s pending scroll event targets.
+        // Since the scroll event callback could trigger another scroll event, we are taking all of the
+        // current scroll event to avoid borrow checking error.
+        rooted_vec!(let notify_list <- self.pending_scroll_event_targets.take().into_iter());
+        for target in notify_list.iter() {
             if target.downcast::<Document>().is_some() {
+                // Step 2.1
+                // > If target is a Document, fire an event named scroll that bubbles at target.
                 target.fire_bubbling_event(Atom::from("scroll"), can_gc);
-            }
-
-            // Step 2.2
-            // > Otherwise, fire an event named scroll at target.
-            if target.downcast::<Element>().is_some() {
+            } else if target.downcast::<Element>().is_some() {
+                // Step 2.2
+                // > Otherwise, fire an event named scroll at target.
                 target.fire_event(Atom::from("scroll"), can_gc);
             }
         }
-
-        // Step 3.
-        // > Empty doc’s pending scroll event targets.
-        self.pending_scroll_event_targets.borrow_mut().clear();
 
         // Step 4.
         // > Run the steps to dispatch pending scrollsnapchange events for doc.
@@ -2548,7 +2547,7 @@ impl Document {
 
         let keyevent = KeyboardEvent::new(
             &self.window,
-            DOMString::from(keyboard_event.event.state.to_string()),
+            DOMString::from(keyboard_event.event.state.event_type()),
             true,
             true,
             Some(&self.window),
@@ -2608,7 +2607,8 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            if (keyboard_event.event.key == Key::Enter || keyboard_event.event.code == Code::Space) &&
+            if (keyboard_event.event.key == Key::Named(NamedKey::Enter) ||
+                keyboard_event.event.code == Code::Space) &&
                 keyboard_event.event.state == KeyState::Up
             {
                 if let Some(elem) = target.downcast::<Element>() {
@@ -2648,7 +2648,7 @@ impl Document {
 
         let compositionevent = CompositionEvent::new(
             &self.window,
-            DOMString::from(composition_event.state.to_string()),
+            DOMString::from(composition_event.state.event_type()),
             true,
             cancelable,
             Some(&self.window),
@@ -3700,7 +3700,9 @@ impl Document {
             receiver.recv().unwrap();
         }
 
-        self.window().reflow(ReflowGoal::UpdateTheRendering, can_gc)
+        self.window()
+            .reflow(ReflowGoal::UpdateTheRendering, can_gc)
+            .reflow_issued
     }
 
     pub(crate) fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
@@ -4044,7 +4046,7 @@ impl Document {
 }
 
 fn is_character_value_key(key: &Key) -> bool {
-    matches!(key, Key::Character(_) | Key::Enter)
+    matches!(key, Key::Character(_) | Key::Named(NamedKey::Enter))
 }
 
 #[derive(MallocSizeOf, PartialEq)]

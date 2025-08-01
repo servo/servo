@@ -114,10 +114,7 @@ use webrender_api::FontInstanceKey;
 use xi_unicode::linebreak_property;
 
 use super::float::{Clear, PlacementAmongFloats};
-use super::{
-    CacheableLayoutResult, IndependentFloatOrAtomicLayoutResult,
-    IndependentFormattingContextContents,
-};
+use super::{CacheableLayoutResult, IndependentFloatOrAtomicLayoutResult};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
@@ -2151,10 +2148,8 @@ impl IndependentFormattingContext {
         match self.style().clone_baseline_source() {
             BaselineSource::First => baselines.first,
             BaselineSource::Last => baselines.last,
-            BaselineSource::Auto => match &self.contents {
-                IndependentFormattingContextContents::Flow(_) => baselines.last,
-                _ => baselines.first,
-            },
+            BaselineSource::Auto if self.is_block_container() => baselines.last,
+            BaselineSource::Auto => baselines.first,
         }
     }
 

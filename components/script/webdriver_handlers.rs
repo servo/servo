@@ -8,7 +8,9 @@ use std::ptr::NonNull;
 
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
-use embedder_traits::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
+use embedder_traits::{
+    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+};
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -26,16 +28,16 @@ use net_traits::CoreResourceMsg::{
 use net_traits::IpcSend;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
+use script_bindings::num::Finite;
 use servo_url::ServoUrl;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 
 use crate::document_collection::DocumentCollection;
+use crate::dom::attr::is_boolean_attribute;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
-};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -1581,9 +1583,18 @@ pub(crate) fn handle_get_attribute(
     reply
         .send(
             get_known_element(documents, pipeline, node_id).map(|element| {
-                element
-                    .GetAttribute(DOMString::from(name))
-                    .map(String::from)
+                if is_boolean_attribute(&name) {
+                    // element.get_attribute_by_name(DOMString::from(name)).map(|_| String::from("true"))
+                    if element.HasAttribute(DOMString::from(name)) {
+                        Some(String::from("true"))
+                    } else {
+                        None
+                    }
+                } else {
+                    element
+                        .GetAttribute(DOMString::from(name))
+                        .map(String::from)
+                }
             }),
         )
         .unwrap();
@@ -1829,10 +1840,16 @@ pub(crate) fn handle_element_click(
                 };
 
                 // Step 5
-                // TODO: scroll into view
+                // TODO: scroll into view is not implemented in Servo
 
-                // Step 6
-                // TODO: return error if still not in view
+                // Step 6. If element's container is still not in view
+                // return error with error code element not interactable.
+                let document = documents
+                    .find_document(pipeline)
+                    .expect("Document existence guaranteed by `get_known_element`");
+                if !is_element_in_view(&element, &document, can_gc) {
+                    return Err(ErrorStatus::ElementNotInteractable);
+                }
 
                 // Step 7
                 // TODO: return error if obscured
@@ -1889,6 +1906,50 @@ pub(crate) fn handle_element_click(
         .unwrap();
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-in-view>
+fn is_element_in_view(element: &Element, document: &Document, can_gc: CanGc) -> bool {
+    use style::computed_values::pointer_events::T as PointerEvents;
+    // https://w3c.github.io/webdriver/#dfn-pointer-events-are-not-disabled
+    // An element is said to have pointer events disabled
+    // if the resolved value of its "pointer-events" style property is "none".
+    let pointer_events_enabled = element
+        .style(can_gc)
+        .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None);
+
+    // An element is in view if it is a member of its own pointer-interactable paint tree,
+    // given the pretense that its pointer events are not disabled.
+    pointer_events_enabled &&
+        get_element_pointer_interactable_paint_tree(element, document, can_gc)
+            .contains(&DomRoot::from_ref(element))
+}
+
+/// <https://w3c.github.io/webdriver/#dfn-pointer-interactable-paint-tree>
+fn get_element_pointer_interactable_paint_tree(
+    element: &Element,
+    document: &Document,
+    can_gc: CanGc,
+) -> Vec<DomRoot<Element>> {
+    // Step 2. Let rectangles be the DOMRect sequence returned by calling getClientRects()
+    let rect = element.GetClientRects(can_gc);
+
+    if rect.first().is_some() {
+        // Step 4. Let center point be the in-view center point of
+        // the first indexed element in rectangles.
+        match get_element_in_view_center_point(element, can_gc) {
+            // Step 5. Return the elements from point given the coordinates center point
+            Some(center_point) => document.ElementsFromPoint(
+                Finite::wrap(center_point.x as f64),
+                Finite::wrap(center_point.y as f64),
+                can_gc,
+            ),
+            None => Vec::new(),
+        }
+    } else {
+        // Step 3. If rectangles has the length of 0, return an empty sequence
+        Vec::new()
+    }
+}
+
 pub(crate) fn handle_is_enabled(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1926,19 +1987,23 @@ pub(crate) fn handle_is_selected(
         .unwrap();
 }
 
-pub(crate) fn handle_try_wait_for_document_navigation(
+pub(crate) fn handle_add_load_status_sender(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<bool>,
+    reply: IpcSender<WebDriverLoadStatus>,
 ) {
-    let document = match documents.find_document(pipeline) {
-        Some(document) => document,
-        None => {
-            return reply.send(false).unwrap();
-        },
-    };
+    if let Some(document) = documents.find_document(pipeline) {
+        let window = document.window();
+        window.set_webdriver_load_status_sender(Some(reply));
+    }
+}
 
-    let wait_for_document_ready = document.ReadyState() != DocumentReadyState::Complete;
-
-    reply.send(wait_for_document_ready).unwrap();
+pub(crate) fn handle_remove_load_status_sender(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+) {
+    if let Some(document) = documents.find_document(pipeline) {
+        let window = document.window();
+        window.set_webdriver_load_status_sender(None);
+    }
 }

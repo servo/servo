@@ -4,13 +4,14 @@
 
 //! Defines data structures which are consumed by the Compositor.
 
+use std::cell::Cell;
 use std::collections::HashMap;
 
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use bitflags::bitflags;
-use embedder_traits::Cursor;
-use euclid::SideOffsets2D;
+use embedder_traits::{Cursor, ViewportDetails};
+use euclid::{SideOffsets2D, Transform3D};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::specified::Overflow;
@@ -85,9 +86,100 @@ pub struct StickyNodeInfo {
     pub horizontal_offset_bounds: StickyOffsetBounds,
 }
 
+impl StickyNodeInfo {
+    /// Calculate the sticky offset for this [`StickyNodeInfo`] given information about
+    /// sticky positioning from its ancestors.
+    ///
+    /// This is originally taken from WebRender `SpatialTree` implementation.
+    fn calculate_sticky_offset(&self, ancestor_sticky_info: &AncestorStickyInfo) -> LayoutVector2D {
+        let viewport_scroll_offset = &ancestor_sticky_info.nearest_scrolling_ancestor_offset;
+        let viewport_rect = &ancestor_sticky_info.nearest_scrolling_ancestor_viewport;
+
+        if self.margins.top.is_none() &&
+            self.margins.bottom.is_none() &&
+            self.margins.left.is_none() &&
+            self.margins.right.is_none()
+        {
+            return LayoutVector2D::zero();
+        }
+
+        // The viewport and margins of the item establishes the maximum amount that it can
+        // be offset in order to keep it on screen. Since we care about the relationship
+        // between the scrolled content and unscrolled viewport we adjust the viewport's
+        // position by the scroll offset in order to work with their relative positions on the
+        // page.
+        let mut sticky_rect = self.frame_rect.translate(*viewport_scroll_offset);
+
+        let mut sticky_offset = LayoutVector2D::zero();
+        if let Some(margin) = self.margins.top {
+            let top_viewport_edge = viewport_rect.min.y + margin;
+            if sticky_rect.min.y < top_viewport_edge {
+                // If the sticky rect is positioned above the top edge of the viewport (plus margin)
+                // we move it down so that it is fully inside the viewport.
+                sticky_offset.y = top_viewport_edge - sticky_rect.min.y;
+            }
+        }
+
+        // If we don't have a sticky-top offset (sticky_offset.y == 0) then we check for
+        // handling the bottom margin case. Note that the "don't have a sticky-top offset"
+        // case includes the case where we *had* a sticky-top offset but we reduced it to
+        // zero in the above block.
+        if sticky_offset.y <= 0.0 {
+            if let Some(margin) = self.margins.bottom {
+                // If sticky_offset.y is nonzero that means we must have set it
+                // in the sticky-top handling code above, so this item must have
+                // both top and bottom sticky margins. We adjust the item's rect
+                // by the top-sticky offset, and then combine any offset from
+                // the bottom-sticky calculation into sticky_offset below.
+                sticky_rect.min.y += sticky_offset.y;
+                sticky_rect.max.y += sticky_offset.y;
+
+                // Same as the above case, but inverted for bottom-sticky items. Here
+                // we adjust items upwards, resulting in a negative sticky_offset.y,
+                // or reduce the already-present upward adjustment, resulting in a positive
+                // sticky_offset.y.
+                let bottom_viewport_edge = viewport_rect.max.y - margin;
+                if sticky_rect.max.y > bottom_viewport_edge {
+                    sticky_offset.y += bottom_viewport_edge - sticky_rect.max.y;
+                }
+            }
+        }
+
+        // Same as above, but for the x-axis.
+        if let Some(margin) = self.margins.left {
+            let left_viewport_edge = viewport_rect.min.x + margin;
+            if sticky_rect.min.x < left_viewport_edge {
+                sticky_offset.x = left_viewport_edge - sticky_rect.min.x;
+            }
+        }
+
+        if sticky_offset.x <= 0.0 {
+            if let Some(margin) = self.margins.right {
+                sticky_rect.min.x += sticky_offset.x;
+                sticky_rect.max.x += sticky_offset.x;
+                let right_viewport_edge = viewport_rect.max.x - margin;
+                if sticky_rect.max.x > right_viewport_edge {
+                    sticky_offset.x += right_viewport_edge - sticky_rect.max.x;
+                }
+            }
+        }
+
+        // The total "sticky offset" and the extra amount we computed as a result of
+        // scrolling, stored in sticky_offset needs to be clamped to the provided bounds.
+        let clamp =
+            |value: f32, bounds: &StickyOffsetBounds| (value).max(bounds.min).min(bounds.max);
+        sticky_offset.y = clamp(sticky_offset.y, &self.vertical_offset_bounds);
+        sticky_offset.x = clamp(sticky_offset.x, &self.horizontal_offset_bounds);
+
+        sticky_offset
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ReferenceFrameNodeInfo {
     pub origin: LayoutPoint,
+    /// Origin of this frame relative to the document for bounding box queries.
+    pub frame_origin_for_query: LayoutPoint,
     pub transform_style: TransformStyle,
     pub transform: LayoutTransform,
     pub kind: ReferenceFrameKind,
@@ -112,6 +204,10 @@ pub struct ScrollableNodeInfo {
 
     /// The current offset of this scroll node.
     pub offset: LayoutVector2D,
+
+    /// Whether or not the scroll offset of this node has changed and it needs it's
+    /// cached transformations invalidated.
+    pub offset_changed: Cell<bool>,
 }
 
 impl ScrollableNodeInfo {
@@ -138,6 +234,7 @@ impl ScrollableNodeInfo {
         }
 
         if self.offset != original_layer_scroll_offset {
+            self.offset_changed.set(true);
             Some(self.offset)
         } else {
             None
@@ -164,6 +261,7 @@ impl ScrollableNodeInfo {
                 }
 
                 self.offset.y = 0.0;
+                self.offset_changed.set(true);
                 return Some(self.offset);
             },
             ScrollLocation::End => {
@@ -174,6 +272,7 @@ impl ScrollableNodeInfo {
                 }
 
                 self.offset.y = end_pos;
+                self.offset_changed.set(true);
                 return Some(self.offset);
             },
         };
@@ -188,6 +287,23 @@ impl ScrollableNodeInfo {
     }
 }
 
+/// A cached of transforms of a particular [`ScrollTree`] node in both directions:
+/// mapping from node-relative points to root-relative points and vice-versa.
+///
+/// Potential ideas for improvement:
+///  - Test optimizing simple translations to avoid having to do full matrix
+///    multiplication when transforms are not involved.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+pub struct ScrollTreeNodeTransformationCache {
+    node_to_root_transform: LayoutTransform,
+}
+
+#[derive(Default)]
+struct AncestorStickyInfo {
+    nearest_scrolling_ancestor_offset: LayoutVector2D,
+    nearest_scrolling_ancestor_viewport: LayoutRect,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 /// A node in a tree of scroll nodes. This may either be a scrollable
 /// node which responds to scroll events or a non-scrollable one.
@@ -196,6 +312,9 @@ pub struct ScrollTreeNode {
     /// None then this is the root node.
     pub parent: Option<ScrollTreeNodeId>,
 
+    /// The children of this [`ScrollTreeNode`].
+    pub children: Vec<ScrollTreeNodeId>,
+
     /// The WebRender id, which is filled in when this tree is serialiezd
     /// into a WebRender display list.
     pub webrender_id: Option<SpatialId>,
@@ -203,6 +322,10 @@ pub struct ScrollTreeNode {
     /// Specific information about this node, depending on whether it is a scroll node
     /// or a reference frame.
     pub info: SpatialTreeNodeInfo,
+
+    /// Cached transformation information that's used to do things like hit testing
+    /// and viewport bounding box calculation.
+    transformation_cache: Cell<Option<ScrollTreeNodeTransformationCache>>,
 }
 
 impl ScrollTreeNode {
@@ -229,18 +352,10 @@ impl ScrollTreeNode {
         }
     }
 
-    /// Set the offset for this node, returns false if this was a
-    /// non-scrolling node for which you cannot set the offset.
-    pub fn set_offset(&mut self, new_offset: LayoutVector2D) {
-        if let SpatialTreeNodeInfo::Scroll(ref mut info) = self.info {
-            info.scroll_to_offset(new_offset, ScrollType::Script);
-        }
-    }
-
     /// Scroll this node given a WebRender ScrollLocation. Returns a tuple that can
     /// be used to scroll an individual WebRender scroll frame if the operation
     /// actually changed an offset.
-    pub fn scroll(
+    fn scroll(
         &mut self,
         scroll_location: ScrollLocation,
         context: ScrollType,
@@ -297,6 +412,24 @@ impl ScrollTreeNode {
             },
         };
     }
+
+    fn invalidate_cached_transforms(&self, scroll_tree: &ScrollTree, ancestors_invalid: bool) {
+        let node_invalid = match &self.info {
+            SpatialTreeNodeInfo::Scroll(info) => info.offset_changed.take(),
+            _ => false,
+        };
+
+        let invalid = node_invalid || ancestors_invalid;
+        if invalid {
+            self.transformation_cache.set(None);
+        }
+
+        for child_id in &self.children {
+            scroll_tree
+                .get_node(child_id)
+                .invalidate_cached_transforms(scroll_tree, invalid);
+        }
+    }
 }
 
 /// A tree of spatial nodes, which mirrors the spatial nodes in the WebRender
@@ -319,12 +452,21 @@ impl ScrollTree {
     ) -> ScrollTreeNodeId {
         self.nodes.push(ScrollTreeNode {
             parent: parent.cloned(),
+            children: Vec::new(),
             webrender_id: None,
             info,
+            transformation_cache: Cell::default(),
         });
-        ScrollTreeNodeId {
+
+        let new_node_id = ScrollTreeNodeId {
             index: self.nodes.len() - 1,
+        };
+
+        if let Some(parent_id) = parent {
+            self.get_node_mut(parent_id).children.push(new_node_id);
         }
+
+        new_node_id
     }
 
     /// Once WebRender display list construction is complete for this [`ScrollTree`], update
@@ -351,11 +493,7 @@ impl ScrollTree {
         self.get_node(id).webrender_id()
     }
 
-    /// Scroll the given scroll node on this scroll tree. If the node cannot be scrolled,
-    /// because it isn't a scrollable node or it's already scrolled to the maximum scroll
-    /// extent, try to scroll an ancestor of this node. Returns the node scrolled and the
-    /// new offset if a scroll was performed, otherwise returns None.
-    pub fn scroll_node_or_ancestor(
+    pub fn scroll_node_or_ancestor_inner(
         &mut self,
         scroll_node_id: &ScrollTreeNodeId,
         scroll_location: ScrollLocation,
@@ -370,7 +508,26 @@ impl ScrollTree {
             node.parent
         };
 
-        parent.and_then(|parent| self.scroll_node_or_ancestor(&parent, scroll_location, context))
+        parent.and_then(|parent| {
+            self.scroll_node_or_ancestor_inner(&parent, scroll_location, context)
+        })
+    }
+
+    /// Scroll the given scroll node on this scroll tree. If the node cannot be scrolled,
+    /// because it isn't a scrollable node or it's already scrolled to the maximum scroll
+    /// extent, try to scroll an ancestor of this node. Returns the node scrolled and the
+    /// new offset if a scroll was performed, otherwise returns None.
+    pub fn scroll_node_or_ancestor(
+        &mut self,
+        scroll_node_id: &ScrollTreeNodeId,
+        scroll_location: ScrollLocation,
+        context: ScrollType,
+    ) -> Option<(ExternalScrollId, LayoutVector2D)> {
+        let result = self.scroll_node_or_ancestor_inner(scroll_node_id, scroll_location, context);
+        if result.is_some() {
+            self.invalidate_cached_transforms();
+        }
+        result
     }
 
     /// Given an [`ExternalScrollId`] and an offset, update the scroll offset of the scroll node
@@ -381,14 +538,20 @@ impl ScrollTree {
         offset: LayoutVector2D,
         context: ScrollType,
     ) -> Option<LayoutVector2D> {
-        self.nodes.iter_mut().find_map(|node| match node.info {
+        let result = self.nodes.iter_mut().find_map(|node| match node.info {
             SpatialTreeNodeInfo::Scroll(ref mut scroll_info)
                 if scroll_info.external_id == external_scroll_id =>
             {
                 scroll_info.scroll_to_offset(offset, context)
             },
             _ => None,
-        })
+        });
+
+        if result.is_some() {
+            self.invalidate_cached_transforms();
+        }
+
+        result
     }
 
     /// Given a set of all scroll offsets coming from the Servo renderer, update all of the offsets
@@ -401,6 +564,19 @@ impl ScrollTree {
                 }
             }
         }
+
+        self.invalidate_cached_transforms();
+    }
+
+    /// Set the offsets of all scrolling nodes in this tree to 0.
+    pub fn reset_all_scroll_offsets(&mut self) {
+        for node in self.nodes.iter_mut() {
+            if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
+                scroll_info.scroll_to_offset(LayoutVector2D::zero(), ScrollType::Script);
+            }
+        }
+
+        self.invalidate_cached_transforms();
     }
 
     /// Collect all of the scroll offsets of the scrolling nodes of this tree into a
@@ -421,6 +597,80 @@ impl ScrollTree {
             SpatialTreeNodeInfo::Scroll(ref info) if info.external_id == id => Some(info.offset),
             _ => None,
         })
+    }
+
+    /// Traverse a scroll node to its root to calculate the transform.
+    pub fn cumulative_node_to_root_transform(&self, node_id: &ScrollTreeNodeId) -> LayoutTransform {
+        let node = self.get_node(node_id);
+        if let Some(cached_transforms) = node.transformation_cache.get() {
+            return cached_transforms.node_to_root_transform;
+        }
+
+        let (transforms, _) = self.cumulative_node_transform_inner(node);
+        node.transformation_cache.set(Some(transforms));
+        transforms.node_to_root_transform
+    }
+
+    /// Traverse a scroll node to its root to calculate the transform.
+    fn cumulative_node_transform_inner(
+        &self,
+        node: &ScrollTreeNode,
+    ) -> (ScrollTreeNodeTransformationCache, AncestorStickyInfo) {
+        let (parent_transforms, mut sticky_info) = match node.parent {
+            Some(parent_id) => self.cumulative_node_transform_inner(self.get_node(&parent_id)),
+            None => (Default::default(), Default::default()),
+        };
+
+        let change_basis =
+            |transform: &Transform3D<f32, LayoutPixel, LayoutPixel>, x: f32, y: f32| {
+                let pre_translation = Transform3D::translation(x, y, 0.0);
+                let post_translation = Transform3D::translation(-x, -y, 0.0);
+                post_translation.then(transform).then(&pre_translation)
+            };
+
+        let node_to_parent_transform = match &node.info {
+            SpatialTreeNodeInfo::ReferenceFrame(info) => {
+                // To apply a transformation we need to make sure the rectangle's
+                // coordinate space is the same as reference frame's coordinate space.
+                let node_to_parent_transform = change_basis(
+                    &info.transform,
+                    info.frame_origin_for_query.x,
+                    info.frame_origin_for_query.y,
+                );
+
+                sticky_info.nearest_scrolling_ancestor_viewport = sticky_info
+                    .nearest_scrolling_ancestor_viewport
+                    .translate(-info.origin.to_vector());
+
+                node_to_parent_transform
+            },
+            SpatialTreeNodeInfo::Scroll(info) => {
+                sticky_info.nearest_scrolling_ancestor_viewport = info.clip_rect;
+                sticky_info.nearest_scrolling_ancestor_offset = -info.offset;
+
+                Transform3D::translation(-info.offset.x, -info.offset.y, 0.0)
+            },
+
+            SpatialTreeNodeInfo::Sticky(info) => {
+                let offset = info.calculate_sticky_offset(&sticky_info);
+                sticky_info.nearest_scrolling_ancestor_offset += offset;
+                Transform3D::translation(offset.x, offset.y, 0.0)
+            },
+        };
+
+        let node_to_root_transform =
+            node_to_parent_transform.then(&parent_transforms.node_to_root_transform);
+        let transforms = ScrollTreeNodeTransformationCache {
+            node_to_root_transform,
+        };
+        (transforms, sticky_info)
+    }
+
+    fn invalidate_cached_transforms(&self) {
+        let Some(root_node) = self.nodes.first() else {
+            return;
+        };
+        root_node.invalidate_cached_transforms(self, false /* ancestors_invalid */);
     }
 }
 
@@ -486,8 +736,9 @@ pub struct CompositorDisplayListInfo {
     /// The WebRender [PipelineId] of this display list.
     pub pipeline_id: PipelineId,
 
-    /// The size of the viewport that this display list renders into.
-    pub viewport_size: LayoutSize,
+    /// The [`ViewportDetails`] that describe the viewport in the script/layout thread at
+    /// the time this display list was created.
+    pub viewport_details: ViewportDetails,
 
     /// The size of this display list's content.
     pub content_size: LayoutSize,
@@ -526,7 +777,7 @@ impl CompositorDisplayListInfo {
     /// Create a new CompositorDisplayListInfo with the root reference frame
     /// and scroll frame already added to the scroll tree.
     pub fn new(
-        viewport_size: LayoutSize,
+        viewport_details: ViewportDetails,
         content_size: LayoutSize,
         pipeline_id: PipelineId,
         epoch: Epoch,
@@ -538,6 +789,7 @@ impl CompositorDisplayListInfo {
             None,
             SpatialTreeNodeInfo::ReferenceFrame(ReferenceFrameNodeInfo {
                 origin: Default::default(),
+                frame_origin_for_query: Default::default(),
                 transform_style: TransformStyle::Flat,
                 transform: LayoutTransform::identity(),
                 kind: ReferenceFrameKind::default(),
@@ -548,15 +800,19 @@ impl CompositorDisplayListInfo {
             SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
                 external_id: ExternalScrollId(0, pipeline_id),
                 content_rect: LayoutRect::from_origin_and_size(LayoutPoint::zero(), content_size),
-                clip_rect: LayoutRect::from_origin_and_size(LayoutPoint::zero(), viewport_size),
+                clip_rect: LayoutRect::from_origin_and_size(
+                    LayoutPoint::zero(),
+                    viewport_details.layout_size(),
+                ),
                 scroll_sensitivity: viewport_scroll_sensitivity,
                 offset: LayoutVector2D::zero(),
+                offset_changed: Cell::new(false),
             }),
         );
 
         CompositorDisplayListInfo {
             pipeline_id,
-            viewport_size,
+            viewport_details,
             content_size,
             epoch,
             hit_test_info: Default::default(),

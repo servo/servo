@@ -632,7 +632,9 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             .max(MIN_WR_IMAGE_SIZE);
 
         // Step 1. Clear canvas's bitmap to transparent black.
-        self.drawtarget = DrawTarget::new(Size2D::new(size.width, size.height).cast());
+        self.drawtarget = self
+            .drawtarget
+            .create_similar_draw_target(&Size2D::new(size.width, size.height).cast());
 
         self.update_image_rendering();
     }

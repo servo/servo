@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use core::f32;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::mem;
 use std::sync::Arc;
 
@@ -14,6 +14,7 @@ use compositing_traits::display_list::{
     AxesScrollSensitivity, CompositorDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
     SpatialTreeNodeInfo, StickyNodeInfo,
 };
+use embedder_traits::ViewportDetails;
 use euclid::SideOffsets2D;
 use euclid::default::{Point2D, Rect, Size2D};
 use log::warn;
@@ -120,7 +121,7 @@ impl StackingContextTree {
     /// pipeline id.
     pub fn new(
         fragment_tree: &FragmentTree,
-        viewport_size: LayoutSize,
+        viewport_details: ViewportDetails,
         pipeline_id: wr::PipelineId,
         first_reflow: bool,
         debug: &DebugOptions,
@@ -131,8 +132,9 @@ impl StackingContextTree {
             scrollable_overflow.size.height.to_f32_px(),
         ));
 
+        let viewport_size = viewport_details.layout_size();
         let compositor_info = CompositorDisplayListInfo::new(
-            viewport_size,
+            viewport_details,
             scrollable_overflow,
             pipeline_id,
             // This epoch is set when the WebRender display list is built. For now use a dummy value.
@@ -145,7 +147,7 @@ impl StackingContextTree {
         let cb_for_non_fixed_descendants = ContainingBlock::new(
             fragment_tree.initial_containing_block,
             root_scroll_node_id,
-            Some(compositor_info.viewport_size),
+            Some(viewport_size),
             ClipId::INVALID,
         );
         let cb_for_fixed_descendants = ContainingBlock::new(
@@ -199,6 +201,7 @@ impl StackingContextTree {
     fn push_reference_frame(
         &mut self,
         origin: LayoutPoint,
+        frame_origin_for_query: LayoutPoint,
         parent_scroll_node_id: &ScrollTreeNodeId,
         transform_style: wr::TransformStyle,
         transform: LayoutTransform,
@@ -208,6 +211,7 @@ impl StackingContextTree {
             Some(parent_scroll_node_id),
             SpatialTreeNodeInfo::ReferenceFrame(ReferenceFrameNodeInfo {
                 origin,
+                frame_origin_for_query,
                 transform_style,
                 transform,
                 kind,
@@ -231,6 +235,7 @@ impl StackingContextTree {
                 clip_rect,
                 scroll_sensitivity,
                 offset: LayoutVector2D::zero(),
+                offset_changed: Cell::new(false),
             }),
         )
     }
@@ -992,8 +997,11 @@ impl BoxFragment {
             return;
         }
 
+        let frame_origin_for_query = self.cumulative_border_box_rect().origin.to_webrender();
+
         let new_spatial_id = stacking_context_tree.push_reference_frame(
             reference_frame_data.origin.to_webrender(),
+            frame_origin_for_query,
             &containing_block.scroll_node_id,
             self.style.get_box().transform_style.to_webrender(),
             reference_frame_data.transform,
@@ -1210,6 +1218,11 @@ impl BoxFragment {
             add_fragment(StackingContextSection::Outline);
         }
 
+        // Spatial tree node that will affect the transform of the fragment. Note that the next frame,
+        // scroll frame, does not affect the transform of the fragment but affect the transform of it
+        // children.
+        *self.spatial_tree_node.borrow_mut() = Some(new_scroll_node_id);
+
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
         if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
@@ -1321,7 +1334,7 @@ impl BoxFragment {
         }
 
         if matches!(&fragment, Fragment::Box(box_fragment) if matches!(
-            box_fragment.borrow().specific_layout_info,
+            box_fragment.borrow().specific_layout_info(),
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
         )) {
             stacking_context
@@ -1504,7 +1517,10 @@ impl BoxFragment {
             Some(size) => size,
             None => {
                 // This is a direct descendant of a reference frame.
-                &stacking_context_tree.compositor_info.viewport_size
+                &stacking_context_tree
+                    .compositor_info
+                    .viewport_details
+                    .layout_size()
             },
         };
 

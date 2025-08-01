@@ -499,22 +499,33 @@ impl Handler {
         Ok(())
     }
 
+    fn add_load_status_sender(&self) -> WebDriverResult<()> {
+        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+            self.session()?.browsing_context_id,
+            WebDriverScriptCommand::AddLoadStatusSender(
+                self.session()?.webview_id,
+                self.load_status_sender.clone(),
+            ),
+        ))
+    }
+
+    fn clear_load_status_sender(&self) -> WebDriverResult<()> {
+        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+            self.session()?.browsing_context_id,
+            WebDriverScriptCommand::RemoveLoadStatusSender(self.session()?.webview_id),
+        ))
+    }
+
     // This function is called only if session and webview are verified.
     fn verified_webview_id(&self) -> WebViewId {
         self.session().unwrap().webview_id
     }
 
-    fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {
+    fn focused_webview_id(&self) -> WebDriverResult<Option<WebViewId>> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender.clone()))?;
         // Wait until the document is ready before returning the top-level browsing context id.
-        match wait_for_script_response(receiver)? {
-            Some(webview_id) => Ok(webview_id),
-            None => Err(WebDriverError::new(
-                ErrorStatus::NoSuchWindow,
-                "No focused webview found",
-            )),
-        }
+        wait_for_script_response(receiver)
     }
 
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
@@ -578,8 +589,22 @@ impl Handler {
 
         // Step 6. Create a session
         // Step 8. Set session' current top-level browsing context
-        let webview_id = self.focus_webview_id()?;
+        let webview_id = match self.focused_webview_id()? {
+            Some(webview_id) => webview_id,
+            None => {
+                // This happens when there is no open webview.
+                // We need to create a new one. See https://github.com/servo/servo/issues/37408
+                let (sender, receiver) = ipc::channel().unwrap();
+                self.send_message_to_embedder(WebDriverCommandMsg::NewWebView(sender, None))?;
+                let webview_id = receiver
+                    .recv()
+                    .expect("IPC failure when creating new webview for new session");
+                self.focus_webview(webview_id)?;
+                webview_id
+            },
+        };
         let browsing_context_id = BrowsingContextId::from(webview_id);
+
         // Create and append session to the handler
         let session_id = self.create_session(
             &mut capabilities,
@@ -598,8 +623,12 @@ impl Handler {
         Ok(WebDriverResponse::NewSession(response))
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-delete-session>
     fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If session is http, close the session
         self.session = None;
+
+        // Step 2. Return success with data null
         Ok(WebDriverResponse::DeleteSession)
     }
 
@@ -679,7 +708,7 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)?;
 
         // Step 8.2.1: try to wait for navigation to complete.
-        self.wait_for_navigation_to_complete()?;
+        self.wait_for_document_ready_state()?;
 
         // Step 8.3. Set current browsing context with session and current top browsing context
         self.session_mut()?.browsing_context_id = BrowsingContextId::from(webview_id);
@@ -687,8 +716,7 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
-    /// <https://w3c.github.io/webdriver/#dfn-wait-for-navigation-to-complete>
-    fn wait_for_navigation_to_complete(&self) -> WebDriverResult<WebDriverResponse> {
+    fn wait_for_document_ready_state(&self) -> WebDriverResult<WebDriverResponse> {
         debug!("waiting for load");
 
         let session = self.session()?;
@@ -715,7 +743,8 @@ impl Handler {
 
         let result = select! {
             recv(self.load_status_receiver) -> res => {
-                    match res {
+                match res {
+                    // If the navigation is navigation to IFrame, no document state event is fired.
                     Ok(WebDriverLoadStatus::Blocked) => {
                         // TODO: evaluate the correctness later
                         // Load status is block means an user prompt is shown.
@@ -724,10 +753,13 @@ impl Handler {
                         // If user prompt can't be handler, next command returns
                         // an error anyway.
                         Ok(WebDriverResponse::Void)
-                    }
-                    _ => {
-                        Ok(WebDriverResponse::Void)
-                    }
+                    },
+                    Ok(WebDriverLoadStatus::Complete) |
+                    Ok(WebDriverLoadStatus::NavigationStop) => Ok(WebDriverResponse::Void),
+                    _ => Err(WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        "Unexpected load status received while waiting for document ready state",
+                    )),
                 }
             },
             recv(after(Duration::from_millis(timeout))) -> _ => Err(
@@ -736,6 +768,38 @@ impl Handler {
         };
         debug!("finished waiting for load with {:?}", result);
         result
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-wait-for-navigation-to-complete>
+    fn wait_for_navigation(&self) -> WebDriverResult<WebDriverResponse> {
+        let navigation_status = match self.load_status_receiver.try_recv() {
+            Ok(status) => status,
+            // Empty channel means no navigation started. Nothing to wait for.
+            Err(crossbeam_channel::TryRecvError::Empty) => {
+                return Ok(WebDriverResponse::Void);
+            },
+            Err(crossbeam_channel::TryRecvError::Disconnected) => {
+                return Err(WebDriverError::new(
+                    ErrorStatus::UnknownError,
+                    "Load status channel disconnected",
+                ));
+            },
+        };
+
+        match navigation_status {
+            WebDriverLoadStatus::NavigationStart => self.wait_for_document_ready_state(),
+            // If the load status is timeout, return an error
+            WebDriverLoadStatus::Timeout => Err(WebDriverError::new(
+                ErrorStatus::Timeout,
+                "Navigation timed out",
+            )),
+            // If the load status is blocked, it means a user prompt is shown.
+            // We should handle the user prompt in the next command.
+            WebDriverLoadStatus::Blocked => Ok(WebDriverResponse::Void),
+            WebDriverLoadStatus::NavigationStop | WebDriverLoadStatus::Complete => {
+                unreachable!("Unexpected load status received")
+            },
+        }
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-get-current-url>
@@ -930,7 +994,7 @@ impl Handler {
             webview_id,
             self.load_status_sender.clone(),
         ))?;
-        self.wait_for_navigation_to_complete()
+        self.wait_for_document_ready_state()
     }
 
     /// <https://w3c.github.io/webdriver/#forward>
@@ -947,7 +1011,7 @@ impl Handler {
             webview_id,
             self.load_status_sender.clone(),
         ))?;
-        self.wait_for_navigation_to_complete()
+        self.wait_for_document_ready_state()
     }
 
     /// <https://w3c.github.io/webdriver/#refresh>
@@ -964,7 +1028,7 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)?;
 
         // Step 4.1: Try to wait for navigation to complete.
-        self.wait_for_navigation_to_complete()?;
+        self.wait_for_document_ready_state()?;
 
         // Step 5. Set current browsing context with session and current top browsing context.
         self.session_mut()?.browsing_context_id = BrowsingContextId::from(webview_id);
@@ -1085,7 +1149,8 @@ impl Handler {
         // Step 3. Handle any user prompt.
         self.handle_any_user_prompts(session.webview_id)?;
 
-        let cmd_msg = WebDriverCommandMsg::NewWebView(sender, self.load_status_sender.clone());
+        let cmd_msg =
+            WebDriverCommandMsg::NewWebView(sender, Some(self.load_status_sender.clone()));
         // Step 5. Create a new top-level browsing context by running the window open steps.
         // This MUST be done without invoking the focusing steps.
         self.send_message_to_embedder(cmd_msg)?;
@@ -1098,7 +1163,7 @@ impl Handler {
             session.window_handles.insert(new_webview_id, new_handle);
         }
 
-        let _ = self.wait_for_navigation_to_complete();
+        let _ = self.wait_for_document_ready_state();
 
         Ok(WebDriverResponse::NewWindow(NewWindowResponse {
             handle,
@@ -1189,14 +1254,7 @@ impl Handler {
             let webview_id = *webview_id;
             session.webview_id = webview_id;
             session.browsing_context_id = BrowsingContextId::from(webview_id);
-            let (sender, receiver) = ipc::channel().unwrap();
-            let msg = WebDriverCommandMsg::FocusWebView(webview_id, sender);
-            self.send_message_to_embedder(msg)?;
-            if wait_for_script_response(receiver)? {
-                debug!("Focus new webview successfully");
-            } else {
-                debug!("Focus new webview failed, it may not exist anymore");
-            }
+            self.focus_webview(webview_id)?;
             Ok(WebDriverResponse::Void)
         } else {
             Err(WebDriverError::new(
@@ -2086,10 +2144,8 @@ impl Handler {
         self.handle_any_user_prompts(self.session()?.webview_id)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let webview_id = self.session()?.webview_id;
-        let browsing_context_id = self.session()?.browsing_context_id;
 
-        // Steps 1 - 7 + Step 8 for <option>
+        // Steps 3-7 + Step 8 for <option> are handled in script thread.
         let cmd = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
@@ -2097,37 +2153,19 @@ impl Handler {
             Ok(element_id) => match element_id {
                 Some(element_id) => {
                     // Load status sender should be set up before we dispatch actions
-                    self.send_message_to_embedder(WebDriverCommandMsg::AddLoadStatusSender(
-                        webview_id,
-                        self.load_status_sender.clone(),
-                    ))?;
+                    // to ensure webdriver can capture any navigation events.
+                    self.add_load_status_sender()?;
 
                     self.perform_element_click(element_id)?;
 
                     // Step 11. Try to wait for navigation to complete with session.
-                    // The most reliable way to try to wait for a potential navigation
-                    // which is caused by element click to check with script thread
-                    let (sender, receiver) = ipc::channel().unwrap();
-                    self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
-                        browsing_context_id,
-                        WebDriverScriptCommand::IsDocumentReadyStateComplete(sender),
-                    ))?;
+                    // Check if there is a navigation with script
+                    let res = self.wait_for_navigation()?;
 
-                    if wait_for_script_response(receiver)? {
-                        self.load_status_receiver.recv().map_err(|_| {
-                            WebDriverError::new(
-                                ErrorStatus::UnknownError,
-                                "Failed to receive load status",
-                            )
-                        })?;
-                    } else {
-                        self.send_message_to_embedder(
-                            WebDriverCommandMsg::RemoveLoadStatusSender(webview_id),
-                        )?;
-                    }
+                    // Clear the load status sender
+                    self.clear_load_status_sender()?;
 
-                    // Step 13
-                    Ok(WebDriverResponse::Void)
+                    Ok(res)
                 },
                 // Step 13
                 None => Ok(WebDriverResponse::Void),
@@ -2387,6 +2425,17 @@ impl Handler {
             Ok(())
         }
     }
+
+    fn focus_webview(&self, webview_id: WebViewId) -> Result<(), WebDriverError> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::FocusWebView(webview_id, sender))?;
+        if wait_for_script_response(receiver)? {
+            debug!("Focus new webview successfully");
+        } else {
+            debug!("Focus new webview failed, it may not exist anymore");
+        }
+        Ok(())
+    }
 }
 
 impl WebDriverHandler<ServoExtensionRoute> for Handler {
@@ -2400,7 +2449,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
         match msg.command {
-            WebDriverCommand::NewSession(_) | WebDriverCommand::Status => {},
+            WebDriverCommand::NewSession(_) |
+            WebDriverCommand::Status |
+            WebDriverCommand::DeleteSession => {},
             _ => {
                 self.session()?;
             },

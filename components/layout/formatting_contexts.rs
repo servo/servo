@@ -34,7 +34,9 @@ use crate::{
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct IndependentFormattingContext {
     pub base: LayoutBoxBase,
-    pub contents: IndependentFormattingContextContents,
+    // Private so that code outside of this module cannot match variants.
+    // It should go through methods instead.
+    contents: IndependentFormattingContextContents,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -65,6 +67,10 @@ impl Baselines {
 }
 
 impl IndependentFormattingContext {
+    pub(crate) fn new(base: LayoutBoxBase, contents: IndependentFormattingContextContents) -> Self {
+        Self { base, contents }
+    }
+
     pub fn construct(
         context: &LayoutContext,
         node_and_style_info: &NodeAndStyleInfo,
@@ -137,13 +143,6 @@ impl IndependentFormattingContext {
                 }
             },
         }
-    }
-
-    pub fn is_replaced(&self) -> bool {
-        matches!(
-            self.contents,
-            IndependentFormattingContextContents::Replaced(_)
-        )
     }
 
     #[inline]
@@ -239,6 +238,19 @@ impl IndependentFormattingContext {
     }
 
     #[inline]
+    pub(crate) fn is_block_container(&self) -> bool {
+        matches!(self.contents, IndependentFormattingContextContents::Flow(_))
+    }
+
+    #[inline]
+    pub(crate) fn is_replaced(&self) -> bool {
+        matches!(
+            self.contents,
+            IndependentFormattingContextContents::Replaced(_)
+        )
+    }
+
+    #[inline]
     pub(crate) fn is_table(&self) -> bool {
         matches!(
             &self.contents,
@@ -254,7 +266,6 @@ impl IndependentFormattingContext {
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
-        depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         match &self.contents {
@@ -263,20 +274,17 @@ impl IndependentFormattingContext {
                 containing_block_for_children,
                 preferred_aspect_ratio,
                 &self.base,
-                depends_on_block_constraints,
                 lazy_block_size,
             ),
             IndependentFormattingContextContents::Flow(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
-                depends_on_block_constraints,
             ),
             IndependentFormattingContextContents::Flex(fc) => fc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
-                depends_on_block_constraints,
                 lazy_block_size,
             ),
             IndependentFormattingContextContents::Grid(fc) => fc.layout(
@@ -290,15 +298,11 @@ impl IndependentFormattingContext {
                 positioning_context,
                 containing_block_for_children,
                 containing_block,
-                depends_on_block_constraints,
             ),
         }
     }
 
-    #[servo_tracing::instrument(
-        name = "IndependentFormattingContext::layout_with_caching",
-        skip_all
-    )]
+    #[servo_tracing::instrument(name = "IndependentFormattingContext::layout", skip_all)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn layout(
         &self,
@@ -307,7 +311,6 @@ impl IndependentFormattingContext {
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
-        depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         if let Some(cache) = self.base.cached_layout_result.borrow().as_ref() {
@@ -316,15 +319,14 @@ impl IndependentFormattingContext {
                 containing_block_for_children.size.inline &&
                 (cache.containing_block_for_children_size.block ==
                     containing_block_for_children.size.block ||
-                    !(cache.result.depends_on_block_constraints ||
-                        depends_on_block_constraints))
+                    !cache.result.depends_on_block_constraints)
             {
                 positioning_context.append(cache.positioning_context.clone());
                 return cache.result.clone();
             }
             #[cfg(feature = "tracing")]
             tracing::debug!(
-                name: "NonReplaced cache miss",
+                name: "IndependentFormattingContext::layout cache miss",
                 cached = ?cache.containing_block_for_children_size,
                 required = ?containing_block_for_children.size,
             );
@@ -337,7 +339,6 @@ impl IndependentFormattingContext {
             containing_block_for_children,
             containing_block,
             preferred_aspect_ratio,
-            depends_on_block_constraints,
             lazy_block_size,
         );
 
