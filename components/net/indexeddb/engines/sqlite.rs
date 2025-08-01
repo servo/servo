@@ -2,20 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
+use log::error;
 use net_traits::indexeddb_thread::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError,
-    CreateObjectResult, IndexedDBKeyRange, KeyPath, PutItemResult,
+    CreateObjectResult, IndexedDBKeyRange, IndexedDBTxnMode, KeyPath, PutItemResult,
 };
-use sea_orm::prelude::*;
-use sea_orm::sea_query::IntoCondition;
-use sea_orm::{Condition, Database, IntoActiveModel, NotSet, Set};
+use rusqlite::{Connection, Error, OptionalExtension, params};
+use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use tokio::sync::oneshot;
 
 use crate::async_runtime::HANDLE;
 use crate::indexeddb::engines::{KvsEngine, KvsTransaction, SanitizedName};
 use crate::indexeddb::idb_thread::IndexedDBDescription;
+use crate::resource_thread::CoreResourceThreadPool;
 
+mod create;
 mod database_model;
 mod object_data_model;
 mod object_store_index_model;
@@ -36,24 +39,26 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     // Special case for optimization
     if let Some(singleton) = range.as_singleton() {
         let encoded = bincode::serialize(singleton).unwrap();
-        return object_data_model::Column::Data.eq(encoded).into_condition();
+        return sea_query::Expr::column(object_data_model::Column::Data)
+            .eq(encoded)
+            .into_condition();
     }
     let mut parts = vec![];
     if let Some(upper) = range.upper.as_ref() {
         let upper_bytes = bincode::serialize(upper).unwrap();
         let query = if range.upper_open {
-            object_data_model::Column::Data.lt(upper_bytes)
+            sea_query::Expr::column(object_data_model::Column::Data).lt(upper_bytes)
         } else {
-            object_data_model::Column::Data.lte(upper_bytes)
+            sea_query::Expr::column(object_data_model::Column::Data).lte(upper_bytes)
         };
         parts.push(query);
     }
     if let Some(lower) = range.lower.as_ref() {
         let lower_bytes = bincode::serialize(lower).unwrap();
         let query = if range.upper_open {
-            object_data_model::Column::Data.gt(lower_bytes)
+            sea_query::Expr::column(object_data_model::Column::Data).gt(lower_bytes)
         } else {
-            object_data_model::Column::Data.gte(lower_bytes)
+            sea_query::Expr::column(object_data_model::Column::Data).gte(lower_bytes)
         };
         parts.push(query);
     }
@@ -66,77 +71,172 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
 
 pub struct SqliteEngine {
     db_path: PathBuf,
-    connection: DatabaseConnection,
+    connection: Connection,
+    read_pool: Arc<CoreResourceThreadPool>,
+    write_pool: Arc<CoreResourceThreadPool>,
 }
 
 impl SqliteEngine {
-    pub fn new(base_dir: &Path, db_info: &IndexedDBDescription, version: u64) -> Self {
+    // TODO: intake dual pools
+    pub fn new(
+        base_dir: &Path,
+        db_info: &IndexedDBDescription,
+        version: u64,
+        pool: Arc<CoreResourceThreadPool>,
+    ) -> Self {
         let mut db_path = PathBuf::new();
         db_path.push(base_dir);
         db_path.push(db_info.as_path());
         db_path.push("db.sqlite");
 
         let connection = if db_path.exists() {
-            HANDLE.block_on(async { Self::get_connection(&db_path).await })
+            Self::get_connection(&db_path)
         } else {
             std::fs::create_dir_all(db_path.parent().unwrap()).unwrap();
             std::fs::File::create(&db_path).unwrap();
-            HANDLE.block_on(async { Self::init_db(&db_path, db_info, version).await })
+            Self::init_db(&db_path, db_info, version)
         }
         .unwrap();
 
         for stmt in DB_PRAGMAS {
-            HANDLE
-                .block_on(connection.execute_unprepared(stmt))
-                .unwrap();
+            // TODO: Handle errors properly
+            let _ = connection.execute(stmt, ());
         }
 
         Self {
             connection,
             db_path,
+            read_pool: pool.clone(),
+            write_pool: pool,
         }
     }
 
-    async fn get_connection(path: &Path) -> Result<DatabaseConnection, DbErr> {
-        Database::connect(format!("sqlite://{}", path.display())).await
+    fn get_connection(path: &Path) -> Result<Connection, Error> {
+        Connection::open(path)
     }
 
-    async fn init_db(
+    fn init_db(
         path: &Path,
         db_info: &IndexedDBDescription,
         version: u64,
-    ) -> Result<DatabaseConnection, DbErr> {
-        async fn create_table<T: EntityTrait>(
-            connection: &DatabaseConnection,
-            p: T,
-        ) -> Result<(), DbErr> {
-            let builder = connection.get_database_backend();
-            let schema = sea_orm::Schema::new(builder);
-            let create_table_stmt = builder.build(&schema.create_table_from_entity(p));
-            connection.execute(create_table_stmt).await?;
-            Ok(())
-        }
-
-        let connection = Self::get_connection(path).await?;
+    ) -> Result<Connection, Error> {
+        let connection = Self::get_connection(path)?;
         for stmt in DB_INIT_PRAGMAS {
-            connection.execute_unprepared(stmt).await?;
+            // FIXME(arihant2math): this fails occasionally
+            let _ = connection.execute(stmt, ());
         }
-        create_table(&connection, database_model::Entity).await?;
-        create_table(&connection, object_data_model::Entity).await?;
-        create_table(&connection, object_store_index_model::Entity).await?;
-        create_table(&connection, object_store_model::Entity).await?;
-        let info = database_model::ActiveModel {
-            name: Set(db_info.name.to_owned()),
-            origin: Set(db_info.origin.to_owned().ascii_serialization()),
-            version: Set(i64::from_ne_bytes(version.to_ne_bytes())),
-        };
-        info.insert(&connection).await?;
+        create::create_tables(&connection)?;
+        connection.execute(
+            "INSERT INTO database (name, origin, version) VALUES (?, ?, ?)",
+            params![
+                db_info.name.to_owned(),
+                db_info.origin.to_owned().ascii_serialization(),
+                i64::from_ne_bytes(version.to_ne_bytes())
+            ],
+        )?;
         Ok(connection)
+    }
+
+    fn get(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<object_data_model::Model>, Error> {
+        let query = range_to_query(key_range);
+        let stmt = sea_query::Query::select()
+            .from(object_data_model::Column::Table)
+            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
+            .to_owned();
+        connection
+            .prepare(&stmt.build(SqliteQueryBuilder).0)?
+            .query_one((), |row| object_data_model::Model::try_from(row))
+            .optional()
+    }
+
+    fn get_key(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        Self::get(connection, store, key_range).map(|opt| opt.map(|model| model.key))
+    }
+
+    fn get_item(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        Self::get(connection, store, key_range).map(|opt| opt.map(|model| model.data))
+    }
+
+    fn put_item(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key: Vec<u8>,
+        value: Vec<u8>,
+        should_overwrite: bool,
+    ) -> Result<PutItemResult, Error> {
+        let serialized_key = bincode::serialize(&key).unwrap();
+        let existing_item = connection
+            .prepare("SELECT * FROM object_data WHERE key = ? AND object_store_id = ?")
+            .and_then(|mut stmt| {
+                stmt.query_row(params![serialized_key, store.id], |row| {
+                    object_data_model::Model::try_from(row)
+                })
+                .optional()
+            })?;
+        if should_overwrite || existing_item.is_none() {
+            connection.execute(
+                "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
+                params![store.id, serialized_key, value],
+            )?;
+            Ok(PutItemResult::Success)
+        } else {
+            Ok(PutItemResult::CannotOverwrite)
+        }
+    }
+
+    fn delete_item(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key: Vec<u8>,
+    ) -> Result<(), Error> {
+        let serialized_key = bincode::serialize(&key).unwrap();
+        connection.execute(
+            "DELETE FROM object_data WHERE key = ? AND object_store_id = ?",
+            params![serialized_key, store.id],
+        )?;
+        Ok(())
+    }
+
+    fn clear(connection: &Connection, store: object_store_model::Model) -> Result<(), Error> {
+        connection.execute(
+            "DELETE FROM object_data WHERE object_store_id = ?",
+            params![store.id],
+        )?;
+        Ok(())
+    }
+
+    fn count(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<usize, Error> {
+        let query = range_to_query(key_range);
+        let count = sea_query::Query::select()
+            .expr(Expr::col(object_data_model::Column::Key).count())
+            .from(object_data_model::Column::Table)
+            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
+            .to_owned();
+        connection
+            .prepare(&count.build(SqliteQueryBuilder).0)?
+            .query_row((), |row| row.get(0))
+            .map(|count: i64| count as usize)
     }
 }
 
 impl KvsEngine for SqliteEngine {
-    type Error = DbErr;
+    type Error = Error;
 
     fn create_store(
         &self,
@@ -144,46 +244,31 @@ impl KvsEngine for SqliteEngine {
         key_path: Option<KeyPath>,
         auto_increment: bool,
     ) -> Result<CreateObjectResult, Self::Error> {
-        HANDLE.block_on(async {
-            if object_store_model::Entity::find()
-                .filter(object_store_model::Column::Name.eq(store_name.to_string()))
-                .one(&self.connection)
-                .await?
-                .is_some()
-            {
-                return Ok(CreateObjectResult::AlreadyExists);
-            }
-            let model = object_store_model::ActiveModel {
-                id: NotSet,
-                name: Set(store_name.to_string()),
-                key_path: Set(key_path.map(|v| bincode::serialize(&v).unwrap())),
-                auto_increment: Set(auto_increment),
-            };
-            model.insert(&self.connection).await?;
+        let mut stmt = self
+            .connection
+            .prepare("SELECT 1 FROM object_store WHERE name = ?")?;
+        if stmt.exists(params![store_name.to_string()])? {
+            // Store already exists
+            return Ok(CreateObjectResult::AlreadyExists);
+        }
+        self.connection.execute(
+            "INSERT INTO object_store (name, key_path, auto_increment) VALUES (?, ?, ?)",
+            params![
+                store_name.to_string(),
+                key_path.map(|v| bincode::serialize(&v).unwrap()),
+                auto_increment
+            ],
+        )?;
 
-            Ok(CreateObjectResult::Created)
-        })
+        Ok(CreateObjectResult::Created)
     }
 
     fn delete_store(&self, store_name: SanitizedName) -> Result<(), Self::Error> {
-        HANDLE.block_on(async {
-            if let Some(store) = object_store_model::Entity::find()
-                .filter(object_store_model::Column::Name.eq(store_name.to_string()))
-                .one(&self.connection)
-                .await?
-            {
-                object_store_index_model::Entity::delete_many()
-                    .filter(object_store_index_model::Column::ObjectStoreId.eq(store.id))
-                    .exec(&self.connection)
-                    .await?;
-                object_data_model::Entity::delete_many()
-                    .filter(object_data_model::Column::ObjectStoreId.eq(store.id))
-                    .exec(&self.connection)
-                    .await?;
-                store.delete(&self.connection).await?;
-            }
-            Ok(())
-        })
+        self.connection.execute(
+            "DELETE FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+        )?;
+        Ok(())
     }
 
     fn close_store(&self, _store_name: SanitizedName) -> Result<(), Self::Error> {
@@ -194,20 +279,14 @@ impl KvsEngine for SqliteEngine {
     }
 
     fn delete_database(self) -> Result<(), Self::Error> {
-        HANDLE.block_on(async {
-            self.connection.close().await?;
-            if self.db_path.exists() {
-                // TODO: make custom error type instead.
-                tokio::fs::remove_dir_all(
-                    self.db_path
-                        .parent()
-                        .ok_or(Self::Error::Custom("No parent".to_string()))?,
-                )
-                .await
-                .map_err(|e| Self::Error::Custom(format!("{e:?}")))?;
+        // attempt to close the connection first
+        let _ = self.connection.close();
+        if self.db_path.exists() {
+            if let Err(e) = std::fs::remove_dir_all(self.db_path.parent().unwrap()) {
+                error!("Failed to delete database: {:?}", e);
             }
-            Ok(())
-        })
+        }
+        Ok(())
     }
 
     fn process_transaction(
@@ -215,16 +294,24 @@ impl KvsEngine for SqliteEngine {
         transaction: KvsTransaction,
     ) -> oneshot::Receiver<Option<Vec<u8>>> {
         let (tx, rx) = oneshot::channel();
-        let connection = self.connection.clone();
 
-        // TODO: maybe use different pools for different transactions?
-        HANDLE.spawn(async move {
+        let spawning_pool = if transaction.mode == IndexedDBTxnMode::Readonly {
+            self.read_pool.clone()
+        } else {
+            self.write_pool.clone()
+        };
+        let path = self.db_path.clone();
+        spawning_pool.spawn(move || {
+            let connection = Self::get_connection(&path).unwrap();
             for request in transaction.requests {
-                let conn = connection.clone();
-                let object_store = object_store_model::Entity::find()
-                    .filter(object_store_model::Column::Name.eq(request.store_name.to_string()))
-                    .one(&conn)
-                    .await;
+                let object_store = connection
+                    .prepare("SELECT 1 FROM object_store WHERE name = ?")
+                    .and_then(|mut stmt| {
+                        stmt.query_row(params![request.store_name.to_string()], |row| {
+                            object_store_model::Model::try_from(row)
+                        })
+                        .optional()
+                    });
                 macro_rules! process_object_store {
                     ($object_store:ident, $sender:ident) => {
                         match $object_store {
@@ -250,62 +337,26 @@ impl KvsEngine for SqliteEngine {
                     }) => {
                         let object_store = process_object_store!(object_store, sender);
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
-                        let store = object_data_model::ActiveModel {
-                            object_store_id: Set(object_store.id),
-                            key: Set(serialized_key.clone()),
-                            data: Set(value),
-                        };
-                        let existing_item = match object_data_model::Entity::find()
-                            .filter(
-                                object_data_model::Column::Key
-                                    .eq(serialized_key.clone())
-                                    .and(
-                                        object_data_model::Column::ObjectStoreId
-                                            .eq(object_store.id),
-                                    ),
+                        let _ = sender.send(
+                            Self::put_item(
+                                &connection,
+                                object_store,
+                                serialized_key,
+                                value,
+                                should_overwrite,
                             )
-                            .one(&conn)
-                            .await
-                        {
-                            Ok(t) => t,
-                            Err(e) => {
-                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                                continue;
-                            },
-                        };
-                        if should_overwrite || existing_item.is_none() {
-                            match store.insert(&conn).await {
-                                Ok(_) => {
-                                    let _ = sender.send(Ok(PutItemResult::Success));
-                                },
-                                Err(e) => {
-                                    let _ =
-                                        sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                                },
-                            }
-                        } else {
-                            let _ = sender.send(Ok(PutItemResult::CannotOverwrite));
-                        }
+                            .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
                         sender,
                         key_range,
                     }) => {
                         let object_store = process_object_store!(object_store, sender);
-                        let result = object_data_model::Entity::find()
-                            .filter(object_data_model::Column::ObjectStoreId.eq(object_store.id))
-                            .filter(range_to_query(key_range))
-                            .one(&conn)
-                            .await;
-
-                        match result {
-                            Ok(result) => {
-                                let _ = sender.send(Ok(result.map(|blob| blob.data.to_vec())));
-                            },
-                            Err(e) => {
-                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                            },
-                        }
+                        let _ = sender.send(
+                            Self::get_item(&connection, object_store, key_range)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
                     },
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
                         sender,
@@ -313,73 +364,39 @@ impl KvsEngine for SqliteEngine {
                     }) => {
                         let object_store = process_object_store!(object_store, sender);
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
-                        // More ergonomic way to delete an item than querying first.
-                        let result =
-                            object_data_model::Entity::delete_many()
-                                .filter(object_data_model::Column::Key.eq(serialized_key).and(
-                                    object_data_model::Column::ObjectStoreId.eq(object_store.id),
-                                ))
-                                .exec(&conn)
-                                .await;
-                        if let Err(err) = result {
-                            let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", err))));
-                        } else {
-                            let _ = sender.send(Ok(()));
-                        }
+                        let _ = sender.send(
+                            Self::delete_item(&connection, object_store, serialized_key)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
                         sender,
                         key_range,
                     }) => {
                         let object_store = process_object_store!(object_store, sender);
-                        let res = object_data_model::Entity::find()
-                            .filter(object_data_model::Column::ObjectStoreId.eq(object_store.id))
-                            .filter(range_to_query(key_range))
-                            .all(&conn)
-                            .await;
-                        match res {
-                            Ok(list) => {
-                                // TODO: make that return usize instead of u64
-                                let _ = sender.send(Ok(list.len() as u64));
-                            },
-                            Err(e) => {
-                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                            },
-                        }
+                        let _ = sender.send(
+                            Self::count(&connection, object_store, key_range)
+                                .map(|r| r as u64)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
                     },
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(sender)) => {
                         let object_store = process_object_store!(object_store, sender);
-                        let result = object_data_model::Entity::delete_many()
-                            .filter(object_data_model::Column::ObjectStoreId.eq(object_store.id))
-                            .exec(&conn)
-                            .await;
-                        let _ = match result {
-                            Ok(_) => sender.send(Ok(())),
-                            Err(e) => sender.send(Err(BackendError::DbErr(format!("{:?}", e)))),
-                        };
+                        let _ = sender.send(
+                            Self::clear(&connection, object_store)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetKey {
                         sender,
                         key_range,
                     }) => {
                         let object_store = process_object_store!(object_store, sender);
-                        let result = object_data_model::Entity::find()
-                            .filter(object_data_model::Column::ObjectStoreId.eq(object_store.id))
-                            .filter(range_to_query(key_range))
-                            .one(&conn)
-                            .await;
-
-                        match result {
-                            Ok(result) => {
-                                let _ =
-                                    sender
-                                        .send(Ok(result
-                                            .map(|blob| bincode::deserialize(&blob.key).unwrap())));
-                            },
-                            Err(e) => {
-                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                            },
-                        }
+                        let _ = sender.send(
+                            Self::get_key(&connection, object_store, key_range)
+                                .map(|key| key.map(|k| bincode::deserialize(&k).unwrap()))
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
                     },
                 }
             }
@@ -390,35 +407,29 @@ impl KvsEngine for SqliteEngine {
 
     // TODO: we should be able to error out here, maybe change the trait definition?
     fn has_key_generator(&self, store_name: SanitizedName) -> bool {
-        HANDLE.block_on(async {
-            if let Some(model) = object_store_model::Entity::find()
-                .filter(object_store_model::Column::Name.eq(store_name.to_string()))
-                .one(&self.connection)
-                .await
-                .unwrap()
-            {
-                model.auto_increment
-            } else {
-                false
-            }
-        })
+        self.connection
+            .prepare("SELECT * FROM object_store WHERE name = ?")
+            .and_then(|mut stmt| {
+                stmt.query_row(params![store_name.to_string()], |r| {
+                    let object_store = object_store_model::Model::try_from(r).unwrap();
+                    Ok(object_store.auto_increment)
+                })
+            })
+            .unwrap()
     }
 
     fn key_path(&self, store_name: SanitizedName) -> Option<KeyPath> {
-        HANDLE.block_on(async {
-            if let Some(model) = object_store_model::Entity::find()
-                .filter(object_store_model::Column::Name.eq(store_name.to_string()))
-                .one(&self.connection)
-                .await
-                .unwrap()
-            {
-                model
-                    .key_path
-                    .map(|key_path| bincode::deserialize(&key_path).unwrap())
-            } else {
-                None
-            }
-        })
+        self.connection
+            .prepare("SELECT * FROM object_store WHERE name = ?")
+            .and_then(|mut stmt| {
+                stmt.query_row(params![store_name.to_string()], |r| {
+                    let object_store = object_store_model::Model::try_from(r).unwrap();
+                    Ok(object_store
+                        .key_path
+                        .map(|key_path| bincode::deserialize(&key_path).unwrap()))
+                })
+            })
+            .unwrap()
     }
 
     fn create_index(
@@ -429,40 +440,33 @@ impl KvsEngine for SqliteEngine {
         unique: bool,
         multi_entry: bool,
     ) -> Result<CreateObjectResult, Self::Error> {
-        HANDLE.block_on(async {
-            let object_store = match object_store_model::Entity::find()
-                .filter(object_store_model::Column::Name.eq(store_name.to_string()))
-                .one(&self.connection)
-                .await?
-            {
-                Some(model) => model,
-                None => {
-                    return Err(Self::Error::Custom("No such store".to_string()));
-                },
-            };
-            if object_store_index_model::Entity::find()
-                .filter(
-                    object_store_index_model::Column::Name
-                        .eq(index_name.to_string())
-                        .and(object_store_index_model::Column::ObjectStoreId.eq(object_store.id)),
-                )
-                .one(&self.connection)
-                .await?
-                .is_some()
-            {
-                return Ok(CreateObjectResult::AlreadyExists);
-            }
-            let model = object_store_index_model::ActiveModel {
-                id: Default::default(),
-                object_store_id: Set(object_store.id),
-                name: Set(index_name),
-                key_path: Set(bincode::serialize(&key_path).unwrap()),
-                unique_index: Set(unique),
-                multi_entry_index: Set(multi_entry),
-            };
-            model.insert(&self.connection).await?;
-            Ok(CreateObjectResult::Created)
-        })
+        let object_store = self.connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )?;
+
+        let index_exists: bool = self.connection.query_row(
+            "SELECT EXISTS(SELECT 1 FROM object_store_index WHERE name = ? AND object_store_id = ?)",
+            params![index_name.to_string(), object_store.id],
+            |row| row.get(0),
+        )?;
+        if index_exists {
+            return Ok(CreateObjectResult::AlreadyExists);
+        }
+
+        self.connection.execute(
+            "INSERT INTO object_store_index (object_store_id, name, key_path, unique_index, multi_entry_index)\
+            VALUES (?, ?, ?, ?, ?)",
+            params![
+                object_store.id,
+                index_name.to_string(),
+                bincode::serialize(&key_path).unwrap(),
+                unique,
+                multi_entry,
+            ],
+        )?;
+        Ok(CreateObjectResult::Created)
     }
 
     fn delete_index(
@@ -470,63 +474,50 @@ impl KvsEngine for SqliteEngine {
         store_name: SanitizedName,
         index_name: String,
     ) -> Result<(), Self::Error> {
-        HANDLE.block_on(async {
-            let object_store = match object_store_model::Entity::find()
-                .filter(object_store_model::Column::Name.eq(store_name.to_string()))
-                .one(&self.connection)
-                .await?
-            {
-                Some(model) => model,
-                None => {
-                    return Err(Self::Error::Custom("No such store".to_string()));
-                },
-            };
-            if let Some(model) = object_store_index_model::Entity::find()
-                .filter(
-                    object_store_index_model::Column::Name
-                        .eq(index_name.to_string())
-                        .and(object_store_index_model::Column::ObjectStoreId.eq(object_store.id)),
-                )
-                .one(&self.connection)
-                .await?
-            {
-                model.delete(&self.connection).await?;
-            }
-            Ok(())
-        })
+        let object_store = self.connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |r| Ok(object_store_model::Model::try_from(r).unwrap()),
+        )?;
+
+        // Delete the index if it exists
+        let _ = self.connection.execute(
+            "DELETE FROM object_store_index WHERE name = ? AND object_store_id = ?",
+            params![index_name.to_string(), object_store.id],
+        )?;
+        Ok(())
     }
 
     fn version(&self) -> Result<u64, Self::Error> {
-        HANDLE.block_on(async {
-            let db_info = database_model::Entity::find()
-                .one(&self.connection)
-                .await?
-                .unwrap();
-            Ok(u64::from_ne_bytes(db_info.version.to_ne_bytes()))
-        })
+        let version: i64 =
+            self.connection
+                .query_row("SELECT version FROM database LIMIT 1", [], |row| row.get(0))?;
+        Ok(u64::from_ne_bytes(version.to_ne_bytes()))
     }
 
     fn set_version(&self, version: u64) -> Result<(), Self::Error> {
-        HANDLE.block_on(async {
-            let db_info = database_model::Entity::find()
-                .one(&self.connection)
-                .await?
-                .unwrap();
-            let mut db_info = db_info.into_active_model();
-            db_info.version = Set(i64::from_ne_bytes(version.to_ne_bytes()));
-            db_info.save(&self.connection).await?;
-            Ok(())
-        })
+        let rows_affected = self.connection.execute(
+            "UPDATE database SET version = ?",
+            params![i64::from_ne_bytes(version.to_ne_bytes())],
+        )?;
+        if rows_affected == 0 {
+            return Err(Error::QueryReturnedNoRows);
+        }
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use url::Host;
-    use net_traits::indexeddb_thread::CreateObjectResult;
+    use std::collections::VecDeque;
+    use std::sync::Arc;
+    use net_traits::indexeddb_thread::{AsyncOperation, AsyncReadWriteOperation, CreateObjectResult, IndexedDBKeyType, IndexedDBTxnMode, KeyPath};
     use servo_url::ImmutableOrigin;
-    use crate::indexeddb::engines::{KvsEngine, SanitizedName};
+    use url::Host;
+
+    use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SanitizedName};
     use crate::indexeddb::idb_thread::IndexedDBDescription;
+    use crate::resource_thread::CoreResourceThreadPool;
 
     fn test_origin() -> ImmutableOrigin {
         ImmutableOrigin::Tuple(
@@ -539,6 +530,7 @@ mod tests {
     #[test]
     fn test_cycle() {
         let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
         // Test create
         let _ = super::SqliteEngine::new(
             base_dir.path(),
@@ -547,6 +539,7 @@ mod tests {
                 origin: test_origin(),
             },
             1,
+            thread_pool.clone(),
         );
         // Test open
         let db = super::SqliteEngine::new(
@@ -556,6 +549,7 @@ mod tests {
                 origin: test_origin(),
             },
             1,
+            thread_pool.clone(),
         );
         let version = db.version().expect("Failed to get version");
         assert_eq!(version, 1);
@@ -568,6 +562,7 @@ mod tests {
     #[test]
     fn test_create_store() {
         let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
         let db = super::SqliteEngine::new(
             base_dir.path(),
             &IndexedDBDescription {
@@ -575,21 +570,45 @@ mod tests {
                 origin: test_origin(),
             },
             1,
+            thread_pool,
         );
-        let result = db.create_store(SanitizedName::new("test_store".to_string()), None, false);
+        let store_name = SanitizedName::new("test_store".to_string());
+        let result = db.create_store(store_name.clone(), None, true);
         assert!(result.is_ok());
         let create_result = result.unwrap();
         assert_eq!(create_result, CreateObjectResult::Created);
         // Try to create the same store again
-        let result = db.create_store(SanitizedName::new("test_store".to_string()), None, false);
+        let result = db.create_store(store_name.clone(), None, false);
         assert!(result.is_ok());
         let create_result = result.unwrap();
         assert_eq!(create_result, CreateObjectResult::AlreadyExists);
+        // Ensure store was not overwritten
+        assert!(db.has_key_generator(store_name));
+    }
+
+    #[test]
+    fn test_key_path() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
+        let db = super::SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            1,
+            thread_pool,
+        );
+        let store_name = SanitizedName::new("test_store".to_string());
+        let result = db.create_store(store_name.clone(), Some(KeyPath::String("test".to_string())), true);
+        assert!(result.is_ok());
+        assert_eq!(db.key_path(store_name), Some(KeyPath::String("test".to_string())));
     }
 
     #[test]
     fn test_delete_store() {
         let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
         let db = super::SqliteEngine::new(
             base_dir.path(),
             &IndexedDBDescription {
@@ -597,6 +616,7 @@ mod tests {
                 origin: test_origin(),
             },
             1,
+            thread_pool,
         );
         db.create_store(SanitizedName::new("test_store".to_string()), None, false)
             .expect("Failed to create store");
@@ -610,5 +630,39 @@ mod tests {
         let result = db.delete_store(SanitizedName::new("test_store".into()));
         // Should work as per spec
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_async_operations() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
+        let db = super::SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            1,
+            thread_pool,
+        );
+        let store_name = SanitizedName::new("test_store".to_string());
+        db.create_store(store_name.clone(), None, false)
+            .expect("Failed to create store");
+        let rx = db.process_transaction(KvsTransaction {
+            mode: IndexedDBTxnMode::Readwrite,
+            requests: VecDeque::from(vec![
+                // TODO: Test other operations
+                KvsOperation {
+                    store_name: store_name.clone(),
+                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                        sender: ipc_channel::ipc::channel().unwrap().0,
+                        key: IndexedDBKeyType::Number(1.0),
+                        value: vec![],
+                        should_overwrite: false
+                    }),
+                }
+            ]),
+        });
+        let _ = rx.blocking_recv().unwrap();
     }
 }

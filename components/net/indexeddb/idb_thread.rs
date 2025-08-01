@@ -5,6 +5,7 @@ use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::thread;
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
@@ -19,6 +20,7 @@ use servo_url::origin::ImmutableOrigin;
 use crate::indexeddb::engines::{
     KvsEngine, KvsOperation, KvsTransaction, SanitizedName, SqliteEngine,
 };
+use crate::resource_thread::CoreResourceThreadPool;
 
 pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
@@ -68,7 +70,6 @@ impl IndexedDBDescription {
 
 struct IndexedDBEnvironment<E: KvsEngine> {
     engine: E,
-
     transactions: HashMap<u64, KvsTransaction>,
     serial_number_counter: u64,
 }
@@ -186,16 +187,29 @@ struct IndexedDBManager {
     port: IpcReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<SqliteEngine>>,
+    thread_pool: Arc<CoreResourceThreadPool>,
 }
 
 impl IndexedDBManager {
     fn new(port: IpcReceiver<IndexedDBThreadMsg>, idb_base_dir: PathBuf) -> IndexedDBManager {
         debug!("New indexedDBManager");
 
+        // Uses an estimate of the system cpus to decode images
+        // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
+        // If no information can be obtained about the system, uses 4 threads as a default
+        let thread_count = thread::available_parallelism()
+            .map(|i| i.get())
+            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
+            .min(pref!(threadpools_image_cache_workers_max).max(1) as usize);
+
         IndexedDBManager {
             port,
             idb_base_dir,
             databases: HashMap::new(),
+            thread_pool: Arc::new(CoreResourceThreadPool::new(
+                thread_count,
+                "ImageCache".to_string(),
+            )),
         }
     }
 }
@@ -292,6 +306,7 @@ impl IndexedDBManager {
                             idb_base_dir,
                             &idb_description,
                             version.unwrap_or(0),
+                            self.thread_pool.clone(),
                         ));
                         let _ = sender.send(db.version().unwrap_or(version.unwrap_or(0)));
                         e.insert(db);
