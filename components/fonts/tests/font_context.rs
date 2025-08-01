@@ -11,7 +11,7 @@ mod font_context {
     use std::path::PathBuf;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicI32, Ordering};
-    use std::thread::{self, ThreadHandle};
+    use std::thread::{self, JoinHandle};
 
     use app_units::Au;
     use compositing_traits::CrossProcessCompositorApi;
@@ -40,7 +40,7 @@ mod font_context {
         context: FontContext,
         system_font_service: Arc<MockSystemFontService>,
         system_font_service_proxy: SystemFontServiceProxy,
-        fetch_thread_join_handle: Option<ThreadHandle<()>>,
+        fetch_thread_join_handle: Option<JoinHandle<()>>,
     }
 
     impl TestContext {
@@ -54,7 +54,7 @@ mod font_context {
             let mock_compositor_api = CrossProcessCompositorApi::dummy();
 
             let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());
-            let fetch_thread_join_handle = start_fetch_thread(mock_resource_threads);
+            let fetch_thread_join_handle = start_fetch_thread(&mock_resource_threads.core_thread);
             Self {
                 context: FontContext::new(proxy_clone, mock_compositor_api, mock_resource_threads),
                 system_font_service,

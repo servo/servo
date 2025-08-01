@@ -692,7 +692,7 @@ pub fn exit_fetch_thread() {
 
 /// Instruct the resource thread to make a new fetch request.
 pub fn fetch_async(
-    core_resource_thread: &CoreResourceThread,
+    _core_resource_thread: &CoreResourceThread,
     request: RequestBuilder,
     response_init: Option<ResponseInit>,
     callback: BoxedFetchCallback,
