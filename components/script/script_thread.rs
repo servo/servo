@@ -1295,8 +1295,14 @@ impl ScriptThread {
             self.process_pending_input_events(*pipeline_id, can_gc);
 
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
-            if document.window().run_the_resize_steps(can_gc) {
-                // Evaluate media queries and report changes.
+            let resized = document.window().run_the_resize_steps(can_gc);
+
+            // > 9. For each doc of docs, run the scroll steps for doc.
+            document.run_the_scroll_steps(can_gc);
+
+            // Media queries is only relevant when there are resizing.
+            if resized {
+                // 10. For each doc of docs, evaluate media queries and report changes for doc.
                 document
                     .window()
                     .evaluate_media_queries_and_report_changes(can_gc);
@@ -1305,9 +1311,6 @@ impl ScriptThread {
                 // As per the spec, this can be run at any time.
                 document.react_to_environment_changes()
             }
-
-            // > 9. For each doc of docs, run the scroll steps for doc.
-            document.run_the_scroll_steps(can_gc);
 
             // > 11. For each doc of docs, update animations and send events for doc, passing
             // > in relative high resolution time given frameTimestamp and doc's relevant

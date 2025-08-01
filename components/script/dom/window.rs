@@ -225,6 +225,25 @@ impl LayoutBlocker {
 
 type PendingImageRasterizationKey = (PendingImageId, DeviceIntSize);
 
+/// Feedbacks of the reflow that is required by the one who is initiating the reflow.
+pub(crate) struct WindowReflowResult {
+    /// Whether the reflow actually happened and it sends a new display list to the embedder.
+    pub reflow_issued: bool,
+    /// Whether the reflow is for [ReflowGoal::UpdateScrollNode] and the target is scrolled.
+    /// Specifically, a node is scrolled whenever the scroll position of it changes. Note
+    /// that reflow that is cancalled would not scroll the target.
+    pub update_scroll_reflow_target_scrolled: bool,
+}
+
+impl WindowReflowResult {
+    fn new_empty() -> Self {
+        WindowReflowResult {
+            reflow_issued: false,
+            update_scroll_reflow_target_scrolled: false,
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
@@ -2145,16 +2164,30 @@ impl Window {
         y: f32,
         scroll_id: ExternalScrollId,
         _behavior: ScrollBehavior,
-        _element: Option<&Element>,
+        element: Option<&Element>,
         can_gc: CanGc,
     ) {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        self.reflow(
+        let WindowReflowResult {
+            update_scroll_reflow_target_scrolled,
+            ..
+        } = self.reflow(
             ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)),
             can_gc,
         );
+
+        // > If the scroll position did not change as a result of the user interaction or programmatic
+        // > invocation, where no translations were applied as a result, then no scrollend event fires
+        // > because no scrolling occurred.
+        // Even though the note mention the scrollend, it is relevant to the scroll as well.
+        if update_scroll_reflow_target_scrolled {
+            match element {
+                Some(el) => self.Document().handle_element_scroll_event(el),
+                None => self.Document().handle_viewport_scroll_event(),
+            };
+        }
     }
 
     pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
@@ -2183,11 +2216,9 @@ impl Window {
     /// no reflow is performed. If reflow is suppressed, no reflow will be performed for ForDisplay
     /// goals.
     ///
-    /// Returns true if layout actually happened and it sent a new display list to the renderer.
-    ///
     /// NOTE: This method should almost never be called directly! Layout and rendering updates should
     /// happen as part of the HTML event loop via *update the rendering*.
-    fn force_reflow(&self, reflow_goal: ReflowGoal) -> bool {
+    fn force_reflow(&self, reflow_goal: ReflowGoal) -> WindowReflowResult {
         let document = self.Document();
         document.ensure_safe_to_run_script_or_layout();
 
@@ -2199,7 +2230,7 @@ impl Window {
             self.layout_blocker.get().layout_blocked()
         {
             debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
-            return false;
+            return WindowReflowResult::new_empty();
         }
 
         debug!("script: performing reflow for goal {reflow_goal:?}");
@@ -2251,25 +2282,36 @@ impl Window {
         };
 
         let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
-            return false;
+            return WindowReflowResult::new_empty();
         };
 
-        debug!("script: layout complete");
-        if let Some(marker) = marker {
-            self.emit_timeline_marker(marker.end());
+        // We are maintaining the previous behavior of layout where we are skipping these behavior if we are not
+        // doing layout calculation.
+        if results.processed_relayout {
+            debug!("script: layout complete");
+            if let Some(marker) = marker {
+                self.emit_timeline_marker(marker.end());
+            }
+
+            self.handle_pending_images_post_reflow(
+                results.pending_images,
+                results.pending_rasterization_images,
+            );
+            if let Some(iframe_sizes) = results.iframe_sizes {
+                document
+                    .iframes_mut()
+                    .handle_new_iframe_sizes_after_layout(self, iframe_sizes);
+            }
+            document.update_animations_post_reflow();
+            self.update_constellation_epoch();
+        } else {
+            debug!("script: layout-side reflow finished without relayout");
         }
 
-        self.handle_pending_images_post_reflow(
-            results.pending_images,
-            results.pending_rasterization_images,
-        );
-        document
-            .iframes_mut()
-            .handle_new_iframe_sizes_after_layout(self, results.iframe_sizes);
-        document.update_animations_post_reflow();
-        self.update_constellation_epoch();
-
-        results.built_display_list
+        WindowReflowResult {
+            reflow_issued: results.built_display_list,
+            update_scroll_reflow_target_scrolled: results.update_scroll_reflow_target_scrolled,
+        }
     }
 
     /// Reflows the page if it's possible to do so and the page is dirty. Returns true if layout
@@ -2278,10 +2320,10 @@ impl Window {
     /// NOTE: This method should almost never be called directly! Layout and rendering updates
     /// should happen as part of the HTML event loop via *update the rendering*. Currerntly, the
     /// only exceptions are script queries and scroll requests.
-    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> bool {
+    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> WindowReflowResult {
         // Never reflow inactive Documents.
         if !self.Document().is_fully_active() {
-            return false;
+            return WindowReflowResult::new_empty();
         }
 
         // Count the pending web fonts before layout, in case a font loads during the layout.
@@ -2290,7 +2332,7 @@ impl Window {
         self.Document().ensure_safe_to_run_script_or_layout();
 
         let updating_the_rendering = reflow_goal == ReflowGoal::UpdateTheRendering;
-        let issued_reflow = self.force_reflow(reflow_goal);
+        let reflow_result = self.force_reflow(reflow_goal);
 
         let document = self.Document();
         let font_face_set = document.Fonts(can_gc);
@@ -2348,7 +2390,7 @@ impl Window {
             }
         }
 
-        issued_reflow
+        reflow_result
     }
 
     /// If parsing has taken a long time and reflows are still waiting for the `load` event,
@@ -2428,8 +2470,9 @@ impl Window {
         let _ = receiver.recv();
     }
 
-    pub(crate) fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) -> bool {
-        self.reflow(ReflowGoal::LayoutQuery(query_msg), can_gc)
+    /// Trigger a reflow that is required by a certain queries.
+    pub(crate) fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) {
+        self.reflow(ReflowGoal::LayoutQuery(query_msg), can_gc);
     }
 
     pub(crate) fn resolved_font_style_query(
@@ -2507,33 +2550,46 @@ impl Window {
         can_gc: CanGc,
     ) -> Vector2D<f32, LayoutPixel> {
         self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery, can_gc);
+        self.scroll_offset_query_with_external_scroll_id_no_reflow(external_scroll_id)
+    }
+
+    fn scroll_offset_query_with_external_scroll_id_no_reflow(
+        &self,
+        external_scroll_id: ExternalScrollId,
+    ) -> Vector2D<f32, LayoutPixel> {
         self.layout
             .borrow()
             .scroll_offset(external_scroll_id)
             .unwrap_or_default()
     }
 
-    // https://drafts.csswg.org/cssom-view/#element-scrolling-members
-    pub(crate) fn scroll_node(
+    /// <https://drafts.csswg.org/cssom-view/#scroll-an-element>
+    // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
+    pub(crate) fn scroll_an_element(
         &self,
-        node: &Node,
+        element: &Element,
         x_: f64,
         y_: f64,
         behavior: ScrollBehavior,
         can_gc: CanGc,
     ) {
         let scroll_id = ExternalScrollId(
-            combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
+            combine_id_with_fragment_type(
+                element.upcast::<Node>().to_opaque().id(),
+                FragmentType::FragmentBody,
+            ),
             self.pipeline_id().into(),
         );
 
-        // Step 12
+        // Step 6.
+        // > Perform a scroll of box to position, element as the associated element and behavior as
+        // > the scroll behavior.
         self.perform_a_scroll(
             x_.to_f32().unwrap_or(0.0f32),
             y_.to_f32().unwrap_or(0.0f32),
             scroll_id,
             behavior,
-            None,
+            Some(element),
             can_gc,
         );
     }

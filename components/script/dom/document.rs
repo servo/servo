@@ -2413,23 +2413,22 @@ impl Document {
         // Step 2
         // > For each item target in doc’s pending scroll event targets, in the order they
         // > were added to the list, run these substeps:
-        for target in self.pending_scroll_event_targets.borrow().iter() {
-            // Step 2.1
-            // > If target is a Document, fire an event named scroll that bubbles at target.
+        // Step 3.
+        // > Empty doc’s pending scroll event targets.
+        // Since the scroll event callback could trigger another scroll event, we are taking all of the
+        // current scroll event to avoid borrow checking error.
+        rooted_vec!(let notify_list <- self.pending_scroll_event_targets.take().into_iter());
+        for target in notify_list.iter() {
             if target.downcast::<Document>().is_some() {
+                // Step 2.1
+                // > If target is a Document, fire an event named scroll that bubbles at target.
                 target.fire_bubbling_event(Atom::from("scroll"), can_gc);
-            }
-
-            // Step 2.2
-            // > Otherwise, fire an event named scroll at target.
-            if target.downcast::<Element>().is_some() {
+            } else if target.downcast::<Element>().is_some() {
+                // Step 2.2
+                // > Otherwise, fire an event named scroll at target.
                 target.fire_event(Atom::from("scroll"), can_gc);
             }
         }
-
-        // Step 3.
-        // > Empty doc’s pending scroll event targets.
-        self.pending_scroll_event_targets.borrow_mut().clear();
 
         // Step 4.
         // > Run the steps to dispatch pending scrollsnapchange events for doc.
@@ -3700,7 +3699,9 @@ impl Document {
             receiver.recv().unwrap();
         }
 
-        self.window().reflow(ReflowGoal::UpdateTheRendering, can_gc)
+        self.window()
+            .reflow(ReflowGoal::UpdateTheRendering, can_gc)
+            .reflow_issued
     }
 
     pub(crate) fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {

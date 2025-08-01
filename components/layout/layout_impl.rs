@@ -651,18 +651,30 @@ impl LayoutThread {
         );
     }
 
+    /// Checks whether we need to update the scroll node, and report whether the
+    /// node is scrolled. We need to update the scroll node whenever it is requested.
+    fn handle_update_scroll_node_request(&self, reflow_request: &ReflowRequest) -> bool {
+        if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) = reflow_request.reflow_goal
+        {
+            self.set_scroll_offset_from_script(external_scroll_id, offset)
+        } else {
+            false
+        }
+    }
+
     /// The high-level routine that performs layout.
     #[servo_tracing::instrument(skip_all)]
     fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
         self.maybe_print_reflow_event(&reflow_request);
 
         if self.can_skip_reflow_request_entirely(&reflow_request) {
-            if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) =
-                reflow_request.reflow_goal
-            {
-                self.set_scroll_offset_from_script(external_scroll_id, offset);
-            }
-            return None;
+            // We could skip the layout, but we might need to update the scroll node.
+            let update_scroll_reflow_target_scrolled =
+                self.handle_update_scroll_node_request(&reflow_request);
+
+            return Some(ReflowResult::new_without_relayout(
+                update_scroll_reflow_target_scrolled,
+            ));
         }
 
         let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
@@ -692,10 +704,8 @@ impl LayoutThread {
         self.build_stacking_context_tree(&reflow_request, damage);
         let built_display_list = self.build_display_list(&reflow_request, damage, &image_resolver);
 
-        if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) = reflow_request.reflow_goal
-        {
-            self.set_scroll_offset_from_script(external_scroll_id, offset);
-        }
+        let update_scroll_reflow_target_scrolled =
+            self.handle_update_scroll_node_request(&reflow_request);
 
         let pending_images = std::mem::take(&mut *image_resolver.pending_images.lock());
         let pending_rasterization_images =
@@ -705,7 +715,9 @@ impl LayoutThread {
             built_display_list,
             pending_images,
             pending_rasterization_images,
-            iframe_sizes,
+            iframe_sizes: Some(iframe_sizes),
+            update_scroll_reflow_target_scrolled,
+            processed_relayout: true,
         })
     }
 
@@ -1093,10 +1105,10 @@ impl LayoutThread {
         &self,
         external_scroll_id: ExternalScrollId,
         offset: LayoutVector2D,
-    ) {
+    ) -> bool {
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
-            return;
+            return false;
         };
 
         if let Some(offset) = stacking_context_tree
@@ -1114,6 +1126,9 @@ impl LayoutThread {
                 offset,
                 external_scroll_id,
             );
+            true
+        } else {
+            false
         }
     }
 
