@@ -117,7 +117,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     }
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
-        // vello scene only ever grows,
+        // vello_cpu RenderingContext only ever grows,
         // so we need to use every opportunity to shrink it
         if self.is_viewport_cleared(rect, transform) {
             self.ctx.reset();
