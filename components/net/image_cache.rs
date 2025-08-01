@@ -41,6 +41,8 @@ use crate::resource_thread::CoreResourceThreadPool;
 // something in higher resolution.
 const FALLBACK_RIPPY: &[u8] = include_bytes!("../../resources/rippy.png");
 
+const MAX_SVG_PIXMAP_DIMENSION: u32 = 5000;
+
 //
 // TODO(gw): Remaining work on image cache:
 //     * Make use of the prefetch support in various parts of the code.
@@ -907,8 +909,16 @@ impl ImageCache for ImageCacheImpl {
         self.thread_pool.spawn(move || {
             let natural_size = vector_image.svg_tree.size().to_int_size();
             let tinyskia_requested_size = {
-                let width = requested_size.width.try_into().unwrap_or(0);
-                let height = requested_size.height.try_into().unwrap_or(0);
+                let width = requested_size
+                    .width
+                    .try_into()
+                    .unwrap_or(0)
+                    .min(MAX_SVG_PIXMAP_DIMENSION);
+                let height = requested_size
+                    .height
+                    .try_into()
+                    .unwrap_or(0)
+                    .min(MAX_SVG_PIXMAP_DIMENSION);
                 tiny_skia::IntSize::from_wh(width, height).unwrap_or(natural_size)
             };
             let transform = tiny_skia::Transform::from_scale(
