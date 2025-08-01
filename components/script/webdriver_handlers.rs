@@ -34,6 +34,7 @@ use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 
 use crate::document_collection::DocumentCollection;
+use crate::dom::attr::is_boolean_attribute;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -1579,48 +1580,10 @@ pub(crate) fn handle_get_attribute(
     name: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
 ) {
-    // NOTE: The full list of attributes can be found in
-    // <https://html.spec.whatwg.org/multipage/#attributes-3>.
-
-    let is_boolean_attribute = [
-        "allowfullscreen",
-        "alpha",
-        "async",
-        "autofocus",
-        "autoplay",
-        "checked",
-        "controls",
-        "default",
-        "defer",
-        "disabled",
-        "formnovalidate",
-        "hidden",
-        "inert",
-        "ismap",
-        "itemscope",
-        "loop",
-        "multiple",
-        "muted",
-        "nomodule",
-        "novalidate",
-        "open",
-        "playsinline",
-        "readonly",
-        "required",
-        "reversed",
-        "selected",
-        "shadowrootclonable",
-        "shadowrootcustomelementregistry",
-        "shadowrootdelegatesfocus",
-        "shadowrootserializable",
-    ]
-    .iter()
-    .any(|&boolean_attr| boolean_attr.eq_ignore_ascii_case(name.as_str()));
-
     reply
         .send(
             get_known_element(documents, pipeline, node_id).map(|element| {
-                if is_boolean_attribute {
+                if is_boolean_attribute(&name) {
                     // element.get_attribute_by_name(DOMString::from(name)).map(|_| String::from("true"))
                     if element.HasAttribute(DOMString::from(name)) {
                         Some(String::from("true"))
