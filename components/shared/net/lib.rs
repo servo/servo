@@ -35,6 +35,7 @@ use crate::http_status::HttpStatus;
 use crate::indexeddb_thread::IndexedDBThreadMsg;
 use crate::request::{Request, RequestBuilder};
 use crate::response::{HttpsState, Response, ResponseInit};
+use crate::speech_thread::SpeechSynthesisThreadMsg;
 use crate::storage_thread::StorageThreadMsg;
 
 pub mod blob_url_store;
@@ -48,6 +49,7 @@ pub mod pub_domains;
 pub mod quality;
 pub mod request;
 pub mod response;
+pub mod speech_thread;
 pub mod storage_thread;
 
 /// <https://fetch.spec.whatwg.org/#document-accept-header-value>
@@ -417,6 +419,7 @@ pub struct ResourceThreads {
     pub core_thread: CoreResourceThread,
     storage_thread: IpcSender<StorageThreadMsg>,
     idb_thread: IpcSender<IndexedDBThreadMsg>,
+    speech_thread: IpcSender<SpeechSynthesisThreadMsg>,
 }
 
 impl ResourceThreads {
@@ -424,11 +427,13 @@ impl ResourceThreads {
         c: CoreResourceThread,
         s: IpcSender<StorageThreadMsg>,
         i: IpcSender<IndexedDBThreadMsg>,
+        p: IpcSender<SpeechSynthesisThreadMsg>,
     ) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
             storage_thread: s,
             idb_thread: i,
+            speech_thread: p,
         }
     }
 
@@ -464,6 +469,16 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 
     fn sender(&self) -> IpcSender<StorageThreadMsg> {
         self.storage_thread.clone()
+    }
+}
+
+impl IpcSend<SpeechSynthesisThreadMsg> for ResourceThreads {
+    fn send(&self, msg: SpeechSynthesisThreadMsg) -> IpcSendResult {
+        self.speech_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<SpeechSynthesisThreadMsg> {
+        self.speech_thread.clone()
     }
 }
 
