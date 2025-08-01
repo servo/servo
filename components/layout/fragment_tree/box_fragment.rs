@@ -69,6 +69,24 @@ pub(crate) struct BlockLevelLayoutInfo {
 }
 
 #[derive(MallocSizeOf)]
+pub(crate) struct BoxFragmentRareData {
+    /// Information that is specific to a layout system (e.g., grid, table, etc.).
+    pub specific_layout_info: Option<SpecificLayoutInfo>,
+}
+
+impl BoxFragmentRareData {
+    /// Create a new rare data based on information given to the fragment. Ideally, We should
+    /// avoid creating rare data as much as possible to reduce the memory cost.
+    fn try_boxed_from(specific_layout_info: Option<SpecificLayoutInfo>) -> Option<Box<Self>> {
+        specific_layout_info.map(|info| {
+            Box::new(BoxFragmentRareData {
+                specific_layout_info: Some(info),
+            })
+        })
+    }
+}
+
+#[derive(MallocSizeOf)]
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
@@ -105,8 +123,8 @@ pub(crate) struct BoxFragment {
 
     pub background_mode: BackgroundMode,
 
-    /// Additional information of from layout that could be used by Javascripts and devtools.
-    pub specific_layout_info: Option<SpecificLayoutInfo>,
+    /// Rare data that not all kinds of [`BoxFragment`] would have.
+    pub rare_data: Option<Box<BoxFragmentRareData>>,
 
     /// Additional information for block-level boxes.
     pub block_level_layout_info: Option<Box<BlockLevelLayoutInfo>>,
@@ -130,6 +148,8 @@ impl BoxFragment {
         margin: PhysicalSides<Au>,
         specific_layout_info: Option<SpecificLayoutInfo>,
     ) -> BoxFragment {
+        let rare_data = BoxFragmentRareData::try_boxed_from(specific_layout_info);
+
         BoxFragment {
             base: base_fragment_info.into(),
             style,
@@ -143,7 +163,7 @@ impl BoxFragment {
             scrollable_overflow: None,
             resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
-            specific_layout_info,
+            rare_data,
             block_level_layout_info: None,
             spatial_tree_node: AtomicRefCell::default(),
         }
@@ -196,6 +216,10 @@ impl BoxFragment {
 
     pub fn set_does_not_paint_background(&mut self) {
         self.background_mode = BackgroundMode::None;
+    }
+
+    pub fn specific_layout_info(&self) -> Option<&SpecificLayoutInfo> {
+        self.rare_data.as_ref()?.specific_layout_info.as_ref()
     }
 
     pub fn with_block_level_layout_info(
@@ -512,13 +536,13 @@ impl BoxFragment {
     /// <https://www.w3.org/TR/css-tables-3/#table-wrapper-box>
     pub(crate) fn is_table_wrapper(&self) -> bool {
         matches!(
-            self.specific_layout_info,
+            self.specific_layout_info(),
             Some(SpecificLayoutInfo::TableWrapper)
         )
     }
 
     pub(crate) fn has_collapsed_borders(&self) -> bool {
-        match &self.specific_layout_info {
+        match self.specific_layout_info() {
             Some(SpecificLayoutInfo::TableCellWithCollapsedBorders) => true,
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_)) => true,
             Some(SpecificLayoutInfo::TableWrapper) => {

@@ -1334,7 +1334,7 @@ impl BoxFragment {
         }
 
         if matches!(&fragment, Fragment::Box(box_fragment) if matches!(
-            box_fragment.borrow().specific_layout_info,
+            box_fragment.borrow().specific_layout_info(),
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
         )) {
             stacking_context
