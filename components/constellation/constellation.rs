@@ -142,7 +142,7 @@ use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use keyboard_types::{Key, KeyState, Modifiers};
+use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
@@ -2835,6 +2835,7 @@ where
         }
     }
 
+    #[allow(deprecated)]
     fn update_active_keybord_modifiers(&mut self, event: &KeyboardEvent) {
         self.active_keyboard_modifiers = event.event.modifiers;
 
@@ -2842,23 +2843,27 @@ where
         // either pressed or released, but `active_keyboard_modifiers` should track the subsequent
         // state. If this event will update that state, we need to ensure that we are tracking what
         // the event changes.
-        let modified_modifier = match event.event.key {
-            Key::Alt => Modifiers::ALT,
-            Key::AltGraph => Modifiers::ALT_GRAPH,
-            Key::CapsLock => Modifiers::CAPS_LOCK,
-            Key::Control => Modifiers::CONTROL,
-            Key::Fn => Modifiers::FN,
-            Key::FnLock => Modifiers::FN_LOCK,
-            Key::Meta => Modifiers::META,
-            Key::NumLock => Modifiers::NUM_LOCK,
-            Key::ScrollLock => Modifiers::SCROLL_LOCK,
-            Key::Shift => Modifiers::SHIFT,
-            Key::Symbol => Modifiers::SYMBOL,
-            Key::SymbolLock => Modifiers::SYMBOL_LOCK,
-            Key::Hyper => Modifiers::HYPER,
+        let Key::Named(named_key) = event.event.key else {
+            return;
+        };
+
+        let modified_modifier = match named_key {
+            NamedKey::Alt => Modifiers::ALT,
+            NamedKey::AltGraph => Modifiers::ALT_GRAPH,
+            NamedKey::CapsLock => Modifiers::CAPS_LOCK,
+            NamedKey::Control => Modifiers::CONTROL,
+            NamedKey::Fn => Modifiers::FN,
+            NamedKey::FnLock => Modifiers::FN_LOCK,
+            NamedKey::Meta => Modifiers::META,
+            NamedKey::NumLock => Modifiers::NUM_LOCK,
+            NamedKey::ScrollLock => Modifiers::SCROLL_LOCK,
+            NamedKey::Shift => Modifiers::SHIFT,
+            NamedKey::Symbol => Modifiers::SYMBOL,
+            NamedKey::SymbolLock => Modifiers::SYMBOL_LOCK,
+            NamedKey::Hyper => Modifiers::HYPER,
             // The web doesn't make a distinction between these keys (there is only
             // "meta") so map "super" to "meta".
-            Key::Super => Modifiers::META,
+            NamedKey::Super => Modifiers::META,
             _ => return,
         };
         match event.event.state {

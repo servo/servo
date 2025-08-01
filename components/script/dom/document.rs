@@ -41,7 +41,7 @@ use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use keyboard_types::{Code, Key, KeyState, Modifiers};
+use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{
     PendingRestyle, ReflowGoal, RestyleReason, TrustedNodeAddress, node_id_from_scroll_id,
 };
@@ -2547,7 +2547,7 @@ impl Document {
 
         let keyevent = KeyboardEvent::new(
             &self.window,
-            DOMString::from(keyboard_event.event.state.to_string()),
+            DOMString::from(keyboard_event.event.state.event_type()),
             true,
             true,
             Some(&self.window),
@@ -2607,7 +2607,8 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            if (keyboard_event.event.key == Key::Enter || keyboard_event.event.code == Code::Space) &&
+            if (keyboard_event.event.key == Key::Named(NamedKey::Enter) ||
+                keyboard_event.event.code == Code::Space) &&
                 keyboard_event.event.state == KeyState::Up
             {
                 if let Some(elem) = target.downcast::<Element>() {
@@ -2647,7 +2648,7 @@ impl Document {
 
         let compositionevent = CompositionEvent::new(
             &self.window,
-            DOMString::from(composition_event.state.to_string()),
+            DOMString::from(composition_event.state.event_type()),
             true,
             cancelable,
             Some(&self.window),
@@ -4045,7 +4046,7 @@ impl Document {
 }
 
 fn is_character_value_key(key: &Key) -> bool {
-    matches!(key, Key::Character(_) | Key::Enter)
+    matches!(key, Key::Character(_) | Key::Named(NamedKey::Enter))
 }
 
 #[derive(MallocSizeOf, PartialEq)]

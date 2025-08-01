@@ -1359,7 +1359,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4664,9 +4664,9 @@ dependencies = [
 
 [[package]]
 name = "keyboard-types"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b750dcadc39a09dbadd74e118f6dd6598df77fa01df0cfcdc52c28dece74528a"
+checksum = "fd6e0f18953c66af118a70064505bd3780a226d65b06553b7293fb8933067967"
 dependencies = [
  "bitflags 2.9.1",
  "serde",
@@ -9921,7 +9921,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -10510,9 +10510,9 @@ dependencies = [
 
 [[package]]
 name = "xcomponent-sys"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9e652372b831785d7d215786c83163c9eebb6c96c24e938c7f35d58af03a160"
+checksum = "329659c48163c2aad88ef9a68eb478f21307a563179d4304b5ead737543533c1"
 dependencies = [
  "arkui-sys",
  "keyboard-types",

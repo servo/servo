@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use keyboard_types::{Key, Modifiers};
+use keyboard_types::{Key, Modifiers, NamedKey};
 use script::test::DOMString;
 use script::test::textinput::{
     ClipboardProvider, Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint,
@@ -488,10 +488,10 @@ fn test_navigation_keyboard_shortcuts() {
     let mut textinput = text_input(Lines::Multiple, "hello áéc");
 
     // Test that CMD + Right moves to the end of the current line.
-    textinput.handle_keydown_aux(Key::ArrowRight, Modifiers::META, true);
+    textinput.handle_keydown_aux(Key::Named(NamedKey::ArrowRight), Modifiers::META, true);
     assert_eq!(textinput.edit_point().index, UTF8Bytes(11));
     // Test that CMD + Right moves to the beginning of the current line.
-    textinput.handle_keydown_aux(Key::ArrowLeft, Modifiers::META, true);
+    textinput.handle_keydown_aux(Key::Named(NamedKey::ArrowLeft), Modifiers::META, true);
     assert_eq!(textinput.edit_point().index, UTF8Bytes::zero());
     // Test that CTRL + ALT + E moves to the end of the current line also.
     textinput.handle_keydown_aux(
@@ -509,7 +509,7 @@ fn test_navigation_keyboard_shortcuts() {
     assert_eq!(textinput.edit_point().index, UTF8Bytes::zero());
 
     // Test that ALT + Right moves to the end of the word.
-    textinput.handle_keydown_aux(Key::ArrowRight, Modifiers::ALT, true);
+    textinput.handle_keydown_aux(Key::Named(NamedKey::ArrowRight), Modifiers::ALT, true);
     assert_eq!(textinput.edit_point().index, UTF8Bytes(5));
     // Test that CTRL + ALT + F moves to the end of the word also.
     textinput.handle_keydown_aux(
@@ -519,7 +519,7 @@ fn test_navigation_keyboard_shortcuts() {
     );
     assert_eq!(textinput.edit_point().index, UTF8Bytes(11));
     // Test that ALT + Left moves to the end of the word.
-    textinput.handle_keydown_aux(Key::ArrowLeft, Modifiers::ALT, true);
+    textinput.handle_keydown_aux(Key::Named(NamedKey::ArrowLeft), Modifiers::ALT, true);
     assert_eq!(textinput.edit_point().index, UTF8Bytes(6));
     // Test that CTRL + ALT + B moves to the end of the word also.
     textinput.handle_keydown_aux(
@@ -860,7 +860,7 @@ fn test_select_all() {
 #[test]
 fn test_backspace_in_textarea_at_beginning_of_line() {
     let mut textinput = text_input(Lines::Multiple, "first line\n");
-    textinput.handle_keydown_aux(Key::ArrowDown, Modifiers::empty(), false);
-    textinput.handle_keydown_aux(Key::Backspace, Modifiers::empty(), false);
+    textinput.handle_keydown_aux(Key::Named(NamedKey::ArrowDown), Modifiers::empty(), false);
+    textinput.handle_keydown_aux(Key::Named(NamedKey::Backspace), Modifiers::empty(), false);
     assert_eq!(textinput.get_content(), DOMString::from("first line"));
 }
