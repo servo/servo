@@ -92,6 +92,7 @@ use log::{Log, Metadata, Record, debug, error, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
+use net_traits::{exit_fetch_thread, start_fetch_thread};
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time};
@@ -1257,6 +1258,9 @@ pub fn run_content_process(token: String) {
         UnprivilegedContent::Pipeline(mut content) => {
             media_platform::init();
 
+            // Start a fetch thread.
+            let fetch_thread_join_handle = start_fetch_thread(content.core_resource_thread());
+
             set_logger(content.script_to_constellation_chan().clone());
 
             let (background_hang_monitor_register, join_handle) =
@@ -1278,6 +1282,12 @@ pub fn run_content_process(token: String) {
             join_handle
                 .join()
                 .expect("Failed to join on the BHM background thread.");
+
+            // Shut down the fetch thread started above.
+            exit_fetch_thread();
+            fetch_thread_join_handle
+                .join()
+                .expect("Failed to join on the fetch thread in the constellation");
         },
         UnprivilegedContent::ServiceWorker(content) => {
             content.start::<ServiceWorkerManager>();

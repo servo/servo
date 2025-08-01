@@ -149,7 +149,10 @@ use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::{self, AsyncRuntime, IpcSend, ReferrerPolicy, ResourceThreads};
+use net_traits::{
+    self, AsyncRuntime, IpcSend, ReferrerPolicy, ResourceThreads, exit_fetch_thread,
+    start_fetch_thread,
+};
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use script_traits::{
@@ -722,6 +725,11 @@ where
 
     /// The main event loop for the constellation.
     fn run(&mut self) {
+        // Start a fetch thread.
+        // In single-process mode this will be the global fetch thread;
+        // in multi-process mode this will be used only by the canvas paint thread.
+        let join_handle = start_fetch_thread(&self.public_resource_threads.core_thread);
+
         while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
             // This is for testing the hardening of the constellation.
@@ -729,6 +737,12 @@ where
             self.handle_request();
         }
         self.handle_shutdown();
+
+        // Shut down the fetch thread started above.
+        exit_fetch_thread();
+        join_handle
+            .join()
+            .expect("Failed to join on the fetch thread in the constellation");
     }
 
     /// Generate a new pipeline id namespace.

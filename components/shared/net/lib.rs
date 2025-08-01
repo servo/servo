@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::{LazyLock, OnceLock};
-use std::thread;
+use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::HistoryStateId;
@@ -563,6 +563,8 @@ enum ToFetchThreadMessage {
         /* callback  */ BoxedFetchCallback,
     ),
     FetchResponse(FetchResponseMsg),
+    /// Stop the background thread.
+    Exit,
 }
 
 pub type BoxedFetchCallback = Box<dyn FnMut(FetchResponseMsg) + Send + 'static>;
@@ -586,7 +588,9 @@ struct FetchThread {
 }
 
 impl FetchThread {
-    fn spawn(core_resource_thread: &CoreResourceThread) -> Sender<ToFetchThreadMessage> {
+    fn spawn(
+        core_resource_thread: &CoreResourceThread,
+    ) -> (Sender<ToFetchThreadMessage>, JoinHandle<()>) {
         let (sender, receiver) = unbounded();
         let (to_fetch_sender, from_fetch_sender) = ipc::channel().unwrap();
 
@@ -600,7 +604,7 @@ impl FetchThread {
         );
 
         let core_resource_thread = core_resource_thread.clone();
-        thread::Builder::new()
+        let join_handle = thread::Builder::new()
             .name("FetchThread".to_owned())
             .spawn(move || {
                 let mut fetch_thread = FetchThread {
@@ -612,7 +616,7 @@ impl FetchThread {
                 fetch_thread.run();
             })
             .expect("Thread spawning failed");
-        sender
+        (sender, join_handle)
     }
 
     fn run(&mut self) {
@@ -659,12 +663,32 @@ impl FetchThread {
                         .core_resource_thread
                         .send(CoreResourceMsg::Cancel(request_ids));
                 },
+                ToFetchThreadMessage::Exit => break,
             }
         }
     }
 }
 
 static FETCH_THREAD: OnceLock<Sender<ToFetchThreadMessage>> = OnceLock::new();
+
+/// Start the fetch thread,
+/// and returns the join handle to the background thread.
+pub fn start_fetch_thread(core_resource_thread: &CoreResourceThread) -> JoinHandle<()> {
+    let (sender, join_handle) = FetchThread::spawn(core_resource_thread);
+    FETCH_THREAD
+        .set(sender)
+        .expect("Fetch thread should be set only once on start-up");
+    join_handle
+}
+
+/// Send the exit message to the background thread,
+/// after which it can be joined on.
+pub fn exit_fetch_thread() {
+    let _ = FETCH_THREAD
+        .get()
+        .expect("Fetch thread should always be initialized on start-up")
+        .send(ToFetchThreadMessage::Exit);
+}
 
 /// Instruct the resource thread to make a new fetch request.
 pub fn fetch_async(
@@ -674,7 +698,8 @@ pub fn fetch_async(
     callback: BoxedFetchCallback,
 ) {
     let _ = FETCH_THREAD
-        .get_or_init(|| FetchThread::spawn(core_resource_thread))
+        .get()
+        .expect("Fetch thread should always be initialized on start-up")
         .send(ToFetchThreadMessage::StartFetch(
             request,
             response_init,
@@ -687,7 +712,7 @@ pub fn fetch_async(
 pub fn cancel_async_fetch(request_ids: Vec<RequestId>) {
     let _ = FETCH_THREAD
         .get()
-        .expect("Tried to cancel request in process that hasn't started one.")
+        .expect("Fetch thread should always be initialized on start-up")
         .send(ToFetchThreadMessage::Cancel(request_ids));
 }
 
