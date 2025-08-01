@@ -699,6 +699,7 @@ impl LayoutThread {
             pending_rasterization_images,
             iframe_sizes: Some(iframe_sizes),
             update_scroll_reflow_target_scrolled,
+            processed_relayout: true,
         })
     }
 

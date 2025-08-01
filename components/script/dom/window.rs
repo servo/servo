@@ -2281,22 +2281,28 @@ impl Window {
             return WindowReflowResult::new_empty();
         };
 
-        debug!("script: layout complete");
-        if let Some(marker) = marker {
-            self.emit_timeline_marker(marker.end());
-        }
+        // We are maintaining the previous behavior of layout where we are skipping these behavior if we are not
+        // doing layout calculation.
+        if results.processed_relayout {
+            debug!("script: layout complete");
+            if let Some(marker) = marker {
+                self.emit_timeline_marker(marker.end());
+            }
 
-        self.handle_pending_images_post_reflow(
-            results.pending_images,
-            results.pending_rasterization_images,
-        );
-        if let Some(iframe_sizes) = results.iframe_sizes {
-            document
-                .iframes_mut()
-                .handle_new_iframe_sizes_after_layout(self, iframe_sizes);
+            self.handle_pending_images_post_reflow(
+                results.pending_images,
+                results.pending_rasterization_images,
+            );
+            if let Some(iframe_sizes) = results.iframe_sizes {
+                document
+                    .iframes_mut()
+                    .handle_new_iframe_sizes_after_layout(self, iframe_sizes);
+            }
+            document.update_animations_post_reflow();
+            self.update_constellation_epoch();
+        } else {
+            debug!("script: layout-side reflow finished without relayout");
         }
-        document.update_animations_post_reflow();
-        self.update_constellation_epoch();
 
         WindowReflowResult {
             reflow_issued: results.built_display_list,

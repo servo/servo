@@ -399,6 +399,10 @@ pub struct ReflowResult {
     /// Whether the reflow is for [ReflowGoal::UpdateScrollNode] and the target is scrolled.
     /// Specifically, a node is scrolled whenever the scroll position of it changes.
     pub update_scroll_reflow_target_scrolled: bool,
+    /// Do the reflow results in a new component within layout. Incremental layout could be
+    /// skipped if it is deemed unnecessary or the required component is not ready to be
+    /// processed.
+    pub processed_relayout: bool,
 }
 
 impl ReflowResult {
@@ -406,11 +410,8 @@ impl ReflowResult {
     /// unecessary. In those cases, many of the [ReflowResult] would be irrelevant.
     pub fn new_without_relayout(update_scroll_reflow_target_scrolled: bool) -> Self {
         ReflowResult {
-            built_display_list: Default::default(),
-            pending_images: Default::default(),
-            pending_rasterization_images: Default::default(),
-            iframe_sizes: Default::default(),
             update_scroll_reflow_target_scrolled,
+            ..Default::default()
         }
     }
 }
