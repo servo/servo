@@ -1,0 +1,21 @@
+diff --git a/third_party/WebIDL/WebIDL.py b/third_party/WebIDL/WebIDL.py
+index b742a06bddd..babad83322f 100644
+--- a/third_party/WebIDL/WebIDL.py
++++ b/third_party/WebIDL/WebIDL.py
+@@ -12,6 +12,7 @@ import string
+ import traceback
+ from collections import OrderedDict, defaultdict
+ from itertools import chain
++from typing import Any
+ 
+ from ply import lex, yacc
+ 
+@@ -2527,7 +2528,7 @@ class IDLEnum(IDLObjectWithIdentifier):
+ 
+ 
+ class IDLType(IDLObject):
+-    Tags = enum(
++    Tags: Any = enum(
+         # The integer types
+         "int8",
+         "uint8",

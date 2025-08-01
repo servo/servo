@@ -13,7 +13,7 @@ class Configuration:
     Represents global configuration state based on IDL parse data and
     the configuration file.
     """
-    def __init__(self, filename, parseData):
+    def __init__(self, filename, parseData) -> None:
         # Read the configuration file.
         glbl = {}
         exec(compile(open(filename).read(), filename, 'exec'), glbl)
@@ -96,7 +96,7 @@ class Configuration:
                 def getter(x):
                     return x.isGlobal()
             elif key == 'isInline':
-                def getter(x):
+                def getter(x) -> bool:
                     return x.interface.getExtendedAttribute('Inline') is not None
             elif key == 'isExposedConditionally':
                 def getter(x):
@@ -160,7 +160,7 @@ class Configuration:
 
 
 class NoSuchDescriptorError(TypeError):
-    def __init__(self, str):
+    def __init__(self, str) -> None:
         TypeError.__init__(self, str)
 
 
@@ -168,7 +168,7 @@ class DescriptorProvider:
     """
     A way of getting descriptors for interface names
     """
-    def __init__(self, config):
+    def __init__(self, config) -> None:
         self.config = config
 
     def getDescriptor(self, interfaceName):
@@ -190,7 +190,7 @@ class Descriptor(DescriptorProvider):
     """
     Represents a single descriptor for an interface. See Bindings.conf.
     """
-    def __init__(self, config, interface, desc):
+    def __init__(self, config, interface, desc) -> None:
         DescriptorProvider.__init__(self, config)
         self.interface = interface
 
@@ -277,7 +277,7 @@ class Descriptor(DescriptorProvider):
 
         self.hasDefaultToJSON = False
 
-        def addOperation(operation, m):
+        def addOperation(operation: str, m) -> None:
             if not self.operations[operation]:
                 self.operations[operation] = m
 
@@ -296,7 +296,7 @@ class Descriptor(DescriptorProvider):
                     if not m.isMethod():
                         continue
 
-                    def addIndexedOrNamedOperation(operation, m):
+                    def addIndexedOrNamedOperation(operation: str, m) -> None:
                         if not self.isGlobal():
                             self.proxy = True
                         if m.isIndexed():
@@ -333,8 +333,8 @@ class Descriptor(DescriptorProvider):
         # array of extended attributes.
         self.extendedAttributes = {'all': {}, 'getterOnly': {}, 'setterOnly': {}}
 
-        def addExtendedAttribute(attribute, config):
-            def add(key, members, attribute):
+        def addExtendedAttribute(attribute, config) -> None:
+            def add(key: str, members, attribute) -> None:
                 for member in members:
                     self.extendedAttributes[key].setdefault(member, []).append(attribute)
 
@@ -398,17 +398,17 @@ class Descriptor(DescriptorProvider):
     def internalNameFor(self, name):
         return self._internalNames.get(name, name)
 
-    def hasNamedPropertiesObject(self):
+    def hasNamedPropertiesObject(self) -> bool:
         if self.interface.isExternal():
             return False
 
         return self.isGlobal() and self.supportsNamedProperties()
 
-    def supportsNamedProperties(self):
+    def supportsNamedProperties(self) -> bool:
         return self.operations['NamedGetter'] is not None
 
     def getExtendedAttributes(self, member, getter=False, setter=False):
-        def maybeAppendInfallibleToAttrs(attrs, throws):
+        def maybeAppendInfallibleToAttrs(attrs, throws) -> None:
             if throws is None:
                 attrs.append("infallible")
             elif throws is True:
@@ -442,7 +442,7 @@ class Descriptor(DescriptorProvider):
             parent = parent.parent
         return None
 
-    def supportsIndexedProperties(self):
+    def supportsIndexedProperties(self) -> bool:
         return self.operations['IndexedGetter'] is not None
 
     def isMaybeCrossOriginObject(self):
@@ -471,7 +471,7 @@ class Descriptor(DescriptorProvider):
     def isExposedConditionally(self):
         return self.interface.isExposedConditionally()
 
-    def isGlobal(self):
+    def isGlobal(self) -> bool:
         """
         Returns true if this is the primary interface for a global object
         of some sort.
