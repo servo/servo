@@ -284,7 +284,7 @@ pub enum AsyncOperation {
     ReadWrite(AsyncReadWriteOperation),
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CreateObjectResult {
     Created,
     AlreadyExists,

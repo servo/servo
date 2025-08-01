@@ -519,3 +519,96 @@ impl KvsEngine for SqliteEngine {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use url::Host;
+    use net_traits::indexeddb_thread::CreateObjectResult;
+    use servo_url::ImmutableOrigin;
+    use crate::indexeddb::engines::{KvsEngine, SanitizedName};
+    use crate::indexeddb::idb_thread::IndexedDBDescription;
+
+    fn test_origin() -> ImmutableOrigin {
+        ImmutableOrigin::Tuple(
+            "test_origin".to_string(),
+            Host::Domain("localhost".to_string()),
+            80,
+        )
+    }
+
+    #[test]
+    fn test_cycle() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        // Test create
+        let _ = super::SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            1,
+        );
+        // Test open
+        let db = super::SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            1,
+        );
+        let version = db.version().expect("Failed to get version");
+        assert_eq!(version, 1);
+        db.set_version(5).unwrap();
+        let new_version = db.version().expect("Failed to get new version");
+        assert_eq!(new_version, 5);
+        db.delete_database().expect("Failed to delete database");
+    }
+
+    #[test]
+    fn test_create_store() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let db = super::SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            1,
+        );
+        let result = db.create_store(SanitizedName::new("test_store".to_string()), None, false);
+        assert!(result.is_ok());
+        let create_result = result.unwrap();
+        assert_eq!(create_result, CreateObjectResult::Created);
+        // Try to create the same store again
+        let result = db.create_store(SanitizedName::new("test_store".to_string()), None, false);
+        assert!(result.is_ok());
+        let create_result = result.unwrap();
+        assert_eq!(create_result, CreateObjectResult::AlreadyExists);
+    }
+
+    #[test]
+    fn test_delete_store() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let db = super::SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            1,
+        );
+        db.create_store(SanitizedName::new("test_store".to_string()), None, false)
+            .expect("Failed to create store");
+        // Delete the store
+        db.delete_store(SanitizedName::new("test_store".to_string()))
+            .expect("Failed to delete store");
+        // Try to delete the same store again
+        let result = db.delete_store(SanitizedName::new("test_store".into()));
+        assert!(result.is_ok());
+        // Try to delete a non-existing store
+        let result = db.delete_store(SanitizedName::new("test_store".into()));
+        // Should work as per spec
+        assert!(result.is_ok());
+    }
+}

@@ -86,6 +86,7 @@ futures = { version = "0.3", features = ["compat"] }
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
+tempfile = "3"
 
 [[test]]
 name = "main"

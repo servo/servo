@@ -5492,6 +5492,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "sha2",
+ "tempfile",
  "time",
  "tokio",
  "tokio-rustls",
