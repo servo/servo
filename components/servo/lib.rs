@@ -1258,7 +1258,7 @@ pub fn run_content_process(token: String) {
         UnprivilegedContent::Pipeline(mut content) => {
             media_platform::init();
 
-            // Start a fetch thread.
+            // Start the fetch thread for this content process.
             let fetch_thread_join_handle = start_fetch_thread(content.core_resource_thread());
 
             set_logger(content.script_to_constellation_chan().clone());
