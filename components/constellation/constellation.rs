@@ -733,7 +733,7 @@ where
         // Start a fetch thread.
         // In single-process mode this will be the global fetch thread;
         // in multi-process mode this will be used only by the canvas paint thread.
-        let join_handle = start_fetch_thread(&self.public_resource_threads.core_thread);
+        let join_handle = start_fetch_thread();
 
         while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set

@@ -23,7 +23,7 @@ mod font_context {
         SystemFontServiceProxySender, fallback_font_families,
     };
     use ipc_channel::ipc::{self, IpcReceiver};
-    use net_traits::{ResourceThreads, exit_fetch_thread, start_fetch_thread};
+    use net_traits::{ResourceThreads, start_fetch_thread};
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
     use style::ArcSlice;
@@ -56,7 +56,7 @@ mod font_context {
 
             let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());
             INIT.call_once(|| {
-                start_fetch_thread(&mock_resource_threads.core_thread);
+                start_fetch_thread();
             });
             Self {
                 context: FontContext::new(proxy_clone, mock_compositor_api, mock_resource_threads),

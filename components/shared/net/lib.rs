@@ -556,11 +556,12 @@ pub enum CoreResourceMsg {
 // FIXME: https://github.com/servo/servo/issues/34591
 #[expect(clippy::large_enum_variant)]
 enum ToFetchThreadMessage {
-    Cancel(Vec<RequestId>),
+    Cancel(Vec<RequestId>, CoreResourceThread),
     StartFetch(
         /* request_builder */ RequestBuilder,
         /* response_init */ Option<ResponseInit>,
         /* callback  */ BoxedFetchCallback,
+        /* core resource thread channel */ CoreResourceThread,
     ),
     FetchResponse(FetchResponseMsg),
     /// Stop the background thread.
@@ -576,8 +577,6 @@ struct FetchThread {
     /// A list of active fetches. A fetch is no longer active once the
     /// [`FetchResponseMsg::ProcessResponseEOF`] is received.
     active_fetches: HashMap<RequestId, BoxedFetchCallback>,
-    /// A reference to the [`CoreResourceThread`] used to kick off fetch requests.
-    core_resource_thread: CoreResourceThread,
     /// A crossbeam receiver attached to the router proxy which converts incoming fetch
     /// updates from IPC messages to crossbeam messages as well as another sender which
     /// handles requests from clients wanting to do fetches.
@@ -588,9 +587,7 @@ struct FetchThread {
 }
 
 impl FetchThread {
-    fn spawn(
-        core_resource_thread: &CoreResourceThread,
-    ) -> (Sender<ToFetchThreadMessage>, JoinHandle<()>) {
+    fn spawn() -> (Sender<ToFetchThreadMessage>, JoinHandle<()>) {
         let (sender, receiver) = unbounded();
         let (to_fetch_sender, from_fetch_sender) = ipc::channel().unwrap();
 
@@ -602,14 +599,11 @@ impl FetchThread {
                 let _ = sender_clone.send(ToFetchThreadMessage::FetchResponse(message));
             }),
         );
-
-        let core_resource_thread = core_resource_thread.clone();
         let join_handle = thread::Builder::new()
             .name("FetchThread".to_owned())
             .spawn(move || {
                 let mut fetch_thread = FetchThread {
                     active_fetches: HashMap::new(),
-                    core_resource_thread,
                     receiver,
                     to_fetch_sender,
                 };
@@ -622,8 +616,13 @@ impl FetchThread {
     fn run(&mut self) {
         loop {
             match self.receiver.recv().unwrap() {
-                ToFetchThreadMessage::StartFetch(request_builder, response_init, callback) => {
-                    self.active_fetches.insert(request_builder.id, callback);
+                ToFetchThreadMessage::StartFetch(
+                    request_builder,
+                    response_init,
+                    callback,
+                    core_resource_thread,
+                ) => {
+                    let request_builder_id = request_builder.id;
 
                     // Only redirects have a `response_init` field.
                     let message = match response_init {
@@ -638,7 +637,9 @@ impl FetchThread {
                         ),
                     };
 
-                    self.core_resource_thread.send(message).unwrap();
+                    core_resource_thread.send(message).unwrap();
+
+                    self.active_fetches.insert(request_builder_id, callback);
                 },
                 ToFetchThreadMessage::FetchResponse(fetch_response_msg) => {
                     let request_id = fetch_response_msg.request_id();
@@ -655,13 +656,11 @@ impl FetchThread {
                         self.active_fetches.remove(&request_id);
                     }
                 },
-                ToFetchThreadMessage::Cancel(request_ids) => {
+                ToFetchThreadMessage::Cancel(request_ids, core_resource_thread) => {
                     // Errors are ignored here, because Servo sends many cancellation requests when shutting down.
                     // At this point the networking task might be shut down completely, so just ignore errors
                     // during this time.
-                    let _ = self
-                        .core_resource_thread
-                        .send(CoreResourceMsg::Cancel(request_ids));
+                    let _ = core_resource_thread.send(CoreResourceMsg::Cancel(request_ids));
                 },
                 ToFetchThreadMessage::Exit => break,
             }
@@ -671,10 +670,10 @@ impl FetchThread {
 
 static FETCH_THREAD: OnceLock<Sender<ToFetchThreadMessage>> = OnceLock::new();
 
-/// Starts a fetch thread,
-/// and returns the join handle to it.
-pub fn start_fetch_thread(core_resource_thread: &CoreResourceThread) -> JoinHandle<()> {
-    let (sender, join_handle) = FetchThread::spawn(core_resource_thread);
+/// Start the fetch thread,
+/// and returns the join handle to the background thread.
+pub fn start_fetch_thread() -> JoinHandle<()> {
+    let (sender, join_handle) = FetchThread::spawn();
     FETCH_THREAD
         .set(sender)
         .expect("Fetch thread should be set only once on start-up");
@@ -694,7 +693,7 @@ pub fn exit_fetch_thread() {
 
 /// Instruct the resource thread to make a new fetch request.
 pub fn fetch_async(
-    _core_resource_thread: &CoreResourceThread,
+    core_resource_thread: &CoreResourceThread,
     request: RequestBuilder,
     response_init: Option<ResponseInit>,
     callback: BoxedFetchCallback,
@@ -706,16 +705,20 @@ pub fn fetch_async(
             request,
             response_init,
             callback,
+            core_resource_thread.clone(),
         ));
 }
 
 /// Instruct the resource thread to cancel an existing request. Does nothing if the
 /// request has already completed or has not been fetched yet.
-pub fn cancel_async_fetch(request_ids: Vec<RequestId>) {
+pub fn cancel_async_fetch(request_ids: Vec<RequestId>, core_resource_thread: &CoreResourceThread) {
     let _ = FETCH_THREAD
         .get()
         .expect("Fetch thread should always be initialized on start-up")
-        .send(ToFetchThreadMessage::Cancel(request_ids));
+        .send(ToFetchThreadMessage::Cancel(
+            request_ids,
+            core_resource_thread.clone(),
+        ));
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
