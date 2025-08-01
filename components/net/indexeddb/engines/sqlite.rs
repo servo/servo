@@ -95,7 +95,7 @@ impl SqliteEngine {
         }
         let connection = Self::init_db(&db_path, db_info, version).unwrap();
 
-            for stmt in DB_PRAGMAS {
+        for stmt in DB_PRAGMAS {
             // TODO: Handle errors properly
             let _ = connection.execute(stmt, ());
         }
@@ -519,7 +519,11 @@ impl KvsEngine for SqliteEngine {
 mod tests {
     use std::collections::VecDeque;
     use std::sync::Arc;
-    use net_traits::indexeddb_thread::{AsyncOperation, AsyncReadWriteOperation, CreateObjectResult, IndexedDBKeyType, IndexedDBTxnMode, KeyPath};
+
+    use net_traits::indexeddb_thread::{
+        AsyncOperation, AsyncReadWriteOperation, CreateObjectResult, IndexedDBKeyType,
+        IndexedDBTxnMode, KeyPath,
+    };
     use servo_url::ImmutableOrigin;
     use url::Host;
 
@@ -535,10 +539,14 @@ mod tests {
         )
     }
 
+    fn get_pool() -> Arc<CoreResourceThreadPool> {
+        Arc::new(CoreResourceThreadPool::new(1, "test".to_string()))
+    }
+
     #[test]
     fn test_cycle() {
         let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
+        let thread_pool = get_pool();
         // Test create
         let _ = super::SqliteEngine::new(
             base_dir.path(),
@@ -570,7 +578,7 @@ mod tests {
     #[test]
     fn test_create_store() {
         let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
+        let thread_pool = get_pool();
         let db = super::SqliteEngine::new(
             base_dir.path(),
             &IndexedDBDescription {
@@ -597,7 +605,7 @@ mod tests {
     #[test]
     fn test_key_path() {
         let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
+        let thread_pool = get_pool();
         let db = super::SqliteEngine::new(
             base_dir.path(),
             &IndexedDBDescription {
@@ -608,15 +616,22 @@ mod tests {
             thread_pool,
         );
         let store_name = SanitizedName::new("test_store".to_string());
-        let result = db.create_store(store_name.clone(), Some(KeyPath::String("test".to_string())), true);
+        let result = db.create_store(
+            store_name.clone(),
+            Some(KeyPath::String("test".to_string())),
+            true,
+        );
         assert!(result.is_ok());
-        assert_eq!(db.key_path(store_name), Some(KeyPath::String("test".to_string())));
+        assert_eq!(
+            db.key_path(store_name),
+            Some(KeyPath::String("test".to_string()))
+        );
     }
 
     #[test]
     fn test_delete_store() {
         let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
+        let thread_pool = get_pool();
         let db = super::SqliteEngine::new(
             base_dir.path(),
             &IndexedDBDescription {
@@ -643,7 +658,7 @@ mod tests {
     #[test]
     fn test_async_operations() {
         let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let thread_pool = Arc::new(CoreResourceThreadPool::new(1, "test".to_string()));
+        let thread_pool = get_pool();
         let db = super::SqliteEngine::new(
             base_dir.path(),
             &IndexedDBDescription {
@@ -666,9 +681,9 @@ mod tests {
                         sender: ipc_channel::ipc::channel().unwrap().0,
                         key: IndexedDBKeyType::Number(1.0),
                         value: vec![],
-                        should_overwrite: false
+                        should_overwrite: false,
                     }),
-                }
+                },
             ]),
         });
         let _ = rx.blocking_recv().unwrap();
