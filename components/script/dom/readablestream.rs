@@ -192,14 +192,7 @@ impl PipeTo {
         // will result in a rejection of the pipe promise, with this error.
         // Unless any shutdown action raise their own error,
         // in which case this error will be overwritten by the shutdown action error.
-        {
-            let mut error = Some(Heap::default());
-            // Setting the value on the heap after it has been moved.
-            if let Some(heap) = error.as_mut() {
-                heap.set(reason.get())
-            }
-            *self.shutdown_error.borrow_mut() = error;
-        }
+        self.set_shutdown_error(reason);
 
         // Let actions be an empty ordered set.
         // Note: the actions are defined, and performed, inside `shutdown_with_an_action`.
@@ -370,14 +363,7 @@ impl Callback for PipeTo {
                     // If `result` isn't undefined or array-like,
                     // then it is an error
                     // and should overwrite the current shutdown error.
-                    {
-                        let mut error = Some(Heap::default());
-                        // Setting the value on the heap after it has been moved.
-                        if let Some(heap) = error.as_mut() {
-                            heap.set(result.get())
-                        }
-                        *self.shutdown_error.borrow_mut() = error;
-                    }
+                    self.set_shutdown_error(result);
                 }
                 self.finalize(cx, &global, can_gc);
             },
@@ -387,6 +373,16 @@ impl Callback for PipeTo {
 }
 
 impl PipeTo {
+    /// Setting shutdown error in a way that ensures it isn't
+    /// moved after it has been set.
+    fn set_shutdown_error(&self, error: SafeHandleValue) {
+        *self.shutdown_error.borrow_mut() = Some(Heap::default());
+        let Some(ref heap) = *self.shutdown_error.borrow() else {
+            unreachable!("Option set to Some(heap) above.");
+        };
+        heap.set(error.get())
+    }
+
     /// Wait for the writer to be ready,
     /// which implements the constraint that backpressure must be enforced.
     fn wait_for_writer_ready(&self, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
@@ -502,14 +498,7 @@ impl PipeTo {
         if source.is_errored() {
             rooted!(in(*cx) let mut source_error = UndefinedValue());
             source.get_stored_error(source_error.handle_mut());
-            {
-                let mut error = Some(Heap::default());
-                // Setting the value on the heap after it has been moved.
-                if let Some(heap) = error.as_mut() {
-                    heap.set(source_error.get())
-                }
-                *self.shutdown_error.borrow_mut() = error;
-            }
+            self.set_shutdown_error(source_error.handle());
 
             // If preventAbort is false,
             if !self.prevent_abort {
@@ -552,14 +541,7 @@ impl PipeTo {
         if dest.is_errored() {
             rooted!(in(*cx) let mut dest_error = UndefinedValue());
             dest.get_stored_error(dest_error.handle_mut());
-            {
-                let mut error = Some(Heap::default());
-                // Setting the value on the heap after it has been moved.
-                if let Some(heap) = error.as_mut() {
-                    heap.set(dest_error.get())
-                }
-                *self.shutdown_error.borrow_mut() = error;
-            }
+            self.set_shutdown_error(dest_error.handle());
 
             // If preventCancel is false,
             if !self.prevent_cancel {
@@ -648,14 +630,7 @@ impl PipeTo {
             let error =
                 Error::Type("Destination is closed or has closed queued or in flight".to_string());
             error.to_jsval(cx, global, dest_closed.handle_mut(), can_gc);
-            {
-                let mut error = Some(Heap::default());
-                // Setting the value on the heap after it has been moved.
-                if let Some(heap) = error.as_mut() {
-                    heap.set(dest_closed.get())
-                }
-                *self.shutdown_error.borrow_mut() = error;
-            }
+            self.set_shutdown_error(dest_closed.handle());
 
             // If preventCancel is false,
             if !self.prevent_cancel {
