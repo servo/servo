@@ -173,7 +173,10 @@ class ServoTestharnessExecutor(ServoExecutor):
         prefix = "ALERT: RESULT: "
         decoded_line = line.decode("utf8", "replace")
         if decoded_line.startswith(prefix):
-            self.result_data = json.loads(decoded_line[len(prefix):])
+            try:
+                self.result_data = json.loads(decoded_line[len(prefix):])
+            except json.JSONDecodeError as error:
+                self.logger.error(f"Could not process test output JSON: {error}")
             self.result_flag.set()
         else:
             ServoExecutor.on_output(self, line)
