@@ -7538,6 +7538,7 @@ dependencies = [
  "sha1",
  "sha2",
  "smallvec",
+ "speech_traits",
  "storage_traits",
  "strum",
  "strum_macros",
@@ -8385,6 +8386,14 @@ checksum = "17129e116933cf371d018bb80ae557e889637989d8638274fb25622827b03881"
 dependencies = [
  "libc",
  "windows-sys 0.60.2",
+]
+
+[[package]]
+name = "speech_traits"
+version = "0.0.1"
+dependencies = [
+ "malloc_size_of_derive",
+ "servo_malloc_size_of",
 ]
 
 [[package]]

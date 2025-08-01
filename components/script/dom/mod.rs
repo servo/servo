@@ -391,6 +391,9 @@ pub(crate) mod servointernals;
 #[expect(dead_code)]
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
+pub(crate) mod speechsynthesis;
+pub(crate) mod speechsynthesisutterance;
+pub(crate) mod speechsynthesisvoice;
 pub(crate) mod staticrange;
 pub(crate) mod storage;
 pub(crate) mod storageevent;
