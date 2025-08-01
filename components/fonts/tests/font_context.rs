@@ -11,7 +11,7 @@ mod font_context {
     use std::path::PathBuf;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicI32, Ordering};
-    use std::thread;
+    use std::thread::{self, ThreadHandle};
 
     use app_units::Au;
     use compositing_traits::CrossProcessCompositorApi;
@@ -23,7 +23,7 @@ mod font_context {
         SystemFontServiceProxySender, fallback_font_families,
     };
     use ipc_channel::ipc::{self, IpcReceiver};
-    use net_traits::ResourceThreads;
+    use net_traits::{ResourceThreads, exit_fetch_thread, start_fetch_thread};
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
     use style::ArcSlice;
@@ -40,6 +40,7 @@ mod font_context {
         context: FontContext,
         system_font_service: Arc<MockSystemFontService>,
         system_font_service_proxy: SystemFontServiceProxy,
+        fetch_thread_join_handle: Option<ThreadHandle<()>>,
     }
 
     impl TestContext {
@@ -53,10 +54,12 @@ mod font_context {
             let mock_compositor_api = CrossProcessCompositorApi::dummy();
 
             let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());
+            let fetch_thread_join_handle = start_fetch_thread(mock_resource_threads);
             Self {
                 context: FontContext::new(proxy_clone, mock_compositor_api, mock_resource_threads),
                 system_font_service,
                 system_font_service_proxy,
+                fetch_thread_join_handle: Some(fetch_thread_join_handle),
             }
         }
     }
@@ -64,6 +67,12 @@ mod font_context {
     impl Drop for TestContext {
         fn drop(&mut self) {
             self.system_font_service_proxy.exit();
+            exit_fetch_thread();
+            self.fetch_thread_join_handle
+                .take()
+                .expect("Fetch thread join handle is set in constructor")
+                .join()
+                .expect("Failed to join on the fetch thread");
         }
     }
 
