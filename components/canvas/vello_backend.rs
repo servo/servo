@@ -30,7 +30,7 @@ use vello::wgpu::{
     BackendOptions, Backends, Buffer, BufferDescriptor, BufferUsages, COPY_BYTES_PER_ROW_ALIGNMENT,
     CommandEncoderDescriptor, Device, Extent3d, Instance, InstanceDescriptor, InstanceFlags,
     MapMode, Origin3d, Queue, TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfoBase,
-    Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+    Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
     TextureViewDescriptor,
 };
 use vello::{kurbo, peniko};
@@ -56,6 +56,7 @@ pub(crate) struct VelloDrawTarget {
     clips: Vec<Path>,
     state: State,
     render_texture: Texture,
+    render_texture_view: TextureView,
     render_image: peniko::Image,
     padded_byte_width: u32,
     rendered_buffer: Buffer,
@@ -89,6 +90,7 @@ impl VelloDrawTarget {
             usage: TextureUsages::COPY_SRC | TextureUsages::STORAGE_BINDING,
             view_formats: &[],
         });
+        let render_texture_view = render_texture.create_view(&TextureViewDescriptor::default());
         let render_image = peniko::Image {
             data: vec![].into(),
             format: peniko::ImageFormat::Rgba8,
@@ -125,6 +127,7 @@ impl VelloDrawTarget {
             clips: Vec::new(),
             state: State::RenderedToBuffer,
             render_texture,
+            render_texture_view,
             render_image,
             padded_byte_width,
             rendered_buffer,
@@ -227,7 +230,7 @@ impl GenericDrawTarget for VelloDrawTarget {
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
         // vello scene only ever grows,
-        // so we need to use every opportunity to shrink it
+        // so we use every opportunity to shrink it
         if self.is_viewport_cleared(rect, transform) {
             self.scene.reset();
             self.clips.clear(); // no clips are affecting rendering
@@ -616,9 +619,7 @@ impl VelloDrawTarget {
                 &self.device,
                 &self.queue,
                 &self.scene,
-                &self
-                    .render_texture
-                    .create_view(&TextureViewDescriptor::default()),
+                &self.render_texture_view,
                 &vello::RenderParams {
                     base_color: peniko::color::AlphaColor::TRANSPARENT,
                     width: self.size.width,
