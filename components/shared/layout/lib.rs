@@ -344,7 +344,7 @@ pub enum ReflowGoal {
     LayoutQuery(QueryMsg),
 
     /// Tells layout about a single new scrolling offset from the script. The rest will
-    /// remain untouched. Layout will forward whether the element is scrolled thru
+    /// remain untouched. Layout will forward whether the element is scrolled through
     /// [ReflowResult].
     UpdateScrollNode(ExternalScrollId, LayoutVector2D),
 }
