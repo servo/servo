@@ -56,13 +56,11 @@ pub enum ResolvedImage<'a> {
 pub enum ResolveImageError {
     LoadError,
     ImagePending,
-    ImageRequested,
     OnlyMetadata,
     InvalidUrl,
     MissingNode,
     ImageMissingFromImageSet,
-    FailedToResolveImageFromImageSet,
-    NotImplementedYet(&'static str),
+    NotImplementedYet,
     None,
 }
 
@@ -242,10 +240,8 @@ impl ImageResolver {
         match image {
             // TODO: Add support for PaintWorklet and CrossFade rendering.
             Image::None => Result::Err(ResolveImageError::None),
-            Image::CrossFade(_) => Result::Err(ResolveImageError::NotImplementedYet("CrossFade")),
-            Image::PaintWorklet(_) => {
-                Result::Err(ResolveImageError::NotImplementedYet("PaintWorklet"))
-            },
+            Image::CrossFade(_) => Result::Err(ResolveImageError::NotImplementedYet),
+            Image::PaintWorklet(_) => Result::Err(ResolveImageError::NotImplementedYet),
             Image::Gradient(gradient) => Ok(ResolvedImage::Gradient(gradient)),
             Image::Url(image_url) => {
                 // FIXME: images won’t always have in intrinsic width or
