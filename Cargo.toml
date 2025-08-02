@@ -42,7 +42,7 @@ chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
 compositing_traits = { path = "components/shared/compositing" }
 constellation_traits = { path = "components/shared/constellation" }
-content-security-policy = { git = "https://github.com/servo/rust-content-security-policy/", branch = "servo-csp", features = ["serde"] }
+content-security-policy = { git = "https://github.com/servo/rust-content-security-policy", branch = "servo-csp", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.35", features = ["serde"] }
@@ -87,8 +87,9 @@ indexmap = { version = "2.10.0", features = ["std"] }
 ipc-channel = "0.20"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
-keyboard-types = { version = "0.8.0", features = ["webdriver", "serde"] }
+keyboard-types = { version = "0.8.0", features = ["serde", "webdriver"] }
 kurbo = { version = "0.11.3", features = ["euclid"] }
+layout_api = { path = "components/shared/layout" }
 libc = "0.2"
 log = "0.4"
 mach2 = "0.4"
@@ -122,7 +123,6 @@ resvg = "0.45.0"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pemfile = "2.0"
 rustls-pki-types = "1.12"
-layout_api = { path = "components/shared/layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
 serde = "1.0.219"
@@ -134,7 +134,7 @@ servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-07-01" }
 smallbitvec = "2.6.0"
-smallvec = { version = "1.15", features = ["union", "serde"] }
+smallvec = { version = "1.15", features = ["serde", "union"] }
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
@@ -226,8 +226,8 @@ codegen-units = 1
 #
 # html5ever = { path = "../html5ever/html5ever" }
 # markup5ever = { path = "../html5ever/markup5ever" }
-# xml5ever = { path = "../html5ever/xml5ever" }
 # web_atoms = { path = "../html5ever/web_atoms" }
+# xml5ever = { path = "../html5ever/xml5ever" }
 #
 # Or for Stylo:
 #
@@ -254,4 +254,4 @@ codegen-units = 1
 # <crate> = { path = "/path/to/local/checkout" }
 #
 # [patch."https://github.com/servo/rust-content-security-policy"]
-# content-security-policy = { path = "../rust-content-security-policy/" }
+# content-security-policy = { path = "../rust-content-security-policy" }
