@@ -814,7 +814,7 @@ fn load_userscripts(userscripts_directory: Option<&Path>) -> std::io::Result<Vec
         let mut files = std::fs::read_dir(userscripts_directory)?
             .map(|e| e.map(|entry| entry.path()))
             .collect::<Result<Vec<_>, _>>()?;
-        files.sort();
+        files.sort_unstable();
         for file in files {
             userscripts.push(UserScript {
                 script: std::fs::read_to_string(&file)?,
