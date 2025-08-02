@@ -14,5 +14,6 @@ path = "lib.rs"
 [dependencies]
 euclid = { workspace = true }
 keyboard-types = { workspace = true }
-script = {path = "../../../components/script"}
-servo_url = {path = "../../../components/url"}
+script = { path = "../../../components/script" }
+servo_url = { path = "../../../components/url" }
+utf16string = { workspace = true }

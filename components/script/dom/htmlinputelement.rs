@@ -92,9 +92,7 @@ use crate::textinput::KeyReaction::{
     DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
 };
 use crate::textinput::Lines::Single;
-use crate::textinput::{
-    Direction, SelectionDirection, TextInput, UTF16CodeUnits, handle_text_clipboard_action,
-};
+use crate::textinput::{Direction, SelectionDirection, TextInput, handle_text_clipboard_action};
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
@@ -1026,7 +1024,7 @@ impl HTMLInputElement {
         }
 
         let mut failed_flags = ValidationFlags::empty();
-        let UTF16CodeUnits(value_len) = textinput.utf16_len();
+        let value_len = textinput.utf16_len();
         let min_length = self.MinLength();
         let max_length = self.MaxLength();
 
@@ -2945,7 +2943,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_max_length(Some(value as usize))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -2957,7 +2955,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_min_length(Some(value as usize))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),

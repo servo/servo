@@ -146,8 +146,12 @@ pub struct TextInput<T: ClipboardProvider> {
     /// The maximum number of UTF-16 code units this text input is allowed to hold.
     ///
     /// <https://html.spec.whatwg.org/multipage/#attr-fe-maxlength>
-    max_length: Option<UTF16CodeUnits>,
-    min_length: Option<UTF16CodeUnits>,
+    max_length: Option<usize>,
+
+    /// The maximum number of UTF-16 code units this text input is allowed to hold.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#attr-fe-minlength>
+    min_length: Option<usize>,
 
     /// Was last change made by set_content?
     was_last_change_by_set_content: bool,
@@ -208,8 +212,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         lines: Lines,
         initial: Utf16String,
         clipboard_provider: T,
-        max_length: Option<UTF16CodeUnits>,
-        min_length: Option<UTF16CodeUnits>,
+        max_length: Option<usize>,
+        min_length: Option<usize>,
         selection_direction: SelectionDirection,
     ) -> TextInput<T> {
         let mut i = TextInput {
@@ -245,11 +249,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_direction
     }
 
-    pub(crate) fn set_max_length(&mut self, length: Option<UTF16CodeUnits>) {
+    pub(crate) fn set_max_length(&mut self, length: Option<usize>) {
         self.max_length = length;
     }
 
-    pub(crate) fn set_min_length(&mut self, length: Option<UTF16CodeUnits>) {
+    pub(crate) fn set_min_length(&mut self, length: Option<usize>) {
         self.min_length = length;
     }
 
@@ -377,9 +381,9 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The length of the selected text in UTF-16 code units.
-    fn selection_utf16_len(&self) -> UTF16CodeUnits {
-        self.fold_selection_slices(UTF16CodeUnits::zero(), |len, slice| {
-            *len += UTF16CodeUnits(slice.chars().map(char::len_utf16).sum::<usize>())
+    fn selection_utf16_len(&self) -> usize {
+        self.fold_selection_slices(0, |len, slice| {
+            *len += slice.chars().map(char::len_utf16).sum::<usize>()
         })
     }
 
@@ -421,10 +425,10 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.utf16_len().saturating_sub(self.selection_utf16_len());
             max_length.saturating_sub(len_after_selection_replaced)
         } else {
-            UTF16CodeUnits(usize::MAX)
+            usize::MAX
         };
 
-        let last_char_byte_index = len_of_first_n_code_units(&insert, allowed_to_insert_count.0);
+        let last_char_byte_index = len_of_first_n_code_units(&insert, allowed_to_insert_count);
         let to_insert = &insert[..last_char_byte_index];
 
         let (start, end) = self.sorted_selection_bounds();
@@ -1007,14 +1011,14 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The total number of code units required to encode the content in utf16.
-    pub(crate) fn utf16_len(&self) -> UTF16CodeUnits {
+    pub(crate) fn utf16_len(&self) -> usize {
         self.lines
             .iter()
-            .fold(UTF16CodeUnits::zero(), |acc, l| {
-                acc + UTF16CodeUnits(l.number_of_code_units() + 1)
+            .fold(0, |acc, l| {
+                acc + l.number_of_code_units() + 1
                 // + 1 for the '\n'
             })
-            .saturating_sub(UTF16CodeUnits::one())
+            .saturating_sub(1)
     }
 
     /// The length of the content in Unicode code points.
