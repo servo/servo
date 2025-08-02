@@ -8,6 +8,9 @@ use futures::Future;
 use net_traits::AsyncRuntime;
 use tokio::runtime::{Handle, Runtime};
 
+
+/// The actual runtime,
+/// to be used as part of shut-down.
 pub struct AsyncRuntimeHolder {
     runtime: Option<Runtime>,
 }
@@ -29,8 +32,11 @@ impl AsyncRuntime for AsyncRuntimeHolder {
     }
 }
 
+/// A shared handle to the runtime,
+/// to be initialized on start-up.
 pub static HANDLE: OnceLock<Handle> = OnceLock::new();
 
+/// Spawn a task using the handle to the runtime.
 pub fn spawn_task<F>(task: F)
 where
     F: Future + 'static + std::marker::Send,
