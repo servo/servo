@@ -25,9 +25,9 @@ use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
-    WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
-    WheelMode,
+    EventLoopWaker, ImeEvent, ImeType, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
+    WebDriverCommandMsg, WebDriverMessageId, WebDriverScriptCommand, WebDriverUserPromptAction,
+    WheelDelta, WheelEvent, WheelMode,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -485,19 +485,23 @@ impl App {
                         continue;
                     };
 
-                    for event in webdriver_input_events {
-                        match event {
+                    let size = webdriver_input_events.len();
+                    for (i, event) in webdriver_input_events.into_iter().enumerate() {
+                        let mut input_event = match event {
                             WebDriverInputEvent::Keyboard(event) => {
-                                webview.notify_input_event(InputEvent::Keyboard(
-                                    KeyboardEvent::new(event),
-                                ));
+                                InputEvent::Keyboard(KeyboardEvent::new(event))
                             },
                             WebDriverInputEvent::Composition(event) => {
-                                webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                                    event,
-                                )));
+                                InputEvent::Ime(ImeEvent::new(ImeType::Composition(event)))
                             },
+                        };
+                        // Use arbitrary id so script thread send back to
+                        // WebDriver after the last event dispatched.
+                        if i == size - 1 {
+                            input_event =
+                                input_event.with_webdriver_message_id(Some(WebDriverMessageId(0)));
                         }
+                        webview.notify_input_event(input_event);
                     }
                 },
                 WebDriverCommandMsg::KeyboardAction(webview_id, key_event, msg_id) => {
