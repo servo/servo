@@ -463,7 +463,7 @@ pub struct Constellation<STF, SWF> {
     async_runtime: Box<dyn AsyncRuntime>,
 
     /// When in single-process mode, join handles for script-threads.
-    script_join_handles: Vec<JoinHandle<()>>,
+    script_join_handles: HashMap<WebViewId, JoinHandle<()>>,
 }
 
 /// State needed to construct a constellation.
@@ -977,7 +977,7 @@ where
         }
 
         if let Some(join_handle) = pipeline.join_handle {
-            self.script_join_handles.push(join_handle);
+            self.script_join_handles.insert(webview_id, join_handle);
         }
 
         if let Some(host) = host {
@@ -2532,7 +2532,8 @@ where
         debug!("Handling shutdown.");
 
         // In single process mode, join on script-threads
-        for join_handle in self.script_join_handles.drain(..) {
+        // from webview which haven't been manually closed before.
+        for (_, join_handle) in self.script_join_handles.drain() {
             join_handle
                 .join()
                 .expect("Failed to join on a script-thread.");
@@ -3067,6 +3068,11 @@ where
             self.browsing_context_group_set
                 .remove(&browsing_context.bc_group_id);
         }
+
+        // Note: In single-process mode,
+        // if the webview is manually closed, we drop the join handle without joining on it.
+        // It is unlikely the thread will still run when the constellation shuts-down.
+        self.script_join_handles.remove(&webview_id);
 
         debug!("{webview_id}: Closed");
     }
