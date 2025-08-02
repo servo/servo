@@ -10,6 +10,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 use std::thread;
 use std::time::Duration;
@@ -29,9 +30,9 @@ use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{
-    CookieSource, CoreResourceMsg, CoreResourceThread, CustomResponseMediator, DiscardFetch,
-    FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads, ResourceTimingType,
-    WebSocketDomAction, WebSocketNetworkEvent,
+    AsyncRuntime, CookieSource, CoreResourceMsg, CoreResourceThread, CustomResponseMediator,
+    DiscardFetch, FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads,
+    ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
@@ -43,8 +44,9 @@ use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use tokio::runtime::Builder;
 
-use crate::async_runtime::HANDLE;
+use crate::async_runtime::{AsyncRuntimeHolder, HANDLE, spawn_task};
 use crate::connector::{
     CACertificates, CertificateErrorOverrideManager, create_http_client, create_tls_config,
 };
@@ -84,7 +86,30 @@ pub fn new_resource_threads(
     certificate_path: Option<String>,
     ignore_certificate_errors: bool,
     protocols: Arc<ProtocolRegistry>,
-) -> (ResourceThreads, ResourceThreads) {
+) -> (ResourceThreads, ResourceThreads, Box<dyn AsyncRuntime>) {
+    // Initialize a tokio runtime.
+    let runtime = Builder::new_multi_thread()
+        .thread_name_fn(|| {
+            static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
+            let id = ATOMIC_ID.fetch_add(1, Ordering::Relaxed);
+            format!("tokio-runtime-{}", id)
+        })
+        .worker_threads(
+            thread::available_parallelism()
+                .map(|i| i.get())
+                .unwrap_or(servo_config::pref!(threadpools_fallback_worker_num) as usize)
+                .min(servo_config::pref!(threadpools_async_runtime_workers_max).max(1) as usize),
+        )
+        .enable_io()
+        .enable_time()
+        .build()
+        .expect("Unable to build tokio-runtime runtime");
+
+    // Make the runtime available to users inside this crate.
+    HANDLE
+        .set(runtime.handle().clone())
+        .expect("Runtime handle should be initialized once on start-up");
+
     let ca_certificates = match certificate_path {
         Some(path) => match load_root_cert_store_from_file(path) {
             Ok(root_cert_store) => CACertificates::Override(root_cert_store),
@@ -112,6 +137,9 @@ pub fn new_resource_threads(
     (
         ResourceThreads::new(public_core, storage.clone(), idb.clone()),
         ResourceThreads::new(private_core, storage, idb),
+        
+        // Return the runtime for use in shutdown.
+        Box::new(AsyncRuntimeHolder::new(runtime)),
     )
 }
 
@@ -781,7 +809,7 @@ impl CoreResourceManager {
             _ => (FileTokenCheck::NotRequired, None),
         };
 
-        HANDLE.spawn(async move {
+        spawn_task(async move {
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?

@@ -389,6 +389,12 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
     }
 }
 
+/// Handle to an async runtime,
+/// only used to shut it down for now.
+pub trait AsyncRuntime: Send {
+    fn shutdown(&mut self);
+}
+
 /// Handle to a resource thread
 pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
 

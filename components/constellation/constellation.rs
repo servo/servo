@@ -149,7 +149,7 @@ use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
+use net_traits::{self, AsyncRuntime, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use script_traits::{
@@ -458,6 +458,9 @@ pub struct Constellation<STF, SWF> {
 
     /// The process manager.
     process_manager: ProcessManager,
+
+    /// The async runtime.
+    async_runtime: Box<dyn AsyncRuntime>,
 }
 
 /// State needed to construct a constellation.
@@ -510,6 +513,9 @@ pub struct InitialConstellationState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
+
+    /// The async runtime.
+    pub async_runtime: Box<dyn AsyncRuntime>,
 }
 
 /// When we are running reftests, we save an image to compare against a reference.
@@ -704,6 +710,7 @@ where
                     rippy_data,
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
+                    async_runtime: state.async_runtime,
                 };
 
                 constellation.run();
@@ -2651,6 +2658,9 @@ where
 
         debug!("Shutting-down IPC router thread in constellation.");
         ROUTER.shutdown();
+
+        debug!("Shutting-down the async runtime in constellation.");
+        self.async_runtime.shutdown();
     }
 
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
