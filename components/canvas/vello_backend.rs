@@ -158,8 +158,8 @@ impl VelloDrawTarget {
         }
     }
 
-    fn is_viewport_cleared(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) -> bool {
-        let transformed_rect = transform.outer_transformed_rect(rect);
+    fn is_viewport_cleared(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) -> bool {
+        let transformed_rect = transform.outer_transformed_rect(&rect.cast());
         if transformed_rect.is_empty() {
             return false;
         }
@@ -228,7 +228,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         Self::new_with_renderer(device, queue, Rc::new(RefCell::new(renderer)), size)
     }
 
-    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
+    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {
         // vello scene only ever grows,
         // so we use every opportunity to shrink it
         if self.is_viewport_cleared(rect, transform) {
@@ -239,7 +239,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         }
         self.ensure_drawing();
         let rect: kurbo::Rect = rect.cast().into();
-        let transform = transform.cast().into();
+        let transform = transform.into();
         self.scene
             .push_layer(peniko::Compose::Clear, 0.0, transform, &rect);
         self.scene.fill(
@@ -299,7 +299,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         source: Rect<f64>,
         filter: Filter,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         let scale_up = dest.size.width > source.size.width || dest.size.height > source.size.height;
@@ -356,7 +356,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         fill_rule: FillRule,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         self.with_draw_options(&composition_options, |self_| {
@@ -376,7 +376,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         start: Point2D<f32>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         let pattern = convert_to_brush(style, composition_options);
@@ -437,7 +437,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         rect: &Rect<f32>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         let pattern = convert_to_brush(style, composition_options);
@@ -460,7 +460,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         }
     }
 
-    fn push_clip(&mut self, path: &Path, _fill_rule: FillRule, transform: Transform2D<f32>) {
+    fn push_clip(&mut self, path: &Path, _fill_rule: FillRule, transform: Transform2D<f64>) {
         self.scene
             .push_layer(peniko::Mix::Clip, 1.0, transform.cast().into(), &path.0);
         let mut path = path.clone();
@@ -486,7 +486,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         style: FillOrStrokeStyle,
         line_options: LineOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         self.with_draw_options(&composition_options, |self_| {
@@ -506,7 +506,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         style: FillOrStrokeStyle,
         line_options: LineOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         let rect: kurbo::Rect = rect.cast().into();
