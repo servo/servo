@@ -137,7 +137,6 @@ pub fn new_resource_threads(
     (
         ResourceThreads::new(public_core, storage.clone(), idb.clone()),
         ResourceThreads::new(private_core, storage, idb),
-        
         // Return the runtime for use in shutdown.
         Box::new(AsyncRuntimeHolder::new(runtime)),
     )
