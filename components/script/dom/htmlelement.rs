@@ -116,18 +116,18 @@ impl HTMLElement {
     /// `.outerText` in JavaScript.`
     ///
     /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
-    pub(crate) fn get_inner_outer_text(&self, can_gc: CanGc) -> DOMString {
+    pub(crate) fn get_inner_outer_text(&self) -> DOMString {
         let node = self.upcast::<Node>();
         let window = node.owner_window();
         let element = self.as_element();
 
         // Step 1.
-        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box(can_gc);
+        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box();
         if element_not_rendered {
             return node.GetTextContent().unwrap();
         }
 
-        window.layout_reflow(QueryMsg::ElementInnerOuterTextQuery, can_gc);
+        window.layout_reflow(QueryMsg::ElementInnerOuterTextQuery);
         let text = window
             .layout()
             .query_element_inner_outer_text(node.to_trusted_node_address());
@@ -438,65 +438,65 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent>
-    fn GetOffsetParent(&self, can_gc: CanGc) -> Option<DomRoot<Element>> {
+    fn GetOffsetParent(&self) -> Option<DomRoot<Element>> {
         if self.is_body_element() || self.is::<HTMLHtmlElement>() {
             return None;
         }
 
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (element, _) = window.offset_parent_query(node, can_gc);
+        let (element, _) = window.offset_parent_query(node);
 
         element
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsettop
-    fn OffsetTop(&self, can_gc: CanGc) -> i32 {
+    fn OffsetTop(&self) -> i32 {
         if self.is_body_element() {
             return 0;
         }
 
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (_, rect) = window.offset_parent_query(node, can_gc);
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.origin.y.to_nearest_px()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetleft
-    fn OffsetLeft(&self, can_gc: CanGc) -> i32 {
+    fn OffsetLeft(&self) -> i32 {
         if self.is_body_element() {
             return 0;
         }
 
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (_, rect) = window.offset_parent_query(node, can_gc);
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.origin.x.to_nearest_px()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetwidth
-    fn OffsetWidth(&self, can_gc: CanGc) -> i32 {
+    fn OffsetWidth(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (_, rect) = window.offset_parent_query(node, can_gc);
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.size.width.to_nearest_px()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetheight
-    fn OffsetHeight(&self, can_gc: CanGc) -> i32 {
+    fn OffsetHeight(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (_, rect) = window.offset_parent_query(node, can_gc);
+        let (_, rect) = window.offset_parent_query(node);
 
         rect.size.height.to_nearest_px()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute>
-    fn InnerText(&self, can_gc: CanGc) -> DOMString {
-        self.get_inner_outer_text(can_gc)
+    fn InnerText(&self) -> DOMString {
+        self.get_inner_outer_text()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
@@ -505,8 +505,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-outertext>
-    fn GetOuterText(&self, can_gc: CanGc) -> Fallible<DOMString> {
-        Ok(self.get_inner_outer_text(can_gc))
+    fn GetOuterText(&self) -> Fallible<DOMString> {
+        Ok(self.get_inner_outer_text())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute:dom-outertext-2>
