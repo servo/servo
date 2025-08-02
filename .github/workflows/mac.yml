@@ -90,7 +90,7 @@ jobs:
     with:
       github-hosted-runner-label: macos-13
       self-hosted-image-name: servo-macos13
-      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+      force-github-hosted-runner: true
   runner-timeout:
     needs:
       - runner-select
