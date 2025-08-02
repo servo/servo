@@ -15,6 +15,6 @@ pub(crate) use base_fragment::*;
 pub(crate) use box_fragment::*;
 pub(crate) use containing_block::*;
 pub(crate) use fragment::*;
-pub use fragment_tree::*;
+pub(crate) use fragment_tree::*;
 pub(crate) use hoisted_shared_fragment::*;
 pub(crate) use positioning_fragment::*;

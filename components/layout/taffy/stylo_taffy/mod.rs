@@ -6,4 +6,4 @@
 
 mod convert;
 mod wrapper;
-pub use wrapper::TaffyStyloStyle;
+pub(crate) use wrapper::TaffyStyloStyle;

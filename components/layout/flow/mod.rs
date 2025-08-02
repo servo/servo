@@ -52,7 +52,7 @@ pub mod inline;
 mod root;
 
 pub(crate) use construct::BlockContainerBuilder;
-pub use root::BoxTree;
+pub(crate) use root::BoxTree;
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct BlockFormattingContext {

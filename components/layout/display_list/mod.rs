@@ -49,7 +49,7 @@ use wr::units::LayoutVector2D;
 
 use crate::cell::ArcRefCell;
 use crate::context::{ImageResolver, ResolvedImage};
-pub use crate::display_list::conversions::ToWebRender;
+pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
@@ -68,7 +68,7 @@ mod gradient;
 mod stacking_context;
 
 use background::BackgroundPainter;
-pub use stacking_context::*;
+pub(crate) use stacking_context::*;
 
 // webrender's `ItemTag` is private.
 type ItemTag = (u64, u16);

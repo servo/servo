@@ -410,7 +410,6 @@ pub enum DebugPrintField {
     Contents,
     RealStackingContextsAndPositionedStackingContainers,
     FloatStackingContainers,
-    AtomicInlineStackingContainers,
 }
 
 impl StackingContext {
@@ -581,7 +580,7 @@ impl StackingContext {
     pub(crate) fn build_canvas_background_display_list(
         &self,
         builder: &mut DisplayListBuilder,
-        fragment_tree: &crate::FragmentTree,
+        fragment_tree: &crate::fragment_tree::FragmentTree,
     ) {
         let Some(root_fragment) = fragment_tree.root_fragments.iter().find(|fragment| {
             fragment
@@ -795,9 +794,6 @@ impl StackingContext {
                 },
                 DebugPrintField::FloatStackingContainers => {
                     self.float_stacking_containers[*index].debug_print_with_tree(tree);
-                },
-                DebugPrintField::AtomicInlineStackingContainers => {
-                    // do nothing; we print these in DebugPrintField::Contents
                 },
             }
         }
