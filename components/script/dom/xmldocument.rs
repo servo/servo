@@ -61,6 +61,7 @@ impl XMLDocument {
                 None,
                 Default::default(),
                 false,
+                None,
                 false,
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,

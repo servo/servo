@@ -2923,6 +2923,7 @@ impl Node {
                     document.status_code(),
                     Default::default(),
                     false,
+                    None,
                     document.allow_declarative_shadow_roots(),
                     Some(document.insecure_requests_policy()),
                     document.has_trustworthy_ancestor_or_current_origin(),
