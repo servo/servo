@@ -81,3 +81,9 @@ interface mixin NavigatorConcurrentHardware {
 partial interface Navigator {
   [SecureContext, SameObject, Pref="dom_async_clipboard_enabled"] readonly attribute Clipboard clipboard;
 };
+
+// https://w3c.github.io/beacon/#sendbeacon-method
+partial interface Navigator {
+  [Throws, Pref="dom_navigator_sendbeacon_enabled"]
+  boolean sendBeacon(USVString url, optional BodyInit? data = null);
+};

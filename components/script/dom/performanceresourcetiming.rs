@@ -23,9 +23,10 @@ use crate::script_runtime::CanGc;
 // TODO Cross origin resources MUST BE INCLUDED as PerformanceResourceTiming objects
 // https://w3c.github.io/resource-timing/#sec-cross-origin-resources
 
-// TODO CSS, Beacon
+// TODO CSS
 #[derive(Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum InitiatorType {
+    Beacon,
     LocalName(String),
     Navigation,
     XMLHttpRequest,
@@ -191,6 +192,7 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-initiatortype
     fn InitiatorType(&self) -> DOMString {
         match self.initiator_type {
+            InitiatorType::Beacon => DOMString::from("beacon"),
             InitiatorType::LocalName(ref n) => DOMString::from(n.clone()),
             InitiatorType::Navigation => DOMString::from("navigation"),
             InitiatorType::XMLHttpRequest => DOMString::from("xmlhttprequest"),
