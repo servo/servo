@@ -47,7 +47,7 @@ use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use uuid::Uuid;
 
-use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
+use crate::http_loader::{devtools_response_with_body, expect_devtools_http_request};
 use crate::{
     DEFAULT_USER_AGENT, create_embedder_proxy, create_embedder_proxy_and_receiver,
     create_http_state, fetch, fetch_with_context, fetch_with_cors_cache, make_body, make_server,
@@ -1296,7 +1296,7 @@ fn test_fetch_with_devtools() {
 
     // notification received from devtools
     let devhttprequests = expect_devtools_http_request(&devtools_port);
-    let mut devhttpresponse = expect_devtools_http_response(&devtools_port);
+    let mut devhttpresponse = devtools_response_with_body(&devtools_port);
 
     //Creating default headers for request
     let mut headers = HeaderMap::new();
@@ -1356,7 +1356,7 @@ fn test_fetch_with_devtools() {
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
         status: HttpStatus::default(),
-        body: None,
+        body: Some(content.as_bytes().to_vec()),
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };

@@ -9,7 +9,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
-use headers::{ContentType, Cookie, HeaderMapExt};
+use headers::{ContentLength, ContentType, Cookie, HeaderMapExt};
 use http::{HeaderMap, Method, header};
 use net_traits::request::Destination as RequestDestination;
 use serde::Serialize;
@@ -389,7 +389,7 @@ impl NetworkEventActor {
         self.response_headers = Some(Self::response_headers(&response));
         self.response_cookies = Some(Self::response_cookies(&response));
         self.response_start = Some(Self::response_start(&response));
-        self.response_content = Some(Self::response_content(&response));
+        self.response_content = Self::response_content(&response);
         self.response_body = response.body.clone();
         self.response_headers_raw = response.headers.clone();
     }
@@ -441,7 +441,9 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn response_content(response: &DevtoolsHttpResponse) -> ResponseContentMsg {
+    pub fn response_content(response: &DevtoolsHttpResponse) -> Option<ResponseContentMsg> {
+        let _body = response.body.as_ref()?;
+
         let mime_type = response
             .headers
             .as_ref()
@@ -449,13 +451,20 @@ impl NetworkEventActor {
             .map(|ct| ct.to_string())
             .unwrap_or_default();
 
-        // TODO: Set correct values when response's body is sent to the devtools in http_loader.
-        ResponseContentMsg {
+        let transferred_size = response
+            .headers
+            .as_ref()
+            .and_then(|hdrs| hdrs.typed_get::<ContentLength>())
+            .map(|cl| cl.0);
+
+        let content_size = response.body.as_ref().map(|body| body.len() as u64);
+
+        Some(ResponseContentMsg {
             mime_type,
-            content_size: 0,
-            transferred_size: 0,
+            content_size: content_size.unwrap_or(0) as u32,
+            transferred_size: transferred_size.unwrap_or(0) as u32,
             discard_response_body: true,
-        }
+        })
     }
 
     pub fn response_cookies(response: &DevtoolsHttpResponse) -> ResponseCookiesMsg {

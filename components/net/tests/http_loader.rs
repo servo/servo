@@ -159,6 +159,19 @@ pub fn expect_devtools_http_response(
     }
 }
 
+pub fn devtools_response_with_body(
+    devtools_port: &Receiver<DevtoolsControlMsg>,
+) -> DevtoolsHttpResponse {
+    let devhttpresponses = vec![
+        expect_devtools_http_response(devtools_port),
+        expect_devtools_http_response(devtools_port),
+    ];
+    return devhttpresponses
+        .into_iter()
+        .find(|resp| resp.body.is_some())
+        .expect("One of the responses should have a body");
+}
+
 #[test]
 fn test_check_default_headers_loaded_in_every_request() {
     let expected_headers = Arc::new(Mutex::new(None));
@@ -337,7 +350,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     // notification received from devtools
     let devhttprequests = expect_devtools_http_request(&devtools_port);
-    let devhttpresponse = expect_devtools_http_response(&devtools_port);
+    let devhttpresponse = devtools_response_with_body(&devtools_port);
 
     //Creating default headers for request
     let mut headers = HeaderMap::new();
@@ -409,7 +422,7 @@ fn test_request_and_response_data_with_network_messages() {
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
         status: HttpStatus::default(),
-        body: None,
+        body: Some(content.as_bytes().to_vec()),
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };

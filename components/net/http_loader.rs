@@ -433,27 +433,48 @@ pub fn send_request_to_devtools(
         .unwrap();
 }
 
-pub fn send_response_to_devtools(request: &Request, context: &FetchContext, response: &Response) {
+pub fn send_response_to_devtools(
+    request: &Request,
+    context: &FetchContext,
+    response: &Response,
+    body_data: Option<Vec<u8>>,
+) {
+    let meta = match response.metadata() {
+        Ok(FetchMetadata::Unfiltered(m)) => m,
+        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
+        Err(_) => {
+            log::warn!("No metadata available, skipping devtools response.");
+            return;
+        },
+    };
+    send_response_values_to_devtools(
+        meta.headers.map(Serde::into_inner),
+        meta.status,
+        body_data,
+        request,
+        context.devtools_chan.clone(),
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn send_response_values_to_devtools(
+    headers: Option<HeaderMap>,
+    status: HttpStatus,
+    body: Option<Vec<u8>>,
+    request: &Request,
+    devtools_chan: Option<StdArc<Mutex<Sender<DevtoolsControlMsg>>>>,
+) {
     if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
-        context.devtools_chan.as_ref(),
+        devtools_chan,
         request.pipeline_id,
         request.target_webview_id,
     ) {
         let browsing_context_id = webview_id.0;
-        let meta = match response
-            .metadata()
-            .expect("Response metadata should exist at this stage")
-        {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        };
-        let status = meta.status;
-        let headers = meta.headers.map(Serde::into_inner);
 
         let devtoolsresponse = DevtoolsHttpResponse {
             headers,
             status,
-            body: None,
+            body,
             pipeline_id,
             browsing_context_id,
         };
@@ -935,8 +956,6 @@ pub async fn http_fetch(
         .try_code()
         .is_some_and(is_redirect_status)
     {
-        // Notify devtools before handling redirect
-        send_response_to_devtools(request, context, &response);
         // Substep 1.
         if response.actual_response().status != StatusCode::SEE_OTHER {
             // TODO: send RST_STREAM frame
@@ -2063,8 +2082,13 @@ async fn http_network_fetch(
     let done_sender3 = done_sender.clone();
     let timing_ptr2 = context.timing.clone();
     let timing_ptr3 = context.timing.clone();
-    let url1 = request.url();
+    let devtools_request = request.clone();
+    let url1 = devtools_request.url();
     let url2 = url1.clone();
+
+    let status = response.status.clone();
+    let headers = response.headers.clone();
+    let devtools_chan = context.devtools_chan.clone();
 
     HANDLE.spawn(
         res.into_body()
@@ -2091,7 +2115,15 @@ async fn http_network_fetch(
                     ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                     _ => vec![],
                 };
+                let devtools_response_body = completed_body.clone();
                 *body = ResponseBody::Done(completed_body);
+                send_response_values_to_devtools(
+                    Some(headers),
+                    status,
+                    Some(devtools_response_body),
+                    &devtools_request,
+                    devtools_chan,
+                );
                 timing_ptr2
                     .lock()
                     .unwrap()
