@@ -1141,7 +1141,7 @@ fn create_constellation(
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
-    let (public_resource_threads, private_resource_threads) = new_resource_threads(
+    let (public_resource_threads, private_resource_threads, async_runtime) = new_resource_threads(
         devtools_sender.clone(),
         time_profiler_chan.clone(),
         mem_profiler_chan.clone(),
@@ -1182,6 +1182,7 @@ fn create_constellation(
         #[cfg(feature = "webgpu")]
         wgpu_image_map,
         user_content_manager,
+        async_runtime,
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());

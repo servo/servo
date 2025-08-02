@@ -39,7 +39,7 @@ use tungstenite::handshake::client::{Request, Response};
 use tungstenite::protocol::CloseFrame;
 use url::Url;
 
-use crate::async_runtime::HANDLE;
+use crate::async_runtime::spawn_task;
 use crate::connector::{CACertificates, TlsConfig, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::fetch::methods::{
@@ -423,7 +423,7 @@ fn connect(
     tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
 
     let resource_event_sender2 = resource_event_sender.clone();
-    HANDLE.spawn(
+    spawn_task(
         start_websocket(
             http_state,
             req_url.clone(),

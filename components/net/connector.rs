@@ -21,7 +21,7 @@ use rustls::{ClientConfig, RootCertStore};
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
 use tower_service::Service;
 
-use crate::async_runtime::HANDLE;
+use crate::async_runtime::spawn_task;
 use crate::hosts::replace_host;
 
 pub const BUF_SIZE: usize = 32768;
@@ -165,7 +165,7 @@ where
     F: Future<Output = ()> + 'static + std::marker::Send,
 {
     fn execute(&self, fut: F) {
-        HANDLE.spawn(fut);
+        spawn_task(fut);
     }
 }
 
