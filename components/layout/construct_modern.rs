@@ -31,6 +31,11 @@ pub(crate) struct ModernContainerBuilder<'a, 'dom> {
     /// To be run in parallel with rayon in `finish`
     jobs: Vec<ModernContainerJob<'dom>>,
     has_text_runs: bool,
+
+    /// The [`ModernContainerBuilder`] need to know about all `display: contents` descendent that
+    /// have been processed. This builder will help these descendent to finish collect pseudo boxes
+    /// when itself finishs.
+    display_contents_infos: Vec<NodeAndStyleInfo<'dom>>,
 }
 
 enum ModernContainerJob<'dom> {
@@ -192,6 +197,14 @@ impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
             box_slot,
         })
     }
+
+    fn enter_display_contents(
+        &mut self,
+        _: crate::flow::inline::SharedInlineStyles,
+        info: &NodeAndStyleInfo<'dom>,
+    ) {
+        self.display_contents_infos.push(info.clone());
+    }
 }
 
 impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
@@ -207,6 +220,7 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
             contiguous_text_runs: Vec::new(),
             jobs: Vec::new(),
             has_text_runs: false,
+            display_contents_infos: Vec::new(),
         }
     }
 
@@ -246,6 +260,10 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
         // https://drafts.csswg.org/css-flexbox/#order-modified-document-order
         children.sort_by_key(|child| child.order);
 
+        self.info.finish_collect_pseudo_boxes_if_not_pseudo();
+        for info in self.display_contents_infos.drain(..) {
+            info.finish_collect_pseudo_boxes_if_not_pseudo();
+        }
         children
     }
 }

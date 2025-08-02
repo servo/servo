@@ -35,15 +35,17 @@ use crate::taffy::TaffyItemBox;
 
 #[derive(MallocSizeOf)]
 pub struct PseudoLayoutData {
-    pseudo: PseudoElement,
-    box_slot: ArcRefCell<Option<LayoutBox>>,
+    pub(super) pseudo: PseudoElement,
+    pub(super) box_slot: ArcRefCell<Option<LayoutBox>>,
 }
+
+pub(super) type PseudoLayoutDataVec = SmallVec<[PseudoLayoutData; 2]>;
 
 /// The data that is stored in each DOM node that is used by layout.
 #[derive(Default, MallocSizeOf)]
 pub struct InnerDOMLayoutData {
     pub(super) self_box: ArcRefCell<Option<LayoutBox>>,
-    pub(super) pseudo_boxes: SmallVec<[PseudoLayoutData; 2]>,
+    pub(super) pseudo_boxes: PseudoLayoutDataVec,
 }
 
 impl InnerDOMLayoutData {
@@ -238,7 +240,7 @@ pub(crate) trait NodeExt<'dom> {
     fn layout_data_mut(&self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
     fn layout_data(&self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>>;
     fn element_box_slot(&self) -> BoxSlot<'dom>;
-    fn pseudo_element_box_slot(&self, pseudo_element: PseudoElement) -> BoxSlot<'dom>;
+    fn set_all_pseudo_boxes(&self, pseudo_boxes: PseudoLayoutDataVec);
 
     /// Remove boxes for the element itself, and all of its pseudo-element boxes.
     fn unset_all_boxes(&self);
@@ -358,14 +360,8 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         self.layout_data_mut().self_box.clone().into()
     }
 
-    fn pseudo_element_box_slot(&self, pseudo_element: PseudoElement) -> BoxSlot<'dom> {
-        let mut layout_data = self.layout_data_mut();
-        let box_slot = ArcRefCell::new(None);
-        layout_data.pseudo_boxes.push(PseudoLayoutData {
-            pseudo: pseudo_element,
-            box_slot: box_slot.clone(),
-        });
-        box_slot.into()
+    fn set_all_pseudo_boxes(&self, pseudo_boxes: PseudoLayoutDataVec) {
+        self.layout_data_mut().pseudo_boxes = pseudo_boxes;
     }
 
     fn unset_all_boxes(&self) {
