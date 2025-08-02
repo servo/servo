@@ -56,13 +56,16 @@ struct FetchContext {
 pub(crate) struct FetchCanceller {
     #[no_trace]
     request_id: Option<RequestId>,
+    #[no_trace]
+    core_resource_thread: Option<CoreResourceThread>,
 }
 
 impl FetchCanceller {
     /// Create an empty FetchCanceller
-    pub(crate) fn new(request_id: RequestId) -> Self {
+    pub(crate) fn new(request_id: RequestId, core_resource_thread: CoreResourceThread) -> Self {
         Self {
             request_id: Some(request_id),
+            core_resource_thread: Some(core_resource_thread),
         }
     }
 
@@ -72,9 +75,11 @@ impl FetchCanceller {
             // stop trying to make fetch happen
             // it's not going to happen
 
-            // No error handling here. Cancellation is a courtesy call,
-            // we don't actually care if the other side heard.
-            cancel_async_fetch(vec![request_id]);
+            if let Some(ref core_resource_thread) = self.core_resource_thread {
+                // No error handling here. Cancellation is a courtesy call,
+                // we don't actually care if the other side heard.
+                cancel_async_fetch(vec![request_id], core_resource_thread);
+            }
         }
     }
 
