@@ -9,9 +9,9 @@ mod font_context {
     use std::collections::HashMap;
     use std::ffi::OsStr;
     use std::path::PathBuf;
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicI32, Ordering};
-    use std::thread::{self, JoinHandle};
+    use std::sync::{Arc, Once};
+    use std::thread;
 
     use app_units::Au;
     use compositing_traits::CrossProcessCompositorApi;
@@ -36,11 +36,12 @@ mod font_context {
     use stylo_atoms::Atom;
     use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
 
+    static INIT: Once = Once::new();
+
     struct TestContext {
         context: FontContext,
         system_font_service: Arc<MockSystemFontService>,
         system_font_service_proxy: SystemFontServiceProxy,
-        fetch_thread_join_handle: Option<JoinHandle<()>>,
     }
 
     impl TestContext {
@@ -54,12 +55,13 @@ mod font_context {
             let mock_compositor_api = CrossProcessCompositorApi::dummy();
 
             let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());
-            let fetch_thread_join_handle = start_fetch_thread(&mock_resource_threads.core_thread);
+            INIT.call_once(|| {
+                start_fetch_thread(&mock_resource_threads.core_thread);
+            });
             Self {
                 context: FontContext::new(proxy_clone, mock_compositor_api, mock_resource_threads),
                 system_font_service,
                 system_font_service_proxy,
-                fetch_thread_join_handle: Some(fetch_thread_join_handle),
             }
         }
     }
@@ -67,12 +69,6 @@ mod font_context {
     impl Drop for TestContext {
         fn drop(&mut self) {
             self.system_font_service_proxy.exit();
-            exit_fetch_thread();
-            self.fetch_thread_join_handle
-                .take()
-                .expect("Fetch thread join handle is set in constructor")
-                .join()
-                .expect("Failed to join on the fetch thread");
         }
     }
 
