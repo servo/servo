@@ -352,8 +352,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-textlength
     fn TextLength(&self) -> u32 {
-        let UTF16CodeUnits(num_units) = self.textinput.borrow().utf16_len();
-        num_units as u32
+        self.textinput.borrow().utf16_len() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -515,7 +514,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_max_length(Some(value as usize))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -527,7 +526,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_min_length(Some(value as usize))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -783,7 +782,7 @@ impl Validatable for HTMLTextAreaElement {
         let mut failed_flags = ValidationFlags::empty();
 
         let textinput = self.textinput.borrow();
-        let UTF16CodeUnits(value_len) = textinput.utf16_len();
+        let value_len = textinput.utf16_len();
         let last_edit_by_user = !textinput.was_last_change_by_set_content();
         let value_dirty = self.value_dirty.get();
 

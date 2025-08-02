@@ -189,7 +189,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // change the selection state in order to replace the text in the range.
         let original_selection_state = self.textinput.borrow().selection_state();
 
-        let content_length = self.textinput.borrow().utf16_len().0 as u32;
+        let content_length = self.textinput.borrow().utf16_len() as u32;
 
         // Step 5. If start is greater than the length of the relevant value of the text control,
         // then set it to the length of the relevant value of the text control.
@@ -281,14 +281,22 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     /// Return the selection start offset, in UTF16 code units
     fn start(&self) -> u32 {
         let byte_offset = self.textinput.borrow().selection_start_offset();
-        debug_assert_eq!(byte_offset % 2, 0, "selection offset should point to a code unit");
+        debug_assert_eq!(
+            byte_offset % 2,
+            0,
+            "selection offset should point to a code unit"
+        );
         (byte_offset / 2) as u32
     }
 
     /// Return the selection end offset, in UTF16 code units
     fn end(&self) -> u32 {
         let byte_offset = self.textinput.borrow().selection_end_offset();
-        debug_assert_eq!(byte_offset % 2, 0, "selection offset should point to a code unit");
+        debug_assert_eq!(
+            byte_offset % 2,
+            0,
+            "selection offset should point to a code unit"
+        );
         (byte_offset / 2) as u32
     }
 
