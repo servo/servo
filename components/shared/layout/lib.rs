@@ -15,6 +15,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
+use std::thread::JoinHandle;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
@@ -301,7 +302,7 @@ pub trait ScriptThreadFactory {
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
         load_data: LoadData,
-    );
+    ) -> JoinHandle<()>;
 }
 #[derive(Clone, Default)]
 pub struct OffsetParentResponse {

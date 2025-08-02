@@ -1265,7 +1265,7 @@ pub fn run_content_process(token: String) {
 
             content.register_system_memory_reporter();
 
-            content.start_all::<script::ScriptThread>(
+            let script_join_handle = content.start_all::<script::ScriptThread>(
                 true,
                 layout_factory,
                 background_hang_monitor_register,
@@ -1274,7 +1274,10 @@ pub fn run_content_process(token: String) {
             // Since wait_for_completion is true,
             // here we know that the script-thread
             // will exit(or already has),
-            // and so we can join on the BHM worker thread.
+            // and so we can join first on the script, and then on the BHM worker, threads.
+            script_join_handle
+                .join()
+                .expect("Failed to join on the script thread.");
             join_handle
                 .join()
                 .expect("Failed to join on the BHM background thread.");

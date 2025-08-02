@@ -25,7 +25,7 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime};
 
 use background_hang_monitor_api::{
@@ -412,7 +412,7 @@ impl ScriptThreadFactory for ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
         load_data: LoadData,
-    ) {
+    ) -> JoinHandle<()> {
         thread::Builder::new()
             .name(format!("Script{:?}", state.id))
             .spawn(move || {
@@ -462,7 +462,7 @@ impl ScriptThreadFactory for ScriptThread {
                 // This must always be the very last operation performed before the thread completes
                 failsafe.neuter();
             })
-            .expect("Thread spawning failed");
+            .expect("Thread spawning failed")
     }
 }
 
