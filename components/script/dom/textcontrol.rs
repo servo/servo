@@ -61,24 +61,26 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         Some(self.start())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     pub(crate) fn set_dom_start(&self, start: Option<u32>) -> ErrorResult {
-        // Step 1
+        // Step 1. If this element is an input element, and selectionStart does not apply to this element,
+        // throw an "InvalidStateError" DOMException.
         if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
         }
 
-        // Step 2
+        // Step 2. Let end be the value of this element's selectionEnd attribute.
         let mut end = self.end();
 
-        // Step 3
-        if let Some(s) = start {
-            if end < s {
-                end = s;
+        // Step 3. If end is less than the given value, set end to the given value.
+        if let Some(start) = start {
+            if end < start {
+                end = start;
             }
         }
 
-        // Step 4
+        // Step 4. Set the selection range with the given value, end, and the value of this element's
+        // selectionDirection attribute.
         self.set_range(start, Some(end), Some(self.direction()), None);
         Ok(())
     }
@@ -276,14 +278,18 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         Ok(())
     }
 
+    /// Return the selection start offset, in UTF16 code units
     fn start(&self) -> u32 {
-        // FIXME: We need to convert from byte offsets to code unit offsets here
-        self.textinput.borrow().selection_start_offset() as u32
+        let byte_offset = self.textinput.borrow().selection_start_offset();
+        debug_assert_eq!(byte_offset % 2, 0, "selection offset should point to a code unit");
+        (byte_offset / 2) as u32
     }
 
+    /// Return the selection end offset, in UTF16 code units
     fn end(&self) -> u32 {
-        // FIXME: We need to convert from byte offsets to code unit offsets here
-        self.textinput.borrow().selection_end_offset() as u32
+        let byte_offset = self.textinput.borrow().selection_end_offset();
+        debug_assert_eq!(byte_offset % 2, 0, "selection offset should point to a code unit");
+        (byte_offset / 2) as u32
     }
 
     fn direction(&self) -> SelectionDirection {
@@ -311,7 +317,11 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // Steps 3-5
         textinput.set_selection_range(start, end, direction.unwrap_or(SelectionDirection::None));
 
-        // Step 6
+        // Step 6. If the previous steps caused the selection of the text control to be modified
+        // (in either extent or direction), then queue an element task on the user interaction
+        // task source given the element to fire an event named select at the element,
+        // with the bubbles attribute initialized to true.
+        // FIXME: Check if selection extent changed.
         if textinput.selection_state() != original_selection_state {
             self.element
                 .owner_global()
