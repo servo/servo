@@ -1584,7 +1584,6 @@ pub(crate) fn handle_get_attribute(
         .send(
             get_known_element(documents, pipeline, node_id).map(|element| {
                 if is_boolean_attribute(&name) {
-                    // element.get_attribute_by_name(DOMString::from(name)).map(|_| String::from("true"))
                     if element.HasAttribute(DOMString::from(name)) {
                         Some(String::from("true"))
                     } else {
