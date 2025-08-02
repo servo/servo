@@ -671,8 +671,8 @@ impl FetchThread {
 
 static FETCH_THREAD: OnceLock<Sender<ToFetchThreadMessage>> = OnceLock::new();
 
-/// Start the fetch thread,
-/// and returns the join handle to the background thread.
+/// Starts a fetch thread,
+/// and returns the join handle to it.
 pub fn start_fetch_thread(core_resource_thread: &CoreResourceThread) -> JoinHandle<()> {
     let (sender, join_handle) = FetchThread::spawn(core_resource_thread);
     FETCH_THREAD
