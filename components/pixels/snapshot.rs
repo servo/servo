@@ -8,7 +8,7 @@ use euclid::default::{Rect, Size2D};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
-use image::{ColorType, ImageEncoder, ImageError};
+use image::{ExtendedColorType, ImageEncoder, ImageError};
 use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -325,7 +325,7 @@ impl Snapshot<SnapshotData> {
             EncodedImageType::Png => {
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/86
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-                PngEncoder::new(encoder).write_image(data, width, height, ColorType::Rgba8)
+                PngEncoder::new(encoder).write_image(data, width, height, ExtendedColorType::Rgba8)
             },
             EncodedImageType::Jpeg => {
                 let jpeg_encoder = if let Some(quality) = quality {
@@ -343,7 +343,7 @@ impl Snapshot<SnapshotData> {
                     JpegEncoder::new(encoder)
                 };
 
-                jpeg_encoder.write_image(data, width, height, ColorType::Rgba8)
+                jpeg_encoder.write_image(data, width, height, ExtendedColorType::Rgba8)
             },
             EncodedImageType::Webp => {
                 // No quality support because of https://github.com/image-rs/image/issues/1984
@@ -351,7 +351,7 @@ impl Snapshot<SnapshotData> {
                     data,
                     width,
                     height,
-                    ColorType::Rgba8,
+                    ExtendedColorType::Rgba8,
                 )
             },
         }
