@@ -102,6 +102,7 @@ partial interface Element {
   [NewObject]
   DOMRect getBoundingClientRect();
 
+  undefined scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg = {});
   undefined scroll(optional ScrollToOptions options = {});
   undefined scroll(unrestricted double x, unrestricted double y);
 
@@ -133,6 +134,16 @@ dictionary GetHTMLOptions {
   boolean serializableShadowRoots = false;
   sequence<ShadowRoot> shadowRoots = [];
 };
+
+// https://drafts.csswg.org/cssom-view/#dictdef-scrollintoviewoptions
+dictionary ScrollIntoViewOptions : ScrollOptions {
+  ScrollLogicalPosition block = "start";
+  ScrollLogicalPosition inline = "nearest";
+  ScrollIntoViewContainer container = "all";
+};
+
+enum ScrollLogicalPosition { "start", "center", "end", "nearest" };
+enum ScrollIntoViewContainer { "all", "nearest" };
 
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Element {
