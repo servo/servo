@@ -99,7 +99,7 @@ mod test {
         webviews: &WebViewManager<WebView>,
     ) -> Vec<(WebViewId, WebView)> {
         let mut keys = webviews.webviews.keys().collect::<Vec<_>>();
-        keys.sort();
+        keys.sort_unstable();
         keys.iter()
             .map(|&id| {
                 (

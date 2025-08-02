@@ -5401,7 +5401,7 @@ where
         };
         // In order to get repeatability, we sort the pipeline ids.
         let mut pipeline_ids: Vec<&PipelineId> = self.pipelines.keys().collect();
-        pipeline_ids.sort();
+        pipeline_ids.sort_unstable();
         if let Some((ref mut rng, probability)) = self.random_pipeline_closure {
             if let Some(pipeline_id) = pipeline_ids.choose(rng) {
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
