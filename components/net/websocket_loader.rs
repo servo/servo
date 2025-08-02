@@ -12,6 +12,7 @@
 //! the need for a dedicated thread per websocket.
 
 use std::mem;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -27,6 +28,7 @@ use ipc_channel::router::ROUTER;
 use log::{debug, trace, warn};
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{Origin, RequestBuilder, RequestMode};
+use net_traits::response::Response;
 use net_traits::{CookieSource, MessageData, WebSocketDomAction, WebSocketNetworkEvent};
 use servo_url::ServoUrl;
 use tokio::net::TcpStream;
@@ -35,7 +37,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 use tokio_rustls::TlsConnector;
 use tungstenite::Message;
 use tungstenite::error::{Error, ProtocolError, Result as WebSocketResult, UrlError};
-use tungstenite::handshake::client::{Request, Response};
+use tungstenite::handshake::client::{Request, Response as TungsteniteResponse};
 use tungstenite::protocol::CloseFrame;
 use url::Url;
 
@@ -43,7 +45,7 @@ use crate::async_runtime::HANDLE;
 use crate::connector::{CACertificates, TlsConfig, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::fetch::methods::{
-    convert_request_to_csp_request, should_request_be_blocked_by_csp,
+    FetchContext, convert_request_to_csp_request, should_request_be_blocked_by_csp,
     should_request_be_blocked_due_to_a_bad_port,
 };
 use crate::hosts::replace_host;
@@ -53,7 +55,7 @@ use crate::http_loader::HttpState;
 /// and `Cookie` headers as appropriate.
 /// Returns an error if any header values are invalid or tungstenite cannot create
 /// the desired request.
-fn create_request(
+pub fn create_request(
     resource_url: &ServoUrl,
     origin: &str,
     protocols: &[String],
@@ -109,9 +111,9 @@ fn create_request(
 /// This ensures that any `Cookie` or HSTS headers are recognized.
 /// Returns an error if the protocol selected by the handshake doesn't
 /// match the list of provided protocols in the original request.
-fn process_ws_response(
+pub fn process_ws_response(
     http_state: &HttpState,
-    response: &Response,
+    response: &TungsteniteResponse,
     resource_url: &ServoUrl,
     protocols: &[String],
 ) -> Result<Option<String>, Error> {
@@ -149,14 +151,14 @@ fn process_ws_response(
 }
 
 #[derive(Debug)]
-enum DomMsg {
+pub(crate) enum DomMsg {
     Send(Message),
     Close(Option<(u16, String)>),
 }
 
 /// Initialize a listener for DOM actions. These are routed from the IPC channel
 /// to a tokio channel that the main WS client task uses to receive them.
-fn setup_dom_listener(
+pub fn setup_dom_listener(
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     initiated_close: Arc<AtomicBool>,
 ) -> UnboundedReceiver<DomMsg> {
@@ -194,11 +196,62 @@ fn setup_dom_listener(
     receiver
 }
 
+pub async fn perform_handshake(
+    request: &net_traits::request::Request,
+    protocols: &Vec<String>,
+    context: &FetchContext,
+    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+) -> Result<_, tungstenite::Error> {
+    let url = request.current_url();
+    let req_origin = match request.origin {
+        Origin::Client => unreachable!(),
+        Origin::Origin(ref origin) => origin,
+    };
+
+    let client = create_request(
+        &request.url(),
+        &req_origin.ascii_serialization(),
+        &protocols,
+        &context.state,
+    )?;
+
+    trace!("starting WS connection to {}", url);
+
+    let initiated_close = std::sync::Arc::new(AtomicBool::new(false));
+    let dom_receiver = setup_dom_listener(dom_action_receiver, initiated_close.clone());
+
+    let host_str = client.uri().host()?;
+    let host = replace_host(host_str);
+    let mut net_url = Url::parse(&client.uri().to_string())?;
+    net_url.set_host(Some(&host))?;
+
+    let domain = net_url.host()?;
+    let port = net_url.port_or_known_default()?;
+
+    let socket = TcpStream::connect((&*domain.to_string(), port)).await?;
+
+    let mut tls_config = create_tls_config(
+        context.ca_certificates.clone(),
+        context.ignore_certificate_errors,
+        context.state.override_manager.clone(),
+    );
+    tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
+    let connector = TlsConnector::from(std::sync::Arc::new(tls_config));
+
+    let (stream, response) =
+        client_async_tls_with_connector_and_config(client, socket, Some(connector), None).await?;
+
+    let protocol_in_use = process_ws_response(&context.state, &response, &url, &protocols).unwrap();
+
+    todo!("return an async closure executing run_ws_loop()")
+}
+
 /// Listen for WS events from the DOM and the network until one side
 /// closes the connection or an error occurs. Since this is an async
 /// function that uses the select operation, it will run as a task
 /// on the WS tokio runtime.
-async fn run_ws_loop(
+pub async fn run_ws_loop(
     mut dom_receiver: UnboundedReceiver<DomMsg>,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     mut stream: WebSocketStream<ConnectStream>,
@@ -449,6 +502,7 @@ pub fn init(
     http_state: Arc<HttpState>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
+    _context: FetchContext,
 ) {
     let resource_event_sender2 = resource_event_sender.clone();
     if let Err(e) = connect(
