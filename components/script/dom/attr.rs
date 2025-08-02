@@ -5,6 +5,7 @@
 use std::borrow::ToOwned;
 use std::cell::LazyCell;
 use std::mem;
+use std::sync::LazyLock;
 
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
@@ -298,38 +299,42 @@ pub(crate) fn is_boolean_attribute(name: &str) -> bool {
     // webdriver/tests/classic/get_element_attribute/get.py
     //
     // [1] <https://html.spec.whatwg.org/multipage/#attributes-3>
-    [
-        "allowfullscreen",
-        "alpha",
-        "async",
-        "autofocus",
-        "autoplay",
-        "checked",
-        "controls",
-        "default",
-        "defer",
-        "disabled",
-        "formnovalidate",
-        "hidden",
-        "inert",
-        "ismap",
-        "itemscope",
-        "loop",
-        "multiple",
-        "muted",
-        "nomodule",
-        "novalidate",
-        "open",
-        "playsinline",
-        "readonly",
-        "required",
-        "reversed",
-        "selected",
-        "shadowrootclonable",
-        "shadowrootcustomelementregistry",
-        "shadowrootdelegatesfocus",
-        "shadowrootserializable",
-    ]
-    .iter()
-    .any(|&boolean_attr| boolean_attr.eq_ignore_ascii_case(name))
+    static BOOLEAN_ATTRIBUTES: LazyLock<[&str; 30]> = LazyLock::new(|| {
+        [
+            "allowfullscreen",
+            "alpha",
+            "async",
+            "autofocus",
+            "autoplay",
+            "checked",
+            "controls",
+            "default",
+            "defer",
+            "disabled",
+            "formnovalidate",
+            "hidden",
+            "inert",
+            "ismap",
+            "itemscope",
+            "loop",
+            "multiple",
+            "muted",
+            "nomodule",
+            "novalidate",
+            "open",
+            "playsinline",
+            "readonly",
+            "required",
+            "reversed",
+            "selected",
+            "shadowrootclonable",
+            "shadowrootcustomelementregistry",
+            "shadowrootdelegatesfocus",
+            "shadowrootserializable",
+        ]
+    });
+
+    BOOLEAN_ATTRIBUTES
+        .iter()
+        .any(|&boolean_attr| boolean_attr.eq_ignore_ascii_case(name))
 }
