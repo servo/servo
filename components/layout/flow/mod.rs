@@ -1391,14 +1391,16 @@ impl IndependentFormattingContext {
             )
         };
 
-        let lazy_block_size = LazySize::new(
-            &content_box_sizes.block,
-            Direction::Block,
-            Size::FitContent,
-            Au::zero,
-            available_block_size,
-            is_table,
-        );
+        let get_lazy_block_size = || {
+            LazySize::new(
+                &content_box_sizes.block,
+                Direction::Block,
+                Size::FitContent,
+                Au::zero,
+                available_block_size,
+                is_table,
+            )
+        };
 
         // The final inline size can depend on the available space, which depends on where
         // we are placing the box, since floats reduce the available space.
@@ -1414,6 +1416,7 @@ impl IndependentFormattingContext {
             // compute it with an available inline space of zero. Then, after layout we can
             // compute the block size, and finally place among floats.
             let inline_size = inline_size_with_no_available_space;
+            let lazy_block_size = get_lazy_block_size();
             layout = self.layout(
                 layout_context,
                 positioning_context,
@@ -1479,6 +1482,7 @@ impl IndependentFormattingContext {
                 // Later we'll check to see if the resulting block size is compatible with the
                 // placement.
                 let positioning_context_length = positioning_context.len();
+                let lazy_block_size = get_lazy_block_size();
                 layout = self.layout(
                     layout_context,
                     positioning_context,
