@@ -260,6 +260,7 @@ pub trait Layout {
     fn scroll_offset(&self, id: ExternalScrollId) -> Option<LayoutVector2D>;
 
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
+    fn query_content_box_unchecked(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
