@@ -115,7 +115,7 @@ pub(crate) enum FileReaderReadyState {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum FileReaderResult {
-    ArrayBuffer(#[ignore_malloc_size_of = "mozjs"] Heap<JSVal>),
+    ArrayBuffer(#[ignore_malloc_size_of = "mozjs"] RootedTraceableBox<Heap<JSVal>>),
     String(DOMString),
 }
 
@@ -354,7 +354,8 @@ impl FileReader {
                     .is_ok()
             );
 
-            *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(Heap::default()));
+            *result.borrow_mut() =
+                Some(FileReaderResult::ArrayBuffer(RootedTraceableBox::default()));
 
             if let Some(FileReaderResult::ArrayBuffer(ref mut heap)) = *result.borrow_mut() {
                 heap.set(jsval::ObjectValue(array_buffer.get()));

@@ -955,39 +955,51 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     if is_typed_array(type):
         if failureCode is None:
-            unwrapFailureCode = (f'throw_type_error(*cx, "{sourceDescription} is not a typed array.");\n'
-                                 f'{exceptionCode}')
+            unwrapFailureCode = (
+                f'throw_type_error(*cx, "{sourceDescription} is not a typed array.");\n'
+                f'{exceptionCode}'
+            )
         else:
             unwrapFailureCode = failureCode
 
         typeName = type.unroll().name  # unroll because it may be nullable
 
-        if isMember == "Union":
+        is_union_member = (isMember == "Union")
+
+        if is_union_member:
             typeName = f"Heap{typeName}"
+            map_call = ".map(RootedTraceableBox::new)"
+        else:
+            map_call = ""
 
         templateBody = fill(
-            """
-            match typedarray::${ty}::from($${val}.get().to_object()) {
+            f"""
+            match typedarray::${{ty}}::from($${{val}}.get().to_object()){map_call} {{
                 Ok(val) => val,
-                Err(()) => {
-                    $*{failureCode}
-                }
-            }
+                Err(()) => {{
+                    $*{{failureCode}}
+                }}
+            }}
             """,
             ty=typeName,
             failureCode=f"{unwrapFailureCode}\n",
         )
 
-        if isMember == "Union":
-            templateBody = f"RootedTraceableBox::new({templateBody})"
-
         declType = CGGeneric(f"typedarray::{typeName}")
+        if is_union_member:
+            declType = CGWrapper(declType, pre="RootedTraceableBox<", post=">")
+
         if type.nullable():
             templateBody = f"Some({templateBody})"
             declType = CGWrapper(declType, pre="Option<", post=">")
 
-        templateBody = wrapObjectTemplate(templateBody, "None",
-                                          isDefinitelyObject, type, failureCode)
+        templateBody = wrapObjectTemplate(
+            templateBody,
+            "None",
+            isDefinitelyObject,
+            type,
+            failureCode,
+        )
 
         return handleOptional(templateBody, declType, handleDefault("None"))
 

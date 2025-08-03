@@ -12,6 +12,7 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[derive(JSTraceable)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct CachedFrozenArray {
     frozen_value: DomRefCell<Option<Heap<JSVal>>>,
 }

@@ -166,7 +166,6 @@ impl Notification {
     ) -> Self {
         // TODO: missing call to https://html.spec.whatwg.org/multipage/#structuredserializeforstorage
         // may be find in `dom/bindings/structuredclone.rs`
-        let data = Heap::default();
 
         let title = title.clone();
         let dir = options.dir;
@@ -234,7 +233,7 @@ impl Notification {
             serviceworker_registration: None,
             title,
             body,
-            data,
+            data: Heap::default(),
             dir,
             image,
             icon,

@@ -35,6 +35,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::root::AsHandleValue;
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -435,7 +436,6 @@ struct WaitForAllFulfillmentHandler {
 }
 
 impl Callback for WaitForAllFulfillmentHandler {
-    #[allow(unsafe_code)]
     fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
         // Let fulfillmentHandler be the following steps given arg:
 
@@ -453,15 +453,10 @@ impl Callback for WaitForAllFulfillmentHandler {
 
         // If fulfilledCount equals total, then perform successSteps given result.
         if equals_total {
-            // Safety: the values are kept alive by the Heap
-            // while their handles are passed to the the success steps.
-            let result_handles: Vec<HandleValue> = unsafe {
-                self.result
-                    .borrow()
-                    .iter()
-                    .map(|val| HandleValue::from_raw(val.handle()))
-                    .collect()
-            };
+            let result_ref = self.result.borrow();
+            let result_handles: Vec<HandleValue> =
+                result_ref.iter().map(|v| v.as_handle_value()).collect();
+
             (self.success_steps)(result_handles);
         }
     }
@@ -496,6 +491,7 @@ impl Callback for WaitForAllRejectionHandler {
 }
 
 /// <https://webidl.spec.whatwg.org/#wait-for-all>
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) fn wait_for_all(
     cx: SafeJSContext,
     global: &GlobalScope,

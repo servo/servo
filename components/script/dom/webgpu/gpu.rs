@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
-use js::jsapi::Heap;
+use js::jsapi::HandleObject;
 use webgpu_traits::WebGPUAdapterResponse;
 use wgpu_types::PowerPreference;
 
@@ -117,7 +117,7 @@ impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
                         "{} ({:?})",
                         adapter.adapter_info.name, adapter.adapter_id.0
                     )),
-                    Heap::default(),
+                    HandleObject::null(),
                     adapter.features,
                     adapter.limits,
                     adapter.adapter_info,
