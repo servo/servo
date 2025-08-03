@@ -16,6 +16,21 @@ pub enum ClientStorageThreadMsg {
         sender: IpcSender<ClientStorageActorId>,
     },
 
+    /*
+        LocalStorageConstructor {
+            child_to_parent_receiver: IpcReceiver<ClientStorageRoutedMsg>,
+            parent_to_child_sender: IpcSender<ClientStorageRoutedMsg>,
+            origin: ImmutableOrigin,
+            sender: IpcSender<ClientStorageActorId>,
+        },
+
+        IDBFactory {
+            child_to_parent_receiver: IpcReceiver<ClientStorageRoutedMsg>,
+            parent_to_child_sender: IpcSender<ClientStorageRoutedMsg>,
+            origin: ImmutableOrigin,
+            sender: IpcSender<ClientStorageActorId>,
+        },
+    */
     Routed(ClientStorageRoutedMsg),
 
     /// Send a reply when done cleaning up thread resources and then shut it down
