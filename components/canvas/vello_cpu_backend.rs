@@ -111,7 +111,7 @@ impl VelloCPUDrawTarget {
                 self_.ctx.flush();
                 self_
                     .ctx
-                    .render_to_pixmap(&mut self_.pixmap, vello_cpu::RenderMode::OptimizeQuality);
+                    .render_to_pixmap(&mut self_.pixmap, vello_cpu::RenderMode::OptimizeSpeed);
                 self_.ctx.reset();
                 self_.state = State::Rendered;
             });
