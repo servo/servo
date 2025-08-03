@@ -2,18 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
-
 use dom_struct::dom_struct;
-use js::jsapi::JSObject;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::HTMLDocumentBinding::HTMLDocumentMethods;
-use script_bindings::error::Fallible;
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::JSContext;
+use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 
 use super::types::{Document, Location};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::NamedPropertyValue;
 
 /// <https://html.spec.whatwg.org/multipage/#htmldocument>
 #[dom_struct]
@@ -33,7 +30,10 @@ impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#htmldocument>
-    fn NamedGetter(&self, _cx: JSContext, _name: DOMString) -> Fallible<Option<NonNull<JSObject>>> {
-        Err(script_bindings::error::Error::NotFound)
+    fn NamedGetter(
+        &self,
+        name: DOMString,
+    ) -> Result<Option<NamedPropertyValue>, script_bindings::error::Error> {
+        Ok(self.document.NamedGetter(name, CanGc::note()))
     }
 }

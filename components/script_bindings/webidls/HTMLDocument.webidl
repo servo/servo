@@ -10,5 +10,5 @@
 interface HTMLDocument : Document {
   // DOM tree accessors
   [Throws]
-  getter object (DOMString name);
+  getter NamedPropertyValue (DOMString name);
 };
