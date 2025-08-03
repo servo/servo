@@ -31,6 +31,7 @@ use super::egui_glue::EguiGlow;
 use super::events_loop::EventLoopProxy;
 use super::geometry::winit_position_to_euclid_point;
 use super::headed_window::Window as ServoWindow;
+use crate::desktop::window_trait::WindowPortsMethods;
 
 pub struct Minibrowser {
     rendering_context: Rc<OffscreenRenderingContext>,
@@ -265,8 +266,14 @@ impl Minibrowser {
     /// Update the minibrowser, but don’t paint.
     /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
     /// CentralPanel when [`Minibrowser::paint`] is called.
-    pub fn update(&mut self, window: &Window, state: &RunningAppState, reason: &'static str) {
+    pub fn update(
+        &mut self,
+        window: &dyn WindowPortsMethods,
+        state: &RunningAppState,
+        reason: &'static str,
+    ) {
         let now = Instant::now();
+        let winit_window = window.winit_window().unwrap();
         trace!(
             "{:?} since last update ({})",
             now - self.last_update,
@@ -283,10 +290,10 @@ impl Minibrowser {
             ..
         } = self;
 
-        let _duration = context.run(window, |ctx| {
+        let _duration = context.run(winit_window, |ctx| {
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
-            if window.fullscreen().is_none() {
+            if winit_window.fullscreen().is_none() {
                 let frame = egui::Frame::default()
                     .fill(ctx.style().visuals.window_fill)
                     .inner_margin(4.0);
@@ -390,6 +397,7 @@ impl Minibrowser {
             // For reasons that are unclear, the TopBottomPanel’s ui cursor exceeds this by one egui
             // point, but the Context is correct and the TopBottomPanel is wrong.
             *toolbar_height = Length::new(ctx.available_rect().min.y);
+            window.set_toolbar_height(*toolbar_height);
 
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
