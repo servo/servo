@@ -9,12 +9,10 @@
 <script type="module">
 import {request_options_with_mediation_optional,
         fedcm_test,
-        mark_signed_in,
         select_manifest,
         fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  await mark_signed_in();
   let test_options = request_options_with_mediation_optional(
       "manifest_with_single_account.json");
   test_options.identity.providers[0].clientId = 'nomatch';

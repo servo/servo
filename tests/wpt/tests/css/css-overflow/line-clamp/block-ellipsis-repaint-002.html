@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp ellipsis repaint tests</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-repaint-002-ref.html">
+<meta name="assert" content="This test makes sure that, if the line with the ellipsis gets moved vertically because the height of previous lines grows, the ellipsis moves correspondingly; and that this happens even when the height of the line-clamp container does not change.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: 2;
+  border: 1px solid black;
+  padding: 4px;
+  background-color: yellow;
+  height: 3.5lh;
+}
+</style>
+
+<p>The ellipsis should appear right after the end of the second line.</p>
+
+<div class="clamp">
+  <span id="line1">Line 1</span> <br>
+  Line 2 <br>
+  Line 3
+</div>
+
+<script>
+  window.onload = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById("line1").style.lineHeight = "2lh";
+        takeScreenshot();
+      });
+    });
+  };
+</script>

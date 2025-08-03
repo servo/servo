@@ -12,9 +12,12 @@ from tests.support.sync import Poll
 
 
 def ignore_exceptions(f):
-    def inner(*args, **kwargs):
+    def inner(session, *args, **kwargs):
+        # Do not try to clean up already ended session.
+        if session.session_id is None:
+            return
         try:
-            return f(*args, **kwargs)
+            return f(session, *args, **kwargs)
         except webdriver.error.WebDriverException as e:
             print("Ignored exception %s" % e, file=sys.stderr)
     inner.__name__ = f.__name__
@@ -79,10 +82,6 @@ def cleanup_session(session):
                 session.window.close()
 
         session.window_handle = current_window
-
-    # Do not try to clean up already ended session.
-    if session.session_id is None:
-        return
 
     _restore_timeouts(session)
     _ensure_valid_window(session)

@@ -171,6 +171,7 @@ SET TIMEOUT: custom-elements/scoped-registry/scoped-registry-define-upgrade-crit
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
+SET TIMEOUT: fedcm/support/fedcm-helper.sub.js
 SET TIMEOUT: fedcm/support/fedcm-iframe.html
 SET TIMEOUT: fedcm/support/fedcm/disconnect-iframe.html
 SET TIMEOUT: fedcm/support/login_delay.html

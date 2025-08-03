@@ -41,4 +41,6 @@ test_invalid_number('progress(5, 0%, sign(10px)');
 test_invalid_number('progress(5%, 0px, 10px');
 test_invalid_length('calc(1px * progress(10deg, 0, 10))');
 test_invalid_length('calc(1px * progress(10, 0px, 10))');
+test_invalid_number('progress(10px * 10px, 10px * 10px, 10px * 10px)');
+test_invalid_number('progress(10px, 10px * 10px, 10px * 10px)');
 </script>

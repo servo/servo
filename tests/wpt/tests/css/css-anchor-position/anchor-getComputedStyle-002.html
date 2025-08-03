@@ -73,9 +73,9 @@ test(() => {
   const target = test1.querySelector('.target');
   const style = getComputedStyle(target);
   assert_equals(style.left, '25px');
-  assert_equals(style.right, '-85px');
-  assert_equals(style.top, '100px');
-  assert_equals(style.bottom, '100px');
+  assert_equals(style.right, '25px');
+  assert_equals(style.top, '175px');
+  assert_equals(style.bottom, '75px');
 }, 'getComputedStyle() with fragmented containing block in multicolumn layout');
 </script>
 

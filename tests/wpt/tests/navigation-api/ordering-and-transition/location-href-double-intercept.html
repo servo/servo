@@ -6,10 +6,12 @@
 
 <script type="module">
 import { Recorder, hasVariant } from "./resources/helpers.mjs";
+import { ensureWindowLoadEventFired } from "../resources/helpers.mjs";
+
 promise_test(async t => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
-  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  await ensureWindowLoadEventFired(t);
 
   const fromStart = navigation.currentEntry;
   let fromHash1;

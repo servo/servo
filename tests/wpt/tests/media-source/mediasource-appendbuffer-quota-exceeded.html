@@ -46,7 +46,10 @@
                     sourceBuffer.appendBuffer(dataAudio);
                 },
                 function (ex, previousBufferedStart, previousBufferedEnd) { // onCaughtExceptionCallback
-                    assert_equals(ex.name, 'QuotaExceededError');
+                    assert_equals(ex.constructor, globalThis.QuotaExceededError, 'QuotaExceededError constructor match');
+                    assert_equals(ex.quota, null, 'quota');
+                    assert_equals(ex.requested, null, 'requested');
+
                     // Verify that the state looks like appendBuffer stops executing its steps if the prepare append
                     // algorithm aborts after throwing `QuotaExceededError`.
 

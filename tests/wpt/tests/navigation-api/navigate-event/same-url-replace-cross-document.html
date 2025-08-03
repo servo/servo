@@ -3,14 +3,16 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/helpers.js"></script>
 
-<script>
+<script type="module">
+import { ensureWindowLoadEventFired } from "../resources/helpers.mjs";
+
 promise_test(async t => {
   let start_length = navigation.entries().length;
   let start_index = navigation.currentEntry.index;
 
   // Wait for after the load event so that we are definitely testing the
   // same URL as the cause of the rejections.
-  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  await ensureWindowLoadEventFired(t);
   assert_equals(navigation.entries().length, start_length);
 
   navigation.onnavigate = t.step_func(e => {

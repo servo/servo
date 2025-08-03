@@ -55,7 +55,7 @@
   waitForAtLeastOneFrame().then(() => {
     // Remove position-visibility: anchors-visible. #target should become
     // visible again.
-    target.style.positionVisibility = 'initial';
+    target.style.positionVisibility = 'always';
     takeScreenshot();
   });
 </script>

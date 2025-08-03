@@ -189,8 +189,7 @@ promise_test(async t => {
   if (inputUsage < translator.inputQuota) {
     assert_equals(await translator.translate(text), 'こんにちは');
   } else {
-    await promise_rejects_dom(
-        t, 'QuotaExceededError', translator.translate(text));
+    await promise_rejects_quotaexceedederror(t, translator.translate(text), requested => requested !== null, translator.inputQuota);
   }
 }, 'Translator.measureInputUsage() and inputQuota basic usage.');
 

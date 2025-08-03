@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>Containing block size change correctly invalidates styles with anchor functions</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.anchor, .anchored {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+}
+.anchor {
+    left: 300px;
+    top: 200px;
+    anchor-name: --a;
+    background: blue;
+}
+.anchored {
+    position-anchor: --a;
+    right: anchor(left);
+    bottom: anchor(top);
+    background: green;
+    content:'';
+}
+.container {
+    position: relative;
+    width: 500px;
+    height: 500px;
+    border: 2px solid red;
+}
+.resize {
+    width: 400px;
+    height: 400px;
+}
+</style>
+<div id=container class=container>
+    <div class=anchor></div>
+    <div>
+        <div id=anchored class=anchored></div>
+    </div>
+</div>
+<script>
+test(() => {
+    assert_equals(anchored.offsetTop, 100);
+    assert_equals(anchored.offsetLeft, 200);
+    assert_equals(getComputedStyle(anchored).bottom, '300px');
+    assert_equals(getComputedStyle(anchored).right, '200px');
+}, "Initial anchored position");
+
+test(() => {
+    container.classList.add("resize");
+    assert_equals(anchored.offsetTop, 100);
+    assert_equals(anchored.offsetLeft, 200);
+    assert_equals(getComputedStyle(anchored).bottom, '200px');
+    assert_equals(getComputedStyle(anchored).right, '100px');
+}, "Anchored position after resizing the containing block");
+</script>

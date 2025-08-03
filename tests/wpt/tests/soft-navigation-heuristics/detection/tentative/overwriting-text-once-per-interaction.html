@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click here!</button>
+<h1>Heading!</h1>
+<div id="content" elementtiming="content-text">Initial Text</div>
+<div id="container"></div>
+
+<script>
+  promise_test(async t => {
+    const url = 'soft-nav-1';
+
+    // Wait for the initial text load and make its way through the text timing
+    // pipeline before changing its contents.
+    const elementId = "content-text";
+    let entries = await new Promise(resolve => {
+      new PerformanceObserver((list, observer) => {
+        resolve(list.getEntries());
+        observer.disconnect();
+      }).observe({type: 'element', buffered: true});
+    });
+    assert_equals(
+        entries.length, 1,
+        `Expected exactly one ElementTiming entry for "${elementId}"`);
+    assert_equals(
+        entries[0].identifier, elementId,
+        `Unexpected ElementTiming entry: expected "${elementId}"`);
+
+    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
+        "soft-navigation",
+        /* includeSoftNavigationObservations= */true,
+        /* minNumEntries= */ 1);
+    let icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
+        "interaction-contentful-paint",
+        /* includeSoftNavigationObservations= */true,
+        /* minNumEntries= */ 1);
+    const {promise, resolve} = Promise.withResolvers();
+
+    navigateButton.addEventListener('click', async () => {
+      // This is sufficient to trigger an initial soft nav and ICP entry.
+      history.pushState({}, '', url);
+      content.innerText = 'This is some new text!';
+
+      // Wait for the first round of soft nav/ICP checking.
+      await promise;
+
+      // Add more text, which should produce another ICP entry.
+      container.innerHTML = `<div id="container-text">${content.innerText} (and more text)</div>`;
+      // Now, update the same text as before with even more text than above.
+      // We shouldn't get an ICP entry for this, even though it's larger,
+      // because we already have an entry for this node.
+      content.innerText = content.innerText + ' (and even more text)';
+    }, {once: true});
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+    // Check if we detected a soft nav.
+    const softNavs = await helper.withTimeoutMessage(
+        softNavPromise, "Soft navigation not detected.", /*timeout=*/ 3000);
+    assert_equals(softNavs.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+      softNavs[0].name.endsWith(url),
+      `Unexpected Soft Navigation URL. Expected url to end with ${url} but got ${softNavs[0].name}`);
+
+    // Check that we only get one ICP entry, and that it's for the node whose
+    // text we overwrote.
+    let icps = await helper.withTimeoutMessage(
+        icpPromise, 'ICP not detected.', /*timeout=*/ 3000);
+    assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
+    assert_equals(icps[0].id, 'content', 'Expected ICP candidate to be "content"');
+
+
+    // Set things up for the next ICP entry.
+    icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
+        "interaction-contentful-paint",
+        /* includeSoftNavigationObservations= */true,
+        /* minNumEntries= */ 1);
+    resolve();
+
+    icps = await helper.withTimeoutMessage(
+        icpPromise, 'New ICP not detected.', /*timeout=*/ 3000);
+    assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
+    assert_equals(icps[0].id, 'container-text', 'Expected ICP candidate to be "container-text"');
+  }, 'Soft Navigation Detection supports replacing existing text once per interaction');
+</script>

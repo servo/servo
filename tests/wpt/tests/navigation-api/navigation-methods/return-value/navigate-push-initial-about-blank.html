@@ -5,11 +5,13 @@
 
 <body>
 <iframe id="i"></iframe>
-<script>
+<script type="module">
+import { ensureWindowLoadEventFired } from "../../resources/helpers.mjs";
+
 promise_test(async t => {
   // Wait for after the load event so that we are definitely testing the initial
   // about:blank-ness as the cause of the rejections.
-  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  await ensureWindowLoadEventFired(t);
 
   i.contentWindow.navigation.onnavigate = t.unreached_func("onnavigate should not be called");
   i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("onnavigatesuccess should not be called");

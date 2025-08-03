@@ -145,45 +145,45 @@ test_computed_value('flip-block flip-inline', 'position-area', 'span-x-self-star
 
 // Logical:
 
-test_computed_value('flip-inline', 'position-area', 'block-start inline-start', 'block-start inline-end');
-test_computed_value('flip-inline', 'position-area', 'block-end inline-start', 'block-end inline-end');
-test_computed_value('flip-inline', 'position-area', 'block-end inline-end', 'block-end inline-start');
-test_computed_value('flip-inline', 'position-area', 'block-start inline-end', 'block-start inline-start');
+test_computed_value('flip-inline', 'position-area', 'block-start inline-start', 'start end');
+test_computed_value('flip-inline', 'position-area', 'block-end inline-start', 'end');
+test_computed_value('flip-inline', 'position-area', 'block-end inline-end', 'end start');
+test_computed_value('flip-inline', 'position-area', 'block-start inline-end', 'start');
 
-test_computed_value('flip-block', 'position-area', 'block-start inline-start', 'block-end inline-start');
-test_computed_value('flip-block', 'position-area', 'block-end inline-start', 'block-start inline-start');
-test_computed_value('flip-block', 'position-area', 'block-end inline-end', 'block-start inline-end');
-test_computed_value('flip-block', 'position-area', 'block-start inline-end', 'block-end inline-end');
+test_computed_value('flip-block', 'position-area', 'block-start inline-start', 'end start');
+test_computed_value('flip-block', 'position-area', 'block-end inline-start', 'start');
+test_computed_value('flip-block', 'position-area', 'block-end inline-end', 'start end');
+test_computed_value('flip-block', 'position-area', 'block-start inline-end', 'end');
 
-test_computed_value('flip-block flip-inline', 'position-area', 'block-start inline-start', 'block-end inline-end');
-test_computed_value('flip-block flip-inline', 'position-area', 'block-end inline-start', 'block-start inline-end');
-test_computed_value('flip-block flip-inline', 'position-area', 'block-end inline-end', 'block-start inline-start');
-test_computed_value('flip-block flip-inline', 'position-area', 'block-start inline-end', 'block-end inline-start');
+test_computed_value('flip-block flip-inline', 'position-area', 'block-start inline-start', 'end');
+test_computed_value('flip-block flip-inline', 'position-area', 'block-end inline-start', 'start end');
+test_computed_value('flip-block flip-inline', 'position-area', 'block-end inline-end', 'start');
+test_computed_value('flip-block flip-inline', 'position-area', 'block-start inline-end', 'end start');
 
-test_computed_value('flip-start', 'position-area', 'block-start inline-start', 'block-start inline-start');
-test_computed_value('flip-start', 'position-area', 'block-end inline-start', 'block-start inline-end');
-test_computed_value('flip-start', 'position-area', 'block-end inline-end', 'block-end inline-end');
-test_computed_value('flip-start', 'position-area', 'block-start inline-end', 'block-end inline-start');
+test_computed_value('flip-start', 'position-area', 'block-start inline-start', 'start');
+test_computed_value('flip-start', 'position-area', 'block-end inline-start', 'start end');
+test_computed_value('flip-start', 'position-area', 'block-end inline-end', 'end');
+test_computed_value('flip-start', 'position-area', 'block-start inline-end', 'end start');
 
-test_computed_value('flip-block flip-start', 'position-area', 'block-start inline-start', 'block-start inline-end');
-test_computed_value('flip-block flip-start', 'position-area', 'block-end inline-start', 'block-start inline-start');
-test_computed_value('flip-block flip-start', 'position-area', 'block-end inline-end', 'block-end inline-start');
-test_computed_value('flip-block flip-start', 'position-area', 'block-start inline-end', 'block-end inline-end');
+test_computed_value('flip-block flip-start', 'position-area', 'block-start inline-start', 'start end');
+test_computed_value('flip-block flip-start', 'position-area', 'block-end inline-start', 'start');
+test_computed_value('flip-block flip-start', 'position-area', 'block-end inline-end', 'end start');
+test_computed_value('flip-block flip-start', 'position-area', 'block-start inline-end', 'end');
 
-test_computed_value('flip-inline flip-start', 'position-area', 'block-start inline-start', 'block-end inline-start');
-test_computed_value('flip-inline flip-start', 'position-area', 'block-end inline-start', 'block-end inline-end');
-test_computed_value('flip-inline flip-start', 'position-area', 'block-end inline-end', 'block-start inline-end');
-test_computed_value('flip-inline flip-start', 'position-area', 'block-start inline-end', 'block-start inline-start');
+test_computed_value('flip-inline flip-start', 'position-area', 'block-start inline-start', 'end start');
+test_computed_value('flip-inline flip-start', 'position-area', 'block-end inline-start', 'end');
+test_computed_value('flip-inline flip-start', 'position-area', 'block-end inline-end', 'start end');
+test_computed_value('flip-inline flip-start', 'position-area', 'block-start inline-end', 'start');
 
-test_computed_value('flip-block flip-inline flip-start', 'position-area', 'block-start inline-start', 'block-end inline-end');
-test_computed_value('flip-block flip-inline flip-start', 'position-area', 'block-end inline-start', 'block-end inline-start');
-test_computed_value('flip-block flip-inline flip-start', 'position-area', 'block-end inline-end', 'block-start inline-start');
-test_computed_value('flip-block flip-inline flip-start', 'position-area', 'block-start inline-end', 'block-start inline-end');
+test_computed_value('flip-block flip-inline flip-start', 'position-area', 'block-start inline-start', 'end');
+test_computed_value('flip-block flip-inline flip-start', 'position-area', 'block-end inline-start', 'end start');
+test_computed_value('flip-block flip-inline flip-start', 'position-area', 'block-end inline-end', 'start');
+test_computed_value('flip-block flip-inline flip-start', 'position-area', 'block-start inline-end', 'start end');
 
 // Variations:
-test_computed_value('flip-block flip-inline', 'position-area', 'span-block-start span-inline-start', 'span-block-end span-inline-end');
-test_computed_value('flip-block flip-inline', 'position-area', 'self-block-start self-inline-start', 'self-block-end self-inline-end');
-test_computed_value('flip-block flip-inline', 'position-area', 'span-self-block-start span-self-inline-start', 'span-self-block-end span-self-inline-end');
+test_computed_value('flip-block flip-inline', 'position-area', 'span-block-start span-inline-start', 'span-end');
+test_computed_value('flip-block flip-inline', 'position-area', 'self-block-start self-inline-start', 'self-end');
+test_computed_value('flip-block flip-inline', 'position-area', 'span-self-block-start span-self-inline-start', 'span-self-end');
 
 // start/end
 
@@ -224,15 +224,15 @@ test_computed_value('flip-start', 'position-area', 'center start', 'start center
 test_computed_value('flip-block', 'position-area', 'left span-all', 'left');
 test_computed_value('flip-block', 'position-area', 'span-all top', 'bottom');
 test_computed_value('flip-block', 'position-area', 'span-all', 'span-all');
-test_computed_value('flip-block', 'position-area', 'start span-all', 'end span-all');
-test_computed_value('flip-block', 'position-area', 'span-all start', 'span-all start');
-test_computed_value('flip-inline', 'position-area', 'span-all start', 'span-all end');
-test_computed_value('flip-start', 'position-area', 'span-all start', 'start span-all');
+test_computed_value('flip-block', 'position-area', 'start span-all', 'block-end');
+test_computed_value('flip-block', 'position-area', 'span-all start', 'inline-start');
+test_computed_value('flip-inline', 'position-area', 'span-all start', 'inline-end');
+test_computed_value('flip-start', 'position-area', 'span-all start', 'block-start');
 
 // Span mix:
 test_computed_value('flip-block', 'position-area', 'left span-top', 'left span-bottom');
 test_computed_value('flip-inline', 'position-area', 'left span-top', 'right span-top');
-test_computed_value('flip-start', 'position-area', 'span-block-start inline-end', 'block-end span-inline-start');
+test_computed_value('flip-start', 'position-area', 'span-block-start inline-end', 'end span-start');
 
 // Writing modes:
 test_computed_value('flip-block', 'position-area', 'left top', 'right top', 'ltr', 'vertical-rl');

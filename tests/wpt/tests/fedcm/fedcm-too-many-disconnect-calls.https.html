@@ -10,16 +10,12 @@
 
 <script type="module">
 import {fedcm_test,
-        mark_signed_in,
-        set_fedcm_cookie,
         fedcm_get_and_select_first_account,
         manifest_origin,
         request_options_with_mediation_required,
         disconnect_options} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  await mark_signed_in();
-  await set_fedcm_cookie();
   // Get at least one connected account that can be disconnected.
   const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
   const manifest = `${manifest_origin}/\

@@ -37,7 +37,7 @@ test(
 
       // Makes the 2nd call (POST) to the same reporting origin that sends
       // max bytes, which should be rejected.
-      assert_throws_dom('QuotaExceededError', () => {
+      assert_throws_quotaexceedederror(() => {
         fetchLater(requestUrl, {
           method: 'POST',
           signal: controller.signal,
@@ -45,7 +45,7 @@ test(
           // Required, as the size of referrer also take up quota.
           referrer: '',
         });
-      });
+      }, null, null);
 
       // Makes the 3rd call (GET) to the same reporting origin, where its
       // request size is len(requestUrl) + headers, which should be accepted.

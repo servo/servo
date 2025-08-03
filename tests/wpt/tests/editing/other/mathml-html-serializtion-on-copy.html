@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>MathML HTML serialization on copy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+
+<div id="source" contenteditable="true">
+  <math xmlns="http://www.w3.org/1998/Math/MathML">
+    <mrow>
+      <mi>x</mi>
+      <mo>+</mo>
+      <mn>1</mn>
+    </mrow>
+    <msup>
+      <mi>a</mi>
+      <mn>2</mn>
+    </msup>
+    <msub>
+      <mi>b</mi>
+      <mn>1</mn>
+    </msub>
+    <mfrac>
+      <mn>1</mn>
+      <mn>2</mn>
+    </mfrac>
+    <msqrt>
+      <mi>x</mi>
+    </msqrt>
+    <mtable>
+      <mtr>
+        <mtd>
+          <mtext>text</mtext>
+        </mtd>
+        <mtd>
+          <ms>string</ms>
+        </mtd>
+      </mtr>
+    </mtable>
+  </math>
+</div>
+
+<div id="target" contenteditable="true"></div>
+
+<script>
+  promise_test(async t => {
+    const sourceDiv = document.getElementById("source");
+    await test_driver.click(sourceDiv);
+
+    const utils = new EditorTestUtils(sourceDiv);
+    await utils.sendSelectAllShortcutKey();
+    await utils.sendCopyShortcutKey();
+
+    const targetDiv = document.getElementById("target");
+    await test_driver.click(targetDiv);
+    const targetUtils = new EditorTestUtils(targetDiv);
+    await targetUtils.sendPasteShortcutKey();
+
+    const pastedMath = targetDiv.querySelector("math");
+    assert_not_equals(pastedMath, null, "MathML element should be pasted");
+    assert_equals(pastedMath.namespaceURI, "http://www.w3.org/1998/Math/MathML",
+      "Pasted MathML should have correct namespace");
+
+    // Check that the entire MathML structure and content is preserved
+    const expectedInnerHTML = "<mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>" +
+        "<msup><mi>a</mi><mn>2</mn></msup><msub><mi>b</mi><mn>1</mn></msub>" +
+        "<mfrac><mn>1</mn><mn>2</mn></mfrac><msqrt><mi>x</mi></msqrt>" +
+        "<mtable><mtr><mtd><mtext>text</mtext></mtd><mtd><ms>string</ms>" +
+        "</mtd></mtr></mtable>";
+    assert_equals(pastedMath.innerHTML, expectedInnerHTML,
+      "Pasted MathML should preserve all structure and content");
+  }, "MathML elements should preserve structure and content during copy-paste");
+</script>

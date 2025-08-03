@@ -213,6 +213,9 @@ promise_test(async t => {
  {surfaceSwitching: "exclude"},
  {systemAudio: "include"},
  {systemAudio: "exclude"},
+ {windowAudio: "exclude"},
+ {windowAudio: "window"},
+ {windowAudio: "system"},
 ].forEach(constraints => promise_test(async t => {
   const stream = await getDisplayMedia(constraints);
   t.add_cleanup(() => stopTracks(stream));
@@ -222,6 +225,7 @@ promise_test(async t => {
  {selfBrowserSurface: "invalid"},
  {surfaceSwitching: "invalid"},
  {systemAudio: "invalid"},
+ {windowAudio: "invalid"},
  {monitorTypeSurfaces: "invalid"},
 ].forEach(constraints => promise_test(async t => {
   await test_driver.bless('getDisplayMedia()');

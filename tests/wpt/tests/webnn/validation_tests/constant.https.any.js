@@ -181,6 +181,26 @@ const tests = [
         '[constant] Throw if the operand data type isn\'t of type MLOperandDataType',
     descriptor: {dataType: 'int16', shape: [2, 3]},
     buffer: {type: Int16Array, byteLength: 6 * 2}
+  },
+  {
+    name:
+        '[constant] Uint8Array should be allowed for float32 operand data type',
+    descriptor: {dataType: 'float32', shape: [2, 3]},
+    buffer: {type: Uint8Array, byteLength: 6 * 4},
+    output: {dataType: 'float32', shape: [2, 3]}
+  },
+  {
+    name:
+        '[constant] Uint8Array should be allowed for float16 operand data type',
+    descriptor: {dataType: 'float16', shape: [2, 3]},
+    buffer: {type: Uint8Array, byteLength: 6 * 2},
+    output: {dataType: 'float16', shape: [2, 3]}
+  },
+  {
+    name: '[constant] Uint8Array should be allowed for int32 operand data type',
+    descriptor: {dataType: 'int32', shape: [2, 3]},
+    buffer: {type: Uint8Array, byteLength: 6 * 4},
+    output: {dataType: 'int32', shape: [2, 3]}
   }
 ];
 

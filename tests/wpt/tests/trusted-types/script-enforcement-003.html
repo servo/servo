@@ -275,10 +275,16 @@
   promise_test(async t => {
     await no_script_message_for(_ => {
       let script = create_svg_script_with_trusted_source_text(";");
-      script.moveBefore(document.createTextNode(LOG_RUN_MESSAGE), script.firstChild);
+      // Per https://dom.spec.whatwg.org/#move, step 1, moveBefore requires
+      // the two nodes to have the same shadow-including root.
+      let text = document.createTextNode(LOG_RUN_MESSAGE);
+      let root = document.createElement("div");
+      root.appendChild(text);
+      root.appendChild(script);
+      script.moveBefore(text, script.firstChild);
       container.appendChild(script);
     });
-  }, "Setting script source via ElementmoveBefore() drops trustworthiness.");
+  }, "Setting script source via Element.moveBefore() drops trustworthiness.");
 
   promise_test(async t => {
     await promise_rejects_js(t, TypeError, script_messages_for(_ => {

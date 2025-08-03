@@ -4,7 +4,9 @@
 <script type="module">
   import {disconnect_options,
           request_options_with_mediation_required,
-          set_fedcm_cookie, manifest_origin} from './../fedcm-helper.sub.js';
+          set_fedcm_cookie,
+          manifest_origin,
+          fedcm_get_and_select_first_account} from './../fedcm-helper.sub.js';
 
 // Loading this iframe in the test will make a FedCM call on load, and
 // trigger a postMessage upon completion.
@@ -35,19 +37,7 @@ window.onload = async () => {
   // promise is resolved.
   let cancelHelper = false;
   try {
-    const credentialPromise = navigator.credentials.get(request_options_with_mediation_required());
-    async function helper() {
-      try {
-        if (cancelHelper)
-          return;
-
-        await window.test_driver.select_fedcm_account(0);
-      } catch (ex) {
-        setTimeout(helper, 100);
-      }
-    }
-    helper();
-    const cred = await credentialPromise;
+    await fedcm_get_and_select_first_account(null, request_options_with_mediation_required());
     await set_fedcm_cookie(manifest_origin);
     // Now that we have a get(), attempt to disconnect permission.
     attemptDisconnect();

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp ellipsis repaint tests</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-repaint-001-ref.html">
+<meta name="assert" content="This test makes sure that, if the line with the ellipsis changes so it breaks at a different point, the ellipsis gets repainted accordingly.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: 1;
+  border: 1px solid black;
+  padding: 4px;
+  background-color: yellow;
+}
+#atomic {
+  display: inline-block;
+  background-color: orange;
+  width: 2em;
+}
+</style>
+
+<p>The ellipsis should appear right after the end of the first line.</p>
+
+<div class="clamp">
+  <span id="atomic"></span> Some text here <br>
+  This line gets clamped
+</div>
+
+<script>
+  window.onload = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById("atomic").style.display = "none";
+        takeScreenshot();
+      });
+    });
+  };
+</script>

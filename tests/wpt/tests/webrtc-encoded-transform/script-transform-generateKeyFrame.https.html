@@ -20,6 +20,7 @@
     <script>
 
 const generateKeyFrame = (port, opts) => postMethod(port, 'generateKeyFrame', opts);
+const generateKeyFrameDoesNotThrow = (port, opts) => postMethod(port, 'generateKeyFrameDoesNotThrow', opts);
 const waitForFrame = port => postMethod(port, 'waitForFrame');
 
 promise_test(async (test) => {
@@ -119,10 +120,9 @@ promise_test(async (test) => {
   const senderTransform = sender.transform;
   sender.transform = null;
 
-  message = await generateKeyFrame(senderTransform.port);
-  assert_equals(message.result, 'failure');
-  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
-}, 'generateKeyFrame throws for unset transforms');
+  message = await generateKeyFrameDoesNotThrow(senderTransform.port);
+  assert_equals(message.result, 'success');
+}, 'generateKeyFrame does not throw for unset transforms');
 
 promise_test(async (test) => {
   const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
@@ -171,9 +171,8 @@ promise_test(async (test) => {
   await receiverPc.setLocalDescription();
   await senderPc.setRemoteDescription(receiverPc.localDescription);
 
-  message = await generateKeyFrame(sender.transform.port);
-  assert_equals(message.result, 'failure');
-  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
+  message = await generateKeyFrameDoesNotThrow(sender.transform.port);
+  assert_equals(message.result, 'success');
 
   senderPc.getTransceivers()[0].direction = 'sendonly';
   await senderPc.setLocalDescription();
@@ -183,7 +182,7 @@ promise_test(async (test) => {
 
   message = await generateKeyFrame(sender.transform.port);
   assert_equals(message.result, 'success');
-}, 'generateKeyFrame rejects when the sender is negotiated inactive, and resumes succeeding when negotiated back to active');
+}, 'generateKeyFrame does not reject when the sender is negotiated inactive, and resumes succeeding when negotiated back to active');
 
 promise_test(async (test) => {
   const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
@@ -195,10 +194,9 @@ promise_test(async (test) => {
 
   senderPc.getTransceivers()[0].stop();
 
-  message = await generateKeyFrame(sender.transform.port);
-  assert_equals(message.result, 'failure');
-  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
-}, 'generateKeyFrame rejects when the sender is stopped, even without negotiation');
+  message = await generateKeyFrameDoesNotThrow(sender.transform.port);
+  assert_equals(message.result, 'success');
+}, 'generateKeyFrame does not reject when the sender is stopped, even without negotiation');
 
 promise_test(async (test) => {
   const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
@@ -210,10 +208,9 @@ promise_test(async (test) => {
 
   await senderPc.getTransceivers()[0].sender.replaceTrack(null);
 
-  message = await generateKeyFrame(sender.transform.port);
-  assert_equals(message.result, 'failure');
-  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
-}, 'generateKeyFrame rejects with a null track');
+  message = await generateKeyFrameDoesNotThrow(sender.transform.port);
+  assert_equals(message.result, 'success');
+}, 'generateKeyFrame does not reject with a null track');
 
 // TODO: It would be nice to be able to test that pending generateKeyFrame
 // promises are _rejected_ when the transform is unset, or the sender stops

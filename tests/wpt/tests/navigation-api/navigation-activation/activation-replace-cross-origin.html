@@ -2,11 +2,13 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
-<script>
+<script type="module">
+import { ensureWindowLoadEventFired } from "../resources/helpers.mjs";
+
 promise_test(async t => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
-  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  await ensureWindowLoadEventFired(t);
 
   let i = document.createElement("iframe");
   i.src = get_host_info().HTTP_ORIGIN_WITH_DIFFERENT_PORT + "/common/blank.html";

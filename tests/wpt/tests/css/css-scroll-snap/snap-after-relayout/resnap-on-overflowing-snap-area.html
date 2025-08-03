@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#re-snap" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1978946">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#scroller {
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  width: 100vw;
+  height: calc(100svh - 80px);
+}
+.child {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  width: 100%;
+  height: calc(100svh - 80px);
+  font-size: 30px;
+}
+.child:last-child {
+  background-image: linear-gradient(to right, black 1px, transparent 1px),
+                    linear-gradient(to bottom, black 1px, transparent 1px);
+  background-size: 64px 64px;
+  height: 200%;
+}
+</style>
+<div id="scroller">
+  <div class="child">1</div>
+  <div class="child">2</div>
+</div>
+<script>
+promise_test(async () => {
+  assert_equals(scroller.scrollTop, 0);
+
+  const scrollendPromise = new Promise(resolve => {
+    scroller.addEventListener("scrollend", resolve);
+  });
+
+  const expectedPosition =
+      scroller.children[0].getBoundingClientRect().height + 100;
+  // Try to scroll downward, it will snap to a position inside
+  // the second child.
+  scroller.scrollTo(0, expectedPosition);
+  await scrollendPromise;
+
+  assert_equals(scroller.scrollTop, expectedPosition,
+    "The scroll position is the expected one");
+
+  // Change the second child width, it will re-evaluate the snap position.
+  scroller.querySelector(":last-child").style.width = "99%";
+
+  // Give a chance to scroll if it happens.
+  await new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+
+  assert_equals(scroller.scrollTop, expectedPosition,
+    "Should stay at the last snap point");
+}, "Keep the same snap position on overflowing-snap-area when re-snapping");
+</script>

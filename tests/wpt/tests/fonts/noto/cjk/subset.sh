@@ -32,6 +32,7 @@ for path in "$@"; do
     $subsetter "$path" $range $features_chws --output-file="$output_chws$ext"
     $subsetter "$output_halt$ext" $subrange $features --output-file="$output_min$ext"
     $subsetter "$output_halt$ext" --unicodes=3002 $features --output-file="$output_halt-3002$ext"
+    $subsetter "$output_halt$ext" --unicodes=300C $features --output-file="$output_halt-300C$ext"
     $subsetter "$output_halt$ext" --unicodes=FF1A $features --output-file="$output_halt-FF1A$ext"
   )
 done

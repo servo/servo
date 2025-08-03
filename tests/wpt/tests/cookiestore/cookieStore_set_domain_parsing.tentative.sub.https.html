@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+    // This test is invalid because it assumes a specific IP address for the
+    // server, which is not reliable in a general WPT environment.  It was
+    // moved out of cookie-store/cookieStore_set_domain_parsing.sub.https.html
+    // into this tentative file, but it probably should be removed from WPT
+    // entirely and instead included in Chromium's internal test suite.
+    promise_test(async () => {
+      const childUrl = new URL("https://127.0.0.1:8444/cookiestore/resources/domain_parsing-child.sub.https.html?test=IP");
+      const childWindow = window.open(childUrl.href);
+      await fetch_tests_from_window(childWindow);
+    }, "cookieStore.set with domain on IP host");
+    </script>
+  </body>
+</html>

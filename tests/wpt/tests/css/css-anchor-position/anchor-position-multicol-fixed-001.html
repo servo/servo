@@ -24,7 +24,7 @@
 }
 .spacer {
   height: 10px;
-  background: pink;
+  background: silver;
 }
 .anchor {
   anchor-name: --a1;
@@ -35,6 +35,7 @@
 }
 .fixedpos {
   position: fixed;
+  background: blue;
   margin-left: 0;
   left: 20px;
   top: 20px;
@@ -63,12 +64,12 @@
           <div class="anchor"></div>
           <div class="anchor fixedpos"></div>
           <div class="target"
-               data-offset-x="10" data-offset-y="20"
-               data-expected-width=130 data-expected-height=50></div>
+               data-offset-x="20" data-offset-y="20"
+               data-expected-width=20 data-expected-height=30></div>
         </div>
         <div class="target"
-             data-offset-x="20" data-offset-y="0"
-             data-expected-width=130 data-expected-height=50></div>
+             data-offset-x="20" data-offset-y="40"
+             data-expected-width=20 data-expected-height=30></div>
       </div>
       <div class="target"
            data-offset-x="20" data-offset-y="10"

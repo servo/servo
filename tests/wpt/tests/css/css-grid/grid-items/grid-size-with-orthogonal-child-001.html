@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: Grid container sizing with an orthogonal grid item using percentage sizes</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1977501">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<style>
+.grid {
+  display: inline-grid;
+  grid-template-rows: 100px;
+  background-color: green;
+}
+
+.item {
+  writing-mode: vertical-rl;
+  inline-size: 100%;
+  block-size: 50%;
+}
+
+.item > span {
+  display: inline-block;
+  inline-size: 40px;
+  block-size: 100px;
+}
+</style>
+
+<!-- This testcase is adapted from Testcase #1 in Bug 1977501 comment 0. -->
+
+<p>Test passes if there is a filled green square.</p>
+<div class="grid">
+  <div class="item">
+    <span></span><span></span>
+  </div>
+</div>

@@ -14,15 +14,25 @@
 html,body {
   color:black; background-color:white; font:4px/1 Ahem; padding:0; margin:0;
 }
-body { margin-left: 3ch; }
-body > * {
+body {
+  margin-left: 3ch;
+}
+* { font:10px/1 Ahem; }
+.wrapper {
+  display: inline-block;
+  position: relative;
+  height: 2em;
+  width: 5em;
+  border: 1px solid black;
+  margin: 1px;
+  vertical-align: top;
+}
+.wrapper > * {
   padding:0; margin:0; border:none;
-  font:5px/1 Ahem;
 }
 ::marker { content: 'M'; }
 .after::after { content: 'A'; }
 .before::before { content: 'B'; }
-
   </style>
 </head>
 <body>
@@ -53,12 +63,16 @@ body > * {
       for (var p of position) {
         for (var c of classes) {
           for (var t of tags) {
+            let wrapper = document.createElement("div");
+            wrapper.className = "wrapper";
             let elem = document.createElement(t);
             elem.style = d + ';' + o + ';' + p + ';'
             elem.className = c;
-            let option = document.createElement("option"); // need an empty option to get same line-height
+            let option = document.createElement("option");
+            option.append(document.createTextNode("X"));
             elem.append(option);
-            body.append(elem);
+            wrapper.appendChild(elem);
+            body.append(wrapper);
           }
         }
       }
@@ -67,6 +81,5 @@ body > * {
 
   document.body.style.display = '';
 </script>
-
 </body>
 </html>
