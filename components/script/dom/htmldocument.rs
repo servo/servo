@@ -30,10 +30,7 @@ impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#htmldocument>
-    fn NamedGetter(
-        &self,
-        name: DOMString,
-    ) -> Result<Option<NamedPropertyValue>, script_bindings::error::Error> {
-        Ok(self.document.NamedGetter(name, CanGc::note()))
+    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
+        self.document.NamedGetter(name, CanGc::note())
     }
 }

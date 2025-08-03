@@ -9,6 +9,5 @@
  Exposed=Window]
 interface HTMLDocument : Document {
   // DOM tree accessors
-  [Throws]
   getter NamedPropertyValue (DOMString name);
 };
