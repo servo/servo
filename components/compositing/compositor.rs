@@ -983,7 +983,10 @@ impl IOCompositor {
             self.send_root_pipeline_display_list_in_transaction(&mut transaction);
         }
 
-        transaction.set_display_list(display_list_info.epoch, (pipeline_id.into(), built_display_list));
+        transaction.set_display_list(
+            display_list_info.epoch,
+            (pipeline_id.into(), built_display_list),
+        );
         self.update_transaction_with_all_scroll_offsets(&mut transaction);
         self.generate_frame(&mut transaction, RenderReasons::SCENE);
         self.global.borrow_mut().send_transaction(transaction);
