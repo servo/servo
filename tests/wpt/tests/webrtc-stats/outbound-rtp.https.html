@@ -6,14 +6,21 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="../webrtc/RTCPeerConnection-helper.js"></script>
 <script>
-function extractOutboundRtpStats(stats) {
-  const wantedStats = [];
-  stats.forEach(report => {
-    if (report.type === 'outbound-rtp') {
-     wantedStats.push(report);
+async function extractOutboundRtpStats(pc, expected) {
+  // If remote stats are never reported, return after 5 seconds.
+  const startTime = performance.now();
+  let stats;
+  while (true) {
+    const report = await pc.getStats();
+    stats = [...report.values()].filter(({type}) => type === 'outbound-rtp');
+    if (stats.length && stats.every(({active}) => active == expected)) {
+      break;
     }
-  });
-  return wantedStats;
+    if (performance.now() > startTime + 5000) {
+      break;
+    }
+  }
+  return stats;
 }
 
 promise_test(async (test) => {
@@ -26,9 +33,8 @@ promise_test(async (test) => {
   stream.getTracks().forEach(t => pc1.addTrack(t, stream));
   exchangeIceCandidates(pc1, pc2);
   exchangeOfferAnswer(pc1, pc2);
-  const {track} = await new Promise(r => pc2.ontrack = r);
-  await new Promise(r => track.onunmute = r);
-  let outboundStats = extractOutboundRtpStats(await pc1.getStats());
+  await waitForRtpAndRtcpStats(pc1);
+  let outboundStats = await extractOutboundRtpStats(pc1, true);
   assert_equals(outboundStats.length, 2);
   assert_true(outboundStats[0].active);
   assert_true(outboundStats[1].active);
@@ -41,7 +47,7 @@ promise_test(async (test) => {
   // Avoid any stats caching.
   await (new Promise(r => test.step_timeout(r, 100)));
 
-  outboundStats = extractOutboundRtpStats(await pc1.getStats());
+  outboundStats = await extractOutboundRtpStats(pc1, false);
   assert_equals(outboundStats.length, 2);
   assert_false(outboundStats[0].active);
   assert_false(outboundStats[1].active);

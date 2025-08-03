@@ -39,13 +39,6 @@ generate_fetch_test(kRequestWithValidSignature,
 generate_fetch_test(kRequestWithValidSignature,
                     {
                       origin: get_host_info().REMOTE_ORIGIN,
-                      mode: "no-cors",
-                    },
-                    EXPECT_LOADED,
-                    "Valid signature, cross-origin w/o cors, mode: no-cors: loads.");
-generate_fetch_test(kRequestWithValidSignature,
-                    {
-                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "cors",
                     },
                     EXPECT_BLOCKED,
@@ -63,13 +56,6 @@ generate_fetch_test(kRequestWithValidSignatureAndCORS,
                     {},
                     EXPECT_LOADED,
                     "Valid signature, same-origin w/ cors: loads.");
-generate_fetch_test(kRequestWithValidSignatureAndCORS,
-                    {
-                      origin: get_host_info().REMOTE_ORIGIN,
-                      mode: "no-cors",
-                    },
-                    EXPECT_LOADED,
-                    "Valid signature, cross-origin w/ cors, mode: no-cors: loads.");
 generate_fetch_test(kRequestWithValidSignatureAndCORS,
                     {
                       origin: get_host_info().REMOTE_ORIGIN,

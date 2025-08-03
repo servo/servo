@@ -1055,141 +1055,6 @@
       ]);
   };
 
-  const checkMute = async t => {
-    const pc1 = new RTCPeerConnection();
-    t.add_cleanup(() => pc1.close());
-    const stream1 = await getNoiseStream({audio: true, video: true});
-    t.add_cleanup(() => stopTracks(stream1));
-    const audio1 = stream1.getAudioTracks()[0];
-    pc1.addTrack(audio1, stream1);
-    const countMuteAudio1 = countEvents(pc1.getTransceivers()[0].receiver.track, "mute");
-    const countUnmuteAudio1 = countEvents(pc1.getTransceivers()[0].receiver.track, "unmute");
-
-    const video1 = stream1.getVideoTracks()[0];
-    pc1.addTrack(video1, stream1);
-    const countMuteVideo1 = countEvents(pc1.getTransceivers()[1].receiver.track, "mute");
-    const countUnmuteVideo1 = countEvents(pc1.getTransceivers()[1].receiver.track, "unmute");
-
-    const pc2 = new RTCPeerConnection();
-    t.add_cleanup(() => pc2.close());
-    const stream2 = await getNoiseStream({audio: true, video: true});
-    t.add_cleanup(() => stopTracks(stream2));
-    const audio2 = stream2.getAudioTracks()[0];
-    pc2.addTrack(audio2, stream2);
-    const countMuteAudio2 = countEvents(pc2.getTransceivers()[0].receiver.track, "mute");
-    const countUnmuteAudio2 = countEvents(pc2.getTransceivers()[0].receiver.track, "unmute");
-
-    const video2 = stream2.getVideoTracks()[0];
-    pc2.addTrack(video2, stream2);
-    const countMuteVideo2 = countEvents(pc2.getTransceivers()[1].receiver.track, "mute");
-    const countUnmuteVideo2 = countEvents(pc2.getTransceivers()[1].receiver.track, "unmute");
-
-
-    // Check that receive tracks start muted
-    hasProps(pc1.getTransceivers(),
-      [
-        {receiver: {track: {kind: "audio", muted: true}}},
-        {receiver: {track: {kind: "video", muted: true}}}
-      ]);
-
-    hasProps(pc1.getTransceivers(),
-      [
-        {receiver: {track: {kind: "audio", muted: true}}},
-        {receiver: {track: {kind: "video", muted: true}}}
-      ]);
-
-    let offer = await pc1.createOffer();
-    await pc2.setRemoteDescription(offer);
-    trickle(t, pc1, pc2);
-    await pc1.setLocalDescription(offer);
-    let answer = await pc2.createAnswer();
-    await pc1.setRemoteDescription(answer);
-    trickle(t, pc2, pc1);
-    await pc2.setLocalDescription(answer);
-
-    let gotUnmuteAudio1 = gotUnmuteEvent(pc1.getTransceivers()[0].receiver.track);
-    let gotUnmuteVideo1 = gotUnmuteEvent(pc1.getTransceivers()[1].receiver.track);
-
-    let gotUnmuteAudio2 = gotUnmuteEvent(pc2.getTransceivers()[0].receiver.track);
-    let gotUnmuteVideo2 = gotUnmuteEvent(pc2.getTransceivers()[1].receiver.track);
-    // Jump out before waiting if a track is unmuted before RTP starts flowing.
-    assert_true(pc1.getTransceivers()[0].receiver.track.muted);
-    assert_true(pc1.getTransceivers()[1].receiver.track.muted);
-    assert_true(pc2.getTransceivers()[0].receiver.track.muted);
-    assert_true(pc2.getTransceivers()[1].receiver.track.muted);
-
-    await iceConnected(pc1);
-    await iceConnected(pc2);
-
-
-    // Check that receive tracks are unmuted when RTP starts flowing
-    await gotUnmuteAudio1;
-    await gotUnmuteVideo1;
-    await gotUnmuteAudio2;
-    await gotUnmuteVideo2;
-
-    // Check whether disabling recv locally causes onmute
-    pc1.getTransceivers()[0].direction = "sendonly";
-    pc1.getTransceivers()[1].direction = "sendonly";
-    offer = await pc1.createOffer();
-    await pc2.setRemoteDescription(offer);
-    await pc1.setLocalDescription(offer);
-    answer = await pc2.createAnswer();
-    const gotMuteAudio1 = gotMuteEvent(pc1.getTransceivers()[0].receiver.track);
-    const gotMuteVideo1 = gotMuteEvent(pc1.getTransceivers()[1].receiver.track);
-    await pc1.setRemoteDescription(answer);
-    await pc2.setLocalDescription(answer);
-    await gotMuteAudio1;
-    await gotMuteVideo1;
-
-    // Check whether disabling on remote causes onmute
-    pc1.getTransceivers()[0].direction = "inactive";
-    pc1.getTransceivers()[1].direction = "inactive";
-    offer = await pc1.createOffer();
-    const gotMuteAudio2 = gotMuteEvent(pc2.getTransceivers()[0].receiver.track);
-    const gotMuteVideo2 = gotMuteEvent(pc2.getTransceivers()[1].receiver.track);
-    await pc2.setRemoteDescription(offer);
-    await gotMuteAudio2;
-    await gotMuteVideo2;
-    await pc1.setLocalDescription(offer);
-    answer = await pc2.createAnswer();
-    await pc1.setRemoteDescription(answer);
-    await pc2.setLocalDescription(answer);
-
-    // Check whether onunmute fires when we turn everything on again
-    pc1.getTransceivers()[0].direction = "sendrecv";
-    pc1.getTransceivers()[1].direction = "sendrecv";
-    offer = await pc1.createOffer();
-    await pc2.setRemoteDescription(offer);
-    // Set these up before sLD, since that sets [[Receptive]] to true, which
-    // could allow an unmute to occur from a packet that was sent before we
-    // negotiated inactive!
-    gotUnmuteAudio1 = gotUnmuteEvent(pc1.getTransceivers()[0].receiver.track);
-    gotUnmuteVideo1 = gotUnmuteEvent(pc1.getTransceivers()[1].receiver.track);
-    await pc1.setLocalDescription(offer);
-    answer = await pc2.createAnswer();
-    gotUnmuteAudio2 = gotUnmuteEvent(pc2.getTransceivers()[0].receiver.track);
-    gotUnmuteVideo2 = gotUnmuteEvent(pc2.getTransceivers()[1].receiver.track);
-    await pc1.setRemoteDescription(answer);
-    await pc2.setLocalDescription(answer);
-    await gotUnmuteAudio1;
-    await gotUnmuteVideo1;
-    await gotUnmuteAudio2;
-    await gotUnmuteVideo2;
-
-    // Wait a little, just in case some stray events fire
-    await new Promise(r => t.step_timeout(r, 100));
-
-    assert_equals(1, countMuteAudio1.count, "Got 1 mute event for pc1's audio track");
-    assert_equals(1, countMuteVideo1.count, "Got 1 mute event for pc1's video track");
-    assert_equals(1, countMuteAudio2.count, "Got 1 mute event for pc2's audio track");
-    assert_equals(1, countMuteVideo2.count, "Got 1 mute event for pc2's video track");
-    assert_equals(2, countUnmuteAudio1.count, "Got 2 unmute events for pc1's audio track");
-    assert_equals(2, countUnmuteVideo1.count, "Got 2 unmute events for pc1's video track");
-    assert_equals(2, countUnmuteAudio2.count, "Got 2 unmute events for pc2's audio track");
-    assert_equals(2, countUnmuteVideo2.count, "Got 2 unmute events for pc2's video track");
-  };
-
   const checkStop = async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -2277,7 +2142,6 @@ const tests = [
   checkRemoveAndReadd,
   checkAddTrackExistingTransceiverThenRemove,
   checkRemoveTrackNegotiation,
-  checkMute,
   checkStop,
   checkStopAfterCreateOffer,
   checkStopAfterSetLocalOffer,
@@ -2293,5 +2157,84 @@ const tests = [
   checkAddIceCandidateToStoppedTransceiver,
   checkBundleTagRejected
 ].forEach(test => promise_test(test, test.name));
+
+['audio', 'video'].forEach(kind => {
+  const waitUntilTrackEventWithTimeout = (obj, name, t, timeout = 1000/*ms*/) => {
+    return new Promise((resolve) => {
+      obj.addEventListener(name, resolve, {once: true});
+      t.step_timeout(resolve, timeout)
+    });
+  }
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver(kind);
+    pc2.ontrack = t.step_func(async e => {
+      assert_true(e.track.muted, `track is muted in ontrack`);
+    });
+    const offer = await pc1.createOffer();
+    await pc2.setRemoteDescription(offer);
+    assert_true(pc2.getReceivers()[0].track.muted, `track is muted after SRD`);
+  }, `track with ${kind} is muted after SRD`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    let stream;
+    if (kind === 'audio') {
+      stream = await navigator.mediaDevices.getUserMedia({[kind]: true});
+    } else {
+      stream = await getNoiseStream({[kind]: true});
+    }
+    t.add_cleanup(() => stream.getTracks().forEach(t => t.stop()));
+
+    pc1.addTrack(stream.getTracks()[0], stream);
+    pc2.ontrack = t.step_func(async e => {
+      assert_true(e.track.muted, `track is muted in ontrack`);
+    });
+
+    await exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'unmute', t);
+    assert_false(pc2.getReceivers()[0].track.muted, `track is unmuted`);
+  }, `track with ${kind} gets unmuted when packets flow.`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    let stream;
+    if (kind === 'audio') {
+      stream = await navigator.mediaDevices.getUserMedia({[kind]: true});
+    } else {
+      stream = await getNoiseStream({[kind]: true});
+    }
+    t.add_cleanup(() => stream.getTracks().forEach(t => t.stop()));
+
+    pc1.addTrack(stream.getTracks()[0], stream);
+    pc2.ontrack = t.step_func(async e => {
+      assert_true(e.track.muted, `track is muted in ontrack`);
+    });
+
+    await exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'unmute', t);
+    assert_false(pc2.getReceivers()[0].track.muted, `track is unmuted`);
+
+    pc1.getTransceivers()[0].direction = 'inactive';
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'mute', t);
+    assert_true(pc2.getReceivers()[0].track.muted, `track is muted`);
+  }, `track with ${kind} gets muted when setting the transceiver direction in 'inactive'`);
+});
 
 </script>

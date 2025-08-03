@@ -36,13 +36,14 @@ promise_test(async _ => {
 test(_ => {
   const uuid = token();
   const requestUrl = generateSetBeaconURL(uuid, {host: HTTPS_ORIGIN});
-  assert_throws_dom(
-      'QuotaExceededError',
-      () => fetchLater(requestUrl, {
-        activateAfter: 0,
-        method: 'POST',
-        body: generatePayload(
-            getRemainingQuota(QUOTA_PER_ORIGIN, requestUrl, headers) + 1,
-            dataType),
-      }));
+
+  assert_throws_quotaexceedederror(() => {
+    fetchLater(requestUrl, {
+          activateAfter: 0,
+          method: 'POST',
+          body: generatePayload(
+              getRemainingQuota(QUOTA_PER_ORIGIN, requestUrl, headers) + 1,
+              dataType),
+        });
+  }, null, null);
 }, `fetchLater() rejects max+1 payload in a POST request body of ${dataType}.`);

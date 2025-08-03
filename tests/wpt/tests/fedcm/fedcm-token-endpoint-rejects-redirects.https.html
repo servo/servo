@@ -10,13 +10,10 @@
 import {request_options_with_mediation_required,
         fedcm_test,
         select_manifest,
-        mark_signed_in,
         fedcm_error_dialog_dismiss,
         fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  await mark_signed_in();
-
   let test_options = request_options_with_mediation_required("manifest_redirect_token.json");
   await select_manifest(t, test_options);
 

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp ellipsis repaint tests</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-repaint-003-ref.html">
+<meta name="assert" content="This test makes sure that, if the line with the ellipsis gets moved vertically because the height of previous lines grows, the ellipsis moves correspondingly; and that this happens even when the height of the line-clamp container does not change. This is the case even if the ellipsis completely displaces the line it's in.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: 2;
+  border: 1px solid black;
+  padding: 4px;
+  background-color: yellow;
+  height: 3lh;
+  width: 400px;
+
+  position: relative;
+  z-index: 0;
+}
+#abspos {
+  position: absolute;
+  top: calc(1lh + 4px);
+  left: 4px;
+  height: 1lh;
+  width: 2em;
+
+  background-color: pink;
+  z-index: -1;
+}
+#line1 {
+  line-height: 2lh;
+}
+#wide-atomic {
+  display: inline-block;
+  width: 500px;
+}
+</style>
+
+<p>The ellipsis should appear inside the pink box.</p>
+
+<div class="clamp">
+  <div id="abspos"></div>
+  <span id="line1">Line 1</span> <br>
+  <span id="wide-atomic"></span>
+  Line 2
+</div>
+
+<script>
+  window.onload = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById("line1").style.lineHeight = "initial";
+        takeScreenshot();
+      });
+    });
+  };
+</script>

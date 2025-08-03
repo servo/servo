@@ -10,12 +10,9 @@
 import {request_options_with_mediation_required,
         fedcm_test,
         fedcm_get_dialog_type_promise,
-        select_manifest,
-        mark_signed_in} from '../support/fedcm-helper.sub.js';
+        select_manifest} from '../support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  await mark_signed_in();
-
   let test_options = request_options_with_mediation_required("manifest_with_variable_accounts.json");
   await select_manifest(t, test_options);
 

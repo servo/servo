@@ -35,7 +35,9 @@ function runTest(config, qualifier) {
             assert_equals(_video2.mediaKeys, _mediaKeys);
             return Promise.resolve();
         }, function(error) {
-            assert_equals(error.name, 'QuotaExceededError');
+            assert_equals(error.constructor, globalThis.QuotaExceededError, 'QuotaExceededError constructor match');
+            assert_equals(error.quota, null, 'quota');
+            assert_equals(error.requested, null, 'requested');
             assert_not_equals(error.message, '');
             // Return something so the promise resolves properly.
             return Promise.resolve();

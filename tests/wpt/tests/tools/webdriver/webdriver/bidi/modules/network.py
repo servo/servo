@@ -278,6 +278,11 @@ class Network(BidiModule):
         return result["collector"]
 
     @command
+    def remove_data_collector(self, collector: str) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {"collector": collector}
+        return params
+
+    @command
     def set_cache_behavior(
             self,
             cache_behavior: CacheBehavior,

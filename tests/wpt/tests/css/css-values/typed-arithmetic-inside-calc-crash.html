@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<title>CSS Values Test: typed arithmetic inside css math functions crash</title>
+<link rel="help" href="https://issues.chromium.org/issues/434187209">
+<div style="width: calc(1px + sqrt(1px * 1px))">
+<div style="width: calc(1px + exp(1px * 1px))">
+<div style="width: calc(1px + hypot(1px * 1px))">

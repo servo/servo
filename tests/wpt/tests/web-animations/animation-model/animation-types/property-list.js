@@ -866,7 +866,7 @@ const gCSSProperties2 = {
   },
   'letter-spacing': {
     // https://drafts.csswg.org/css-text-3/#propdef-letter-spacing
-    types: [ 'length' ]
+    types: [ 'lengthPercentageOrCalc' ]
   },
   'lighting-color': {
     // https://drafts.fxtf.org/filters/#LightingColorProperty

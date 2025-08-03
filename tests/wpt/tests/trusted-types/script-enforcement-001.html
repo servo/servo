@@ -248,7 +248,13 @@
   promise_test(async t => {
     await no_script_message_for(_ => {
       let script = create_html_script_with_trusted_source_text(";");
-      script.moveBefore(document.createTextNode(LOG_RUN_MESSAGE), script.firstChild);
+      let text = document.createTextNode(LOG_RUN_MESSAGE);
+      // Per https://dom.spec.whatwg.org/#move, step 1, moveBefore requires
+      // the two nodes to have the same shadow-including root.
+      let root = document.createElement("div");
+      root.appendChild(script);
+      root.appendChild(text);
+      script.moveBefore(text, script.firstChild);
       container.appendChild(script);
     });
   }, "Setting script source via Element.moveBefore() drops trustworthiness.");

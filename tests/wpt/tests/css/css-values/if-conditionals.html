@@ -528,6 +528,9 @@
 
   // style() queries with range syntax in the condition, literals on both sides of equation
   test_if_with_custom_properties('if(style(5 > 3): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(5 > 3 !invalid): true_value; else: false_value)', [], 'false_value');
+  test_if_with_custom_properties('if(style(5 !invalid > 3): true_value; else: false_value)', [], 'false_value');
+  test_if_with_custom_properties('if(style(5 > 3 !): true_value; else: false_value)', [], 'false_value');
   test_if_with_custom_properties('if(style(5.5 > 3): true_value; else: false_value)', [], 'true_value');
   test_if_with_custom_properties('if(style(5.5 > 3.3): true_value; else: false_value)', [], 'true_value');
   test_if_with_custom_properties('if(style(10em > 3px): true_value; else: false_value)', [], 'true_value');
@@ -539,6 +542,11 @@
   test_if_with_custom_properties('if(style(3% >= 3%): true_value; else: false_value)', [], 'true_value');
   test_if_with_custom_properties('if(style(3s > 3ms): true_value; else: false_value)', [], 'true_value');
   test_if_with_custom_properties('if(style(3dppx > 96dpi): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties(`if(style(--length > initial): true_value;
+          else: false_value)`,
+        [['--length', '5px']],
+        'false_value');
+  test_if_with_custom_properties('if(style(--x = initial): true_value; else: false_value)', [['--x', 'initial']], 'false_value');
 
   // style() queries with range syntax in the condition, simple custom properties in the condition
   test_if_with_custom_properties('if(style(--x <= 3): true_value; else: false_value)',

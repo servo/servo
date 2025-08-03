@@ -81,6 +81,72 @@ function testOffsetParentOnElementAssignedToSlotInsideOffsetParent(mode) {
 testOffsetParentOnElementAssignedToSlotInsideOffsetParent('open');
 testOffsetParentOnElementAssignedToSlotInsideOffsetParent('closed');
 
+function testOffsetParentOnElementAssignedToSlotInsideFixedPositionWithContainingBlock(mode) {
+    test(function () {
+        const host = document.createElement('div');
+        host.innerHTML = '<div id="target"></div>';
+        container.appendChild(host);
+        this.add_cleanup(() => host.remove());
+        const shadowRoot = host.attachShadow({mode});
+        shadowRoot.innerHTML = [
+            '<div style="transform: translate(10px, 10px);" id="wrapper">',
+            '<div style="position: fixed; padding-left: 85px; padding-top: 45px;">',
+                '<slot></slot>',
+            '</div></div>'].join('');
+        const target = host.querySelector('#target');
+        assert_equals(target.offsetParent, container);
+        assert_equals(target.offsetLeft, 85);
+        assert_equals(target.offsetTop, 45);
+    }, `offsetParent must return the fixed position containing block of an element when the context object is assigned to a slot within a fixed containing block in shadow tree of ${mode} mode`);
+}
+
+testOffsetParentOnElementAssignedToSlotInsideFixedPositionWithContainingBlock('open');
+testOffsetParentOnElementAssignedToSlotInsideFixedPositionWithContainingBlock('closed');
+
+function testOffsetParentOnFixedElementAssignedToSlotInsideFixedPositionWithContainingBlock(mode) {
+    test(function () {
+        const host = document.createElement('div');
+        host.innerHTML = '<div id="target" style="position: fixed;"></div>';
+        container.appendChild(host);
+        this.add_cleanup(() => host.remove());
+        const shadowRoot = host.attachShadow({mode});
+        shadowRoot.innerHTML = [
+            '<div style="transform: translate(10px, 10px);" id="wrapper">',
+            '<div style="position: fixed; padding-left: 85px; padding-top: 45px;">',
+                '<slot></slot>',
+            '</div></div>'].join('');
+        const target = host.querySelector('#target');
+        assert_equals(target.offsetParent, container);
+        assert_equals(target.offsetLeft, 85);
+        assert_equals(target.offsetTop, 45);
+    }, `offsetParent must return the fixed position containing block of a fixed element when the context object is assigned to a slot within a fixed containing block in shadow tree of ${mode} mode`);
+}
+
+testOffsetParentOnFixedElementAssignedToSlotInsideFixedPositionWithContainingBlock('open');
+testOffsetParentOnFixedElementAssignedToSlotInsideFixedPositionWithContainingBlock('closed');
+
+function testOffsetParentOnElementAssignedToSlotInsideFixedPosition(mode) {
+    test(function () {
+        const host = document.createElement('div');
+        host.innerHTML = '<div id="target"></div>';
+        container.appendChild(host);
+        this.add_cleanup(() => host.remove());
+        const shadowRoot = host.attachShadow({mode});
+        shadowRoot.innerHTML = [
+            '<div id="fixed" style="position: fixed; padding-left: 85px; padding-top: 45px;">',
+                '<slot></slot>',
+            '</div>'].join('');
+        const target = host.querySelector('#target');
+        const fixed = shadowRoot.querySelector('#fixed');
+        assert_equals(target.offsetParent, null);
+        assert_equals(target.offsetLeft, 85 + fixed.offsetLeft);
+        assert_equals(target.offsetTop, 45 + fixed.offsetTop);
+    }, `offsetParent must return null when the context object is assigned to a slot without a fixed containing block in shadow tree of ${mode} mode`);
+}
+
+testOffsetParentOnElementAssignedToSlotInsideFixedPosition('open');
+testOffsetParentOnElementAssignedToSlotInsideFixedPosition('closed');
+
 function testOffsetParentOnElementAssignedToSlotInsideNestedOffsetParents(mode) {
     test(function () {
         const host = document.createElement('div');

@@ -29,7 +29,7 @@ promise_test(async (test) => {
   const receiverPc = new RTCPeerConnection();
   // This will only work if first rid is 0
   exchangeIceCandidates(senderPc, receiverPc);
-  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const stream = await navigator.mediaDevices.getUserMedia({video: { width: 1280 } });
   const {sender} = senderPc.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}]});
   sender.transform = transform;
   await doOfferToSendSimulcastAndAnswer(senderPc, receiverPc, ['0', '1', '2']);
@@ -58,7 +58,7 @@ promise_test(async (test) => {
   const receiverPc = new RTCPeerConnection();
   // This will only work if first rid is 0
   exchangeIceCandidates(senderPc, receiverPc);
-  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const stream = await navigator.mediaDevices.getUserMedia({video: { width: 1280 } });
   const {sender} = senderPc.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}]});
   sender.transform = transform;
   await doOfferToSendSimulcastAndAnswer(senderPc, receiverPc, ['0', '1', '2']);
@@ -91,7 +91,7 @@ promise_test(async (test) => {
   const receiverPc = new RTCPeerConnection();
   // This will only work if first rid is 0
   exchangeIceCandidates(senderPc, receiverPc);
-  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const stream = await navigator.mediaDevices.getUserMedia({video: { width: 1280 } });
   const {sender} = senderPc.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}]});
   sender.transform = transform;
   await doOfferToSendSimulcastAndAnswer(senderPc, receiverPc, ['0', '1', '2']);

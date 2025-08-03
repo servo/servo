@@ -11,14 +11,11 @@
 import {
   fedcm_test,
   request_options_with_domain_hint,
-  mark_signed_in,
   fedcm_get_dialog_type_promise,
   fedcm_expect_dialog,
 } from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  await mark_signed_in();
-
   let options = request_options_with_domain_hint('manifest.py',
     'nomatch');
   const cred = navigator.credentials.get(options);

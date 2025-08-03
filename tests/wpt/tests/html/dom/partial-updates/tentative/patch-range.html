@@ -1,0 +1,137 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - patch range</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder">
+    <span id="first"></span>
+    <span id="last"></span>
+</div>
+<style id="style"></style>
+<p id="target"></p>
+<script>
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const before = placeholder.innerHTML;
+    t.add_cleanup(() => { placeholder.innerHTML = before });
+    const first = document.querySelector("#first");
+    const last = document.querySelector("#last");
+    const writable = placeholder.patchBetween(first, last);
+    const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
+    response.body.pipeTo(writable);
+    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    await placeholder.currentPatch.finished;
+    assert_equals(placeholder.currentPatch, null);
+    const middle = placeholder.querySelector("#middle");
+    assert_true(middle instanceof HTMLSpanElement);
+    assert_equals(middle.textContent, "Content");
+    assert_equals(middle.previousElementSibling, first);
+    assert_equals(middle.nextElementSibling, last);
+}, "using patchBetween() to insert an element betwen two other elements");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const before = placeholder.innerHTML;
+    t.add_cleanup(() => { placeholder.innerHTML = before });
+    const first = document.querySelector("#first");
+    const last = document.querySelector("#last");
+    const writable = placeholder.patchAfter(first);
+    const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
+    response.body.pipeTo(writable);
+    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    await placeholder.currentPatch.finished;
+    assert_equals(placeholder.currentPatch, null);
+    const middle = placeholder.querySelector("#middle");
+    assert_true(middle instanceof HTMLSpanElement);
+    assert_equals(middle.textContent, "Content");
+    assert_equals(middle.previousElementSibling, first);
+    assert_equals(middle.nextElementSibling, null);
+}, "using patchAfter() to insert an element after another element");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const before = placeholder.innerHTML;
+    t.add_cleanup(() => { placeholder.innerHTML = before });
+    const first = document.querySelector("#first");
+    const last = document.querySelector("#last");
+    const writable = placeholder.patchBefore(last);
+    const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
+    response.body.pipeTo(writable);
+    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    await placeholder.currentPatch.finished;
+    assert_equals(placeholder.currentPatch, null);
+    const middle = placeholder.querySelector("#middle");
+    assert_true(middle instanceof HTMLSpanElement);
+    assert_equals(middle.textContent, "Content");
+    assert_equals(middle.previousElementSibling, null);
+    assert_equals(middle.nextElementSibling, last);
+}, "using patchBefore() to insert an element before another element");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const before = placeholder.innerHTML;
+    t.add_cleanup(() => { placeholder.innerHTML = before });
+    const first = document.querySelector("#first");
+    const last = document.querySelector("#last");
+    const writable = placeholder.patchAfter(last);
+    const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
+    response.body.pipeTo(writable);
+    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    await placeholder.currentPatch.finished;
+    assert_equals(placeholder.currentPatch, null);
+    const middle = placeholder.querySelector("#middle");
+    assert_true(middle instanceof HTMLSpanElement);
+    assert_equals(middle.textContent, "Content");
+    assert_equals(middle.previousElementSibling, last);
+    assert_equals(middle.nextElementSibling, null);
+}, "using patchAfter() to insert an element after the last element");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const before = placeholder.innerHTML;
+    t.add_cleanup(() => { placeholder.innerHTML = before });
+    const first = document.querySelector("#first");
+    const last = document.querySelector("#last");
+    const writable = placeholder.patchBefore(first);
+    const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
+    response.body.pipeTo(writable);
+    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    await placeholder.currentPatch.finished;
+    assert_equals(placeholder.currentPatch, null);
+    const middle = placeholder.querySelector("#middle");
+    assert_true(middle instanceof HTMLSpanElement);
+    assert_equals(middle.textContent, "Content");
+    assert_equals(middle.previousElementSibling, null);
+    assert_equals(middle.nextElementSibling, first);
+}, "using patchBefore() to insert an element before the first element");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const before = placeholder.innerHTML;
+    t.add_cleanup(() => { placeholder.innerHTML = before });
+    const first = document.querySelector("#first");
+    const writable = placeholder.patchBefore(first);
+    const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
+    first.remove();
+    const {finished} = placeholder.currentPatch;
+    await promise_rejects_dom(t, "NotFoundError", response.body.pipeTo(writable));
+    await promise_rejects_dom(t, "NotFoundError", finished);
+}, "using patchBefore() should fail if the reference node is removed while patching");
+
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const before = placeholder.innerHTML;
+    t.add_cleanup(() => { placeholder.innerHTML = before });
+    const first = document.querySelector("#first");
+    const last = document.querySelector("#last");
+    const writable = placeholder.patchBetween(first, last);
+    const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
+    last.remove();
+    const {finished} = placeholder.currentPatch;
+    await promise_rejects_dom(t, "NotFoundError", response.body.pipeTo(writable));
+    await promise_rejects_dom(t, "NotFoundError", finished);
+}, "using patchBetween() should fail if the 'before' node is removed while patching");
+
+</script>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#fixed-cb">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12352">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#a, #b, #c, #d, #e, #f {
+  position: fixed;
+}
+#margin {
+  margin: 10px;
+}
+#transform {
+  transform: translateX(10px);
+}
+#perspective {
+  perspective: 10px;
+}
+#filter {
+  filter: opacity(25%);
+}
+#contain {
+  contain: paint;
+}
+</style>
+
+<body>
+  <div id="a"></div>
+  <div id="margin">
+    <div><div id="b"></div></div>
+  </div>
+
+  <div id="transform">
+    <div><div id="c"></div></div>
+  </div>
+  <div id="perspective">
+    <div><div id="d"></div></div>
+  </div>
+  <div id="filter">
+    <div><div id="e"></div></div>
+  </div>
+  <div id="contain">
+    <div><div id="f"></div></div>
+  </div>
+</body>
+
+<script>
+test(() => {
+  assert_equals(a.offsetParent, null);
+  assert_equals(b.offsetParent, null);
+}, 'If the containing block for a fixed positioned element is viewport, the offsetParent should be null.');
+
+test(() => {
+  assert_equals(c.offsetParent, transform);
+  assert_equals(d.offsetParent, perspective);
+  assert_equals(e.offsetParent, filter);
+  assert_equals(f.offsetParent, contain);
+}, 'If the containing block for a fixed positioned element is the nearest ancestor box, the offsetParent should be the nearest ancestor box.');
+</script>

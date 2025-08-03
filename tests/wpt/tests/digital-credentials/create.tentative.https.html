@@ -217,4 +217,31 @@
       await promise_rejects_js(t, TypeError, navigator.credentials.create(options));
     }
   }, "Mediation is required to create a DigitalCredential.");
+
+  promise_test(async (t) => {
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.create({digital: {}}));
+  }, "`requests` field is required in the options object.");
+
+  promise_test(async (t) => {
+    const throwingValues = [
+      BigInt(123),
+      (() => { const o = {}; o.self = o; return o; })(),
+      Symbol("foo")
+    ];
+
+    for (const badValue of throwingValues) {
+      const options = makeCreateOptions("openid4vci");
+      options.digital.requests[0].data = badValue;
+
+      await promise_rejects_js(
+        t,
+        TypeError,
+        navigator.credentials.create(options),
+        `Should throw for: ${String(badValue)}`
+      );
+    }
+  }, "Throws TypeError when request data is not JSON stringifiable.");
 </script>

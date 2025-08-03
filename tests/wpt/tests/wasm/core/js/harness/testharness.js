@@ -1210,7 +1210,6 @@ policies and contribution forms [3].
                 NETWORK_ERR: 'NetworkError',
                 ABORT_ERR: 'AbortError',
                 URL_MISMATCH_ERR: 'URLMismatchError',
-                QUOTA_EXCEEDED_ERR: 'QuotaExceededError',
                 TIMEOUT_ERR: 'TimeoutError',
                 INVALID_NODE_TYPE_ERR: 'InvalidNodeTypeError',
                 DATA_CLONE_ERR: 'DataCloneError'
@@ -1237,7 +1236,6 @@ policies and contribution forms [3].
                 NetworkError: 19,
                 AbortError: 20,
                 URLMismatchError: 21,
-                QuotaExceededError: 22,
                 TimeoutError: 23,
                 InvalidNodeTypeError: 24,
                 DataCloneError: 25,

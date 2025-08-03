@@ -23,7 +23,7 @@
   promise_test(async t => {
     // Set a cookie on the secure origin.
     await credFetch(
-      `${httpsOrigin}/cookies/resources/set.py?${cookieName}=${cookieValue};Secure;Path=/`);
+      `${httpsOrigin}/cookies/resources/set.py?${cookieName}=${cookieValue};Path=/`);
 
     // Verify the cookie was set.
     assert_equals(await getCookie(httpsOrigin, cookieName), cookieValue, "Cookie should be set on the secure origin");

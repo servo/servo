@@ -10,12 +10,10 @@
 import {alt_request_options_with_mediation_required,
         fedcm_test,
         select_manifest,
-        mark_signed_in,
         fedcm_error_dialog_dismiss,
         fedcm_select_account_promise} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  await mark_signed_in();
   let test_options = alt_request_options_with_mediation_required("manifest-token-nocors.json");
   await select_manifest(t, test_options);
   try {

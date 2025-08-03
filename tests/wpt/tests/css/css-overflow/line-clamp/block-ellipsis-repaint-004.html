@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp ellipsis repaint tests</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-repaint-004-ref.html">
+<meta name="assert" content="This test makes sure that, if the inline root containing the ellipsis changes the styles that affect the ellipsis, the ellipsis will indeed change; and that this will happen even if nothing else needs to be repainted.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+#clamp {
+  line-clamp: 3;
+  border: 1px solid black;
+  padding: 4px;
+  background-color: yellow;
+
+  font: 16px/0 serif;
+
+  & span {
+    font: 16px/16px serif;
+  }
+}
+</style>
+
+<p>The ellipsis should be bold and twice as large as the rest of the text.</p>
+
+<div id="clamp">
+  <span>
+    Line 1 <br>
+    Line 2 <br>
+    Line 3 <br>
+    Line 4
+  </span>
+</div>
+
+<script>
+  window.onload = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById("clamp").style.fontSize = "32px";
+        document.getElementById("clamp").style.fontWeight = "bold";
+        takeScreenshot();
+      });
+    });
+  };
+</script>

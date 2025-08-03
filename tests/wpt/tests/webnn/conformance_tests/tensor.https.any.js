@@ -1762,6 +1762,35 @@ const testExportToGPU = (testName) => {
     const inputData = new Float32Array(sizeOfShape(shape)).fill(1.0);
     anotherMLContext.writeTensor(mlTensor, inputData);
 
+    const gpuTensorBuffer = await anotherMLContext.exportToGPU(mlTensor);
+
+    anotherGPUDevice.destroy();
+
+    gpuTensorBuffer.destroy();
+
+    await promise_rejects_dom(
+        t, 'InvalidStateError', anotherMLContext.readTensor(mlTensor));
+  }, `${testName} / destroy device after export`);
+
+  promise_test(async t => {
+    if (!isExportToGPUSupported) {
+      return;
+    }
+
+    let anotherGPUDevice = await gpuAdapter.requestDevice();
+    let anotherMLContext = await navigator.ml.createContext(anotherGPUDevice);
+
+    let mlTensor = await anotherMLContext.createTensor({
+      dataType: 'float32',
+      shape: shape,
+      exportableToGPU: true,
+      readable: true,
+      writable: true
+    });
+
+    const inputData = new Float32Array(sizeOfShape(shape)).fill(1.0);
+    anotherMLContext.writeTensor(mlTensor, inputData);
+
     anotherGPUDevice.destroy();
 
     await promise_rejects_dom(

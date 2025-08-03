@@ -6,6 +6,8 @@ onrtctransform = event => {
     const {method} = event.data;
     if (method == 'sendKeyFrameRequest') {
       sendKeyFrameRequest();
+    } else if (method == 'sendKeyFrameRequestDoesNotThrow') {
+      sendKeyFrameRequestDoesNotThrow();
     } else if (method == 'waitForFrame') {
       waitForFrame();
     }
@@ -21,9 +23,25 @@ onrtctransform = event => {
     });
   }
 
+  async function resolveInMs(timeout) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, timeout);
+    });
+  }
+
   async function sendKeyFrameRequest() {
     try {
       await Promise.race([transformer.sendKeyFrameRequest(), rejectInMs(8000)]);;
+      transformer.options.port.postMessage('success');
+    } catch (e) {
+      // TODO: This does not work if we send e.name, why?
+      transformer.options.port.postMessage(`failure: ${e.name}`);
+    }
+  }
+
+  async function sendKeyFrameRequestDoesNotThrow() {
+    try {
+      await Promise.race([transformer.sendKeyFrameRequest(), resolveInMs(50)]);;
       transformer.options.port.postMessage('success');
     } catch (e) {
       // TODO: This does not work if we send e.name, why?

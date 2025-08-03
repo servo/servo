@@ -330,7 +330,13 @@
     let messages = await script_messages_for(_ => {
       let script = create_svg_script_with_trusted_source_text(";");
       window.log_message("SET");
-      script.moveBefore(document.createTextNode(LOG_RUN_MESSAGE), script.firstChild);
+      // Per https://dom.spec.whatwg.org/#move, step 1, moveBefore requires
+      // the two nodes to have the same shadow-including root.
+      let text = document.createTextNode(LOG_RUN_MESSAGE);
+      let root = document.createElement("div");
+      root.appendChild(text);
+      root.appendChild(script);
+      script.moveBefore(text, script.firstChild);
       window.log_message("APPEND");
       container.appendChild(script);
     });

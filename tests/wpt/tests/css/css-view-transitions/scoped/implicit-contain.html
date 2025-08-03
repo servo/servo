@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="implicit-contain-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+body { margin: 50px; }
+.ib { display: inline-block; }
+#scope {
+  view-transition-name: foo;
+  background: blue;
+  width: 100px;
+  height: 100px;
+}
+#scope::view-transition { background: red; }
+#scope::view-transition-group(foo) { animation-play-state: paused; }
+#scope::view-transition-new(foo) { animation: unset; opacity: 1; }
+#scope::view-transition-old(foo) { animation: unset; opacity: 0; }
+
+</style>
+</head>
+<body>
+<div style="height: 25px"></div>
+<div class=ib style="width: 25px"></div><div class=ib id=scope></div>
+<script>
+
+const scope = document.querySelector("#scope");
+failIfNot(scope.startViewTransition, "Missing element.startViewTransition");
+
+async function runTest() {
+  await waitForCompositorReady();
+  scope.startViewTransition(() => {
+    scope.style.background = "green";
+    requestAnimationFrame(takeScreenshot);
+  });
+}
+onload = () => runTest();
+
+</script>
+</body>
+</html>

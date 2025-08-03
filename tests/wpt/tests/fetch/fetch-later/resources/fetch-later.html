@@ -30,12 +30,6 @@
       fetchLater(TARGET_URL, REQUEST_INIT);
       postMessageBack({type: FetchLaterIframeMessageType.DONE});
     } catch (e) {
-      if (e.name == "QuotaExceededError" &&
-          e instanceof DOMException) {
-        // PostMessage is unable to serialize the QuotExceededError object.
-        // Therefore do basic checks here and pass error name if successful.
-        e = {name: e.name};
-      }
       postMessageBack({type: FetchLaterIframeMessageType.ERROR, error: e});
     }
   </script>

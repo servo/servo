@@ -239,14 +239,6 @@ const assert_colors = set_up_fuzzy_color_test();
 test(() => {
   const input = document.createElement("input");
   input.type = "color";
-  assert_equals(input.value, "#000000");
-  input.value = "ActiveBorder";
-  assert_not_equals(input.value, "#000000");
-}, "System colors are parsed");
-
-test(() => {
-  const input = document.createElement("input");
-  input.type = "color";
   input.alpha = true;
   input.colorSpace = "display-p3";
   input.value = "color(display-p3 3 none .2 / .6)";

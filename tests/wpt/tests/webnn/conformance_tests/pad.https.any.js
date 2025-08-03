@@ -576,6 +576,226 @@ const padTests = [
     }
   },
   {
+    'name': 'pad float32 2D tensor with options.value as NaN',
+    'graph': {
+      'inputs': {
+        'padInput': {
+          'data': [
+            22.76361846923828, -21.168529510498047, -91.66168975830078,
+            16.863798141479492, 60.51472091674805, -70.56755065917969,
+            -60.643272399902344, -47.8821907043457, 68.72557830810547
+          ],
+          'descriptor': {shape: [3, 3], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'pad',
+        'arguments': [
+          {'input': 'padInput'}, {'beginningPadding': [1, 1]},
+          {'endingPadding': [1, 1]}, {'options': {'value': NaN}}
+        ],
+        'outputs': 'padOutput'
+      }],
+      'expectedOutputs': {
+        'padOutput': {
+          'data': [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            22.76361846923828,
+            -21.168529510498047,
+            -91.66168975830078,
+            0,
+            0,
+            16.863798141479492,
+            60.51472091674805,
+            -70.56755065917969,
+            0,
+            0,
+            -60.643272399902344,
+            -47.8821907043457,
+            68.72557830810547,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          'descriptor': {shape: [5, 5], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'pad float32 2D tensor with options.value as Infinity',
+    'graph': {
+      'inputs': {
+        'padInput': {
+          'data': [
+            22.76361846923828, -21.168529510498047, -91.66168975830078,
+            16.863798141479492, 60.51472091674805, -70.56755065917969,
+            -60.643272399902344, -47.8821907043457, 68.72557830810547
+          ],
+          'descriptor': {shape: [3, 3], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'pad',
+        'arguments': [
+          {'input': 'padInput'}, {'beginningPadding': [1, 1]},
+          {'endingPadding': [1, 1]}, {'options': {'value': Infinity}}
+        ],
+        'outputs': 'padOutput'
+      }],
+      'expectedOutputs': {
+        'padOutput': {
+          'data': [
+            Infinity,
+            Infinity,
+            Infinity,
+            Infinity,
+            Infinity,
+            Infinity,
+            22.76361846923828,
+            -21.168529510498047,
+            -91.66168975830078,
+            Infinity,
+            Infinity,
+            16.863798141479492,
+            60.51472091674805,
+            -70.56755065917969,
+            Infinity,
+            Infinity,
+            -60.643272399902344,
+            -47.8821907043457,
+            68.72557830810547,
+            Infinity,
+            Infinity,
+            Infinity,
+            Infinity,
+            Infinity,
+            Infinity
+          ],
+          'descriptor': {shape: [5, 5], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'pad int64 2D tensor with options.value as bigint',
+    'graph': {
+      'inputs': {
+        'padInput': {
+          'data': [
+            22, -21, -91,
+            16, 60, -70,
+            -60, -47, 68
+          ],
+          'descriptor': {shape: [3, 3], dataType: 'int64'}
+        }
+      },
+      'operators': [{
+        'name': 'pad',
+        'arguments': [
+          {'input': 'padInput'}, {'beginningPadding': [1, 1]},
+          {'endingPadding': [1, 1]}, {'options': {'value': 9007199254740992n}}
+        ],
+        'outputs': 'padOutput'
+      }],
+      'expectedOutputs': {
+        'padOutput': {
+          'data': [
+            9007199254740992n,
+            9007199254740992n,
+            9007199254740992n,
+            9007199254740992n,
+            9007199254740992n,
+            9007199254740992n,
+            22,
+            -21,
+            -91,
+            9007199254740992n,
+            9007199254740992n,
+            16,
+            60,
+            -70,
+            9007199254740992n,
+            9007199254740992n,
+            -60,
+            -47,
+            68,
+            9007199254740992n,
+            9007199254740992n,
+            9007199254740992n,
+            9007199254740992n,
+            9007199254740992n,
+            9007199254740992n
+          ],
+          'descriptor': {shape: [5, 5], dataType: 'int64'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'pad float32 2D tensor with options.value as -Infinity',
+    'graph': {
+      'inputs': {
+        'padInput': {
+          'data': [
+            22.76361846923828, -21.168529510498047, -91.66168975830078,
+            16.863798141479492, 60.51472091674805, -70.56755065917969,
+            -60.643272399902344, -47.8821907043457, 68.72557830810547
+          ],
+          'descriptor': {shape: [3, 3], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'pad',
+        'arguments': [
+          {'input': 'padInput'}, {'beginningPadding': [1, 1]},
+          {'endingPadding': [1, 1]}, {'options': {'value': -Infinity}}
+        ],
+        'outputs': 'padOutput'
+      }],
+      'expectedOutputs': {
+        'padOutput': {
+          'data': [
+            -Infinity,
+            -Infinity,
+            -Infinity,
+            -Infinity,
+            -Infinity,
+            -Infinity,
+            22.76361846923828,
+            -21.168529510498047,
+            -91.66168975830078,
+            -Infinity,
+            -Infinity,
+            16.863798141479492,
+            60.51472091674805,
+            -70.56755065917969,
+            -Infinity,
+            -Infinity,
+            -60.643272399902344,
+            -47.8821907043457,
+            68.72557830810547,
+            -Infinity,
+            -Infinity,
+            -Infinity,
+            -Infinity,
+            -Infinity,
+            -Infinity
+          ],
+          'descriptor': {shape: [5, 5], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'pad float32 4D tensor options.mode=\'edge\'',
     'graph': {
       'inputs': {

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Grid gaps are painted with multiple line-colors values for *-rule-colors.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#lists-repeat">
+<link rel="match" href="grid-gap-decorations-050-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .grid-container {
+    display: grid;
+    grid-gap: 10px;
+    grid-template-columns: repeat(6, 100px);
+    height: 650px;
+    width: 650px;
+
+    column-rule-color: teal repeat(auto, red green) blue ;
+    column-rule-style: solid;
+    column-rule-width: 2px repeat(auto, 5px 2px) repeat(2, 10px);
+
+    row-rule-color: repeat(auto, red) repeat(2, yellow) ;
+    row-rule-style: solid;
+    row-rule-width: repeat(auto, 10px 8px) repeat(2, 2px) 5px;
+  }
+
+  .item {
+    background: gray;
+    opacity: 0.5;
+  }
+</style>
+<div class="grid-container">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</div>
