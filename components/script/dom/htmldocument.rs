@@ -19,17 +19,17 @@ pub(crate) struct HTMLDocument {
 }
 
 impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
-    /// <https://html.spec.whatwg.org/multipage/#htmldocument>
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-location>
     fn GetLocation(&self) -> Option<DomRoot<Location>> {
         self.document.GetLocation()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#htmldocument>
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         self.document.SupportedPropertyNames()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#htmldocument>
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
     fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
         self.document.NamedGetter(name, CanGc::note())
     }
