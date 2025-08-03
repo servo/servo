@@ -105,6 +105,8 @@ impl ClientStorageThread {
             local_id: 0,
         };
 
+        // TODO: Switch to `add_typed_route_with_close_callback` once available,
+        // and clean up associated actors when the channel closes unexpectedly.
         ROUTER.add_typed_route(
             child_to_parent_receiver,
             Box::new(move |result| {
