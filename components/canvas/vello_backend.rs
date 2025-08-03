@@ -17,7 +17,8 @@ use std::num::NonZeroUsize;
 use std::rc::Rc;
 
 use canvas_traits::canvas::{
-    CompositionOptions, FillOrStrokeStyle, FillRule, LineOptions, Path, ShadowOptions,
+    CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
+    LineOptions, Path, ShadowOptions,
 };
 use compositing_traits::SerializableImageData;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
@@ -134,9 +135,19 @@ impl VelloDrawTarget {
         }
     }
 
-    fn with_draw_options<F: FnOnce(&mut Self)>(&mut self, draw_options: &CompositionOptions, f: F) {
+    fn with_composition<F: FnOnce(&mut Self)>(
+        &mut self,
+        composition_operation: CompositionOrBlending,
+        f: F,
+    ) {
+        // Fast-path for default and most common composition operation
+        if composition_operation == CompositionOrBlending::Composition(CompositionStyle::SourceOver)
+        {
+            f(self);
+            return;
+        }
         self.scene.push_layer(
-            draw_options.composition_operation.convert(),
+            composition_operation.convert(),
             1.0,
             kurbo::Affine::IDENTITY,
             &kurbo::Rect::ZERO.with_size(self.size.cast()),
@@ -304,7 +315,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         self.ensure_drawing();
         let scale_up = dest.size.width > source.size.width || dest.size.height > source.size.height;
         let shape: kurbo::Rect = dest.into();
-        self.with_draw_options(&composition_options, move |self_| {
+        self.with_composition(composition_options.composition_operation, move |self_| {
             self_.scene.fill(
                 peniko::Fill::NonZero,
                 transform.cast().into(),
@@ -359,7 +370,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.ensure_drawing();
-        self.with_draw_options(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             self_.scene.fill(
                 fill_rule.convert(),
                 transform.cast().into(),
@@ -381,7 +392,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         self.ensure_drawing();
         let pattern = convert_to_brush(style, composition_options);
         let transform = transform.cast().into();
-        self.with_draw_options(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             let mut advance = 0.;
             for run in text_runs.iter() {
                 let glyphs = &run.glyphs;
@@ -443,7 +454,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         let pattern = convert_to_brush(style, composition_options);
         let transform = transform.cast().into();
         let rect: kurbo::Rect = rect.cast().into();
-        self.with_draw_options(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             self_
                 .scene
                 .fill(peniko::Fill::NonZero, transform, &pattern, None, &rect);
@@ -489,7 +500,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.ensure_drawing();
-        self.with_draw_options(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             self_.scene.stroke(
                 &line_options.convert(),
                 transform.cast().into(),
@@ -510,7 +521,7 @@ impl GenericDrawTarget for VelloDrawTarget {
     ) {
         self.ensure_drawing();
         let rect: kurbo::Rect = rect.cast().into();
-        self.with_draw_options(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             self_.scene.stroke(
                 &line_options.convert(),
                 transform.cast().into(),

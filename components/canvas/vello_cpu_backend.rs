@@ -7,7 +7,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use canvas_traits::canvas::{
-    CompositionOptions, FillOrStrokeStyle, FillRule, LineOptions, Path, ShadowOptions,
+    CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
+    LineOptions, Path, ShadowOptions,
 };
 use compositing_traits::SerializableImageData;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
@@ -58,15 +59,16 @@ pub(crate) struct VelloCPUDrawTarget {
 impl VelloCPUDrawTarget {
     fn with_composition(
         &mut self,
-        composition_options: &CompositionOptions,
+        composition_operation: CompositionOrBlending,
         f: impl FnOnce(&mut Self),
     ) {
-        self.ctx.push_layer(
-            None,
-            Some(composition_options.composition_operation.convert()),
-            Some(composition_options.alpha as f32),
-            None,
-        );
+        // Fast-path for default and most common composition operation
+        if composition_operation == CompositionOrBlending::Composition(CompositionStyle::SourceOver)
+        {
+            f(self);
+            return;
+        }
+        self.ctx.push_blend_layer(composition_operation.convert());
         f(self);
         self.ctx.pop_layer();
     }
@@ -210,7 +212,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
 
     fn draw_surface(
         &mut self,
-        surface: Self::SourceSurface,
+        mut surface: Self::SourceSurface,
         dest: Rect<f64>,
         source: Rect<f64>,
         filter: Filter,
@@ -219,7 +221,12 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     ) {
         self.ensure_drawing();
         let scale_up = dest.size.width > source.size.width || dest.size.height > source.size.height;
-        self.with_composition(&composition_options, move |self_| {
+        if composition_options.alpha != 1.0 {
+            Arc::get_mut(&mut surface)
+                .expect("surface should be owned")
+                .multiply_alpha((composition_options.alpha * 255.0) as u8);
+        }
+        self.with_composition(composition_options.composition_operation, move |self_| {
             self_.ctx.set_transform(transform.cast().into());
             self_.ctx.set_paint(vello_cpu::Image {
                 source: vello_cpu::ImageSource::Pixmap(surface),
@@ -268,11 +275,10 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.ensure_drawing();
-        let paint: vello_cpu::PaintType = style.convert();
-        self.with_composition(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             self_.ctx.set_transform(transform.cast().into());
             self_.ctx.set_fill_rule(fill_rule.convert());
-            self_.ctx.set_paint(paint);
+            self_.ctx.set_paint(paint(style, composition_options.alpha));
             self_.ctx.fill_path(&path.0);
         });
         self.ctx.set_fill_rule(peniko::Fill::NonZero);
@@ -287,10 +293,9 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.ensure_drawing();
-        let style: vello_cpu::PaintType = style.convert();
-        self.ctx.set_paint(style);
+        self.ctx.set_paint(paint(style, composition_options.alpha));
         self.ctx.set_transform(transform.cast().into());
-        self.with_composition(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             let mut advance = 0.;
             for run in text_runs.iter() {
                 let glyphs = &run.glyphs;
@@ -346,10 +351,9 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.ensure_drawing();
-        let paint: vello_cpu::PaintType = style.convert();
-        self.with_composition(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             self_.ctx.set_transform(transform.cast().into());
-            self_.ctx.set_paint(paint);
+            self_.ctx.set_paint(paint(style, composition_options.alpha));
             self_.ctx.fill_rect(&rect.cast().into());
         })
     }
@@ -395,10 +399,9 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.ensure_drawing();
-        let paint: vello_cpu::PaintType = style.convert();
-        self.with_composition(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             self_.ctx.set_transform(transform.cast().into());
-            self_.ctx.set_paint(paint);
+            self_.ctx.set_paint(paint(style, composition_options.alpha));
             self_.ctx.set_stroke(line_options.convert());
             self_.ctx.stroke_path(&path.0);
         })
@@ -413,10 +416,9 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.ensure_drawing();
-        let paint: vello_cpu::PaintType = style.convert();
-        self.with_composition(&composition_options, |self_| {
+        self.with_composition(composition_options.composition_operation, |self_| {
             self_.ctx.set_transform(transform.cast().into());
-            self_.ctx.set_paint(paint);
+            self_.ctx.set_paint(paint(style, composition_options.alpha));
             self_.ctx.set_stroke(line_options.convert());
             self_.ctx.stroke_rect(&rect.cast().into());
         })
@@ -516,6 +518,32 @@ impl Convert<vello_cpu::PaintType> for FillOrStrokeStyle {
                     },
                     quality: peniko::ImageQuality::Low,
                 })
+            },
+        }
+    }
+}
+
+fn paint(style: FillOrStrokeStyle, alpha: f64) -> vello_cpu::PaintType {
+    assert!((0.0..=1.0).contains(&alpha));
+    let paint = style.convert();
+    if alpha == 1.0 {
+        paint
+    } else {
+        match paint {
+            vello_cpu::PaintType::Solid(alpha_color) => {
+                vello_cpu::PaintType::Solid(alpha_color.multiply_alpha(alpha as f32))
+            },
+            vello_cpu::PaintType::Gradient(gradient) => {
+                vello_cpu::PaintType::Gradient(gradient.multiply_alpha(alpha as f32))
+            },
+            vello_cpu::PaintType::Image(mut image) => {
+                match &mut image.source {
+                    vello_cpu::ImageSource::Pixmap(pixmap) => Arc::get_mut(pixmap)
+                        .expect("pixmap should not be shared with anyone at this point")
+                        .multiply_alpha((alpha * 255.0) as u8),
+                    vello_cpu::ImageSource::OpaqueId(_) => unimplemented!(),
+                };
+                vello_cpu::PaintType::Image(image)
             },
         }
     }
