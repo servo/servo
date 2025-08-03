@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 
+use base::Epoch;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use pixels::Snapshot;
@@ -89,7 +90,7 @@ impl ImageBitmapRenderingContext {
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, ImageBitmapRenderingContext> {
-    fn canvas_data_source(self) -> Option<ImageKey> {
+    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)> {
         None
     }
 }
