@@ -14,8 +14,10 @@ window.onload = test.step_func(function() {
   assert_equals(frame.contentWindow.getComputedStyle(element).backgroundColor, "rgb(255, 0, 0)");
   frame.width = "300";
   frameDoc.documentElement.offsetWidth; // Force layout
-  window.requestAnimationFrame(test.step_func_done(function () {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(test.step_func_done(function () {
       assert_equals(frame.contentWindow.getComputedStyle(element).backgroundColor, "rgb(0, 255, 0)");
-  }));
+    }))
+  });
 });
 </script>

@@ -329,7 +329,6 @@ impl Range {
 
     fn client_rects(
         &self,
-        can_gc: CanGc,
     ) -> impl Iterator<Item = euclid::Rect<app_units::Au, euclid::UnknownUnit>> {
         // FIXME: For text nodes that are only partially selected, this should return the client
         // rect of the selected part, not the whole text node.
@@ -341,7 +340,7 @@ impl Range {
             .following_nodes(document.upcast::<Node>())
             .take_while(move |node| node != &end)
             .chain(iter::once(end_clone))
-            .flat_map(move |node| node.content_boxes(can_gc))
+            .flat_map(move |node| node.content_boxes())
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
@@ -1153,7 +1152,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let window = start.owner_window();
 
         let client_rects = self
-            .client_rects(can_gc)
+            .client_rects()
             .map(|rect| {
                 DOMRect::new(
                     window.upcast(),
@@ -1174,7 +1173,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let window = self.start_container().owner_window();
 
         // Step 1. Let list be the result of invoking getClientRects() on the same range this method was invoked on.
-        let list = self.client_rects(can_gc);
+        let list = self.client_rects();
 
         // Step 2. If list is empty return a DOMRect object whose x, y, width and height members are zero.
         // Step 3. If all rectangles in list have zero width or height, return the first rectangle in list.

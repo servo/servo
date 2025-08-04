@@ -20,15 +20,26 @@ var div = document.getElementById('check-me');
 var span = div.childNodes[0];
 async_test(function(t) {
   window.addEventListener('load', function() {
-    assert_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(255, 0, 0)');
-    div.id = "check-me-2";
-    requestAnimationFrame(function() {
-      var test = new window.TestBinding();
+    var test = new window.TestBinding();
+
+    div.addEventListener("transitionstart", () => {
+      // The transition should have just started so the current value of the style should
+      // not be the value expected after the transition.
+      assert_not_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(0, 0, 0)');
       test.advanceClock(2000);
-      span.innerHTML = "a";
+    });
+
+    div.addEventListener("transitionend", () => {
+      // The transition should be finished so the value of the style should be the final one.
       assert_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(0, 0, 0)');
       t.done();
     });
+
+    // The starting value should be the one set in the style.
+    assert_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(255, 0, 0)');
+
+    // Start the transition.
+    div.id = "check-me-2";
   })
 })
 </script>

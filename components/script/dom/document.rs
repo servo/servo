@@ -574,6 +574,9 @@ pub(crate) struct Document {
     adopted_stylesheets_frozen_types: CachedFrozenArray,
     /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-event-targets>
     pending_scroll_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
+    /// When a `ResizeObserver` starts observing a target, this becomes true, which in turn is a
+    /// signal to the [`ScriptThread`] that a rendering update should happen.
+    resize_observer_started_observing_target: Cell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -1034,7 +1037,7 @@ impl Document {
     /// Scroll to the target element, and when we do not find a target
     /// and the fragment is empty or "top", scroll to the top.
     /// <https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier>
-    pub(crate) fn check_and_scroll_fragment(&self, fragment: &str, can_gc: CanGc) {
+    pub(crate) fn check_and_scroll_fragment(&self, fragment: &str) {
         let target = self.find_fragment_node(fragment);
 
         // Step 1
@@ -1047,9 +1050,7 @@ impl Document {
                 // inside other scrollable containers. Ideally this should use an implementation of
                 // `scrollIntoView` when that is available:
                 // See https://github.com/servo/servo/issues/24059.
-                let rect = element
-                    .upcast::<Node>()
-                    .bounding_content_box_or_zero(can_gc);
+                let rect = element.upcast::<Node>().bounding_content_box_or_zero();
 
                 // In order to align with element edges, we snap to unscaled pixel boundaries, since
                 // the paint thread currently does the same for drawing elements. This is important
@@ -1073,7 +1074,7 @@ impl Document {
 
         if let Some((x, y)) = point {
             self.window
-                .scroll(x as f64, y as f64, ScrollBehavior::Instant, can_gc)
+                .scroll(x as f64, y as f64, ScrollBehavior::Instant)
         }
     }
 
@@ -1349,7 +1350,7 @@ impl Document {
 
                 // Notify the embedder to display an input method.
                 if let Some(kind) = elem.input_method_type() {
-                    let rect = elem.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+                    let rect = elem.upcast::<Node>().bounding_content_box_or_zero();
                     let rect = Rect::new(
                         Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
                         Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
@@ -2886,7 +2887,7 @@ impl Document {
                 // We finished loading the page, so if the `Window` is still waiting for
                 // the first layout, allow it.
                 if self.has_browsing_context && self.is_fully_active() {
-                    self.window().allow_layout_if_necessary(can_gc);
+                    self.window().allow_layout_if_necessary();
                 }
 
                 // Deferred scripts have to wait for page to finish loading,
@@ -3124,7 +3125,7 @@ impl Document {
                 update_with_current_instant(&document.load_event_end);
 
                 if let Some(fragment) = document.url().fragment() {
-                    document.check_and_scroll_fragment(fragment, CanGc::note());
+                    document.check_and_scroll_fragment(fragment);
                 }
             }));
 
@@ -3658,6 +3659,35 @@ impl Document {
         self.webgpu_contexts.clone()
     }
 
+    /// Whether or not this [`Document`] needs a rendering update, due to changed
+    /// contents or pending events. This is used to decide whether or not to schedule
+    /// a call to the "update the rendering" algorithm.
+    pub(crate) fn needs_rendering_update(&self) -> bool {
+        if !self.is_fully_active() {
+            return false;
+        }
+        if !self.window().layout_blocked() &&
+            (!self.restyle_reason().is_empty() ||
+                self.window().layout().needs_new_display_list())
+        {
+            return true;
+        }
+        if self.resize_observer_started_observing_target.get() {
+            return true;
+        }
+        if self.has_pending_input_events() {
+            return true;
+        }
+        if self.has_pending_scroll_events() {
+            return true;
+        }
+        if self.window().has_unhandled_resize_event() {
+            return true;
+        }
+
+        false
+    }
+
     /// An implementation of step 22 from
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>:
     ///
@@ -3665,7 +3695,7 @@ impl Document {
     // > doc and its node navigable to reflect the current state.
     //
     // Returns true if a reflow occured.
-    pub(crate) fn update_the_rendering(&self, can_gc: CanGc) -> bool {
+    pub(crate) fn update_the_rendering(&self) -> bool {
         self.update_animating_images();
 
         // All dirty canvases are flushed before updating the rendering.
@@ -3701,8 +3731,38 @@ impl Document {
         }
 
         self.window()
-            .reflow(ReflowGoal::UpdateTheRendering, can_gc)
+            .reflow(ReflowGoal::UpdateTheRendering)
             .reflow_issued
+    }
+
+    /// From <https://drafts.csswg.org/css-font-loading/#fontfaceset-pending-on-the-environment>:
+    ///
+    /// > A FontFaceSet is pending on the environment if any of the following are true:
+    /// >  - the document is still loading
+    /// >  - the document has pending stylesheet requests
+    /// >  - the document has pending layout operations which might cause the user agent to request
+    /// >    a font, or which depend on recently-loaded fonts
+    ///
+    /// Returns true if the promise was fulfilled.
+    pub(crate) fn maybe_fulfill_font_ready_promise(&self, can_gc: CanGc) -> bool {
+        if !self.is_fully_active() {
+            return false;
+        }
+
+        let fonts = self.Fonts(can_gc);
+        if !fonts.waiting_to_fullfill_promise() {
+            return false;
+        }
+        if self.window().font_context().web_fonts_still_loading() != 0 {
+            return false;
+        }
+        if self.ReadyState() != DocumentReadyState::Complete {
+            return false;
+        }
+        if !self.restyle_reason().is_empty() {
+            return false;
+        }
+        fonts.fulfill_ready_promise_if_needed(can_gc)
     }
 
     pub(crate) fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
@@ -3720,19 +3780,22 @@ impl Document {
             .push(Dom::from_ref(resize_observer));
     }
 
+    /// Whether or not this [`Document`] has any active [`ResizeObserver`].
+    pub(crate) fn has_resize_observers(&self) -> bool {
+        !self.resize_observers.borrow().is_empty()
+    }
+
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
         depth: &ResizeObservationDepth,
-        can_gc: CanGc,
     ) -> bool {
         let mut has_active_resize_observations = false;
         for observer in self.resize_observers.borrow_mut().iter_mut() {
             observer.gather_active_resize_observations_at_depth(
                 depth,
                 &mut has_active_resize_observations,
-                can_gc,
             );
         }
         has_active_resize_observations
@@ -4364,6 +4427,7 @@ impl Document {
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_event_targets: Default::default(),
+            resize_observer_started_observing_target: Cell::new(false),
         }
     }
 
@@ -4429,6 +4493,22 @@ impl Document {
         // Reset the mouse event index.
         *self.mouse_move_event_index.borrow_mut() = None;
         mem::take(&mut *self.pending_input_events.borrow_mut())
+    }
+
+    /// Whether or not this [`Document`] has any pending input events to be processed during
+    /// "update the rendering."
+    pub(crate) fn has_pending_input_events(&self) -> bool {
+        !self.pending_input_events.borrow().is_empty()
+    }
+
+    /// Whether or not this [`Document`] has any pending scroll events to be processed during
+    /// "update the rendering."
+    fn has_pending_scroll_events(&self) -> bool {
+        !self.pending_scroll_event_targets.borrow().is_empty()
+    }
+
+    pub(crate) fn set_resize_observer_started_observing_target(&self, value: bool) {
+        self.resize_observer_started_observing_target.set(value);
     }
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
@@ -6524,39 +6604,27 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     );
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
-    fn ElementFromPoint(
-        &self,
-        x: Finite<f64>,
-        y: Finite<f64>,
-        can_gc: CanGc,
-    ) -> Option<DomRoot<Element>> {
+    fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
         self.document_or_shadow_root.element_from_point(
             x,
             y,
             self.GetDocumentElement(),
             self.has_browsing_context,
-            can_gc,
         )
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
-    fn ElementsFromPoint(
-        &self,
-        x: Finite<f64>,
-        y: Finite<f64>,
-        can_gc: CanGc,
-    ) -> Vec<DomRoot<Element>> {
+    fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
         self.document_or_shadow_root.elements_from_point(
             x,
             y,
             self.GetDocumentElement(),
             self.has_browsing_context,
-            can_gc,
         )
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-document-scrollingelement>
-    fn GetScrollingElement(&self, can_gc: CanGc) -> Option<DomRoot<Element>> {
+    fn GetScrollingElement(&self) -> Option<DomRoot<Element>> {
         // Step 1. If the Document is in quirks mode, follow these steps:
         if self.quirks_mode() == QuirksMode::Quirks {
             // Step 1.1. If the body element exists,
@@ -6565,7 +6633,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 // and it is not potentially scrollable, return the body element and abort these steps.
                 // For this purpose, a value of overflow:clip on the the body element’s parent element
                 // must be treated as overflow:hidden.
-                if !e.is_potentially_scrollable_body_for_scrolling_element(can_gc) {
+                if !e.is_potentially_scrollable_body_for_scrolling_element() {
                     return Some(DomRoot::from_ref(e));
                 }
             }
@@ -6960,7 +7028,7 @@ pub(crate) struct ImageAnimationUpdateCallback {
 impl ImageAnimationUpdateCallback {
     pub(crate) fn invoke(self, can_gc: CanGc) {
         with_script_thread(|script_thread| {
-            script_thread.set_has_pending_animation_tick();
+            script_thread.set_needs_rendering_update();
             script_thread.update_the_rendering(can_gc);
         })
     }

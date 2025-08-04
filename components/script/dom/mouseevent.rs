@@ -278,7 +278,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     ) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
-        let scroll_offset = window.scroll_offset(can_gc);
+        let scroll_offset = window.scroll_offset();
         let page_point = Point2D::new(
             scroll_offset.x as i32 + init.clientX,
             scroll_offset.y as i32 + init.clientY,
@@ -370,7 +370,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsetx>
-    fn OffsetX(&self, can_gc: CanGc) -> i32 {
+    fn OffsetX(&self) -> i32 {
         // > The offsetX attribute must follow these steps:
         // > 1. If the event’s dispatch flag is set, return the x-coordinate of the position
         // >    where the event occurred relative to the origin of the padding edge of the
@@ -384,7 +384,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             let Some(node) = target.downcast::<Node>() else {
                 return 0;
             };
-            return self.ClientX() - node.client_rect(can_gc).origin.x;
+            return self.ClientX() - node.client_rect().origin.x;
         }
 
         // > 2. Return the value of the event’s pageX attribute.
@@ -392,7 +392,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsety>
-    fn OffsetY(&self, can_gc: CanGc) -> i32 {
+    fn OffsetY(&self) -> i32 {
         // > The offsetY attribute must follow these steps:
         // > 1. If the event’s dispatch flag is set, return the y-coordinate of the
         // >    position where the event occurred relative to the origin of the padding edge of
@@ -406,7 +406,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             let Some(node) = target.downcast::<Node>() else {
                 return 0;
             };
-            return self.ClientY() - node.client_rect(can_gc).origin.y;
+            return self.ClientY() - node.client_rect().origin.y;
         }
 
         // 2. Return the value of the event’s pageY attribute.
@@ -479,7 +479,6 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         meta_key_arg: bool,
         button_arg: i16,
         related_target_arg: Option<&EventTarget>,
-        can_gc: CanGc,
     ) {
         if self.upcast::<Event>().dispatching() {
             return;
@@ -498,7 +497,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             .set(Point2D::new(client_x_arg, client_y_arg));
 
         let global = self.global();
-        let scroll_offset = global.as_window().scroll_offset(can_gc);
+        let scroll_offset = global.as_window().scroll_offset();
         self.page_point.set(Point2D::new(
             scroll_offset.x as i32 + client_x_arg,
             scroll_offset.y as i32 + client_y_arg,
