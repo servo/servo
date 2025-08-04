@@ -1446,13 +1446,13 @@ impl HTMLMediaElement {
             Box::new(window.get_player_context()),
         );
         let player_id = {
-            let player_mut = player.lock().unwrap();
+            let player_guard = player.lock().unwrap();
 
-            if let Err(e) = player_mut.set_mute(self.muted.get()) {
+            if let Err(e) = player_guard.set_mute(self.muted.get()) {
                 log::warn!("Could not set mute state: {:?}", e);
             }
 
-            player_mut.get_id()
+            player_guard.get_id()
         };
 
         *self.player.borrow_mut() = Some(player);
