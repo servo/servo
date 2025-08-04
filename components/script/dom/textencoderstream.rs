@@ -8,126 +8,176 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::conversions::{jsstr_to_string, ConversionResult, FromJSValConvertible, ToJSValConvertible};
-use js::jsapi::{HandleValueArray, JSObject, JS_GetTwoByteStringCharsAndLength, JS_IsTypedArrayObject, JS_ValueIsUndefined};
+use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
+use js::jsapi::{
+    IsArrayObject, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
+    JS_GetTwoByteStringCharsAndLength, JSObject, JSType, ToPrimitive,
+};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::wrappers::ToPrimitive;
-use js::typedarray::{TypedArray, Uint8Array};
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, ToBoolean, ToInt32, ToNumber, ToString, IntoHandle};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use js::typedarray::Uint8Array;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
-use crate::dom::bindings::error::{Fallible, Error};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
-use crate::dom::bindings::root::{DomRoot, Dom};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{GlobalScope, TransformStream, TransformStreamDefaultController};
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::{DomTypeHolder, DomTypes};
-use crate::script_runtime::{JSContext as SafeJSContext};
 
-enum StrOrCodeUnits<'a> {
-    Str(&'a str),
-    String(String),
-    Array(Vec<String>),
+enum MaybeIllFormed<'a> {
+    Str(&'static str),
+    Number(f64),
+    Latin1(&'a [u8]),
     CodeUnits(&'a [u16]),
 }
 
+/// <https://tc39.es/ecma262/multipage/abstract-operations.html#sec-tostring>
 #[allow(unsafe_code)]
-fn convert_chunk_to_dom_string<'chunk>(
+fn jsval_to_string<'a>(
     cx: SafeJSContext,
-    chunk: &'chunk SafeHandleValue,
-) -> Fallible<StrOrCodeUnits<'chunk>> {
-    log::debug!("chunk.bits: {:?}", chunk.asBits_);
-
-    if chunk.is_undefined() {
-        log::debug!("chunk is undefined");
-        return Ok(StrOrCodeUnits::Str("undefined"))
-    } 
-    
-    if chunk.is_null() {
-        log::debug!("chunk is null");
-        return Ok(StrOrCodeUnits::Str("null"))
-    } 
-    
-    if chunk.is_boolean() {
-        log::debug!("chunk is boolean");
-        return Ok(StrOrCodeUnits::String(chunk.to_boolean().to_string()))
-    } 
-    
-    if chunk.is_int32() {
-        log::debug!("chunk is i32");
-        return Ok(StrOrCodeUnits::String(chunk.to_int32().to_string()))
-    } 
-    
-    if chunk.is_double() {
-        log::debug!("chunk is number");
-        return Ok(StrOrCodeUnits::String(chunk.to_double().to_string()))
-    }
-
-    if let Ok(result) = unsafe { Vec::<JSVal>::from_jsval(*cx, *chunk, ()) } {
-        log::debug!("try converting to vec");
-        log::debug!("conversion_result: {:?}", result);
-
-        if let ConversionResult::Success(vals) = result {
-            let arr = vals.into_iter().map(|val| {
-                let jsstr = val.to_string();
-                unsafe { jsstr_to_string(*cx, jsstr) }
-            }).collect();
-            return Ok(StrOrCodeUnits::Array(arr))
-        }
-    }
-
-    if chunk.is_object() {
-        log::debug!("chunk is object");
-
-        let obj = chunk.to_object();
-        dbg!(&obj);
-
-        // // return Ok(StrOrCodeUnits::Str("[object Object]"))
-        // let obj = chunk.to_object();
-        // let handle = unsafe { SafeHandleObject::from_marked_location(&obj as *const *mut _) };
-
-        // rooted!(in(*cx) let mut value = UndefinedValue());
-        // let _result = unsafe { ToPrimitive(*cx, handle, js::jsapi::JSType::JSTYPE_STRING, value.handle_mut()) };
-        // log::debug!("ToPrimitive result: {:?}", _result);
-
-        // let jsstr = value.to_string();
-        // let s = unsafe { jsstr_to_string(*cx, jsstr) };
-        // return Ok(StrOrCodeUnits::String(s))
-    }
-    
-    // Step 1. Let input be the result of converting chunk to a DOMString. 
-    // NOTE: servo's DOMString type is a wrapper over rust's String, which must be 
-    //      valid utf-8 so we will need to inspect each u16
-    let js_str = unsafe {std::ptr::NonNull::new(ToString(*cx, *chunk))
-        .ok_or_else(|| {
+    value: &JSVal, // TODO: how to argure the lifetime here
+) -> Fallible<MaybeIllFormed<'a>> {
+    // Step 1. If argument is a String, return argument.
+    if value.is_string() {
+        let jsstr = std::ptr::NonNull::new(value.to_string()).ok_or_else(|| {
             log::error!("ToString failed");
             Error::JSFailed // ToString may set the exception
-        })?};
-    // Step 2. Convert input to an I/O queue of code units. 
-    let mut len = 0;
-    let data = unsafe {
-        JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), js_str.as_ptr(), &mut len)
+        })?;
+        unsafe {
+            if JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr()) {
+                // return Ok(MaybeIllFormed::String(latin1_to_string(*cx, jsstr.as_ptr())))
+                let mut len = 0;
+                let chars =
+                    JS_GetLatin1StringCharsAndLength(*cx, ptr::null(), jsstr.as_ptr(), &mut len);
+                let chars = std::slice::from_raw_parts(chars, len);
+                return Ok(MaybeIllFormed::Latin1(chars));
+            }
+        }
+        // Step 2. Convert input to an I/O queue of code units.
+        let mut len = 0;
+        let data = unsafe {
+            JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), jsstr.as_ptr(), &mut len)
+        };
+        let maybe_ill_formed_code_units = unsafe { std::slice::from_raw_parts(data, len) };
+        log::debug!("maybe ill formed: {:?}", maybe_ill_formed_code_units);
+        return Ok(MaybeIllFormed::CodeUnits(maybe_ill_formed_code_units));
+    }
+
+    // Step 2. If argument is a Symbol, throw a TypeError exception.
+    if value.is_symbol() {
+        return Err(Error::Type("Cannot convert symbol to string".to_owned()));
+    }
+
+    // Step 3. If argument is undefined, return "undefined".
+    if value.is_undefined() {
+        return Ok(MaybeIllFormed::Str("undefined"));
+    }
+
+    // Step 4. If argument is null, return "null".
+    if value.is_null() {
+        return Ok(MaybeIllFormed::Str("null"));
+    }
+
+    // Step 5. If argument is true, return "true".
+    // Step 6. If argument is false, return "false".
+    if value.is_boolean() {
+        let s = match value.to_boolean() {
+            true => "true",
+            false => "false",
+        };
+        return Ok(MaybeIllFormed::Str(s));
+    }
+
+    // Step 7. If argument is a Number, return Number::toString(argument, 10).
+    if value.is_number() {
+        return Ok(MaybeIllFormed::Number(value.to_number()));
+    }
+
+    // Step 8. If argument is a BigInt, return BigInt::toString(argument, 10).
+    // TODO
+
+    // Step 9. Assert: argument is an Object.
+    assert!(value.is_object());
+
+    // Step 10. Let primValue be ? ToPrimitive(argument, string).
+    rooted!(in(*cx) let mut prim_value = UndefinedValue());
+    rooted!(in(*cx) let obj = value.to_object());
+    let is_success = unsafe {
+        ToPrimitive(
+            *cx,
+            obj.handle().into_handle(),
+            JSType::JSTYPE_STRING,
+            prim_value.handle_mut().into(),
+        )
     };
-    let maybe_ill_formed_code_units = unsafe { std::slice::from_raw_parts(data, len) };
+    if !is_success {
+        return Err(Error::JSFailed); // TODO: double check if an error is thrown
+    }
 
-    log::debug!("code_units: {:?}", maybe_ill_formed_code_units);
+    // Step 11. Assert: primValue is not an Object.
+    assert!(!prim_value.is_object());
 
-    Ok(StrOrCodeUnits::CodeUnits(maybe_ill_formed_code_units))
+    // Step 12. Return ? ToString(primValue).
+    jsval_to_string(cx, &prim_value.handle())
 }
 
+/// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct Encoder {
+    /// <https://encoding.spec.whatwg.org/#textencoderstream-pending-high-surrogate>
     leading_surrogate: Cell<Option<u16>>,
 }
 
 impl Encoder {
     fn new() -> Self {
         Self {
-            leading_surrogate: Cell::new(None)
+            leading_surrogate: Cell::new(None),
         }
+    }
+
+    fn encode<'a>(&self, maybe_ill_formed: MaybeIllFormed<'a>) -> Cow<'a, str> {
+        match maybe_ill_formed {
+            MaybeIllFormed::Str(s) => {
+                if let Some(_leading_surrogate) = self.leading_surrogate.take() {
+                    let mut output = String::with_capacity(1 + s.len());
+                    output.push('\u{FFFD}');
+                    output.push_str(s);
+                    Cow::Owned(output)
+                } else {
+                    Cow::Borrowed(s)
+                }
+            },
+            MaybeIllFormed::Latin1(bytes) => Cow::Owned(self.encode_latin1(bytes)),
+            MaybeIllFormed::Number(num) => {
+                // We have a number so the input must not be empty
+                let s = num.to_string();
+                if let Some(_leading_surrogate) = self.leading_surrogate.take() {
+                    let mut output = String::with_capacity(1 + s.len());
+                    output.push('\u{FFFD}');
+                    output.push_str(&s);
+                    Cow::Owned(output)
+                } else {
+                    Cow::Owned(s)
+                }
+            },
+            MaybeIllFormed::CodeUnits(code_units) => Cow::Owned(self.encode_code_units(code_units)),
+        }
+    }
+
+    fn encode_latin1(&self, bytes: &[u8]) -> String {
+        let mut output = String::with_capacity(bytes.len());
+        for &b in bytes {
+            if let Some(_leading_surrogate) = self.leading_surrogate.take() {
+                output.push('\u{FFFD}');
+            }
+
+            output.push(b as char);
+        }
+        output
     }
 
     #[allow(unsafe_code)]
@@ -143,8 +193,6 @@ impl Encoder {
                     output.push(c);
                 },
                 Err(error) => {
-                    // output.push('\u{FFFD}');
-                    // encoder.unpaired_surrogate.replace(Some(error.unpaired_surrogate()));
                     let unpaired_surrogate = error.unpaired_surrogate();
                     match code_point_type(unpaired_surrogate) {
                         CodePointType::ScalarValue => unreachable!(),
@@ -157,7 +205,8 @@ impl Encoder {
                         },
                         CodePointType::TrailingSurrogate => match self.leading_surrogate.take() {
                             Some(leading_surrogate) => {
-                                let c = char::decode_utf16([leading_surrogate, unpaired_surrogate]).next()
+                                let c = char::decode_utf16([leading_surrogate, unpaired_surrogate])
+                                    .next()
                                     .expect("A pair of surrogate is supplied")
                                     .expect("Decoding a pair of surrogate cannot fail");
                                 output.push(c);
@@ -195,24 +244,34 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     chunk: SafeHandleValue,
     encoder: &Encoder,
     controller: &TransformStreamDefaultController,
-    can_gc: CanGc
+    can_gc: CanGc,
 ) -> Fallible<()> {
-    let input = convert_chunk_to_dom_string(cx, &chunk)?;
-
-    let output = match input {
-        StrOrCodeUnits::Str(s) => Cow::Borrowed(s),
-        StrOrCodeUnits::String(s) => Cow::Owned(s),
-        StrOrCodeUnits::Array(items) => {
-            let s: String = items.into_iter().collect();
-            Cow::Owned(s)
-        },
-        StrOrCodeUnits::CodeUnits(code_units) => {
-                        Cow::Owned(encoder.encode_code_units(code_units))
+    let mut is_array = false;
+    unsafe { IsArrayObject(*cx, chunk.into_handle(), &mut is_array) };
+    let output = if is_array {
+        match unsafe {
+            Vec::<JSVal>::from_jsval(*cx, chunk, ())
+                .map_err(|_| Error::Type("Failed to convert array".to_owned()))?
+        } {
+            ConversionResult::Success(arr) => {
+                let s = arr
+                    .into_iter()
+                    .map(|val| {
+                        let maybe_ill_formed = jsval_to_string(cx, &val)?;
+                        Ok(encoder.encode(maybe_ill_formed))
+                    })
+                    .collect::<Fallible<String>>()?;
+                Cow::Owned(s)
             },
+            ConversionResult::Failure(failure) => return Err(Error::Type(failure.to_string())),
+        }
+    } else {
+        let maybe_ill_formed = jsval_to_string(cx, &chunk)?;
+        encoder.encode(maybe_ill_formed)
     };
 
     if output.is_empty() {
-        return Ok(())
+        return Ok(());
     }
 
     log::debug!("output: {:?}", output);
@@ -222,7 +281,9 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     let chunk: Uint8Array = create_buffer_source(cx, output, js_object.handle_mut(), can_gc)
         .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(in(*cx) let mut chunk_val = UndefinedValue());
-    unsafe { chunk.to_jsval(*cx, chunk_val.handle_mut());}
+    unsafe {
+        chunk.to_jsval(*cx, chunk_val.handle_mut());
+    }
     controller.enqueue(cx, global, chunk_val.handle(), can_gc)
 }
 
@@ -232,13 +293,15 @@ pub(crate) fn encode_and_flush(
     global: &GlobalScope,
     encoder: &Encoder,
     controller: &TransformStreamDefaultController,
-    can_gc: CanGc
+    can_gc: CanGc,
 ) -> Fallible<()> {
     if encoder.leading_surrogate.get().is_some() {
         let output = [0xEF_u8, 0xBF, 0xBD];
         rooted!(in(*cx) let mut chunk = UndefinedValue());
-        unsafe { output.to_jsval(*cx, chunk.handle_mut()); }
-        return controller.enqueue(cx, global, chunk.handle(), can_gc)
+        unsafe {
+            output.to_jsval(*cx, chunk.handle_mut());
+        }
+        return controller.enqueue(cx, global, chunk.handle(), can_gc);
     }
 
     Ok(())
@@ -249,6 +312,7 @@ pub(crate) fn encode_and_flush(
 pub(crate) struct TextEncoderStream {
     reflector_: Reflector,
 
+    /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
     #[ignore_malloc_size_of = "Rc is hard"]
     encoder: Rc<Encoder>,
 
@@ -260,7 +324,7 @@ impl TextEncoderStream {
         Self {
             reflector_: Reflector::new(),
             encoder,
-            transform: Dom::from_ref(transform)
+            transform: Dom::from_ref(transform),
         }
     }
 
@@ -268,7 +332,7 @@ impl TextEncoderStream {
         cx: SafeJSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TextEncoderStream>> {
         let encoder = Rc::new(Encoder::new());
         let transformer_type = TransformerType::Encoder(encoder.clone());
@@ -276,7 +340,12 @@ impl TextEncoderStream {
         let transform = TransformStream::new_with_proto(global, None, can_gc);
         transform.set_up(cx, global, transformer_type, can_gc)?;
 
-        Ok(reflect_dom_object_with_proto(Box::new(TextEncoderStream::new_inherited(encoder, &transform)), global, proto, can_gc))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(TextEncoderStream::new_inherited(encoder, &transform)),
+            global,
+            proto,
+            can_gc,
+        ))
     }
 }
 
