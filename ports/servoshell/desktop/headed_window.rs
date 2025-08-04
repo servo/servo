@@ -687,6 +687,7 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::Resized(new_inner_size) => {
                 if self.inner_size.get() != new_inner_size {
+                    self.inner_size.set(new_inner_size);
                     // This should always be set to inner size
                     // because we are resizing `SurfmanRenderingContext`.
                     // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
