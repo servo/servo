@@ -2534,17 +2534,17 @@ where
         // In single process mode, join on script-threads
         // from webview which haven't been manually closed before.
         for (_, join_handle) in self.script_join_handles.drain() {
-            join_handle
-                .join()
-                .expect("Failed to join on a script-thread.");
+            if join_handle.join().is_err() {
+                error!("Failed to join on a script-thread.");
+            }
         }
 
         // In single process mode, join on the background hang monitor worker thread.
         drop(self.background_monitor_register.take());
         if let Some(join_handle) = self.background_monitor_register_join_handle.take() {
-            join_handle
-                .join()
-                .expect("Failed to join on the BHM background thread.");
+            if join_handle.join().is_err() {
+                error!("Failed to join on the bhm background thread.");
+            }
         }
 
         // At this point, there are no active pipelines,
