@@ -26,6 +26,7 @@ use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
+use net::async_runtime::spawn_blocking_task;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -200,7 +201,7 @@ fn test_fetch_blob() {
         expected: bytes.to_vec(),
     };
 
-    crate::HANDLE.block_on(methods::fetch(request, &mut target, &context));
+    spawn_blocking_task::<_, Response>(methods::fetch(request, &mut target, &context));
 
     let fetch_response = receiver.recv().unwrap();
     assert!(!fetch_response.is_network_error());

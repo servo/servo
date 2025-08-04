@@ -10,7 +10,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 use std::thread;
 use std::time::Duration;
@@ -44,9 +43,8 @@ use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use tokio::runtime::Builder;
 
-use crate::async_runtime::{AsyncRuntimeHolder, HANDLE, spawn_task};
+use crate::async_runtime::{init_async_runtime, spawn_task};
 use crate::connector::{
     CACertificates, CertificateErrorOverrideManager, create_http_client, create_tls_config,
 };
@@ -87,28 +85,8 @@ pub fn new_resource_threads(
     ignore_certificate_errors: bool,
     protocols: Arc<ProtocolRegistry>,
 ) -> (ResourceThreads, ResourceThreads, Box<dyn AsyncRuntime>) {
-    // Initialize a tokio runtime.
-    let runtime = Builder::new_multi_thread()
-        .thread_name_fn(|| {
-            static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
-            let id = ATOMIC_ID.fetch_add(1, Ordering::Relaxed);
-            format!("tokio-runtime-{}", id)
-        })
-        .worker_threads(
-            thread::available_parallelism()
-                .map(|i| i.get())
-                .unwrap_or(servo_config::pref!(threadpools_fallback_worker_num) as usize)
-                .min(servo_config::pref!(threadpools_async_runtime_workers_max).max(1) as usize),
-        )
-        .enable_io()
-        .enable_time()
-        .build()
-        .expect("Unable to build tokio-runtime runtime");
-
-    // Make the runtime available to users inside this crate.
-    HANDLE
-        .set(runtime.handle().clone())
-        .expect("Runtime handle should be initialized once on start-up");
+    // Initialize the async runtime, and get a handle to it for use in clean shutdown.
+    let async_runtime = init_async_runtime();
 
     let ca_certificates = match certificate_path {
         Some(path) => match load_root_cert_store_from_file(path) {
@@ -137,8 +115,7 @@ pub fn new_resource_threads(
     (
         ResourceThreads::new(public_core, storage.clone(), idb.clone()),
         ResourceThreads::new(private_core, storage, idb),
-        // Return the runtime for use in shutdown.
-        Box::new(AsyncRuntimeHolder::new(runtime)),
+        async_runtime,
     )
 }
 

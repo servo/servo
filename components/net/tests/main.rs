@@ -37,6 +37,7 @@ use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper_util::rt::tokio::TokioIo;
+use net::async_runtime::{init_async_runtime, spawn_blocking_task, spawn_task};
 use net::connector::{create_http_client, create_tls_config};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
@@ -48,24 +49,18 @@ use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
 use net_traits::response::Response;
-use net_traits::{FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{AsyncRuntime, FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
 use rustls_pemfile::{certs, pkcs8_private_keys};
 use rustls_pki_types::{CertificateDer, PrivateKeyDer};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::runtime::{Builder, Runtime};
 use tokio_rustls::{self, TlsAcceptor};
 
-pub static HANDLE: LazyLock<Runtime> = LazyLock::new(|| {
-    Builder::new_multi_thread()
-        .enable_io()
-        .worker_threads(10)
-        .build()
-        .unwrap()
-});
-
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
+
+static ASYNC_RUNTIME: LazyLock<Arc<Mutex<Box<dyn AsyncRuntime>>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(init_async_runtime())));
 
 struct FetchResponseCollector {
     sender: Option<tokio::sync::oneshot::Sender<Response>>,
@@ -168,6 +163,8 @@ fn new_fetch_context(
     fc: Option<EmbedderProxy>,
     pool_handle: Option<Weak<CoreResourceThreadPool>>,
 ) -> FetchContext {
+    let _ = &*ASYNC_RUNTIME;
+
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
 
     FetchContext {
@@ -208,7 +205,7 @@ fn fetch_with_context(request: Request, mut context: &mut FetchContext) -> Respo
     let mut target = FetchResponseCollector {
         sender: Some(sender),
     };
-    HANDLE.block_on(async move {
+    spawn_blocking_task::<_, Response>(async move {
         methods::fetch(request, &mut target, &mut context).await;
         receiver.await.unwrap()
     })
@@ -219,14 +216,9 @@ fn fetch_with_cors_cache(request: Request, cache: &mut CorsCache) -> Response {
     let mut target = FetchResponseCollector {
         sender: Some(sender),
     };
-    HANDLE.block_on(async move {
-        methods::fetch_with_cors_cache(
-            request,
-            cache,
-            &mut target,
-            &mut new_fetch_context(None, None, None),
-        )
-        .await;
+    let mut fetch_context = new_fetch_context(None, None, None);
+    spawn_blocking_task::<_, Response>(async move {
+        methods::fetch_with_cors_cache(request, cache, &mut target, &mut fetch_context).await;
         receiver.await.unwrap()
     })
 }
@@ -249,11 +241,15 @@ where
         + Sync
         + 'static,
 {
+    let _ = &*ASYNC_RUNTIME;
     let handler = Arc::new(handler);
 
     let listener = StdTcpListener::bind("0.0.0.0:0").unwrap();
     listener.set_nonblocking(true).unwrap();
-    let listener = HANDLE.block_on(async move { TcpListener::from_std(listener).unwrap() });
+    let listener =
+        spawn_blocking_task::<_, TcpListener>(
+            async move { TcpListener::from_std(listener).unwrap() },
+        );
 
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
     let url = ServoUrl::parse(&url_string).unwrap();
@@ -290,13 +286,13 @@ where
                 }),
             );
             let conn = graceful.watch(conn);
-            HANDLE.spawn(async move {
+            spawn_task(async move {
                 let _ = conn.await;
             });
         }
     };
 
-    let _ = HANDLE.spawn(server);
+    let _ = spawn_task(server);
     (
         Server {
             close_channel: tx,
@@ -337,10 +333,14 @@ where
         + Sync
         + 'static,
 {
+    let _ = &*ASYNC_RUNTIME;
     let handler = Arc::new(handler);
     let listener = StdTcpListener::bind("[::0]:0").unwrap();
     listener.set_nonblocking(true).unwrap();
-    let listener = HANDLE.block_on(async move { TcpListener::from_std(listener).unwrap() });
+    let listener =
+        spawn_blocking_task::<_, TcpListener>(
+            async move { TcpListener::from_std(listener).unwrap() },
+        );
 
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
     let url = ServoUrl::parse(&url_string).unwrap();
@@ -400,7 +400,7 @@ where
         }
     };
 
-    HANDLE.spawn(server);
+    spawn_task(server);
 
     (
         Server {
