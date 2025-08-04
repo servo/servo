@@ -4502,7 +4502,7 @@ where
             WebDriverCommandMsg::MaximizeWebView(..) |
             WebDriverCommandMsg::LoadUrl(..) |
             WebDriverCommandMsg::Refresh(..) |
-            WebDriverCommandMsg::SendKeys(..) |
+            WebDriverCommandMsg::DispatchComposition(..) |
             WebDriverCommandMsg::KeyboardAction(..) |
             WebDriverCommandMsg::MouseButtonAction(..) |
             WebDriverCommandMsg::MouseMoveAction(..) |
