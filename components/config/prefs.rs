@@ -84,6 +84,7 @@ pub struct Preferences {
     /// - vello
     /// - vello_cpu
     pub dom_canvas_backend: String,
+    pub dom_clientstorage_testing_enabled: bool,
     pub dom_clipboardevent_enabled: bool,
     pub dom_composition_event_enabled: bool,
     pub dom_cookiestore_enabled: bool,
@@ -265,6 +266,7 @@ impl Preferences {
             dom_canvas_capture_enabled: false,
             dom_canvas_text_enabled: true,
             dom_canvas_backend: String::new(),
+            dom_clientstorage_testing_enabled: false,
             dom_clipboardevent_enabled: true,
             dom_composition_event_enabled: false,
             dom_cookiestore_enabled: false,

@@ -42,6 +42,10 @@ use js::rust::{
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
+use net_traits::clientstorage::proxy::ClientStorageProxy;
+use net_traits::clientstorage::proxy_msg::ClientStorageProxyMsg;
+use net_traits::clientstorage::proxy_sender::ClientStorageProxySender;
+use net_traits::clientstorage::thread_msg::ClientStorageThreadMsg;
 use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
@@ -186,6 +190,38 @@ impl Drop for AutoCloseWorker {
     }
 }
 
+pub struct ScriptClientStorageProxySender {
+    sender: ScriptEventLoopSender,
+    pipeline_id: PipelineId,
+}
+
+impl ScriptClientStorageProxySender {
+    pub fn new_boxed(
+        sender: ScriptEventLoopSender,
+        pipeline_id: PipelineId,
+    ) -> Box<dyn ClientStorageProxySender> {
+        Box::new(Self {
+            sender,
+            pipeline_id,
+        })
+    }
+}
+
+impl ClientStorageProxySender for ScriptClientStorageProxySender {
+    fn clone_box(&self) -> Box<dyn ClientStorageProxySender> {
+        Box::new(Self {
+            sender: self.sender.clone(),
+            pipeline_id: self.pipeline_id,
+        })
+    }
+
+    fn send(&self, msg: ClientStorageProxyMsg) {
+        self.sender
+            .send(CommonScriptMsg::ClientStorageProxy(msg, self.pipeline_id))
+            .unwrap();
+    }
+}
+
 #[dom_struct]
 pub(crate) struct GlobalScope {
     eventtarget: EventTarget,
@@ -256,6 +292,10 @@ pub(crate) struct GlobalScope {
     /// including resource_thread, filemanager_thread and storage_thread
     #[no_trace]
     resource_threads: ResourceThreads,
+
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    #[no_trace]
+    client_storage_proxy: OnceCell<Rc<ClientStorageProxy>>,
 
     /// The mechanism by which time-outs and intervals are scheduled.
     /// <https://html.spec.whatwg.org/multipage/#timers>
@@ -758,6 +798,7 @@ impl GlobalScope {
             script_to_constellation_chan,
             in_error_reporting_mode: Default::default(),
             resource_threads,
+            client_storage_proxy: OnceCell::new(),
             timers: OnceCell::default(),
             origin,
             creation_url,
@@ -2716,6 +2757,25 @@ impl GlobalScope {
     /// Get the `CoreResourceThread` for this global scope.
     pub(crate) fn core_resource_thread(&self) -> CoreResourceThread {
         self.resource_threads().sender()
+    }
+
+    pub(crate) fn client_storage_proxy(&self) -> Option<Rc<ClientStorageProxy>> {
+        if let Some(proxy) = self.client_storage_proxy.get() {
+            return Some(Rc::clone(proxy));
+        }
+
+        let thread: IpcSender<ClientStorageThreadMsg> = self.resource_threads().sender();
+
+        let event_loop_sender = self.event_loop_sender()?;
+
+        let msg_sender =
+            ScriptClientStorageProxySender::new_boxed(event_loop_sender, self.pipeline_id);
+
+        let proxy = ClientStorageProxy::new(thread, msg_sender);
+
+        let _ = self.client_storage_proxy.set(Rc::clone(&proxy));
+
+        Some(proxy)
     }
 
     /// A sender to the event loop of this global scope. This either sends to the Worker event loop

@@ -13014,6 +13014,28 @@
       {}
      ]
     ],
+    "clientstorage-test.any.js": [
+     "28c3446fc6487244c19921b0e993d4bbb7487421",
+     [
+      "mozilla/clientstorage-test.any.html",
+      {}
+     ],
+     [
+      "mozilla/clientstorage-test.any.worker.html",
+      {}
+     ]
+    ],
+    "clientstorage-testCursor.any.js": [
+     "59a8ab30f937dc9ba7e71692836a0fdb2a535155",
+     [
+      "mozilla/clientstorage-testCursor.any.html",
+      {}
+     ],
+     [
+      "mozilla/clientstorage-testCursor.any.worker.html",
+      {}
+     ]
+    ],
     "codegen_unions.html": [
      "1fff0e01c89cfa3bff91a6f19c00171bbb55b692",
      [

@@ -146,6 +146,7 @@ use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
+use net_traits::clientstorage::thread_msg::ClientStorageThreadMsg;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -2529,6 +2530,8 @@ where
         // Channels to receive signals when threads are done exiting.
         let (core_ipc_sender, core_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
+        let (clientstorage_ipc_sender, clientstorage_ipc_receiver) =
+            ipc::channel().expect("Failed to create IPC channel!");
         let (storage_ipc_sender, storage_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
         let mut webgl_threads_receiver = None;
@@ -2547,6 +2550,14 @@ where
             if let Err(e) = chan.send(msg) {
                 warn!("Exit devtools failed ({:?})", e);
             }
+        }
+
+        debug!("Exiting client storage thread.");
+        if let Err(e) = self
+            .public_resource_threads
+            .send(ClientStorageThreadMsg::Exit(clientstorage_ipc_sender))
+        {
+            warn!("Exit client storage thread failed ({})", e);
         }
 
         debug!("Exiting storage resource threads.");
@@ -2633,6 +2644,9 @@ where
         // Receive exit signals from threads.
         if let Err(e) = core_ipc_receiver.recv() {
             warn!("Exit resource thread failed ({:?})", e);
+        }
+        if let Err(e) = clientstorage_ipc_receiver.recv() {
+            warn!("Exit client storage thread failed ({:?})", e);
         }
         if let Err(e) = storage_ipc_receiver.recv() {
             warn!("Exit storage thread failed ({:?})", e);

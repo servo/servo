@@ -16,6 +16,7 @@ use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
 use net_traits::FetchResponseMsg;
+use net_traits::clientstorage::proxy_msg::ClientStorageProxyMsg;
 use net_traits::image_cache::ImageCacheResponseMessage;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
@@ -104,6 +105,10 @@ impl MixedMessage {
                     pipeline_id,
                     _,
                 )) => Some(*pipeline_id),
+                MainThreadScriptMsg::Common(CommonScriptMsg::ClientStorageProxy(
+                    _,
+                    pipeline_id,
+                )) => Some(*pipeline_id),
                 MainThreadScriptMsg::NavigationResponse { pipeline_id, .. } => Some(*pipeline_id),
                 MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(*pipeline_id),
                 MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(*pipeline_id),
@@ -164,6 +169,7 @@ pub(crate) enum CommonScriptMsg {
     ),
     /// Report CSP violations in the script
     ReportCspViolations(PipelineId, Vec<Violation>),
+    ClientStorageProxy(ClientStorageProxyMsg, PipelineId),
 }
 
 impl fmt::Debug for CommonScriptMsg {
@@ -174,6 +180,7 @@ impl fmt::Debug for CommonScriptMsg {
                 f.debug_tuple("Task").field(category).field(task).finish()
             },
             CommonScriptMsg::ReportCspViolations(..) => write!(f, "ReportCspViolations(...)"),
+            CommonScriptMsg::ClientStorageProxy(_, _) => write!(f, "ClientStorageProxy(...)"),
         }
     }
 }
