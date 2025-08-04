@@ -648,7 +648,10 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
                 listener.notify_fetch(message.unwrap());
             }),
         );
-        ev.droppable.set_canceller(FetchCanceller::new(request.id));
+        ev.droppable.set_canceller(FetchCanceller::new(
+            request.id,
+            global.core_resource_thread(),
+        ));
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(

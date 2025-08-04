@@ -16,8 +16,8 @@ use net_traits::image_cache::{
 };
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    CoreResourceThread, FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError,
+    ResourceFetchTiming, ResourceTimingType,
 };
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_media::player::video::VideoFrame;
@@ -271,7 +271,13 @@ impl HTMLVideoElement {
             LoadType::Image(poster_url.clone()),
         ));
 
-        let context = PosterFrameFetchContext::new(self, poster_url, id, request.id);
+        let context = PosterFrameFetchContext::new(
+            self,
+            poster_url,
+            id,
+            request.id,
+            self.global().core_resource_thread(),
+        );
         self.owner_document().fetch_background(request, context);
     }
 
@@ -498,6 +504,7 @@ impl PosterFrameFetchContext {
         url: ServoUrl,
         id: PendingImageId,
         request_id: RequestId,
+        core_resource_thread: CoreResourceThread,
     ) -> PosterFrameFetchContext {
         let window = elem.owner_window();
         PosterFrameFetchContext {
@@ -507,7 +514,7 @@ impl PosterFrameFetchContext {
             cancelled: false,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
-            fetch_canceller: FetchCanceller::new(request_id),
+            fetch_canceller: FetchCanceller::new(request_id, core_resource_thread),
         }
     }
 }

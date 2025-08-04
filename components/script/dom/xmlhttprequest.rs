@@ -1582,7 +1582,8 @@ impl XMLHttpRequest {
             )
         };
 
-        *self.canceller.borrow_mut() = FetchCanceller::new(request_builder.id);
+        *self.canceller.borrow_mut() =
+            FetchCanceller::new(request_builder.id, global.core_resource_thread());
         global.fetch(request_builder, context.clone(), task_source);
 
         if let Some(script_port) = script_port {
