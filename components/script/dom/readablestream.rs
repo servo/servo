@@ -249,28 +249,7 @@ impl Callback for PipeTo {
                 // If dest.[[state]] is "writable",
                 // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
                 if dest.is_writable() && !dest.close_queued_or_in_flight() {
-                    let has_done = {
-                        if !result.is_object() {
-                            false
-                        } else {
-                            rooted!(in(*cx) let object = result.to_object());
-                            rooted!(in(*cx) let mut done = UndefinedValue());
-                            unsafe {
-                                get_dictionary_property(
-                                    *cx,
-                                    object.handle(),
-                                    "done",
-                                    done.handle_mut(),
-                                    can_gc,
-                                )
-                                .unwrap()
-                            }
-                        }
-                    };
-                    // If any chunks have been read but not yet written, write them to dest.
-                    let contained_bytes = self.write_chunk(cx, &global, result, can_gc);
-
-                    if !contained_bytes && !has_done {
+                    let Ok(done) = get_read_promise_done(cx, &result, can_gc) else {
                         // This is the case that the microtask ran in reaction
                         // to the closed promise of the reader,
                         // so we should wait for subsequent chunks,
@@ -278,6 +257,11 @@ impl Callback for PipeTo {
                         // (reader is closed, but there are still pending reads).
                         // Shutdown will happen when the last chunk has been received.
                         return;
+                    };
+
+                    if !done {
+                        // If any chunks have been read but not yet written, write them to dest.
+                        self.write_chunk(cx, &global, result, can_gc);
                     }
                 }
             }
@@ -446,7 +430,7 @@ impl PipeTo {
                 get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut(), can_gc)
                     .expect("Chunk should have a value.")
             };
-            if !bytes.is_undefined() && has_value {
+            if has_value {
                 // Write the chunk.
                 let write_promise = self.writer.write(cx, global, bytes.handle(), can_gc);
                 self.pending_writes.borrow_mut().push_back(write_promise);
