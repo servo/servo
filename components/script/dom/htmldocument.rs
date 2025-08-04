@@ -30,7 +30,7 @@ impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
-    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
-        self.document.NamedGetter(name, CanGc::note())
+    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<NamedPropertyValue> {
+        self.document.NamedGetter(name, can_gc)
     }
 }
