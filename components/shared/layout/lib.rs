@@ -387,8 +387,8 @@ impl RestyleReason {
 /// Information derived from a layout pass that needs to be returned to the script thread.
 #[derive(Debug, Default)]
 pub struct ReflowResult {
-    /// Whether or not this reflow produced a display list.
-    pub built_display_list: bool,
+    /// The phases that were run during this reflow.
+    pub reflow_phases_run: ReflowPhasesRun,
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
     /// The list of vector images that were encountered that still need to be rasterized.
@@ -399,23 +399,17 @@ pub struct ReflowResult {
     /// finished before reaching this stage of the layout. I.e., no update
     /// required.
     pub iframe_sizes: Option<IFrameSizes>,
-    /// Whether the reflow is for [ReflowGoal::UpdateScrollNode] and the target is scrolled.
-    /// Specifically, a node is scrolled whenever the scroll position of it changes.
-    pub update_scroll_reflow_target_scrolled: bool,
-    /// Do the reflow results in a new component within layout. Incremental layout could be
-    /// skipped if it is deemed unnecessary or the required component is not ready to be
-    /// processed.
-    pub processed_relayout: bool,
 }
 
-impl ReflowResult {
-    /// In incremental reflow, we could skip the layout calculation completely, if it is deemed
-    /// unecessary. In those cases, many of the [ReflowResult] would be irrelevant.
-    pub fn new_without_relayout(update_scroll_reflow_target_scrolled: bool) -> Self {
-        ReflowResult {
-            update_scroll_reflow_target_scrolled,
-            ..Default::default()
-        }
+bitflags! {
+    /// The phases of reflow that were run when processing a reflow in layout.
+    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+    pub struct ReflowPhasesRun: u8 {
+        const RanLayout = 1 << 0;
+        const CalculatedOverflow = 1 << 1;
+        const BuiltStackingContextTree = 1 << 2;
+        const BuiltDisplayList = 1 << 3;
+        const UpdatedScrollNodeOffset = 1 << 4;
     }
 }
 

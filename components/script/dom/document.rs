@@ -43,7 +43,8 @@ use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{
-    PendingRestyle, ReflowGoal, RestyleReason, TrustedNodeAddress, node_id_from_scroll_id,
+    PendingRestyle, ReflowGoal, ReflowPhasesRun, RestyleReason, TrustedNodeAddress,
+    node_id_from_scroll_id,
 };
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
@@ -3694,8 +3695,8 @@ impl Document {
     // > Step 22: For each doc of docs, update the rendering or user interface of
     // > doc and its node navigable to reflect the current state.
     //
-    // Returns true if a reflow occured.
-    pub(crate) fn update_the_rendering(&self) -> bool {
+    // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
+    pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
         self.update_animating_images();
 
         // All dirty canvases are flushed before updating the rendering.
@@ -3730,9 +3731,7 @@ impl Document {
             receiver.recv().unwrap();
         }
 
-        self.window()
-            .reflow(ReflowGoal::UpdateTheRendering)
-            .reflow_issued
+        self.window().reflow(ReflowGoal::UpdateTheRendering)
     }
 
     /// From <https://drafts.csswg.org/css-font-loading/#fontfaceset-pending-on-the-environment>:

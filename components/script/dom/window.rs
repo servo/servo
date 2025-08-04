@@ -52,8 +52,8 @@ use js::rust::{
 };
 use layout_api::{
     FragmentType, Layout, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
-    ReflowGoal, ReflowRequest, ReflowRequestRestyle, RestyleReason, TrustedNodeAddress,
-    combine_id_with_fragment_type,
+    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason,
+    TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -224,25 +224,6 @@ impl LayoutBlocker {
 }
 
 type PendingImageRasterizationKey = (PendingImageId, DeviceIntSize);
-
-/// Feedbacks of the reflow that is required by the one who is initiating the reflow.
-pub(crate) struct WindowReflowResult {
-    /// Whether the reflow actually happened and it sends a new display list to the embedder.
-    pub reflow_issued: bool,
-    /// Whether the reflow is for [ReflowGoal::UpdateScrollNode] and the target is scrolled.
-    /// Specifically, a node is scrolled whenever the scroll position of it changes. Note
-    /// that reflow that is cancalled would not scroll the target.
-    pub update_scroll_reflow_target_scrolled: bool,
-}
-
-impl WindowReflowResult {
-    fn new_empty() -> Self {
-        WindowReflowResult {
-            reflow_issued: false,
-            update_scroll_reflow_target_scrolled: false,
-        }
-    }
-}
 
 #[dom_struct]
 pub(crate) struct Window {
@@ -2165,16 +2146,14 @@ impl Window {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        let WindowReflowResult {
-            update_scroll_reflow_target_scrolled,
-            ..
-        } = self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
+        let reflow_phases_run =
+            self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
 
         // > If the scroll position did not change as a result of the user interaction or programmatic
         // > invocation, where no translations were applied as a result, then no scrollend event fires
         // > because no scrolling occurred.
         // Even though the note mention the scrollend, it is relevant to the scroll as well.
-        if update_scroll_reflow_target_scrolled {
+        if reflow_phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
             match element {
                 Some(el) => self.Document().handle_element_scroll_event(el),
                 None => self.Document().handle_viewport_scroll_event(),
@@ -2210,25 +2189,25 @@ impl Window {
     ///
     /// NOTE: This method should almost never be called directly! Layout and rendering updates should
     /// happen as part of the HTML event loop via *update the rendering*.
-    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal) -> WindowReflowResult {
+    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal) -> ReflowPhasesRun {
         let document = self.Document();
 
         // Never reflow inactive Documents.
         if !document.is_fully_active() {
-            return WindowReflowResult::new_empty();
+            return ReflowPhasesRun::empty();
         }
 
         self.Document().ensure_safe_to_run_script_or_layout();
 
         // If layouts are blocked, we block all layouts that are for display only. Other
         // layouts (for queries and scrolling) are not blocked, as they do not display
-        // anything and script excpects the layout to be up-to-date after they run.
+        // anything and script expects the layout to be up-to-date after they run.
         let pipeline_id = self.pipeline_id();
         if reflow_goal == ReflowGoal::UpdateTheRendering &&
             self.layout_blocker.get().layout_blocked()
         {
             debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
-            return WindowReflowResult::new_empty();
+            return ReflowPhasesRun::empty();
         }
 
         debug!("script: performing reflow for goal {reflow_goal:?}");
@@ -2279,37 +2258,30 @@ impl Window {
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
         };
 
-        let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
-            return WindowReflowResult::new_empty();
+        let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {
+            return ReflowPhasesRun::empty();
         };
 
-        // We are maintaining the previous behavior of layout where we are skipping these behavior if we are not
-        // doing layout calculation.
-        if results.processed_relayout {
-            debug!("script: layout complete");
-            if let Some(marker) = marker {
-                self.emit_timeline_marker(marker.end());
-            }
-
-            self.handle_pending_images_post_reflow(
-                results.pending_images,
-                results.pending_rasterization_images,
-            );
-            if let Some(iframe_sizes) = results.iframe_sizes {
-                document
-                    .iframes_mut()
-                    .handle_new_iframe_sizes_after_layout(self, iframe_sizes);
-            }
-            document.update_animations_post_reflow();
-            self.update_constellation_epoch();
-        } else {
-            debug!("script: layout-side reflow finished without relayout");
+        debug!("script: layout complete");
+        if let Some(marker) = marker {
+            self.emit_timeline_marker(marker.end());
         }
 
-        WindowReflowResult {
-            reflow_issued: results.built_display_list,
-            update_scroll_reflow_target_scrolled: results.update_scroll_reflow_target_scrolled,
+        self.handle_pending_images_post_reflow(
+            reflow_result.pending_images,
+            reflow_result.pending_rasterization_images,
+        );
+
+        if let Some(iframe_sizes) = reflow_result.iframe_sizes {
+            document
+                .iframes_mut()
+                .handle_new_iframe_sizes_after_layout(self, iframe_sizes);
         }
+
+        document.update_animations_post_reflow();
+        self.update_constellation_epoch();
+
+        reflow_result.reflow_phases_run
     }
 
     pub(crate) fn maybe_send_idle_document_state_to_constellation(&self) {
