@@ -362,6 +362,7 @@ pub(crate) mod htmldialogelement;
 pub(crate) mod htmldirectoryelement;
 pub(crate) mod htmldivelement;
 pub(crate) mod htmldlistelement;
+pub(crate) mod htmldocument;
 pub(crate) mod htmlelement;
 pub(crate) mod htmlembedelement;
 pub(crate) mod htmlfieldsetelement;
