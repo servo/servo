@@ -28,7 +28,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::textdecodercommon::TextDecoderCommon;
 use crate::dom::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
-use crate::dom::textencoderstream::{encode_and_enqueue_a_chunk, encode_and_flush, Encoder};
+use crate::dom::textencoderstream::{Encoder, encode_and_enqueue_a_chunk, encode_and_flush};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -270,7 +270,7 @@ impl TransformStreamDefaultController {
                         p.reject_error(e, can_gc);
                         p
                     })
-            }
+            },
         };
 
         Ok(result)
@@ -336,7 +336,7 @@ impl TransformStreamDefaultController {
                 // Note: Not applicable.
                 // Step 7.3 Return a promise resolved with undefined.
                 Promise::new_resolved(global, cx, (), can_gc)
-            }
+            },
         };
 
         Ok(result)
@@ -414,7 +414,7 @@ impl TransformStreamDefaultController {
                         p.reject_error(e, can_gc);
                         p
                     })
-            }
+            },
         };
 
         Ok(result)
