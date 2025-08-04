@@ -1922,24 +1922,23 @@ fn get_element_pointer_interactable_paint_tree(
     document: &Document,
     can_gc: CanGc,
 ) -> Vec<DomRoot<Element>> {
-    // Step 2. Let rectangles be the DOMRect sequence returned by calling getClientRects()
-    let rect = element.GetClientRects(can_gc);
-
-    if rect.first().is_some() {
-        // Step 4. Let center point be the in-view center point of
-        // the first indexed element in rectangles.
-        match get_element_in_view_center_point(element, can_gc) {
-            // Step 5. Return the elements from point given the coordinates center point
-            Some(center_point) => document.ElementsFromPoint(
-                Finite::wrap(center_point.x as f64),
-                Finite::wrap(center_point.y as f64),
-            ),
-            None => Vec::new(),
-        }
-    } else {
-        // Step 3. If rectangles has the length of 0, return an empty sequence
-        Vec::new()
+    // Step 1. If element is not in the same tree as session's
+    // current browsing context's active document, return an empty sequence.
+    if !element.is_connected() {
+        return Vec::new();
     }
+
+    // Step 2 - 5: Return "elements from point" w.r.t. in-view center point of element.
+    // Spec has bugs in description and can be simplified.
+    // The original step 4 "compute in-view center point" takes an element as argument
+    // which internally computes first DOMRect of getClientRects
+
+    get_element_in_view_center_point(element, can_gc).map_or(Vec::new(), |center_point| {
+        document.ElementsFromPoint(
+            Finite::wrap(center_point.x as f64),
+            Finite::wrap(center_point.y as f64),
+        )
+    })
 }
 
 pub(crate) fn handle_is_enabled(
