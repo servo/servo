@@ -1786,7 +1786,7 @@ pub(crate) fn handle_element_clear(
         .unwrap();
 }
 
-fn get_option_parent(node: &Node) -> Option<DomRoot<Node>> {
+fn get_option_parent(node: &Node) -> Option<DomRoot<Element>> {
     // Get parent for `<option>` or `<optiongrp>` based on container spec:
     // > 1. Let datalist parent be the first datalist element reached by traversing the tree
     // >    in reverse order from element, or undefined if the root of the tree is reached.
@@ -1801,18 +1801,19 @@ fn get_option_parent(node: &Node) -> Option<DomRoot<Node>> {
             node.preceding_nodes(&root_node)
                 .find(|preceding| preceding.is::<HTMLSelectElement>())
         })
+        .map(|result_node| DomRoot::downcast::<Element>(result_node).unwrap())
 }
 
-// https://w3c.github.io/webdriver/#dfn-container
-fn get_container(node: &Node) -> Option<DomRoot<Node>> {
-    if node.is::<HTMLOptionElement>() {
-        return get_option_parent(node);
+/// <https://w3c.github.io/webdriver/#dfn-container>
+fn get_container(element: &Element) -> Option<DomRoot<Element>> {
+    if element.is::<HTMLOptionElement>() {
+        return get_option_parent(element.upcast::<Node>());
     }
-    if node.is::<HTMLOptGroupElement>() {
-        let option_parent = get_option_parent(node);
-        return option_parent.or_else(|| Some(DomRoot::from_ref(node)));
+    if element.is::<HTMLOptGroupElement>() {
+        return get_option_parent(element.upcast::<Node>())
+            .or_else(|| Some(DomRoot::from_ref(element)));
     }
-    Some(DomRoot::from_ref(node))
+    Some(DomRoot::from_ref(element))
 }
 
 // https://w3c.github.io/webdriver/#element-click
@@ -1834,7 +1835,7 @@ pub(crate) fn handle_element_click(
                     }
                 }
 
-                let Some(container) = get_container(element.upcast::<Node>()) else {
+                let Some(container) = get_container(&element) else {
                     return Err(ErrorStatus::UnknownError);
                 };
 
@@ -1843,17 +1844,22 @@ pub(crate) fn handle_element_click(
 
                 // Step 6. If element's container is still not in view
                 // return error with error code element not interactable.
-                let document = documents
-                    .find_document(pipeline)
-                    .expect("Document existence guaranteed by `get_known_element`");
-                if !is_element_in_view(&element, &document, can_gc) {
+                let paint_tree = get_element_pointer_interactable_paint_tree(
+                    &container,
+                    &documents
+                        .find_document(pipeline)
+                        .expect("Document existence guaranteed by `get_known_element`"),
+                    can_gc,
+                );
+
+                if !is_element_in_view(&container, &paint_tree, can_gc) {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
                 // Step 7
                 // TODO: return error if obscured
 
-                // Step 8
+                // Step 8 for <option> element.
                 match element.downcast::<HTMLOptionElement>() {
                     Some(option_element) => {
                         // Steps 8.2 - 8.4
@@ -1906,20 +1912,21 @@ pub(crate) fn handle_element_click(
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-in-view>
-fn is_element_in_view(element: &Element, document: &Document, can_gc: CanGc) -> bool {
+fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>], can_gc: CanGc) -> bool {
+    // An element is in view if it is a member of its own pointer-interactable paint tree,
+    // given the pretense that its pointer events are not disabled.
+    if !paint_tree.contains(&DomRoot::from_ref(element)) {
+        return false;
+    }
     use style::computed_values::pointer_events::T as PointerEvents;
     // https://w3c.github.io/webdriver/#dfn-pointer-events-are-not-disabled
     // An element is said to have pointer events disabled
     // if the resolved value of its "pointer-events" style property is "none".
-    let pointer_events_enabled = element
+    let pointer_events_not_disabled = element
         .style(can_gc)
         .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None);
 
-    // An element is in view if it is a member of its own pointer-interactable paint tree,
-    // given the pretense that its pointer events are not disabled.
-    pointer_events_enabled &&
-        get_element_pointer_interactable_paint_tree(element, document, can_gc)
-            .contains(&DomRoot::from_ref(element))
+    pointer_events_not_disabled
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-pointer-interactable-paint-tree>
