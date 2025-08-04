@@ -28,6 +28,9 @@ pub(crate) struct HitTest<'a> {
     flags: ElementsFromPointFlags,
     /// The point to test for this hit test, relative to the page.
     point_to_test: LayoutPoint,
+    /// A cached version of [`Self::point_to_test`] projected to a spatial node, to avoid
+    /// doing a lot of matrix math over and over.
+    projected_point_to_test: Option<(ScrollTreeNodeId, LayoutPoint, LayoutTransform)>,
     /// The stacking context tree against which to perform the hit test.
     stacking_context_tree: &'a StackingContextTree,
     /// The resulting [`HitTestResultItems`] for this hit test.
@@ -45,6 +48,7 @@ impl<'a> HitTest<'a> {
         let mut hit_test = Self {
             flags,
             point_to_test,
+            projected_point_to_test: None,
             stacking_context_tree,
             results: Vec::new(),
             clip_hit_test_results: HashMap::new(),
@@ -80,9 +84,18 @@ impl<'a> HitTest<'a> {
     /// returning `None` if the transformation is uninvertible or the point cannot be
     /// projected into the spatial node.
     fn location_in_spatial_node(
-        &self,
+        &mut self,
         scroll_tree_node_id: ScrollTreeNodeId,
     ) -> Option<(LayoutPoint, LayoutTransform)> {
+        match self.projected_point_to_test {
+            Some((cached_scroll_tree_node_id, projected_point, transform))
+                if cached_scroll_tree_node_id == scroll_tree_node_id =>
+            {
+                return Some((projected_point, transform));
+            },
+            _ => {},
+        }
+
         let transform = self
             .stacking_context_tree
             .compositor_info
@@ -103,11 +116,10 @@ impl<'a> HitTest<'a> {
         let z =
             -(point.x * transform.m13 + point.y * transform.m23 + transform.m43) / transform.m33;
         let projected_point = transform.transform_point3d(Point3D::new(point.x, point.y, z))?;
+        let projected_point = Point2D::new(projected_point.x, projected_point.y);
 
-        Some((
-            Point2D::new(projected_point.x, projected_point.y),
-            transform,
-        ))
+        self.projected_point_to_test = Some((scroll_tree_node_id, projected_point, transform));
+        Some((projected_point, transform))
     }
 }
 
