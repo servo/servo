@@ -29,9 +29,9 @@ use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{
-    CookieSource, CoreResourceMsg, CoreResourceThread, CustomResponseMediator, DiscardFetch,
-    FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads, ResourceTimingType,
-    WebSocketDomAction, WebSocketNetworkEvent,
+    AsyncRuntime, CookieSource, CoreResourceMsg, CoreResourceThread, CustomResponseMediator,
+    DiscardFetch, FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads,
+    ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
@@ -44,7 +44,7 @@ use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
-use crate::async_runtime::HANDLE;
+use crate::async_runtime::{init_async_runtime, spawn_task};
 use crate::connector::{
     CACertificates, CertificateErrorOverrideManager, create_http_client, create_tls_config,
 };
@@ -84,7 +84,10 @@ pub fn new_resource_threads(
     certificate_path: Option<String>,
     ignore_certificate_errors: bool,
     protocols: Arc<ProtocolRegistry>,
-) -> (ResourceThreads, ResourceThreads) {
+) -> (ResourceThreads, ResourceThreads, Box<dyn AsyncRuntime>) {
+    // Initialize the async runtime, and get a handle to it for use in clean shutdown.
+    let async_runtime = init_async_runtime();
+
     let ca_certificates = match certificate_path {
         Some(path) => match load_root_cert_store_from_file(path) {
             Ok(root_cert_store) => CACertificates::Override(root_cert_store),
@@ -112,6 +115,7 @@ pub fn new_resource_threads(
     (
         ResourceThreads::new(public_core, storage.clone(), idb.clone()),
         ResourceThreads::new(private_core, storage, idb),
+        async_runtime,
     )
 }
 
@@ -781,7 +785,7 @@ impl CoreResourceManager {
             _ => (FileTokenCheck::NotRequired, None),
         };
 
-        HANDLE.spawn(async move {
+        spawn_task(async move {
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?

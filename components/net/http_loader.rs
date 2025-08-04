@@ -66,7 +66,7 @@ use tokio::sync::mpsc::{
 };
 use tokio_stream::wrappers::ReceiverStream;
 
-use crate::async_runtime::HANDLE;
+use crate::async_runtime::spawn_task;
 use crate::connector::{CertificateErrorOverrideManager, Connector};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
@@ -574,7 +574,7 @@ impl BodySink {
         match self {
             BodySink::Chunked(sender) => {
                 let sender = sender.clone();
-                HANDLE.spawn(async move {
+                spawn_task(async move {
                     let _ = sender
                         .send(Ok(Frame::data(Bytes::copy_from_slice(&bytes))))
                         .await;
@@ -2090,7 +2090,7 @@ async fn http_network_fetch(
     let headers = response.headers.clone();
     let devtools_chan = context.devtools_chan.clone();
 
-    HANDLE.spawn(
+    spawn_task(
         res.into_body()
             .map_err(|e| {
                 warn!("Error streaming response body: {:?}", e);

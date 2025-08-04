@@ -49,7 +49,7 @@ use url::Url;
 
 use crate::{
     create_embedder_proxy_and_receiver, fetch, fetch_with_context, make_body, make_server,
-    new_fetch_context, receive_credential_prompt_msgs,
+    new_fetch_context, receive_credential_prompt_msgs, spawn_blocking_task,
 };
 
 fn mock_origin() -> ImmutableOrigin {
@@ -1611,7 +1611,7 @@ fn test_fetch_compressed_response_update_count() {
         sender: Some(sender),
         update_count: 0,
     };
-    let response_update_count = crate::HANDLE.block_on(async move {
+    let response_update_count = spawn_blocking_task::<_, Response>(async move {
         methods::fetch(
             request,
             &mut target,
