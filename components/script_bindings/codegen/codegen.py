@@ -2662,11 +2662,13 @@ def getAllTypes(
     for dictionary in dictionaries:
         for t in getTypesFromDictionary(dictionary):
             if t.isRecord():
+                # pyrefly: ignore  # missing-attribute
                 yield (t.inner, None)
             yield (t, None)
     for callback in callbacks:
         for t in getTypesFromCallback(callback):
             if t.isRecord():
+                # pyrefly: ignore  # missing-attribute
                 yield (t.inner, None)
             yield (t, None)
     for typedef in typedefs:
