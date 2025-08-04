@@ -24,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
 use crate::dom::event::Event;
@@ -53,18 +53,18 @@ pub(crate) struct History {
 
 impl History {
     pub(crate) fn new_inherited(window: &Window) -> History {
-        let state = Heap::default();
-        state.set(NullValue());
         History {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
-            state,
+            state: Heap::default(),
             state_id: Cell::new(None),
         }
     }
 
     pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<History> {
-        reflect_dom_object(Box::new(History::new_inherited(window)), window, can_gc)
+        let dom_root = reflect_dom_object(Box::new(History::new_inherited(window)), window, can_gc);
+        dom_root.state.set(NullValue());
+        dom_root
     }
 }
 
@@ -84,7 +84,6 @@ impl History {
 
     /// <https://html.spec.whatwg.org/multipage/#history-traversal>
     /// Steps 5-16
-    #[allow(unsafe_code)]
     pub(crate) fn activate_state(
         &self,
         state_id: Option<HistoryStateId>,
@@ -145,7 +144,7 @@ impl History {
             PopStateEvent::dispatch_jsval(
                 self.window.upcast::<EventTarget>(),
                 &self.window,
-                unsafe { HandleValue::from_raw(self.state.handle()) },
+                self.state.as_handle_value(),
                 can_gc,
             );
         }

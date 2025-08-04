@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
+use js::jsapi::{HandleObject, Heap, JSObject};
 use webgpu_traits::{
     RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
 };
@@ -49,7 +49,6 @@ impl GPUAdapter {
     fn new_inherited(
         channel: WebGPU,
         name: DOMString,
-        extensions: Heap<*mut JSObject>,
         features: &GPUSupportedFeatures,
         limits: &GPUSupportedLimits,
         info: &GPUAdapterInfo,
@@ -59,7 +58,7 @@ impl GPUAdapter {
             reflector_: Reflector::new(),
             channel,
             name,
-            extensions,
+            extensions: Heap::default(),
             features: Dom::from_ref(features),
             limits: Dom::from_ref(limits),
             info: Dom::from_ref(info),
@@ -72,7 +71,7 @@ impl GPUAdapter {
         global: &GlobalScope,
         channel: WebGPU,
         name: DOMString,
-        extensions: Heap<*mut JSObject>,
+        extensions: HandleObject,
         features: wgpu_types::Features,
         limits: wgpu_types::Limits,
         info: wgpu_types::AdapterInfo,
@@ -82,13 +81,15 @@ impl GPUAdapter {
         let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
         let limits = GPUSupportedLimits::new(global, limits, can_gc);
         let info = GPUAdapterInfo::new(global, info, can_gc);
-        reflect_dom_object(
+        let dom_root = reflect_dom_object(
             Box::new(GPUAdapter::new_inherited(
-                channel, name, extensions, &features, &limits, &info, adapter,
+                channel, name, &features, &limits, &info, adapter,
             )),
             global,
             can_gc,
-        )
+        );
+        dom_root.extensions.set(*extensions);
+        dom_root
     }
 }
 
@@ -226,7 +227,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     &self.global(),
                     self.channel.clone(),
                     self,
-                    Heap::default(),
+                    HandleObject::null(),
                     descriptor.required_features,
                     descriptor.required_limits,
                     device_id,
@@ -259,7 +260,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     &self.global(),
                     self.channel.clone(),
                     self,
-                    Heap::default(),
+                    HandleObject::null(),
                     wgpu_types::Features::default(),
                     wgpu_types::Limits::default(),
                     device_id,

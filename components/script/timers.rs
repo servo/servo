@@ -24,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
-use crate::dom::bindings::root::Dom;
+use crate::dom::bindings::root::{AsHandleValue, Dom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
 use crate::dom::document::{ImageAnimationUpdateCallback, RefreshRedirectDue};
@@ -395,6 +395,7 @@ pub(crate) enum TimerCallback {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 enum InternalTimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(
@@ -416,6 +417,7 @@ impl Default for JsTimers {
 
 impl JsTimers {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn set_timeout_or_interval(
         &self,
         global: &GlobalScope,
@@ -583,13 +585,8 @@ impl JsTimerTask {
         }
     }
 
-    // Returning Handles directly from Heap values is inherently unsafe, but here it's
-    // always done via rooted JsTimers, which is safe.
-    #[allow(unsafe_code)]
     fn collect_heap_args<'b>(&self, args: &'b [Heap<JSVal>]) -> Vec<HandleValue<'b>> {
-        args.iter()
-            .map(|arg| unsafe { HandleValue::from_raw(arg.handle()) })
-            .collect()
+        args.iter().map(|arg| arg.as_handle_value()).collect()
     }
 }
 

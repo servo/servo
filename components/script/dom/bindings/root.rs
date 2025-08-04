@@ -30,7 +30,8 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::{mem, ptr};
 
-use js::jsapi::{JSObject, JSTracer};
+use js::jsapi::{Heap, JSObject, JSTracer, Value};
+use js::rust::HandleValue;
 use layout_api::TrustedNodeAddress;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 pub(crate) use script_bindings::root::*;
@@ -407,5 +408,23 @@ where
         // representation.
         let _ = mem::transmute::<Dom<T>, LayoutDom<T>>;
         &*(slice as *const [Dom<T>] as *const [LayoutDom<T>])
+    }
+}
+
+/// Converts a rooted `Heap<Value>` into a `HandleValue`.
+///
+/// This is only safe if the `Heap` is rooted (e.g., held inside a `Dom`-managed struct),
+/// and the `#[must_root]` crown lint is active to enforce rooting at compile time.
+/// Avoids repeating unsafe `from_raw` calls at each usage site.
+pub trait AsHandleValue<'a> {
+    fn as_handle_value(&'a self) -> HandleValue<'a>;
+}
+
+impl<'a> AsHandleValue<'a> for Heap<Value> {
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+    fn as_handle_value(&'a self) -> HandleValue<'a> {
+        // SAFETY: `self` is assumed to be rooted, and `handle()` ties
+        // the lifetime to `&self`, which the compiler can enforce.
+        unsafe { HandleValue::from_marked_location(self.ptr.get() as *const _) }
     }
 }
