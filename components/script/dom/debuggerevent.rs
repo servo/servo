@@ -34,10 +34,10 @@ impl DebuggerEvent {
             event: Event::new_inherited(),
             global: Dom::from_ref(global),
         });
-
+        let result = reflect_dom_object(result, debugger_global, can_gc);
         result.event.init_event("addDebuggee".into(), false, false);
 
-        reflect_dom_object(result, debugger_global, can_gc)
+        result
     }
 }
 
