@@ -78,7 +78,7 @@ use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::TaskBox;
 
 fn gen_type_error(global: &GlobalScope, string: String, can_gc: CanGc) -> RethrowError {
@@ -1901,7 +1901,7 @@ pub(crate) fn fetch_inline_module_script(
         compiled_module.handle_mut(),
         true,
         can_gc,
-        Some(c"inlineScript"),
+        Some(IntroductionType::INLINE_SCRIPT),
     );
 
     match compiled_module_result {

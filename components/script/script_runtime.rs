@@ -9,7 +9,7 @@
 
 use core::ffi::c_char;
 use std::cell::Cell;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::Deref;
 use std::os::raw::c_void;
@@ -1194,3 +1194,9 @@ impl Runnable {
 }
 
 pub(crate) use script_bindings::script_runtime::CanGc;
+
+/// `introductionType` values in SpiderMonkey TransitiveCompileOptions.
+pub(crate) struct IntroductionType;
+impl IntroductionType {
+    pub const INLINE_SCRIPT: &'static CStr = c"inlineScript";
+}

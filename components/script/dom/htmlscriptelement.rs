@@ -81,7 +81,7 @@ use crate::script_module::{
     ImportMap, ModuleOwner, ScriptFetchOptions, fetch_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, IntroductionType};
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::unminify::{ScriptSource, unminify_js};
 
@@ -1146,7 +1146,7 @@ impl HTMLScriptElement {
         // Step 6.
         let document = self.owner_document();
         let old_script = document.GetCurrentScript();
-        let introduction_type = (!script.external).then_some(c"inlineScript");
+        let introduction_type = (!script.external).then_some(IntroductionType::INLINE_SCRIPT);
 
         match script.type_ {
             ScriptType::Classic => {
