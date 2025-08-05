@@ -942,18 +942,8 @@ impl Node {
         TrustedNodeAddress(self as *const Node as *const libc::c_void)
     }
 
-    /// Returns the rendered bounding content box if the element is rendered,
-    /// and none otherwise.
-    pub(crate) fn bounding_content_box(&self) -> Option<Rect<Au>> {
+    pub(crate) fn content_box(&self) -> Option<Rect<Au>> {
         self.owner_window().content_box_query(self)
-    }
-
-    pub(crate) fn bounding_content_box_or_zero(&self) -> Rect<Au> {
-        self.bounding_content_box().unwrap_or_else(Rect::zero)
-    }
-
-    pub(crate) fn bounding_content_box_no_reflow(&self) -> Option<Rect<Au>> {
-        self.owner_window().content_box_query_unchecked(self)
     }
 
     pub(crate) fn content_boxes(&self) -> Vec<Rect<Au>> {
