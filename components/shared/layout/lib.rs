@@ -29,7 +29,7 @@ use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
-pub use layout_damage::LayoutDamage;
+pub use layout_damage::ServoRestyleDamage;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
@@ -51,7 +51,7 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::Device;
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
-use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
+use style::selector_parser::{PseudoElement, Snapshot};
 use style::stylesheets::Stylesheet;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
@@ -68,7 +68,7 @@ pub struct StyleData {
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
     /// transmutations between ElementData and PersistentLayoutData.
-    pub element_data: AtomicRefCell<ElementData>,
+    pub element_data: AtomicRefCell<ElementData<ServoRestyleDamage>>,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
@@ -468,7 +468,7 @@ pub struct PendingRestyle {
     pub hint: RestyleHint,
 
     /// Any explicit restyles damage that have been accumulated for this element.
-    pub damage: RestyleDamage,
+    pub damage: ServoRestyleDamage,
 }
 
 /// The type of fragment that a scroll root is created for.

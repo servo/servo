@@ -8,7 +8,7 @@ use std::iter::FusedIterator;
 use fonts::ByteIndex;
 use html5ever::{LocalName, local_name};
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use layout_api::{LayoutDamage, LayoutElementType, LayoutNodeType};
+use layout_api::{LayoutElementType, LayoutNodeType, ServoRestyleDamage};
 use range::Range;
 use script::layout_dom::ServoLayoutNode;
 use selectors::Element as SelectorsElement;
@@ -34,14 +34,14 @@ pub(crate) struct NodeAndStyleInfo<'dom> {
     pub node: ServoLayoutNode<'dom>,
     pub pseudo_element_type: Option<PseudoElement>,
     pub style: ServoArc<ComputedValues>,
-    pub damage: LayoutDamage,
+    pub damage: ServoRestyleDamage,
 }
 
 impl<'dom> NodeAndStyleInfo<'dom> {
     pub(crate) fn new(
         node: ServoLayoutNode<'dom>,
         style: ServoArc<ComputedValues>,
-        damage: LayoutDamage,
+        damage: ServoRestyleDamage,
     ) -> Self {
         Self {
             node,

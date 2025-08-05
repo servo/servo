@@ -26,7 +26,7 @@ use style::stylist::RuleInclusion;
 
 use crate::{
     FragmentType, GenericLayoutData, GenericLayoutDataTrait, HTMLCanvasData, HTMLMediaData,
-    LayoutNodeType, SVGSVGData, StyleData,
+    LayoutNodeType, SVGSVGData, ServoRestyleDamage, StyleData,
 };
 
 pub trait LayoutDataTrait: GenericLayoutDataTrait + Default + Send + Sync + 'static {}
@@ -302,7 +302,7 @@ pub trait ThreadSafeLayoutElement<'dom>:
 
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue>;
 
-    fn style_data(&self) -> AtomicRef<ElementData>;
+    fn style_data(&self) -> AtomicRef<ElementData<ServoRestyleDamage>>;
 
     fn pseudo_element(&self) -> Option<PseudoElement>;
 

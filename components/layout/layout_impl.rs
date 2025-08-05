@@ -26,8 +26,8 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use layout_api::{
-    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, OffsetParentResponse, QueryMsg,
-    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult,
+    IFrameSizes, Layout, LayoutConfig, LayoutFactory, OffsetParentResponse, QueryMsg, ReflowGoal,
+    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult, ServoRestyleDamage,
     TrustedNodeAddress,
 };
 use log::{debug, error, warn};
@@ -58,7 +58,7 @@ use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::queries::values::PrefersColorScheme;
-use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
+use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
@@ -786,7 +786,7 @@ impl LayoutThread {
         document: ServoLayoutDocument<'_>,
         root_element: ServoLayoutElement<'_>,
         image_resolver: &Arc<ImageResolver>,
-    ) -> (ReflowPhasesRun, RestyleDamage, IFrameSizes) {
+    ) -> (ReflowPhasesRun, ServoRestyleDamage, IFrameSizes) {
         let mut snapshot_map = SnapshotMap::new();
         let _snapshot_setter = match reflow_request.restyle.as_mut() {
             Some(restyle) => SnapshotSetter::new(restyle, &mut snapshot_map),
@@ -878,7 +878,7 @@ impl LayoutThread {
 
         let root_node = root_element.as_node();
         let damage_from_environment = viewport_changed
-            .then_some(RestyleDamage::RELAYOUT)
+            .then_some(ServoRestyleDamage::RELAYOUT)
             .unwrap_or_default();
         let damage = compute_damage_and_repair_style(
             &layout_context.style_context,
@@ -886,15 +886,14 @@ impl LayoutThread {
             damage_from_environment,
         );
 
-        if !damage.contains(RestyleDamage::RELAYOUT) {
+        if !damage.contains(ServoRestyleDamage::RELAYOUT) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return (ReflowPhasesRun::empty(), damage, IFrameSizes::default());
         }
 
         let mut box_tree = self.box_tree.borrow_mut();
         let box_tree = &mut *box_tree;
-        let layout_damage: LayoutDamage = damage.into();
-        if box_tree.is_none() || layout_damage.has_box_damage() {
+        if box_tree.is_none() || damage.has_box_damage() {
             let mut build_box_tree = || {
                 if !BoxTree::update(recalc_style_traversal.context(), dirty_root) {
                     *box_tree = Some(Arc::new(BoxTree::construct(
@@ -957,8 +956,8 @@ impl LayoutThread {
     }
 
     #[servo_tracing::instrument(name = "Overflow Calculation", skip_all)]
-    fn calculate_overflow(&self, damage: RestyleDamage) -> bool {
-        if !damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
+    fn calculate_overflow(&self, damage: ServoRestyleDamage) -> bool {
+        if !damage.contains(ServoRestyleDamage::RECALCULATE_OVERFLOW) {
             return false;
         }
 
@@ -980,7 +979,7 @@ impl LayoutThread {
     fn build_stacking_context_tree(
         &self,
         reflow_request: &ReflowRequest,
-        damage: RestyleDamage,
+        damage: ServoRestyleDamage,
     ) -> bool {
         if !ReflowPhases::necessary(&reflow_request.reflow_goal)
             .contains(ReflowPhases::StackingContextTreeConstruction)
@@ -990,7 +989,7 @@ impl LayoutThread {
         let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
             return false;
         };
-        if !damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) &&
+        if !damage.contains(ServoRestyleDamage::REBUILD_STACKING_CONTEXT) &&
             !self.need_new_stacking_context_tree.get()
         {
             return false;
@@ -1053,7 +1052,7 @@ impl LayoutThread {
     fn build_display_list(
         &self,
         reflow_request: &ReflowRequest,
-        damage: RestyleDamage,
+        damage: ServoRestyleDamage,
         image_resolver: &Arc<ImageResolver>,
     ) -> bool {
         if !ReflowPhases::necessary(&reflow_request.reflow_goal)
@@ -1073,7 +1072,7 @@ impl LayoutThread {
         // require display lists. If a non-display-list-generating reflow updated layout
         // in a previous refow, we cannot skip display list generation here the next time
         // a display list is requested.
-        if !self.need_new_display_list.get() && !damage.contains(RestyleDamage::REPAINT) {
+        if !self.need_new_display_list.get() && !damage.contains(ServoRestyleDamage::REPAINT) {
             return false;
         }
 
