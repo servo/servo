@@ -741,6 +741,13 @@ impl AbsoluteAxisSolver {
         }
     }
 
+    /// Returns the size of the inset-modified containing block.
+    /// <https://drafts.csswg.org/css-position-3/#inset-modified-containing-block>
+    #[inline]
+    fn available_space(&self) -> Au {
+        Au::zero().max(self.containing_size - self.inset_sum())
+    }
+
     #[inline]
     fn automatic_size(&self) -> Size<Au> {
         match self.alignment.value() {
@@ -754,8 +761,7 @@ impl AbsoluteAxisSolver {
     #[inline]
     fn stretch_size(&self) -> Au {
         Au::zero().max(
-            self.containing_size -
-                self.inset_sum() -
+            self.available_space() -
                 self.padding_border_sum -
                 self.computed_margin_start.auto_is(Au::zero) -
                 self.computed_margin_end.auto_is(Au::zero),
@@ -769,8 +775,7 @@ impl AbsoluteAxisSolver {
                 self.computed_margin_end.auto_is(Au::zero),
             )
         } else {
-            let free_space =
-                self.containing_size - self.inset_sum() - self.padding_border_sum - size;
+            let free_space = self.available_space() - self.padding_border_sum - size;
             match (self.computed_margin_start, self.computed_margin_end) {
                 (AuOrAuto::Auto, AuOrAuto::Auto) => {
                     if self.avoid_negative_margin_start && free_space < Au::zero() {
@@ -813,7 +818,7 @@ impl AbsoluteAxisSolver {
             (Some(start), Some(end)) => {
                 let alignment_container = RectAxis {
                     origin: start,
-                    length: self.containing_size - start - end,
+                    length: self.available_space(),
                 };
                 (
                     alignment_container,
