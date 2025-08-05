@@ -124,9 +124,9 @@ impl DebuggerGlobalScope {
 
     #[allow(unsafe_code)]
     pub(crate) fn fire_add_debuggee(&self, can_gc: CanGc, global: &GlobalScope) {
-        let event = DomRoot::upcast::<Event>(DebuggerEvent::new(self.upcast(), global, can_gc));
         assert_eq!(
-            event.fire(self.upcast(), can_gc),
+            DomRoot::upcast::<Event>(DebuggerEvent::new(self.upcast(), global, can_gc))
+                .fire(self.upcast(), can_gc),
             EventStatus::NotCanceled,
             "Guaranteed by DebuggerEvent::new"
         );

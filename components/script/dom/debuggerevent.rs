@@ -43,7 +43,7 @@ impl DebuggerEvent {
 
 impl DebuggerEventMethods<crate::DomTypeHolder> for DebuggerEvent {
     // check-tidy: no specs after this line
-    fn Global(&self, r#cx: script_bindings::script_runtime::JSContext) -> NonNull<JSObject> {
+    fn Global(&self, cx: script_bindings::script_runtime::JSContext) -> NonNull<JSObject> {
         // Convert the debuggee global’s reflector to a Value, wrapping it from its originating realm (debuggee realm)
         // into the active realm (debugger realm) so that it can be passed across compartments.
         rooted!(in(*cx) let mut result: Value);
