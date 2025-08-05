@@ -8,7 +8,7 @@ use std::fmt;
 
 use embedder_traits::UntrustedNodeAddress;
 use js::rust::HandleValue;
-use layout_api::{ElementsFromPointFlags, ElementsFromPointResult, QueryMsg};
+use layout_api::ElementsFromPointFlags;
 use script_bindings::error::{Error, ErrorResult};
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
@@ -137,15 +137,6 @@ impl DocumentOrShadowRoot {
         }
     }
 
-    pub(crate) fn query_elements_from_point(
-        &self,
-        point: LayoutPoint,
-        flags: ElementsFromPointFlags,
-    ) -> Vec<ElementsFromPointResult> {
-        self.window.layout_reflow(QueryMsg::ElementsFromPoint);
-        self.window.layout().query_elements_from_point(point, flags)
-    }
-
     #[allow(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
     pub(crate) fn element_from_point(
@@ -168,7 +159,8 @@ impl DocumentOrShadowRoot {
         }
 
         match self
-            .query_elements_from_point(LayoutPoint::new(x, y), ElementsFromPointFlags::empty())
+            .window
+            .elements_from_point_query(LayoutPoint::new(x, y), ElementsFromPointFlags::empty())
             .first()
         {
             Some(result) => {
@@ -218,8 +210,9 @@ impl DocumentOrShadowRoot {
         }
 
         // Step 1 and Step 3
-        let nodes =
-            self.query_elements_from_point(LayoutPoint::new(x, y), ElementsFromPointFlags::FindAll);
+        let nodes = self
+            .window
+            .elements_from_point_query(LayoutPoint::new(x, y), ElementsFromPointFlags::FindAll);
         let mut elements: Vec<DomRoot<Element>> = nodes
             .iter()
             .flat_map(|result| {

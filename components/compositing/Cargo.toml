@@ -31,6 +31,7 @@ gleam = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
+num-traits = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 servo_allocator = { path = "../allocator" }

@@ -6,12 +6,13 @@ use std::collections::HashMap;
 
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
-use euclid::{Box2D, Point2D, Point3D};
+use euclid::{Box2D, Point2D, Point3D, Vector2D};
 use kurbo::{Ellipse, Shape};
 use layout_api::{ElementsFromPointFlags, ElementsFromPointResult};
 use style::computed_values::backface_visibility::T as BackfaceVisibility;
 use style::computed_values::pointer_events::T as PointerEvents;
 use style::computed_values::visibility::T as Visibility;
+use style::properties::ComputedValues;
 use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, RectExt};
 
@@ -20,7 +21,7 @@ use crate::display_list::stacking_context::StackingContextSection;
 use crate::display_list::{
     StackingContext, StackingContextContent, StackingContextTree, ToWebRender,
 };
-use crate::fragment_tree::{BoxFragment, Fragment};
+use crate::fragment_tree::Fragment;
 use crate::geom::PhysicalRect;
 
 pub(crate) struct HitTest<'a> {
@@ -125,7 +126,7 @@ impl<'a> HitTest<'a> {
 
 impl Clip {
     fn contains(&self, point: LayoutPoint) -> bool {
-        rounded_rect_contains_point(self.rect, || self.radii, point)
+        rounded_rect_contains_point(self.rect, &self.radii, point)
     }
 }
 
@@ -245,22 +246,10 @@ impl Fragment {
             return false;
         };
 
-        let point_in_target;
-        let transform;
-        let hit = match self {
-            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                (point_in_target, transform) =
-                    match hit_test.location_in_spatial_node(spatial_node_id) {
-                        Some(point) => point,
-                        None => return false,
-                    };
-                box_fragment
-                    .borrow()
-                    .hit_test(point_in_target, containing_block, &transform)
-            },
-            Fragment::Text(text) => {
-                let text = &*text.borrow();
-                let style = text.inline_styles.style.borrow();
+        let mut hit_test_fragment_inner =
+            |style: &ComputedValues,
+             fragment_rect: PhysicalRect<Au>,
+             border_radius: BorderRadius| {
                 if style.get_inherited_ui().pointer_events == PointerEvents::None {
                     return false;
                 }
@@ -268,7 +257,7 @@ impl Fragment {
                     return false;
                 }
 
-                (point_in_target, transform) =
+                let (point_in_spatial_node, transform) =
                     match hit_test.location_in_spatial_node(spatial_node_id) {
                         Some(point) => point,
                         None => return false,
@@ -280,68 +269,59 @@ impl Fragment {
                     return false;
                 }
 
-                text.rect
-                    .translate(containing_block.origin.to_vector())
-                    .to_webrender()
-                    .contains(point_in_target)
+                let fragment_rect = fragment_rect.translate(containing_block.origin.to_vector());
+                if !rounded_rect_contains_point(
+                    fragment_rect.to_webrender(),
+                    &border_radius,
+                    point_in_spatial_node,
+                ) {
+                    return false;
+                }
+
+                let point_in_target = point_in_spatial_node.cast_unit() -
+                    Vector2D::new(
+                        fragment_rect.origin.x.to_f32_px(),
+                        fragment_rect.origin.y.to_f32_px(),
+                    );
+                hit_test.results.push(ElementsFromPointResult {
+                    node: tag.node,
+                    point_in_target,
+                });
+
+                !hit_test.flags.contains(ElementsFromPointFlags::FindAll)
+            };
+
+        match self {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                let box_fragment = box_fragment.borrow();
+                hit_test_fragment_inner(
+                    &box_fragment.style,
+                    box_fragment.border_rect(),
+                    box_fragment.border_radius(),
+                )
             },
-            Fragment::AbsoluteOrFixedPositioned(_) |
-            Fragment::IFrame(_) |
-            Fragment::Image(_) |
-            Fragment::Positioning(_) => return false,
-        };
-
-        if !hit {
-            return false;
+            Fragment::Text(text) => {
+                let text = &*text.borrow();
+                hit_test_fragment_inner(
+                    &text.inline_styles.style.borrow(),
+                    text.rect,
+                    BorderRadius::zero(),
+                )
+            },
+            _ => false,
         }
-
-        hit_test.results.push(ElementsFromPointResult {
-            node: tag.node,
-            point_in_target,
-        });
-
-        !hit_test.flags.contains(ElementsFromPointFlags::FindAll)
-    }
-}
-
-impl BoxFragment {
-    fn hit_test(
-        &self,
-        point_in_fragment: LayoutPoint,
-        containing_block: &PhysicalRect<Au>,
-        transform: &LayoutTransform,
-    ) -> bool {
-        if self.style.get_inherited_ui().pointer_events == PointerEvents::None {
-            return false;
-        }
-        if self.style.get_inherited_box().visibility != Visibility::Visible {
-            return false;
-        }
-
-        if self.style.get_box().backface_visibility == BackfaceVisibility::Hidden &&
-            transform.is_backface_visible()
-        {
-            return false;
-        }
-
-        let border_rect = self
-            .border_rect()
-            .translate(containing_block.origin.to_vector())
-            .to_webrender();
-        rounded_rect_contains_point(border_rect, || self.border_radius(), point_in_fragment)
     }
 }
 
 fn rounded_rect_contains_point(
     rect: LayoutRect,
-    border_radius: impl FnOnce() -> BorderRadius,
+    border_radius: &BorderRadius,
     point: LayoutPoint,
 ) -> bool {
     if !rect.contains(point) {
         return false;
     }
 
-    let border_radius = border_radius();
     if border_radius.is_zero() {
         return true;
     }

@@ -1137,8 +1137,7 @@ impl ScriptThread {
                     document.handle_mouse_leave_event(&event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
-                    let touch_result =
-                        document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
+                    let touch_result = document.handle_touch_event(touch_event, &event, can_gc);
                     if let (TouchEventResult::Processed(handled), true) =
                         (touch_result, touch_event.is_cancelable())
                     {
