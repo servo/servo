@@ -296,6 +296,7 @@ impl ScrollableNodeInfo {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 pub struct ScrollTreeNodeTransformationCache {
     node_to_root_transform: LayoutTransform,
+    root_to_node_transform: Option<LayoutTransform>,
 }
 
 #[derive(Default)]
@@ -599,7 +600,8 @@ impl ScrollTree {
         })
     }
 
-    /// Traverse a scroll node to its root to calculate the transform.
+    /// Find a transformation that can convert a point in the node coordinate system to a
+    /// point in the root coordinate system.
     pub fn cumulative_node_to_root_transform(&self, node_id: &ScrollTreeNodeId) -> LayoutTransform {
         let node = self.get_node(node_id);
         if let Some(cached_transforms) = node.transformation_cache.get() {
@@ -609,6 +611,23 @@ impl ScrollTree {
         let (transforms, _) = self.cumulative_node_transform_inner(node);
         node.transformation_cache.set(Some(transforms));
         transforms.node_to_root_transform
+    }
+
+    /// Find a transformation that can convert a point in the root coordinate system to a
+    /// point in the coordinate system of the given node. This may be `None` if the cumulative
+    /// transform is uninvertible.
+    pub fn cumulative_root_to_node_transform(
+        &self,
+        node_id: &ScrollTreeNodeId,
+    ) -> Option<LayoutTransform> {
+        let node = self.get_node(node_id);
+        if let Some(cached_transforms) = node.transformation_cache.get() {
+            return cached_transforms.root_to_node_transform;
+        }
+
+        let (transforms, _) = self.cumulative_node_transform_inner(node);
+        node.transformation_cache.set(Some(transforms));
+        transforms.root_to_node_transform
     }
 
     /// Traverse a scroll node to its root to calculate the transform.
@@ -628,7 +647,7 @@ impl ScrollTree {
                 post_translation.then(transform).then(&pre_translation)
             };
 
-        let node_to_parent_transform = match &node.info {
+        let (node_to_parent_transform, parent_to_node_transform) = match &node.info {
             SpatialTreeNodeInfo::ReferenceFrame(info) => {
                 // To apply a transformation we need to make sure the rectangle's
                 // coordinate space is the same as reference frame's coordinate space.
@@ -638,30 +657,52 @@ impl ScrollTree {
                     info.frame_origin_for_query.y,
                 );
 
+                let parent_to_node_transform =
+                    Transform3D::translation(-info.origin.x, -info.origin.y, 0.0);
+                let parent_to_node_transform = info
+                    .transform
+                    .inverse()
+                    .map(|inverse_transform| parent_to_node_transform.then(&inverse_transform));
+
                 sticky_info.nearest_scrolling_ancestor_viewport = sticky_info
                     .nearest_scrolling_ancestor_viewport
                     .translate(-info.origin.to_vector());
 
-                node_to_parent_transform
+                (node_to_parent_transform, parent_to_node_transform)
             },
             SpatialTreeNodeInfo::Scroll(info) => {
                 sticky_info.nearest_scrolling_ancestor_viewport = info.clip_rect;
                 sticky_info.nearest_scrolling_ancestor_offset = -info.offset;
 
-                Transform3D::translation(-info.offset.x, -info.offset.y, 0.0)
+                (
+                    Transform3D::translation(-info.offset.x, -info.offset.y, 0.0),
+                    Some(Transform3D::translation(info.offset.x, info.offset.y, 0.0)),
+                )
             },
 
             SpatialTreeNodeInfo::Sticky(info) => {
                 let offset = info.calculate_sticky_offset(&sticky_info);
                 sticky_info.nearest_scrolling_ancestor_offset += offset;
-                Transform3D::translation(offset.x, offset.y, 0.0)
+                (
+                    Transform3D::translation(offset.x, offset.y, 0.0),
+                    Some(Transform3D::translation(-offset.x, -offset.y, 0.0)),
+                )
             },
         };
 
         let node_to_root_transform =
             node_to_parent_transform.then(&parent_transforms.node_to_root_transform);
+        let root_to_node_transform = parent_to_node_transform.map(|parent_to_node_transform| {
+            parent_transforms
+                .root_to_node_transform
+                .map_or(parent_to_node_transform, |parent_transform| {
+                    parent_transform.then(&parent_to_node_transform)
+                })
+        });
+
         let transforms = ScrollTreeNodeTransformationCache {
             node_to_root_transform,
+            root_to_node_transform,
         };
         (transforms, sticky_info)
     }

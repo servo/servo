@@ -293,7 +293,7 @@ pub(crate) enum StackingContextContent {
 }
 
 impl StackingContextContent {
-    fn section(&self) -> StackingContextSection {
+    pub(crate) fn section(&self) -> StackingContextSection {
         match self {
             Self::Fragment { section, .. } => *section,
             Self::AtomicInlineStackingContainer { .. } => StackingContextSection::Foreground,
@@ -365,7 +365,7 @@ pub struct StackingContext {
     context_type: StackingContextType,
 
     /// The contents that need to be painted in fragment order.
-    contents: Vec<StackingContextContent>,
+    pub(super) contents: Vec<StackingContextContent>,
 
     /// Stacking contexts that need to be stolen by the parent stacking context
     /// if this is a stacking container, that is, real stacking contexts and
@@ -376,13 +376,13 @@ pub struct StackingContext {
     /// >     if it created a new stacking context, but omitting any positioned
     /// >     descendants or descendants that actually create a stacking context
     /// >     (letting the parent stacking context paint them, instead).
-    real_stacking_contexts_and_positioned_stacking_containers: Vec<StackingContext>,
+    pub(super) real_stacking_contexts_and_positioned_stacking_containers: Vec<StackingContext>,
 
     /// Float stacking containers.
     /// Separate from real_stacking_contexts_or_positioned_stacking_containers
     /// because they should never be stolen by the parent stacking context.
     /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-container>
-    float_stacking_containers: Vec<StackingContext>,
+    pub(super) float_stacking_containers: Vec<StackingContext>,
 
     /// Atomic inline stacking containers.
     /// Separate from real_stacking_contexts_or_positioned_stacking_containers
@@ -391,7 +391,7 @@ pub struct StackingContext {
     /// can index into this vec to paint them in fragment order.
     /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-container>
     /// <https://drafts.csswg.org/css-position-4/#paint-a-box-in-a-line-box>
-    atomic_inline_stacking_containers: Vec<StackingContext>,
+    pub(super) atomic_inline_stacking_containers: Vec<StackingContext>,
 
     /// Information gathered about the painting order, for [Self::debug_print].
     debug_print_items: Option<RefCell<Vec<DebugPrintItem>>>,
@@ -472,7 +472,7 @@ impl StackingContext {
         .push(stacking_context)
     }
 
-    fn z_index(&self) -> i32 {
+    pub(crate) fn z_index(&self) -> i32 {
         self.initializing_fragment.as_ref().map_or(0, |fragment| {
             let fragment = fragment.borrow();
             fragment.style.effective_z_index(fragment.base.flags)
@@ -651,6 +651,9 @@ impl StackingContext {
         fragment_builder.build_background_image(builder, &painter);
     }
 
+    /// Build a display list from a a [`StackingContext`]. Note that this is the forward
+    /// version of the reversed stacking context walk algorithm in `hit_test.rs`. Any
+    /// changes made here should be reflected in the reverse version in that file.
     pub(crate) fn build_display_list(&self, builder: &mut DisplayListBuilder) {
         let pushed_context = self.push_webrender_stacking_context_if_necessary(builder);
 

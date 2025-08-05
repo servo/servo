@@ -4723,6 +4723,7 @@ dependencies = [
  "icu_segmenter",
  "ipc-channel",
  "itertools 0.14.0",
+ "kurbo",
  "layout_api",
  "log",
  "malloc_size_of_derive",
