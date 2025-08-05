@@ -7697,7 +7697,7 @@ version = "0.0.1"
 dependencies = [
  "log",
  "malloc_size_of_derive",
- "rand 0.8.5",
+ "rand 0.9.2",
  "rand_core 0.6.4",
  "rand_isaac",
  "servo_malloc_size_of",
