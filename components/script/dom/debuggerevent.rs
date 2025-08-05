@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::default::Default;
 use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
@@ -13,7 +12,7 @@ use script_bindings::reflector::DomObject;
 use crate::dom::bindings::codegen::Bindings::DebuggerEventBinding::DebuggerEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::event::Event;
 use crate::dom::types::GlobalScope;
 use crate::script_runtime::CanGc;
@@ -22,7 +21,7 @@ use crate::script_runtime::CanGc;
 /// Event for Rust → JS calls in [`crate::dom::DebuggerGlobalScope`].
 pub(crate) struct DebuggerEvent {
     event: Event,
-    global: MutNullableDom<GlobalScope>,
+    global: Dom<GlobalScope>,
 }
 
 impl DebuggerEvent {
@@ -33,10 +32,8 @@ impl DebuggerEvent {
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
-            global: Default::default(),
+            global: Dom::from_ref(global),
         });
-        // TODO: make these fields not optional somehow?
-        result.global.set(Some(global));
 
         result.event.init_event("addDebuggee".into(), false, false);
 
@@ -51,8 +48,6 @@ impl DebuggerEventMethods<crate::DomTypeHolder> for DebuggerEvent {
         // into the active realm (debugger realm) so that it can be passed across compartments.
         rooted!(in(*cx) let mut result: Value);
         self.global
-            .get()
-            .expect("Guaranteed by new")
             .reflector()
             .safe_to_jsval(cx, result.handle_mut());
         NonNull::new(result.to_object()).unwrap()
