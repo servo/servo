@@ -427,12 +427,17 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 Ok((metadata, bytes)) => (metadata.final_url, String::from_utf8(bytes).unwrap()),
             };
 
+            let options = self
+                .runtime
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .new_compile_options(url.as_str(), 1);
             let result = self.runtime.borrow().as_ref().unwrap().evaluate_script(
                 self.reflector().get_jsobject(),
                 &source,
-                url.as_str(),
-                1,
                 rval.handle_mut(),
+                options,
             );
 
             maybe_resume_unwind();
@@ -639,12 +644,17 @@ impl WorkerGlobalScope {
         let _aes = AutoEntryScript::new(self.upcast());
         let cx = self.runtime.borrow().as_ref().unwrap().cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
+        let options = self
+            .runtime
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .new_compile_options(self.worker_url.borrow().as_str(), 1);
         match self.runtime.borrow().as_ref().unwrap().evaluate_script(
             self.reflector().get_jsobject(),
             &source,
-            self.worker_url.borrow().as_str(),
-            1,
             rval.handle_mut(),
+            options,
         ) {
             Ok(_) => (),
             Err(_) => {

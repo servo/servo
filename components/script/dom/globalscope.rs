@@ -5,6 +5,7 @@
 use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::ffi::CStr;
 use std::ops::Index;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -2768,6 +2769,7 @@ impl GlobalScope {
             fetch_options,
             script_base_url,
             can_gc,
+            None,
         )
     }
 
@@ -2783,6 +2785,7 @@ impl GlobalScope {
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
         can_gc: CanGc,
+        introduction_type: Option<&'static CStr>,
     ) -> bool {
         let cx = GlobalScope::get_cx();
 
@@ -2794,7 +2797,10 @@ impl GlobalScope {
             rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
             match code {
                 SourceCode::Text(text_code) => {
-                    let options = CompileOptionsWrapper::new(*cx, filename, line_number);
+                    let mut options = CompileOptionsWrapper::new(*cx, filename, line_number);
+                    if let Some(introduction_type) = introduction_type {
+                        options.set_introduction_type(introduction_type);
+                    }
 
                     debug!("compiling dom string");
                     compiled_script.set(Compile1(
