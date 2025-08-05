@@ -27,6 +27,7 @@ use net_traits::indexeddb_thread::IndexedDBThreadMsg;
 use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
+use net_traits::speech_thread::SpeechSynthesisThreadMsg;
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{
     CookieSource, CoreResourceMsg, CoreResourceThread, CustomResponseMediator, DiscardFetch,
@@ -60,6 +61,7 @@ use crate::http_loader::{HttpState, http_redirect_fetch};
 use crate::indexeddb::idb_thread::IndexedDBThreadFactory;
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
+use crate::speech_synthesis_thread::SpeechSynthesisThreadFactory;
 use crate::storage_thread::StorageThreadFactory;
 use crate::websocket_loader;
 
@@ -109,9 +111,10 @@ pub fn new_resource_threads(
     let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> =
         StorageThreadFactory::new(config_dir, mem_profiler_chan);
+    let speech: IpcSender<SpeechSynthesisThreadMsg> = SpeechSynthesisThreadFactory::new();
     (
-        ResourceThreads::new(public_core, storage.clone(), idb.clone()),
-        ResourceThreads::new(private_core, storage, idb),
+        ResourceThreads::new(public_core, storage.clone(), idb.clone(), speech.clone()),
+        ResourceThreads::new(private_core, storage, idb, speech),
     )
 }
 

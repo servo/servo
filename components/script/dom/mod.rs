@@ -551,6 +551,9 @@ pub(crate) mod servointernals;
 #[allow(dead_code)]
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
+pub(crate) mod speechsynthesis;
+pub(crate) mod speechsynthesisutterance;
+pub(crate) mod speechsynthesisvoice;
 pub(crate) mod staticrange;
 pub(crate) mod stereopannernode;
 pub(crate) mod storage;

@@ -152,6 +152,7 @@ use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::screen::Screen;
 use crate::dom::selection::Selection;
 use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::speechsynthesis::SpeechSynthesis;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
@@ -279,6 +280,7 @@ pub(crate) struct Window {
     screen: MutNullableDom<Screen>,
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
+    speech_synthesis: MutNullableDom<SpeechSynthesis>,
     status: DomRefCell<DOMString>,
     trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
@@ -1204,6 +1206,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn LocalStorage(&self) -> DomRoot<Storage> {
         self.local_storage
             .or_init(|| Storage::new(self, StorageType::Local, CanGc::note()))
+    }
+
+    fn SpeechSynthesis(&self) -> DomRoot<SpeechSynthesis> {
+        self.speech_synthesis
+            .or_init(|| SpeechSynthesis::new(self, CanGc::note()))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
@@ -3202,6 +3209,7 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
+            speech_synthesis: Default::default(),
             status: DomRefCell::new(DOMString::new()),
             parent_info,
             dom_static: GlobalStaticData::new(),
