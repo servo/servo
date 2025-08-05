@@ -16,6 +16,8 @@ from WebIDL import (
     IDLInterface,
     IDLDictionary,
     IDLCallback,
+    IDLAttribute,
+    IDLMethod,
 )
 
 
@@ -88,10 +90,10 @@ class Configuration:
             return (x > y) - (x < y)
         self.descriptors.sort(key=functools.cmp_to_key(lambda x, y: cmp(x.name, y.name)))
 
-    def getInterface(self, ifname: str):
+    def getInterface(self, ifname: str) -> IDLInterface:
         return self.interfaces[ifname]
 
-    def getDescriptors(self, **filters: dict[str, Any]) -> list["Descriptor"]:
+    def getDescriptors(self, **filters) -> list["Descriptor"]:
         """Gets the descriptors that match the given filters."""
         curr = self.descriptors
         for key, val in filters.items():
@@ -131,7 +133,7 @@ class Configuration:
     def getEnums(self, webIDLFile: str) -> list[IDLInterface]:
         return [e for e in self.enums if e.filename == webIDLFile]
 
-    def getEnumConfig(self, name: str):
+    def getEnumConfig(self, name: str) -> dict[str, Any]:
         return self.enumConfig.get(name, {})
 
     def getTypedefs(self, webIDLFile: str) -> list[IDLInterface]:
@@ -145,13 +147,13 @@ class Configuration:
 
         return [x for x in items if x.filename == webIDLFile]
 
-    def getUnionConfig(self, name: str):
+    def getUnionConfig(self, name: str) -> dict[str, Any]:
         return self.unionConfig.get(name, {})
 
     def getDictionaries(self, webIDLFile: str = "") -> list[IDLInterface]:
         return self._filterForFile(self.dictionaries, webIDLFile=webIDLFile)
 
-    def getDictConfig(self, name: str):
+    def getDictConfig(self, name: str) -> dict[str, Any]:
         return self.dictConfig.get(name, {})
 
     def getCallbacks(self, webIDLFile: str = "") -> list[IDLInterface]:
@@ -197,7 +199,7 @@ class DescriptorProvider:
         return self.config.getDescriptor(interfaceName)
 
 
-def MemberIsLegacyUnforgeable(member, descriptor):
+def MemberIsLegacyUnforgeable(member: IDLAttribute | IDLMethod, descriptor: "Descriptor") -> bool:
     return ((member.isAttr() or member.isMethod())
             and not member.isStatic()
             and (member.isLegacyUnforgeable()
@@ -415,10 +417,10 @@ class Descriptor(DescriptorProvider):
             return filename
         return None
 
-    def binaryNameFor(self, name, isStatic):
+    def binaryNameFor(self, name: str, isStatic: bool):
         return self._binaryNames.get((name, isStatic), name)
 
-    def internalNameFor(self, name):
+    def internalNameFor(self, name: str):
         return self._internalNames.get(name, name)
 
     def hasNamedPropertiesObject(self) -> bool:

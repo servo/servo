@@ -136,10 +136,9 @@ def isDomInterface(t: IDLObject, logging: bool = False) -> bool:
         t = t.inner
     if isinstance(t, IDLInterface):
         return True
-    # pyrefly: ignore  # missing-attribute
+    assert isinstance(t, IDLType)
     if t.isCallback() or t.isPromise():
         return True
-    # pyrefly: ignore  # missing-attribute
     return t.isInterface() and (t.isSpiderMonkeyInterface() and not t.isBufferSource())
 
 
@@ -160,9 +159,9 @@ def containsDomInterface(t: IDLObject, logging: bool = False) -> bool:
         return any(map(lambda x: containsDomInterface(x), t.members)) or (t.parent and containsDomInterface(t.parent))
     if isDomInterface(t):
         return True
-    # pyrefly: ignore  # missing-attribute
+    assert isinstance(t, IDLType)
     if t.isSequence():
-        # pyrefly: ignore  # missing-attribute
+        assert isinstance(t, IDLSequenceType)
         return containsDomInterface(t.inner)
     return False
 
@@ -2703,7 +2702,7 @@ def UnionTypes(
         t = t.unroll()
         if not t.isUnion():
             continue
-        # pyrefly: ignore  # missing-attribute
+        assert isinstance(t, IDLUnionType) and t.flatMemberTypes is not None
         for memberType in t.flatMemberTypes:
             if memberType.isDictionary() or memberType.isEnum() or memberType.isCallback():
                 memberModule = getModuleFromObject(memberType)
@@ -7818,43 +7817,38 @@ def type_needs_tracing(t: IDLObject):
     assert isinstance(t, IDLObject), (t, type(t))
 
     if t.isType():
+        assert isinstance(t, IDLType)
         if isinstance(t, IDLWrapperType):
             return type_needs_tracing(t.inner)
 
-        # pyrefly: ignore  # missing-attribute
         if t.nullable():
-            # pyrefly: ignore  # missing-attribute
+            assert isinstance(t, IDLNullableType)
             return type_needs_tracing(t.inner)
 
-        # pyrefly: ignore  # missing-attribute
         if t.isAny():
             return True
 
-        # pyrefly: ignore  # missing-attribute
         if t.isObject():
             return True
 
-        # pyrefly: ignore  # missing-attribute
         if t.isSequence() :
-            # pyrefly: ignore  # missing-attribute
+            assert isinstance(t, IDLSequenceType)
             return type_needs_tracing(t.inner)
 
         if t.isUnion():
-            # pyrefly: ignore  # not-iterable
+            assert isinstance(t, IDLUnionType) and t.flatMemberTypes is not None
             return any(type_needs_tracing(member) for member in t.flatMemberTypes)
 
-        # pyrefly: ignore  # bad-argument-type
         if is_typed_array(t):
             return True
 
         return False
 
     if t.isDictionary():
-        # pyrefly: ignore  # missing-attribute, bad-argument-type
+        assert isinstance(t, IDLDictionary)
         if t.parent and type_needs_tracing(t.parent):
             return True
 
-        # pyrefly: ignore  # missing-attribute
         if any(type_needs_tracing(member.type) for member in t.members):
             return True
 
