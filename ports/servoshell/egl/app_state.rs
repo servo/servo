@@ -15,7 +15,7 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    AllowOrDenyRequest, CompositionEvent, CompositionState, ContextMenuResult, ImeEvent,
+    AllowOrDenyRequest, CompositionEvent, CompositionState, ContextMenuResult, ImeEvent, ImeType,
     InputEvent, InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NamedKey,
     NavigationRequest, PermissionRequest, RenderingContext, ScreenGeometry, Servo, ServoDelegate,
@@ -615,12 +615,12 @@ impl RunningAppState {
             KeyState::Down,
             Key::Named(NamedKey::Process),
         )));
-        active_webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+        active_webview.notify_input_event(InputEvent::Ime(ImeEvent::new(ImeType::Composition(
             CompositionEvent {
                 state: CompositionState::End,
                 data: text,
             },
-        )));
+        ))));
         active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
             KeyState::Up,
             Key::Named(NamedKey::Process),
@@ -668,7 +668,7 @@ impl RunningAppState {
     pub fn ime_dismissed(&self) {
         info!("ime_dismissed");
         self.active_webview()
-            .notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
+            .notify_input_event(InputEvent::Ime(ImeEvent::new(ImeType::Dismissed)));
         self.perform_updates();
     }
 

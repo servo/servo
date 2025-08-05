@@ -54,7 +54,7 @@ impl InputEvent {
         match self {
             InputEvent::EditingAction(..) => None,
             InputEvent::Gamepad(..) => None,
-            InputEvent::Ime(..) => None,
+            InputEvent::Ime(event) => event.webdriver_id,
             InputEvent::Keyboard(event) => event.webdriver_id,
             InputEvent::MouseButton(event) => event.webdriver_id,
             InputEvent::MouseMove(event) => event.webdriver_id,
@@ -69,7 +69,9 @@ impl InputEvent {
         match self {
             InputEvent::EditingAction(..) => {},
             InputEvent::Gamepad(..) => {},
-            InputEvent::Ime(..) => {},
+            InputEvent::Ime(ref mut event) => {
+                event.webdriver_id = webdriver_id;
+            },
             InputEvent::Keyboard(ref mut event) => {
                 event.webdriver_id = webdriver_id;
             },
@@ -364,9 +366,24 @@ pub struct ScrollEvent {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ImeEvent {
+pub enum ImeType {
     Composition(CompositionEvent),
     Dismissed,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ImeEvent {
+    pub event: ImeType,
+    webdriver_id: Option<WebDriverMessageId>,
+}
+
+impl ImeEvent {
+    pub fn new(event: ImeType) -> Self {
+        Self {
+            event,
+            webdriver_id: None,
+        }
+    }
 }
 
 #[derive(
