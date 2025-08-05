@@ -12,10 +12,10 @@ bitflags! {
     pub struct LayoutDamage: u16 {
         /// Recollect the box children for this element, because some of the them will be
         /// rebuilt.
-        const RECOLLECT_BOX_TREE_CHILDREN = 0b011111111111 << 4;
+        const RECOLLECT_BOX_TREE_CHILDREN = 0b0111_1111_1111 << 4;
         /// Rebuild the entire box for this element, which means that every part of layout
         /// needs to happena again.
-        const REBUILD_BOX = 0b111111111111 << 4;
+        const REBUILD_BOX = 0b1111_1111_1111 << 4;
     }
 }
 
