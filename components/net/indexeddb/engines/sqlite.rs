@@ -13,7 +13,6 @@ use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use tokio::sync::oneshot;
 
-use crate::async_runtime::HANDLE;
 use crate::indexeddb::engines::{KvsEngine, KvsTransaction, SanitizedName};
 use crate::indexeddb::idb_thread::IndexedDBDescription;
 use crate::resource_thread::CoreResourceThreadPool;
@@ -39,7 +38,7 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     // Special case for optimization
     if let Some(singleton) = range.as_singleton() {
         let encoded = bincode::serialize(singleton).unwrap();
-        return sea_query::Expr::column(object_data_model::Column::Data)
+        return Expr::column(object_data_model::Column::Data)
             .eq(encoded)
             .into_condition();
     }
@@ -47,18 +46,18 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     if let Some(upper) = range.upper.as_ref() {
         let upper_bytes = bincode::serialize(upper).unwrap();
         let query = if range.upper_open {
-            sea_query::Expr::column(object_data_model::Column::Data).lt(upper_bytes)
+            Expr::column(object_data_model::Column::Data).lt(upper_bytes)
         } else {
-            sea_query::Expr::column(object_data_model::Column::Data).lte(upper_bytes)
+            Expr::column(object_data_model::Column::Data).lte(upper_bytes)
         };
         parts.push(query);
     }
     if let Some(lower) = range.lower.as_ref() {
         let lower_bytes = bincode::serialize(lower).unwrap();
         let query = if range.upper_open {
-            sea_query::Expr::column(object_data_model::Column::Data).gt(lower_bytes)
+            Expr::column(object_data_model::Column::Data).gt(lower_bytes)
         } else {
-            sea_query::Expr::column(object_data_model::Column::Data).gte(lower_bytes)
+            Expr::column(object_data_model::Column::Data).gte(lower_bytes)
         };
         parts.push(query);
     }
@@ -274,10 +273,8 @@ impl KvsEngine for SqliteEngine {
     }
 
     fn close_store(&self, _store_name: SanitizedName) -> Result<(), Self::Error> {
-        HANDLE.block_on(async {
-            // TODO: do something
-            Ok(())
-        })
+        // TODO: do something
+        Ok(())
     }
 
     fn delete_database(self) -> Result<(), Self::Error> {
