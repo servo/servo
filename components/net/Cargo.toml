@@ -59,7 +59,7 @@ rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
 rustls-pki-types = { workspace = true }
 resvg = { workspace = true }
-rusqlite = "0.37"
+rusqlite = { version = "0.37", features = ["bundled"] }
 sea-query = { version = "0.32", default-features = false, features = ["derive", "backend-sqlite"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
