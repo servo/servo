@@ -1105,7 +1105,7 @@ pub(crate) enum EventDefault {
     Handled,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum EventStatus {
     Canceled,
     NotCanceled,

@@ -24,7 +24,9 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::event::EventStatus;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::types::{DebuggerEvent, Event};
 #[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -118,5 +120,14 @@ impl DebuggerGlobalScope {
             let ar = enter_realm(self);
             report_pending_exception(Self::get_cx(), true, InRealm::Entered(&ar), can_gc);
         }
+    }
+
+    pub(crate) fn fire_add_debuggee(&self, can_gc: CanGc, global: &GlobalScope) {
+        assert_eq!(
+            DomRoot::upcast::<Event>(DebuggerEvent::new(self.upcast(), global, can_gc))
+                .fire(self.upcast(), can_gc),
+            EventStatus::NotCanceled,
+            "Guaranteed by DebuggerEvent::new"
+        );
     }
 }
