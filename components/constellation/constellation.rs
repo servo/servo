@@ -461,6 +461,9 @@ pub struct Constellation<STF, SWF> {
 
     /// The async runtime.
     async_runtime: Box<dyn AsyncRuntime>,
+
+    /// When in single-process mode, join handles for script-threads.
+    script_join_handles: HashMap<WebViewId, JoinHandle<()>>,
 }
 
 /// State needed to construct a constellation.
@@ -711,6 +714,7 @@ where
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
+                    script_join_handles: Default::default(),
                 };
 
                 constellation.run();
@@ -970,6 +974,10 @@ where
 
         if let Some(chan) = pipeline.bhm_control_chan {
             self.background_monitor_control_senders.push(chan);
+        }
+
+        if let Some(join_handle) = pipeline.join_handle {
+            self.script_join_handles.insert(webview_id, join_handle);
         }
 
         if let Some(host) = host {
@@ -2523,12 +2531,20 @@ where
     fn handle_shutdown(&mut self) {
         debug!("Handling shutdown.");
 
+        // In single process mode, join on script-threads
+        // from webview which haven't been manually closed before.
+        for (_, join_handle) in self.script_join_handles.drain() {
+            if join_handle.join().is_err() {
+                error!("Failed to join on a script-thread.");
+            }
+        }
+
         // In single process mode, join on the background hang monitor worker thread.
         drop(self.background_monitor_register.take());
         if let Some(join_handle) = self.background_monitor_register_join_handle.take() {
-            join_handle
-                .join()
-                .expect("Failed to join on the BHM background thread.");
+            if join_handle.join().is_err() {
+                error!("Failed to join on the bhm background thread.");
+            }
         }
 
         // At this point, there are no active pipelines,
@@ -3052,6 +3068,11 @@ where
             self.browsing_context_group_set
                 .remove(&browsing_context.bc_group_id);
         }
+
+        // Note: In single-process mode,
+        // if the webview is manually closed, we drop the join handle without joining on it.
+        // It is unlikely the thread will still run when the constellation shuts-down.
+        self.script_join_handles.remove(&webview_id);
 
         debug!("{webview_id}: Closed");
     }

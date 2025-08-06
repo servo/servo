@@ -209,6 +209,7 @@ pub struct NewPipeline {
     pub pipeline: Pipeline,
     pub bhm_control_chan: Option<IpcSender<BackgroundHangMonitorControlMsg>>,
     pub lifeline: Option<(IpcReceiver<()>, Process)>,
+    pub join_handle: Option<JoinHandle<()>>,
 }
 
 impl Pipeline {
@@ -218,7 +219,7 @@ impl Pipeline {
     ) -> Result<NewPipeline, Error> {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
-        let (script_chan, (bhm_control_chan, lifeline)) = match state.event_loop {
+        let (script_chan, (bhm_control_chan, lifeline, join_handle)) = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
                     parent_info: state.parent_pipeline_id,
@@ -235,7 +236,7 @@ impl Pipeline {
                 {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
-                (script_chan, (None, None))
+                (script_chan, (None, None, None))
             },
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
@@ -315,18 +316,18 @@ impl Pipeline {
                         ipc::channel().expect("Failed to create lifeline channel");
                     unprivileged_pipeline_content.lifeline_sender = Some(sender);
                     let process = unprivileged_pipeline_content.spawn_multiprocess()?;
-                    (Some(bhm_control_chan), Some((receiver, process)))
+                    (Some(bhm_control_chan), Some((receiver, process)), None)
                 } else {
                     // Should not be None in single-process mode.
                     let register = state
                         .background_monitor_register
                         .expect("Couldn't start content, no background monitor has been initiated");
-                    unprivileged_pipeline_content.start_all::<STF>(
+                    let join_handle = unprivileged_pipeline_content.start_all::<STF>(
                         false,
                         state.layout_factory,
                         register,
                     );
-                    (None, None)
+                    (None, None, Some(join_handle))
                 };
 
                 (EventLoop::new(script_chan), multiprocess_data)
@@ -347,6 +348,7 @@ impl Pipeline {
             pipeline,
             bhm_control_chan,
             lifeline,
+            join_handle,
         })
     }
 
@@ -501,7 +503,7 @@ impl UnprivilegedPipelineContent {
         wait_for_completion: bool,
         layout_factory: Arc<dyn LayoutFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-    ) {
+    ) -> JoinHandle<()> {
         // Setup pipeline-namespace-installing for all threads in this process.
         // Idempotent in single-process mode.
         PipelineNamespace::set_installer_sender(self.namespace_request_sender);
@@ -511,7 +513,7 @@ impl UnprivilegedPipelineContent {
             self.rippy_data,
         ));
         let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
-        STF::create(
+        let join_handle = STF::create(
             InitialScriptState {
                 id: self.id,
                 browsing_context_id: self.browsing_context_id,
@@ -551,6 +553,8 @@ impl UnprivilegedPipelineContent {
                 Err(_) => error!("Script-thread shut-down unexpectedly"),
             }
         }
+
+        join_handle
     }
 
     pub fn spawn_multiprocess(self) -> Result<Process, Error> {
