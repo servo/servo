@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
 use dpi::PhysicalSize;
+use euclid::Box2D;
 use embedder_traits::webdriver::WebDriverSenders;
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
@@ -51,9 +52,28 @@ impl Coordinates {
     }
 }
 
+#[derive(Clone, Debug)]
+struct KeyboardState {
+    current_height: i32,
+    original_window_height: i32,
+    previous_height: i32,
+}
+
+impl KeyboardState {
+    fn new() -> Self {
+        Self {
+            current_height: 0,
+            original_window_height: 0,
+            previous_height: 0,
+        }
+    }
+}
+
 pub(super) struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
+    keyboard_state: RefCell<KeyboardState>,
+    full_screen_size: RefCell<Coordinates>,
 }
 
 impl ServoWindowCallbacks {
@@ -61,9 +81,13 @@ impl ServoWindowCallbacks {
         host_callbacks: Box<dyn HostTrait>,
         coordinates: RefCell<Coordinates>,
     ) -> Self {
+        // Store the initial coordinates as full screen size
+        let full_screen_coordinates = coordinates.borrow().clone();
         Self {
             host_callbacks,
             coordinates,
+            keyboard_state: RefCell::new(KeyboardState::new()),
+            full_screen_size: RefCell::new(full_screen_coordinates),
         }
     }
 }
@@ -130,11 +154,15 @@ impl ServoDelegate for ServoShellServoDelegate {
 impl WebViewDelegate for RunningAppState {
     fn screen_geometry(&self, _webview: WebView) -> Option<ScreenGeometry> {
         let coord = self.callbacks.coordinates.borrow();
-        let available_size = coord.size();
-        let screen_size = coord.size();
+        let keyboard_state = self.callbacks.keyboard_state.borrow();
+        let screen_size = self.callbacks.full_screen_size.borrow().size();
+
+        // The available area should be reduced by keyboard height from the bottom
+        let available_height = screen_size.height - keyboard_state.current_height;
+
         Some(ScreenGeometry {
             size: screen_size,
-            available_size,
+            available_size: DeviceIntSize::new(screen_size.width, available_height.max(0)),
             window_rect: DeviceIntRect::from_origin_and_size(coord.origin(), coord.size()),
         })
     }
@@ -471,6 +499,15 @@ impl RunningAppState {
         self.perform_updates();
     }
 
+    pub fn move_resize(&self, coordinates: Coordinates) {
+        info!("resize to {:?}", coordinates);
+        let rect =
+            Box2D::from_origin_and_size(coordinates.origin().to_f32(), coordinates.size().to_f32());
+        self.active_webview().move_resize(rect);
+        *self.callbacks.coordinates.borrow_mut() = coordinates;
+        self.perform_updates();
+    }
+
     /// Let Servo know that the window has been resized.
     pub fn resize(&self, coordinates: Coordinates) {
         info!("resize to {:?}", coordinates,);
@@ -480,6 +517,66 @@ impl RunningAppState {
         ));
         *self.callbacks.coordinates.borrow_mut() = coordinates;
         self.perform_updates();
+    }
+
+    /// Get current window coordinates.
+    pub fn get_coordinates(&self) -> Coordinates {
+        self.callbacks.coordinates.borrow().clone()
+    }
+
+    /// Update the keyboard height for screen geometry calculations.
+    pub fn set_keyboard_height(&self, height: i32) {
+        self.callbacks.keyboard_state.borrow_mut().current_height = height;
+    }
+
+    /// Get current keyboard height.
+    pub fn get_keyboard_height(&self) -> i32 {
+        self.callbacks.keyboard_state.borrow().current_height
+    }
+
+    /// Handle keyboard height changes and resize the window appropriately.
+    /// This is specifically designed for OpenHarmony to handle virtual keyboard appearing/disappearing.
+    pub fn handle_keyboard_height_change(&self, height: i32) {
+        debug!("Keyboard height change to: {}", height);
+
+        let current_coords = self.get_coordinates();
+        let current_height = current_coords.size().height;
+
+        let mut keyboard_state = self.callbacks.keyboard_state.borrow_mut();
+
+        // Store original dimensions if keyboard is appearing for the first time
+        if height > 0 && keyboard_state.original_window_height == 0 {
+            keyboard_state.original_window_height = current_height;
+        }
+
+        // Check if keyboard height actually changed
+        let previous_height = keyboard_state.previous_height;
+        keyboard_state.previous_height = height;
+        keyboard_state.current_height = height;
+
+        if previous_height != height {
+            let new_height = if height > 0 {
+                // Keyboard is showing - resize to available space above keyboard
+                keyboard_state.original_window_height - height;
+            } else {
+                // Keyboard is hiding - restore original height
+                let original_height = keyboard_state.original_window_height;
+                keyboard_state.original_window_height = 0;
+                original_height
+            };
+
+            // Release the borrow before calling move_resize
+            drop(keyboard_state);
+
+            if new_height != current_height {
+                self.move_resize(Coordinates::new(
+                    current_coords.origin().x,
+                    current_coords.origin().y,
+                    current_coords.size().width,
+                    new_height,
+                ));
+            }
+        }
     }
 
     /// Scroll.
