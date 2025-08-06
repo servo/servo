@@ -19,7 +19,7 @@ use raqote::{DrawOptions, PathBuilder, StrokeStyle};
 use style::color::AbsoluteColor;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
-use crate::backend::GenericDrawTarget;
+use crate::backend::{Convert, GenericDrawTarget};
 use crate::canvas_data::{Filter, TextRun};
 
 thread_local! {
@@ -170,7 +170,7 @@ pub fn source(pattern: &Pattern) -> raqote::Source {
 fn create_gradient_stops(gradient_stops: Vec<CanvasGradientStop>) -> Vec<raqote::GradientStop> {
     let mut stops = gradient_stops
         .into_iter()
-        .map(|item| item.to_raqote())
+        .map(|item| item.convert())
         .collect::<Vec<raqote::GradientStop>>();
     // https://www.w3.org/html/test/results/2dcontext/annotated-spec/canvas.html#testrefs.2d.gradient.interpolate.overlap
     stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
@@ -251,7 +251,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         let size = src.size.cast();
         fill_draw_target(
             self,
-            draw_options(composition_options),
+            composition_options.convert(),
             &raqote::Source::Image(
                 raqote::Image {
                     width: size.width,
@@ -259,7 +259,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
                     data: &surface,
                 },
                 raqote::ExtendMode::Pad,
-                filter.to_raqote(),
+                filter.convert(),
                 paint_transform,
             ),
             pb.finish(),
@@ -283,14 +283,13 @@ impl GenericDrawTarget for raqote::DrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.set_transform(&transform);
-        let draw_options = draw_options(composition_options);
-        let pattern = style.to_raqote_pattern();
-        let mut path = to_path(path);
+        let pattern = style.convert();
+        let mut path = path.convert();
         path.winding = match fill_rule {
             FillRule::Nonzero => raqote::Winding::NonZero,
             FillRule::Evenodd => raqote::Winding::EvenOdd,
         };
-        fill_draw_target(self, draw_options, &source(&pattern), path);
+        fill_draw_target(self, composition_options.convert(), &source(&pattern), path);
     }
 
     fn fill_text(
@@ -302,8 +301,8 @@ impl GenericDrawTarget for raqote::DrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.set_transform(&transform);
-        let draw_options = draw_options(composition_options);
-        let pattern = style.to_raqote_pattern();
+        let draw_options = composition_options.convert();
+        let pattern = style.convert();
         let mut advance = 0.;
         for run in text_runs.iter() {
             let mut positions = Vec::new();
@@ -395,11 +394,8 @@ impl GenericDrawTarget for raqote::DrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.set_transform(&transform);
-        let mut path = to_path(path);
-        path.winding = match fill_rule {
-            FillRule::Nonzero => raqote::Winding::NonZero,
-            FillRule::Evenodd => raqote::Winding::EvenOdd,
-        };
+        let mut path = path.convert();
+        path.winding = fill_rule.convert();
         self.push_clip(&path);
     }
     fn push_clip_rect(&mut self, rect: &Rect<i32>) {
@@ -416,13 +412,13 @@ impl GenericDrawTarget for raqote::DrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f32>,
     ) {
-        let pattern = style.to_raqote_pattern();
-        let options = draw_options(composition_options);
+        let pattern = style.convert();
+        let options = composition_options.convert();
         self.set_transform(&transform);
         self.stroke(
-            &to_path(path),
+            &path.convert(),
             &source(&pattern),
-            &line_options.to_raqote_style(),
+            &line_options.convert(),
             &options,
         );
     }
@@ -435,8 +431,8 @@ impl GenericDrawTarget for raqote::DrawTarget {
         transform: Transform2D<f32>,
     ) {
         self.set_transform(&transform);
-        let pattern = style.to_raqote_pattern();
-        let options = draw_options(composition_options);
+        let pattern = style.convert();
+        let options = composition_options.convert();
         let mut pb = raqote::PathBuilder::new();
         pb.rect(
             rect.origin.x,
@@ -448,7 +444,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         self.stroke(
             &pb.finish(),
             &source(&pattern),
-            &line_options.to_raqote_style(),
+            &line_options.convert(),
             &options,
         );
     }
@@ -517,7 +513,7 @@ fn fill_draw_target(
 }
 
 impl Filter {
-    fn to_raqote(self) -> raqote::FilterMode {
+    fn convert(self) -> raqote::FilterMode {
         match self {
             Filter::Bilinear => raqote::FilterMode::Bilinear,
             Filter::Nearest => raqote::FilterMode::Nearest,
@@ -548,16 +544,8 @@ impl Clone for Path {
     }
 }
 
-pub trait ToRaqoteStyle {
-    type Target;
-
-    fn to_raqote_style(self) -> Self::Target;
-}
-
-impl ToRaqoteStyle for LineOptions {
-    type Target = StrokeStyle;
-
-    fn to_raqote_style(self) -> Self::Target {
+impl Convert<StrokeStyle> for LineOptions {
+    fn convert(self) -> StrokeStyle {
         let LineOptions {
             width,
             cap_style,
@@ -568,8 +556,8 @@ impl ToRaqoteStyle for LineOptions {
         } = self;
         StrokeStyle {
             width: width as f32,
-            cap: cap_style.to_raqote_style(),
-            join: join_style.to_raqote_style(),
+            cap: cap_style.convert(),
+            join: join_style.convert(),
             miter_limit: miter_limit as f32,
             dash_array: dash,
             dash_offset: dash_offset as f32,
@@ -577,10 +565,8 @@ impl ToRaqoteStyle for LineOptions {
     }
 }
 
-impl ToRaqoteStyle for LineJoinStyle {
-    type Target = raqote::LineJoin;
-
-    fn to_raqote_style(self) -> raqote::LineJoin {
+impl Convert<raqote::LineJoin> for LineJoinStyle {
+    fn convert(self) -> raqote::LineJoin {
         match self {
             LineJoinStyle::Round => raqote::LineJoin::Round,
             LineJoinStyle::Bevel => raqote::LineJoin::Bevel,
@@ -589,10 +575,8 @@ impl ToRaqoteStyle for LineJoinStyle {
     }
 }
 
-impl ToRaqoteStyle for LineCapStyle {
-    type Target = raqote::LineCap;
-
-    fn to_raqote_style(self) -> raqote::LineCap {
+impl Convert<raqote::LineCap> for LineCapStyle {
+    fn convert(self) -> raqote::LineCap {
         match self {
             LineCapStyle::Butt => raqote::LineCap::Butt,
             LineCapStyle::Round => raqote::LineCap::Round,
@@ -601,16 +585,8 @@ impl ToRaqoteStyle for LineCapStyle {
     }
 }
 
-pub trait ToRaqotePattern {
-    fn to_raqote_pattern(self) -> Pattern;
-}
-
-pub trait ToRaqoteGradientStop {
-    fn to_raqote(self) -> raqote::GradientStop;
-}
-
-impl ToRaqoteGradientStop for CanvasGradientStop {
-    fn to_raqote(self) -> raqote::GradientStop {
+impl Convert<raqote::GradientStop> for CanvasGradientStop {
+    fn convert(self) -> raqote::GradientStop {
         let srgb = self.color.into_srgb_legacy();
         let color = raqote::Color::new(
             clamp_unit_f32(srgb.alpha),
@@ -623,8 +599,8 @@ impl ToRaqoteGradientStop for CanvasGradientStop {
     }
 }
 
-impl ToRaqotePattern for FillOrStrokeStyle {
-    fn to_raqote_pattern(self) -> Pattern {
+impl Convert<Pattern> for FillOrStrokeStyle {
+    fn convert(self) -> Pattern {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
 
         match self {
@@ -675,10 +651,8 @@ impl ToRaqotePattern for FillOrStrokeStyle {
     }
 }
 
-impl ToRaqoteStyle for AbsoluteColor {
-    type Target = raqote::SolidSource;
-
-    fn to_raqote_style(self) -> Self::Target {
+impl Convert<raqote::SolidSource> for AbsoluteColor {
+    fn convert(self) -> raqote::SolidSource {
         let srgb = self.into_srgb_legacy();
         raqote::SolidSource::from_unpremultiplied_argb(
             clamp_unit_f32(srgb.alpha),
@@ -689,21 +663,17 @@ impl ToRaqoteStyle for AbsoluteColor {
     }
 }
 
-impl ToRaqoteStyle for CompositionOrBlending {
-    type Target = raqote::BlendMode;
-
-    fn to_raqote_style(self) -> Self::Target {
+impl Convert<raqote::BlendMode> for CompositionOrBlending {
+    fn convert(self) -> raqote::BlendMode {
         match self {
-            CompositionOrBlending::Composition(op) => op.to_raqote_style(),
-            CompositionOrBlending::Blending(op) => op.to_raqote_style(),
+            CompositionOrBlending::Composition(op) => op.convert(),
+            CompositionOrBlending::Blending(op) => op.convert(),
         }
     }
 }
 
-impl ToRaqoteStyle for BlendingStyle {
-    type Target = raqote::BlendMode;
-
-    fn to_raqote_style(self) -> Self::Target {
+impl Convert<raqote::BlendMode> for BlendingStyle {
+    fn convert(self) -> raqote::BlendMode {
         match self {
             BlendingStyle::Multiply => raqote::BlendMode::Multiply,
             BlendingStyle::Screen => raqote::BlendMode::Screen,
@@ -724,10 +694,8 @@ impl ToRaqoteStyle for BlendingStyle {
     }
 }
 
-impl ToRaqoteStyle for CompositionStyle {
-    type Target = raqote::BlendMode;
-
-    fn to_raqote_style(self) -> Self::Target {
+impl Convert<raqote::BlendMode> for CompositionStyle {
+    fn convert(self) -> raqote::BlendMode {
         match self {
             CompositionStyle::SourceIn => raqote::BlendMode::SrcIn,
             CompositionStyle::SourceOut => raqote::BlendMode::SrcOut,
@@ -745,33 +713,46 @@ impl ToRaqoteStyle for CompositionStyle {
     }
 }
 
-fn to_path(path: &canvas_traits::canvas::Path) -> raqote::Path {
-    let mut pb = PathBuilder::new();
-    for cmd in &path.0 {
-        match cmd {
-            kurbo::PathEl::MoveTo(kurbo::Point { x, y }) => pb.move_to(x as f32, y as f32),
-            kurbo::PathEl::LineTo(kurbo::Point { x, y }) => pb.line_to(x as f32, y as f32),
-            kurbo::PathEl::QuadTo(cp, p) => {
-                pb.quad_to(cp.x as f32, cp.y as f32, p.x as f32, p.y as f32)
-            },
-            kurbo::PathEl::CurveTo(cp1, cp2, p) => pb.cubic_to(
-                cp1.x as f32,
-                cp1.y as f32,
-                cp2.x as f32,
-                cp2.y as f32,
-                p.x as f32,
-                p.y as f32,
-            ),
-            kurbo::PathEl::ClosePath => pb.close(),
+impl Convert<raqote::Path> for &canvas_traits::canvas::Path {
+    fn convert(self) -> raqote::Path {
+        let mut pb = PathBuilder::new();
+        for cmd in &self.0 {
+            match cmd {
+                kurbo::PathEl::MoveTo(kurbo::Point { x, y }) => pb.move_to(x as f32, y as f32),
+                kurbo::PathEl::LineTo(kurbo::Point { x, y }) => pb.line_to(x as f32, y as f32),
+                kurbo::PathEl::QuadTo(cp, p) => {
+                    pb.quad_to(cp.x as f32, cp.y as f32, p.x as f32, p.y as f32)
+                },
+                kurbo::PathEl::CurveTo(cp1, cp2, p) => pb.cubic_to(
+                    cp1.x as f32,
+                    cp1.y as f32,
+                    cp2.x as f32,
+                    cp2.y as f32,
+                    p.x as f32,
+                    p.y as f32,
+                ),
+                kurbo::PathEl::ClosePath => pb.close(),
+            }
         }
+        pb.finish()
     }
-    pb.finish()
 }
 
-fn draw_options(composition_options: CompositionOptions) -> DrawOptions {
-    DrawOptions {
-        blend_mode: composition_options.composition_operation.to_raqote_style(),
-        alpha: composition_options.alpha as f32,
-        ..Default::default()
+impl Convert<DrawOptions> for CompositionOptions {
+    fn convert(self) -> DrawOptions {
+        DrawOptions {
+            blend_mode: self.composition_operation.convert(),
+            alpha: self.alpha as f32,
+            ..Default::default()
+        }
+    }
+}
+
+impl Convert<raqote::Winding> for FillRule {
+    fn convert(self) -> raqote::Winding {
+        match self {
+            FillRule::Nonzero => raqote::Winding::NonZero,
+            FillRule::Evenodd => raqote::Winding::EvenOdd,
+        }
     }
 }
