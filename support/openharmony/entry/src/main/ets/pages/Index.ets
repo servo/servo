@@ -2,22 +2,19 @@ import { common } from '@kit.AbilityKit';
 import display from '@ohos.display';
 import deviceInfo from '@ohos.deviceInfo';
 import promptAction from '@ohos.promptAction';
+import window from '@ohos.window';
+import { BusinessError } from '@kit.BasicServicesKit';
 
 interface ServoXComponentInterface {
   loadURL(url: string): void;
-
   goBack(): void;
-
   goForward(): void;
-
   registerURLcallback(callback: (url: string) => void): void;
   registerTerminateCallback(callback: () => void): void;
-
-  registerPromptToastCallback(callback: (msg: string) => void): void
-
-  focusWebview(index: number):void;
-
+  registerPromptToastCallback(callback: (msg: string) => void): void;
+  focusWebview(index: number): void;
   initServo(options: InitOpts): void;
+  keyboardHeightChange(height: number): void;
 }
 
 interface InitOpts {
@@ -45,7 +42,9 @@ struct Index {
     type: XComponentType.SURFACE,
     libraryname: 'servoshell',
   }
+
   private context = getContext(this) as common.UIAbilityContext;
+  private mainWindow: window.Window | undefined = undefined;
   @LocalStorageProp('InitialURI') InitialURI: string = "unused"
   @LocalStorageProp('CommandlineArgs') CommandlineArgs: string = ""
   @State urlToLoad: string = this.InitialURI
@@ -57,6 +56,32 @@ struct Index {
   onBackPress(): boolean | void {
     this.xComponentContext?.goBack()
     return true;
+  }
+
+  // Setup avoid area change listener for keyboard detection
+  async setupAvoidAreaChangeListener() {
+    try {
+      if (!this.context) {
+        console.warn('Context not available, cannot setup keyboard listener');
+        return;
+      }
+
+      this.mainWindow = await window.getLastWindow(this.context);
+
+      this.mainWindow.on('avoidAreaChange', (info: window.AvoidAreaOptions) => {
+        if (info.type === window.AvoidAreaType.TYPE_KEYBOARD) {
+          const keyboardHeight: number = info.area.bottomRect?.height || 0;
+          if (this.xComponentContext) {
+            this.xComponentContext.keyboardHeightChange(keyboardHeight);
+          } else {
+            console.warn('xComponentContext not available when keyboard height changed');
+          }
+        }
+      });
+    } catch (exception) {
+      const err = exception as BusinessError;
+      console.error(`Failed to setup avoid area keyboard listener. Code: ${err.code}, message: ${err.message}`);
+    }
   }
 
   build() {
@@ -133,6 +158,7 @@ struct Index {
                 this.urlToLoad = new_url
               })
               this.xComponentContext.registerPromptToastCallback(prompt_toast)
+              this.setupAvoidAreaChangeListener()
             })
         }.tabBar('1')
         ForEach(this.tablist, (item: number) => {
