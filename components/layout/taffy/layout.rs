@@ -199,7 +199,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 };
 
                 child.positioning_context = PositioningContext::default();
-                let layout = independent_context.layout_without_caching(
+                let layout = independent_context.layout(
                     self.layout_context,
                     &mut child.positioning_context,
                     &content_box_size_override,
