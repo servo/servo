@@ -825,7 +825,7 @@ def check_that_manifests_are_clean() -> Iterator[tuple[str, int, str]]:
         yield (WPT_CONFIG_INI_PATH, 0, "WPT manifest is dirty. Run `./mach update-manifest`.")
 
 
-def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
+def lint_wpt_test_files(only_changed_files: bool) -> Iterator[tuple[str, int, str]]:
     from tools.lint import lint
 
     # Override the logging function so that we can collect errors from
@@ -848,7 +848,7 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
         messages = []  # Clear any old messages.
 
         suite_directory = os.path.abspath(os.path.join(WPT_PATH, suite))
-        tests_changed = FileList(suite_directory, only_changed_files=True, progress=False)
+        tests_changed = FileList(suite_directory, only_changed_files, progress=False)
         tests_changed = [os.path.relpath(file, suite_directory) for file in tests_changed]
 
         if lint.lint(suite_directory, tests_changed, output_format="normal"):
@@ -872,7 +872,7 @@ def run_wpt_lints(only_changed_files: bool) -> Iterator[tuple[str, int, str]]:
         return
 
     yield from check_that_manifests_are_clean()
-    yield from lint_wpt_test_files()
+    yield from lint_wpt_test_files(only_changed_files)
 
 
 def check_spec(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
