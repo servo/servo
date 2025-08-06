@@ -152,7 +152,7 @@ partial interface Window {
   undefined webdriverTimeout();
   Element? webdriverElement(DOMString id);
   Element? webdriverFrame(DOMString id);
-  Window? webdriverWindow(DOMString id);
+  WindowProxy? webdriverWindow(DOMString id);
   ShadowRoot? webdriverShadowRoot(DOMString id);
 };
 

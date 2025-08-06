@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::{WebDriverCommandMsg, WebDriverScriptCommand};
+use embedder_traits::WebDriverScriptCommand;
 use ipc_channel::ipc;
 use serde_json::Value;
 use webdriver::command::JavascriptCommandParameters;
 use webdriver::error::{WebDriverError, WebDriverResult};
 
-use crate::{Handler, wait_for_script_response};
+use crate::{Handler, VerifyBrowsingContextIsOpen, wait_for_ipc_response};
 
 /// <https://w3c.github.io/webdriver/#dfn-web-element-identifier>
 const ELEMENT_IDENTIFIER: &str = "element-6066-11e4-a52e-4f735466cecf";
@@ -36,7 +36,7 @@ impl Handler {
             .as_deref()
             .unwrap_or(&[])
             .iter()
-            .map(|value| self.webdriver_value_to_js_argument(value))
+            .map(|value| self.json_deserialize(value))
             .collect::<WebDriverResult<Vec<_>>>()?;
 
         Ok((script, args))
@@ -51,14 +51,13 @@ impl Handler {
         };
 
         // Step 3. Let element be the result of trying to get a known element with session and reference.
-        let browsing_context_id = self.session()?.browsing_context_id;
         let (sender, receiver) = ipc::channel().unwrap();
-        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
-            browsing_context_id,
+        self.browsing_context_script_command(
             WebDriverScriptCommand::GetKnownElement(element_ref.clone(), sender),
-        ))?;
+            VerifyBrowsingContextIsOpen::No,
+        )?;
 
-        match wait_for_script_response(receiver)? {
+        match wait_for_ipc_response(receiver)? {
             // Step 4. Return success with data element.
             Ok(_) => Ok(format!("window.webdriverElement(\"{}\")", element_ref)),
             Err(err) => Err(WebDriverError::new(err, "No such element")),
@@ -74,14 +73,13 @@ impl Handler {
         };
 
         // Step 3. Let element be the result of trying to get a known element with session and reference.
-        let browsing_context_id = self.session()?.browsing_context_id;
         let (sender, receiver) = ipc::channel().unwrap();
-        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
-            browsing_context_id,
+        self.browsing_context_script_command(
             WebDriverScriptCommand::GetKnownShadowRoot(shadow_root_ref.clone(), sender),
-        ))?;
+            VerifyBrowsingContextIsOpen::No,
+        )?;
 
-        match wait_for_script_response(receiver)? {
+        match wait_for_ipc_response(receiver)? {
             // Step 4. Return success with data element.
             Ok(_) => Ok(format!(
                 "window.webdriverShadowRoot(\"{}\")",
@@ -91,18 +89,17 @@ impl Handler {
         }
     }
 
-    /// This function is equivalent to step 5 of
-    /// <https://w3c.github.io/webdriver/#dfn-extract-the-script-arguments-from-a-request>
-    fn webdriver_value_to_js_argument(&self, v: &Value) -> WebDriverResult<String> {
+    /// <https://w3c.github.io/webdriver/#dfn-json-deserialize>
+    fn json_deserialize(&self, v: &Value) -> WebDriverResult<String> {
         let res = match v {
-            Value::String(s) => format!("\"{}\"", s),
             Value::Null => "null".to_string(),
+            Value::String(s) => format!("\"{}\"", s),
             Value::Bool(b) => b.to_string(),
             Value::Number(n) => n.to_string(),
             Value::Array(list) => {
                 let elems = list
                     .iter()
-                    .map(|v| self.webdriver_value_to_js_argument(v))
+                    .map(|v| self.json_deserialize(v))
                     .collect::<WebDriverResult<Vec<_>>>()?;
                 format!("[{}]", elems.join(", "))
             },
@@ -134,7 +131,7 @@ impl Handler {
                 let elems = map
                     .iter()
                     .map(|(k, v)| {
-                        let arg = self.webdriver_value_to_js_argument(v)?;
+                        let arg = self.json_deserialize(v)?;
                         Ok(format!("{}: {}", k, arg))
                     })
                     .collect::<WebDriverResult<Vec<String>>>()?;

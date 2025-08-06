@@ -1958,16 +1958,9 @@ impl Handler {
         &self,
         parameters: JavascriptCommandParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        // Step 2. If session's current browsing context is no longer open,
-        // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
-        // Step 3. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
-
         // Step 1. Let body and arguments be the result of trying to extract the script arguments
         // from a request with argument parameters.
         let (func_body, args_string) = self.extract_script_arguments(parameters)?;
-
         // This is pretty ugly; we really want something that acts like
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
@@ -1977,7 +1970,13 @@ impl Handler {
             args_string.join(", ")
         );
         debug!("{}", script);
-        dbg!("Run script: {}", &script);
+
+        // Step 2. If session's current browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+
+        // Step 3. Handle any user prompt.
+        self.handle_any_user_prompts(self.session()?.webview_id)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::ExecuteScript(script, sender);
@@ -1990,12 +1989,8 @@ impl Handler {
         &self,
         parameters: JavascriptCommandParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        // Step 2. If session's current browsing context is no longer open,
-        // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
-        // Step 3. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
-
+        // Step 1. Let body and arguments be the result of trying to extract the script arguments
+        // from a request with argument parameters.
         let (func_body, mut args_string) = self.extract_script_arguments(parameters)?;
         args_string.push("resolve".to_string());
 
@@ -2021,6 +2016,13 @@ impl Handler {
             args_string.join(", "),
         );
         debug!("{}", script);
+
+        // Step 2. If session's current browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+
+        // Step 3. Handle any user prompt.
+        self.handle_any_user_prompts(self.session()?.webview_id)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
@@ -2435,7 +2437,6 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         msg: WebDriverMessage<ServoExtensionRoute>,
     ) -> WebDriverResult<WebDriverResponse> {
         info!("{:?}", msg.command);
-        dbg!("WebDriver command: {:?}", &msg.command);
 
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
@@ -2550,15 +2551,6 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         self.session = None;
     }
 }
-
-/// <https://w3c.github.io/webdriver/#dfn-web-element-identifier>
-const ELEMENT_IDENTIFIER: &str = "element-6066-11e4-a52e-4f735466cecf";
-/// <https://w3c.github.io/webdriver/#dfn-web-frame-identifier>
-const FRAME_IDENTIFIER: &str = "frame-075b-4da1-b6ba-e579c2d3230a";
-/// <https://w3c.github.io/webdriver/#dfn-web-window-identifier>
-const WINDOW_IDENTIFIER: &str = "window-fcc6-11e5-b4f8-330a88ab9d7f";
-/// <https://w3c.github.io/webdriver/#dfn-shadow-root-identifier>
-const SHADOW_ROOT_IDENTIFIER: &str = "shadow-6066-11e4-a52e-4f735466cecf";
 
 fn wait_for_ipc_response<T>(receiver: IpcReceiver<T>) -> Result<T, WebDriverError>
 where
