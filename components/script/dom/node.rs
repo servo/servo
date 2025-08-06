@@ -883,12 +883,12 @@ impl Node {
         })
     }
 
-    pub(crate) fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {
-        self == parent || self.is_ancestor_of(parent)
+    pub(crate) fn is_inclusive_ancestor_of(&self, child: &Node) -> bool {
+        self == child || self.is_ancestor_of(child)
     }
 
-    pub(crate) fn is_ancestor_of(&self, parent: &Node) -> bool {
-        parent.ancestors().any(|ancestor| &*ancestor == self)
+    pub(crate) fn is_ancestor_of(&self, child: &Node) -> bool {
+        child.ancestors().any(|ancestor| &*ancestor == self)
     }
 
     pub(crate) fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
