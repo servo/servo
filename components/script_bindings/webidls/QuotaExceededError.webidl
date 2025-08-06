@@ -6,7 +6,7 @@
 
 [Exposed=*, Serializable]
 interface QuotaExceededError : DOMException {
-  constructor(optional DOMString message = "", optional QuotaExceededErrorOptions options = {});
+  [Throws] constructor(optional DOMString message = "", optional QuotaExceededErrorOptions options = {});
 
   readonly attribute double? quota;
   readonly attribute double? requested;

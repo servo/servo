@@ -1,6 +1,8 @@
 use crate::dom::{
-    bindings::reflector::reflect_dom_object,
-    domexception::DOMErrorName,
+    bindings::{
+        error::Error,
+        reflector::{reflect_dom_object, reflect_dom_object_with_proto},
+    },
     types::{DOMException, GlobalScope},
 };
 
@@ -24,11 +26,16 @@ pub(crate) struct QuotaExceededError {
 }
 
 impl QuotaExceededError {
-    fn new_inherited(quota: Option<Finite<f64>>, requested: Option<Finite<f64>>) -> Self {
-        let (exception_msg, exception_name) =
-            DOMException::get_error_data_by_code(DOMErrorName::QuotaExceededError);
+    fn new_inherited(
+        message: DOMString,
+        quota: Option<Finite<f64>>,
+        requested: Option<Finite<f64>>,
+    ) -> Self {
         Self {
-            dom_exception: DOMException::new_inherited(exception_msg, exception_name),
+            dom_exception: DOMException::new_inherited(
+                message,
+                DOMString::from_string("QuotaExceededError".to_string()),
+            ),
             quota,
             requested,
         }
@@ -36,12 +43,13 @@ impl QuotaExceededError {
 
     pub(crate) fn new(
         global: &GlobalScope,
+        message: DOMString,
         quota: Option<Finite<f64>>,
         requested: Option<Finite<f64>>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(Self::new_inherited(quota, requested)),
+            Box::new(Self::new_inherited(message, quota, requested)),
             global,
             can_gc,
         )
@@ -55,8 +63,31 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
         can_gc: CanGc,
         message: DOMString,
         options: &QuotaExceededErrorOptions,
-    ) -> DomRoot<Self> {
-        todo!()
+    ) -> Result<DomRoot<Self>, Error> {
+        if let Some(quota) = options.quota {
+            if *quota < 0.0 {
+                return Err(Error::Range(
+                    "quota must be at least zero if present".to_string(),
+                ));
+            }
+        }
+        if let Some(requested) = options.requested {
+            if *requested < 0.0 {
+                return Err(Error::Range(
+                    "requested must be at least zero if present".to_string(),
+                ));
+            }
+        }
+        Ok(reflect_dom_object_with_proto(
+            Box::new(QuotaExceededError::new_inherited(
+                message,
+                options.quota,
+                options.requested,
+            )),
+            global,
+            proto,
+            can_gc,
+        ))
     }
 
     fn GetQuota(&self) -> Option<Finite<f64>> {
