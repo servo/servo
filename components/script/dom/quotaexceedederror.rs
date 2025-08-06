@@ -1,22 +1,20 @@
-use crate::dom::{
-    bindings::{
-        error::Error,
-        reflector::{reflect_dom_object, reflect_dom_object_with_proto},
-    },
-    types::{DOMException, GlobalScope},
-};
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
 use js::gc::HandleObject;
-use script_bindings::{
-    codegen::GenericBindings::QuotaExceededErrorBinding::{
-        QuotaExceededErrorMethods, QuotaExceededErrorOptions,
-    },
-    num::Finite,
-    root::DomRoot,
-    script_runtime::CanGc,
-    str::DOMString,
+use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
+    QuotaExceededErrorMethods, QuotaExceededErrorOptions,
 };
+use script_bindings::num::Finite;
+use script_bindings::root::DomRoot;
+use script_bindings::script_runtime::CanGc;
+use script_bindings::str::DOMString;
+
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
+use crate::dom::types::{DOMException, GlobalScope};
 
 #[dom_struct]
 pub(crate) struct QuotaExceededError {
@@ -57,6 +55,7 @@ impl QuotaExceededError {
 }
 
 impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
+    // https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quotaexceedederror
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -90,10 +89,12 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
         ))
     }
 
+    // https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quota
     fn GetQuota(&self) -> Option<Finite<f64>> {
         self.quota
     }
 
+    // https://webidl.spec.whatwg.org/#dom-quotaexceedederror-requested
     fn GetRequested(&self) -> Option<Finite<f64>> {
         self.requested
     }

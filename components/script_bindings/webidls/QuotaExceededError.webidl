@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// https://webidl.spec.whatwg.org/#quotaexceedederror
+// https://heycam.github.io/webidl/#quotaexceedederror
 
 [Exposed=*, Serializable]
 interface QuotaExceededError : DOMException {

@@ -127,7 +127,10 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         );
         self.get_storage_thread().send(msg).unwrap();
         match receiver.recv().unwrap() {
-            Err(_) => Err(Error::QuotaExceeded{quota: None, requested: None}),
+            Err(_) => Err(Error::QuotaExceeded {
+                quota: None,
+                requested: None,
+            }),
             Ok((changed, old_value)) => {
                 if changed {
                     self.broadcast_change_notification(Some(name), old_value, Some(value));

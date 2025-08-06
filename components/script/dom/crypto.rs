@@ -63,7 +63,10 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
         } else {
             let data = unsafe { input.as_mut_slice() };
             if data.len() > 65536 {
-                return Err(Error::QuotaExceeded{quota: None, requested: None});
+                return Err(Error::QuotaExceeded {
+                    quota: None,
+                    requested: None,
+                });
             }
             self.rng.borrow_mut().fill_bytes(data);
             let underlying_object = unsafe { input.underlying_object() };
