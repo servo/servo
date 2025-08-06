@@ -3,6 +3,10 @@ name: MacOS
 on:
   workflow_call:
     inputs:
+      arm:
+        required: false
+        default: false
+        type: boolean
       profile:
         required: false
         default: "release"
@@ -43,6 +47,10 @@ on:
         type: boolean
   workflow_dispatch:
     inputs:
+      arm:
+        required: false
+        default: false
+        type: boolean
       profile:
         required: false
         default: "release"
@@ -88,9 +96,9 @@ jobs:
     uses: ./.github/workflows/self-hosted-runner-select.yml
     secrets: inherit
     with:
-      github-hosted-runner-label: macos-13
+      github-hosted-runner-label: ${{ inputs.arm && 'macos-14' || 'macos-13' }}
       self-hosted-image-name: servo-macos13
-      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner || inputs.arm }}
   runner-timeout:
     needs:
       - runner-select
@@ -103,7 +111,7 @@ jobs:
   build:
     needs:
       - runner-select
-    name: MacOS Build [${{ needs.runner-select.outputs.unique-id }}]
+    name: MacOS ${{ inputs.arm && 'ARM ' || '' }}Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
       # XProtect can cause random failures if it decides that the DMG we create
@@ -188,12 +196,12 @@ jobs:
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.profile }}-binary-mac
+          name: ${{ inputs.profile }}-binary-${{ inputs.arm && 'mac-aarch64' || 'mac' }}
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
-          ./mach upload-nightly mac --secret-from-environment \
+          ./mach upload-nightly ${{ inputs.arm && 'mac-arm' || 'mac' }} --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
@@ -205,7 +213,7 @@ jobs:
       - name: Upload package for target
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.profile }}-binary-macos
+          name: ${{ inputs.profile }}-binary-${{ inputs.arm && 'macos-aarch64' || 'macos' }}
           path: target.tar.gz
 
   wpt-2020:
@@ -214,6 +222,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
+      arm: ${{ inputs.arm }}
       profile: ${{ inputs.profile }}
       wpt-args: ${{ inputs.wpt-args }}
     secrets: inherit
@@ -223,9 +232,9 @@ jobs:
     if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
-      target: 'macos'
+      target: ${{ inputs.arm && 'macos-aarch64' || 'macos' }}
       profile: ${{ inputs.profile }}
-      compressed-file-path: ${{ inputs.profile }}-binary-macos/target.tar.gz
+      compressed-file-path: ${{ inputs.profile }}-binary-${{ inputs.arm && 'macos-aarch64' || 'macos' }}/target.tar.gz
       binary-path: target/${{ inputs.profile }}/servo
       file-size: true
       speedometer: false
