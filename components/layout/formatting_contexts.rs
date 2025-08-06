@@ -259,7 +259,7 @@ impl IndependentFormattingContext {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn layout_without_caching(
+    fn layout_without_caching(
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
