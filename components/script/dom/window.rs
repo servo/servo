@@ -1524,9 +1524,22 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .map(Root::upcast::<Element>)
     }
 
-    fn WebdriverWindow(&self, _id: DOMString) -> Option<DomRoot<Window>> {
-        warn!("Window references are not supported in webdriver yet");
-        None
+    fn WebdriverWindow(&self, id: DOMString) -> Option<DomRoot<WindowProxy>> {
+        let window_proxy = self.window_proxy.get()?;
+
+        // Window must be top level browsing context.
+        if window_proxy.browsing_context_id() != window_proxy.webview_id() {
+            return None;
+        }
+
+        let pipeline_id = window_proxy.currently_active()?;
+        let document = ScriptThread::find_document(pipeline_id)?;
+
+        if document.upcast::<Node>().unique_id(pipeline_id) == id.str() {
+            Some(DomRoot::from_ref(&window_proxy))
+        } else {
+            None
+        }
     }
 
     fn WebdriverShadowRoot(&self, id: DOMString) -> Option<DomRoot<ShadowRoot>> {
