@@ -269,14 +269,14 @@ jobs:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
       - uses: actions/checkout@v4
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Getting hitrace-bench version
@@ -301,15 +301,41 @@ jobs:
       - name: Combining bencher files
         run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
       - uses: bencherdev/bencher@main
+        # set options
+      - name: Set bencher opts for PRs (label try run)
+        if: github.event_name == 'pull_request_target'
+        run: |
+          echo "RUN_BENCHER_OPTIONS=--branch ${{ github.event.number }}/PR \
+          --branch-start-point ${{ github.base_ref }} \
+          --branch-start-point-hash ${{ github.event.pull_request.base.sha }} \
+          --branch-reset \
+          --start-point-clone-thresholds"  >> "$GITHUB_ENV"
+      - name: Set bencher opts for main
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        run: |
+          echo "RUN_BENCHER_OPTIONS=--branch main" >> "$GITHUB_ENV"
+      - name: Set bencher opts for try branch
+        if: ${{ github.event_name == 'push' && github.ref_name == 'try' }}
+        run: |
+          git remote add upstream https://github.com/servo/servo
+          git fetch upstream main
+          echo "RUN_BENCHER_OPTIONS=--branch try \
+          --hash $(git rev-parse HEAD~1) \
+          --branch-start-point main \
+          --branch-start-point-hash $(git merge-base upstream/main HEAD) \
+          --start-point-clone-thresholds \
+          --branch-reset" >> "$GITHUB_ENV"
       - name: Uploading to bencher.dev
+        # Note: That e.g. `--start-point` is ignored if it is an empty string,
+        # which should be the case on e.g. normal push workflows on main.
         run: |
           bencher run --adapter json \
                       --file combined-bencher.json \
                       --project '${{ env.BENCHER_PROJECT }}' \
-                      --hash '${{ github.sha }}' \
                       --token '${{ secrets.BENCHER_API_TOKEN }}' \
                       --github-actions '${{ secrets.GITHUB_TOKEN }}' \
-                      --testbed="$MODEL_NAME"
+                      --testbed="$MODEL_NAME" \
+                      $RUN_BENCHER_OPTIONS
       - name: Success
         if: ${{ !contains(steps.*.outcome, 'failure') && !contains(steps.*.outcome, 'cancelled') }}
         run: exit 0
