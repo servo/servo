@@ -1977,6 +1977,7 @@ impl Handler {
             args_string.join(", ")
         );
         debug!("{}", script);
+        dbg!("Run script: {}", &script);
 
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::ExecuteScript(script, sender);
@@ -2434,6 +2435,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         msg: WebDriverMessage<ServoExtensionRoute>,
     ) -> WebDriverResult<WebDriverResponse> {
         info!("{:?}", msg.command);
+        dbg!("WebDriver command: {:?}", &msg.command);
 
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
