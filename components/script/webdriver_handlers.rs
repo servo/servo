@@ -44,7 +44,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
@@ -1781,14 +1781,17 @@ fn get_option_parent(node: &Node) -> Option<DomRoot<Element>> {
     // >    reverse order from element, or undefined if the root of the tree is reached.
     // > 3. If datalist parent is undefined, the element context is select parent.
     // >    Otherwise, the element context is datalist parent.
-    let root_node = node.GetRootNode(&GetRootNodeOptions::empty());
-    node.preceding_nodes(&root_node)
-        .find(|preceding| preceding.is::<HTMLDataListElement>())
-        .or_else(|| {
-            node.preceding_nodes(&root_node)
-                .find(|preceding| preceding.is::<HTMLSelectElement>())
-        })
-        .map(|result_node| DomRoot::downcast::<Element>(result_node).unwrap())
+    let mut candidate_select = None;
+
+    for ancestor in node.ancestors() {
+        if ancestor.is::<HTMLDataListElement>() {
+            return Some(DomRoot::downcast::<Element>(ancestor).unwrap());
+        } else if candidate_select.is_none() && ancestor.is::<HTMLSelectElement>() {
+            candidate_select = Some(ancestor);
+        }
+    }
+
+    candidate_select.map(|ancestor| DomRoot::downcast::<Element>(ancestor).unwrap())
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-container>
