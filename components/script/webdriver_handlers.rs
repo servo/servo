@@ -38,7 +38,9 @@ use crate::dom::attr::is_boolean_attribute;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::{
+    ElementMethods, ScrollLogicalPosition, ScrollIntoViewOptions,
+};
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
@@ -51,6 +53,7 @@ use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializer
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
     XPathResultConstants, XPathResultMethods,
 };
+use crate::dom::bindings::codegen::UnionTypes::BooleanOrScrollIntoViewOptions;
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
     get_property, get_property_jsval, jsid_to_string, root_from_object,
@@ -1221,7 +1224,9 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 7. If file is false or the session's strict file interactability
                 if !is_file_input || strict_file_interactability {
-                    // TODO(24059): Step 7.1. Scroll Into View
+                    // Step 7.1. Scroll into view the element
+                    scroll_into_view(&element, &documents, &pipeline, can_gc);
+
                     // TODO: Step 7.2 - 7.5
                     // Wait until element become keyboard-interactable
 
@@ -1556,7 +1561,7 @@ pub(crate) fn handle_get_rect(
         .unwrap();
 }
 
-pub(crate) fn handle_get_bounding_client_rect(
+pub(crate) fn handle_scroll_and_get_bounding_client_rect(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -1566,6 +1571,8 @@ pub(crate) fn handle_get_bounding_client_rect(
     reply
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
+                scroll_into_view(&element, &documents, &pipeline, can_gc);
+
                 let rect = element.GetBoundingClientRect(can_gc);
                 Rect::new(
                     Point2D::new(rect.X() as f32, rect.Y() as f32),
@@ -1816,7 +1823,9 @@ pub(crate) fn handle_element_clear(
                     return Err(ErrorStatus::InvalidElementState);
                 }
 
-                // TODO: Step 5. Scroll Into View
+                // Step 5. Scroll Into View
+                scroll_into_view(&element, &documents, &pipeline, can_gc);
+
                 // TODO: Step 6 - 10
                 // Wait until element become interactable and check.
 
@@ -1885,7 +1894,7 @@ pub(crate) fn handle_element_click(
                 };
 
                 // Step 5
-                // TODO: scroll into view is not implemented in Servo
+                scroll_into_view(&container, &documents, &pipeline, can_gc);
 
                 // Step 6. If element's container is still not in view
                 // return error with error code element not interactable.
@@ -2082,4 +2091,33 @@ pub(crate) fn handle_remove_load_status_sender(
         let window = document.window();
         window.set_webdriver_load_status_sender(None);
     }
+}
+
+/// <https://w3c.github.io/webdriver/#dfn-scrolls-into-view>
+fn scroll_into_view(element: &Element, documents: &DocumentCollection, pipeline: &PipelineId, can_gc: CanGc) {
+    // Check if element is already in view
+    let paint_tree = get_element_pointer_interactable_paint_tree(
+        element,
+        &documents
+            .find_document(*pipeline)
+            .expect("Document existence guaranteed by `get_known_element`"),
+        can_gc,
+    );
+    if is_element_in_view(element, &paint_tree) {
+        return;
+    }
+
+    // Step 1. Let options be the following ScrollIntoViewOptions:
+    // - Logical scroll position "block": end
+    // - Logical scroll position "inline": nearest
+    let options = BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
+        ScrollIntoViewOptions {
+            parent: Default::default(),
+            block: ScrollLogicalPosition::End,
+            inline: ScrollLogicalPosition::Nearest,
+            container: Default::default(),
+        }
+    );
+    // Step 2. Run scrollIntoView
+    element.ScrollIntoView(options);
 }

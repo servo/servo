@@ -230,7 +230,7 @@ pub enum WebDriverScriptCommand {
     GetElementTagName(String, IpcSender<Result<String, ErrorStatus>>),
     GetElementText(String, IpcSender<Result<String, ErrorStatus>>),
     GetElementInViewCenterPoint(String, IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>),
-    GetBoundingClientRect(String, IpcSender<Result<UntypedRect<f32>, ErrorStatus>>),
+    ScrollAndGetBoundingClientRect(String, IpcSender<Result<UntypedRect<f32>, ErrorStatus>>),
     GetBrowsingContextId(
         WebDriverFrameId,
         IpcSender<Result<BrowsingContextId, ErrorStatus>>,
