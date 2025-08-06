@@ -119,6 +119,8 @@ pub(crate) struct CanvasContextState {
     text_baseline: TextBaseline,
     #[no_trace]
     direction: Direction,
+    // number of clips, used for poping
+    clips: usize,
 }
 
 impl CanvasContextState {
@@ -146,6 +148,7 @@ impl CanvasContextState {
             direction: Default::default(),
             line_dash: Vec::new(),
             line_dash_offset: 0.0,
+            clips: 0,
         }
     }
 
@@ -1331,8 +1334,11 @@ impl CanvasState {
     pub(crate) fn restore(&self) {
         let mut saved_states = self.saved_states.borrow_mut();
         if let Some(state) = saved_states.pop() {
+            let clips_to_pop = self.state.borrow().clips;
+            if clips_to_pop != 0 {
+                self.send_canvas_2d_msg(Canvas2dMsg::PopClips(clips_to_pop));
+            }
             self.state.borrow_mut().clone_from(&state);
-            self.send_canvas_2d_msg(Canvas2dMsg::PopClip);
         }
     }
 
@@ -1962,6 +1968,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
     pub(crate) fn clip_(&self, path: Path, fill_rule: CanvasFillRule) {
+        self.state.borrow_mut().clips += 1;
         self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(
             path,
             fill_rule.convert(),
