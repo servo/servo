@@ -91,6 +91,40 @@ fn is_stale(element: &Element) -> bool {
     !element.owner_document().is_active() || !element.is_connected()
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-disabled>
+fn is_disabled(element: &Element) -> bool {
+    // Step 1. If element is an option element or element is an optgroup element
+    if element.is::<HTMLOptionElement>() || element.is::<HTMLOptGroupElement>() {
+        // Step 1.1. For each inclusive ancestor ancestor of element
+        let disabled = element
+            .upcast::<Node>()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .any(|node| {
+                if node.is::<HTMLOptGroupElement>() || node.is::<HTMLSelectElement>() {
+                    // Step 1.1.1. If ancestor is an optgroup element or ancestor is a select element,
+                    // and ancestor is actually disabled, return true.
+                    if let Some(element) = node.downcast::<Element>() {
+                        element.is_actually_disabled()
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            });
+
+        // Step 1.2
+        // The spec suggests that we immediately return false if the above is not true.
+        // However, it causes disabled option element to not be considered as disabled.
+        // Hence, here we also check if the element itself is actually disabled.
+        if disabled {
+            return true;
+        }
+    }
+    // Step 2. Return element is actually disabled.
+    element.is_actually_disabled()
+}
+
 /// <https://w3c.github.io/webdriver/#dfn-get-a-known-shadow-root>
 fn get_known_shadow_root(
     documents: &DocumentCollection,
@@ -1814,7 +1848,7 @@ pub(crate) fn handle_element_click(
     reply
         .send(
             // Step 3
-            get_known_element(documents, pipeline, element_id).and_then(|element| {
+            get_known_element(documents, pipeline, element_id).and_then(|ref element| {
                 // Step 4
                 if let Some(input_element) = element.downcast::<HTMLInputElement>() {
                     if input_element.input_type() == InputType::File {
@@ -1822,7 +1856,7 @@ pub(crate) fn handle_element_click(
                     }
                 }
 
-                let Some(container) = get_container(&element) else {
+                let Some(container) = get_container(element) else {
                     return Err(ErrorStatus::UnknownError);
                 };
 
@@ -1862,7 +1896,7 @@ pub(crate) fn handle_element_click(
                         }
 
                         // Step 8.6
-                        if !option_element.Disabled() {
+                        if !is_disabled(element) {
                             // Step 8.6.1
                             event_target.fire_event(atom!("input"), can_gc);
 
@@ -1950,8 +1984,18 @@ pub(crate) fn handle_is_enabled(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id)
-                .map(|element| element.enabled_state()),
+            get_known_element(documents, pipeline, element_id).and_then(|ref element| {
+                if let Some(document) = documents.find_document(pipeline) {
+                    if document.is_html_document() || document.is_xhtml_document() {
+                        Ok(!is_disabled(element))
+                    } else {
+                        Ok(false)
+                    }
+                } else {
+                    warn!("Cannot find document");
+                    Err(ErrorStatus::UnknownError)
+                }
+            }),
         )
         .unwrap();
 }
