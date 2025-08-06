@@ -408,6 +408,7 @@ impl IntersectionObserver {
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
     pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Option<Rect<Au>> {
+        let window = document.window();
         let intersection_rectangle = match &self.root {
             // Handle if root is an element.
             Some(ElementOrDocument::Element(element)) => {
@@ -419,7 +420,7 @@ impl IntersectionObserver {
 
                 // > Otherwise, it’s the result of getting the bounding box for the intersection root.
                 // TODO: replace this once getBoundingBox() is implemented correctly.
-                DomRoot::upcast::<Node>(element.clone()).bounding_content_box_no_reflow()
+                window.content_box_query_without_reflow(&DomRoot::upcast::<Node>(element.clone()))
             },
             // Handle if root is a Document, which includes implicit root and explicit Document root.
             _ => {
@@ -503,7 +504,9 @@ impl IntersectionObserver {
         // This is what we are currently using for getBoundingBox(). However, it is not correct,
         // mainly because it is not considering transform and scroll offset.
         // TODO: replace this once getBoundingBox() is implemented correctly.
-        let maybe_target_rect = target.upcast::<Node>().bounding_content_box_no_reflow();
+        let maybe_target_rect = document
+            .window()
+            .content_box_query_without_reflow(target.upcast::<Node>());
 
         // Following the implementation of Gecko, we will skip further processing if these
         // information not available. This would also handle display none element.

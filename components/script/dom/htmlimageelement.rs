@@ -1657,10 +1657,9 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
         let node = self.upcast::<Node>();
-        match node.bounding_content_box() {
-            Some(rect) => rect.size.width.to_px() as u32,
-            None => self.NaturalWidth(),
-        }
+        node.content_box()
+            .map(|rect| rect.size.width.to_px() as u32)
+            .unwrap_or_else(|| self.NaturalWidth())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
@@ -1671,10 +1670,9 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
         let node = self.upcast::<Node>();
-        match node.bounding_content_box() {
-            Some(rect) => rect.size.height.to_px() as u32,
-            None => self.NaturalHeight(),
-        }
+        node.content_box()
+            .map(|rect| rect.size.height.to_px() as u32)
+            .unwrap_or_else(|| self.NaturalHeight())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height

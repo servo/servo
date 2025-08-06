@@ -241,6 +241,10 @@ pub trait Layout {
     /// Requests a reflow.
     fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult>;
 
+    /// Do not request a reflow, but ensure that any previous reflow completes building a stacking
+    /// context tree so that it is ready to query the final size of any elements in script.
+    fn ensure_stacking_context_tree(&self, viewport_details: ViewportDetails);
+
     /// Tells layout that script has added some paint worklet modules.
     fn register_paint_worklet_modules(
         &mut self,

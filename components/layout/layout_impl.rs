@@ -261,11 +261,17 @@ impl Layout for LayoutThread {
     ///                      query and possibly, query without consideration of transform.
     #[servo_tracing::instrument(skip_all)]
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
+        // If we have not built a fragment tree yet, there is no way we have layout information for
+        // this query, which can be run without forcing a layout (for IntersectionObserver).
+        if self.fragment_tree.borrow().is_none() {
+            return None;
+        }
+
         let node = unsafe { ServoLayoutNode::new(&node) };
         let stacking_context_tree = self.stacking_context_tree.borrow();
         let stacking_context_tree = stacking_context_tree
             .as_ref()
-            .expect("Should always have a StackingContextTree for geometry queries");
+            .expect("Should always have a StackingContextTree for content box queries");
         process_content_box_request(stacking_context_tree, node)
     }
 
@@ -275,11 +281,17 @@ impl Layout for LayoutThread {
     /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
+        // If we have not built a fragment tree yet, there is no way we have layout information for
+        // this query, which can be run without forcing a layout (for IntersectionObserver).
+        if self.fragment_tree.borrow().is_none() {
+            return vec![];
+        }
+
         let node = unsafe { ServoLayoutNode::new(&node) };
         let stacking_context_tree = self.stacking_context_tree.borrow();
         let stacking_context_tree = stacking_context_tree
             .as_ref()
-            .expect("Should always have a StackingContextTree for geometry queries");
+            .expect("Should always have a StackingContextTree for content box queries");
         process_content_boxes_request(stacking_context_tree, node)
     }
 
@@ -452,6 +464,15 @@ impl Layout for LayoutThread {
             self.time_profiler_chan.clone(),
             || self.handle_reflow(reflow_request),
         )
+    }
+
+    fn ensure_stacking_context_tree(&self, viewport_details: ViewportDetails) {
+        if self.stacking_context_tree.borrow().is_some() &&
+            !self.need_new_stacking_context_tree.get()
+        {
+            return;
+        }
+        self.build_stacking_context_tree(viewport_details);
     }
 
     fn register_paint_worklet_modules(
@@ -696,7 +717,7 @@ impl LayoutThread {
         if self.calculate_overflow(damage) {
             reflow_phases_run.insert(ReflowPhasesRun::CalculatedOverflow);
         }
-        if self.build_stacking_context_tree(&reflow_request, damage) {
+        if self.build_stacking_context_tree_for_reflow(&reflow_request, damage) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltStackingContextTree);
         }
         if self.build_display_list(&reflow_request, damage, &image_resolver) {
@@ -976,8 +997,7 @@ impl LayoutThread {
         true
     }
 
-    #[servo_tracing::instrument(name = "Stacking Context Tree Construction", skip_all)]
-    fn build_stacking_context_tree(
+    fn build_stacking_context_tree_for_reflow(
         &self,
         reflow_request: &ReflowRequest,
         damage: RestyleDamage,
@@ -987,14 +1007,19 @@ impl LayoutThread {
         {
             return false;
         }
-        let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
-            return false;
-        };
         if !damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) &&
             !self.need_new_stacking_context_tree.get()
         {
             return false;
         }
+        self.build_stacking_context_tree(reflow_request.viewport_details)
+    }
+
+    #[servo_tracing::instrument(name = "Stacking Context Tree Construction", skip_all)]
+    fn build_stacking_context_tree(&self, viewport_details: ViewportDetails) -> bool {
+        let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
+            return false;
+        };
 
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let old_scroll_offsets = stacking_context_tree
@@ -1006,7 +1031,7 @@ impl LayoutThread {
         // applicable spatial and clip nodes.
         let mut new_stacking_context_tree = StackingContextTree::new(
             fragment_tree,
-            reflow_request.viewport_details,
+            viewport_details,
             self.id.into(),
             !self.have_ever_generated_display_list.get(),
             &self.debug,
@@ -1022,6 +1047,13 @@ impl LayoutThread {
                 .set_all_scroll_offsets(&old_scroll_offsets);
         }
 
+        if self.debug.dump_scroll_tree {
+            new_stacking_context_tree
+                .compositor_info
+                .scroll_tree
+                .debug_print();
+        }
+
         *stacking_context_tree = Some(new_stacking_context_tree);
 
         // Force display list generation as layout has changed.
@@ -1029,20 +1061,6 @@ impl LayoutThread {
 
         // The stacking context tree is up-to-date again.
         self.need_new_stacking_context_tree.set(false);
-
-        if self.debug.dump_scroll_tree {
-            // Print the [ScrollTree], this is done after display list build so we have
-            // the information about webrender id. Whether a scroll tree is initialized
-            // or not depends on the reflow goal.
-            if let Some(tree) = self.stacking_context_tree.borrow().as_ref() {
-                tree.compositor_info.scroll_tree.debug_print();
-            } else {
-                println!(
-                    "Scroll Tree -- reflow {:?}: scroll tree is not initialized yet.",
-                    reflow_request.reflow_goal
-                );
-            }
-        }
 
         true
     }

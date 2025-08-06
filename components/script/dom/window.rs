@@ -2434,16 +2434,19 @@ impl Window {
         )
     }
 
-    // Query content box without considering any reflow
-    pub(crate) fn content_box_query_unchecked(&self, node: &Node) -> Option<UntypedRect<Au>> {
-        self.layout
-            .borrow()
-            .query_content_box(node.to_trusted_node_address())
+    /// Do the same kind of query as `Self::content_box_query`, but do not force a reflow.
+    /// This is used for things like `IntersectionObserver` which should observe the value
+    /// from the most recent reflow, but do not need it to reflect the current state of
+    /// the DOM / style.
+    pub(crate) fn content_box_query_without_reflow(&self, node: &Node) -> Option<UntypedRect<Au>> {
+        let layout = self.layout.borrow();
+        layout.ensure_stacking_context_tree(self.viewport_details.get());
+        layout.query_content_box(node.to_trusted_node_address())
     }
 
     pub(crate) fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
         self.layout_reflow(QueryMsg::ContentBox);
-        self.content_box_query_unchecked(node)
+        self.content_box_query_without_reflow(node)
     }
 
     pub(crate) fn content_boxes_query(&self, node: &Node) -> Vec<UntypedRect<Au>> {
