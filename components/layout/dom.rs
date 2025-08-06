@@ -12,7 +12,8 @@ use layout_api::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use layout_api::{
-    GenericLayoutDataTrait, LayoutDamage, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+    GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+    ServoRestyleDamage,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::Image;
@@ -21,7 +22,7 @@ use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
-use style::selector_parser::{PseudoElement, RestyleDamage};
+use style::selector_parser::PseudoElement;
 
 use crate::cell::ArcRefCell;
 use crate::flexbox::FlexLevelBox;
@@ -207,7 +208,10 @@ impl BoxSlot<'_> {
         }
     }
 
-    pub(crate) fn take_layout_box_if_undamaged(&self, damage: LayoutDamage) -> Option<LayoutBox> {
+    pub(crate) fn take_layout_box_if_undamaged(
+        &self,
+        damage: ServoRestyleDamage,
+    ) -> Option<LayoutBox> {
         if damage.has_box_damage() {
             return None;
         }
@@ -250,7 +254,7 @@ pub(crate) trait NodeExt<'dom> {
     fn clear_fragment_layout_cache(&self);
 
     fn repair_style(&self, context: &SharedStyleContext);
-    fn take_restyle_damage(&self) -> LayoutDamage;
+    fn take_restyle_damage(&self) -> ServoRestyleDamage;
 }
 
 impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
@@ -423,11 +427,9 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         }
     }
 
-    fn take_restyle_damage(&self) -> LayoutDamage {
-        let damage = self
-            .style_data()
+    fn take_restyle_damage(&self) -> ServoRestyleDamage {
+        self.style_data()
             .map(|style_data| std::mem::take(&mut style_data.element_data.borrow_mut().damage))
-            .unwrap_or_else(RestyleDamage::reconstruct);
-        LayoutDamage::from_bits_retain(damage.bits())
+            .unwrap_or_else(ServoRestyleDamage::all)
     }
 }

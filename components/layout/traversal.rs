@@ -3,13 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::Flags;
-use layout_api::LayoutDamage;
+use layout_api::ServoRestyleDamage;
 use layout_api::wrapper_traits::LayoutNode;
 use script::layout_dom::ServoLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
-use style::selector_parser::RestyleDamage;
 use style::traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
 use style::values::computed::Display;
 
@@ -34,7 +33,7 @@ impl<'a> RecalcStyle<'a> {
 #[allow(unsafe_code)]
 impl<'dom, E> DomTraversal<E> for RecalcStyle<'_>
 where
-    E: TElement,
+    E: TElement<RestyleDamage = ServoRestyleDamage>,
     E::ConcreteNode: 'dom + LayoutNode<'dom>,
 {
     fn process_preorder<F>(
@@ -59,7 +58,7 @@ where
         let mut element_data = element.mutate_data().unwrap();
 
         if !had_style_data {
-            element_data.damage = RestyleDamage::reconstruct();
+            element_data.damage = ServoRestyleDamage::all();
         }
 
         recalc_style_at(
@@ -85,7 +84,10 @@ where
         panic!("this should never be called")
     }
 
-    fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData) -> bool {
+    fn text_node_needs_traversal(
+        node: E::ConcreteNode,
+        parent_data: &ElementData<E::RestyleDamage>,
+    ) -> bool {
         node.layout_data().is_none() || !parent_data.damage.is_empty()
     }
 
@@ -98,16 +100,16 @@ where
 pub(crate) fn compute_damage_and_repair_style(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
-    damage_from_environment: RestyleDamage,
-) -> RestyleDamage {
+    damage_from_environment: ServoRestyleDamage,
+) -> ServoRestyleDamage {
     compute_damage_and_repair_style_inner(context, node, damage_from_environment)
 }
 
 pub(crate) fn compute_damage_and_repair_style_inner(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
-    damage_from_parent: RestyleDamage,
-) -> RestyleDamage {
+    damage_from_parent: ServoRestyleDamage,
+) -> ServoRestyleDamage {
     let mut element_damage;
     let original_element_damage;
     let element_data = &node
@@ -131,11 +133,11 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     // If we are reconstructing this node, then all of the children should be reconstructed as well.
     // Otherwise, do not propagate down its box damage.
     let mut damage_for_children = element_damage;
-    if !element_damage.contains(LayoutDamage::rebuild_box_tree()) {
+    if !element_damage.contains(ServoRestyleDamage::REBUILD_BOX) {
         damage_for_children.truncate();
     }
 
-    let mut damage_from_children = RestyleDamage::empty();
+    let mut damage_from_children = ServoRestyleDamage::empty();
     for child in iter_child_nodes(node) {
         if child.is_element() {
             damage_from_children |=
@@ -145,27 +147,26 @@ pub(crate) fn compute_damage_and_repair_style_inner(
 
     // If one of our children needed to be reconstructed, we need to recollect children
     // during box tree construction.
-    if damage_from_children.contains(LayoutDamage::recollect_box_tree_children()) {
-        element_damage.insert(LayoutDamage::recollect_box_tree_children());
+    if damage_from_children.contains(ServoRestyleDamage::RECOLLECT_BOX_TREE_CHILDREN) {
+        element_damage.insert(ServoRestyleDamage::RECOLLECT_BOX_TREE_CHILDREN);
     }
 
     // If this node's box will not be preserved, we need to relayout its box tree.
-    let element_layout_damage = LayoutDamage::from(element_damage);
-    if element_layout_damage.has_box_damage() {
-        element_damage.insert(RestyleDamage::RELAYOUT);
+    if element_damage.has_box_damage() {
+        element_damage.insert(ServoRestyleDamage::RELAYOUT);
     }
 
     // Only propagate up layout phases from children, as other types of damage are
     // incorporated into `element_damage` above.
-    let damage_for_parent = element_damage | (damage_from_children & RestyleDamage::RELAYOUT);
+    let damage_for_parent = element_damage | (damage_from_children & ServoRestyleDamage::RELAYOUT);
 
     // If we are going to potentially reuse this box tree node, then clear any cached
     // fragment layout.
     //
     // TODO: If this node has `recollect_box_tree_children` damage, this is unecessary
     // unless it's entirely above the dirty root.
-    if element_damage != RestyleDamage::reconstruct() &&
-        damage_for_parent.contains(RestyleDamage::RELAYOUT)
+    if element_damage != ServoRestyleDamage::all() &&
+        damage_for_parent.contains(ServoRestyleDamage::RELAYOUT)
     {
         node.clear_fragment_layout_cache();
     }
@@ -173,12 +174,12 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     // If the box will be preserved, update the box's style and also in any fragments
     // that haven't been cleared. Meanwhile, clear the damage to avoid affecting the
     // next reflow.
-    if !element_layout_damage.has_box_damage() {
+    if !element_damage.has_box_damage() {
         if !original_element_damage.is_empty() {
             node.repair_style(context);
         }
 
-        element_damage = RestyleDamage::empty();
+        element_damage = ServoRestyleDamage::empty();
     }
 
     if element_damage != original_element_damage {

@@ -23,7 +23,7 @@ use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_pr
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use layout_api::LayoutDamage;
+use layout_api::ServoRestyleDamage;
 use net_traits::ReferrerPolicy;
 use net_traits::request::CorsSettings;
 use selectors::Element as SelectorsElement;
@@ -48,8 +48,7 @@ use style::properties::{
 };
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{
-    NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser,
-    extended_filtering,
+    NonTSPseudoClass, PseudoElement, SelectorImpl, SelectorParser, extended_filtering,
 };
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::layer_rule::LayerOrder;
@@ -382,11 +381,11 @@ impl Element {
                 doc.note_node_with_dirty_descendants(self.upcast());
                 restyle
                     .damage
-                    .insert(LayoutDamage::recollect_box_tree_children());
+                    .insert(ServoRestyleDamage::RECOLLECT_BOX_TREE_CHILDREN);
             },
             NodeDamage::Other => {
                 doc.note_node_with_dirty_descendants(self.upcast());
-                restyle.damage.insert(RestyleDamage::reconstruct());
+                restyle.damage.insert(ServoRestyleDamage::all());
             },
         }
     }
