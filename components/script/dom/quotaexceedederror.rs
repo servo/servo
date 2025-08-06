@@ -1,4 +1,8 @@
-use crate::dom::types::{DOMException, GlobalScope};
+use crate::dom::{
+    bindings::reflector::reflect_dom_object,
+    domexception::DOMErrorName,
+    types::{DOMException, GlobalScope},
+};
 
 use dom_struct::dom_struct;
 use js::gc::HandleObject;
@@ -6,6 +10,7 @@ use script_bindings::{
     codegen::GenericBindings::QuotaExceededErrorBinding::{
         QuotaExceededErrorMethods, QuotaExceededErrorOptions,
     },
+    num::Finite,
     root::DomRoot,
     script_runtime::CanGc,
     str::DOMString,
@@ -14,6 +19,33 @@ use script_bindings::{
 #[dom_struct]
 pub(crate) struct QuotaExceededError {
     dom_exception: DOMException,
+    quota: Option<Finite<f64>>,
+    requested: Option<Finite<f64>>,
+}
+
+impl QuotaExceededError {
+    fn new_inherited(quota: Option<Finite<f64>>, requested: Option<Finite<f64>>) -> Self {
+        let (exception_msg, exception_name) =
+            DOMException::get_error_data_by_code(DOMErrorName::QuotaExceededError);
+        Self {
+            dom_exception: DOMException::new_inherited(exception_msg, exception_name),
+            quota,
+            requested,
+        }
+    }
+
+    pub(crate) fn new(
+        global: &GlobalScope,
+        quota: Option<Finite<f64>>,
+        requested: Option<Finite<f64>>,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(Self::new_inherited(quota, requested)),
+            global,
+            can_gc,
+        )
+    }
 }
 
 impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
@@ -23,15 +55,15 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
         can_gc: CanGc,
         message: DOMString,
         options: &QuotaExceededErrorOptions,
-    ) -> DomRoot<QuotaExceededError> {
+    ) -> DomRoot<Self> {
         todo!()
     }
 
-    fn GetQuota(&self) -> Option<script_bindings::num::Finite<f64>> {
-        todo!()
+    fn GetQuota(&self) -> Option<Finite<f64>> {
+        self.quota
     }
 
-    fn GetRequested(&self) -> Option<script_bindings::num::Finite<f64>> {
-        todo!()
+    fn GetRequested(&self) -> Option<Finite<f64>> {
+        self.requested
     }
 }

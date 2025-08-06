@@ -107,7 +107,7 @@ pub(crate) struct DOMException {
 }
 
 impl DOMException {
-    fn get_error_data_by_code(code: DOMErrorName) -> (DOMString, DOMString) {
+    pub(crate) fn get_error_data_by_code(code: DOMErrorName) -> (DOMString, DOMString) {
         let message = match &code {
             DOMErrorName::IndexSizeError => "The index is not in the allowed range.",
             DOMErrorName::HierarchyRequestError => {
