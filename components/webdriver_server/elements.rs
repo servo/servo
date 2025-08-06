@@ -6,7 +6,7 @@ use embedder_traits::{WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use serde_json::Value;
 use webdriver::command::JavascriptCommandParameters;
-use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
+use webdriver::error::{WebDriverError, WebDriverResult};
 
 use crate::{Handler, wait_for_script_response};
 
@@ -61,10 +61,7 @@ impl Handler {
         match wait_for_script_response(receiver)? {
             // Step 4. Return success with data element.
             Ok(_) => Ok(format!("window.webdriverElement(\"{}\")", element_ref)),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::NoSuchElement,
-                "No such element",
-            )),
+            Err(err) => Err(WebDriverError::new(err, "No such element")),
         }
     }
 
@@ -90,10 +87,7 @@ impl Handler {
                 "window.webdriverShadowRoot(\"{}\")",
                 shadow_root_ref
             )),
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::NoSuchShadowRoot,
-                "No such shadow root",
-            )),
+            Err(err) => Err(WebDriverError::new(err, "No such shadowroot")),
         }
     }
 
@@ -119,10 +113,18 @@ impl Handler {
                         return self.deserialize_web_element(id);
                     },
                     (Some(FRAME_IDENTIFIER), Some(id)) => {
-                        return Ok(format!("window.webdriverFrame(\"{}\")", id));
+                        let frame_ref = match id {
+                            Value::String(s) => s.clone(),
+                            _ => id.to_string(),
+                        };
+                        return Ok(format!("window.webdriverFrame(\"{}\")", frame_ref));
                     },
                     (Some(WINDOW_IDENTIFIER), Some(id)) => {
-                        return Ok(format!("window.webdriverWindow(\"{}\")", id));
+                        let window_ref = match id {
+                            Value::String(s) => s.clone(),
+                            _ => id.to_string(),
+                        };
+                        return Ok(format!("window.webdriverWindow(\"{}\")", window_ref));
                     },
                     (Some(SHADOW_ROOT_IDENTIFIER), Some(id)) => {
                         return self.deserialize_shadow_root(id);
