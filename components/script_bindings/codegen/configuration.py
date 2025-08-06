@@ -31,7 +31,7 @@ class Configuration:
     dictConfig: dict[str, Any]
     unionConfig: dict[str, Any]
     descriptors: list["Descriptor"]
-    intefaces: dict[str, IDLInterface]
+    interfaces: dict[str, IDLInterface]
 
     def __init__(self, filename: str, parseData: list[IDLInterface]) -> None:
         # Read the configuration file.
@@ -191,7 +191,7 @@ class DescriptorProvider:
     def __init__(self, config) -> None:
         self.config = config
 
-    def getDescriptor(self, interfaceName: str):
+    def getDescriptor(self, interfaceName: str) -> "Descriptor":
         """
         Gets the appropriate descriptor for the given interface name given the
         context of the current descriptor.
@@ -210,11 +210,10 @@ class Descriptor(DescriptorProvider):
     """
     Represents a single descriptor for an interface. See Bindings.conf.
     """
-    inteface: IDLInterface
-    desc: dict[str, Any]
+    interface: IDLInterface
     uniqueImplementation: bool
 
-    def __init__(self, config, interface, desc) -> None:
+    def __init__(self, config, interface: IDLInterface, desc: dict[str, Any]) -> None:
         DescriptorProvider.__init__(self, config)
         self.interface = interface
 
@@ -315,7 +314,7 @@ class Descriptor(DescriptorProvider):
                 self.hasDefaultToJSON = True
 
         if self.concrete:
-            iface = self.interface
+            iface: IDLInterface | None = self.interface
             while iface:
                 for m in iface.members:
                     if not m.isMethod():
@@ -371,7 +370,7 @@ class Descriptor(DescriptorProvider):
             else:
                 assert isinstance(config, str)
                 if config == '*':
-                    iface = self.interface
+                    iface: IDLInterface | None = self.interface
                     while iface:
                         add('all', [m.name for m in iface.members], attribute)
                         iface = iface.parent
@@ -398,7 +397,7 @@ class Descriptor(DescriptorProvider):
 
         # Build the prototype chain.
         self.prototypeChain = []
-        parent = interface
+        parent: IDLInterface | None = interface
         while parent:
             self.prototypeChain.insert(0, parent.identifier.name)
             parent = parent.parent
@@ -572,6 +571,7 @@ def getUnwrappedType(type: IDLType) -> IDLType:
 
 
 def iteratorNativeType(descriptor: Descriptor, infer: bool = False):
+    assert descriptor.interface.maplikeOrSetlikeOrIterable is not None
     iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
     assert (iterableDecl.isIterable() and iterableDecl.isPairIterator()) \
         or iterableDecl.isSetlike() or iterableDecl.isMaplike()
