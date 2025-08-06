@@ -11,7 +11,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use num_traits::Float;
 
 /// Encapsulates the IDL restricted float type.
-#[derive(Clone, Copy, Eq, JSTraceable, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, JSTraceable, PartialEq)]
 pub struct Finite<T: Float>(T);
 
 impl<T: Float> Finite<T> {

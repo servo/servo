@@ -263,7 +263,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         // Step 2
         if let Err(_result) = result {
             // FIXME:(rasviitanen) also support Unknown error
-            return Err(Error::QuotaExceeded);
+            return Err(Error::QuotaExceeded{quota: None, requested: None});
         }
 
         // Step 3
