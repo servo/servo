@@ -45,7 +45,7 @@ enum ConvertedInput<'a> {
 #[allow(unsafe_code)]
 fn jsval_to_string<'a>(
     cx: SafeJSContext,
-    value: &JSVal, // TODO: how to argure the lifetime here
+    value: SafeHandleValue, // TODO: how to argure the lifetime here
 ) -> Fallible<ConvertedInput<'a>> {
     // Step 1. If argument is a String, return argument.
     if value.is_string() {
@@ -123,7 +123,7 @@ fn jsval_to_string<'a>(
     assert!(!prim_value.is_object());
 
     // Step 12. Return ? ToString(primValue).
-    jsval_to_string(cx, &prim_value.handle())
+    jsval_to_string(cx, prim_value.handle())
 }
 
 /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
@@ -261,7 +261,8 @@ fn code_point_type(value: u16) -> CodePointType {
 fn jsval_array_to_string(cx: SafeJSContext, arr: &[JSVal], encoder: &Encoder) -> Fallible<String> {
     arr.iter()
         .map(|value| {
-            let maybe_ill_formed = jsval_to_string(cx, value)?;
+            rooted!(in(*cx) let value = *value);
+            let maybe_ill_formed = jsval_to_string(cx, value.handle())?;
             Ok(encoder.encode(maybe_ill_formed))
         })
         .collect::<Fallible<String>>()
@@ -294,7 +295,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     let output = if !is_array {
         // Step 1. Let input be the result of converting chunk to a DOMString.
         // Step 2. Convert input to an I/O queue of code units.
-        let input = jsval_to_string(cx, &chunk)?;
+        let input = jsval_to_string(cx, chunk)?;
 
         // Step 3. Let output be the I/O queue of bytes « end-of-queue ».
         // Step 4. While true:
