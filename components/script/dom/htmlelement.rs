@@ -22,6 +22,7 @@ use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -417,12 +418,19 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         element.set_click_in_progress(false);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-focus
-    fn Focus(&self, can_gc: CanGc) {
+    /// <https://html.spec.whatwg.org/multipage/#dom-focus>
+    fn Focus(&self, options: &FocusOptions, can_gc: CanGc) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
-        // https://html.spec.whatwg.org/multipage/#focusing-steps
+        // <https://html.spec.whatwg.org/multipage/#focusing-steps>
         let document = self.owner_document();
-        document.request_focus(Some(self.upcast()), FocusInitiator::Local, can_gc);
+        document.request_focus_with_options(
+            Some(self.upcast()),
+            FocusInitiator::Local,
+            FocusOptions {
+                preventScroll: options.preventScroll,
+            },
+            can_gc,
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
