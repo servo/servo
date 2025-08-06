@@ -36,7 +36,7 @@ use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use keyboard_types::webdriver::{Event as WebDriverInputEvent, KeyInputState, send_keys};
+use keyboard_types::webdriver::{Event as DispatchStringEvent, KeyInputState, send_keys};
 use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, NamedKey};
 use log::{debug, error, info};
 use pixels::PixelFormat;
@@ -2130,7 +2130,7 @@ impl Handler {
 
         for event in input_events {
             match event {
-                WebDriverInputEvent::Keyboard(event) => {
+                DispatchStringEvent::Keyboard(event) => {
                     let raw_string = convert_keyboard_event_to_string(&event);
                     let key_action = match event.state {
                         KeyState::Down => KeyAction::Down(KeyDownAction { value: raw_string }),
@@ -2150,7 +2150,7 @@ impl Handler {
                         log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
                     }
                 },
-                WebDriverInputEvent::Composition(event) => {
+                DispatchStringEvent::Composition(event) => {
                     let cmd_msg =
                         WebDriverCommandMsg::DispatchComposition(self.session()?.webview_id, event);
                     self.send_message_to_embedder(cmd_msg)?;
