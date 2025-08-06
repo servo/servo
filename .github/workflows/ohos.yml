@@ -309,7 +309,7 @@ jobs:
           --branch-start-point ${{ github.base_ref }} \
           --branch-start-point-hash ${{ github.event.pull_request.base.sha }} \
           --branch-reset \
-          --start-point-clone-thresholds  >> "$GITHUB_ENV"
+          --start-point-clone-thresholds"  >> "$GITHUB_ENV"
       - name: Set bencher opts for main
         if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
         run: |
