@@ -317,9 +317,23 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         return os.path.join(DevtoolsTests.script_path, os.path.join("devtools_tests", path))
 
 
-def run_tests(script_path, build_type: BuildType):
+def run_tests(script_path, build_type: BuildType, test_names: list[str]):
     DevtoolsTests.script_path = script_path
     DevtoolsTests.build_type = build_type
     verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
-    suite = unittest.TestLoader().loadTestsFromTestCase(DevtoolsTests)
+    loader = unittest.TestLoader()
+    if test_names:
+        patterns = []
+        # unittest.main() `-k` treats any `pattern` not containing `*` like `*pattern*`
+        for pattern in test_names:
+            if "*" in pattern:
+                patterns.append(pattern)
+            else:
+                patterns.append(f"*{pattern}*")
+        loader.testNamePatterns = patterns
+    suite = loader.loadTestsFromTestCase(DevtoolsTests)
+    print(f"Running {suite.countTestCases()} tests:")
+    for test in suite:
+        print(f"- {test}")
+    print()
     return unittest.TextTestRunner(verbosity=verbosity).run(suite).wasSuccessful()
