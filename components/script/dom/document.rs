@@ -1389,7 +1389,10 @@ impl Document {
                         DeviceIntRect::from_untyped(&rect.to_box2d()),
                     ));
                 }
-                if cfg!(target_env = "ohos") || cfg!(target_os = "android") || cfg!(target_os = "ios"){
+                if cfg!(target_env = "ohos") ||
+                    cfg!(target_os = "android") ||
+                    cfg!(target_os = "ios")
+                {
                     // Scroll operation to happen after element gets focus.
                     // This is needed to ensure that the focused element is visible
                     // when the virtual keyboard is shown.
