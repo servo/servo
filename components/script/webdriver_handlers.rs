@@ -39,7 +39,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{
-    ElementMethods, ScrollLogicalPosition, ScrollIntoViewOptions,
+    ElementMethods, ScrollIntoViewOptions, ScrollLogicalPosition,
 };
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -2094,7 +2094,12 @@ pub(crate) fn handle_remove_load_status_sender(
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-scrolls-into-view>
-fn scroll_into_view(element: &Element, documents: &DocumentCollection, pipeline: &PipelineId, can_gc: CanGc) {
+fn scroll_into_view(
+    element: &Element,
+    documents: &DocumentCollection,
+    pipeline: &PipelineId,
+    can_gc: CanGc,
+) {
     // Check if element is already in view
     let paint_tree = get_element_pointer_interactable_paint_tree(
         element,
@@ -2110,14 +2115,12 @@ fn scroll_into_view(element: &Element, documents: &DocumentCollection, pipeline:
     // Step 1. Let options be the following ScrollIntoViewOptions:
     // - Logical scroll position "block": end
     // - Logical scroll position "inline": nearest
-    let options = BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
-        ScrollIntoViewOptions {
-            parent: Default::default(),
-            block: ScrollLogicalPosition::End,
-            inline: ScrollLogicalPosition::Nearest,
-            container: Default::default(),
-        }
-    );
+    let options = BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(ScrollIntoViewOptions {
+        parent: Default::default(),
+        block: ScrollLogicalPosition::End,
+        inline: ScrollLogicalPosition::Nearest,
+        container: Default::default(),
+    });
     // Step 2. Run scrollIntoView
     element.ScrollIntoView(options);
 }
