@@ -210,14 +210,12 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     rooted!(in(*cx) let mut rval = UndefinedValue());
     jsval_to_primitive(cx, chunk, rval.handle_mut())?;
     let input = unsafe {
-        let value = rval.handle();
-        assert!(!value.is_object());
-
-        rooted!(in(*cx) let jsstr = ToString(*cx, value));
-
+        assert!(!rval.is_object());
+        rooted!(in(*cx) let jsstr = ToString(*cx, rval.handle()));
         if jsstr.is_null() {
             return Err(Error::JSFailed);
         }
+
         if JS_DeprecatedStringHasLatin1Chars(*jsstr) {
             ConvertedInput::String(latin1_to_string(*cx, *jsstr))
         } else {
