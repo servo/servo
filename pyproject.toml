@@ -10,6 +10,7 @@ extend-exclude = [
     "python/mach/**",
     "components/**",
     "tests/**",
+    "etc/**"
 ]
 
 [tool.ruff.lint]
@@ -17,6 +18,8 @@ select = [
     "E",
     "W",
     "F",
+    # Type Annotation
+    "ANN001"
 ]
 ignore = [
     # Trailing whitespace; the standard tidy process will enforce no trailing whitespace
