@@ -209,7 +209,6 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             for web_server in self.web_servers:
                 web_server.shutdown()
                 web_server.server_close()
-            os.system("ss -lnp | egrep '1000[01]'")
             self.web_servers = None
         if self.web_server_threads is not None:
             for web_server_thread in self.web_server_threads:
