@@ -9,7 +9,7 @@
 
 [
   ExceptionClass,
-  Exposed=*,
+  Exposed=(Window,Worker,Worklet,DissimilarOriginWindow),
   Serializable
 ]
 interface DOMException {
