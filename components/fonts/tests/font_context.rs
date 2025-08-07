@@ -9,8 +9,8 @@ mod font_context {
     use std::collections::HashMap;
     use std::ffi::OsStr;
     use std::path::PathBuf;
+    use std::sync::Arc;
     use std::sync::atomic::{AtomicI32, Ordering};
-    use std::sync::{Arc, Once};
     use std::thread;
 
     use app_units::Au;
@@ -22,7 +22,7 @@ mod font_context {
         SystemFontServiceProxySender, fallback_font_families,
     };
     use icu_locid::subtags::Language;
-    use net_traits::{ResourceThreads, start_fetch_thread};
+    use net_traits::ResourceThreads;
     use paint_api::CrossProcessPaintApi;
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
@@ -38,8 +38,6 @@ mod font_context {
     use stylo_atoms::Atom;
     use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
 
-    static INIT: Once = Once::new();
-
     struct TestContext {
         context: FontContext,
         system_font_service: Arc<MockSystemFontService>,
@@ -54,9 +52,6 @@ mod font_context {
             let mock_paint_api = CrossProcessPaintApi::dummy();
 
             let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());
-            INIT.call_once(|| {
-                start_fetch_thread();
-            });
             Self {
                 context: FontContext::new(proxy_clone, mock_paint_api, mock_resource_threads),
                 system_font_service,
