@@ -127,41 +127,33 @@ fn jsval_to_string<'a>(
 }
 
 /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct Encoder {
     /// <https://encoding.spec.whatwg.org/#textencoderstream-pending-high-surrogate>
     leading_surrogate: Cell<Option<u16>>,
 }
 
 impl Encoder {
-    fn new() -> Self {
-        Self {
-            leading_surrogate: Cell::new(None),
-        }
-    }
-
     fn encode<'a>(&self, maybe_ill_formed: ConvertedInput<'a>) -> Cow<'a, str> {
         match maybe_ill_formed {
             ConvertedInput::Str(s) => {
-                if !s.is_empty() {
-                    if self.leading_surrogate.take().is_some() {
-                        let mut output = String::with_capacity(1 + s.len());
-                        output.push('\u{FFFD}');
-                        output.push_str(s);
-                        return Cow::Owned(output);
-                    }
+                // Rust &str cannot contain surrogate
+                if !s.is_empty() && self.leading_surrogate.take().is_some() {
+                    let mut output = String::with_capacity(1 + s.len());
+                    output.push('\u{FFFD}');
+                    output.push_str(s);
+                    return Cow::Owned(output);
                 }
 
                 Cow::Borrowed(s)
             },
             ConvertedInput::String(s) => {
-                if !s.is_empty() {
-                    if let Some(_leading_surrogate) = self.leading_surrogate.take() {
-                        let mut output = String::with_capacity(1 + s.len());
-                        output.push('\u{FFFD}');
-                        output.push_str(&s);
-                        return Cow::Owned(output);
-                    }
+                // Rust String cannot contain surrogate
+                if !s.is_empty() && self.leading_surrogate.take().is_some() {
+                    let mut output = String::with_capacity(1 + s.len());
+                    output.push('\u{FFFD}');
+                    output.push_str(&s);
+                    return Cow::Owned(output);
                 }
 
                 Cow::Owned(s)
@@ -207,7 +199,7 @@ impl Encoder {
                         CodePointType::LeadingSurrogate => {
                             // Step 1.1 If encoder’s leading surrogate is non-null:
                             // Step 1.2 Set encoder’s leading surrogate to null.
-                            if let Some(_leading_surrogate) = self.leading_surrogate.take() {
+                            if self.leading_surrogate.take().is_some() {
                                 output.push('\u{FFFD}');
                             }
 
@@ -390,7 +382,7 @@ impl TextEncoderStream {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TextEncoderStream>> {
         // Step 1. Set this’s encoder to an instance of the UTF-8 encoder.
-        let encoder = Rc::new(Encoder::new());
+        let encoder = Rc::new(Encoder::default());
 
         // Step 2. Let transformAlgorithm be an algorithm which takes a chunk argument
         //      and runs the encode and enqueue a chunk algorithm with this and chunk.
