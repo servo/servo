@@ -282,7 +282,7 @@ impl CanvasPaintThread {
                 self.canvas(canvas_id).update_image_rendering();
                 sender.send(()).unwrap();
             },
-            Canvas2dMsg::PopClip => self.canvas(canvas_id).pop_clip(),
+            Canvas2dMsg::PopClips(clips) => self.canvas(canvas_id).pop_clips(clips),
         }
     }
 
@@ -348,14 +348,14 @@ impl Canvas {
         }
     }
 
-    fn pop_clip(&mut self) {
+    fn pop_clips(&mut self, clips: usize) {
         match self {
             #[cfg(feature = "raqote")]
-            Canvas::Raqote(canvas_data) => canvas_data.pop_clip(),
+            Canvas::Raqote(canvas_data) => canvas_data.pop_clips(clips),
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => canvas_data.pop_clip(),
+            Canvas::Vello(canvas_data) => canvas_data.pop_clips(clips),
             #[cfg(feature = "vello_cpu")]
-            Canvas::VelloCPU(canvas_data) => canvas_data.pop_clip(),
+            Canvas::VelloCPU(canvas_data) => canvas_data.pop_clips(clips),
             _ => unreachable!(),
         }
     }
