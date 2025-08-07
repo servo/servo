@@ -854,7 +854,8 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
         if lint.lint(suite_directory, tests_changed, output_format="normal"):
             for message in messages:
                 (filename, message) = message.split(":", maxsplit=1)
-                yield (filename, 0, message)
+                current_path = relative_path(os.path.join(suite_directory, filename))
+                yield (current_path, 0, message)
 
 
 def run_wpt_lints(only_changed_files: bool) -> Iterator[tuple[str, int, str]]:
