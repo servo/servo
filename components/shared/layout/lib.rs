@@ -25,7 +25,8 @@ use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::LoadData;
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
-use euclid::default::{Point2D, Rect};
+use euclid::Point2D;
+use euclid::default::{Point2D as UntypedPoint2D, Rect};
 use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
@@ -54,6 +55,7 @@ use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
+use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
@@ -288,7 +290,7 @@ pub trait Layout {
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
-    fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
+    fn query_text_indext(&self, node: OpaqueNode, point: UntypedPoint2D<f32>) -> Option<usize>;
     fn query_elements_from_point(
         &self,
         point: LayoutPoint,
@@ -608,9 +610,9 @@ pub struct ElementsFromPointResult {
     /// An [`OpaqueNode`] that contains a pointer to the node hit by
     /// this hit test result.
     pub node: OpaqueNode,
-    /// The [`LayoutPoint`] of the original query point relative to the
+    /// The [`Point2D`] of the original query point relative to the
     /// node fragment rectangle.
-    pub point_in_target: LayoutPoint,
+    pub point_in_target: Point2D<f32, CSSPixel>,
 }
 
 bitflags! {

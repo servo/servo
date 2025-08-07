@@ -28,10 +28,10 @@ use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    AllowOrDeny, AnimationState, CompositorHitTestResult, ContextMenuResult, EditingActionEvent,
-    EmbedderMsg, FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton,
-    MouseButtonAction, MouseButtonEvent, ScrollEvent, TouchEvent, TouchEventType, TouchId,
-    UntrustedNodeAddress, WheelEvent,
+    AllowOrDeny, AnimationState, ContextMenuResult, EditingActionEvent, EmbedderMsg,
+    FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton, MouseButtonAction,
+    MouseButtonEvent, ScrollEvent, TouchEvent, TouchEventType, TouchId, UntrustedNodeAddress,
+    WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
@@ -172,6 +172,7 @@ use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::{Location, NavigationType};
@@ -1542,7 +1543,6 @@ impl Document {
         }
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn handle_mouse_button_event(
         &self,
         event: MouseButtonEvent,
@@ -1550,17 +1550,17 @@ impl Document {
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
         };
 
         debug!(
             "{:?}: at {:?}",
-            event.action, hit_test_result.point_in_viewport
+            event.action, hit_test_result.point_in_frame
         );
 
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        let Some(el) = node
+        let Some(el) = hit_test_result
+            .node
             .inclusive_ancestors(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
@@ -1591,7 +1591,7 @@ impl Document {
             event,
             input_event.pressed_mouse_buttons,
             &self.window,
-            hit_test_result,
+            &hit_test_result,
             input_event.active_keyboard_modifiers,
             can_gc,
         ));
@@ -1626,13 +1626,13 @@ impl Document {
             if self.focus_transaction.borrow().is_some() {
                 self.commit_focus_transaction(FocusInitiator::Local, can_gc);
             }
-            self.maybe_fire_dblclick(node, hit_test_result, input_event, can_gc);
+            self.maybe_fire_dblclick(node, &hit_test_result, input_event, can_gc);
         }
 
         // When the contextmenu event is triggered by right mouse button
         // the contextmenu event MUST be dispatched after the mousedown event.
         if let (MouseButtonAction::Down, MouseButton::Right) = (event.action, event.button) {
-            self.maybe_show_context_menu(node.upcast(), hit_test_result, input_event, can_gc);
+            self.maybe_show_context_menu(node.upcast(), &hit_test_result, input_event, can_gc);
         }
     }
 
@@ -1640,7 +1640,7 @@ impl Document {
     fn maybe_show_context_menu(
         &self,
         target: &EventTarget,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
@@ -1652,8 +1652,8 @@ impl Document {
             EventCancelable::Cancelable,    // cancelable
             Some(&self.window),             // view
             0,                              // detail
-            hit_test_result.point_in_viewport.to_i32(),
-            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
             hit_test_result
                 .point_relative_to_initial_containing_block
                 .to_i32(),
@@ -1698,13 +1698,13 @@ impl Document {
     fn maybe_fire_dblclick(
         &self,
         target: &Node,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         // https://w3c.github.io/uievents/#event-type-dblclick
         let now = Instant::now();
-        let point_in_viewport = hit_test_result.point_in_viewport;
+        let point_in_frame = hit_test_result.point_in_frame;
         let opt = self.last_click_info.borrow_mut().take();
 
         if let Some((last_time, last_pos)) = opt {
@@ -1713,7 +1713,7 @@ impl Document {
             let DBL_CLICK_DIST_THRESHOLD = pref!(dom_document_dblclick_dist) as u64;
 
             // Calculate distance between this click and the previous click.
-            let line = point_in_viewport - last_pos;
+            let line = point_in_frame - last_pos;
             let dist = (line.dot(line) as f64).sqrt();
 
             if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
@@ -1729,8 +1729,8 @@ impl Document {
                     EventCancelable::Cancelable,
                     Some(&self.window),
                     click_count,
-                    point_in_viewport.to_i32(),
-                    point_in_viewport.to_i32(),
+                    point_in_frame.to_i32(),
+                    point_in_frame.to_i32(),
                     hit_test_result
                         .point_relative_to_initial_containing_block
                         .to_i32(),
@@ -1750,7 +1750,7 @@ impl Document {
         }
 
         // Update last_click_info with the time and position of the click.
-        *self.last_click_info.borrow_mut() = Some((now, point_in_viewport));
+        *self.last_click_info.borrow_mut() = Some((now, point_in_frame));
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1760,7 +1760,7 @@ impl Document {
         event_name: FireMouseEventType,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
@@ -1771,8 +1771,8 @@ impl Document {
             cancelable,
             Some(&self.window),
             0i32,
-            hit_test_result.point_in_viewport.to_i32(),
-            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
             hit_test_result
                 .point_relative_to_initial_containing_block
                 .to_i32(),
@@ -2004,12 +2004,12 @@ impl Document {
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
         };
 
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        let Some(new_target) = node
+        let Some(new_target) = hit_test_result
+            .node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
@@ -2049,7 +2049,7 @@ impl Document {
                     FireMouseEventType::Out,
                     EventBubbles::Bubbles,
                     EventCancelable::Cancelable,
-                    hit_test_result,
+                    &hit_test_result,
                     input_event,
                     can_gc,
                 );
@@ -2061,7 +2061,7 @@ impl Document {
                         event_target,
                         moving_into,
                         FireMouseEventType::Leave,
-                        hit_test_result,
+                        &hit_test_result,
                         input_event,
                         can_gc,
                     );
@@ -2085,7 +2085,7 @@ impl Document {
                 FireMouseEventType::Over,
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
-                hit_test_result,
+                &hit_test_result,
                 input_event,
                 can_gc,
             );
@@ -2098,7 +2098,7 @@ impl Document {
                 event_target,
                 moving_from,
                 FireMouseEventType::Enter,
-                hit_test_result,
+                &hit_test_result,
                 input_event,
                 can_gc,
             );
@@ -2111,7 +2111,7 @@ impl Document {
             FireMouseEventType::Move,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            hit_test_result,
+            &hit_test_result,
             input_event,
             can_gc,
         );
@@ -2129,15 +2129,15 @@ impl Document {
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
         };
 
         self.window()
             .send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
 
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        for element in node
+        for element in hit_test_result
+            .node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
         {
@@ -2146,19 +2146,19 @@ impl Document {
         }
 
         self.fire_mouse_event(
-            node.upcast(),
+            hit_test_result.node.upcast(),
             FireMouseEventType::Out,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            hit_test_result,
+            &hit_test_result,
             input_event,
             can_gc,
         );
         self.handle_mouse_enter_leave_event(
-            node,
+            hit_test_result.node.clone(),
             None,
             FireMouseEventType::Leave,
-            hit_test_result,
+            &hit_test_result,
             input_event,
             can_gc,
         );
@@ -2169,7 +2169,7 @@ impl Document {
         event_target: DomRoot<Node>,
         related_target: Option<DomRoot<Node>>,
         event_type: FireMouseEventType,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
@@ -2224,12 +2224,12 @@ impl Document {
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
         };
 
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        let Some(el) = node
+        let Some(el) = hit_test_result
+            .node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
@@ -2243,7 +2243,7 @@ impl Document {
             "{}: on {:?} at {:?}",
             wheel_event_type_string,
             node.debug_str(),
-            hit_test_result.point_in_viewport
+            hit_test_result.point_in_frame
         );
 
         // https://w3c.github.io/uievents/#event-wheelevents
@@ -2254,8 +2254,8 @@ impl Document {
             EventCancelable::Cancelable,
             Some(&self.window),
             0i32,
-            hit_test_result.point_in_viewport.to_i32(),
-            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
             hit_test_result
                 .point_relative_to_initial_containing_block
                 .to_i32(),
@@ -2286,11 +2286,11 @@ impl Document {
     pub(crate) fn handle_touch_event(
         &self,
         event: TouchEvent,
-        hit_test_result: Option<CompositorHitTestResult>,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) -> TouchEventResult {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = hit_test_result else {
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             self.update_active_touch_points_when_early_return(event);
             return TouchEventResult::Forwarded;
         };
@@ -2303,8 +2303,8 @@ impl Document {
             TouchEventType::Cancel => "touchcancel",
         };
 
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        let Some(el) = node
+        let Some(el) = hit_test_result
+            .node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
@@ -2316,12 +2316,12 @@ impl Document {
         let target = DomRoot::upcast::<EventTarget>(el);
         let window = &*self.window;
 
-        let client_x = Finite::wrap(hit_test_result.point_in_viewport.x as f64);
-        let client_y = Finite::wrap(hit_test_result.point_in_viewport.y as f64);
+        let client_x = Finite::wrap(hit_test_result.point_in_frame.x as f64);
+        let client_y = Finite::wrap(hit_test_result.point_in_frame.y as f64);
         let page_x =
-            Finite::wrap(hit_test_result.point_in_viewport.x as f64 + window.PageXOffset() as f64);
+            Finite::wrap(hit_test_result.point_in_frame.x as f64 + window.PageXOffset() as f64);
         let page_y =
-            Finite::wrap(hit_test_result.point_in_viewport.y as f64 + window.PageYOffset() as f64);
+            Finite::wrap(hit_test_result.point_in_frame.y as f64 + window.PageYOffset() as f64);
 
         let touch = Touch::new(
             window, identifier, &target, client_x,

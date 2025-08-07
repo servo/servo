@@ -1390,6 +1390,7 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
+ "num-traits",
  "pixels",
  "profile_traits",
  "servo-tracing",
@@ -4789,6 +4790,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "stylo",
+ "stylo_traits",
  "webrender_api",
 ]
 

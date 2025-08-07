@@ -39,5 +39,6 @@ selectors = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
 servo_url = { path = "../../url" }
+stylo_traits = { workspace = true }
 stylo = { workspace = true }
 webrender_api = { workspace = true }

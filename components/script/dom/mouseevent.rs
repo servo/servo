@@ -6,7 +6,6 @@ use std::cell::Cell;
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use embedder_traits::CompositorHitTestResult;
 use euclid::Point2D;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
@@ -25,6 +24,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::node::Node;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
@@ -226,7 +226,7 @@ impl MouseEvent {
         event: embedder_traits::MouseButtonEvent,
         pressed_mouse_buttons: u16,
         window: &Window,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         modifiers: Modifiers,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -236,7 +236,7 @@ impl MouseEvent {
             embedder_traits::MouseButtonAction::Down => "mousedown",
         };
 
-        let client_point = hit_test_result.point_in_viewport.to_i32();
+        let client_point = hit_test_result.point_in_frame.to_i32();
         let page_point = hit_test_result
             .point_relative_to_initial_containing_block
             .to_i32();
@@ -256,7 +256,7 @@ impl MouseEvent {
             event.button.into(),
             pressed_mouse_buttons,
             None,
-            Some(hit_test_result.point_relative_to_item),
+            Some(hit_test_result.point_in_node),
             can_gc,
         );
 

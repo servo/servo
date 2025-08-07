@@ -6,7 +6,6 @@ use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
 use app_units::{AU_PER_PX, Au};
-use base::WebRenderEpochToU16;
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
 use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNodeInfo};
@@ -72,9 +71,6 @@ use background::BackgroundPainter;
 pub(crate) use hit_test::HitTest;
 pub(crate) use stacking_context::*;
 
-// webrender's `ItemTag` is private.
-type ItemTag = (u64, u16);
-type HitInfo = Option<ItemTag>;
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
 
 pub(crate) struct DisplayListBuilder<'a> {
@@ -168,8 +164,6 @@ impl DisplayListBuilder<'_> {
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let compositor_info = &mut stacking_context_tree.compositor_info;
-        compositor_info.hit_test_info.clear();
-
         let mut webrender_display_list_builder =
             webrender_api::DisplayListBuilder::new(compositor_info.pipeline_id);
         webrender_display_list_builder.begin();
@@ -396,27 +390,6 @@ impl DisplayListBuilder<'_> {
         }
     }
 
-    fn hit_info(
-        &mut self,
-        style: &ComputedValues,
-        tag: Option<Tag>,
-        auto_cursor: Cursor,
-    ) -> HitInfo {
-        use style::computed_values::pointer_events::T as PointerEvents;
-
-        let inherited_ui = style.get_inherited_ui();
-        if inherited_ui.pointer_events == PointerEvents::None {
-            return None;
-        }
-
-        let hit_test_index = self.compositor_info.add_hit_test_info(
-            tag?.node.0 as u64,
-            Some(cursor(inherited_ui.cursor.keyword, auto_cursor)),
-            self.current_scroll_node_id,
-        );
-        Some((hit_test_index as u64, self.compositor_info.epoch.as_u16()))
-    }
-
     /// Draw highlights around the node that is currently hovered in the devtools.
     fn paint_dom_inspector_highlight(&mut self) {
         let Some(highlight) = self
@@ -616,7 +589,6 @@ impl Fragment {
                 self.maybe_push_hit_test_for_style_and_tag(
                     builder,
                     &positioning_fragment.style,
-                    positioning_fragment.base.tag,
                     rect,
                     Cursor::Default,
                 );
@@ -706,24 +678,20 @@ impl Fragment {
         &self,
         builder: &mut DisplayListBuilder,
         style: &ComputedValues,
-        tag: Option<Tag>,
         rect: PhysicalRect<Au>,
         cursor: Cursor,
     ) {
-        let hit_info = builder.hit_info(style, tag, cursor);
-        let hit_info = match hit_info {
-            Some(hit_info) => hit_info,
-            None => return,
-        };
-
         let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
         let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
+        let external_scroll_id = builder
+            .compositor_info
+            .external_scroll_id_for_scroll_tree_node(builder.current_scroll_node_id);
         builder.wr().push_hit_test(
             rect.to_webrender(),
             clip_chain_id,
             spatial_id,
             style.get_webrender_primitive_flags(),
-            hit_info,
+            (external_scroll_id.0, cursor as u16), /* tag */
         );
     }
 
@@ -756,13 +724,7 @@ impl Fragment {
         }
 
         let parent_style = fragment.inline_styles.style.borrow();
-        self.maybe_push_hit_test_for_style_and_tag(
-            builder,
-            &parent_style,
-            fragment.base.tag,
-            rect,
-            Cursor::Text,
-        );
+        self.maybe_push_hit_test_for_style_and_tag(builder, &parent_style, rect, Cursor::Text);
 
         let color = parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
@@ -1116,15 +1078,13 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_hit_test(&self, builder: &mut DisplayListBuilder, rect: LayoutRect) {
-        let hit_info = builder.hit_info(
-            &self.fragment.style,
-            self.fragment.base.tag,
+        let cursor = cursor(
+            self.fragment.style.get_inherited_ui().cursor.keyword,
             Cursor::Default,
         );
-        let hit_info = match hit_info {
-            Some(hit_info) => hit_info,
-            None => return,
-        };
+        let external_scroll_node_id = builder
+            .compositor_info
+            .external_scroll_id_for_scroll_tree_node(builder.current_scroll_node_id);
 
         let mut common = builder.common_properties(rect, &self.fragment.style);
         if let Some(clip_chain_id) = self.border_edge_clip(builder, false) {
@@ -1135,7 +1095,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             common.clip_chain_id,
             common.spatial_id,
             common.flags,
-            hit_info,
+            (external_scroll_node_id.0, cursor as u16), /* tag */
         );
     }
 
@@ -1902,17 +1862,25 @@ pub(super) fn compute_margin_box_radius(
 
 impl BoxFragment {
     fn border_radius(&self) -> BorderRadius {
-        let resolve =
-            |radius: &LengthPercentage, box_size: Au| radius.to_used_value(box_size).to_f32_px();
+        let border = self.style.get_border();
+        if border.border_top_left_radius.0.is_zero() &&
+            border.border_top_right_radius.0.is_zero() &&
+            border.border_bottom_right_radius.0.is_zero() &&
+            border.border_bottom_left_radius.0.is_zero()
+        {
+            return BorderRadius::zero();
+        }
 
         let border_rect = self.border_rect();
+        let resolve =
+            |radius: &LengthPercentage, box_size: Au| radius.to_used_value(box_size).to_f32_px();
         let corner = |corner: &style::values::computed::BorderCornerRadius| {
             Size2D::new(
                 resolve(&corner.0.width.0, border_rect.size.width),
                 resolve(&corner.0.height.0, border_rect.size.height),
             )
         };
-        let border = self.style.get_border();
+
         let mut radius = wr::BorderRadius {
             top_left: corner(&border.border_top_left_radius),
             top_right: corner(&border.border_top_right_radius),
