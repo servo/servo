@@ -9,9 +9,10 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::conversions::{ToJSValConvertible, latin1_to_string};
+use js::gc::RootedGuard;
 use js::jsapi::{
     JS_DeprecatedStringHasLatin1Chars, JS_GetTwoByteStringCharsAndLength, JSObject, JSType,
-    ToPrimitive,
+    ToPrimitive, Value,
 };
 use js::jsval::UndefinedValue;
 use js::rust::{
@@ -36,6 +37,38 @@ enum ConvertedInput<'a> {
     CodeUnits(&'a [u16]),
 }
 
+enum MaybePrimitiveHandleValue<'chunk: 'rooted, 'rooted, 'a> {
+    MaybePrimitive {
+        value: SafeHandleValue<'chunk>,
+        rooted_undefined: &'a mut RootedGuard<'rooted, Value>,
+    },
+    RootedPrimitive(&'a mut RootedGuard<'rooted, Value>),
+}
+
+#[allow(unsafe_code)]
+fn js_primitive_to_string<'a>(
+    cx: SafeJSContext,
+    value: SafeHandleValue,
+) -> Fallible<ConvertedInput<'a>> {
+    assert!(value.is_primitive());
+    unsafe {
+        let jsstr = std::ptr::NonNull::new(ToString(*cx, value))
+            // ToString may set JS Exception
+            .ok_or(Error::JSFailed)?;
+        if JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr()) {
+            return Ok(ConvertedInput::String(latin1_to_string(
+                *cx,
+                jsstr.as_ptr(),
+            )));
+        }
+        let mut len = 0;
+        let data =
+            JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), jsstr.as_ptr(), &mut len);
+        let maybe_ill_formed_code_units = std::slice::from_raw_parts(data, len);
+        Ok(ConvertedInput::CodeUnits(maybe_ill_formed_code_units))
+    }
+}
+
 /// Converts a JSVal to a potentially ill-formed string.
 ///
 /// It calls `mozjs::rust::ToString` if the value is a JS primitive,
@@ -44,60 +77,59 @@ enum ConvertedInput<'a> {
 ///
 /// <https://tc39.es/ecma262/multipage/abstract-operations.html#sec-tostring>
 #[allow(unsafe_code)]
-fn jsval_to_string<'a>(
+fn jsval_to_string<'chunk: 'rooted, 'rooted, 'a>(
     cx: SafeJSContext,
-    value: SafeHandleValue, // TODO: how to argure the lifetime here
-) -> Fallible<ConvertedInput<'a>> {
-    // Step 1. If argument is a String, return argument.
-    // Step 2. If argument is a Symbol, throw a TypeError exception.
-    // Step 3. If argument is undefined, return "undefined".
-    // Step 4. If argument is null, return "null".
-    // Step 5. If argument is true, return "true".
-    // Step 6. If argument is false, return "false".
-    // Step 7. If argument is a Number, return Number::toString(argument, 10).
-    // Step 8. If argument is a BigInt, return BigInt::toString(argument, 10).
-    if value.is_primitive() {
-        unsafe {
-            let jsstr = std::ptr::NonNull::new(ToString(*cx, value))
-                // ToString may set JS Exception
-                .ok_or(Error::JSFailed)?;
-            if JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr()) {
-                return Ok(ConvertedInput::String(latin1_to_string(
-                    *cx,
-                    jsstr.as_ptr(),
-                )));
+    jsval: MaybePrimitiveHandleValue<'chunk, 'rooted, 'a>,
+) -> Fallible<ConvertedInput<'rooted>> {
+    match jsval {
+        MaybePrimitiveHandleValue::MaybePrimitive {
+            value,
+            rooted_undefined,
+        } => {
+            // Step 1. If argument is a String, return argument.
+            // Step 2. If argument is a Symbol, throw a TypeError exception.
+            // Step 3. If argument is undefined, return "undefined".
+            // Step 4. If argument is null, return "null".
+            // Step 5. If argument is true, return "true".
+            // Step 6. If argument is false, return "false".
+            // Step 7. If argument is a Number, return Number::toString(argument, 10).
+            // Step 8. If argument is a BigInt, return BigInt::toString(argument, 10).
+            if value.is_primitive() {
+                return js_primitive_to_string(cx, value);
             }
-            let mut len = 0;
-            let data =
-                JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), jsstr.as_ptr(), &mut len);
-            let maybe_ill_formed_code_units = std::slice::from_raw_parts(data, len);
-            return Ok(ConvertedInput::CodeUnits(maybe_ill_formed_code_units));
-        }
+
+            // Step 9. Assert: argument is an Object.
+            assert!(value.is_object());
+
+            // Step 10. Let primValue be ? ToPrimitive(argument, string).
+            // let prim_value = undefined_prim_value;
+            rooted!(in(*cx) let obj = value.to_object());
+            let is_success = unsafe {
+                ToPrimitive(
+                    *cx,
+                    obj.handle().into_handle(),
+                    JSType::JSTYPE_STRING,
+                    rooted_undefined.handle_mut().into(),
+                )
+            };
+            if !is_success {
+                return Err(Error::JSFailed); // TODO: double check if an error is thrown
+            }
+            let rooted_primitive = rooted_undefined;
+
+            // Step 11. Assert: primValue is not an Object.
+            assert!(!rooted_primitive.is_object());
+
+            // Step 12. Return ? ToString(primValue).
+            jsval_to_string(
+                cx,
+                MaybePrimitiveHandleValue::RootedPrimitive(rooted_primitive),
+            )
+        },
+        MaybePrimitiveHandleValue::RootedPrimitive(value) => {
+            js_primitive_to_string(cx, value.handle())
+        },
     }
-
-    // Step 9. Assert: argument is an Object.
-    assert!(value.is_object());
-
-    // Step 10. Let primValue be ? ToPrimitive(argument, string).
-    rooted!(in(*cx) let mut prim_value = UndefinedValue());
-    rooted!(in(*cx) let obj = value.to_object());
-    let is_success = unsafe {
-        ToPrimitive(
-            *cx,
-            obj.handle().into_handle(),
-            JSType::JSTYPE_STRING,
-            prim_value.handle_mut().into(),
-        )
-    };
-    if !is_success {
-        return Err(Error::JSFailed); // TODO: double check if an error is thrown
-    }
-
-    // Step 11. Assert: primValue is not an Object.
-    assert!(!prim_value.is_object());
-
-    // Step 12. Return ? ToString(primValue).
-    jsval_to_string(cx, prim_value.handle())
 }
 
 /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
@@ -225,7 +257,12 @@ pub(crate) fn encode_and_enqueue_a_chunk(
 ) -> Fallible<()> {
     // Step 1. Let input be the result of converting chunk to a DOMString.
     // Step 2. Convert input to an I/O queue of code units.
-    let input = jsval_to_string(cx, chunk)?;
+    rooted!(in(*cx) let mut rooted_undefined = UndefinedValue());
+    let jsval = MaybePrimitiveHandleValue::MaybePrimitive {
+        value: chunk,
+        rooted_undefined: &mut rooted_undefined,
+    };
+    let input = jsval_to_string(cx, jsval)?;
 
     // Step 3. Let output be the I/O queue of bytes « end-of-queue ».
     // Step 4. While true:
@@ -255,7 +292,8 @@ pub(crate) fn encode_and_enqueue_a_chunk(
         chunk.to_jsval(*cx, chunk_val.handle_mut());
     }
     // Step 4.2.2.2 Enqueue chunk into encoder’s transform.
-    controller.enqueue(cx, global, chunk_val.handle(), can_gc)
+    controller.enqueue(cx, global, chunk_val.handle(), can_gc)?;
+    Ok(())
 }
 
 /// <https://encoding.spec.whatwg.org/#encode-and-flush>
