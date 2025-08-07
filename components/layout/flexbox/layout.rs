@@ -1552,7 +1552,7 @@ impl InitialFlexLineLayout<'_> {
                     cross_axis,
                     Size::Stretch,
                     Au::zero,
-                    Some(final_line_cross_size - item.item.pbm_auto_is_zero.cross),
+                    Some(Au::zero().max(final_line_cross_size - item.item.pbm_auto_is_zero.cross)),
                     || content_size.into(),
                     // Tables have a special sizing in the block axis in that handles collapsed rows,
                     // but it would prevent stretching. So we only recognize tables in the inline axis.
