@@ -43,7 +43,7 @@ impl InputEvent {
             InputEvent::Keyboard(..) => None,
             InputEvent::MouseButton(event) => Some(event.point),
             InputEvent::MouseMove(event) => Some(event.point),
-            InputEvent::MouseLeave(event) => Some(event.point),
+            InputEvent::MouseLeave(_) => None,
             InputEvent::Touch(event) => Some(event.point),
             InputEvent::Wheel(event) => Some(event.point),
             InputEvent::Scroll(..) => None,
@@ -218,15 +218,9 @@ impl MouseMoveEvent {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 pub struct MouseLeaveEvent {
-    pub point: DevicePoint,
-}
-
-impl MouseLeaveEvent {
-    pub fn new(point: DevicePoint) -> Self {
-        Self { point }
-    }
+    pub focus_moving_to_another_iframe: bool,
 }
 
 /// The type of input represented by a multi-touch event.
