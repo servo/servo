@@ -1225,7 +1225,7 @@ pub(crate) fn handle_will_send_keys(
                 // Step 7. If file is false or the session's strict file interactability
                 if !is_file_input || strict_file_interactability {
                     // Step 7.1. Scroll into view the element
-                    scroll_into_view(&element, &documents, &pipeline, can_gc);
+                    scroll_into_view(&element, documents, &pipeline, can_gc);
 
                     // TODO: Step 7.2 - 7.5
                     // Wait until element become keyboard-interactable
@@ -1571,7 +1571,7 @@ pub(crate) fn handle_scroll_and_get_bounding_client_rect(
     reply
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
-                scroll_into_view(&element, &documents, &pipeline, can_gc);
+                scroll_into_view(&element, documents, &pipeline, can_gc);
 
                 let rect = element.GetBoundingClientRect(can_gc);
                 Rect::new(
@@ -1824,7 +1824,7 @@ pub(crate) fn handle_element_clear(
                 }
 
                 // Step 5. Scroll Into View
-                scroll_into_view(&element, &documents, &pipeline, can_gc);
+                scroll_into_view(&element, documents, &pipeline, can_gc);
 
                 // TODO: Step 6 - 10
                 // Wait until element become interactable and check.
@@ -1894,7 +1894,7 @@ pub(crate) fn handle_element_click(
                 };
 
                 // Step 5
-                scroll_into_view(&container, &documents, &pipeline, can_gc);
+                scroll_into_view(&container, documents, &pipeline, can_gc);
 
                 // Step 6. If element's container is still not in view
                 // return error with error code element not interactable.
