@@ -144,7 +144,7 @@ impl Encoder {
         match maybe_ill_formed {
             ConvertedInput::Str(s) => {
                 if !s.is_empty() {
-                    if let Some(_leading_surrogate) = self.leading_surrogate.take() {
+                    if self.leading_surrogate.take().is_some() {
                         let mut output = String::with_capacity(1 + s.len());
                         output.push('\u{FFFD}');
                         output.push_str(s);
