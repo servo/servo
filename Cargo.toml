@@ -87,7 +87,7 @@ indexmap = { version = "2.10.0", features = ["std"] }
 ipc-channel = "0.20"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
-keyboard-types = { version = "0.8.0", features = ["serde", "webdriver"] }
+keyboard-types = { version = "0.8.1", features = ["serde", "webdriver"] }
 kurbo = { version = "0.11.3", features = ["euclid"] }
 layout_api = { path = "components/shared/layout" }
 libc = "0.2"
