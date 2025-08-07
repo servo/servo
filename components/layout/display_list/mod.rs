@@ -651,6 +651,15 @@ impl Fragment {
                                 image_key,
                                 wr::ColorF::WHITE,
                             );
+                            if let Some(image_epoch) = image.image_epoch {
+                                assert!(
+                                    builder
+                                        .compositor_info
+                                        .image_epochs
+                                        .insert(image_key, image_epoch)
+                                        .is_none()
+                                )
+                            }
                         }
                     },
                     Visibility::Hidden => (),

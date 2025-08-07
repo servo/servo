@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::Epoch;
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -100,11 +101,11 @@ impl CanvasRenderingContext2D {
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
-    fn canvas_data_source(self) -> Option<ImageKey> {
+    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)> {
         let canvas_state = &self.unsafe_get().canvas_state;
 
         if canvas_state.is_paintable() {
-            Some(canvas_state.image_key())
+            Some((canvas_state.image_key(), canvas_state.current_epoch()))
         } else {
             None
         }
@@ -124,6 +125,10 @@ impl CanvasContext for CanvasRenderingContext2D {
 
     fn update_rendering(&self) {
         self.canvas_state.update_rendering();
+        // we need to remark as dirty for layout to prevent using cached epoch
+        if let Some(canvas) = self.canvas.canvas() {
+            canvas.upcast::<Node>().dirty(NodeDamage::Other);
+        }
     }
 
     fn resize(&self) {
