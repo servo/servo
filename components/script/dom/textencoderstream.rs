@@ -19,6 +19,7 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle, ToString,
 };
 use js::typedarray::Uint8Array;
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
@@ -136,7 +137,7 @@ fn jsval_to_string<'chunk: 'rooted, 'rooted, 'a>(
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct Encoder {
     /// <https://encoding.spec.whatwg.org/#textencoderstream-pending-high-surrogate>
-    leading_surrogate: Cell<Option<u16>>,
+    leading_surrogate: Cell<Option<u16>>, // TODO: replace u16 with NonZeroU16? this would save some mem
 }
 
 impl Encoder {
@@ -287,12 +288,10 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
     let chunk: Uint8Array = create_buffer_source(cx, output, js_object.handle_mut(), can_gc)
         .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
-    rooted!(in(*cx) let mut chunk_val = UndefinedValue());
-    unsafe {
-        chunk.to_jsval(*cx, chunk_val.handle_mut());
-    }
+    rooted!(in(*cx) let mut rval = UndefinedValue());
+    chunk.safe_to_jsval(cx, rval.handle_mut());
     // Step 4.2.2.2 Enqueue chunk into encoder’s transform.
-    controller.enqueue(cx, global, chunk_val.handle(), can_gc)?;
+    controller.enqueue(cx, global, rval.handle(), can_gc)?;
     Ok(())
 }
 
