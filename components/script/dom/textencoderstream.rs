@@ -14,7 +14,9 @@ use js::jsapi::{
     ToPrimitive,
 };
 use js::jsval::UndefinedValue;
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use js::rust::{
+    HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle, ToString,
+};
 use js::typedarray::Uint8Array;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -30,14 +32,15 @@ use crate::{DomTypeHolder, DomTypes};
 
 /// String converted from an input JS Value
 enum ConvertedInput<'a> {
-    Str(&'static str),
     String(String),
     CodeUnits(&'a [u16]),
 }
 
-/// Converts a JSVal to a potentially ill-formed string. This is re-implemented
-/// instead of using `js::rust::ToString` because the latter shows unexpected
-/// behavior when handling conversion of non-string JS types into strings
+/// Converts a JSVal to a potentially ill-formed string.
+///
+/// It calls `mozjs::rust::ToString` if the value is a JS primitive,
+/// otherwise the value is converted to a primitive and then converted
+/// into string.
 ///
 /// <https://tc39.es/ecma262/multipage/abstract-operations.html#sec-tostring>
 #[allow(unsafe_code)]
@@ -46,58 +49,31 @@ fn jsval_to_string<'a>(
     value: SafeHandleValue, // TODO: how to argure the lifetime here
 ) -> Fallible<ConvertedInput<'a>> {
     // Step 1. If argument is a String, return argument.
-    if value.is_string() {
-        let jsstr = std::ptr::NonNull::new(value.to_string())
-            .ok_or_else(|| Error::Type("Failed to convert to JSString".to_owned()))?;
+    // Step 2. If argument is a Symbol, throw a TypeError exception.
+    // Step 3. If argument is undefined, return "undefined".
+    // Step 4. If argument is null, return "null".
+    // Step 5. If argument is true, return "true".
+    // Step 6. If argument is false, return "false".
+    // Step 7. If argument is a Number, return Number::toString(argument, 10).
+    // Step 8. If argument is a BigInt, return BigInt::toString(argument, 10).
+    if value.is_primitive() {
         unsafe {
+            let jsstr = std::ptr::NonNull::new(ToString(*cx, value))
+                // ToString may set JS Exception
+                .ok_or(Error::JSFailed)?;
             if JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr()) {
                 return Ok(ConvertedInput::String(latin1_to_string(
                     *cx,
                     jsstr.as_ptr(),
                 )));
             }
+            let mut len = 0;
+            let data =
+                JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), jsstr.as_ptr(), &mut len);
+            let maybe_ill_formed_code_units = std::slice::from_raw_parts(data, len);
+            return Ok(ConvertedInput::CodeUnits(maybe_ill_formed_code_units));
         }
-        // Step 2. Convert input to an I/O queue of code units.
-        let mut len = 0;
-        let data = unsafe {
-            JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), jsstr.as_ptr(), &mut len)
-        };
-        let maybe_ill_formed_code_units = unsafe { std::slice::from_raw_parts(data, len) };
-        return Ok(ConvertedInput::CodeUnits(maybe_ill_formed_code_units));
     }
-
-    // Step 2. If argument is a Symbol, throw a TypeError exception.
-    if value.is_symbol() {
-        return Err(Error::Type("Cannot convert symbol to string".to_owned()));
-    }
-
-    // Step 3. If argument is undefined, return "undefined".
-    if value.is_undefined() {
-        return Ok(ConvertedInput::Str("undefined"));
-    }
-
-    // Step 4. If argument is null, return "null".
-    if value.is_null() {
-        return Ok(ConvertedInput::Str("null"));
-    }
-
-    // Step 5. If argument is true, return "true".
-    // Step 6. If argument is false, return "false".
-    if value.is_boolean() {
-        let s = match value.to_boolean() {
-            true => "true",
-            false => "false",
-        };
-        return Ok(ConvertedInput::Str(s));
-    }
-
-    // Step 7. If argument is a Number, return Number::toString(argument, 10).
-    if value.is_number() {
-        return Ok(ConvertedInput::String(value.to_number().to_string()));
-    }
-
-    // Step 8. If argument is a BigInt, return BigInt::toString(argument, 10).
-    // TODO
 
     // Step 9. Assert: argument is an Object.
     assert!(value.is_object());
@@ -134,17 +110,6 @@ pub(crate) struct Encoder {
 impl Encoder {
     fn encode<'a>(&self, maybe_ill_formed: ConvertedInput<'a>) -> Cow<'a, str> {
         match maybe_ill_formed {
-            ConvertedInput::Str(s) => {
-                // Rust &str cannot contain surrogate
-                if !s.is_empty() && self.leading_surrogate.take().is_some() {
-                    let mut output = String::with_capacity(1 + s.len());
-                    output.push('\u{FFFD}');
-                    output.push_str(s);
-                    return Cow::Owned(output);
-                }
-
-                Cow::Borrowed(s)
-            },
             ConvertedInput::String(s) => {
                 // Rust String cannot contain surrogate
                 if !s.is_empty() && self.leading_surrogate.take().is_some() {
