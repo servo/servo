@@ -79,7 +79,7 @@ pub(crate) enum TransformerType {
     /// Algorithms supporting `TextEncoderStream` are implemented in Rust
     ///
     /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
-    Encoder(Rc<Encoder>),
+    Encoder(Encoder),
 }
 
 impl TransformerType {

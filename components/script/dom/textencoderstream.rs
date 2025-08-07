@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::Cell;
 use std::ptr;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::conversions::{ToJSValConvertible, latin1_to_string};
+use js::conversions::latin1_to_string;
 use js::jsapi::{
     JS_DeprecatedStringHasLatin1Chars, JS_GetTwoByteStringCharsAndLength, JSObject, JSType,
     ToPrimitive,
@@ -90,22 +88,21 @@ pub(crate) struct Encoder {
 }
 
 impl Encoder {
-    fn encode<'a>(&self, maybe_ill_formed: ConvertedInput<'a>) -> Cow<'a, str> {
+    fn encode(&self, maybe_ill_formed: ConvertedInput<'_>) -> String {
         match maybe_ill_formed {
             ConvertedInput::String(s) => {
-                // Rust String cannot contain surrogate
+                // Rust String is already UTF-8 encoded and cannot contain
+                // surrogate
                 if !s.is_empty() && self.leading_surrogate.take().is_some() {
                     let mut output = String::with_capacity(1 + s.len());
                     output.push('\u{FFFD}');
                     output.push_str(&s);
-                    return Cow::Owned(output);
+                    return output;
                 }
 
-                Cow::Owned(s)
+                s
             },
-            ConvertedInput::CodeUnits(code_units) => {
-                Cow::Owned(self.encode_from_code_units(code_units))
-            },
+            ConvertedInput::CodeUnits(code_units) => self.encode_from_code_units(code_units),
         }
     }
 
@@ -269,13 +266,16 @@ pub(crate) fn encode_and_flush(
     if encoder.leading_surrogate.get().is_some() {
         // Step 1.1 Let chunk be the result of creating a Uint8Array object
         //      given « 0xEF, 0xBF, 0xBD » and encoder’s relevant realm.
-        let output = [0xEF_u8, 0xBF, 0xBD];
-        rooted!(in(*cx) let mut chunk = UndefinedValue());
-        unsafe {
-            output.to_jsval(*cx, chunk.handle_mut());
-        }
+        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+        let chunk: Uint8Array =
+            create_buffer_source(cx, &[0xEF_u8, 0xBF, 0xBD], js_object.handle_mut(), can_gc)
+                .map_err(|_| {
+                    Error::Type("Cannot convert byte sequence to Uint8Array".to_owned())
+                })?;
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        chunk.safe_to_jsval(cx, rval.handle_mut());
         // Step 1.2 Enqueue chunk into encoder’s transform.
-        return controller.enqueue(cx, global, chunk.handle(), can_gc);
+        return controller.enqueue(cx, global, rval.handle(), can_gc);
     }
 
     Ok(())
@@ -286,19 +286,14 @@ pub(crate) fn encode_and_flush(
 pub(crate) struct TextEncoderStream {
     reflector_: Reflector,
 
-    /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    encoder: Rc<Encoder>,
-
     /// <https://streams.spec.whatwg.org/#generictransformstream>
     transform: Dom<TransformStream>,
 }
 
 impl TextEncoderStream {
-    fn new_inherited(encoder: Rc<Encoder>, transform: &TransformStream) -> TextEncoderStream {
+    fn new_inherited(transform: &TransformStream) -> TextEncoderStream {
         Self {
             reflector_: Reflector::new(),
-            encoder,
             transform: Dom::from_ref(transform),
         }
     }
@@ -311,13 +306,13 @@ impl TextEncoderStream {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TextEncoderStream>> {
         // Step 1. Set this’s encoder to an instance of the UTF-8 encoder.
-        let encoder = Rc::new(Encoder::default());
+        let encoder = Encoder::default();
 
         // Step 2. Let transformAlgorithm be an algorithm which takes a chunk argument
         //      and runs the encode and enqueue a chunk algorithm with this and chunk.
         // Step 3. Let flushAlgorithm be an algorithm which runs the encode and flush
         //      algorithm with this.
-        let transformer_type = TransformerType::Encoder(encoder.clone());
+        let transformer_type = TransformerType::Encoder(encoder);
 
         // Step 4. Let transformStream be a new TransformStream.
         let transform = TransformStream::new_with_proto(global, None, can_gc);
@@ -327,7 +322,7 @@ impl TextEncoderStream {
 
         // Step 6. Set this’s transform to transformStream.
         Ok(reflect_dom_object_with_proto(
-            Box::new(TextEncoderStream::new_inherited(encoder, &transform)),
+            Box::new(TextEncoderStream::new_inherited(&transform)),
             global,
             proto,
             can_gc,
