@@ -8,14 +8,12 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::conversions::{
-    ConversionResult, FromJSValConvertible, ToJSValConvertible, latin1_to_string,
-};
+use js::conversions::{ToJSValConvertible, latin1_to_string};
 use js::jsapi::{
-    IsArrayObject, JS_DeprecatedStringHasLatin1Chars, JS_GetTwoByteStringCharsAndLength, JSObject,
-    JSType, ToPrimitive,
+    JS_DeprecatedStringHasLatin1Chars, JS_GetTwoByteStringCharsAndLength, JSObject, JSType,
+    ToPrimitive,
 };
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 use js::typedarray::Uint8Array;
 
@@ -250,28 +248,6 @@ fn code_point_type(value: u16) -> CodePointType {
     }
 }
 
-fn jsval_array_to_string(cx: SafeJSContext, arr: &[JSVal], encoder: &Encoder) -> Fallible<String> {
-    arr.iter()
-        .map(|value| {
-            rooted!(in(*cx) let value = *value);
-            let maybe_ill_formed = jsval_to_string(cx, value.handle())?;
-            Ok(encoder.encode(maybe_ill_formed))
-        })
-        .collect::<Fallible<String>>()
-}
-
-#[allow(unsafe_code)]
-fn convert_chunk_to_jsval_array(cx: SafeJSContext, chunk: SafeHandleValue) -> Fallible<Vec<JSVal>> {
-    unsafe {
-        match Vec::<JSVal>::from_jsval(*cx, chunk, ())
-            .map_err(|_| Error::Type("Failed to convert array".to_owned()))?
-        {
-            ConversionResult::Success(arr) => Ok(arr),
-            ConversionResult::Failure(failure) => Err(Error::Type(failure.to_string())),
-        }
-    }
-}
-
 /// <https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk>
 #[allow(unsafe_code)]
 pub(crate) fn encode_and_enqueue_a_chunk(
@@ -282,28 +258,18 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     controller: &TransformStreamDefaultController,
     can_gc: CanGc,
 ) -> Fallible<()> {
-    let mut is_array = false;
-    unsafe { IsArrayObject(*cx, chunk.into_handle(), &mut is_array) };
-    let output = if !is_array {
-        // Step 1. Let input be the result of converting chunk to a DOMString.
-        // Step 2. Convert input to an I/O queue of code units.
-        let input = jsval_to_string(cx, chunk)?;
+    // Step 1. Let input be the result of converting chunk to a DOMString.
+    // Step 2. Convert input to an I/O queue of code units.
+    let input = jsval_to_string(cx, chunk)?;
 
-        // Step 3. Let output be the I/O queue of bytes « end-of-queue ».
-        // Step 4. While true:
-        // Step 4.1 Let item be the result of reading from input.
-        // Step 4.3 Let result be the result of executing the convert code unit
-        //      to scalar value algorithm with encoder, item and input.
-        // Step 4.4 If result is not continue, then process an item with result,
-        //      encoder’s encoder, input, output, and "fatal".
-        encoder.encode(input)
-    } else {
-        // Note: The spec does not specify a separate procedure for arrays.
-        // So each item is converted into a string and concatenated into
-        // a single string. Then the concatenated string is encoded.
-        let arr = convert_chunk_to_jsval_array(cx, chunk)?;
-        jsval_array_to_string(cx, &arr, encoder).map(Cow::Owned)?
-    };
+    // Step 3. Let output be the I/O queue of bytes « end-of-queue ».
+    // Step 4. While true:
+    // Step 4.1 Let item be the result of reading from input.
+    // Step 4.3 Let result be the result of executing the convert code unit
+    //      to scalar value algorithm with encoder, item and input.
+    // Step 4.4 If result is not continue, then process an item with result,
+    //      encoder’s encoder, input, output, and "fatal".
+    let output = encoder.encode(input);
 
     // Step 4.2 If item is end-of-queue:
     // Step 4.2.1 Convert output into a byte sequence.
