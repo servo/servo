@@ -1390,18 +1390,24 @@ impl Document {
                         DeviceIntRect::from_untyped(&rect.to_box2d()),
                     ));
                 }
-                // Scroll operation to happen after element gets focus.
-                // This is needed to ensure that the focused element is visible.
-                elem.ScrollIntoView(BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
-                    ScrollIntoViewOptions {
-                        parent: ScrollOptions {
-                            behavior: ScrollBehavior::Smooth,
+                if cfg!(target_env = "ohos") ||
+                    cfg!(target_os = "android") ||
+                    cfg!(target_os = "ios")
+                {
+                    // Scroll operation to happen after element gets focus.
+                    // This is needed to ensure that the focused element is visible
+                    // when the virtual keyboard is shown.
+                    elem.ScrollIntoView(BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
+                        ScrollIntoViewOptions {
+                            parent: ScrollOptions {
+                                behavior: ScrollBehavior::Smooth,
+                            },
+                            block: ScrollLogicalPosition::Center,
+                            inline: ScrollLogicalPosition::Center,
+                            container: ScrollIntoViewContainer::All,
                         },
-                        block: ScrollLogicalPosition::Center,
-                        inline: ScrollLogicalPosition::Center,
-                        container: ScrollIntoViewContainer::All,
-                    },
-                ));
+                    ));
+                }
             }
         }
 

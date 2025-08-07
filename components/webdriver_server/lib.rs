@@ -2313,7 +2313,8 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd = WebDriverScriptCommand::GetBoundingClientRect(element.to_string(), sender);
+        let cmd =
+            WebDriverScriptCommand::ScrollAndGetBoundingClientRect(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         match wait_for_script_response(receiver)? {
