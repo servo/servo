@@ -111,11 +111,18 @@ jobs:
   runner-timeout:
     needs:
       - runner-select
-    uses: ./.github/workflows/self-hosted-runner-timeout.yml
-    secrets: inherit
-    with:
-      unique-id: ${{ needs.runner-select.outputs.unique-id }}
-      is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: '.github'
+      - name: Runner timeout
+        uses: ./.github/actions/runner-timeout
+        if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        with:
+          github_token: '${{ secrets.GITHUB_TOKEN }}'
+          unique-id: '${{ needs.runner-select.outputs.unique-id }}'
 
   build:
     needs:
