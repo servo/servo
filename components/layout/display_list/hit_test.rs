@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
+use embedder_traits::Cursor;
 use euclid::{Box2D, Point2D, Point3D, Vector2D};
 use kurbo::{Ellipse, Shape};
 use layout_api::{ElementsFromPointFlags, ElementsFromPointResult};
@@ -13,6 +14,7 @@ use style::computed_values::backface_visibility::T as BackfaceVisibility;
 use style::computed_values::pointer_events::T as PointerEvents;
 use style::computed_values::visibility::T as Visibility;
 use style::properties::ComputedValues;
+use style::values::computed::ui::CursorKind;
 use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, RectExt};
 
@@ -21,7 +23,7 @@ use crate::display_list::stacking_context::StackingContextSection;
 use crate::display_list::{
     StackingContext, StackingContextContent, StackingContextTree, ToWebRender,
 };
-use crate::fragment_tree::Fragment;
+use crate::fragment_tree::{Fragment, FragmentFlags};
 use crate::geom::PhysicalRect;
 
 pub(crate) struct HitTest<'a> {
@@ -249,12 +251,18 @@ impl Fragment {
         let mut hit_test_fragment_inner =
             |style: &ComputedValues,
              fragment_rect: PhysicalRect<Au>,
-             border_radius: BorderRadius| {
-                if style.get_inherited_ui().pointer_events == PointerEvents::None {
-                    return false;
-                }
-                if style.get_inherited_box().visibility != Visibility::Visible {
-                    return false;
+             border_radius: BorderRadius,
+             fragment_flags: FragmentFlags,
+             auto_cursor: Cursor| {
+                let is_root_element = fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT);
+
+                if !is_root_element {
+                    if style.get_inherited_ui().pointer_events == PointerEvents::None {
+                        return false;
+                    }
+                    if style.get_inherited_box().visibility != Visibility::Visible {
+                        return false;
+                    }
                 }
 
                 let (point_in_spatial_node, transform) =
@@ -263,14 +271,28 @@ impl Fragment {
                         None => return false,
                     };
 
-                if style.get_box().backface_visibility == BackfaceVisibility::Hidden &&
+                if !is_root_element &&
+                    style.get_box().backface_visibility == BackfaceVisibility::Hidden &&
                     transform.is_backface_visible()
                 {
                     return false;
                 }
 
                 let fragment_rect = fragment_rect.translate(containing_block.origin.to_vector());
-                if !rounded_rect_contains_point(
+                if is_root_element {
+                    let viewport_size = hit_test
+                        .stacking_context_tree
+                        .compositor_info
+                        .viewport_details
+                        .size;
+                    let viewport_rect = LayoutRect::from_origin_and_size(
+                        Default::default(),
+                        viewport_size.cast_unit(),
+                    );
+                    if !viewport_rect.contains(hit_test.point_to_test) {
+                        return false;
+                    }
+                } else if !rounded_rect_contains_point(
                     fragment_rect.to_webrender(),
                     &border_radius,
                     point_in_spatial_node,
@@ -283,11 +305,12 @@ impl Fragment {
                         fragment_rect.origin.x.to_f32_px(),
                         fragment_rect.origin.y.to_f32_px(),
                     );
+
                 hit_test.results.push(ElementsFromPointResult {
                     node: tag.node,
                     point_in_target,
+                    cursor: cursor(style.get_inherited_ui().cursor.keyword, auto_cursor),
                 });
-
                 !hit_test.flags.contains(ElementsFromPointFlags::FindAll)
             };
 
@@ -298,6 +321,8 @@ impl Fragment {
                     &box_fragment.style,
                     box_fragment.border_rect(),
                     box_fragment.border_radius(),
+                    box_fragment.base.flags,
+                    Cursor::Default,
                 )
             },
             Fragment::Text(text) => {
@@ -306,6 +331,8 @@ impl Fragment {
                     &text.inline_styles.style.borrow(),
                     text.rect,
                     BorderRadius::zero(),
+                    FragmentFlags::empty(),
+                    Cursor::Text,
                 )
             },
             _ => false,
@@ -357,4 +384,45 @@ fn rounded_rect_contains_point(
         check_corner(rect.top_right(), &border_radius.top_right, true, false) &&
         check_corner(rect.bottom_right(), &border_radius.bottom_right, true, true) &&
         check_corner(rect.bottom_left(), &border_radius.bottom_left, false, true)
+}
+
+fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {
+    match kind {
+        CursorKind::Auto => auto_cursor,
+        CursorKind::None => Cursor::None,
+        CursorKind::Default => Cursor::Default,
+        CursorKind::Pointer => Cursor::Pointer,
+        CursorKind::ContextMenu => Cursor::ContextMenu,
+        CursorKind::Help => Cursor::Help,
+        CursorKind::Progress => Cursor::Progress,
+        CursorKind::Wait => Cursor::Wait,
+        CursorKind::Cell => Cursor::Cell,
+        CursorKind::Crosshair => Cursor::Crosshair,
+        CursorKind::Text => Cursor::Text,
+        CursorKind::VerticalText => Cursor::VerticalText,
+        CursorKind::Alias => Cursor::Alias,
+        CursorKind::Copy => Cursor::Copy,
+        CursorKind::Move => Cursor::Move,
+        CursorKind::NoDrop => Cursor::NoDrop,
+        CursorKind::NotAllowed => Cursor::NotAllowed,
+        CursorKind::Grab => Cursor::Grab,
+        CursorKind::Grabbing => Cursor::Grabbing,
+        CursorKind::EResize => Cursor::EResize,
+        CursorKind::NResize => Cursor::NResize,
+        CursorKind::NeResize => Cursor::NeResize,
+        CursorKind::NwResize => Cursor::NwResize,
+        CursorKind::SResize => Cursor::SResize,
+        CursorKind::SeResize => Cursor::SeResize,
+        CursorKind::SwResize => Cursor::SwResize,
+        CursorKind::WResize => Cursor::WResize,
+        CursorKind::EwResize => Cursor::EwResize,
+        CursorKind::NsResize => Cursor::NsResize,
+        CursorKind::NeswResize => Cursor::NeswResize,
+        CursorKind::NwseResize => Cursor::NwseResize,
+        CursorKind::ColResize => Cursor::ColResize,
+        CursorKind::RowResize => Cursor::RowResize,
+        CursorKind::AllScroll => Cursor::AllScroll,
+        CursorKind::ZoomIn => Cursor::ZoomIn,
+        CursorKind::ZoomOut => Cursor::ZoomOut,
+    }
 }

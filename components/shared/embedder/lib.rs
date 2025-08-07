@@ -28,7 +28,6 @@ use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
-use num_derive::FromPrimitive;
 use pixels::RasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
@@ -56,7 +55,7 @@ pub enum ShutdownState {
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Deserialize, Eq, FromPrimitive, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum Cursor {
     None,
     Default,
@@ -888,9 +887,6 @@ pub struct CompositorHitTestResult {
     /// The hit test point relative to the root scroll node content origin / initial
     /// containing block.
     pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,
-
-    /// The cursor that should be used when hovering the item hit by the hit test.
-    pub cursor: Option<Cursor>,
 
     /// The [`ExternalScrollId`] of the scroll tree node associated with this hit test item.
     pub external_scroll_id: ExternalScrollId,

@@ -34,6 +34,7 @@ serde = { workspace = true }
 servo_url = { path = "../../url" }
 strum = { workspace = true }
 strum_macros = { workspace = true }
+stylo_traits = { workspace = true }
 uuid = { workspace = true }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }

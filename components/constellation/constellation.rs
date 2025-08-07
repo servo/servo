@@ -130,14 +130,14 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy, FocusId,
+    AnimationState, CompositorHitTestResult, EmbedderMsg, EmbedderProxy, FocusId,
     FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
     KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
     WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
 };
-use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
+use euclid::{Point2D, Size2D};
 use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -163,6 +163,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
@@ -1445,8 +1446,8 @@ where
             EmbedderToConstellationMessage::ForwardInputEvent(webview_id, event, hit_test) => {
                 self.forward_input_event(webview_id, event, hit_test);
             },
-            EmbedderToConstellationMessage::SetCursor(webview_id, cursor) => {
-                self.handle_set_cursor_msg(webview_id, cursor)
+            EmbedderToConstellationMessage::RefreshCursor(pipeline_id, point) => {
+                self.handle_refresh_cursor(pipeline_id, point)
             },
             EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration) => {
                 for background_monitor_control_sender in &self.background_monitor_control_senders {
@@ -3438,9 +3439,17 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_set_cursor_msg(&mut self, webview_id: WebViewId, cursor: Cursor) {
-        self.embedder_proxy
-            .send(EmbedderMsg::SetCursor(webview_id, cursor));
+    fn handle_refresh_cursor(&self, pipeline_id: PipelineId, point: Point2D<f32, CSSPixel>) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::RefreshCursor(pipeline_id, point))
+        {
+            warn!("Could not send RefreshCursor message to pipeline: {error:?}");
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]

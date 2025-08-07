@@ -28,7 +28,7 @@ use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    AllowOrDeny, AnimationState, ContextMenuResult, EditingActionEvent, EmbedderMsg,
+    AllowOrDeny, AnimationState, ContextMenuResult, Cursor, EditingActionEvent, EmbedderMsg,
     FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton, MouseButtonAction,
     MouseButtonEvent, ScrollEvent, TouchEvent, TouchEventType, TouchId, UntrustedNodeAddress,
     WheelEvent,
@@ -2008,6 +2008,9 @@ impl Document {
             return;
         };
 
+        // Update the cursor when the mouse moves, if it has changed.
+        self.set_cursor(hit_test_result.cursor);
+
         let Some(new_target) = hit_test_result
             .node
             .inclusive_ancestors(ShadowIncluding::No)
@@ -2120,6 +2123,10 @@ impl Document {
         if target_has_changed {
             prev_mouse_over_target.set(Some(&new_target));
         }
+    }
+
+    pub(crate) fn set_cursor(&self, cursor: Cursor) {
+        self.send_to_embedder(EmbedderMsg::SetCursor(self.webview_id(), cursor));
     }
 
     #[allow(unsafe_code)]

@@ -24,7 +24,7 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::LoadData;
-use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::Point2D;
 use euclid::default::{Point2D as UntypedPoint2D, Rect};
 use fnv::FnvHashMap;
@@ -613,6 +613,9 @@ pub struct ElementsFromPointResult {
     /// The [`Point2D`] of the original query point relative to the
     /// node fragment rectangle.
     pub point_in_target: Point2D<f32, CSSPixel>,
+    /// The [`Cursor`] that's defined on the item that is hit by this
+    /// hit test result.
+    pub cursor: Cursor,
 }
 
 bitflags! {
