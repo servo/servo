@@ -1846,8 +1846,18 @@ pub(crate) fn handle_element_click(
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
-                // Step 7
-                // TODO: return error if obscured
+                // Step 7. If element's container is obscured by another element,
+                // return error with error code element click intercepted.
+                // https://w3c.github.io/webdriver/#dfn-obscuring
+                // An element is obscured if the pointer-interactable paint tree is empty,
+                // or the first element in this tree is not an inclusive descendant of itself.
+                // `paint_tree` is guaranteed not empty as element is "in view".
+                if !container
+                    .upcast::<Node>()
+                    .Contains(Some(paint_tree[0].upcast::<Node>()))
+                {
+                    return Err(ErrorStatus::ElementClickIntercepted);
+                }
 
                 // Step 8 for <option> element.
                 match element.downcast::<HTMLOptionElement>() {
