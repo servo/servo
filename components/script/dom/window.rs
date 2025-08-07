@@ -2620,6 +2620,7 @@ impl Window {
         let address = UntrustedNodeAddress(result.node.0 as *const c_void);
         Some(HitTestResult {
             node: unsafe { from_untrusted_node_address(address) },
+            cursor: result.cursor,
             point_in_node: result.point_in_target,
             point_in_frame: compositor_hit_test_result.point_in_viewport,
             point_relative_to_initial_containing_block: compositor_hit_test_result
@@ -3088,6 +3089,20 @@ impl Window {
                 nodes.push(Dom::from_ref(&*node));
             }
         }
+    }
+
+    pub fn handle_refresh_cursor(&self, cursor_position: Point2D<f32, CSSPixel>) {
+        let layout = self.layout.borrow();
+        layout.ensure_stacking_context_tree(self.viewport_details.get());
+        let Some(hit_test_result) = layout
+            .query_elements_from_point(cursor_position.cast_unit(), ElementsFromPointFlags::empty())
+            .into_iter()
+            .nth(0)
+        else {
+            return;
+        };
+
+        self.Document().set_cursor(hit_test_result.cursor);
     }
 }
 

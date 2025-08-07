@@ -24,13 +24,10 @@ use compositing_traits::{
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
-use embedder_traits::{
-    CompositorHitTestResult, Cursor, InputEvent, ShutdownState, ViewportDetails,
-};
+use embedder_traits::{CompositorHitTestResult, InputEvent, ShutdownState, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
-use num_traits::cast::FromPrimitive;
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
@@ -122,11 +119,9 @@ pub struct ServoRenderer {
     /// True to translate mouse input into touch events.
     pub(crate) convert_mouse_to_touch: bool,
 
-    /// Current mouse cursor.
-    cursor: Cursor,
-
-    /// Current cursor position.
-    cursor_pos: DevicePoint,
+    /// The last position in the rendered view that the mouse moved over. This becomes `None`
+    /// when the mouse leaves the rendered view.
+    pub(crate) last_mouse_move_position: Option<DevicePoint>,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -303,15 +298,12 @@ impl ServoRenderer {
                     (item.point_in_viewport + offset).to_untyped();
 
                 let external_scroll_id = ExternalScrollId(item.tag.0, item.pipeline);
-                let cursor = Cursor::from_u16(item.tag.1);
-
                 Some(CompositorHitTestResult {
                     pipeline_id,
                     point_in_viewport: Point2D::from_untyped(item.point_in_viewport.to_untyped()),
                     point_relative_to_initial_containing_block: Point2D::from_untyped(
                         point_in_initial_containing_block,
                     ),
-                    cursor,
                     external_scroll_id,
                 })
             })
@@ -321,46 +313,6 @@ impl ServoRenderer {
     pub(crate) fn send_transaction(&mut self, transaction: Transaction) {
         self.webrender_api
             .send_transaction(self.webrender_document, transaction);
-    }
-
-    pub(crate) fn update_cursor_from_hittest(
-        &mut self,
-        pos: DevicePoint,
-        result: &CompositorHitTestResult,
-    ) {
-        if let Some(webview_id) = self
-            .pipeline_to_webview_map
-            .get(&result.pipeline_id)
-            .copied()
-        {
-            self.update_cursor(pos, webview_id, result.cursor);
-        } else {
-            warn!("Couldn't update cursor for non-WebView-associated pipeline");
-        };
-    }
-
-    pub(crate) fn update_cursor(
-        &mut self,
-        pos: DevicePoint,
-        webview_id: WebViewId,
-        cursor: Option<Cursor>,
-    ) {
-        self.cursor_pos = pos;
-
-        let cursor = match cursor {
-            Some(cursor) if cursor != self.cursor => cursor,
-            _ => return,
-        };
-
-        self.cursor = cursor;
-        if let Err(e) = self
-            .constellation_sender
-            .send(EmbedderToConstellationMessage::SetCursor(
-                webview_id, cursor,
-            ))
-        {
-            warn!("Sending event to constellation failed ({:?}).", e);
-        }
     }
 }
 
@@ -388,8 +340,7 @@ impl IOCompositor {
                 #[cfg(feature = "webxr")]
                 webxr_main_thread: state.webxr_main_thread,
                 convert_mouse_to_touch,
-                cursor: Cursor::None,
-                cursor_pos: DevicePoint::new(0.0, 0.0),
+                last_mouse_move_position: None,
             })),
             webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
@@ -584,26 +535,7 @@ impl IOCompositor {
             },
 
             CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
-                self.pending_frames -= 1;
-                let point: DevicePoint = self.global.borrow().cursor_pos;
-
-                if recomposite_needed {
-                    let details_for_pipeline = |pipeline_id| self.details_for_pipeline(pipeline_id);
-                    let result = self
-                        .global
-                        .borrow()
-                        .hit_test_at_point(point, details_for_pipeline);
-
-                    if let Some(result) = result.first() {
-                        self.global
-                            .borrow_mut()
-                            .update_cursor_from_hittest(point, result);
-                    }
-                }
-
-                if recomposite_needed || self.animation_callbacks_running() {
-                    self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
-                }
+                self.handle_new_webrender_frame_ready(recomposite_needed);
             },
 
             CompositorMsg::LoadComplete(_) => {
@@ -1664,5 +1596,42 @@ impl IOCompositor {
 
     fn shutdown_state(&self) -> ShutdownState {
         self.global.borrow().shutdown_state()
+    }
+
+    fn refresh_cursor(&self) {
+        let global = self.global.borrow();
+        let Some(last_mouse_move_position) = global.last_mouse_move_position else {
+            return;
+        };
+
+        let details_for_pipeline = |pipeline_id| self.details_for_pipeline(pipeline_id);
+        let Some(hit_test_result) = global
+            .hit_test_at_point(last_mouse_move_position, details_for_pipeline)
+            .first()
+            .cloned()
+        else {
+            return;
+        };
+
+        if let Err(error) =
+            global
+                .constellation_sender
+                .send(EmbedderToConstellationMessage::RefreshCursor(
+                    hit_test_result.pipeline_id,
+                    hit_test_result.point_in_viewport,
+                ))
+        {
+            warn!("Sending event to constellation failed ({:?}).", error);
+        }
+    }
+
+    fn handle_new_webrender_frame_ready(&mut self, recomposite_needed: bool) {
+        self.pending_frames -= 1;
+        if recomposite_needed {
+            self.refresh_cursor();
+        }
+        if recomposite_needed || self.animation_callbacks_running() {
+            self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
+        }
     }
 }

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use embedder_traits::Cursor;
 use euclid::Point2D;
 use js::rust::HandleObject;
 use style_traits::CSSPixel;
@@ -99,6 +100,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 /// `CompositorHitTestResult` against our current layout.
 pub(crate) struct HitTestResult {
     pub node: DomRoot<Node>,
+    pub cursor: Cursor,
     pub point_in_node: Point2D<f32, CSSPixel>,
     pub point_in_frame: Point2D<f32, CSSPixel>,
     pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,
