@@ -682,7 +682,9 @@ pub fn start_fetch_thread(core_resource_thread: &CoreResourceThread) -> JoinHand
 }
 
 /// Send the exit message to the background thread,
-/// after which it can be joined on.
+/// after which the caller can,
+/// and should,
+/// join on the thread.
 pub fn exit_fetch_thread() {
     let _ = FETCH_THREAD
         .get()
