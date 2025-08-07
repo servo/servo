@@ -298,6 +298,7 @@ pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;
 #[allow(dead_code)]
 pub(crate) mod document;
+pub(crate) mod document_event_handler;
 pub(crate) mod documentfragment;
 pub(crate) mod documentorshadowroot;
 pub(crate) mod documenttype;
