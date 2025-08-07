@@ -2,39 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/// Private module of type aliases so we can refer to stylo types with nicer names
-mod stylo {
-    pub(crate) use style::properties::generated::longhands::box_sizing::computed_value::T as BoxSizing;
-    pub(crate) use style::properties::longhands::aspect_ratio::computed_value::T as AspectRatio;
-    pub(crate) use style::properties::longhands::position::computed_value::T as Position;
-    pub(crate) use style::values::computed::length_percentage::Unpacked as UnpackedLengthPercentage;
-    pub(crate) use style::values::computed::{LengthPercentage, Percentage};
-    pub(crate) use style::values::generics::NonNegative;
-    pub(crate) use style::values::generics::length::{
-        GenericLengthPercentageOrNormal, GenericMargin, GenericMaxSize, GenericSize,
-    };
-    pub(crate) use style::values::generics::position::{Inset as GenericInset, PreferredRatio};
-    pub(crate) use style::values::specified::align::{AlignFlags, ContentDistribution};
-    pub(crate) use style::values::specified::box_::{
-        Display, DisplayInside, DisplayOutside, Overflow,
-    };
-    pub(crate) type MarginVal = GenericMargin<LengthPercentage>;
-    pub(crate) type InsetVal = GenericInset<Percentage, LengthPercentage>;
-    pub(crate) type Size = GenericSize<NonNegative<LengthPercentage>>;
-    pub(crate) type MaxSize = GenericMaxSize<NonNegative<LengthPercentage>>;
-
-    pub(crate) type Gap = GenericLengthPercentageOrNormal<NonNegative<LengthPercentage>>;
-
-    pub(crate) use style::computed_values::grid_auto_flow::T as GridAutoFlow;
-    pub(crate) use style::values::computed::{GridLine, GridTemplateComponent, ImplicitGridTracks};
-    pub(crate) use style::values::generics::grid::{
-        RepeatCount, TrackBreadth, TrackListValue, TrackSize,
-    };
-    pub(crate) use style::values::specified::GenericGridTemplateComponent;
-}
-
+use style::Atom;
+use stylo_atoms::atom;
 use taffy::MaxTrackSizingFunction;
 use taffy::style_helpers::*;
+
+use super::stylo;
 
 #[inline]
 pub fn length_percentage(val: &stylo::LengthPercentage) -> taffy::LengthPercentage {
@@ -238,66 +211,38 @@ pub fn grid_auto_flow(input: stylo::GridAutoFlow) -> taffy::GridAutoFlow {
 }
 
 #[inline]
-pub fn grid_line(input: &stylo::GridLine) -> taffy::GridPlacement {
+pub fn grid_line(input: &stylo::GridLine) -> taffy::GridPlacement<Atom> {
     if input.is_auto() {
         taffy::GridPlacement::Auto
     } else if input.is_span {
-        taffy::style_helpers::span(input.line_num.try_into().unwrap())
-    } else if input.line_num == 0 {
-        taffy::GridPlacement::Auto
+        if input.ident.0 != atom!("") {
+            taffy::GridPlacement::NamedSpan(
+                input.ident.0.clone(),
+                input.line_num.try_into().unwrap(),
+            )
+        } else {
+            taffy::GridPlacement::Span(input.line_num as u16)
+        }
+    } else if input.ident.0 != atom!("") {
+        taffy::GridPlacement::NamedLine(input.ident.0.clone(), input.line_num as i16)
+    } else if input.line_num != 0 {
+        taffy::style_helpers::line(input.line_num as i16)
     } else {
-        taffy::style_helpers::line(input.line_num.try_into().unwrap())
+        taffy::GridPlacement::Auto
     }
 }
 
 #[inline]
-pub fn grid_template_tracks(
-    input: &stylo::GridTemplateComponent,
-) -> Vec<taffy::TrackSizingFunction> {
+pub fn track_repeat(input: stylo::RepeatCount<i32>) -> taffy::RepetitionCount {
     match input {
-        stylo::GenericGridTemplateComponent::None => Vec::new(),
-        stylo::GenericGridTemplateComponent::TrackList(list) => list
-            .values
-            .iter()
-            .map(|track| match track {
-                stylo::TrackListValue::TrackSize(size) => {
-                    taffy::TrackSizingFunction::Single(track_size(size))
-                },
-                stylo::TrackListValue::TrackRepeat(repeat) => taffy::TrackSizingFunction::Repeat(
-                    track_repeat(repeat.count),
-                    repeat.track_sizes.iter().map(track_size).collect(),
-                ),
-            })
-            .collect(),
-
-        // TODO: Implement subgrid and masonry
-        stylo::GenericGridTemplateComponent::Subgrid(_) => Vec::new(),
-        stylo::GenericGridTemplateComponent::Masonry => Vec::new(),
+        stylo::RepeatCount::Number(val) => taffy::RepetitionCount::Count(val.try_into().unwrap()),
+        stylo::RepeatCount::AutoFill => taffy::RepetitionCount::AutoFill,
+        stylo::RepeatCount::AutoFit => taffy::RepetitionCount::AutoFit,
     }
 }
 
 #[inline]
-pub fn grid_auto_tracks(
-    input: &stylo::ImplicitGridTracks,
-) -> Vec<taffy::NonRepeatedTrackSizingFunction> {
-    input.0.iter().map(track_size).collect()
-}
-
-#[inline]
-pub fn track_repeat(input: stylo::RepeatCount<i32>) -> taffy::GridTrackRepetition {
-    match input {
-        stylo::RepeatCount::Number(val) => {
-            taffy::GridTrackRepetition::Count(val.try_into().unwrap())
-        },
-        stylo::RepeatCount::AutoFill => taffy::GridTrackRepetition::AutoFill,
-        stylo::RepeatCount::AutoFit => taffy::GridTrackRepetition::AutoFit,
-    }
-}
-
-#[inline]
-pub fn track_size(
-    input: &stylo::TrackSize<stylo::LengthPercentage>,
-) -> taffy::NonRepeatedTrackSizingFunction {
+pub fn track_size(input: &stylo::TrackSize<stylo::LengthPercentage>) -> taffy::TrackSizingFunction {
     match input {
         stylo::TrackSize::Breadth(breadth) => taffy::MinMax {
             min: min_track(breadth),
