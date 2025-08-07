@@ -128,49 +128,18 @@ struct FlexItemLayoutResult {
     // Either the first or the last baseline, depending on ‘align-self’.
     baseline_relative_to_margin_box: Option<Au>,
 
-    // The content size of this layout. For replaced elements this is known before layout,
-    // but for non-replaced it's only known after layout.
-    content_size: LogicalVec2<Au>,
+    // The content size of this layout in the block axis. This is known before layout
+    // for replaced elements, but for non-replaced it's only known after layout.
+    content_block_size: Au,
 
-    // The containing block inline size used to generate this layout.
-    containing_block_inline_size: Au,
-
-    // The containing block block size used to generate this layout.
-    containing_block_block_size: SizeConstraint,
+    // The containing block size used to generate this layout.
+    containing_block_size: ContainingBlockSize,
 
     // Whether or not this layout depended on block constraints.
     depends_on_block_constraints: bool,
 
-    // Whether or not this layout had a child that dependeded on block constraints.
-    has_child_which_depends_on_block_constraints: bool,
-
     // The specific layout info that this flex item had.
     specific_layout_info: Option<SpecificLayoutInfo>,
-}
-
-impl FlexItemLayoutResult {
-    fn compatible_with_containing_block_size(&self, containing_block: &ContainingBlock) -> bool {
-        if containing_block.size.inline == self.containing_block_inline_size &&
-            (containing_block.size.block == self.containing_block_block_size ||
-                (!self.depends_on_block_constraints &&
-                    !self.has_child_which_depends_on_block_constraints))
-        {
-            return true;
-        }
-
-        #[cfg(feature = "tracing")]
-        tracing::warn!(
-            name: "NonReplaced stretch cache miss",
-            cached_inline = ?self.containing_block_inline_size,
-            cached_block = ?self.containing_block_block_size,
-            required_inline = ?containing_block.size.inline,
-            required_block = ?containing_block.size.block,
-            depends_on_block_constraints = self.depends_on_block_constraints,
-            has_child_which_depends_on_block_constraints = self.has_child_which_depends_on_block_constraints,
-        );
-
-        false
-    }
 }
 
 /// A data structure to hold all of the information about a flex item that has been placed
@@ -1233,19 +1202,13 @@ impl InitialFlexLineLayout<'_> {
             items
                 .par_iter()
                 .zip(&item_used_main_sizes)
-                .map(|(item, used_main_size)| {
-                    item.layout(*used_main_size, flex_context, None, None)
-                        .unwrap()
-                })
+                .map(|(item, used_main_size)| item.layout(*used_main_size, flex_context, None))
                 .collect()
         } else {
             items
                 .iter()
                 .zip(&item_used_main_sizes)
-                .map(|(item, used_main_size)| {
-                    item.layout(*used_main_size, flex_context, None, None)
-                        .unwrap()
-                })
+                .map(|(item, used_main_size)| item.layout(*used_main_size, flex_context, None))
                 .collect()
         };
 
@@ -1575,13 +1538,18 @@ impl InitialFlexLineLayout<'_> {
         let mut item_used_cross_sizes = Vec::with_capacity(item_count);
         let mut item_margins = Vec::with_capacity(item_count);
         for item in self.items.iter_mut() {
+            let cross_axis = match flex_context.config.flex_axis {
+                FlexAxis::Row => Direction::Block,
+                FlexAxis::Column => Direction::Inline,
+            };
+            let layout = &mut item.layout_result;
             let used_cross_size = if item.item.cross_size_stretches_to_line {
-                let (axis, content_size) = match flex_context.config.flex_axis {
-                    FlexAxis::Row => (Direction::Block, item.layout_result.content_size.block),
-                    FlexAxis::Column => (Direction::Inline, item.layout_result.content_size.inline),
+                let content_size = match cross_axis {
+                    Direction::Block => layout.content_block_size,
+                    Direction::Inline => layout.containing_block_size.inline,
                 };
                 item.item.content_cross_sizes.resolve(
-                    axis,
+                    cross_axis,
                     Size::Stretch,
                     Au::zero,
                     Some(final_line_cross_size - item.item.pbm_auto_is_zero.cross),
@@ -1591,26 +1559,38 @@ impl InitialFlexLineLayout<'_> {
                     // The interaction of collapsed table tracks and the flexbox algorithms is unclear,
                     // see https://github.com/w3c/csswg-drafts/issues/11408.
                     item.item.box_.independent_formatting_context.is_table() &&
-                        axis == Direction::Inline,
+                        cross_axis == Direction::Inline,
                 )
             } else {
-                item.layout_result.hypothetical_cross_size
+                layout.hypothetical_cross_size
             };
             item_used_cross_sizes.push(used_cross_size);
 
             // “If the flex item has `align-self: stretch`, redo layout for its contents,
             // treating this used size as its definite cross size so that percentage-sized
             // children can be resolved.”
-            if item.item.cross_size_stretches_to_line {
-                let new_layout = item.item.layout(
-                    item.used_main_size,
-                    flex_context,
-                    Some(used_cross_size),
-                    Some(&mut item.layout_result),
+            let needs_new_layout = item.item.cross_size_stretches_to_line &&
+                match cross_axis {
+                    Direction::Block => {
+                        SizeConstraint::Definite(used_cross_size) !=
+                            layout.containing_block_size.block &&
+                            layout.depends_on_block_constraints
+                    },
+                    Direction::Inline => used_cross_size != layout.containing_block_size.inline,
+                };
+            if needs_new_layout {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    name: "Flex item stretch cache miss",
+                    cached_inline = ?layout.containing_block_size.inline,
+                    cached_block = ?layout.containing_block_size.block,
+                    required_cross_size = ?used_cross_size,
+                    cross_axis = ?cross_axis,
+                    depends_on_block_constraints = layout.depends_on_block_constraints,
                 );
-                if let Some(layout) = new_layout {
-                    item.layout_result = layout;
-                }
+                *layout =
+                    item.item
+                        .layout(item.used_main_size, flex_context, Some(used_cross_size));
             }
 
             let baseline = item.get_or_synthesize_baseline_with_cross_size(used_cross_size);
@@ -1753,7 +1733,6 @@ impl FlexItem<'_> {
         fields(
             self_address = self as *const _ as usize,
             box_address = self.box_ as *const _ as usize,
-            for_stretch = non_stretch_layout_result.is_some()
         )
     )]
     #[allow(clippy::too_many_arguments)]
@@ -1762,8 +1741,7 @@ impl FlexItem<'_> {
         used_main_size: Au,
         flex_context: &FlexContext,
         used_cross_size_override: Option<Au>,
-        non_stretch_layout_result: Option<&mut FlexItemLayoutResult>,
-    ) -> Option<FlexItemLayoutResult> {
+    ) -> FlexItemLayoutResult {
         let containing_block = flex_context.containing_block;
         let independent_formatting_context = &self.box_.independent_formatting_context;
         let is_table = independent_formatting_context.is_table();
@@ -1858,12 +1836,6 @@ impl FlexItem<'_> {
             style: item_style,
         };
 
-        if non_stretch_layout_result.is_some_and(|old_result| {
-            old_result.compatible_with_containing_block_size(&item_as_containing_block)
-        }) {
-            return None;
-        }
-
         let lazy_block_size = if !cross_axis_is_item_block_axis {
             used_main_size.into()
         } else if let Some(cross_size) = used_cross_size_override {
@@ -1904,14 +1876,6 @@ impl FlexItem<'_> {
             ..
         } = layout;
 
-        let has_child_which_depends_on_block_constraints = fragments.iter().any(|fragment| {
-            fragment.base().is_some_and(|base| {
-                base.flags.contains(
-                    FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
-                )
-            })
-        });
-
         let hypothetical_cross_size = if cross_axis_is_item_block_axis {
             lazy_block_size.resolve(|| content_block_size)
         } else {
@@ -1943,21 +1907,16 @@ impl FlexItem<'_> {
             _ => None,
         };
 
-        Some(FlexItemLayoutResult {
+        FlexItemLayoutResult {
             hypothetical_cross_size,
             fragments,
             positioning_context,
             baseline_relative_to_margin_box,
-            content_size: LogicalVec2 {
-                inline: item_as_containing_block.size.inline,
-                block: content_block_size,
-            },
-            containing_block_inline_size: item_as_containing_block.size.inline,
-            containing_block_block_size: item_as_containing_block.size.block,
+            content_block_size,
+            containing_block_size: item_as_containing_block.size,
             depends_on_block_constraints,
-            has_child_which_depends_on_block_constraints,
             specific_layout_info,
-        })
+        }
     }
 
     fn synthesized_baseline_relative_to_margin_box(&self, content_size: Au) -> Au {
