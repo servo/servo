@@ -10,6 +10,7 @@ use devtools_traits::{
     ConsoleMessage, ConsoleMessageArgument, ConsoleMessageBuilder, LogLevel,
     ScriptToDevtoolsControlMsg, StackFrame,
 };
+use js::conversions::jsstr_to_string;
 use js::jsapi::{self, ESClass, PropertyDescriptor};
 use js::jsval::{Int32Value, UndefinedValue};
 use js::rust::wrappers::{
@@ -22,7 +23,6 @@ use js::rust::{
 use script_bindings::conversions::get_dom_class;
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
-use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -127,7 +127,7 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
     match std::ptr::NonNull::new(JS_ValueToSource(cx, value)) {
         Some(js_str) => {
             js_string.set(js_str.as_ptr());
-            jsstring_to_str(cx, js_str)
+            DOMString::from_string(jsstr_to_string(cx, js_str.as_ptr()))
         },
         None => "<error converting value to string>".into(),
     }
@@ -140,8 +140,8 @@ fn console_argument_from_handle_value(
 ) -> ConsoleMessageArgument {
     if handle_value.is_string() {
         let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
-        let dom_string = unsafe { jsstring_to_str(*cx, js_string) };
-        return ConsoleMessageArgument::String(dom_string.into());
+        let dom_string = unsafe { jsstr_to_string(*cx, js_string.as_ptr()) };
+        return ConsoleMessageArgument::String(dom_string);
     }
 
     if handle_value.is_int32() {
@@ -164,7 +164,7 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
     let cx = GlobalScope::get_cx();
     unsafe {
         if message.is_string() {
-            return jsstring_to_str(*cx, std::ptr::NonNull::new(message.to_string()).unwrap());
+            return DOMString::from_string(jsstr_to_string(*cx, message.to_string()));
         }
         unsafe fn stringify_object_from_handle_value(
             cx: *mut jsapi::JSContext,
@@ -297,7 +297,7 @@ fn maybe_stringify_dom_object(cx: JSContext, value: HandleValue) -> Option<DOMSt
         return Some("<error converting DOM object to string>".into());
     };
     let class_name = unsafe {
-        jsstring_to_str(*cx, class_name)
+        jsstr_to_string(*cx, class_name.as_ptr())
             .replace("[object ", "")
             .replace("]", "")
     };
@@ -493,7 +493,7 @@ fn get_js_stack(cx: *mut jsapi::JSContext) -> Vec<StackFrame> {
             );
         }
         let function_name = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
-            unsafe { jsstring_to_str(cx, nonnull_result) }.into()
+            unsafe { jsstr_to_string(cx, nonnull_result.as_ptr()) }
         } else {
             "<anonymous>".into()
         };
@@ -510,7 +510,7 @@ fn get_js_stack(cx: *mut jsapi::JSContext) -> Vec<StackFrame> {
             );
         }
         let filename = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
-            unsafe { jsstring_to_str(cx, nonnull_result) }.into()
+            unsafe { jsstr_to_string(cx, nonnull_result.as_ptr()) }
         } else {
             "<anonymous>".into()
         };

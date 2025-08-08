@@ -5,6 +5,7 @@
 use std::iter::repeat;
 use std::ptr;
 
+use js::conversions::jsstr_to_string;
 use js::gc::MutableHandle;
 use js::jsapi::{
     ESClass, GetBuiltinClass, IsArrayBufferObject, JS_DeleteUCProperty,
@@ -18,7 +19,6 @@ use script_bindings::conversions::{SafeToJSValConvertible, root_from_object};
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
-use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::structuredclone;
@@ -104,7 +104,7 @@ pub fn convert_value_to_key(
 
     if input.is_string() {
         let string_ptr = std::ptr::NonNull::new(input.to_string()).unwrap();
-        let key = unsafe { jsstring_to_str(*cx, string_ptr).str().to_string() };
+        let key = unsafe { jsstr_to_string(*cx, string_ptr.as_ptr()) };
         return Ok(IndexedDBKeyType::String(key));
     }
 

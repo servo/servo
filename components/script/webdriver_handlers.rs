@@ -14,6 +14,7 @@ use embedder_traits::{
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
+use js::conversions::jsstr_to_string;
 use js::jsapi::{
     self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
     JS_IsExceptionPending, JSAutoRealm, JSContext, JSType, PropertyDescriptor,
@@ -52,7 +53,7 @@ use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
 };
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
-    get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
+    get_property, get_property_jsval, jsid_to_string, root_from_object,
 };
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -269,7 +270,7 @@ unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
     let Some(class_name) = NonNull::new(class_name.get()) else {
         return false;
     };
-    jsstring_to_str(cx, class_name) == "[object Arguments]"
+    jsstr_to_string(cx, class_name.as_ptr()) == "[object Arguments]"
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]
@@ -327,7 +328,7 @@ unsafe fn jsval_to_webdriver_inner(
             },
         ))
     } else if val.get().is_string() {
-        //FIXME: use jsstring_to_str when jsval grows to_jsstring
+        //FIXME: use jsstr_to_string when jsval grows to_jsstring
         let string: DOMString =
             match FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default)
                 .unwrap()

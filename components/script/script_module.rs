@@ -17,6 +17,7 @@ use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::{IndexMap, IndexSet};
+use js::conversions::jsstr_to_string;
 use js::jsapi::{
     CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport, GetModuleRequestSpecifier,
     GetModuleResolveHook, GetRequestedModuleSpecifier, GetRequestedModulesCount,
@@ -50,7 +51,6 @@ use uuid::Uuid;
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
 };
@@ -630,10 +630,8 @@ impl ModuleTree {
             let length = GetRequestedModulesCount(*cx, module_object);
 
             for index in 0..length {
-                let specifier = jsstring_to_str(
-                    *cx,
-                    ptr::NonNull::new(GetRequestedModuleSpecifier(*cx, module_object, index))
-                        .unwrap(),
+                let specifier = DOMString::from_string(
+                    jsstr_to_string(*cx, GetRequestedModuleSpecifier(*cx, module_object, index)), // TODO check null?
                 );
 
                 rooted!(in(*cx) let mut private = UndefinedValue());
@@ -1519,10 +1517,10 @@ fn fetch_an_import_module_script_graph(
     // Step 1.
     let cx = GlobalScope::get_cx();
     let specifier = unsafe {
-        jsstring_to_str(
+        DOMString::from_string(jsstr_to_string(
             *cx,
-            ptr::NonNull::new(GetModuleRequestSpecifier(*cx, module_request)).unwrap(),
-        )
+            GetModuleRequestSpecifier(*cx, module_request),
+        ))
     };
     let mut options = ScriptFetchOptions::default_classic_script(global);
     let module_data = unsafe { module_script_from_reference_private(&reference_private) };
@@ -1594,10 +1592,10 @@ unsafe extern "C" fn HostResolveImportedModule(
 
     // Step 5.
     let module_data = module_script_from_reference_private(&reference_private);
-    let specifier = jsstring_to_str(
+    let specifier = DOMString::from_string(jsstr_to_string(
         cx,
-        ptr::NonNull::new(GetModuleRequestSpecifier(cx, specifier)).unwrap(),
-    );
+        GetModuleRequestSpecifier(cx, specifier),
+    ));
     let url =
         ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier, CanGc::note());
 

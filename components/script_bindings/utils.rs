@@ -7,7 +7,7 @@ use std::os::raw::{c_char, c_void};
 use std::ptr::{self, NonNull};
 use std::slice;
 
-use js::conversions::ToJSValConvertible;
+use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::Handle;
 use js::glue::{
     AppendToIdVector, CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, JS_GetReservedSlot,
@@ -40,7 +40,7 @@ use crate::DomTypes;
 use crate::codegen::Globals::Globals;
 use crate::codegen::InheritTypes::TopTypeId;
 use crate::codegen::PrototypeList::{self, MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use crate::conversions::{PrototypeCheck, jsstring_to_str, private_from_proto_check};
+use crate::conversions::{PrototypeCheck, private_from_proto_check};
 use crate::error::throw_invalid_this;
 use crate::interfaces::DomHelpers;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -222,7 +222,7 @@ pub(crate) unsafe fn find_enum_value<'a, T>(
 ) -> Result<(Option<&'a T>, DOMString), ()> {
     match ptr::NonNull::new(ToString(cx, v)) {
         Some(jsstr) => {
-            let search = jsstring_to_str(cx, jsstr);
+            let search = DOMString::from_string(jsstr_to_string(cx, jsstr.as_ptr()));
             Ok((
                 pairs
                     .iter()
