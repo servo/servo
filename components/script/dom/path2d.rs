@@ -83,7 +83,7 @@ impl Path2D {
         // Step 4. Create a copy of all the subpaths in path. Let c be this copy.
         let mut c = other.segments();
 
-        // Step 5. Transform all the coordinates and lines in c by the transform matrix matrix.
+        // Step 5. Transform all the coordinates and lines in c by the transform matrix `matrix`.
         let apply_matrix_transform =
             |point: Point2D<f64>| -> Point2D<f64> { matrix.transform_point(point) };
 
