@@ -79,7 +79,7 @@ impl PositioningFragment {
             |acc, child| {
                 acc.union(
                     &child
-                        .calculate_scrollable_overflow_for_parent(None)
+                        .calculate_scrollable_overflow_for_parent()
                         .translate(self.rect.origin.to_vector()),
                 )
             },
