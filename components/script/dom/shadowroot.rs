@@ -464,6 +464,8 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         // algorithm steps with this and true.
         self.upcast::<Node>()
             .fragment_serialization_algorithm(true, can_gc)
+            .inspect_err(|error| warn!("fragment serialization failed: {error:?}"))
+            .unwrap_or_default()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>

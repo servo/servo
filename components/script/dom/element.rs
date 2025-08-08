@@ -3830,7 +3830,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 .html_serialize(ChildrenOnly(Some(qname)), false, vec![], can_gc)
         } else {
             self.upcast::<Node>()
-                .xml_serialize(XmlChildrenOnly(Some(qname)))
+                .xml_serialize(XmlChildrenOnly(Some(qname)))?
         };
 
         Ok(TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(result))
@@ -3888,7 +3888,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             self.upcast::<Node>()
                 .html_serialize(IncludeNode, false, vec![], can_gc)
         } else {
-            self.upcast::<Node>().xml_serialize(XmlIncludeNode)
+            self.upcast::<Node>().xml_serialize(XmlIncludeNode)?
         };
 
         Ok(TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(result))
