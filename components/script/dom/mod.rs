@@ -500,6 +500,7 @@ pub(crate) mod performancepainttiming;
 pub(crate) mod performanceresourcetiming;
 pub(crate) mod permissions;
 pub(crate) mod permissionstatus;
+pub(crate) mod pipelineid;
 pub(crate) mod plugin;
 pub(crate) mod pluginarray;
 #[allow(dead_code)]
