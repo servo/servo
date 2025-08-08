@@ -274,7 +274,6 @@ class OpenPRStep(Step):
         )
 
         if self.labels:
-            # pyrefly: ignore  # bad-argument-type
             pull_request.add_labels(self.labels)
 
         self.new_pr.resolve(pull_request)

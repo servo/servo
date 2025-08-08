@@ -138,7 +138,7 @@ class PullRequest:
     def __str__(self) -> str:
         return f"{self.repo}#{self.number}"
 
-    def api(self, *args, **kwargs) -> requests.Response:  # noqa
+    def api(self, *args: Any, **kwargs: dict[str, Any]) -> requests.Response:
         return authenticated(self.context, *args, **kwargs)
 
     def leave_comment(self, comment: str) -> requests.Response:
@@ -162,8 +162,9 @@ class PullRequest:
     def remove_label(self, label: str) -> None:
         self.api("DELETE", f"{self.base_issues_url}/labels/{label}")
 
-    def add_labels(self, labels: dict[str, str]) -> None:
-        self.api("POST", f"{self.base_issues_url}/labels", json=labels)
+    def add_labels(self, labels: list[str]) -> None:
+        data = {"labels": labels}
+        self.api("POST", f"{self.base_issues_url}/labels", json=data)
 
     def merge(self) -> None:
         self.api("PUT", f"{self.base_url}/merge", json={"merge_method": "rebase"})

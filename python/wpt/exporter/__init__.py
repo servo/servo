@@ -184,8 +184,7 @@ class WPTSync:
         try:
             servo_pr = self.servo.get_pull_request(pull_data["number"])
             downstream_wpt_branch = self.downstream_wpt.get_branch(
-                # pyrefly: ignore  # bad-argument-type
-                wpt_branch_name_from_servo_pr_number(servo_pr.number)
+                wpt_branch_name_from_servo_pr_number(str(servo_pr.number))
             )
             upstream_pr = self.wpt.get_open_pull_request_for_branch(self.github_username, downstream_wpt_branch)
             if upstream_pr:
