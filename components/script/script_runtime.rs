@@ -13,6 +13,7 @@ use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::Deref;
 use std::os::raw::c_void;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -489,13 +490,12 @@ unsafe extern "C" fn content_security_policy_allows(
 
         allowed = match runtime_code {
             RuntimeCode::JS => {
-                let source = match sample {
-                    sample if !sample.is_null() => &jsstr_to_string(*cx, *sample),
-                    _ => "",
-                };
+                let source = NonNull::new(*sample)
+                    .map(|sample| jsstr_to_string(*cx, sample))
+                    .unwrap_or("".to_string());
                 global
                     .get_csp_list()
-                    .is_js_evaluation_allowed(global, source)
+                    .is_js_evaluation_allowed(global, &source)
             },
             RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(global),
         };
