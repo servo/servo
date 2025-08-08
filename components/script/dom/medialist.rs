@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use servo_arc::Arc;
@@ -27,7 +29,7 @@ pub(crate) struct MediaList {
     parent_stylesheet: Dom<CSSStyleSheet>,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    media_queries: Arc<Locked<StyleMediaList>>,
+    media_queries: RefCell<Arc<Locked<StyleMediaList>>>,
 }
 
 impl MediaList {
@@ -39,7 +41,7 @@ impl MediaList {
         MediaList {
             parent_stylesheet: Dom::from_ref(parent_stylesheet),
             reflector_: Reflector::new(),
-            media_queries,
+            media_queries: RefCell::new(media_queries),
         }
     }
 
@@ -58,7 +60,7 @@ impl MediaList {
     }
 
     fn shared_lock(&self) -> &SharedRwLock {
-        &self.parent_stylesheet.style_stylesheet().shared_lock
+        self.parent_stylesheet.shared_lock()
     }
 
     /// <https://drafts.csswg.org/cssom/#parse-a-media-query-list>
@@ -110,7 +112,11 @@ impl MediaList {
 
     pub(crate) fn clone_media_list(&self) -> StyleMediaList {
         let guard = self.shared_lock().read();
-        self.media_queries.read_with(&guard).clone()
+        self.media_queries.borrow().read_with(&guard).clone()
+    }
+
+    pub(crate) fn update_media_list(&self, media_queries: Arc<Locked<StyleMediaList>>) {
+        *self.media_queries.borrow_mut() = media_queries;
     }
 }
 
@@ -118,7 +124,12 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
     fn MediaText(&self) -> DOMString {
         let guard = self.shared_lock().read();
-        DOMString::from(self.media_queries.read_with(&guard).to_css_string())
+        DOMString::from(
+            self.media_queries
+                .borrow()
+                .read_with(&guard)
+                .to_css_string(),
+        )
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
@@ -126,20 +137,26 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
         let _rules_modification_scope = RulesModificationScope::new(&self.parent_stylesheet);
         let global = self.global();
         let mut guard = self.shared_lock().write();
-        let media_queries = self.media_queries.write_with(&mut guard);
+        let media_queries_borrowed = self.media_queries.borrow();
+        let media_queries = media_queries_borrowed.write_with(&mut guard);
         *media_queries = Self::parse_media_list(&value, global.as_window());
     }
 
     // https://drafts.csswg.org/cssom/#dom-medialist-length
     fn Length(&self) -> u32 {
         let guard = self.shared_lock().read();
-        self.media_queries.read_with(&guard).media_queries.len() as u32
+        self.media_queries
+            .borrow()
+            .read_with(&guard)
+            .media_queries
+            .len() as u32
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-item>
     fn Item(&self, index: u32) -> Option<DOMString> {
         let guard = self.shared_lock().read();
         self.media_queries
+            .borrow()
             .read_with(&guard)
             .media_queries
             .get(index as usize)
@@ -164,7 +181,8 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
         let mut rules_modification_scope = RulesModificationScope::new(&self.parent_stylesheet);
         let m_serialized = m.clone().unwrap().to_css_string();
         let mut guard = self.shared_lock().write();
-        let mq = self.media_queries.write_with(&mut guard);
+        let media_queries_borrowed = self.media_queries.borrow();
+        let mq = media_queries_borrowed.write_with(&mut guard);
         let any = mq
             .media_queries
             .iter()
@@ -190,7 +208,8 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
         let mut _rules_modification_scope = RulesModificationScope::new(&self.parent_stylesheet);
         let m_serialized = m.unwrap().to_css_string();
         let mut guard = self.shared_lock().write();
-        let media_list = self.media_queries.write_with(&mut guard);
+        let media_queries_borrowed = self.media_queries.borrow();
+        let media_list = media_queries_borrowed.write_with(&mut guard);
         let new_vec = media_list
             .media_queries
             .drain(..)
