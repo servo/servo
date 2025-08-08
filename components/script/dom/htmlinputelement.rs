@@ -2233,7 +2233,11 @@ impl HTMLInputElement {
         self.update_checked_state(self.DefaultChecked(), false);
         self.value_changed(can_gc);
         // Step 4. Empty selected files
-        self.filelist.set(None);
+        if self.filelist.get().is_some() {
+            let window = self.owner_window();
+            let filelist = FileList::new(&window, vec![], can_gc);
+            self.filelist.set(Some(&filelist));
+        }
         // Step 5. invoke the value sanitization algorithm iff
         // the type attribute's current state defines one.
         // This is covered in `fn sanitize_value` called below.
