@@ -3,7 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 from wptrunner.wptcommandline import TestRoot
-from typing import Mapping
+from typing import Mapping, Any
 import argparse
 from argparse import ArgumentParser
 import os
@@ -14,6 +14,7 @@ from six import iterkeys, iteritems
 
 from . import SERVO_ROOT, WPT_PATH
 from mozlog import commandline
+from mozlog.structuredlog import StructuredLogger
 
 # This must happen after importing from "." since it adds WPT
 # tools to the Python system path.
@@ -34,7 +35,12 @@ def create_parser() -> ArgumentParser:
     return p
 
 
-def update(check_clean=True, rebuild=False, logger=None, **kwargs) -> int:
+def update(
+    check_clean: bool = True,
+    rebuild: bool = False,
+    logger: StructuredLogger | None = None,
+    **kwargs: Any,  # noqa
+) -> int:
     if not logger:
         logger = wptlogging.setup(kwargs, {"mach": sys.stdout})
     kwargs = {
@@ -55,7 +61,7 @@ def update(check_clean=True, rebuild=False, logger=None, **kwargs) -> int:
     return _update(logger, test_paths, rebuild)
 
 
-def _update(logger, test_paths: Mapping[str, TestRoot], rebuild) -> int:
+def _update(logger: StructuredLogger, test_paths: Mapping[str, TestRoot], rebuild: bool) -> int:
     for url_base, paths in iteritems(test_paths):
         manifest_path = os.path.join(paths.metadata_path, "MANIFEST.json")
         cache_subdir = os.path.relpath(os.path.dirname(manifest_path), os.path.dirname(__file__))
@@ -70,7 +76,7 @@ def _update(logger, test_paths: Mapping[str, TestRoot], rebuild) -> int:
     return 0
 
 
-def _check_clean(logger, test_paths: Mapping[str, TestRoot]) -> int:
+def _check_clean(logger: StructuredLogger, test_paths: Mapping[str, TestRoot]) -> int:
     manifests_by_path = {}
     rv = 0
     for url_base, paths in iteritems(test_paths):
@@ -101,13 +107,14 @@ def _check_clean(logger, test_paths: Mapping[str, TestRoot]) -> int:
 
     for manifest_path, (old_manifest, new_manifest) in iteritems(manifests_by_path):
         if not diff_manifests(logger, manifest_path, old_manifest, new_manifest):
+            # pyrefly: ignore  # missing-attribute
             logger.error("Manifest %s is outdated, use |./mach update-manifest| to fix." % manifest_path)
             rv = 1
 
     return rv
 
 
-def diff_manifests(logger, manifest_path, old_manifest, new_manifest) -> bool:
+def diff_manifests(logger: StructuredLogger, manifest_path, old_manifest, new_manifest) -> bool:  # noqa
     """Lint the differences between old and new versions of a
     manifest. Differences are considered significant (and so produce
     lint errors) if they produce a meaningful difference in the actual
@@ -118,6 +125,7 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest) -> bool:
     :param old_manifest: Manifest object representing the initial manifest
     :param new_manifest: Manifest object representing the updated manifest
     """
+    # pyrefly: ignore  # missing-attribute
     logger.info("Diffing old and new manifests %s" % manifest_path)
     old_items, new_items = defaultdict(set), defaultdict(set)
     for manifest, items in [(old_manifest, old_items), (new_manifest, new_items)]:
@@ -164,11 +172,12 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest) -> bool:
         old_paths = old_manifest.to_json()["items"]
         new_paths = new_manifest.to_json()["items"]
         if old_paths != new_paths:
+            # pyrefly: ignore  # missing-attribute
             logger.warning("Manifest %s contains correct tests but file hashes changed." % manifest_path)  # noqa
             clean = False
 
     return clean
 
 
-def log_error(logger, manifest_path, msg: str) -> None:
+def log_error(logger, manifest_path, msg: str) -> None:  # noqa
     logger.lint_error(path=manifest_path, message=msg, lineno=0, source="", linter="wpt-manifest")
