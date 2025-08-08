@@ -523,7 +523,7 @@ pub(crate) fn handle_execute_script(
 
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let global = window.as_global_scope();
-            let result = if global.evaluate_js_on_global_with_result(
+            let result = match global.evaluate_js_on_global_with_result(
                 &eval,
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global),
@@ -531,9 +531,8 @@ pub(crate) fn handle_execute_script(
                 can_gc,
                 None, // No known `introductionType` for JS code from WebDriver
             ) {
-                jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc)
-            } else {
-                Err(WebDriverJSError::JSError)
+                Ok(()) => jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc),
+                Err(()) => Err(WebDriverJSError::JSError),
             };
 
             if reply.send(result).is_err() {
@@ -565,7 +564,7 @@ pub(crate) fn handle_execute_async_script(
             rooted!(in(*cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
-            if !global_scope.evaluate_js_on_global_with_result(
+            if let Err(()) = global_scope.evaluate_js_on_global_with_result(
                 &eval,
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global_scope),

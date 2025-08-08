@@ -59,7 +59,7 @@ pub(crate) fn handle_evaluate_js(
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string(eval)));
         // TODO: run code with SpiderMonkey Debugger API, like Firefox does
         // <https://searchfox.org/mozilla-central/rev/f6a806c38c459e0e0d797d264ca0e8ad46005105/devtools/server/actors/webconsole/eval-with-debugger.js#270>
-        global.evaluate_script_on_global_with_result(
+        _ = global.evaluate_script_on_global_with_result(
             &source_code,
             "<eval>",
             rval.handle_mut(),

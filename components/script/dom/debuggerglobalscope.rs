@@ -103,7 +103,7 @@ impl DebuggerGlobalScope {
         GlobalScope::get_cx()
     }
 
-    fn evaluate_js(&self, script: &str, can_gc: CanGc) -> bool {
+    fn evaluate_js(&self, script: &str, can_gc: CanGc) -> Result<(), ()> {
         rooted!(in (*Self::get_cx()) let mut rval = UndefinedValue());
         self.global_scope.evaluate_js_on_global_with_result(
             script,
@@ -116,7 +116,7 @@ impl DebuggerGlobalScope {
     }
 
     pub(crate) fn execute(&self, can_gc: CanGc) {
-        if !self.evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc) {
+        if let Err(()) = self.evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc) {
             let ar = enter_realm(self);
             report_pending_exception(Self::get_cx(), true, InRealm::Entered(&ar), can_gc);
         }

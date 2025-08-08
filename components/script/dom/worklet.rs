@@ -691,7 +691,11 @@ impl WorkletThread {
         // to the main script thread.
         // https://github.com/w3c/css-houdini-drafts/issues/407
         let ok = script
-            .map(|script| global_scope.evaluate_js(&script, can_gc))
+            .map(|script| {
+                global_scope
+                    .evaluate_js(&script, can_gc)
+                    .map_or_else(|_ok: ()| true, |_err: ()| false)
+            })
             .unwrap_or(false);
 
         if !ok {
