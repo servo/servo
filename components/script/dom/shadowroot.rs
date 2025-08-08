@@ -14,6 +14,7 @@ use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
+use style::invalidation::element::restyle_hints::RestyleHint;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
@@ -270,6 +271,11 @@ impl ShadowRoot {
         // Mark the host element dirty so a reflow will be performed.
         if let Some(host) = self.host.get() {
             host.upcast::<Node>().dirty(NodeDamage::Style);
+
+            // Also mark the host element with `RestyleHint::restyle_subtree` so a reflow
+            // can traverse into the shadow tree.
+            let mut restyle = self.document.ensure_pending_restyle(&host);
+            restyle.hint.insert(RestyleHint::restyle_subtree());
         }
     }
 
