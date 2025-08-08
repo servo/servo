@@ -84,53 +84,19 @@ impl Path2D {
         let mut c = other.segments();
 
         // Step 5. Transform all the coordinates and lines in c by the transform matrix `matrix`.
-        let apply_matrix_transform =
-            |point: Point2D<f64>| -> Point2D<f64> { matrix.transform_point(point) };
+        c.transform(matrix);
 
-        for segment in c.0.elements_mut() {
-            match *segment {
-                PathEl::MoveTo(point) => {
-                    let transformed_point = apply_matrix_transform(Point2D::new(point.x, point.y));
-                    *segment = PathEl::MoveTo(Point::new(transformed_point.x, transformed_point.y));
-                },
-                PathEl::LineTo(point) => {
-                    let transformed_point = apply_matrix_transform(Point2D::new(point.x, point.y));
-                    *segment = PathEl::LineTo(Point::new(transformed_point.x, transformed_point.y));
-                },
-                PathEl::QuadTo(point, point_1) => {
-                    let transformed_point = apply_matrix_transform(Point2D::new(point.x, point.y));
-                    let transformed_point_1 =
-                        apply_matrix_transform(Point2D::new(point_1.x, point_1.y));
-                    *segment = PathEl::QuadTo(
-                        Point::new(transformed_point.x, transformed_point.y),
-                        Point::new(transformed_point_1.x, transformed_point_1.y),
-                    );
-                },
-                PathEl::CurveTo(point, point_1, point_2) => {
-                    let transformed_point = apply_matrix_transform(Point2D::new(point.x, point.y));
-                    let transformed_point_1 =
-                        apply_matrix_transform(Point2D::new(point_1.x, point_1.y));
-                    let transformed_point_2 =
-                        apply_matrix_transform(Point2D::new(point_2.x, point_2.y));
-                    *segment = PathEl::CurveTo(
-                        Point::new(transformed_point.x, transformed_point.y),
-                        Point::new(transformed_point_1.x, transformed_point_1.y),
-                        Point::new(transformed_point_2.x, transformed_point_2.y),
-                    );
-                },
-                PathEl::ClosePath => {},
-            }
-        }
+        let mut path = self.path.borrow_mut();
 
         // Step 6. Let (x, y) be the last point in the last subpath of c
-        let last_point = self.path.borrow_mut().last_point();
+        let last_point = path.last_point();
 
         // Step 7. Add all the subpaths in c to a.
-        self.path.borrow_mut().0.extend(c.0);
+        path.0.extend(c.0);
 
         // Step 8. Create a new subpath in `a` with (x, y) as the only point in the subpath.
         if let Some(last_point) = last_point {
-            self.path.borrow_mut().move_to(last_point.x, last_point.y);
+            path.move_to(last_point.x, last_point.y);
         }
 
         Ok(())
