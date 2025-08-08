@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::num::{NonZero, NonZeroU16};
 use std::ptr;
 
 use dom_struct::dom_struct;
@@ -84,7 +85,7 @@ fn jsval_to_primitive(
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct Encoder {
     /// <https://encoding.spec.whatwg.org/#textencoderstream-pending-high-surrogate>
-    leading_surrogate: Cell<Option<u16>>, // TODO: replace u16 with NonZeroU16? this would save two bytes
+    leading_surrogate: Cell<Option<NonZeroU16>>,
 }
 
 impl Encoder {
@@ -151,7 +152,8 @@ impl Encoder {
                             //      code-unit-to-scalar-value algo.
                             // Step 2. If item is a leading surrogate, then set encoder’s
                             //      leading surrogate to item and return continue.
-                            self.leading_surrogate.replace(Some(unpaired_surrogate));
+                            self.leading_surrogate
+                                .replace(NonZero::new(unpaired_surrogate));
                         },
                         CodePointType::TrailingSurrogate => match self.leading_surrogate.take() {
                             // Step 1.1 If encoder’s leading surrogate is non-null:
@@ -159,10 +161,13 @@ impl Encoder {
                             Some(leading_surrogate) => {
                                 // Step 1.3 If item is a trailing surrogate, then return a scalar
                                 //      value from surrogates given leadingSurrogate and item.
-                                let c = char::decode_utf16([leading_surrogate, unpaired_surrogate])
-                                    .next()
-                                    .expect("A pair of surrogate is supplied")
-                                    .expect("Decoding a pair of surrogate cannot fail");
+                                let c = char::decode_utf16([
+                                    leading_surrogate.get(),
+                                    unpaired_surrogate,
+                                ])
+                                .next()
+                                .expect("A pair of surrogate is supplied")
+                                .expect("Decoding a pair of surrogate cannot fail");
                                 output.push(c);
                             },
                             // Step 3. If item is a trailing surrogate, then return U+FFFD (�).
