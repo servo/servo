@@ -471,7 +471,9 @@ impl ReplacedContents {
             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
             content_block_size,
             content_inline_size_for_table: None,
-            depends_on_block_constraints: false,
+            // The result doesn't depend on `containing_block_for_children.size.block`,
+            // but it depends on `lazy_block_size`, which is probably tied to that.
+            depends_on_block_constraints: true,
             fragments: self.make_fragments(layout_context, &base.style, size),
             specific_layout_info: None,
         }

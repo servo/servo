@@ -58,9 +58,7 @@ struct FlexContext<'a> {
 struct FlexItem<'a> {
     box_: &'a FlexItemBox,
 
-    /// The preferred, min and max inner cross sizes. If the flex container is single-line
-    /// and [`Self::cross_size_stretches_to_line`] is true, then the preferred cross size
-    /// is set to [`Size::Stretch`].
+    /// The preferred, min and max inner cross sizes.
     content_cross_sizes: Sizes,
 
     padding: FlexRelativeSides<Au>,
@@ -99,17 +97,10 @@ struct FlexItem<'a> {
     /// <https://drafts.csswg.org/css-sizing-4/#preferred-aspect-ratio>
     preferred_aspect_ratio: Option<AspectRatio>,
 
-    /// Whether the preferred cross size of the item stretches to fill the flex line.
-    /// This happens when the size computes to `auto`, the used value of `align-self`
-    /// is `stretch`, and neither of the cross-axis margins are `auto`.
-    /// <https://drafts.csswg.org/css-flexbox-1/#stretched>
-    ///
-    /// Note the following sizes are not sufficient:
-    ///  - A size that only behaves as `auto` (like a cyclic percentage).
-    ///    The computed value needs to be `auto` too.
-    ///  - A `stretch` size. It stretches to the containing block, not to the line
-    ///    (under discussion in <https://github.com/w3c/csswg-drafts/issues/11784>).
-    cross_size_stretches_to_line: bool,
+    /// The automatic size in the cross axis.
+    /// <https://drafts.csswg.org/css-sizing-3/#automatic-size>
+    automatic_cross_size: Size<Au>,
+    automatic_cross_size_for_intrinsic_sizing: Size<Au>,
 }
 
 /// Child of a FlexContainer. Can either be absolutely positioned, or not. If not,
@@ -1543,41 +1534,45 @@ impl InitialFlexLineLayout<'_> {
                 FlexAxis::Column => Direction::Inline,
             };
             let layout = &mut item.layout_result;
-            let used_cross_size = if item.item.cross_size_stretches_to_line {
-                let content_size = match cross_axis {
-                    Direction::Block => layout.content_block_size,
-                    Direction::Inline => layout.containing_block_size.inline,
-                };
-                item.item.content_cross_sizes.resolve(
-                    cross_axis,
-                    Size::Stretch,
-                    Au::zero,
-                    Some(Au::zero().max(final_line_cross_size - item.item.pbm_auto_is_zero.cross)),
-                    || content_size.into(),
-                    // Tables have a special sizing in the block axis in that handles collapsed rows,
-                    // but it would prevent stretching. So we only recognize tables in the inline axis.
-                    // The interaction of collapsed table tracks and the flexbox algorithms is unclear,
-                    // see https://github.com/w3c/csswg-drafts/issues/11408.
-                    item.item.box_.independent_formatting_context.is_table() &&
-                        cross_axis == Direction::Inline,
-                )
-            } else {
-                layout.hypothetical_cross_size
+            let get_content_size = || match cross_axis {
+                Direction::Block => layout.content_block_size.into(),
+                Direction::Inline => item
+                    .item
+                    .inline_content_sizes(flex_context, item.used_main_size),
             };
+            let used_cross_size = item.item.content_cross_sizes.resolve(
+                cross_axis,
+                item.item.automatic_cross_size,
+                Au::zero,
+                Some(Au::zero().max(final_line_cross_size - item.item.pbm_auto_is_zero.cross)),
+                get_content_size,
+                // Tables have a special sizing in the block axis in that handles collapsed rows,
+                // but it would prevent stretching. So we only recognize tables in the inline axis.
+                // The interaction of collapsed table tracks and the flexbox algorithms is unclear,
+                // see https://github.com/w3c/csswg-drafts/issues/11408.
+                item.item.box_.independent_formatting_context.is_table() &&
+                    cross_axis == Direction::Inline,
+            );
             item_used_cross_sizes.push(used_cross_size);
 
             // “If the flex item has `align-self: stretch`, redo layout for its contents,
             // treating this used size as its definite cross size so that percentage-sized
             // children can be resolved.”
-            let needs_new_layout = item.item.cross_size_stretches_to_line &&
-                match cross_axis {
-                    Direction::Block => {
-                        SizeConstraint::Definite(used_cross_size) !=
-                            layout.containing_block_size.block &&
-                            layout.depends_on_block_constraints
-                    },
-                    Direction::Inline => used_cross_size != layout.containing_block_size.inline,
-                };
+            // However, as resolved in https://github.com/w3c/csswg-drafts/issues/11784,
+            // we do that when the cross size is `stretch`. We also need to do it if the
+            // inline size changes, which may happen with a `fit-content` cross size.
+            let needs_new_layout = match cross_axis {
+                Direction::Block => {
+                    (match item.item.content_cross_sizes.preferred {
+                        Size::Initial => item.item.automatic_cross_size == Size::Stretch,
+                        Size::Stretch => true,
+                        _ => false,
+                    }) && SizeConstraint::Definite(used_cross_size) !=
+                        layout.containing_block_size.block &&
+                        layout.depends_on_block_constraints
+                },
+                Direction::Inline => used_cross_size != layout.containing_block_size.inline,
+            };
             if needs_new_layout {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
@@ -1759,9 +1754,6 @@ impl FlexItem<'_> {
             let cross_size = match used_cross_size_override {
                 Some(s) => SizeConstraint::Definite(s),
                 None => {
-                    // This means that an auto size with stretch alignment will behave different than
-                    // a stretch size. That's not what the spec says, but matches other browsers.
-                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
                     let stretch_size = containing_block
                         .size
                         .block
@@ -1792,22 +1784,12 @@ impl FlexItem<'_> {
             let cross_size = used_cross_size_override.unwrap_or_else(|| {
                 let stretch_size =
                     Au::zero().max(containing_block.size.inline - self.pbm_auto_is_zero.cross);
-                let get_content_size = || {
-                    let constraint_space = ConstraintSpace::new(
-                        SizeConstraint::Definite(used_main_size),
-                        item_writing_mode,
-                        self.preferred_aspect_ratio,
-                    );
-                    independent_formatting_context
-                        .inline_content_sizes(flex_context.layout_context, &constraint_space)
-                        .sizes
-                };
                 self.content_cross_sizes.resolve(
                     Direction::Inline,
                     Size::FitContent,
                     Au::zero,
                     Some(stretch_size),
-                    get_content_size,
+                    || self.inline_content_sizes(flex_context, used_main_size),
                     is_table,
                 )
             });
@@ -1841,9 +1823,6 @@ impl FlexItem<'_> {
         } else if let Some(cross_size) = used_cross_size_override {
             cross_size.into()
         } else {
-            // This means that an auto size with stretch alignment will behave different than
-            // a stretch size. That's not what the spec says, but matches other browsers.
-            // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
             let stretch_size = containing_block
                 .size
                 .block
@@ -2050,6 +2029,15 @@ impl FlexItem<'_> {
             };
         outer_cross_start + margin.cross_start + self.border.cross_start + self.padding.cross_start
     }
+
+    #[inline]
+    fn inline_content_sizes(&self, flex_context: &FlexContext, block_size: Au) -> ContentSizes {
+        self.box_.inline_content_sizes(
+            flex_context,
+            SizeConstraint::Definite(block_size),
+            self.preferred_aspect_ratio,
+        )
+    }
 }
 
 impl FlexItemBox {
@@ -2094,28 +2082,31 @@ impl FlexItemBox {
             main: padding_border.main,
             cross: padding_border.cross,
         } + margin_auto_is_zero.sum_by_axis();
-        let (content_main_sizes, mut content_cross_sizes, cross_size_computes_to_auto) =
-            match flex_axis {
-                FlexAxis::Row => (
-                    &content_box_sizes.inline,
-                    content_box_sizes.block.clone(),
-                    preferred_size_computes_to_auto.block,
-                ),
-                FlexAxis::Column => (
-                    &content_box_sizes.block,
-                    content_box_sizes.inline.clone(),
-                    preferred_size_computes_to_auto.inline,
-                ),
-            };
-        let cross_size_stretches_to_line = cross_size_computes_to_auto &&
-            item_with_auto_cross_size_stretches_to_line_size(align_self, &margin);
-        if cross_size_stretches_to_line && config.container_is_single_line {
-            // <https://drafts.csswg.org/css-flexbox-1/#definite-sizes>
-            // > If a single-line flex container has a definite cross size, the automatic preferred
-            // > outer cross size of any stretched flex items is the flex container’s inner cross size.
-            // Therefore, set it to `stretch`, which has the desired behavior.
-            content_cross_sizes.preferred = Size::Stretch;
-        }
+        let (content_main_sizes, content_cross_sizes, cross_size_computes_to_auto) = match flex_axis
+        {
+            FlexAxis::Row => (
+                &content_box_sizes.inline,
+                &content_box_sizes.block,
+                preferred_size_computes_to_auto.block,
+            ),
+            FlexAxis::Column => (
+                &content_box_sizes.block,
+                &content_box_sizes.inline,
+                preferred_size_computes_to_auto.inline,
+            ),
+        };
+        let automatic_cross_size = if cross_size_computes_to_auto &&
+            item_with_auto_cross_size_stretches_to_line_size(align_self, &margin)
+        {
+            Size::Stretch
+        } else {
+            Size::FitContent
+        };
+        let automatic_cross_size_for_intrinsic_sizing = if config.container_is_single_line {
+            automatic_cross_size
+        } else {
+            Size::FitContent
+        };
         let containing_block_size = flex_axis.vec2_to_flex_relative(containing_block.size);
         let stretch_size = FlexRelativeVec2 {
             main: containing_block_size
@@ -2136,7 +2127,7 @@ impl FlexItemBox {
         let (preferred_cross_size, min_cross_size, max_cross_size) =
             if let Some(cross_content_size) = tentative_cross_content_size {
                 let (preferred, min, max) = content_cross_sizes.resolve_each(
-                    Size::FitContent,
+                    automatic_cross_size_for_intrinsic_sizing,
                     Au::zero,
                     stretch_size.cross,
                     || cross_content_size,
@@ -2145,7 +2136,7 @@ impl FlexItemBox {
                 (Some(preferred), min, max)
             } else {
                 content_cross_sizes.resolve_each_extrinsic(
-                    Size::FitContent,
+                    automatic_cross_size_for_intrinsic_sizing,
                     Au::zero(),
                     stretch_size.cross,
                 )
@@ -2210,7 +2201,7 @@ impl FlexItemBox {
                     &pbm_auto_is_zero,
                     content_box_sizes,
                     preferred_aspect_ratio,
-                    content_cross_sizes.preferred == Size::Stretch,
+                    automatic_cross_size_for_intrinsic_sizing,
                     IntrinsicSizingMode::Size,
                 )
                 .into()
@@ -2279,7 +2270,7 @@ impl FlexItemBox {
 
         FlexItem {
             box_: self,
-            content_cross_sizes,
+            content_cross_sizes: content_cross_sizes.clone(),
             padding,
             border,
             margin: config.sides_to_flex_relative(pbm.margin),
@@ -2293,7 +2284,8 @@ impl FlexItemBox {
             align_self,
             depends_on_block_constraints: *depends_on_block_constraints,
             preferred_aspect_ratio,
-            cross_size_stretches_to_line,
+            automatic_cross_size,
+            automatic_cross_size_for_intrinsic_sizing,
         }
     }
 
@@ -2312,12 +2304,12 @@ impl FlexItemBox {
         // TODO: when laying out a column container with an indefinite main size,
         // we compute the base sizes of the items twice. We should consider caching.
         let FlexItem {
-            content_cross_sizes,
             flex_base_size,
             content_min_main_size,
             content_max_main_size,
             pbm_auto_is_zero,
             preferred_aspect_ratio,
+            automatic_cross_size_for_intrinsic_sizing,
             ..
         } = self.to_flex_item(
             layout_context,
@@ -2344,7 +2336,7 @@ impl FlexItemBox {
                         layout_context,
                         containing_block,
                         &auto_minimum,
-                        content_cross_sizes.preferred == Size::Stretch,
+                        automatic_cross_size_for_intrinsic_sizing == Size::Stretch,
                     );
                 (sizes, depends_on_block_constraints)
             },
@@ -2354,7 +2346,7 @@ impl FlexItemBox {
                     &pbm_auto_is_zero,
                     &content_box_sizes_and_pbm.content_box_sizes,
                     preferred_aspect_ratio,
-                    content_cross_sizes.preferred == Size::Stretch,
+                    automatic_cross_size_for_intrinsic_sizing,
                     IntrinsicSizingMode::Contribution,
                 );
                 (size.into(), true)
@@ -2511,7 +2503,7 @@ impl FlexItemBox {
         pbm_auto_is_zero: &FlexRelativeVec2<Au>,
         content_box_sizes: &LogicalVec2<Sizes>,
         preferred_aspect_ratio: Option<AspectRatio>,
-        cross_size_stretches_to_container_size: bool,
+        automatic_inline_size: Size<Au>,
         intrinsic_sizing_mode: IntrinsicSizingMode,
     ) -> Au {
         let content_block_size = || {
@@ -2526,26 +2518,18 @@ impl FlexItemBox {
             // TODO: This is wrong if the item writing mode is different from the flex
             // container's writing mode.
             let inline_size = {
-                let initial_behavior = if cross_size_stretches_to_container_size {
-                    Size::Stretch
-                } else {
-                    Size::FitContent
-                };
                 let stretch_size =
                     flex_context.containing_block.size.inline - pbm_auto_is_zero.cross;
                 let get_content_size = || {
-                    let constraint_space = ConstraintSpace::new(
+                    self.inline_content_sizes(
+                        flex_context,
                         tentative_block_size,
-                        style.writing_mode,
                         preferred_aspect_ratio,
-                    );
-                    self.independent_formatting_context
-                        .inline_content_sizes(flex_context.layout_context, &constraint_space)
-                        .sizes
+                    )
                 };
                 content_box_sizes.inline.resolve(
                     Direction::Inline,
-                    initial_behavior,
+                    automatic_inline_size,
                     Au::zero,
                     Some(stretch_size),
                     get_content_size,
@@ -2596,5 +2580,19 @@ impl FlexItemBox {
             },
             IntrinsicSizingMode::Size => content_block_size(),
         }
+    }
+
+    fn inline_content_sizes(
+        &self,
+        flex_context: &FlexContext,
+        block_size: SizeConstraint,
+        preferred_aspect_ratio: Option<AspectRatio>,
+    ) -> ContentSizes {
+        let writing_mode = self.independent_formatting_context.style().writing_mode;
+        let constraint_space =
+            ConstraintSpace::new(block_size, writing_mode, preferred_aspect_ratio);
+        self.independent_formatting_context
+            .inline_content_sizes(flex_context.layout_context, &constraint_space)
+            .sizes
     }
 }
