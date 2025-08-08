@@ -1249,7 +1249,21 @@ impl Runnable {
 pub(crate) use script_bindings::script_runtime::CanGc;
 
 /// `introductionType` values in SpiderMonkey TransitiveCompileOptions.
+///
+/// Value definitions are based on the SpiderMonkey Debugger API docs:
+/// <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Source.html#introductiontype>
+// TODO: squish `scriptElement` <https://searchfox.org/mozilla-central/rev/202069c4c5113a1a9052d84fa4679d4c1b22113e/devtools/server/actors/source.js#199-201>
 pub(crate) struct IntroductionType;
 impl IntroductionType {
-    pub const INLINE_SCRIPT: &'static CStr = c"inlineScript";
+    /// `introductionType` for code belonging to `<script src="file.js">` elements.
+    /// This includes `<script type="module" src="...">`.
+    pub const SRC_SCRIPT: &CStr = c"srcScript";
+
+    /// `introductionType` for code belonging to `<script>code;</script>` elements.
+    /// This includes `<script type="module" src="...">`.
+    pub const INLINE_SCRIPT: &CStr = c"inlineScript";
+
+    /// `introductionType` for web workers.
+    /// <https://searchfox.org/mozilla-central/rev/202069c4c5113a1a9052d84fa4679d4c1b22113e/devtools/docs/user/debugger-api/debugger.source/index.rst#96>
+    pub const WORKER: &CStr = c"Worker";
 }
