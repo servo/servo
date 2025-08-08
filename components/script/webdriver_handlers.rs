@@ -1991,9 +1991,11 @@ pub(crate) fn handle_is_enabled(
                 // current browsing context's active document's type is not "xml".
                 // Otherwise, let enabled to false and jump to the last step of this algorithm.
                 // Step 5. Set enabled to false if a form control is disabled.
-                document.is_html_document() &&
-                    document.is_xhtml_document() &&
+                if document.is_html_document() || document.is_xhtml_document() {
                     !is_disabled(&element)
+                } else {
+                    false
+                }
             }),
         )
         .unwrap();
