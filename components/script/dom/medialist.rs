@@ -16,6 +16,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::Wind
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::cssrule::RulesModificationScope;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -122,6 +123,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
     fn SetMediaText(&self, value: DOMString) {
+        let _rules_modification_scope = RulesModificationScope::new(&self.parent_stylesheet);
         let global = self.global();
         let mut guard = self.shared_lock().write();
         let media_queries = self.media_queries.write_with(&mut guard);
@@ -159,6 +161,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             return;
         }
         // Step 3
+        let mut rules_modification_scope = RulesModificationScope::new(&self.parent_stylesheet);
         let m_serialized = m.clone().unwrap().to_css_string();
         let mut guard = self.shared_lock().write();
         let mq = self.media_queries.write_with(&mut guard);
@@ -167,6 +170,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             .iter()
             .any(|q| m_serialized == q.to_css_string());
         if any {
+            rules_modification_scope.set_unmodified();
             return;
         }
         // Step 4
@@ -183,6 +187,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             return;
         }
         // Step 3
+        let mut _rules_modification_scope = RulesModificationScope::new(&self.parent_stylesheet);
         let m_serialized = m.unwrap().to_css_string();
         let mut guard = self.shared_lock().write();
         let media_list = self.media_queries.write_with(&mut guard);

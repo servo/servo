@@ -26,7 +26,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssrule::CSSRule;
+use crate::dom::cssrule::{CSSRule, RulesModificationScope};
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
@@ -120,14 +120,14 @@ impl CSSStyleOwner {
                 result
             },
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
+                let mut rules_modification_scope =
+                    RulesModificationScope::new(rule.parent_stylesheet());
                 let result = {
                     let mut guard = rule.shared_lock().write();
                     f(&mut *pdb.write_with(&mut guard), &mut changed)
                 };
-                if changed {
-                    // If this is changed, see also
-                    // CSSStyleRule::SetSelectorText, which does the same thing.
-                    rule.parent_stylesheet().notify_invalidations();
+                if !changed {
+                    rules_modification_scope.set_unmodified();
                 }
                 result
             },

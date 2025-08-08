@@ -18,7 +18,7 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
-use crate::dom::cssrule::SpecificCSSRule;
+use crate::dom::cssrule::{RulesModificationScope, SpecificCSSRule};
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
@@ -131,6 +131,8 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         // TODO: Maybe allow setting relative selectors from the OM, if we're in a nested style
         // rule?
         if let Ok(mut s) = SelectorList::parse(&parser, &mut css_parser, ParseRelative::No) {
+            let _rules_modification_scope =
+                RulesModificationScope::new(self.cssgroupingrule.parent_stylesheet());
             // This mirrors what we do in CSSStyleOwner::mutate_associated_block.
             let mut guard = self.cssgroupingrule.shared_lock().write();
             let stylerule = self.stylerule.write_with(&mut guard);
