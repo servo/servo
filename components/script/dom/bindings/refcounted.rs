@@ -270,13 +270,13 @@ impl LiveDOMReferences {
             Occupied(mut entry) => match entry.get().upgrade() {
                 Some(refcount) => refcount,
                 None => {
-                    let refcount = Arc::new(TrustedReference::new(ptr));
+                    let refcount = Arc::new(unsafe { TrustedReference::new(ptr) });
                     entry.insert(Arc::downgrade(&refcount));
                     refcount
                 },
             },
             Vacant(entry) => {
-                let refcount = Arc::new(TrustedReference::new(ptr));
+                let refcount = Arc::new(unsafe { TrustedReference::new(ptr) });
                 entry.insert(Arc::downgrade(&refcount));
                 refcount
             },
@@ -307,15 +307,18 @@ pub(crate) unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
             let mut table = live_references.reflectable_table.borrow_mut();
             remove_nulls(&mut table);
             for obj in table.keys() {
-                let reflectable = &*(*obj as *const Reflector);
-                trace_reflector(tracer, "refcounted", reflectable);
+                unsafe {
+                    trace_reflector(tracer, "refcounted", &*(*obj as *const Reflector));
+                }
             }
         }
 
         {
             let table = live_references.promise_table.borrow_mut();
             for promise in table.keys() {
-                trace_reflector(tracer, "refcounted", (**promise).reflector());
+                unsafe {
+                    trace_reflector(tracer, "refcounted", (**promise).reflector());
+                }
             }
         }
     });

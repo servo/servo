@@ -126,11 +126,13 @@ unsafe fn read_object<T: Serializable>(
 ) -> *mut JSObject {
     let mut name_space: u32 = 0;
     let mut index: u32 = 0;
-    assert!(JS_ReadUint32Pair(
-        r,
-        &mut name_space as *mut u32,
-        &mut index as *mut u32
-    ));
+    unsafe {
+        assert!(JS_ReadUint32Pair(
+            r,
+            &mut name_space as *mut u32,
+            &mut index as *mut u32
+        ));
+    }
     let storage_key = StorageKey { index, name_space };
 
     // 1. Re-build the key for the storage location
@@ -171,16 +173,18 @@ unsafe fn write_object<T: Serializable>(
         objects.insert(new_id, serialized);
         let storage_key = StorageKey::new(new_id);
 
-        assert!(JS_WriteUint32Pair(
-            w,
-            StructuredCloneTags::from(interface) as u32,
-            0
-        ));
-        assert!(JS_WriteUint32Pair(
-            w,
-            storage_key.name_space,
-            storage_key.index
-        ));
+        unsafe {
+            assert!(JS_WriteUint32Pair(
+                w,
+                StructuredCloneTags::from(interface) as u32,
+                0
+            ));
+            assert!(JS_WriteUint32Pair(
+                w,
+                storage_key.name_space,
+                storage_key.index
+            ));
+        }
         return true;
     }
     warn!("Writing structured data failed in {:?}.", owner.get_url());
@@ -204,13 +208,15 @@ unsafe extern "C" fn read_callback(
         "tag should be higher than StructuredCloneTags::Min"
     );
 
-    let sc_reader = &mut *(closure as *mut StructuredDataReader<'_>);
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-    let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
-    for serializable in SerializableInterface::iter() {
-        if tag == StructuredCloneTags::from(serializable) as u32 {
-            let reader = reader_for_type(serializable);
-            return reader(&global, r, sc_reader, CanGc::note());
+    unsafe {
+        let sc_reader = &mut *(closure as *mut StructuredDataReader<'_>);
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+        let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+        for serializable in SerializableInterface::iter() {
+            if tag == StructuredCloneTags::from(serializable) as u32 {
+                let reader = reader_for_type(serializable);
+                return reader(&global, r, sc_reader, CanGc::note());
+            }
         }
     }
 
@@ -225,13 +231,14 @@ enum OperationError {
 unsafe fn try_serialize<T: Serializable + IDLInterface>(
     val: SerializableInterface,
     cx: *mut JSContext,
-    obj: RawHandleObject,
+    object: RawHandleObject,
     global: &GlobalScope,
     w: *mut JSStructuredCloneWriter,
     writer: &mut StructuredDataWriter,
 ) -> Result<bool, OperationError> {
-    if let Ok(obj) = root_from_object::<T>(*obj, cx) {
-        return Ok(write_object(val, global, &*obj, w, writer));
+    let object = unsafe { root_from_object::<T>(*object, cx) };
+    if let Ok(obj) = object {
+        return unsafe { Ok(write_object(val, global, &*obj, w, writer)) };
     }
     Err(OperationError::InterfaceDoesNotMatch)
 }
@@ -262,13 +269,15 @@ unsafe extern "C" fn write_callback(
     _same_process_scope_required: *mut bool,
     closure: *mut raw::c_void,
 ) -> bool {
-    let sc_writer = &mut *(closure as *mut StructuredDataWriter);
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-    let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
-    for serializable in SerializableInterface::iter() {
-        let serializer = serialize_for_type(serializable);
-        if let Ok(result) = serializer(serializable, cx, obj, &global, w, sc_writer) {
-            return result;
+    unsafe {
+        let sc_writer = &mut *(closure as *mut StructuredDataWriter);
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+        let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+        for serializable in SerializableInterface::iter() {
+            let serializer = serialize_for_type(serializable);
+            if let Ok(result) = serializer(serializable, cx, obj, &global, w, sc_writer) {
+                return result;
+            }
         }
     }
     false
@@ -344,9 +353,9 @@ unsafe extern "C" fn read_transfer_callback(
     closure: *mut raw::c_void,
     return_object: RawMutableHandleObject,
 ) -> bool {
-    let sc_reader = &mut *(closure as *mut StructuredDataReader<'_>);
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-    let owner = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+    let sc_reader = unsafe { &mut *(closure as *mut StructuredDataReader<'_>) };
+    let in_realm_proof = unsafe { AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx)) };
+    let owner = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
 
     for transferrable in TransferrableInterface::iter() {
         if tag == StructuredCloneTags::from(transferrable) as u32 {
@@ -368,12 +377,13 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
     ownership: *mut TransferableOwnership,
     extra_data: *mut u64,
 ) -> Result<(), OperationError> {
-    let Ok(object) = root_from_object::<T>(*obj, cx) else {
+    let object = unsafe { root_from_object::<T>(*obj, cx) };
+    let Ok(object) = object else {
         return Err(OperationError::InterfaceDoesNotMatch);
     };
 
-    *tag = StructuredCloneTags::from(interface) as u32;
-    *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
+    unsafe { *tag = StructuredCloneTags::from(interface) as u32 };
+    unsafe { *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM };
 
     let (id, object) = object.transfer().map_err(OperationError::Exception)?;
 
@@ -393,7 +403,7 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
     right.copy_from_slice(&index);
 
     // 3. Return a u64 representation of the key where the object is stored.
-    *extra_data = u64::from_ne_bytes(big);
+    unsafe { *extra_data = u64::from_ne_bytes(big) };
     Ok(())
 }
 
@@ -428,11 +438,13 @@ unsafe extern "C" fn write_transfer_callback(
     _content: *mut *mut raw::c_void,
     extra_data: *mut u64,
 ) -> bool {
-    let sc_writer = &mut *(closure as *mut StructuredDataWriter);
+    let sc_writer = unsafe { &mut *(closure as *mut StructuredDataWriter) };
     for transferable in TransferrableInterface::iter() {
         let try_transfer = transfer_for_type(transferable);
 
-        match try_transfer(transferable, obj, cx, sc_writer, tag, ownership, extra_data) {
+        let transfer_result =
+            unsafe { try_transfer(transferable, obj, cx, sc_writer, tag, ownership, extra_data) };
+        match transfer_result {
             Err(error) => match error {
                 OperationError::InterfaceDoesNotMatch => {},
                 OperationError::Exception(error) => {
@@ -465,15 +477,18 @@ unsafe fn can_transfer_for_type(
         obj: RawHandleObject,
         cx: *mut JSContext,
     ) -> Result<bool, ()> {
-        root_from_object::<T>(*obj, cx).map(|o| Transferable::can_transfer(&*o))
+        unsafe { root_from_object::<T>(*obj, cx).map(|o| Transferable::can_transfer(&*o)) }
     }
-    match transferable {
-        TransferrableInterface::ImageBitmap => can_transfer::<ImageBitmap>(obj, cx),
-        TransferrableInterface::MessagePort => can_transfer::<MessagePort>(obj, cx),
-        TransferrableInterface::OffscreenCanvas => can_transfer::<OffscreenCanvas>(obj, cx),
-        TransferrableInterface::ReadableStream => can_transfer::<ReadableStream>(obj, cx),
-        TransferrableInterface::WritableStream => can_transfer::<WritableStream>(obj, cx),
-        TransferrableInterface::TransformStream => can_transfer::<TransformStream>(obj, cx),
+
+    unsafe {
+        match transferable {
+            TransferrableInterface::ImageBitmap => can_transfer::<ImageBitmap>(obj, cx),
+            TransferrableInterface::MessagePort => can_transfer::<MessagePort>(obj, cx),
+            TransferrableInterface::OffscreenCanvas => can_transfer::<OffscreenCanvas>(obj, cx),
+            TransferrableInterface::ReadableStream => can_transfer::<ReadableStream>(obj, cx),
+            TransferrableInterface::WritableStream => can_transfer::<WritableStream>(obj, cx),
+            TransferrableInterface::TransformStream => can_transfer::<TransformStream>(obj, cx),
+        }
     }
 }
 
@@ -484,7 +499,8 @@ unsafe extern "C" fn can_transfer_callback(
     _closure: *mut raw::c_void,
 ) -> bool {
     for transferable in TransferrableInterface::iter() {
-        if let Ok(can_transfer) = can_transfer_for_type(transferable, obj, cx) {
+        let can_transfer = unsafe { can_transfer_for_type(transferable, obj, cx) };
+        if let Ok(can_transfer) = can_transfer {
             return can_transfer;
         }
     }
@@ -500,7 +516,7 @@ unsafe extern "C" fn report_error_callback(
     let msg_result = unsafe { CStr::from_ptr(error_message).to_str().map(str::to_string) };
 
     if let Ok(msg) = msg_result {
-        let error = &mut *(closure as *mut Option<Error>);
+        let error = unsafe { &mut *(closure as *mut Option<Error>) };
 
         if error.is_none() {
             *error = Some(Error::DataClone(Some(msg)));

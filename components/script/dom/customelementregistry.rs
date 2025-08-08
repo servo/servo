@@ -428,7 +428,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         rooted!(in(*cx) let proto_object = prototype.to_object());
         let mut callbacks = {
             let _ac = JSAutoRealm::new(*cx, proto_object.get());
-            match unsafe { self.get_callbacks(proto_object.handle()) } {
+            let callbacks = unsafe { self.get_callbacks(proto_object.handle()) };
+            match callbacks {
                 Ok(callbacks) => callbacks,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
