@@ -9,6 +9,7 @@ from os import PathLike
 import subprocess
 import sys
 import runpy
+from typing import Any
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 TOP_DIR = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
@@ -190,7 +191,7 @@ def bootstrap_command_only(topdir: str) -> int:
     return 0
 
 
-def bootstrap(topdir: str):  # noqa
+def bootstrap(topdir: str) -> Any:
     _ensure_case_insensitive_if_windows()
 
     topdir = os.path.abspath(topdir)

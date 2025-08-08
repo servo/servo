@@ -95,7 +95,7 @@ def remove_unused_metadata() -> None:
         shutil.rmtree(directory)
 
 
-def update_tests(**kwargs: Any) -> int:  # noqa
+def update_tests(**kwargs: Any) -> int:
     def set_if_none(args: dict, key: str, value: str) -> None:
         if key not in args or args[key] is None:
             args[key] = value
@@ -114,11 +114,11 @@ def update_tests(**kwargs: Any) -> int:  # noqa
     return 0 if run_update(**kwargs) else 1
 
 
-def run_update(**kwargs: Any) -> bool:  # noqa
+def run_update(**kwargs: Any) -> bool:
     """Run the update process returning True if the process is successful."""
     logger = setup_logging(kwargs, {"mach": sys.stdout})
     return WPTUpdate(logger, **kwargs).run() != exit_unclean
 
 
-def create_parser(**_kwargs: Any) -> ArgumentParser:  # noqa
+def create_parser(**_kwargs: Any) -> ArgumentParser:
     return wptcommandline.create_parser_update()

@@ -25,6 +25,8 @@ ignore = [
     "W291",
     # 80 character line length; the standard tidy process will enforce line length
     "E501",
+    # allow Any type
+    "ANN401",
 ]
 
 [tool.ruff.lint.per-file-ignores]
