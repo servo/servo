@@ -495,6 +495,8 @@ class CommandBase(object):
         elif self.config["build"]["incremental"] is not None:
             env["CARGO_INCREMENTAL"] = "0"
 
+        env["MOZJS_FROM_SOURCE"] = "1"
+
         env["RUSTFLAGS"] = env.get("RUSTFLAGS", "")
 
         if self.config["build"]["rustflags"]:

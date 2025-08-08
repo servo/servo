@@ -36,7 +36,7 @@ on:
       force-github-hosted-runner:
           required: false
           type: boolean
-          default: false
+          default: true
       bencher:
         required: false
         default: false
