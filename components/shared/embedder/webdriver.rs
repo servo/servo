@@ -210,6 +210,8 @@ pub enum WebDriverScriptCommand {
     FindShadowElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     GetElementShadowRoot(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
+    GetKnownElement(String, IpcSender<Result<(), ErrorStatus>>),
+    GetKnownShadowRoot(String, IpcSender<Result<(), ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetCookie(
