@@ -694,7 +694,7 @@ impl WorkletThread {
             .map(|script| {
                 global_scope
                     .evaluate_js(&script, can_gc)
-                    .map_or_else(|_ok: ()| true, |_err: ()| false)
+                    .map_or_else(|_err: ()| false, |_ok: ()| true)
             })
             .unwrap_or(false);
 
