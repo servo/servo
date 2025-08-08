@@ -57,6 +57,8 @@ pub(crate) fn handle_evaluate_js(
         let _ac = enter_realm(global);
         rooted!(in(*cx) let mut rval = UndefinedValue());
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string(eval)));
+        // TODO: run code with SpiderMonkey Debugger API, like Firefox does
+        // <https://searchfox.org/mozilla-central/rev/f6a806c38c459e0e0d797d264ca0e8ad46005105/devtools/server/actors/webconsole/eval-with-debugger.js#270>
         global.evaluate_script_on_global_with_result(
             &source_code,
             "<eval>",
@@ -65,7 +67,7 @@ pub(crate) fn handle_evaluate_js(
             ScriptFetchOptions::default_classic_script(global),
             global.api_base_url(),
             can_gc,
-            None,
+            Some(c"debugger eval"),
         );
 
         if rval.is_undefined() {

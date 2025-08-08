@@ -836,6 +836,7 @@ impl ModuleTree {
     }
 
     #[allow(unsafe_code)]
+    // FIXME: spec links in this function are all broken, so it’s unclear what this algorithm does
     /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script>
     fn fetch_module_descendants(
         &self,
@@ -929,6 +930,8 @@ impl ModuleTree {
                         Some(parent_identity.clone()),
                         false,
                         None,
+                        // TODO: is this correct?
+                        Some(IntroductionType::IMPORTED_MODULE),
                         can_gc,
                     );
                 }
@@ -1200,6 +1203,8 @@ struct ModuleContext {
     status: Result<(), NetworkError>,
     /// Timing object for this resource
     resource_timing: ResourceFetchTiming,
+    /// `introductionType` value to set in the `CompileOptionsWrapper`.
+    introduction_type: Option<&'static CStr>,
 }
 
 impl FetchResponseListener for ModuleContext {
@@ -1336,7 +1341,7 @@ impl FetchResponseListener for ModuleContext {
                     compiled_module.handle_mut(),
                     false,
                     CanGc::note(),
-                    None,
+                    self.introduction_type,
                 );
 
                 match compiled_module_result {
@@ -1570,6 +1575,7 @@ fn fetch_an_import_module_script_graph(
         None,
         true,
         Some(dynamic_module),
+        Some(IntroductionType::IMPORTED_MODULE),
         can_gc,
     );
     Ok(())
@@ -1675,6 +1681,7 @@ pub(crate) fn fetch_external_module_script(
         None,
         true,
         None,
+        Some(IntroductionType::SRC_SCRIPT),
         can_gc,
     )
 }
@@ -1738,6 +1745,7 @@ fn fetch_single_module_script(
     parent_identity: Option<ModuleIdentity>,
     top_level_module_fetch: bool,
     dynamic_module: Option<RootedTraceableBox<DynamicModule>>,
+    introduction_type: Option<&'static CStr>,
     can_gc: CanGc,
 ) {
     {
@@ -1857,6 +1865,7 @@ fn fetch_single_module_script(
         options,
         status: Ok(()),
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+        introduction_type,
     }));
 
     let network_listener = NetworkListener {

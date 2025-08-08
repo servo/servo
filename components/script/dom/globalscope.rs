@@ -2759,6 +2759,7 @@ impl GlobalScope {
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
         can_gc: CanGc,
+        introduction_type: Option<&'static CStr>,
     ) -> bool {
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string((*code).to_string())));
         self.evaluate_script_on_global_with_result(
@@ -2769,7 +2770,7 @@ impl GlobalScope {
             fetch_options,
             script_base_url,
             can_gc,
-            None,
+            introduction_type,
         )
     }
 

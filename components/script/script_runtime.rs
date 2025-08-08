@@ -1255,6 +1255,9 @@ pub(crate) use script_bindings::script_runtime::CanGc;
 // TODO: squish `scriptElement` <https://searchfox.org/mozilla-central/rev/202069c4c5113a1a9052d84fa4679d4c1b22113e/devtools/server/actors/source.js#199-201>
 pub(crate) struct IntroductionType;
 impl IntroductionType {
+    /// `introductionType` for code loaded by worklet.
+    pub const WORKLET: &CStr = c"Worklet";
+
     /// `introductionType` for code belonging to `<script src="file.js">` elements.
     /// This includes `<script type="module" src="...">`.
     pub const SRC_SCRIPT: &CStr = c"srcScript";
@@ -1262,6 +1265,23 @@ impl IntroductionType {
     /// `introductionType` for code belonging to `<script>code;</script>` elements.
     /// This includes `<script type="module" src="...">`.
     pub const INLINE_SCRIPT: &CStr = c"inlineScript";
+
+    /// `introductionType` for code belonging to scripts that *would* be `"inlineScript"` except that they were not
+    /// part of the initial file itself.
+    /// For example, scripts created via:
+    /// - `document.write("<script>code;</script>")`
+    /// - `var s = document.createElement("script"); s.text = "code";`
+    pub const INJECTED_SCRIPT: &CStr = c"injectedScript";
+
+    /// `introductionType` for code that was loaded indirectly by being imported by another script
+    /// using ESM static or dynamic imports.
+    pub const IMPORTED_MODULE: &CStr = c"importedModule";
+
+    /// `introductionType` for code presented in `javascript:` URLs.
+    pub const JAVASCRIPT_URL: &CStr = c"javascriptURL";
+
+    /// `introductionType` for code passed to `setTimeout`/`setInterval` as a string.
+    pub const DOM_TIMER: &CStr = c"domTimer";
 
     /// `introductionType` for web workers.
     /// <https://searchfox.org/mozilla-central/rev/202069c4c5113a1a9052d84fa4679d4c1b22113e/devtools/docs/user/debugger-api/debugger.source/index.rst#96>
