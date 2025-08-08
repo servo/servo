@@ -1982,7 +1982,7 @@ pub(crate) fn handle_is_enabled(
     reply
         .send(
             // Step 3. Let element be the result of trying to get a known element
-            get_known_element(documents, pipeline, element_id).and_then(|element| {
+            get_known_element(documents, pipeline, element_id).map(|element| {
                 // In `get_known_element`, we confirmed that document exists
                 let document = documents.find_document(pipeline).unwrap();
 
@@ -1990,12 +1990,10 @@ pub(crate) fn handle_is_enabled(
                 // Let enabled be a boolean initially set to true if session's
                 // current browsing context's active document's type is not "xml".
                 // Otherwise, let enabled to false and jump to the last step of this algorithm.
-                if document.is_html_document() || document.is_xhtml_document() {
-                    // Step 5. Set enabled to false if a form control is disabled.
-                    Ok(!is_disabled(&element))
-                } else {
-                    Ok(false)
-                }
+                // Step 5. Set enabled to false if a form control is disabled.
+                document.is_html_document() &&
+                    document.is_xhtml_document() &&
+                    !is_disabled(&element)
             }),
         )
         .unwrap();
