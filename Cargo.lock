@@ -3988,9 +3988,9 @@ checksum = "820499e77e852162190608b4f444e7b4552619150eafc39a9e39333d9efae9e1"
 
 [[package]]
 name = "icu_capi"
-version = "1.5.1"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f73a82a8307633c08ca119631cd90b006e448009da2d4466f7d76ca8fedf3b1"
+checksum = "acc33c4f501b515cdb6b583b31ec009479a4c0cb4cf28dcdfcd54b29069d725e"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -5243,7 +5243,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#75ba574b452573d8d4275331294556180bd6cea9"
+source = "git+https://github.com/servo/mozjs#1410a4bafe4674ea17b1c4f0053a3e589ebce989"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -5254,8 +5254,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "0.137.0-0"
-source = "git+https://github.com/servo/mozjs#75ba574b452573d8d4275331294556180bd6cea9"
+version = "0.137.0-1"
+source = "git+https://github.com/servo/mozjs#1410a4bafe4674ea17b1c4f0053a3e589ebce989"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
