@@ -59,7 +59,9 @@ use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
+use crate::script_runtime::{
+    CanGc, IntroductionType, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext,
+};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 
@@ -517,6 +519,10 @@ impl DedicatedWorkerGlobalScope {
                     let pipeline_id = global_scope.pipeline_id();
                     let source_info = SourceInfo {
                         url: metadata.final_url,
+                        introduction_type: IntroductionType::WORKER
+                            .to_str()
+                            .expect("Guaranteed by definition")
+                            .to_owned(),
                         external: true, // Worker scripts are always external.
                         worker_id: Some(global.upcast::<WorkerGlobalScope>().get_worker_id()),
                         content: Some(source.to_string()),

@@ -1095,14 +1095,23 @@ impl HTMLScriptElement {
         if let Some(chan) = self.global().devtools_chan() {
             let pipeline_id = self.global().pipeline_id();
 
-            let (url, content, content_type, is_external) = if script.external {
+            let (url, content, content_type, introduction_type, is_external) = if script.external {
                 let content = match &script.code {
                     SourceCode::Text(text) => text.to_string(),
                     SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
                 };
 
                 // content_type: https://html.spec.whatwg.org/multipage/#scriptingLanguages
-                (script.url.clone(), Some(content), "text/javascript", true)
+                (
+                    script.url.clone(),
+                    Some(content),
+                    "text/javascript",
+                    IntroductionType::SRC_SCRIPT
+                        .to_str()
+                        .expect("Guaranteed by definition")
+                        .to_owned(),
+                    true,
+                )
             } else {
                 // TODO: if needed, fetch the page again, in the same way as in the original request.
                 // Fetch it from cache, even if the original request was non-idempotent (e.g. POST).
@@ -1110,11 +1119,21 @@ impl HTMLScriptElement {
                 // fetch, the server could return a different response.
 
                 // TODO: handle cases where Content-Type is not text/html.
-                (doc.url(), None, "text/html", false)
+                (
+                    doc.url(),
+                    None,
+                    "text/html",
+                    IntroductionType::INLINE_SCRIPT
+                        .to_str()
+                        .expect("Guaranteed by definition")
+                        .to_owned(),
+                    false,
+                )
             };
 
             let source_info = SourceInfo {
                 url,
+                introduction_type: introduction_type.to_owned(),
                 external: is_external,
                 worker_id: None,
                 content,

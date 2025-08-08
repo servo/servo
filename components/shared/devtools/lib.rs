@@ -583,6 +583,7 @@ impl fmt::Display for ShadowRootMode {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SourceInfo {
     pub url: ServoUrl,
+    pub introduction_type: String,
     pub external: bool,
     pub worker_id: Option<WorkerId>,
     pub content: Option<String>,
