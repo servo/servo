@@ -189,7 +189,7 @@ impl IndexedDBKeyRange {
     }
 
     pub fn is_singleton(&self) -> bool {
-        self.lower == self.upper && !self.lower_open && !self.upper_open
+        self.lower.is_some() && self.lower == self.upper && !self.lower_open && !self.upper_open
     }
 
     pub fn as_singleton(&self) -> Option<&IndexedDBKeyType> {
