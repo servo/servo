@@ -226,10 +226,7 @@ impl ActorRegistry {
                     let error = json!({
                         "from": actor.name(), "error": error.name()
                     });
-                    warn!(
-                        "Sending devtools protocol error: error={:?} request={:?}",
-                        error, msg
-                    );
+                    warn!("Sending devtools protocol error: error={error:?} request={msg:?}");
                     let _ = stream.write_json_packet(&error);
                 }
             },
