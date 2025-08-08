@@ -14,7 +14,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from typing import List, NamedTuple, Optional, Union, cast, Callable
+from typing import List, NamedTuple, Optional, Union, cast, Callable, Any
 
 import mozlog
 import mozlog.formatters
@@ -37,7 +37,7 @@ def set_if_none(args: dict, key: str, value: bool | int | str) -> None:
         args[key] = value
 
 
-def run_tests(default_binary_path: str, **kwargs) -> int:
+def run_tests(default_binary_path: str, **kwargs: Any) -> int:  # noqa
     print(f"Running WPT tests with {default_binary_path}")
 
     # By default, Rayon selects the number of worker threads based on the
@@ -249,7 +249,12 @@ def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path
     print(f"Filtering {len(unexpected_results)} unexpected results for known intermittents via <{dashboard.url}>")
     dashboard.report_failures(unexpected_results)
 
-    def add_result(output: list[str], text: str, results: List[UnexpectedResult], filter_func) -> None:
+    def add_result(
+        output: list[str],
+        text: str,
+        results: List[UnexpectedResult],
+        filter_func: Callable[[UnexpectedResult], list[str] | bool],
+    ) -> None:
         filtered = [str(result) for result in filter(filter_func, results)]
         if filtered:
             output += [f"{text} ({len(filtered)}): ", *filtered]

@@ -21,7 +21,7 @@ TEST_ROOT = os.path.join(WPT_PATH, "tests")
 META_ROOTS = [os.path.join(WPT_PATH, "meta"), os.path.join(WPT_PATH, "meta-legacy")]
 
 
-def do_sync(**kwargs) -> int:
+def do_sync(**kwargs: str) -> int:
     last_commit = subprocess.check_output(["git", "log", "-1"])
 
     # Commits should always be authored by the GitHub Actions bot.

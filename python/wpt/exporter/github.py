@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 import urllib.parse
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Any
 
 import requests
 
@@ -29,7 +29,7 @@ USER_AGENT = "Servo web-platform-test sync service"
 TIMEOUT = 30  # 30 seconds
 
 
-def authenticated(sync: WPTSync, method: str, url: str, json=None) -> requests.Response:
+def authenticated(sync: WPTSync, method: str, url: str, json: dict[str, Any] | None = None) -> requests.Response:
     logging.info("  → Request: %s %s", method, url)
     if json:
         logging.info("  → Request JSON: %s", json)

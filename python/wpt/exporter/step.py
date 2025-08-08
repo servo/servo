@@ -36,7 +36,7 @@ PATCH_FILE_NAME = "tmp.patch"
 
 
 class Step:
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
 
     def provides(self) -> Optional[AsyncValue]:
@@ -97,7 +97,7 @@ class CreateOrUpdateBranchForPRStep(Step):
         pr_head = self.pull_data["head"]["sha"]
         commit_shas = local_servo_repo.run("log", "--pretty=%H", pr_head, f"-{number_of_commits}").splitlines()
 
-        filtered_commits = []
+        filtered_commits: list[dict[str, bytes | str] | dict[str, str]] = []
         # We must iterate the commits in reverse to ensure we apply older changes first,
         # in case later commits would conflict.
         for sha in reversed(commit_shas):
