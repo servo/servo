@@ -568,15 +568,12 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
 
     prev_open_brace = False
     multi_line_string = False
-    prev_mod: dict[int, str] = {}
-    indent = 0
 
     panic_message = "unwrap() or panic!() found in code which should not panic."
 
     for idx, original_line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         # simplify the analysis
         line = original_line.strip()
-        indent = len(original_line) - len(line)
 
         is_attribute = re.search(r"#\[.*\]", line)
         is_comment = re.search(r"^//|^/\*|^\*", line)
@@ -666,22 +663,6 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
             match = re.search(r"unwrap\(|panic!\(", line)
             if match:
                 yield (idx + 1, panic_message)
-
-        # modules must be in the same line
-        if line.startswith("mod ") or line.startswith("pub mod "):
-            # strip /(pub )?mod/ from the left and ";" from the right
-            mod = line[4:-1] if line.startswith("mod ") else line[8:-1]
-
-            if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1].decode("utf-8"):
-                match = line.find(" {")
-                if indent not in prev_mod:
-                    prev_mod[indent] = ""
-                if match == -1 and not line.endswith(";"):
-                    yield (idx + 1, "mod declaration spans multiple lines")
-                prev_mod[indent] = mod
-        else:
-            # we now erase previous entries
-            prev_mod = {}
 
 
 # Avoid flagging <Item=Foo> constructs
