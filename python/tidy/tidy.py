@@ -232,7 +232,7 @@ class FileList(object):
 
 
 def filter_file(file_name: str) -> bool:
-    current_file = f"./{relative_path(file_name)}"
+    current_file = os.path.join(".", relative_path(file_name))
     if any(current_file.startswith(ignored_file) for ignored_file in config["ignore"]["files"]):
         return False
     base_name = os.path.basename(file_name)
