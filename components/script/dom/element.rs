@@ -1325,6 +1325,9 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     ) -> Option<&'dom AttrValue>;
     fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
     fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
+    fn each_custom_state<F>(self, callback: F)
+    where
+        F: FnMut(&AtomIdent);
 }
 
 impl LayoutDom<'_, Element> {
@@ -1818,6 +1821,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 }
             })
             .collect()
+    }
+
+    fn each_custom_state<F>(self, callback: F)
+    where
+        F: FnMut(&AtomIdent),
+    {
+        self.unsafe_get().each_custom_state(callback)
     }
 }
 
@@ -5196,12 +5206,24 @@ impl SelectorsElement for SelectorWrapper<'_> {
         true
     }
 
-    fn has_custom_state(&self, _name: &AtomIdent) -> bool {
-        false
+    fn has_custom_state(&self, name: &AtomIdent) -> bool {
+        let mut has_state = false;
+        self.each_custom_state(|state| has_state |= state == name);
+
+        has_state
     }
 }
 
 impl Element {
+    fn each_custom_state<F>(&self, callback: F)
+    where
+        F: FnMut(&AtomIdent),
+    {
+        self.get_element_internals()
+            .and_then(|internals| internals.custom_states())
+            .inspect(|states| states.for_each_state(callback));
+    }
+
     fn client_rect(&self) -> Rect<i32> {
         let doc = self.node.owner_doc();
 

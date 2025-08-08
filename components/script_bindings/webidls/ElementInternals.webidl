@@ -26,6 +26,9 @@ interface ElementInternals {
   [Throws] boolean reportValidity();
 
   [Throws] readonly attribute NodeList labels;
+
+  // Custom state pseudo-class
+  [SameObject] readonly attribute CustomStateSet states;
 };
 
 // https://html.spec.whatwg.org/multipage/#elementinternals
@@ -42,3 +45,8 @@ dictionary ValidityStateFlags {
   boolean customError = false;
 };
 
+// https://html.spec.whatwg.org/multipage/#customstateset
+[Exposed=Window]
+interface CustomStateSet {
+  setlike<DOMString>;
+};

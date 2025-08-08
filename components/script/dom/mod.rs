@@ -273,6 +273,7 @@ pub(crate) mod cssstylevalue;
 pub(crate) mod csssupportsrule;
 pub(crate) mod customelementregistry;
 pub(crate) mod customevent;
+pub(crate) mod customstateset;
 pub(crate) mod datatransfer;
 pub(crate) mod datatransferitem;
 pub(crate) mod datatransferitemlist;

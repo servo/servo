@@ -604,6 +604,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // TODO: https://github.com/servo/servo/issues/12776
         false
     }
+
     /// <https://html.spec.whatwg.org/multipage#dom-attachinternals>
     fn AttachInternals(&self, can_gc: CanGc) -> Fallible<DomRoot<ElementInternals>> {
         let element = self.as_element();
