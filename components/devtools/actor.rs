@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
-use log::debug;
+use log::{debug, warn};
 use serde_json::{Map, Value, json};
 
 use crate::StreamId;
@@ -223,9 +223,14 @@ impl ActorRegistry {
                     actor.handle_message(req, self, msg_type, msg, stream_id)
                 }) {
                     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
-                    let _ = stream.write_json_packet(&json!({
+                    let error = json!({
                         "from": actor.name(), "error": error.name()
-                    }));
+                    });
+                    warn!(
+                        "Sending devtools protocol error: error={:?} request={:?}",
+                        error, msg
+                    );
+                    let _ = stream.write_json_packet(&error);
                 }
             },
         }
