@@ -10,7 +10,6 @@ extend-exclude = [
     "python/mach/**",
     "components/**",
     "tests/**",
-    "etc/**"
 ]
 
 [tool.ruff.lint]
@@ -19,7 +18,7 @@ select = [
     "W",
     "F",
     # Type Annotation
-    "ANN001"
+    "ANN",
 ]
 ignore = [
     # Trailing whitespace; the standard tidy process will enforce no trailing whitespace
@@ -27,6 +26,12 @@ ignore = [
     # 80 character line length; the standard tidy process will enforce line length
     "E501",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"!python/tidy/**.py" = ["ANN"]
+"**/test.py" = ["ANN"]
+"**/*_tests.py" = ["ANN"]
+"**/tests/**/*.py" = ["ANN"]
 
 [tool.pyrefly]
 search-path = [
