@@ -7,16 +7,17 @@ use std::collections::HashMap;
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
-use euclid::{Box2D, Point2D, Point3D, Vector2D};
+use euclid::{Box2D, Vector2D};
 use kurbo::{Ellipse, Shape};
 use layout_api::{ElementsFromPointFlags, ElementsFromPointResult};
+use servo_geometry::FastLayoutTransform;
 use style::computed_values::backface_visibility::T as BackfaceVisibility;
 use style::computed_values::pointer_events::T as PointerEvents;
 use style::computed_values::visibility::T as Visibility;
 use style::properties::ComputedValues;
 use style::values::computed::ui::CursorKind;
 use webrender_api::BorderRadius;
-use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, RectExt};
+use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, RectExt};
 
 use crate::display_list::clip::{Clip, ClipId};
 use crate::display_list::stacking_context::StackingContextSection;
@@ -33,7 +34,7 @@ pub(crate) struct HitTest<'a> {
     point_to_test: LayoutPoint,
     /// A cached version of [`Self::point_to_test`] projected to a spatial node, to avoid
     /// doing a lot of matrix math over and over.
-    projected_point_to_test: Option<(ScrollTreeNodeId, LayoutPoint, LayoutTransform)>,
+    projected_point_to_test: Option<(ScrollTreeNodeId, LayoutPoint, FastLayoutTransform)>,
     /// The stacking context tree against which to perform the hit test.
     stacking_context_tree: &'a StackingContextTree,
     /// The resulting [`HitTestResultItems`] for this hit test.
@@ -89,7 +90,7 @@ impl<'a> HitTest<'a> {
     fn location_in_spatial_node(
         &mut self,
         scroll_tree_node_id: ScrollTreeNodeId,
-    ) -> Option<(LayoutPoint, LayoutTransform)> {
+    ) -> Option<(LayoutPoint, FastLayoutTransform)> {
         match self.projected_point_to_test {
             Some((cached_scroll_tree_node_id, projected_point, transform))
                 if cached_scroll_tree_node_id == scroll_tree_node_id =>
@@ -105,21 +106,7 @@ impl<'a> HitTest<'a> {
             .scroll_tree
             .cumulative_root_to_node_transform(&scroll_tree_node_id)?;
 
-        // This comes from WebRender at `webrender/utils.rs`.
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1765204#c3.
-        //
-        // We are going from world coordinate space to spatial node coordinate space.
-        // Normally, that transformation happens in the opposite direction, but for hit
-        // testing everything is reversed. The result of the display transformation comes
-        // with a z-coordinate that we do not have access to here.
-        //
-        // We must solve for a value of z here that transforms to 0 (the value of z for our
-        // point).
-        let point = self.point_to_test;
-        let z =
-            -(point.x * transform.m13 + point.y * transform.m23 + transform.m43) / transform.m33;
-        let projected_point = transform.transform_point3d(Point3D::new(point.x, point.y, z))?;
-        let projected_point = Point2D::new(projected_point.x, projected_point.y);
+        let projected_point = transform.project_point2d(self.point_to_test)?;
 
         self.projected_point_to_test = Some((scroll_tree_node_id, projected_point, transform));
         Some((projected_point, transform))

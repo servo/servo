@@ -11,13 +11,12 @@ use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use embedder_traits::ViewportDetails;
-use euclid::{SideOffsets2D, Transform3D};
+use euclid::SideOffsets2D;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
-use webrender_api::units::{
-    LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D,
-};
+use webrender_api::units::{LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D};
 use webrender_api::{
     Epoch, ExternalScrollId, PipelineId, ReferenceFrameKind, ScrollLocation, SpatialId,
     StickyOffsetBounds, TransformStyle,
@@ -167,7 +166,7 @@ pub struct ReferenceFrameNodeInfo {
     /// Origin of this frame relative to the document for bounding box queries.
     pub frame_origin_for_query: LayoutPoint,
     pub transform_style: TransformStyle,
-    pub transform: LayoutTransform,
+    pub transform: FastLayoutTransform,
     pub kind: ReferenceFrameKind,
 }
 
@@ -281,8 +280,8 @@ impl ScrollableNodeInfo {
 ///    multiplication when transforms are not involved.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 pub struct ScrollTreeNodeTransformationCache {
-    node_to_root_transform: LayoutTransform,
-    root_to_node_transform: Option<LayoutTransform>,
+    node_to_root_transform: FastLayoutTransform,
+    root_to_node_transform: Option<FastLayoutTransform>,
 }
 
 #[derive(Default)]
@@ -604,7 +603,10 @@ impl ScrollTree {
 
     /// Find a transformation that can convert a point in the node coordinate system to a
     /// point in the root coordinate system.
-    pub fn cumulative_node_to_root_transform(&self, node_id: &ScrollTreeNodeId) -> LayoutTransform {
+    pub fn cumulative_node_to_root_transform(
+        &self,
+        node_id: &ScrollTreeNodeId,
+    ) -> FastLayoutTransform {
         let node = self.get_node(node_id);
         if let Some(cached_transforms) = node.transformation_cache.get() {
             return cached_transforms.node_to_root_transform;
@@ -621,7 +623,7 @@ impl ScrollTree {
     pub fn cumulative_root_to_node_transform(
         &self,
         node_id: &ScrollTreeNodeId,
-    ) -> Option<LayoutTransform> {
+    ) -> Option<FastLayoutTransform> {
         let node = self.get_node(node_id);
         if let Some(cached_transforms) = node.transformation_cache.get() {
             return cached_transforms.root_to_node_transform;
@@ -642,25 +644,16 @@ impl ScrollTree {
             None => (Default::default(), Default::default()),
         };
 
-        let change_basis =
-            |transform: &Transform3D<f32, LayoutPixel, LayoutPixel>, x: f32, y: f32| {
-                let pre_translation = Transform3D::translation(x, y, 0.0);
-                let post_translation = Transform3D::translation(-x, -y, 0.0);
-                post_translation.then(transform).then(&pre_translation)
-            };
-
         let (node_to_parent_transform, parent_to_node_transform) = match &node.info {
             SpatialTreeNodeInfo::ReferenceFrame(info) => {
                 // To apply a transformation we need to make sure the rectangle's
                 // coordinate space is the same as reference frame's coordinate space.
-                let node_to_parent_transform = change_basis(
-                    &info.transform,
-                    info.frame_origin_for_query.x,
-                    info.frame_origin_for_query.y,
-                );
+                let offset = info.frame_origin_for_query.to_vector();
+                let node_to_parent_transform =
+                    info.transform.pre_translate(-offset).then_translate(offset);
 
                 let parent_to_node_transform =
-                    Transform3D::translation(-info.origin.x, -info.origin.y, 0.0);
+                    FastLayoutTransform::Offset(-info.origin.to_vector());
                 let parent_to_node_transform = info
                     .transform
                     .inverse()
@@ -675,20 +668,15 @@ impl ScrollTree {
             SpatialTreeNodeInfo::Scroll(info) => {
                 sticky_info.nearest_scrolling_ancestor_viewport = info.clip_rect;
                 sticky_info.nearest_scrolling_ancestor_offset = -info.offset;
-
-                (
-                    Transform3D::translation(-info.offset.x, -info.offset.y, 0.0),
-                    Some(Transform3D::translation(info.offset.x, info.offset.y, 0.0)),
-                )
+                let offset_transform = FastLayoutTransform::Offset(-info.offset);
+                (offset_transform, offset_transform.inverse())
             },
 
             SpatialTreeNodeInfo::Sticky(info) => {
                 let offset = info.calculate_sticky_offset(&sticky_info);
                 sticky_info.nearest_scrolling_ancestor_offset += offset;
-                (
-                    Transform3D::translation(offset.x, offset.y, 0.0),
-                    Some(Transform3D::translation(-offset.x, -offset.y, 0.0)),
-                )
+                let offset_transform = FastLayoutTransform::Offset(offset);
+                (offset_transform, offset_transform.inverse())
             },
         };
 
@@ -845,7 +833,7 @@ impl CompositorDisplayListInfo {
                 origin: Default::default(),
                 frame_origin_for_query: Default::default(),
                 transform_style: TransformStyle::Flat,
-                transform: LayoutTransform::identity(),
+                transform: FastLayoutTransform::identity(),
                 kind: ReferenceFrameKind::default(),
             }),
         );
