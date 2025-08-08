@@ -630,9 +630,10 @@ impl ModuleTree {
             let length = GetRequestedModulesCount(*cx, module_object);
 
             for index in 0..length {
-                let specifier = DOMString::from_string(
-                    jsstr_to_string(*cx, GetRequestedModuleSpecifier(*cx, module_object, index)), // TODO check null?
-                );
+                let jsstr =
+                    std::ptr::NonNull::new(GetRequestedModuleSpecifier(*cx, module_object, index))
+                        .unwrap();
+                let specifier = DOMString::from_string(jsstr_to_string(*cx, jsstr));
 
                 rooted!(in(*cx) let mut private = UndefinedValue());
                 JS_GetModulePrivate(module_object.get(), private.handle_mut());
@@ -1517,10 +1518,8 @@ fn fetch_an_import_module_script_graph(
     // Step 1.
     let cx = GlobalScope::get_cx();
     let specifier = unsafe {
-        DOMString::from_string(jsstr_to_string(
-            *cx,
-            GetModuleRequestSpecifier(*cx, module_request),
-        ))
+        let jsstr = std::ptr::NonNull::new(GetModuleRequestSpecifier(*cx, module_request)).unwrap();
+        DOMString::from_string(jsstr_to_string(*cx, jsstr))
     };
     let mut options = ScriptFetchOptions::default_classic_script(global);
     let module_data = unsafe { module_script_from_reference_private(&reference_private) };
@@ -1592,10 +1591,8 @@ unsafe extern "C" fn HostResolveImportedModule(
 
     // Step 5.
     let module_data = module_script_from_reference_private(&reference_private);
-    let specifier = DOMString::from_string(jsstr_to_string(
-        cx,
-        GetModuleRequestSpecifier(cx, specifier),
-    ));
+    let jsstr = std::ptr::NonNull::new(GetModuleRequestSpecifier(cx, specifier)).unwrap();
+    let specifier = DOMString::from_string(jsstr_to_string(cx, jsstr));
     let url =
         ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier, CanGc::note());
 

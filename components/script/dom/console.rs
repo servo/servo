@@ -127,7 +127,7 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
     match std::ptr::NonNull::new(JS_ValueToSource(cx, value)) {
         Some(js_str) => {
             js_string.set(js_str.as_ptr());
-            DOMString::from_string(jsstr_to_string(cx, js_str.as_ptr()))
+            DOMString::from_string(jsstr_to_string(cx, js_str))
         },
         None => "<error converting value to string>".into(),
     }
@@ -140,7 +140,7 @@ fn console_argument_from_handle_value(
 ) -> ConsoleMessageArgument {
     if handle_value.is_string() {
         let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
-        let dom_string = unsafe { jsstr_to_string(*cx, js_string.as_ptr()) };
+        let dom_string = unsafe { jsstr_to_string(*cx, js_string) };
         return ConsoleMessageArgument::String(dom_string);
     }
 
@@ -164,7 +164,8 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
     let cx = GlobalScope::get_cx();
     unsafe {
         if message.is_string() {
-            return DOMString::from_string(jsstr_to_string(*cx, message.to_string()));
+            let jsstr = std::ptr::NonNull::new(message.to_string()).unwrap();
+            return DOMString::from_string(jsstr_to_string(*cx, jsstr));
         }
         unsafe fn stringify_object_from_handle_value(
             cx: *mut jsapi::JSContext,
@@ -297,7 +298,7 @@ fn maybe_stringify_dom_object(cx: JSContext, value: HandleValue) -> Option<DOMSt
         return Some("<error converting DOM object to string>".into());
     };
     let class_name = unsafe {
-        jsstr_to_string(*cx, class_name.as_ptr())
+        jsstr_to_string(*cx, class_name)
             .replace("[object ", "")
             .replace("]", "")
     };
@@ -493,7 +494,7 @@ fn get_js_stack(cx: *mut jsapi::JSContext) -> Vec<StackFrame> {
             );
         }
         let function_name = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
-            unsafe { jsstr_to_string(cx, nonnull_result.as_ptr()) }
+            unsafe { jsstr_to_string(cx, nonnull_result) }
         } else {
             "<anonymous>".into()
         };
@@ -510,7 +511,7 @@ fn get_js_stack(cx: *mut jsapi::JSContext) -> Vec<StackFrame> {
             );
         }
         let filename = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
-            unsafe { jsstr_to_string(cx, nonnull_result.as_ptr()) }
+            unsafe { jsstr_to_string(cx, nonnull_result) }
         } else {
             "<anonymous>".into()
         };

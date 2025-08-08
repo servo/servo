@@ -116,7 +116,7 @@ impl FromJSValConvertible for DOMString {
         } else {
             match ptr::NonNull::new(ToString(cx, value)) {
                 Some(jsstr) => Ok(ConversionResult::Success(DOMString::from_string(
-                    jsstr_to_string(cx, jsstr.as_ptr()),
+                    jsstr_to_string(cx, jsstr),
                 ))),
                 None => {
                     debug!("ToString failed");
@@ -143,8 +143,7 @@ impl FromJSValConvertible for USVString {
         if latin1 {
             // FIXME(ajeffrey): Convert directly from DOMString to USVString
             return Ok(ConversionResult::Success(USVString(jsstr_to_string(
-                cx,
-                jsstr.as_ptr(),
+                cx, jsstr,
             ))));
         }
         let mut length = 0;
@@ -420,7 +419,7 @@ pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMStri
     let id_raw = *id;
     if id_raw.is_string() {
         let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
-        return Some(DOMString::from_string(jsstr_to_string(cx, jsstr.as_ptr())));
+        return Some(DOMString::from_string(jsstr_to_string(cx, jsstr)));
     }
 
     if id_raw.is_int() {

@@ -83,14 +83,15 @@ pub(crate) fn handle_evaluate_js(
                 },
             )
         } else if rval.is_string() {
-            EvaluateJSReply::StringValue(jsstr_to_string(*cx, rval.to_string()))
+            let jsstr = std::ptr::NonNull::new(ToString(*cx, rval.handle())).unwrap();
+            EvaluateJSReply::StringValue(jsstr_to_string(*cx, jsstr))
         } else if rval.is_null() {
             EvaluateJSReply::NullValue
         } else {
             assert!(rval.is_object());
 
             let jsstr = std::ptr::NonNull::new(ToString(*cx, rval.handle())).unwrap();
-            let class_name = jsstr_to_string(*cx, jsstr.as_ptr());
+            let class_name = jsstr_to_string(*cx, jsstr);
 
             EvaluateJSReply::ActorValue {
                 class: class_name,

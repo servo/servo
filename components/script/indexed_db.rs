@@ -104,7 +104,7 @@ pub fn convert_value_to_key(
 
     if input.is_string() {
         let string_ptr = std::ptr::NonNull::new(input.to_string()).unwrap();
-        let key = unsafe { jsstr_to_string(*cx, string_ptr.as_ptr()) };
+        let key = unsafe { jsstr_to_string(*cx, string_ptr) };
         return Ok(IndexedDBKeyType::String(key));
     }
 

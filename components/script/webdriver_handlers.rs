@@ -270,7 +270,7 @@ unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
     let Some(class_name) = NonNull::new(class_name.get()) else {
         return false;
     };
-    jsstr_to_string(cx, class_name.as_ptr()) == "[object Arguments]"
+    jsstr_to_string(cx, class_name) == "[object Arguments]"
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]

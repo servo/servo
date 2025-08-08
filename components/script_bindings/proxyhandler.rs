@@ -232,7 +232,7 @@ pub(crate) fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMStri
                 jsstr.get()
             })
             .and_then(ptr::NonNull::new)
-            .map(|jsstr| DOMString::from_string(jsstr_to_string(*cx, jsstr.as_ptr())))
+            .map(|jsstr| DOMString::from_string(jsstr_to_string(*cx, jsstr)))
     }
 }
 
