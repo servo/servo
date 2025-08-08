@@ -2709,55 +2709,83 @@ impl Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scroll>
-    ///
-    /// TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is
-    /// quite outdated.
     pub(crate) fn scroll(&self, cx: &mut JSContext, x: f64, y: f64, behavior: ScrollBehavior) {
-        // Step 1.2 or 2.3
+        // Step 1.2. Normalize non-finite values for left and top dictionary members of
+        // options, if present.
+        // Step 1.3. Normalize non-finite values for x and y.
+        // We are delegating the remaining substeps of steps 1 and 2 to the callers.
         let x = if x.is_finite() { x } else { 0.0 } as f32;
         let y = if y.is_finite() { y } else { 0.0 } as f32;
 
         let node = self.upcast::<Node>();
 
-        // Step 3
-        let doc = node.owner_doc();
+        // Step 3. Let document be the element’s node document.
+        let document = node.owner_doc();
 
-        // Step 4
-        if !doc.is_fully_active() {
+        // Step 4. If document is not the active document, return a promise resolved with
+        // a non-interrupted scroll result and abort the remaining steps.
+        // TODO: Implement the promise and smooth scroll behavior.
+        if !document.is_fully_active() {
             return;
         }
 
-        // Step 5
-        let win = match doc.GetDefaultView() {
-            None => return,
-            Some(win) => win,
+        // Step 5. Let window be the value of document’s defaultView attribute.
+        let Some(window) = document.GetDefaultView() else {
+            // Step 6. If window is null, return a promise resolved with a non-interrupted
+            // scroll result and abort the remaining steps.
+            // TODO: Implement the promise and smooth scroll behavior.
+            return;
         };
 
-        // Step 7
+        // Step 7. If the element is the root element and document is in quirks mode,
+        // return a promise resolved with a non-interrupted scroll result and abort the
+        // remaining steps.
+        // TODO: Implement the promise and smooth scroll behavior.
         if *self.root_element() == *self {
-            if doc.quirks_mode() != QuirksMode::Quirks {
-                win.scroll(cx, x, y, behavior);
+            if document.quirks_mode() == QuirksMode::Quirks {
+                return;
             }
 
+            // Step 8. If the element is the root element, return the Promise returned by
+            // scroll() on window after the method is invoked with scrollX on window as
+            // first argument and y as second argument, and abort the remaining steps.
+            // TODO: Implement the promise and smooth scroll behavior.
+            window.scroll(cx, x, y, behavior);
             return;
         }
 
-        // Step 9
-        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
-            doc.quirks_mode() == QuirksMode::Quirks &&
+        // Step 9. If the element is the body element, document is in quirks mode, and the
+        // element is not potentially scrollable in either axis, return the Promise
+        // returned by scroll() on window after the method is invoked with options as the
+        // only argument, and abort the remaining steps.
+        // TODO: Implement the promise and smooth scroll behavior.
+        if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
+            document.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            win.scroll(cx, x, y, behavior);
+            window.scroll(cx, x, y, behavior);
             return;
         }
 
-        // Step 10
+        // Step 10. If the element does not have any associated box, the element has no
+        // associated scrolling box, or the element has no overflow, return a promise
+        // resolved with a non-interrupted scroll result and abort the remaining steps.
+        //
+        // TODO: This needs to match the spec a bit more closely with regard to the
+        // box and overflow checks.
+        // TODO: Implement the promise and smooth scroll behavior.
         if !self.has_scrolling_box(cx.no_gc()) {
             return;
         }
 
-        // Step 11
-        win.scroll_an_element(cx, self, x, y, behavior);
+        // Step 11. Scroll the element to x,y, with the scroll behavior being the value of
+        // the behavior dictionary member of options. Let scrollPromise be the Promise
+        // returned from this step.
+        // TODO: Implement the promise and smooth scroll behavior.
+        window.scroll_an_element(cx, self, x, y, behavior);
+
+        // Step 12. Return scrollPromise.
+        // TODO: Implement the promise and smooth scroll behavior.
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-parsing-algorithm-steps>
@@ -3411,142 +3439,166 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn ScrollTop(&self) -> f64 {
         let node = self.upcast::<Node>();
 
-        // Step 1
-        let doc = node.owner_doc();
+        // Step 1. Let document be the element’s node document.
+        let document = node.owner_doc();
 
-        // Step 2
-        if !doc.is_fully_active() {
+        // Step 2. If document is not the active document, return zero and terminate these
+        // steps.
+        if !document.is_fully_active() {
             return 0.0;
         }
 
-        // Step 3
-        let win = match doc.GetDefaultView() {
-            None => return 0.0,
-            Some(win) => win,
+        // Step 3. Let window be the value of document’s defaultView attribute.
+        let Some(window) = document.GetDefaultView() else {
+            // Step 4. If window is null, return zero and terminate these steps.
+            return 0.0;
         };
 
-        // Step 5
         if self.is_document_element() {
-            if doc.quirks_mode() == QuirksMode::Quirks {
+            // Step 5. If the element is the root element and document is in quirks mode,
+            // return zero and terminate these steps.
+            if document.quirks_mode() == QuirksMode::Quirks {
                 return 0.0;
             }
 
-            // Step 6
-            return win.ScrollY() as f64;
+            // Step 6. If the element is the root element return the value of scrollY on
+            // window.
+            return window.ScrollY() as f64;
         }
 
-        // Step 7
-        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
-            doc.quirks_mode() == QuirksMode::Quirks &&
+        // Step 7. If the element is the body element, document is in quirks mode, and the
+        // element is not potentially scrollable in at least one axis, return the value of
+        // scrollY on window.
+        if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
+            document.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            return win.ScrollY() as f64;
+            return window.ScrollY() as f64;
         }
 
-        // Step 8
+        // Step 8. If the element does not have any associated box, return zero and
+        // terminate these steps.
         if !self.has_css_layout_box() {
             return 0.0;
         }
 
-        // Step 9
-        let point = win.scroll_offset_query(node);
+        // Step 9. Return the y-coordinate of the scrolling area at the alignment point
+        // with the top of the padding edge of the element.
+        let point = window.scroll_offset_query(node);
         point.y.abs() as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
-    // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
     fn SetScrollTop(&self, cx: &mut JSContext, y_: f64) {
         let behavior = ScrollBehavior::Auto;
 
-        // Step 1, 2
+        // Step 1. Let y be the given value.
+        // Step 2. Normalize non-finite values for y.
         let y = if y_.is_finite() { y_ } else { 0.0 } as f32;
 
         let node = self.upcast::<Node>();
 
-        // Step 3
-        let doc = node.owner_doc();
+        // Step 3. Let document be the element’s node document.
+        let document = node.owner_doc();
 
-        // Step 4
-        if !doc.is_fully_active() {
+        // Step 4. If document is not the active document, terminate these steps.
+        if !document.is_fully_active() {
             return;
         }
 
-        // Step 5
-        let win = match doc.GetDefaultView() {
-            None => return,
-            Some(win) => win,
+        // Step 5. Let window be the value of document’s defaultView attribute.
+        let Some(window) = document.GetDefaultView() else {
+            // Step 6. If window is null, terminate these steps.
+            return;
         };
 
-        // Step 7
         if self.is_document_element() {
-            if doc.quirks_mode() != QuirksMode::Quirks {
-                win.scroll(cx, win.ScrollX() as f32, y, behavior);
+            // Step 7. If the element is the root element and document is in quirks mode,
+            // terminate these steps.
+            if document.quirks_mode() == QuirksMode::Quirks {
+                return;
             }
 
+            // Step 8. If the element is the root element invoke scroll() on window with
+            // scrollX on window as first argument and y as second argument, and terminate
+            // these steps.
+            window.scroll(cx, window.ScrollX() as f32, y, behavior);
             return;
         }
 
-        // Step 9
-        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
-            doc.quirks_mode() == QuirksMode::Quirks &&
+        // Step 9. If the element is the body element, document is in quirks mode, and the
+        // element is not potentially scrollable in at least one axis, invoke scroll() on
+        // window with scrollX as first argument and y as second argument, and terminate
+        // these steps.
+        if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
+            document.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            win.scroll(cx, win.ScrollX() as f32, y, behavior);
+            window.scroll(cx, window.ScrollX() as f32, y, behavior);
             return;
         }
 
-        // Step 10
+        // Step 10. If the element does not have any associated box, the element has no
+        // associated scrolling box, or the element has no overflow, terminate these
+        // steps.
         if !self.has_scrolling_box(cx.no_gc()) {
             return;
         }
 
-        // Step 11
-        win.scroll_an_element(cx, self, self.ScrollLeft() as f32, y, behavior);
+        // Step 11. Scroll the element to scrollLeft,y, with the scroll behavior being
+        // "auto".
+        window.scroll_an_element(cx, self, self.ScrollLeft() as f32, y, behavior);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
     fn ScrollLeft(&self) -> f64 {
         let node = self.upcast::<Node>();
 
-        // Step 1
-        let doc = node.owner_doc();
+        // Step 1. Let document be the element’s node document.
+        let document = node.owner_doc();
 
-        // Step 2
-        if !doc.is_fully_active() {
+        // Step 2. If document is not the active document, return zero and terminate these
+        // steps.
+        if !document.is_fully_active() {
             return 0.0;
         }
 
-        // Step 3
-        let win = match doc.GetDefaultView() {
-            None => return 0.0,
-            Some(win) => win,
+        // Step 3. Let window be the value of document’s defaultView attribute.
+        // Step 4. If window is null, return zero and terminate these steps.
+        let Some(window) = document.GetDefaultView() else {
+            return 0.0;
         };
 
-        // Step 5
         if self.is_document_element() {
-            if doc.quirks_mode() != QuirksMode::Quirks {
-                // Step 6
-                return win.ScrollX() as f64;
+            // Step 5. If the element is the root element and document is in quirks mode,
+            // return zero and terminate these steps.
+            if document.quirks_mode() == QuirksMode::Quirks {
+                return 0.0;
             }
 
-            return 0.0;
+            // Step 6. If the element is the root element return the value of scrollX on window.
+            return window.ScrollX() as f64;
         }
 
-        // Step 7
-        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
-            doc.quirks_mode() == QuirksMode::Quirks &&
+        // Step 7. If the element is the body element, document is in quirks mode, and the
+        // element is not potentially scrollable in at least one axis, return the value of
+        // scrollX on window.
+        if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
+            document.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            return win.ScrollX() as f64;
+            return window.ScrollX() as f64;
         }
 
-        // Step 8
+        // Step 8. If the element does not have any associated box, return zero and
+        // terminate these steps.
         if !self.has_css_layout_box() {
             return 0.0;
         }
 
-        // Step 9
-        let point = win.scroll_offset_query(node);
+        // Step 9. Return the x-coordinate of the scrolling area at the alignment point
+        // with the left of the padding edge of the element.
+        let point = window.scroll_offset_query(node);
         point.x.abs() as f64
     }
 
@@ -3554,51 +3606,61 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn SetScrollLeft(&self, cx: &mut JSContext, x: f64) {
         let behavior = ScrollBehavior::Auto;
 
-        // Step 1, 2
+        // Step 1. Let x be the given value.
+        // Step 2. Normalize non-finite values for x.
         let x = if x.is_finite() { x } else { 0.0 } as f32;
 
+        // Step 3. Let document be the element’s node document.
         let node = self.upcast::<Node>();
+        let document = node.owner_doc();
 
-        // Step 3
-        let doc = node.owner_doc();
-
-        // Step 4
-        if !doc.is_fully_active() {
+        // Step 4. If document is not the active document, terminate these steps.
+        if !document.is_fully_active() {
             return;
         }
 
-        // Step 5
-        let win = match doc.GetDefaultView() {
-            None => return,
-            Some(win) => win,
+        // Step 5. Let window be the value of document’s defaultView attribute.
+        let Some(window) = document.GetDefaultView() else {
+            // Step 6. If window is null, terminate these steps.
+            return;
         };
 
-        // Step 7
         if self.is_document_element() {
-            if doc.quirks_mode() == QuirksMode::Quirks {
+            // Step 7. If the element is the root element and document is in quirks mode,
+            // terminate these steps.
+            if document.quirks_mode() == QuirksMode::Quirks {
                 return;
             }
 
-            win.scroll(cx, x, win.ScrollY() as f32, behavior);
+            // Step 8. If the element is the root element invoke scroll() on window with x
+            // as first argument and scrollY on window as second argument, and terminate
+            // these steps.
+            window.scroll(cx, x, window.ScrollY() as f32, behavior);
             return;
         }
 
-        // Step 9
-        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
-            doc.quirks_mode() == QuirksMode::Quirks &&
+        // Step 9. If the element is the body element, document is in quirks mode, and the
+        // element is not potentially scrollable in at least one axis, invoke scroll() on
+        // window with x as first argument and scrollY on window as second argument, and
+        // terminate these steps.
+        if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
+            document.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            win.scroll(cx, x, win.ScrollY() as f32, behavior);
+            window.scroll(cx, x, window.ScrollY() as f32, behavior);
             return;
         }
 
-        // Step 10
+        // Step 10. If the element does not have any associated box, the element has no
+        // associated scrolling box, or the element has no overflow, terminate these
+        // steps.
         if !self.has_scrolling_box(cx.no_gc()) {
             return;
         }
 
-        // Step 11
-        win.scroll_an_element(cx, self, x, self.ScrollTop() as f32, behavior);
+        // Step 11. Scroll the element to x,scrollTop, with the scroll behavior being
+        // "auto".
+        window.scroll_an_element(cx, self, x, self.ScrollTop() as f32, behavior);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview>

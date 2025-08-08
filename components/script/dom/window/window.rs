@@ -2576,9 +2576,29 @@ impl Window {
         _behavior: ScrollBehavior,
         element: Option<&Element>,
     ) {
-        // TODO Step 1
-        // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
-        // properly process ScrollBehavior here.
+        // Step 1. Abort any ongoing smooth scroll for box.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 2. Resolve all pending scroll Promises whose scroll container is box with
+        // an interrupted scroll result.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 3. Let scrollPromise be a new Promise.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 4. Return scrollPromise, and run the remaining steps in parallel.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 5. If the user agent honors the scroll-behavior property and one of the
+        // following is true:
+        // * behavior is "auto" and element is not null and its computed value of the
+        //   scroll-behavior property is smooth, or
+        // * behavior is smooth
+        // then perform a smooth scroll of box to position; otherwise, perform an instant
+        // scroll of box to position.
+        //
+        // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we
+        // can properly process ScrollBehavior here.
         let (reflow_phases_run, _) = self.reflow(
             cx,
             ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)),
@@ -2588,16 +2608,22 @@ impl Window {
                 .generate_frame(vec![self.webview_id().into()]);
         }
 
-        // > If the scroll position did not change as a result of the user interaction or programmatic
-        // > invocation, where no translations were applied as a result, then no scrollend event fires
-        // > because no scrolling occurred.
-        // Even though the note mention the scrollend, it is relevant to the scroll as well.
+        // Step 6. Wait until either the position has finished updating, or scrollPromise
+        // has been resolved.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 7. If scrollPromise is still in the pending state:
+        // Step 7.1. If the scroll position changed as a result of this call, emit the
+        // scrollend event.
         if reflow_phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
             match element {
                 Some(element) if !scroll_id.is_root() => element.handle_scroll_event(),
                 _ => self.Document().handle_viewport_scroll_event(),
             };
         }
+
+        // Step 7.2. Resolve scrollPromise with a non-interrupted scroll result.
+        // TODO: Implement this when we have smooth scrolling.
     }
 
     pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
