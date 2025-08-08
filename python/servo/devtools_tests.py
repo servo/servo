@@ -33,8 +33,8 @@ LOG_REQUESTS = False
 
 @dataclass(frozen=True)
 class Source:
-    url: str
     introduction_type: str
+    url: str
 
 
 class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
