@@ -17,6 +17,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::customstateset::CustomStateSet;
 use crate::dom::element::Element;
 use crate::dom::file::File;
 use crate::dom::htmlelement::HTMLElement;
@@ -69,6 +70,9 @@ pub(crate) struct ElementInternals {
     state: DomRefCell<SubmissionValue>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-elementinternals-states>
+    states: MutNullableDom<CustomStateSet>,
 }
 
 impl ElementInternals {
@@ -85,6 +89,7 @@ impl ElementInternals {
             state: DomRefCell::new(SubmissionValue::None),
             form_owner: MutNullableDom::new(None),
             labels_node_list: MutNullableDom::new(None),
+            states: MutNullableDom::new(None),
         }
     }
 
@@ -185,6 +190,10 @@ impl ElementInternals {
         self.is_target_form_associated() &&
             self.is_instance_validatable() &&
             !self.satisfies_constraints()
+    }
+
+    pub(crate) fn custom_states(&self) -> Option<DomRoot<CustomStateSet>> {
+        self.states.get()
     }
 }
 
@@ -353,6 +362,17 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
             return Err(Error::NotSupported);
         }
         Ok(self.report_validity(can_gc))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-elementinternals-states>
+    fn States(&self, can_gc: CanGc) -> DomRoot<CustomStateSet> {
+        self.states.or_init(|| {
+            CustomStateSet::new(
+                &self.target_element.owner_window(),
+                &self.target_element,
+                can_gc,
+            )
+        })
     }
 }
 
