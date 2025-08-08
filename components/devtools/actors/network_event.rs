@@ -407,7 +407,9 @@ impl NetworkEventActor {
             .as_ref()
             .and_then(|url| Self::response_cookies(&response, url));
         self.response_start = Some(Self::response_start(&response));
-        self.response_content = Self::response_content(&response);
+        if let Some(response_content) = Self::response_content(self, &response) {
+            self.response_content = Some(response_content);
+        }
         self.response_body = response.body.clone();
         self.response_headers_raw = response.headers.clone();
     }
@@ -459,8 +461,12 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn response_content(response: &DevtoolsHttpResponse) -> Option<ResponseContentMsg> {
-        let _body = response.body.as_ref()?;
+    pub fn response_content(
+        &mut self,
+        response: &DevtoolsHttpResponse,
+    ) -> Option<ResponseContentMsg> {
+        let body = response.body.as_ref()?;
+        self.response_body = Some(body.clone());
 
         let mime_type = response
             .headers
