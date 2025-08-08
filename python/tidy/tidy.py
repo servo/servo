@@ -59,9 +59,7 @@ IgnoreConfig = TypedDict(
 Config = TypedDict(
     "Config",
     {
-        "skip-check-length": bool,
         "skip-check-licenses": bool,
-        "check-alphabetical-order": bool,
         "lint-scripts": list,
         "blocked-packages": dict[str, Any],
         "ignore": IgnoreConfig,
@@ -70,9 +68,7 @@ Config = TypedDict(
 )
 
 config: Config = {
-    "skip-check-length": False,
     "skip-check-licenses": False,
-    "check-alphabetical-order": True,
     "lint-scripts": [],
     "blocked-packages": {},
     "ignore": {
@@ -313,16 +309,6 @@ def check_modeline(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, st
             yield (idx + 1, "emacs file variables present")
 
 
-def check_length(file_name: str, idx: int, line: bytes) -> Iterator[tuple[int, str]]:
-    if any(file_name.endswith(ext) for ext in (".lock", ".json", ".html", ".toml")) or config["skip-check-length"]:
-        return
-
-    # Prefer shorter lines when shell scripting.
-    max_length = 80 if file_name.endswith(".sh") else 120
-    if len(line.decode("utf-8").rstrip("\n")) > max_length and not is_unsplittable(file_name, line):
-        yield (idx + 1, "Line is longer than %d characters" % max_length)
-
-
 def contains_url(line: bytes) -> bool:
     return bool(URL_REGEX.search(line))
 
@@ -390,7 +376,6 @@ def check_for_raw_urls_in_rustdoc(file_name: str, idx: int, line: bytes) -> Iter
 def check_by_line(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     for idx, line in enumerate(lines):
         errors = itertools.chain(
-            check_length(file_name, idx, line),
             check_whitespace(idx, line),
             check_whatwg_specific_url(idx, line),
             check_whatwg_single_page_url(idx, line),
@@ -571,8 +556,6 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     import_block = False
     whitespace = False
 
-    is_lib_rs_file = file_name.endswith("lib.rs")
-
     PANIC_NOT_ALLOWED_PATHS = [
         os.path.join("*", "components", "compositing", "compositor.rs"),
         os.path.join("*", "components", "constellation", "*"),
@@ -586,13 +569,8 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     prev_open_brace = False
     multi_line_string = False
     prev_mod: dict[int, str] = {}
-    prev_feature_name = ""
     indent = 0
 
-    check_alphabetical_order = config["check-alphabetical-order"]
-    decl_message = "{} is not in alphabetical order"
-    decl_expected = "\n\t\033[93mexpected: {}\033[0m"
-    decl_found = "\n\t\033[91mfound: {}\033[0m"
     panic_message = "unwrap() or panic!() found in code which should not panic."
 
     for idx, original_line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
@@ -684,40 +662,12 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
             yield (idx + 1, "found an empty line following a {")
         prev_open_brace = line.endswith("{")
 
-        # check alphabetical order of feature attributes in lib.rs files
-        if is_lib_rs_file:
-            match = re.search(r"#!\[feature\((.*)\)\]", line)
-
-            if match:
-                features = list(map(lambda w: w.strip(), match.group(1).split(",")))
-                sorted_features = sorted(features)
-                if sorted_features != features and check_alphabetical_order:
-                    yield (
-                        idx + 1,
-                        decl_message.format("feature attribute")
-                        + decl_expected.format(tuple(sorted_features))
-                        + decl_found.format(tuple(features)),
-                    )
-
-                if prev_feature_name > sorted_features[0] and check_alphabetical_order:
-                    yield (
-                        idx + 1,
-                        decl_message.format("feature attribute")
-                        + decl_expected.format(prev_feature_name + " after " + sorted_features[0])
-                        + decl_found.format(prev_feature_name + " before " + sorted_features[0]),
-                    )
-
-                prev_feature_name = sorted_features[0]
-            else:
-                # not a feature attribute line, so empty previous name
-                prev_feature_name = ""
-
         if is_panic_not_allowed_rs_file:
             match = re.search(r"unwrap\(|panic!\(", line)
             if match:
                 yield (idx + 1, panic_message)
 
-        # modules must be in the same line and alphabetically sorted
+        # modules must be in the same line
         if line.startswith("mod ") or line.startswith("pub mod "):
             # strip /(pub )?mod/ from the left and ";" from the right
             mod = line[4:-1] if line.startswith("mod ") else line[8:-1]
@@ -728,33 +678,10 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
                     prev_mod[indent] = ""
                 if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
-                if prev_mod[indent] and mod < prev_mod[indent] and check_alphabetical_order:
-                    yield (
-                        idx + 1,
-                        decl_message.format("mod declaration")
-                        + decl_expected.format(prev_mod[indent])
-                        + decl_found.format(mod),
-                    )
                 prev_mod[indent] = mod
         else:
             # we now erase previous entries
             prev_mod = {}
-
-        # derivable traits should be alphabetically ordered
-        if is_attribute:
-            # match the derivable traits filtering out macro expansions
-            match = re.search(r"#\[derive\(([a-zA-Z, ]*)", line)
-            if match:
-                derives = list(map(lambda w: w.strip(), match.group(1).split(",")))
-                # sort, compare and report
-                sorted_derives = sorted(derives)
-                if sorted_derives != derives and check_alphabetical_order:
-                    yield (
-                        idx + 1,
-                        decl_message.format("derivable traits list")
-                        + decl_expected.format(", ".join(sorted_derives))
-                        + decl_found.format(", ".join(derives)),
-                    )
 
 
 # Avoid flagging <Item=Foo> constructs
