@@ -173,8 +173,8 @@ vello_cpu = { git = "https://github.com/linebender/vello", rev = "65975d7612e38c
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"
-webrender = { git = "https://github.com/servo/webrender", branch = "0.67", features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender", branch = "0.67" }
+webrender = { git = "https://github.com/servo/webrender", rev = "refs/pull/4871/head", features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "refs/pull/4871/head" }
 webxr-api = { path = "components/shared/webxr" }
 wgpu-core = "25"
 wgpu-types = "25"
@@ -182,7 +182,7 @@ winapi = "0.3"
 windows-sys = "0.59"
 winit = "0.30.12"
 wio = "0.2"
-wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.67" }
+wr_malloc_size_of = { git = "https://github.com/servo/webrender", rev = "refs/pull/4871/head" }
 xi-unicode = "0.3.0"
 xml5ever = "0.35"
 
