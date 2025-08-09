@@ -438,7 +438,6 @@ pub(crate) mod imagedata;
 pub(crate) mod inputevent;
 pub(crate) mod intersectionobserver;
 pub(crate) mod intersectionobserverentry;
-pub(crate) mod intersectionobserverrootmargin;
 pub(crate) mod keyboardevent;
 pub(crate) mod location;
 pub(crate) mod mediadeviceinfo;
