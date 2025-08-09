@@ -5256,6 +5256,10 @@ dependencies = [
 name = "mozjs_sys"
 version = "0.137.0-1"
 source = "git+https://github.com/servo/mozjs#1410a4bafe4674ea17b1c4f0053a3e589ebce989"
+dependencies = [
+ "bindgen 0.71.1",
+ "cc",
+ "encoding_c",
  "encoding_c_mem",
  "flate2",
  "icu_capi",

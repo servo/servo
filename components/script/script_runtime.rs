@@ -13,7 +13,6 @@ use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::Deref;
 use std::os::raw::c_void;
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
