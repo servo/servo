@@ -108,7 +108,7 @@ pub enum ScriptToDevtoolsControlMsg {
     TitleChanged(PipelineId, String),
 
     /// Get source information from script
-    CreateSourceActor(PipelineId, SourceInfo),
+    CreateSourceActor(IpcSender<DevtoolScriptControlMsg>, PipelineId, SourceInfo),
 
     UpdateSourceContent(PipelineId, String),
 }
@@ -280,6 +280,8 @@ pub enum DevtoolScriptControlMsg {
     SimulateColorScheme(PipelineId, Theme),
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
+
+    GetPossibleBreakpoints(u32, IpcSender<Vec<RecommendedBreakpointLocation>>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -598,8 +600,18 @@ impl fmt::Display for ShadowRootMode {
 pub struct SourceInfo {
     pub url: ServoUrl,
     pub introduction_type: String,
-    pub external: bool,
+    pub inline: bool,
     pub worker_id: Option<WorkerId>,
     pub content: Option<String>,
     pub content_type: Option<String>,
+    pub spidermonkey_id: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecommendedBreakpointLocation {
+    pub offset: u32,
+    pub line_number: u32,
+    pub column_number: u32,
+    pub is_step_start: bool,
 }

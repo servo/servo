@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::PipelineId;
+use std::cell::RefCell;
+
+use base::id::{Index, PipelineId, PipelineNamespaceId};
 use constellation_traits::ScriptToConstellationChan;
-use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use ipc_channel::ipc::IpcSender;
@@ -13,6 +15,10 @@ use js::rust::Runtime;
 use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
+    DebuggerGlobalScopeMethods, NotifyNewSource,
+};
+use script_bindings::codegen::GenericBindings::GetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -23,7 +29,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::types::{DebuggerEvent, Event};
+use crate::dom::types::{AddDebuggeeEvent, Event, GetPossibleBreakpointsEvent};
 #[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -37,6 +43,11 @@ use crate::script_runtime::{CanGc, JSContext};
 /// <https://firefox-source-docs.mozilla.org/js/Debugger/>
 pub(crate) struct DebuggerGlobalScope {
     global_scope: GlobalScope,
+    #[no_trace]
+    devtools_to_script_sender: IpcSender<DevtoolScriptControlMsg>,
+    #[no_trace]
+    get_possible_breakpoints_result_sender:
+        RefCell<Option<IpcSender<Vec<devtools_traits::RecommendedBreakpointLocation>>>>,
 }
 
 impl DebuggerGlobalScope {
@@ -51,7 +62,8 @@ impl DebuggerGlobalScope {
     pub(crate) fn new(
         runtime: &Runtime,
         debugger_pipeline_id: PipelineId,
-        devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+        script_to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+        devtools_to_script_sender: IpcSender<DevtoolScriptControlMsg>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
@@ -62,7 +74,7 @@ impl DebuggerGlobalScope {
         let global = Box::new(Self {
             global_scope: GlobalScope::new_inherited(
                 debugger_pipeline_id,
-                devtools_chan,
+                script_to_devtools_sender,
                 mem_profiler_chan,
                 time_profiler_chan,
                 script_to_constellation_chan,
@@ -77,6 +89,8 @@ impl DebuggerGlobalScope {
                 None,
                 false,
             ),
+            devtools_to_script_sender,
+            get_possible_breakpoints_result_sender: RefCell::new(None),
         });
         let global = unsafe {
             DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
@@ -102,6 +116,10 @@ impl DebuggerGlobalScope {
     /// Get the JS context.
     pub(crate) fn get_cx() -> JSContext {
         GlobalScope::get_cx()
+    }
+
+    pub(crate) fn as_global_scope(&self) -> &GlobalScope {
+        self.upcast::<GlobalScope>()
     }
 
     fn evaluate_js(&self, script: &str, can_gc: CanGc) -> bool {
@@ -132,7 +150,7 @@ impl DebuggerGlobalScope {
     ) {
         let debuggee_pipeline_id =
             crate::dom::pipelineid::PipelineId::new(self.upcast(), debuggee_pipeline_id, can_gc);
-        let event = DomRoot::upcast::<Event>(DebuggerEvent::new(
+        let event = DomRoot::upcast::<Event>(AddDebuggeeEvent::new(
             self.upcast(),
             debuggee_global,
             &debuggee_pipeline_id,
@@ -141,7 +159,149 @@ impl DebuggerGlobalScope {
         ));
         assert!(
             DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
-            "Guaranteed by DebuggerEvent::new"
+            "Guaranteed by AddDebuggeeEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_get_possible_breakpoints(
+        &self,
+        can_gc: CanGc,
+        spidermonkey_id: u32,
+        result_sender: IpcSender<Vec<devtools_traits::RecommendedBreakpointLocation>>,
+    ) {
+        assert!(
+            self.get_possible_breakpoints_result_sender
+                .replace(Some(result_sender))
+                .is_none()
+        );
+        let event = DomRoot::upcast::<Event>(GetPossibleBreakpointsEvent::new(
+            self.upcast(),
+            spidermonkey_id,
+            can_gc,
+        ));
+        assert!(
+            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            "Guaranteed by AddDebuggeeEvent::new"
+        );
+    }
+}
+
+impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
+    // check-tidy: no specs after this line
+    fn NotifyNewSource(&self, args: &NotifyNewSource) {
+        if let Some(devtools_chan) = self.as_global_scope().devtools_chan() {
+            let pipeline_id = PipelineId {
+                namespace_id: PipelineNamespaceId(args.pipelineId.namespaceId),
+                index: Index::new(args.pipelineId.index)
+                    .expect("`pipelineId.index` must not be zero"),
+            };
+
+            if let Some(introduction_type) = args.introductionType.as_ref() {
+                // Check the `introductionType` and `url`, decide whether or not to create a source actor, and if so,
+                // tell the devtools server to create a source actor. Based on the Firefox impl in:
+                // - getDebuggerSourceURL() <https://searchfox.org/mozilla-central/rev/85667ab51e4b2a3352f7077a9ee43513049ed2d6/devtools/server/actors/utils/source-url.js#7-42>
+                // - getSourceURL() <https://searchfox.org/mozilla-central/rev/85667ab51e4b2a3352f7077a9ee43513049ed2d6/devtools/server/actors/source.js#67-109>
+                // - resolveSourceURL() <https://searchfox.org/mozilla-central/rev/85667ab51e4b2a3352f7077a9ee43513049ed2d6/devtools/server/actors/source.js#48-66>
+                // - SourceActor#_isInlineSource <https://searchfox.org/mozilla-central/rev/85667ab51e4b2a3352f7077a9ee43513049ed2d6/devtools/server/actors/source.js#130-143>
+                // - SourceActor#url <https://searchfox.org/mozilla-central/rev/85667ab51e4b2a3352f7077a9ee43513049ed2d6/devtools/server/actors/source.js#157-162>
+
+                // Firefox impl: getDebuggerSourceURL(), getSourceURL()
+                // TODO: handle `about:srcdoc` case (see Firefox getDebuggerSourceURL())
+                // TODO: remove trailing details that may have been appended by SpiderMonkey
+                // (currently impossible to do robustly due to <https://bugzilla.mozilla.org/show_bug.cgi?id=1982001>)
+                let url_original = args.url.str();
+                // FIXME: use page/worker url as base here
+                let url_original = ServoUrl::parse(url_original).ok();
+
+                // If the source has a `urlOverride` (aka `displayURL` aka `//# sourceURL`), it should be a valid url,
+                // possibly relative to the page/worker url, and we should treat the source as coming from that url for
+                // devtools purposes, including the file tree in the Sources tab.
+                // Firefox impl: getSourceURL()
+                let url_override = args
+                    .urlOverride
+                    .as_ref()
+                    .map(|url| url.str())
+                    // FIXME: use page/worker url as base here, not `url_original`
+                    .and_then(|url| ServoUrl::parse_with_base(url_original.as_ref(), url).ok());
+
+                // If the `introductionType` is “eval or eval-like”, the `url` won’t be meaningful, so ignore these
+                // sources unless we have a `urlOverride` (aka `displayURL` aka `//# sourceURL`).
+                // Firefox impl: getDebuggerSourceURL(), getSourceURL()
+                if [
+                    "injectedScript",
+                    "eval",
+                    "debugger eval",
+                    "Function",
+                    "javascriptURL",
+                    "eventHandler",
+                    "domTimer",
+                ]
+                .contains(&introduction_type.str()) &&
+                    url_override.is_none()
+                {
+                    debug!(
+                        "Not creating debuggee: `introductionType` is `{introduction_type}` but no valid url"
+                    );
+                    return;
+                }
+
+                // Sources with an `introductionType` of `inlineScript` are generally inline, meaning their contents
+                // are a substring of the page markup (hence not known to SpiderMonkey, requiring plumbing in Servo).
+                // But sources with a `urlOverride` are not inline, since they get their own place in the Sources tree.
+                // nor are sources created for `<iframe srcdoc>`, since they are not necessarily a substring of the
+                // page markup as originally sent by the server.
+                // Firefox impl: SourceActor#_isInlineSource
+                // TODO: handle `about:srcdoc` case (see Firefox SourceActor#_isInlineSource)
+                let inline = introduction_type.str() == "inlineScript" && url_override.is_none();
+                let Some(url) = url_override.or(url_original) else {
+                    debug!("Not creating debuggee: no valid url");
+                    return;
+                };
+
+                let worker_id = args.workerId.as_ref().map(|id| id.parse().unwrap());
+
+                let source_info = SourceInfo {
+                    url,
+                    introduction_type: introduction_type.str().to_owned(),
+                    inline,
+                    worker_id,
+                    content: (!inline).then(|| args.text.to_string()),
+                    content_type: None, // TODO
+                    spidermonkey_id: args.spidermonkeyId,
+                };
+                devtools_chan
+                    .send(ScriptToDevtoolsControlMsg::CreateSourceActor(
+                        self.devtools_to_script_sender.clone(),
+                        pipeline_id,
+                        source_info,
+                    ))
+                    .expect("Failed to send to devtools server");
+            } else {
+                debug!("Not creating debuggee for script with no `introductionType`");
+            }
+        }
+    }
+
+    fn GetPossibleBreakpointsResult(
+        &self,
+        event: &GetPossibleBreakpointsEvent,
+        result: Vec<RecommendedBreakpointLocation>,
+    ) {
+        info!("GetPossibleBreakpointsResult: {event:?} {result:?}");
+        let sender = self
+            .get_possible_breakpoints_result_sender
+            .take()
+            .expect("Guaranteed by Self::fire_get_possible_breakpoints()");
+        let _ = sender.send(
+            result
+                .into_iter()
+                .map(|entry| devtools_traits::RecommendedBreakpointLocation {
+                    offset: entry.offset,
+                    line_number: entry.lineNumber,
+                    column_number: entry.columnNumber,
+                    is_step_start: entry.isStepStart,
+                })
+                .collect(),
         );
     }
 }

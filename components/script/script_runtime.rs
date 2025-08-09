@@ -1287,6 +1287,7 @@ impl IntroductionType {
     pub const DOM_TIMER: &CStr = c"domTimer";
 
     /// `introductionType` for web workers.
-    /// <https://searchfox.org/mozilla-central/rev/202069c4c5113a1a9052d84fa4679d4c1b22113e/devtools/docs/user/debugger-api/debugger.source/index.rst#96>
+    /// FIXME: only documented in older(?) devtools user docs
+    /// <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.source/index.html>
     pub const WORKER: &CStr = c"Worker";
 }
