@@ -3,22 +3,34 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * http://dev.w3.org/csswg/cssom/#the-css-interface
+ * https://drafts.csswg.org/cssom/#namespacedef-css
  */
 
-[Abstract, Exposed=Window]
-interface CSS {
-  [Throws]
-  static DOMString escape(DOMString ident);
+// https://drafts.csswg.org/cssom/#the-css.escape()-method
+[Exposed=Window]
+namespace CSS {
+  [Throws] CSSOMString escape(CSSOMString ident);
 };
 
-// https://drafts.csswg.org/css-conditional-3/#the-css-interface
-partial interface CSS {
-  static boolean supports(DOMString property, DOMString value);
-  static boolean supports(DOMString conditionText);
+// https://drafts.csswg.org/css-conditional-3/#dom-css-supports
+partial namespace CSS {
+  boolean supports(CSSOMString property, CSSOMString value);
+  boolean supports(CSSOMString conditionText);
 };
 
-// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
-partial interface CSS {
-    [SameObject, Pref="dom_worklet_enabled"] static readonly attribute Worklet paintWorklet;
+// https://drafts.css-houdini.org/css-paint-api/#dom-css-paintworklet
+partial namespace CSS {
+    [SameObject, Pref="dom_worklet_enabled"] readonly attribute Worklet paintWorklet;
 };
+
+// https://drafts.css-houdini.org/css-properties-values-api/#the-registerproperty-function
+// dictionary PropertyDefinition {
+//   required DOMString name;
+//            DOMString syntax       = "*";
+//   required boolean   inherits;
+//            DOMString initialValue;
+// };
+
+// partial namespace CSS {
+//   undefined registerProperty(PropertyDefinition definition);
+// };
