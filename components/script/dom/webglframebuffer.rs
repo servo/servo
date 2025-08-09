@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(unused_imports)]
-
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 
@@ -12,6 +10,7 @@ use canvas_traits::webgl::{
     WebGLRenderbufferId, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
 };
 use dom_struct::dom_struct;
+#[cfg(feature = "webxr")]
 use euclid::Size2D;
 use script_bindings::weakref::WeakRef;
 #[cfg(feature = "webxr")]
@@ -21,7 +20,9 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+#[cfg(feature = "webxr")]
+use crate::dom::bindings::root::MutNullableDom;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
