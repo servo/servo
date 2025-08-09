@@ -5425,8 +5425,8 @@ impl Element {
     }
 
     pub(crate) fn set_focus_state(&self, value: bool) {
-        self.set_state(ElementState::FOCUS, value);
         self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.set_state(ElementState::FOCUS, value);
     }
 
     pub(crate) fn hover_state(&self) -> bool {

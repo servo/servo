@@ -2597,19 +2597,27 @@ impl Window {
         self.layout().query_elements_from_point(point, flags)
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn hit_test_from_input_event(
         &self,
         input_event: &ConstellationInputEvent,
     ) -> Option<HitTestResult> {
-        let compositor_hit_test_result = input_event.hit_test_result.as_ref()?;
+        self.hit_test_from_point_in_viewport(
+            input_event.hit_test_result.as_ref()?.point_in_viewport,
+        )
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn hit_test_from_point_in_viewport(
+        &self,
+        point_in_frame: Point2D<f32, CSSPixel>,
+    ) -> Option<HitTestResult> {
         let result = self
-            .elements_from_point_query(
-                compositor_hit_test_result.point_in_viewport.cast_unit(),
-                ElementsFromPointFlags::empty(),
-            )
+            .elements_from_point_query(point_in_frame.cast_unit(), ElementsFromPointFlags::empty())
             .into_iter()
             .nth(0)?;
+
+        let point_relative_to_initial_containing_block =
+            point_in_frame + self.scroll_offset().cast_unit();
 
         // SAFETY: This is safe because `Window::query_elements_from_point` has ensured that
         // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
@@ -2618,9 +2626,8 @@ impl Window {
             node: unsafe { from_untrusted_node_address(address) },
             cursor: result.cursor,
             point_in_node: result.point_in_target,
-            point_in_frame: compositor_hit_test_result.point_in_viewport,
-            point_relative_to_initial_containing_block: compositor_hit_test_result
-                .point_relative_to_initial_containing_block,
+            point_in_frame,
+            point_relative_to_initial_containing_block,
         })
     }
 
