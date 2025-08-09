@@ -56,7 +56,7 @@ class LocalGitRepo:
         # git in advance and run the subprocess by its absolute path.
         self.git_path = shutil.which("git")
 
-    def run_without_encoding(self, *args, env: dict = {}) -> bytes:
+    def run_without_encoding(self, *args: str, env: dict = {}) -> bytes:
         if self.git_path is None:
             raise RuntimeError("Git executable not found in PATH")
         command_line = [self.git_path] + list(args)
@@ -75,7 +75,7 @@ class LocalGitRepo:
             )
             raise exception
 
-    def run(self, *args, env: dict = {}) -> str:
+    def run(self, *args: str, env: dict = {}) -> str:
         return self.run_without_encoding(*args, env=env).decode("utf-8", errors="surrogateescape")
 
 
@@ -164,7 +164,7 @@ class WPTSync:
         self.local_servo_repo = LocalGitRepo(self.servo_path, self)
         self.local_wpt_repo = LocalGitRepo(self.wpt_path, self)
 
-    def run(self, payload: dict, step_callback=None) -> bool:
+    def run(self, payload: dict, step_callback: Callable[[Step], None] | None = None) -> bool:
         if "pull_request" not in payload:
             return True
 
@@ -184,7 +184,7 @@ class WPTSync:
         try:
             servo_pr = self.servo.get_pull_request(pull_data["number"])
             downstream_wpt_branch = self.downstream_wpt.get_branch(
-                wpt_branch_name_from_servo_pr_number(servo_pr.number)
+                wpt_branch_name_from_servo_pr_number(str(servo_pr.number))
             )
             upstream_pr = self.wpt.get_open_pull_request_for_branch(self.github_username, downstream_wpt_branch)
             if upstream_pr:

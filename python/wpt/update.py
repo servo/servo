@@ -3,6 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 # pylint: disable=missing-docstring
 
+from typing import Any
 import os
 import subprocess
 import shutil
@@ -21,7 +22,7 @@ TEST_ROOT = os.path.join(WPT_PATH, "tests")
 META_ROOTS = [os.path.join(WPT_PATH, "meta"), os.path.join(WPT_PATH, "meta-legacy")]
 
 
-def do_sync(**kwargs) -> int:
+def do_sync(**kwargs: str) -> int:
     last_commit = subprocess.check_output(["git", "log", "-1"])
 
     # Commits should always be authored by the GitHub Actions bot.
@@ -94,7 +95,7 @@ def remove_unused_metadata() -> None:
         shutil.rmtree(directory)
 
 
-def update_tests(**kwargs) -> int:
+def update_tests(**kwargs: Any) -> int:
     def set_if_none(args: dict, key: str, value: str) -> None:
         if key not in args or args[key] is None:
             args[key] = value
@@ -113,11 +114,11 @@ def update_tests(**kwargs) -> int:
     return 0 if run_update(**kwargs) else 1
 
 
-def run_update(**kwargs) -> bool:
+def run_update(**kwargs: Any) -> bool:
     """Run the update process returning True if the process is successful."""
     logger = setup_logging(kwargs, {"mach": sys.stdout})
     return WPTUpdate(logger, **kwargs).run() != exit_unclean
 
 
-def create_parser(**_kwargs) -> ArgumentParser:
+def create_parser(**_kwargs: Any) -> ArgumentParser:
     return wptcommandline.create_parser_update()

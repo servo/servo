@@ -3,7 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 from wptrunner.wptcommandline import TestRoot
-from typing import Mapping
+from typing import Mapping, Any
 import argparse
 from argparse import ArgumentParser
 import os
@@ -34,7 +34,12 @@ def create_parser() -> ArgumentParser:
     return p
 
 
-def update(check_clean=True, rebuild=False, logger=None, **kwargs) -> int:
+def update(
+    check_clean: bool = True,
+    rebuild: bool = False,
+    logger: Any = None,
+    **kwargs: Any,
+) -> int:
     if not logger:
         logger = wptlogging.setup(kwargs, {"mach": sys.stdout})
     kwargs = {
@@ -55,7 +60,7 @@ def update(check_clean=True, rebuild=False, logger=None, **kwargs) -> int:
     return _update(logger, test_paths, rebuild)
 
 
-def _update(logger, test_paths: Mapping[str, TestRoot], rebuild) -> int:
+def _update(logger: Any, test_paths: Mapping[str, TestRoot], rebuild: bool) -> int:
     for url_base, paths in iteritems(test_paths):
         manifest_path = os.path.join(paths.metadata_path, "MANIFEST.json")
         cache_subdir = os.path.relpath(os.path.dirname(manifest_path), os.path.dirname(__file__))
@@ -70,7 +75,7 @@ def _update(logger, test_paths: Mapping[str, TestRoot], rebuild) -> int:
     return 0
 
 
-def _check_clean(logger, test_paths: Mapping[str, TestRoot]) -> int:
+def _check_clean(logger: Any, test_paths: Mapping[str, TestRoot]) -> int:
     manifests_by_path = {}
     rv = 0
     for url_base, paths in iteritems(test_paths):
@@ -107,7 +112,7 @@ def _check_clean(logger, test_paths: Mapping[str, TestRoot]) -> int:
     return rv
 
 
-def diff_manifests(logger, manifest_path, old_manifest, new_manifest) -> bool:
+def diff_manifests(logger: Any, manifest_path: Any, old_manifest: Any, new_manifest: Any) -> bool:
     """Lint the differences between old and new versions of a
     manifest. Differences are considered significant (and so produce
     lint errors) if they produce a meaningful difference in the actual
@@ -164,11 +169,11 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest) -> bool:
         old_paths = old_manifest.to_json()["items"]
         new_paths = new_manifest.to_json()["items"]
         if old_paths != new_paths:
-            logger.warning("Manifest %s contains correct tests but file hashes changed." % manifest_path)  # noqa
+            logger.warning("Manifest %s contains correct tests but file hashes changed." % manifest_path)
             clean = False
 
     return clean
 
 
-def log_error(logger, manifest_path, msg: str) -> None:
+def log_error(logger: Any, manifest_path: Any, msg: str) -> None:
     logger.lint_error(path=manifest_path, message=msg, lineno=0, source="", linter="wpt-manifest")
