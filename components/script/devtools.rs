@@ -83,7 +83,7 @@ pub(crate) fn handle_evaluate_js(
                 },
             )
         } else if rval.is_string() {
-            let jsstr = std::ptr::NonNull::new(ToString(*cx, rval.handle())).unwrap();
+            let jsstr = std::ptr::NonNull::new(rval.to_string()).unwrap();
             EvaluateJSReply::StringValue(jsstr_to_string(*cx, jsstr))
         } else if rval.is_null() {
             EvaluateJSReply::NullValue
