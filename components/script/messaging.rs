@@ -91,7 +91,7 @@ impl MixedMessage {
                 #[cfg(feature = "webgpu")]
                 ScriptThreadMessage::SetWebGPUPort(..) => None,
                 ScriptThreadMessage::SetScrollStates(id, ..) => Some(*id),
-                ScriptThreadMessage::EvaluateJavaScript(id, _, _) => Some(*id),
+                ScriptThreadMessage::EvaluateJavaScript { pipeline_id, .. } => Some(*pipeline_id),
                 ScriptThreadMessage::SendImageKeysBatch(..) => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {

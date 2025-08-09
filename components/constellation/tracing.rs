@@ -74,10 +74,12 @@ mod from_compositor {
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
                 Self::SetScrollStates(..) => target!("SetScrollStates"),
                 Self::PaintMetric(..) => target!("PaintMetric"),
-                Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
+                Self::EvaluateJavaScript { .. } => target!("EvaluateJavaScript"),
                 Self::CreateMemoryReport(..) => target!("CreateMemoryReport"),
                 Self::SendImageKeysForPipeline(..) => target!("SendImageKeysForPipeline"),
                 Self::SetWebDriverResponseSender(..) => target!("SetWebDriverResponseSender"),
+                Self::CreateEntangledMessagePorts(..) => target!("CreateEntangledMessagePorts"),
+                Self::PostMessage(..) => target!("PostMessage"),
             }
         }
     }
@@ -249,6 +251,7 @@ mod from_script {
                 Self::FinishJavaScriptEvaluation(..) => {
                     target_variant!("FinishJavaScriptEvaluation")
                 },
+                Self::PostMessage(..) => target_variant!("PostMessage"),
             }
         }
     }

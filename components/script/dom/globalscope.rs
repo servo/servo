@@ -19,7 +19,7 @@ use base::id::{
 };
 use constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
-    PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
+    PortMessageTask, PostMessageData, ScriptToConstellationChan, ScriptToConstellationMessage,
 };
 use content_security_policy::CspList;
 use crossbeam_channel::Sender;
@@ -1451,7 +1451,22 @@ impl GlobalScope {
             // consisting of all MessagePort objects in deserializeRecord.[[TransferredValues]],
             // if any, maintaining their relative order.
             // Note: both done in `structuredclone::read`.
-            if let Ok(ports) = structuredclone::read(self, data, message_clone.handle_mut()) {
+            let structured_clone_result = match data {
+                PostMessageData::StructuredClone(data) => {
+                    structuredclone::read(self, data, message_clone.handle_mut())
+                },
+                PostMessageData::Serialized(data) => {
+                    crate::webdriver_handlers::jsvalue_to_jsval(
+                        cx,
+                        data,
+                        message_clone.handle_mut(),
+                        comp,
+                        can_gc,
+                    );
+                    Ok(vec![])
+                },
+            };
+            if let Ok(ports) = structured_clone_result {
                 // Note: if this port is used to transfer a stream, we handle the events in Rust.
                 if let Some(transform) = cross_realm_transform.as_ref() {
                     match transform {
@@ -1710,7 +1725,7 @@ impl GlobalScope {
                 );
             } else {
                 // If this is a newly-created port, let the constellation immediately know.
-                let port_impl = MessagePortImpl::new(*dom_port.message_port_id());
+                let port_impl = MessagePortImpl::new(*dom_port.message_port_id(), false);
                 message_ports.insert(
                     *dom_port.message_port_id(),
                     ManagedMessagePort {

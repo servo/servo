@@ -8,15 +8,18 @@ use std::ptr::NonNull;
 
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
-use embedder_traits::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
+use embedder_traits::{
+    JSValue, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
+};
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
+use js::gc::MutableHandleValue;
 use js::jsapi::{
     self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
     JS_IsExceptionPending, JSAutoRealm, JSContext, JSType, PropertyDescriptor,
 };
-use js::jsval::UndefinedValue;
+use js::jsval::{BooleanValue, DoubleValue, JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
 use js::rust::{HandleObject, HandleValue, IdVector, ToString};
 use net_traits::CookieSource::{HTTP, NonHTTP};
@@ -25,7 +28,7 @@ use net_traits::CoreResourceMsg::{
 };
 use net_traits::IpcSend;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
-use script_bindings::conversions::is_array_like;
+use script_bindings::conversions::{SafeToJSValConvertible, is_array_like};
 use servo_url::ServoUrl;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
@@ -273,6 +276,37 @@ struct HashableJSVal(u64);
 impl From<HandleValue<'_>> for HashableJSVal {
     fn from(v: HandleValue<'_>) -> HashableJSVal {
         HashableJSVal(v.get().asBits_)
+    }
+}
+
+#[allow(unsafe_code)]
+///
+pub(crate) fn jsvalue_to_jsval(
+    cx: SafeJSContext,
+    val: JSValue,
+    mut rval: MutableHandleValue,
+    realm: InRealm,
+    can_gc: CanGc,
+) {
+    match val {
+        JSValue::Undefined => rval.set(UndefinedValue()),
+        JSValue::Null => rval.set(NullValue()),
+        JSValue::Boolean(b) => rval.set(BooleanValue(b)),
+        JSValue::Number(n) => rval.set(DoubleValue(n)),
+        JSValue::String(s) => s.safe_to_jsval(cx, rval),
+        JSValue::Element(_) | JSValue::Frame(_) | JSValue::Window(_) => unreachable!(),
+        JSValue::Array(array) => {
+            rooted_vec!(let mut values);
+            for elem in array {
+                rooted!(in(*cx) let mut value: JSVal);
+                jsvalue_to_jsval(cx, elem, value.handle_mut(), realm, can_gc);
+                values.push(*value);
+            }
+            values.safe_to_jsval(cx, rval);
+        },
+        JSValue::Object(_o) => {
+            todo!()
+        },
     }
 }
 

@@ -38,8 +38,9 @@ use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use compositing_traits::{CompositorMsg, CrossProcessCompositorApi, PipelineExitSource};
 use constellation_traits::{
-    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
-    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
+    JsEvalResult, LoadData, LoadOrigin, MessagePortImpl, NavigationHistoryBehavior,
+    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
+    WindowSizeType,
 };
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
@@ -118,6 +119,7 @@ use crate::dom::bindings::root::{
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
+use crate::dom::bindings::transferable::Transferable;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
@@ -130,6 +132,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlslotelement::HTMLSlotElement;
+use crate::dom::messageport::MessagePort;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::servoparser::{ParserContext, ServoParser};
@@ -1982,8 +1985,19 @@ impl ScriptThread {
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
                 self.handle_set_scroll_states(pipeline_id, scroll_states)
             },
-            ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
-                self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
+            ScriptThreadMessage::EvaluateJavaScript {
+                pipeline_id,
+                evaluation_id,
+                script,
+                message_port,
+            } => {
+                self.handle_evaluate_javascript(
+                    pipeline_id,
+                    evaluation_id,
+                    script,
+                    message_port,
+                    can_gc,
+                );
             },
             ScriptThreadMessage::SendImageKeysBatch(pipeline_id, image_keys) => {
                 if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
@@ -4010,6 +4024,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         evaluation_id: JavaScriptEvaluationId,
         script: String,
+        message_port: Option<MessagePortImpl>,
         can_gc: CanGc,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
@@ -4027,10 +4042,20 @@ impl ScriptThread {
         let realm = enter_realm(global_scope);
         let context = window.get_cx();
 
+        let message_port = message_port.and_then(|port| {
+            MessagePort::transfer_receive(global_scope, *port.message_port_id(), port).ok()
+        });
+
         rooted!(in(*context) let mut return_value = UndefinedValue());
         let _script = AutoEntryScript::new(global_scope);
         let result = if window
-            .evaluate_embedder_js(context, &script, None, return_value.handle_mut(), can_gc)
+            .evaluate_embedder_js(
+                context,
+                &script,
+                message_port.as_deref(),
+                return_value.handle_mut(),
+                can_gc,
+            )
             .is_err()
         {
             // TODO: serialize error value/pending exception.

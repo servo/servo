@@ -17,10 +17,11 @@ use std::time::Duration;
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{MessagePortId, PipelineId, WebViewId};
+use base::id::{MessagePortId, MessagePortRouterId, PipelineId, WebViewId};
 use embedder_traits::{
-    CompositorHitTestResult, Cursor, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
+    CompositorHitTestResult, Cursor, InputEvent, JSValue, JavaScriptEvaluationId,
+    MediaSessionActionType, Theme, TraversalId, ViewportDetails, WebDriverCommandMsg,
+    WebDriverCommandResponse,
 };
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
@@ -91,13 +92,27 @@ pub enum EmbedderToConstellationMessage {
     PaintMetric(PipelineId, PaintMetricEvent),
     /// Evaluate a JavaScript string in the context of a `WebView`. When execution is complete or an
     /// error is encountered, a correpsonding message will be sent to the embedding layer.
-    EvaluateJavaScript(WebViewId, JavaScriptEvaluationId, String),
+    EvaluateJavaScript(
+        WebViewId,
+        JavaScriptEvaluationId,
+        String,
+        Option<MessagePortImpl>,
+    ),
     /// Create a memory report and return it via the ipc sender
     CreateMemoryReport(IpcSender<MemoryReportResult>),
     /// Sends the generated image key to the image cache associated with this pipeline.
     SendImageKeysForPipeline(PipelineId, Vec<ImageKey>),
     /// Set WebDriver input event handled sender.
     SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
+    ///
+    CreateEntangledMessagePorts(
+        MessagePortRouterId,
+        IpcSender<MessagePortMsg>,
+        MessagePortId,
+        MessagePortId,
+    ),
+    ///
+    PostMessage(MessagePortId, PortMessageTask),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
@@ -151,7 +166,13 @@ pub struct PortMessageTask {
     /// The origin of this task.
     pub origin: ImmutableOrigin,
     /// A data-holder for serialized data and transferred objects.
-    pub data: StructuredSerializedData,
+    pub data: PostMessageData,
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum PostMessageData {
+    StructuredClone(StructuredSerializedData),
+    Serialized(JSValue),
 }
 
 /// The information needed by a global to process the transfer of a port.

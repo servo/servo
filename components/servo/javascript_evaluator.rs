@@ -5,10 +5,11 @@
 use std::collections::HashMap;
 
 use base::id::WebViewId;
-use constellation_traits::EmbedderToConstellationMessage;
+use constellation_traits::{EmbedderToConstellationMessage, MessagePortImpl};
 use embedder_traits::{JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId};
 
 use crate::ConstellationProxy;
+use crate::webview::MessagePort;
 
 struct PendingEvaluation {
     callback: Box<dyn FnOnce(Result<JSValue, JavaScriptEvaluationError>)>,
@@ -38,14 +39,23 @@ impl JavaScriptEvaluator {
         &mut self,
         webview_id: WebViewId,
         script: String,
+        message_port: Option<MessagePort>,
         callback: Box<dyn FnOnce(Result<JSValue, JavaScriptEvaluationError>)>,
     ) {
         let evaluation_id = self.generate_id();
+        let message_port = message_port.map(|port| {
+            let mut message_port = MessagePortImpl::new(port.id, true);
+            message_port.entangle(port.entangled_id);
+            message_port.start();
+            message_port.set_has_been_shipped();
+            message_port
+        });
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::EvaluateJavaScript(
                 webview_id,
                 evaluation_id,
                 script,
+                message_port,
             ));
         self.pending_evaluations
             .insert(evaluation_id, PendingEvaluation { callback });

@@ -116,10 +116,11 @@ use compositing_traits::{
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState,
-    IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
-    PaintMetricEvent, PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, StructuredSerializedData, TraversalDirection, WindowSizeType,
+    IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry, MessagePortImpl, MessagePortMsg,
+    NavigationHistoryBehavior, PaintMetricEvent, PortMessageTask, PortTransferInfo, SWManagerMsg,
+    SWManagerSenders, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TraversalDirection,
+    WindowSizeType,
 };
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
 use devtools_traits::{
@@ -1446,8 +1447,9 @@ where
                 webview_id,
                 evaluation_id,
                 script,
+                message_port,
             ) => {
-                self.handle_evaluate_javascript(webview_id, evaluation_id, script);
+                self.handle_evaluate_javascript(webview_id, evaluation_id, script, message_port);
             },
             EmbedderToConstellationMessage::CreateMemoryReport(sender) => {
                 self.mem_profiler_chan.send(ProfilerMsg::Report(sender));
@@ -1475,6 +1477,23 @@ where
             EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
                 self.webdriver.input_command_response_sender = Some(sender);
             },
+
+            EmbedderToConstellationMessage::CreateEntangledMessagePorts(
+                router_id,
+                sender,
+                port1,
+                port2,
+            ) => {
+                trace!("creating new entangled ports {port1:?} {port2:?}");
+                self.handle_new_messageport_router(router_id, sender);
+                self.handle_new_messageport(router_id, port1);
+                self.handle_new_messageport(router_id, port2);
+                self.handle_entangle_messageports(port1, port2);
+            },
+
+            EmbedderToConstellationMessage::PostMessage(port_id, task) => {
+                self.handle_reroute_messageport(port_id, task);
+            },
         }
     }
 
@@ -1484,7 +1503,13 @@ where
         webview_id: WebViewId,
         evaluation_id: JavaScriptEvaluationId,
         script: String,
+        message_port: Option<MessagePortImpl>,
     ) {
+        let port_id = message_port.as_ref().map(|port| *port.message_port_id());
+        if let Some(id) = port_id {
+            self.handle_messageport_shipped(id);
+        }
+
         let browsing_context_id = BrowsingContextId::from(webview_id);
         let Some(pipeline) = self
             .browsing_contexts
@@ -1500,11 +1525,12 @@ where
 
         if pipeline
             .event_loop
-            .send(ScriptThreadMessage::EvaluateJavaScript(
-                pipeline.id,
+            .send(ScriptThreadMessage::EvaluateJavaScript {
+                pipeline_id: pipeline.id,
                 evaluation_id,
                 script,
-            ))
+                message_port,
+            })
             .is_err()
         {
             self.handle_finish_javascript_evaluation(
@@ -2038,6 +2064,7 @@ where
         }
     }
 
+    #[servo_tracing::instrument(skip_all)]
     fn handle_message_port_transfer_failed(
         &mut self,
         ports: HashMap<MessagePortId, PortTransferInfo>,
@@ -2170,8 +2197,10 @@ where
                         entangled_with: entry.entangled_with,
                     }
                 },
-                _ => {
-                    warn!("Unexpected complete port transfer message received");
+                state => {
+                    warn!(
+                        "Unexpected complete port transfer message received (currently {state:?}"
+                    );
                     continue;
                 },
             };
@@ -2246,6 +2275,7 @@ where
         }
     }
 
+    #[servo_tracing::instrument(skip_all)]
     fn handle_new_messageport_router(
         &mut self,
         router_id: MessagePortRouterId,
@@ -2255,10 +2285,12 @@ where
             .insert(router_id, message_port_ipc_sender);
     }
 
+    #[servo_tracing::instrument(skip_all)]
     fn handle_remove_messageport_router(&mut self, router_id: MessagePortRouterId) {
         self.message_port_routers.remove(&router_id);
     }
 
+    #[servo_tracing::instrument(skip_all)]
     fn handle_new_messageport(&mut self, router_id: MessagePortRouterId, port_id: MessagePortId) {
         match self.message_ports.entry(port_id) {
             // If it's a new port, we should not know about it.
@@ -2267,6 +2299,7 @@ where
                 port_id
             ),
             Entry::Vacant(entry) => {
+                trace!("Tracking new messageport {port_id:?}");
                 let info = MessagePortInfo {
                     state: TransferState::Managed(router_id),
                     entangled_with: None,

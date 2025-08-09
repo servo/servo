@@ -1994,6 +1994,8 @@ impl Window {
         const ARG_NAMES: &[*const c_char] = &[c"port".as_ptr()];
         let options = unsafe { CompileOptionsWrapper::new(*cx, self.get_url().as_str(), 0) };
         let scopechain = RootedObjectVectorWrapper::new(*cx);
+        //let body = format!("return (function(port) {{ return {body} }})()");
+        //let body = format!("return {body}");
         rooted!(in(*cx) let mut compiled = unsafe {
             CompileFunction1(
                 *cx,
@@ -2005,8 +2007,10 @@ impl Window {
                 &mut transform_str_to_source_text(&body),
             )
         });
+        assert!(!compiled.get().is_null());
 
         rooted!(in(*cx) let mut function = unsafe { JS_GetFunctionObject(compiled.get())});
+        assert!(!function.get().is_null());
         let callback = unsafe { EmbedderEvaluateJSCallback::new(cx, function.get()) };
 
         callback.Call_(self, port, rval, ExceptionHandling::Report, can_gc)

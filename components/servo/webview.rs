@@ -7,17 +7,23 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use base::id::WebViewId;
+use base::id::{MessagePortId, MessagePortRouterId, WebViewId};
 use compositing::IOCompositor;
 use compositing_traits::WebViewTrait;
-use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
+use constellation_traits::{
+    EmbedderToConstellationMessage, MessagePortMsg, PortMessageTask, PostMessageData,
+    TraversalDirection,
+};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, TraversalId, ViewportDetails,
+    Cursor, EmbedderMsg, EmbedderProxy, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
+    MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use servo_geometry::DeviceIndependentPixel;
+use servo_url::ImmutableOrigin;
 use url::Url;
 use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DeviceRect};
@@ -73,6 +79,7 @@ pub(crate) struct WebViewInner {
     // TODO: ensure that WebView instances interact with the correct Servo instance
     pub(crate) id: WebViewId,
     pub(crate) constellation_proxy: ConstellationProxy,
+    pub(crate) embedder_proxy: EmbedderProxy,
     pub(crate) compositor: Rc<RefCell<IOCompositor>>,
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
@@ -88,6 +95,7 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
+    message_ports: Vec<Rc<MessagePort>>,
 }
 
 impl Drop for WebViewInner {
@@ -116,6 +124,7 @@ impl WebView {
         let webview = Self(Rc::new(RefCell::new(WebViewInner {
             id,
             constellation_proxy: servo.constellation_proxy.clone(),
+            embedder_proxy: servo.embedder_proxy.clone(),
             compositor: servo.compositor.clone(),
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
@@ -130,6 +139,7 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            message_ports: vec![],
         })));
 
         let viewport_details = webview.viewport_details();
@@ -567,8 +577,107 @@ impl WebView {
         self.inner().javascript_evaluator.borrow_mut().evaluate(
             self.id(),
             script.to_string(),
+            None,
             Box::new(callback),
         );
+    }
+
+    /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
+    /// occurs, Servo will call `callback`.
+    pub fn evaluate_javascript_with_message_port<T: ToString>(
+        &self,
+        script: T,
+        callback: impl FnOnce(Result<JSValue, JavaScriptEvaluationError>) + 'static,
+    ) -> Rc<MessagePort> {
+        let constellation_proxy = self.inner().constellation_proxy.clone();
+        let embedder_proxy = self.inner().embedder_proxy.clone();
+
+        let (port1, port2) = MessagePort::new_entangled(constellation_proxy, embedder_proxy);
+        self.inner().javascript_evaluator.borrow_mut().evaluate(
+            self.id(),
+            script.to_string(),
+            Some(port2),
+            Box::new(callback),
+        );
+        let port1 = Rc::new(port1);
+        self.inner_mut().message_ports.push(port1.clone());
+        port1
+    }
+
+    pub(crate) fn message_port(&self, message_port_id: MessagePortId) -> Option<Rc<MessagePort>> {
+        self.inner()
+            .message_ports
+            .iter()
+            .find(|port| port.id == message_port_id)
+            .cloned()
+    }
+}
+
+pub struct MessagePort {
+    pub(crate) id: MessagePortId,
+    pub(crate) entangled_id: MessagePortId,
+    //pub(crate) router_id: MessagePortRouterId,
+    constellation_proxy: ConstellationProxy,
+}
+
+impl MessagePort {
+    fn new_entangled(
+        constellation_proxy: ConstellationProxy,
+        embedder_proxy: EmbedderProxy,
+    ) -> (MessagePort, MessagePort) {
+        let (port_control_sender, port_control_receiver) =
+            ipc::channel().expect("ipc channel failure");
+        ROUTER.add_typed_route(
+            port_control_receiver,
+            Box::new(move |message| match message.unwrap() {
+                MessagePortMsg::CompleteTransfer(..) => unreachable!(),
+                MessagePortMsg::CompletePendingTransfer(..) => unreachable!(),
+                MessagePortMsg::CompleteDisentanglement(..) => unreachable!(),
+                MessagePortMsg::NewTask(message_port_id, task) => {
+                    let data = match task.data {
+                        PostMessageData::StructuredClone(..) => unreachable!(),
+                        PostMessageData::Serialized(data) => data,
+                    };
+                    let _ = embedder_proxy.send(EmbedderMsg::PostMessage(message_port_id, data));
+                },
+            }),
+        );
+        let first_id = MessagePortId::new();
+        let second_id = MessagePortId::new();
+        let router_id = MessagePortRouterId::new();
+        constellation_proxy.send(EmbedderToConstellationMessage::CreateEntangledMessagePorts(
+            router_id,
+            port_control_sender,
+            first_id,
+            second_id,
+        ));
+
+        let first = MessagePort {
+            id: first_id,
+            entangled_id: second_id,
+            //router_id,
+            constellation_proxy: constellation_proxy.clone(),
+        };
+        let second = MessagePort {
+            id: second_id,
+            entangled_id: first_id,
+            //router_id,
+            constellation_proxy: constellation_proxy.clone(),
+        };
+
+        (first, second)
+    }
+
+    pub fn post_message(&self, js_value: JSValue) {
+        let task = PortMessageTask {
+            origin: ImmutableOrigin::new_opaque(),
+            data: PostMessageData::Serialized(js_value),
+        };
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::PostMessage(
+                self.entangled_id,
+                task,
+            ));
     }
 }
 

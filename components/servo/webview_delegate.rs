@@ -3,14 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::PathBuf;
+use std::rc::Rc;
 
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
-    GamepadHapticEffectType, InputMethodType, KeyboardEvent, LoadStatus, MediaSessionEvent,
-    Notification, PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
-    SimpleDialog, TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    GamepadHapticEffectType, InputMethodType, JSValue, KeyboardEvent, LoadStatus,
+    MediaSessionEvent, Notification, PermissionFeature, RgbColor, ScreenGeometry,
+    SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
+    WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
@@ -18,7 +20,7 @@ use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 use crate::responders::ServoErrorSender;
-use crate::{ConstellationProxy, WebView};
+use crate::{ConstellationProxy, MessagePort, WebView};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
 /// asynchronously. If not handled, the request will automatically be allowed.
@@ -586,6 +588,15 @@ pub trait WebViewDelegate {
 
     /// Request to display a notification.
     fn show_notification(&self, _webview: WebView, _notification: Notification) {}
+
+    ///
+    fn message_port_onmessage(
+        &self,
+        _webview: WebView,
+        _message_port: Rc<MessagePort>,
+        _data: JSValue,
+    ) {
+    }
 }
 
 pub(crate) struct DefaultWebViewDelegate;

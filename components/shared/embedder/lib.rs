@@ -20,7 +20,7 @@ use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
+use base::id::{MessagePortId, PipelineId, ScrollTreeNodeId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Point2D, Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -452,6 +452,8 @@ pub enum EmbedderMsg {
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
     ),
+    ///
+    PostMessage(MessagePortId, JSValue),
 }
 
 impl Debug for EmbedderMsg {
@@ -972,7 +974,7 @@ impl Display for FocusSequenceNumber {
 #[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct JavaScriptEvaluationId(pub usize);
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum JSValue {
     Undefined,
     Null,

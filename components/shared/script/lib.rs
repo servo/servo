@@ -21,8 +21,8 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
-    LoadData, NavigationHistoryBehavior, ScriptToConstellationChan, StructuredSerializedData,
-    WindowSizeType,
+    LoadData, MessagePortImpl, NavigationHistoryBehavior, ScriptToConstellationChan,
+    StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -250,7 +250,16 @@ pub enum ScriptThreadMessage {
     SetScrollStates(PipelineId, HashMap<ExternalScrollId, LayoutVector2D>),
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
-    EvaluateJavaScript(PipelineId, JavaScriptEvaluationId, String),
+    EvaluateJavaScript {
+        /// The pipeline in which to evaluate this JS.
+        pipeline_id: PipelineId,
+        /// A unique identifier for this evaluation operation.
+        evaluation_id: JavaScriptEvaluationId,
+        /// The JS source to evaluate.
+        script: String,
+        /// A transferred message port to provide as an argument when evaluating the JS.
+        message_port: Option<MessagePortImpl>,
+    },
     /// A new batch of keys for the image cache for the specific pipeline.
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
 }

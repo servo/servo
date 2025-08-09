@@ -15,6 +15,8 @@ use servo::{Servo, ServoBuilder};
 
 macro_rules! run_api_tests {
     ($($test_function:ident), +) => {
+        env_logger::init();
+
         let mut failed = false;
 
         // Be sure that `servo_test` is dropped before exiting early.
@@ -39,6 +41,7 @@ pub(crate) fn run_test(
     servo_test: &ServoTest,
     failed: &mut bool,
 ) {
+    println!("Starting {test_name}");
     match test_function(servo_test) {
         Ok(_) => println!("    ✅ {test_name}"),
         Err(error) => {

@@ -851,9 +851,11 @@ class CommandBase(object):
             # See https://github.com/servo/servo/issues/35072#issuecomment-2600749483
             features += ["crown"]
 
-        if "-p" not in cargo_args:  # We're building specific package, that may not have features
+        print(cargo_args)
+        if True or "-p" not in cargo_args:  # We're building specific package, that may not have features
+            print("features: " + str(list(self.features)))
             features += list(self.features)
-            if self.enable_media:
+            if False and self.enable_media:
                 features.append("media-gstreamer")
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
@@ -874,6 +876,9 @@ class CommandBase(object):
         # but uv venv on Windows only provides a `python`, not `python3`.
         env["PYTHON3"] = "python"
 
+        print("!!!!!")
+        print(args)
+        print("!!!!!")
         if capture_output:
             return subprocess.run(["cargo", command] + args + cargo_args, env=env, capture_output=capture_output)
 

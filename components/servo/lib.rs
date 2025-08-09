@@ -129,7 +129,7 @@ use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 use crate::webrender_api::FrameReadyParams;
-pub use crate::webview::{WebView, WebViewBuilder};
+pub use crate::webview::{MessagePort, WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, ColorPicker, FormControl, NavigationRequest,
     PermissionRequest, SelectElement, WebResourceLoad, WebViewDelegate,
@@ -200,6 +200,7 @@ pub struct Servo {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
+    embedder_proxy: EmbedderProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
@@ -450,7 +451,7 @@ impl Servo {
 
         let constellation_chan = create_constellation(
             opts.config_dir.clone(),
-            embedder_proxy,
+            embedder_proxy.clone(),
             compositor_proxy.clone(),
             time_profiler_chan.clone(),
             mem_profiler_chan.clone(),
@@ -498,6 +499,7 @@ impl Servo {
                 constellation_proxy.clone(),
             ))),
             constellation_proxy,
+            embedder_proxy,
             embedder_receiver,
             shutdown_state,
             webviews: Default::default(),
@@ -1048,6 +1050,18 @@ impl Servo {
                 };
                 if let Err(error) = response_sender.send(screen_metrics()) {
                     warn!("Failed to respond to GetScreenMetrics: {error}");
+                }
+            },
+            EmbedderMsg::PostMessage(message_port_id, data) => {
+                for id in self.webviews.borrow().keys() {
+                    if let Some(webview) = self.get_webview_handle(*id) {
+                        if let Some(message_port) = webview.message_port(message_port_id) {
+                            webview
+                                .delegate()
+                                .message_port_onmessage(webview, message_port, data);
+                            break;
+                        }
+                    }
                 }
             },
         }
