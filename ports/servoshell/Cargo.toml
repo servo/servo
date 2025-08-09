@@ -92,8 +92,8 @@ euclid = { workspace = true }
 hilog = "0.2.2"
 # force inprocess until we add multi-process support for ohos
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
-napi-derive-ohos = "1.0.4"
-napi-ohos = "1.0.4"
+napi-derive-ohos = "1.1.0"
+napi-ohos = "1.1.0"
 ohos-ime = "0.4.0"
 ohos-ime-sys = "0.2.2"
 ohos-deviceinfo = "0.1.0"
