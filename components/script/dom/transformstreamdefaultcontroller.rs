@@ -28,6 +28,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::textdecodercommon::TextDecoderCommon;
 use crate::dom::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
+use crate::dom::textencoderstream::{Encoder, encode_and_enqueue_a_chunk, encode_and_flush};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -75,6 +76,10 @@ pub(crate) enum TransformerType {
     ///
     /// <https://encoding.spec.whatwg.org/#textdecodercommon>
     Decoder(Rc<TextDecoderCommon>),
+    /// Algorithms supporting `TextEncoderStream` are implemented in Rust
+    ///
+    /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
+    Encoder(Encoder),
 }
 
 impl TransformerType {
@@ -256,6 +261,28 @@ impl TransformStreamDefaultController {
                         p
                     })
             },
+            TransformerType::Encoder(encoder) => {
+                // <https://encoding.spec.whatwg.org/#dom-textencoderstream>
+                // Step 2. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the encode
+                //      and enqueue a chunk algorithm with this and chunk.
+                encode_and_enqueue_a_chunk(cx, global, chunk, encoder, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+                    // Step 5.1 Let result be the result of running transformAlgorithm given chunk.
+                    // Step 5.2 If result is a Promise, then return result.
+                    // Note: not applicable, the spec does NOT require encode_and_enqueue_a_chunk() to return a Promise
+                    // Step 5.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx, (), can_gc))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 5.1 If this throws an exception e,
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
+                        // return a promise rejected with e.
+                        p.reject_error(e, can_gc);
+                        p
+                    })
+            },
         };
 
         Ok(result)
@@ -301,6 +328,17 @@ impl TransformStreamDefaultController {
                 }
             },
             TransformerType::Decoder(_) => {
+                // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
+                //      if cancelAlgorithm was given, or null otherwise
+                // Note: `TextDecoderStream` does NOT specify a cancel algorithm.
+                // Step 7.2 If result is a Promise, then return result.
+                // Note: Not applicable.
+                // Step 7.3 Return a promise resolved with undefined.
+                Promise::new_resolved(global, cx, (), can_gc)
+            },
+            TransformerType::Encoder(_) => {
                 // <https://streams.spec.whatwg.org/#transformstream-set-up>
                 // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
                 // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
@@ -364,6 +402,28 @@ impl TransformStreamDefaultController {
                     //      if flushAlgorithm was given, or null otherwise.
                     // Step 6.2 If result is a Promise, then return result.
                     // Note: Not applicable. The spec does NOT require flush_and_enqueue algo to return a Promise
+                    // Step 6.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx, (), can_gc))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 6.1 If this throws an exception e,
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
+                        // return a promise rejected with e.
+                        p.reject_error(e, can_gc);
+                        p
+                    })
+            },
+            TransformerType::Encoder(encoder) => {
+                // <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
+                // Step 3. Let flushAlgorithm be an algorithm which runs the encode and flush algorithm with this.
+                encode_and_flush(cx, global, encoder, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+                    // Step 6.1 Let result be the result of running flushAlgorithm,
+                    //      if flushAlgorithm was given, or null otherwise.
+                    // Step 6.2 If result is a Promise, then return result.
+                    // Note: Not applicable. The spec does NOT require encode_and_flush algo to return a Promise
                     // Step 6.3 Return a promise resolved with undefined.
                     .map(|_| Promise::new_resolved(global, cx, (), can_gc))
                     .unwrap_or_else(|e| {
