@@ -629,15 +629,7 @@ impl Event {
         }
 
         // Step 12 Return false if event’s canceled flag is set; otherwise true.
-        self.status() == EventStatus::NotCanceled
-    }
-
-    pub(crate) fn status(&self) -> EventStatus {
-        if self.DefaultPrevented() {
-            EventStatus::Canceled
-        } else {
-            EventStatus::NotCanceled
-        }
+        !self.DefaultPrevented()
     }
 
     #[inline]
@@ -1103,12 +1095,6 @@ pub(crate) enum EventDefault {
     /// The event has been handled somewhere in the DOM, and it should be prevented from being
     /// re-handled elsewhere. This doesn't affect the judgement of `DefaultPrevented`
     Handled,
-}
-
-#[derive(Debug, PartialEq)]
-pub(crate) enum EventStatus {
-    Canceled,
-    NotCanceled,
 }
 
 /// <https://dom.spec.whatwg.org/#concept-event-fire>

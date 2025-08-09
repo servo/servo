@@ -151,7 +151,7 @@ use crate::dom::element::{
     CustomElementCreationMode, Element, ElementCreator, ElementPerformFullscreenEnter,
     ElementPerformFullscreenExit,
 };
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::fontfaceset::FontFaceSet;
@@ -1678,11 +1678,12 @@ impl Document {
             vec![],                   // predicted_events
             can_gc,
         );
-        let event = menu_event.upcast::<Event>();
-        event.fire(target, can_gc);
 
-        // if the event was not canceled, notify the embedder to show the context menu
-        if event.status() == EventStatus::NotCanceled {
+        // Step 3. Let result = dispatch menuevent at target.
+        let result = menu_event.upcast::<Event>().fire(target, can_gc);
+
+        // Step 4. If result is true, then show the UA context menu
+        if result {
             let (sender, receiver) =
                 ipc::channel::<ContextMenuResult>().expect("Failed to create IPC channel.");
             self.send_to_embedder(EmbedderMsg::ShowContextMenu(
