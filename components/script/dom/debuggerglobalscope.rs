@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use base::id::{Index, PipelineId, PipelineNamespaceId};
 use constellation_traits::ScriptToConstellationChan;
-use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
 use dom_struct::dom_struct;
 use embedder_traits::JavaScriptEvaluationError;
 use embedder_traits::resources::{self, Resource};
@@ -17,6 +19,7 @@ use profile_traits::{mem, time};
 use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
     DebuggerGlobalScopeMethods, NotifyNewSource,
 };
+use script_bindings::codegen::GenericBindings::GetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -27,7 +30,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::types::{DebuggerAddDebuggeeEvent, Event};
+use crate::dom::types::{DebuggerAddDebuggeeEvent, Event, GetPossibleBreakpointsEvent};
 #[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -41,6 +44,11 @@ use crate::script_runtime::{CanGc, IntroductionType, JSContext};
 /// <https://firefox-source-docs.mozilla.org/js/Debugger/>
 pub(crate) struct DebuggerGlobalScope {
     global_scope: GlobalScope,
+    #[no_trace]
+    devtools_to_script_sender: IpcSender<DevtoolScriptControlMsg>,
+    #[no_trace]
+    get_possible_breakpoints_result_sender:
+        RefCell<Option<IpcSender<Vec<devtools_traits::RecommendedBreakpointLocation>>>>,
 }
 
 impl DebuggerGlobalScope {
@@ -55,7 +63,8 @@ impl DebuggerGlobalScope {
     pub(crate) fn new(
         runtime: &Runtime,
         debugger_pipeline_id: PipelineId,
-        devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+        script_to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+        devtools_to_script_sender: IpcSender<DevtoolScriptControlMsg>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
@@ -66,7 +75,7 @@ impl DebuggerGlobalScope {
         let global = Box::new(Self {
             global_scope: GlobalScope::new_inherited(
                 debugger_pipeline_id,
-                devtools_chan,
+                script_to_devtools_sender,
                 mem_profiler_chan,
                 time_profiler_chan,
                 script_to_constellation_chan,
@@ -81,6 +90,8 @@ impl DebuggerGlobalScope {
                 None,
                 false,
             ),
+            devtools_to_script_sender,
+            get_possible_breakpoints_result_sender: RefCell::new(None),
         });
         let global = unsafe {
             DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
@@ -153,6 +164,28 @@ impl DebuggerGlobalScope {
         assert!(
             DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerAddDebuggeeEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_get_possible_breakpoints(
+        &self,
+        can_gc: CanGc,
+        spidermonkey_id: u32,
+        result_sender: IpcSender<Vec<devtools_traits::RecommendedBreakpointLocation>>,
+    ) {
+        assert!(
+            self.get_possible_breakpoints_result_sender
+                .replace(Some(result_sender))
+                .is_none()
+        );
+        let event = DomRoot::upcast::<Event>(GetPossibleBreakpointsEvent::new(
+            self.upcast(),
+            spidermonkey_id,
+            can_gc,
+        ));
+        assert!(
+            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            "Guaranteed by AddDebuggeeEvent::new"
         );
     }
 }
@@ -242,6 +275,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 spidermonkey_id: args.spidermonkeyId,
             };
             if let Err(error) = devtools_chan.send(ScriptToDevtoolsControlMsg::CreateSourceActor(
+                self.devtools_to_script_sender.clone(),
                 pipeline_id,
                 source_info,
             )) {
@@ -250,5 +284,28 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         } else {
             debug!("Not creating debuggee for script with no `introductionType`");
         }
+    }
+
+    fn GetPossibleBreakpointsResult(
+        &self,
+        event: &GetPossibleBreakpointsEvent,
+        result: Vec<RecommendedBreakpointLocation>,
+    ) {
+        info!("GetPossibleBreakpointsResult: {event:?} {result:?}");
+        let sender = self
+            .get_possible_breakpoints_result_sender
+            .take()
+            .expect("Guaranteed by Self::fire_get_possible_breakpoints()");
+        let _ = sender.send(
+            result
+                .into_iter()
+                .map(|entry| devtools_traits::RecommendedBreakpointLocation {
+                    offset: entry.offset,
+                    line_number: entry.lineNumber,
+                    column_number: entry.columnNumber,
+                    is_step_start: entry.isStepStart,
+                })
+                .collect(),
+        );
     }
 }

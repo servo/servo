@@ -6,6 +6,8 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
 use base::id::PipelineId;
+use devtools_traits::DevtoolScriptControlMsg;
+use ipc_channel::ipc::{IpcSender, channel};
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -61,6 +63,8 @@ pub struct SourceActor {
     pub spidermonkey_id: u32,
     /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
     pub introduction_type: String,
+
+    script_sender: IpcSender<DevtoolScriptControlMsg>,
 }
 
 #[derive(Serialize)]
@@ -74,13 +78,19 @@ struct SourceContentReply {
 #[derive(Serialize)]
 struct GetBreakableLinesReply {
     from: String,
-    lines: Vec<usize>,
+    // Line numbers are one-based.
+    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+    lines: BTreeSet<u32>,
 }
 
 #[derive(Serialize)]
 struct GetBreakpointPositionsCompressedReply {
     from: String,
-    positions: BTreeMap<usize, Vec<usize>>,
+    // Column numbers are in UTF-16 code units, not Unicode scalar values or grapheme clusters.
+    // Line number are one-based. Column numbers are zero-based.
+    // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
+    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+    positions: BTreeMap<u32, BTreeSet<u32>>,
 }
 
 impl SourceManager {
@@ -113,6 +123,7 @@ impl SourceActor {
         content_type: Option<String>,
         spidermonkey_id: u32,
         introduction_type: String,
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
     ) -> SourceActor {
         SourceActor {
             name,
@@ -122,9 +133,11 @@ impl SourceActor {
             is_black_boxed: false,
             spidermonkey_id,
             introduction_type,
+            script_sender,
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new_registered(
         actors: &mut ActorRegistry,
         pipeline_id: PipelineId,
@@ -133,6 +146,7 @@ impl SourceActor {
         content_type: Option<String>,
         spidermonkey_id: u32,
         introduction_type: String,
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
     ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
 
@@ -143,6 +157,7 @@ impl SourceActor {
             content_type,
             spidermonkey_id,
             introduction_type,
+            script_sender,
         );
         actors.register(Box::new(source_actor));
         actors.register_source_actor(pipeline_id, &source_actor_name);
@@ -196,35 +211,44 @@ impl Actor for SourceActor {
             // Client wants to know which lines can have breakpoints.
             // Sent when opening a source in the Sources panel, and controls whether the line numbers can be clicked.
             "getBreakableLines" => {
-                // Tell the client that every line is breakable.
-                // TODO: determine which lines are actually breakable.
-                let line_count = self
-                    .content
-                    .as_ref()
-                    .map_or(0, |content| content.lines().count());
+                let (tx, rx) = channel().map_err(|_| ActorError::Internal)?;
+                self.script_sender
+                    .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
+                        self.spidermonkey_id,
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+                let result = rx.recv().map_err(|_| ActorError::Internal)?;
+                let lines = result
+                    .into_iter()
+                    .map(|entry| entry.line_number)
+                    .collect::<BTreeSet<_>>();
                 let reply = GetBreakableLinesReply {
                     from: self.name(),
-                    // Line numbers are one-based.
-                    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
-                    lines: (1..=line_count).collect(),
+                    lines,
                 };
                 request.reply_final(&reply)?
             },
             // Client wants to know which columns in the line can have breakpoints.
             // Sent when the user tries to set a breakpoint by clicking a line number in a source.
             "getBreakpointPositionsCompressed" => {
-                // Tell the client that every column is breakable.
-                // TODO: determine which columns are actually breakable.
-                let mut positions = BTreeMap::default();
-                if let Some(content) = self.content.as_ref() {
-                    for (line_number, line) in content.lines().enumerate() {
-                        // Column numbers are in UTF-16 code units, not Unicode scalar values or grapheme clusters.
-                        let column_count = line.encode_utf16().count();
-                        // Line number are one-based. Column numbers are zero-based.
-                        // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
-                        // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
-                        positions.insert(line_number + 1, (0..column_count).collect());
-                    }
+                let (tx, rx) = channel().map_err(|_| ActorError::Internal)?;
+                self.script_sender
+                    .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
+                        self.spidermonkey_id,
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+                let result = rx.recv().map_err(|_| ActorError::Internal)?;
+                let mut positions: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::default();
+                for entry in result {
+                    // Line number are one-based. Column numbers are zero-based.
+                    // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
+                    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+                    positions
+                        .entry(entry.line_number)
+                        .or_default()
+                        .insert(entry.column_number - 1);
                 }
                 let reply = GetBreakpointPositionsCompressedReply {
                     from: self.name(),

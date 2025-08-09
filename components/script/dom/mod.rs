@@ -341,6 +341,7 @@ pub(crate) mod gamepadbuttonlist;
 pub(crate) mod gamepadevent;
 pub(crate) mod gamepadhapticactuator;
 pub(crate) mod gamepadpose;
+pub(crate) mod getpossiblebreakpointsevent;
 #[allow(dead_code)]
 pub(crate) mod globalscope;
 pub(crate) mod hashchangeevent;
