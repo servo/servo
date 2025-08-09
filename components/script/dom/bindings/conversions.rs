@@ -84,16 +84,18 @@ pub(crate) unsafe fn get_property_jsval(
         Err(_) => return Ok(()),
     };
     let mut found = false;
-    if JS_HasProperty(cx, object, cname.as_ptr(), &mut found) && found {
-        JS_GetProperty(cx, object, cname.as_ptr(), rval);
-        if JS_IsExceptionPending(cx) {
-            return Err(Error::JSFailed);
+    unsafe {
+        if JS_HasProperty(cx, object, cname.as_ptr(), &mut found) && found {
+            JS_GetProperty(cx, object, cname.as_ptr(), rval);
+            if JS_IsExceptionPending(cx) {
+                return Err(Error::JSFailed);
+            }
+            Ok(())
+        } else if JS_IsExceptionPending(cx) {
+            Err(Error::JSFailed)
+        } else {
+            Ok(())
         }
-        Ok(())
-    } else if JS_IsExceptionPending(cx) {
-        Err(Error::JSFailed)
-    } else {
-        Ok(())
     }
 }
 
@@ -109,13 +111,14 @@ where
 {
     debug!("Getting property {}.", name);
     rooted!(in(cx) let mut result = UndefinedValue());
-    get_property_jsval(cx, object, name, result.handle_mut())?;
+    unsafe { get_property_jsval(cx, object, name, result.handle_mut())? };
     if result.is_undefined() {
         debug!("No property {}.", name);
         return Ok(None);
     }
     debug!("Converting property {}.", name);
-    match T::from_jsval(cx, result.handle(), option) {
+    let value = unsafe { T::from_jsval(cx, result.handle(), option) };
+    match value {
         Ok(ConversionResult::Success(value)) => Ok(Some(value)),
         Ok(ConversionResult::Failure(_)) => Ok(None),
         Err(()) => Err(Error::JSFailed),

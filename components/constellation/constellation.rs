@@ -130,14 +130,14 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy, FocusId,
+    AnimationState, CompositorHitTestResult, EmbedderMsg, EmbedderProxy, FocusId,
     FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
     KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
     WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
 };
-use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
+use euclid::{Point2D, Size2D};
 use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -149,7 +149,10 @@ use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::{self, AsyncRuntime, IpcSend, ReferrerPolicy, ResourceThreads};
+use net_traits::{
+    self, AsyncRuntime, IpcSend, ReferrerPolicy, ResourceThreads, exit_fetch_thread,
+    start_fetch_thread,
+};
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use script_traits::{
@@ -160,6 +163,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
@@ -461,6 +465,9 @@ pub struct Constellation<STF, SWF> {
 
     /// The async runtime.
     async_runtime: Box<dyn AsyncRuntime>,
+
+    /// When in single-process mode, join handles for script-threads.
+    script_join_handles: HashMap<WebViewId, JoinHandle<()>>,
 }
 
 /// State needed to construct a constellation.
@@ -711,6 +718,7 @@ where
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
+                    script_join_handles: Default::default(),
                 };
 
                 constellation.run();
@@ -722,6 +730,11 @@ where
 
     /// The main event loop for the constellation.
     fn run(&mut self) {
+        // Start a fetch thread.
+        // In single-process mode this will be the global fetch thread;
+        // in multi-process mode this will be used only by the canvas paint thread.
+        let join_handle = start_fetch_thread(&self.public_resource_threads.core_thread);
+
         while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
             // This is for testing the hardening of the constellation.
@@ -729,6 +742,12 @@ where
             self.handle_request();
         }
         self.handle_shutdown();
+
+        // Shut down the fetch thread started above.
+        exit_fetch_thread();
+        join_handle
+            .join()
+            .expect("Failed to join on the fetch thread in the constellation");
     }
 
     /// Generate a new pipeline id namespace.
@@ -970,6 +989,10 @@ where
 
         if let Some(chan) = pipeline.bhm_control_chan {
             self.background_monitor_control_senders.push(chan);
+        }
+
+        if let Some(join_handle) = pipeline.join_handle {
+            self.script_join_handles.insert(webview_id, join_handle);
         }
 
         if let Some(host) = host {
@@ -1423,8 +1446,8 @@ where
             EmbedderToConstellationMessage::ForwardInputEvent(webview_id, event, hit_test) => {
                 self.forward_input_event(webview_id, event, hit_test);
             },
-            EmbedderToConstellationMessage::SetCursor(webview_id, cursor) => {
-                self.handle_set_cursor_msg(webview_id, cursor)
+            EmbedderToConstellationMessage::RefreshCursor(pipeline_id, point) => {
+                self.handle_refresh_cursor(pipeline_id, point)
             },
             EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration) => {
                 for background_monitor_control_sender in &self.background_monitor_control_senders {
@@ -2523,12 +2546,20 @@ where
     fn handle_shutdown(&mut self) {
         debug!("Handling shutdown.");
 
+        // In single process mode, join on script-threads
+        // from webview which haven't been manually closed before.
+        for (_, join_handle) in self.script_join_handles.drain() {
+            if join_handle.join().is_err() {
+                error!("Failed to join on a script-thread.");
+            }
+        }
+
         // In single process mode, join on the background hang monitor worker thread.
         drop(self.background_monitor_register.take());
         if let Some(join_handle) = self.background_monitor_register_join_handle.take() {
-            join_handle
-                .join()
-                .expect("Failed to join on the BHM background thread.");
+            if join_handle.join().is_err() {
+                error!("Failed to join on the bhm background thread.");
+            }
         }
 
         // At this point, there are no active pipelines,
@@ -3053,6 +3084,11 @@ where
                 .remove(&browsing_context.bc_group_id);
         }
 
+        // Note: In single-process mode,
+        // if the webview is manually closed, we drop the join handle without joining on it.
+        // It is unlikely the thread will still run when the constellation shuts-down.
+        self.script_join_handles.remove(&webview_id);
+
         debug!("{webview_id}: Closed");
     }
 
@@ -3403,9 +3439,17 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_set_cursor_msg(&mut self, webview_id: WebViewId, cursor: Cursor) {
-        self.embedder_proxy
-            .send(EmbedderMsg::SetCursor(webview_id, cursor));
+    fn handle_refresh_cursor(&self, pipeline_id: PipelineId, point: Point2D<f32, CSSPixel>) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::RefreshCursor(pipeline_id, point))
+        {
+            warn!("Could not send RefreshCursor message to pipeline: {error:?}");
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]

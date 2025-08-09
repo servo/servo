@@ -2233,7 +2233,11 @@ impl HTMLInputElement {
         self.update_checked_state(self.DefaultChecked(), false);
         self.value_changed(can_gc);
         // Step 4. Empty selected files
-        self.filelist.set(None);
+        if self.filelist.get().is_some() {
+            let window = self.owner_window();
+            let filelist = FileList::new(&window, vec![], can_gc);
+            self.filelist.set(Some(&filelist));
+        }
         // Step 5. invoke the value sanitization algorithm iff
         // the type attribute's current state defines one.
         // This is covered in `fn sanitize_value` called below.
@@ -2736,7 +2740,7 @@ impl HTMLInputElement {
             let (ipc_sender, ipc_receiver) =
                 ipc::channel::<Option<RgbColor>>().expect("Failed to create IPC channel!");
             let document = self.owner_document();
-            let rect = self.upcast::<Node>().bounding_content_box_or_zero();
+            let rect = self.upcast::<Node>().content_box().unwrap_or_default();
             let rect = Rect::new(
                 Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
                 Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),

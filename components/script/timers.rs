@@ -35,7 +35,7 @@ use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
 
@@ -562,6 +562,7 @@ impl JsTimerTask {
                     ScriptFetchOptions::default_classic_script(&global),
                     global.api_base_url(),
                     can_gc,
+                    Some(IntroductionType::DOM_TIMER),
                 );
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {

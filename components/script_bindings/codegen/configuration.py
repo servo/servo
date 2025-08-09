@@ -4,8 +4,21 @@
 
 import functools
 import os
+from typing import Any
 
-from WebIDL import IDLExternalInterface, IDLSequenceType, IDLWrapperType, WebIDLError
+from WebIDL import (
+    IDLExternalInterface,
+    IDLSequenceType,
+    IDLWrapperType,
+    WebIDLError,
+    IDLObject,
+    IDLType,
+    IDLInterface,
+    IDLDictionary,
+    IDLCallback,
+    IDLAttribute,
+    IDLMethod,
+)
 
 
 class Configuration:
@@ -13,7 +26,14 @@ class Configuration:
     Represents global configuration state based on IDL parse data and
     the configuration file.
     """
-    def __init__(self, filename, parseData) -> None:
+    glbl: dict[str, Any]
+    enumConfig: dict[str, Any]
+    dictConfig: dict[str, Any]
+    unionConfig: dict[str, Any]
+    descriptors: list["Descriptor"]
+    interfaces: dict[str, IDLInterface]
+
+    def __init__(self, filename: str, parseData: list[IDLInterface]) -> None:
         # Read the configuration file.
         glbl = {}
         exec(compile(open(filename).read(), filename, 'exec'), glbl)
@@ -70,15 +90,15 @@ class Configuration:
             return (x > y) - (x < y)
         self.descriptors.sort(key=functools.cmp_to_key(lambda x, y: cmp(x.name, y.name)))
 
-    def getInterface(self, ifname):
+    def getInterface(self, ifname: str) -> IDLInterface:
         return self.interfaces[ifname]
 
-    def getDescriptors(self, **filters):
+    def getDescriptors(self, **filters) -> list["Descriptor"]:
         """Gets the descriptors that match the given filters."""
         curr = self.descriptors
         for key, val in filters.items():
             if key == 'webIDLFile':
-                def getter(x):
+                def getter(x: Descriptor):
                     return x.interface.location.filename
             elif key == 'hasInterfaceObject':
                 def getter(x):
@@ -110,36 +130,36 @@ class Configuration:
             curr = [x for x in curr if getter(x) == val]
         return curr
 
-    def getEnums(self, webIDLFile):
+    def getEnums(self, webIDLFile: str) -> list[IDLInterface]:
         return [e for e in self.enums if e.filename == webIDLFile]
 
-    def getEnumConfig(self, name):
+    def getEnumConfig(self, name: str) -> dict[str, Any]:
         return self.enumConfig.get(name, {})
 
-    def getTypedefs(self, webIDLFile):
+    def getTypedefs(self, webIDLFile: str) -> list[IDLInterface]:
         return [e for e in self.typedefs if e.filename == webIDLFile]
 
     @staticmethod
-    def _filterForFile(items, webIDLFile=""):
+    def _filterForFile(items: list[IDLInterface], webIDLFile: str = "") -> list[IDLInterface]:
         """Gets the items that match the given filters."""
         if not webIDLFile:
             return items
 
         return [x for x in items if x.filename == webIDLFile]
 
-    def getUnionConfig(self, name):
+    def getUnionConfig(self, name: str) -> dict[str, Any]:
         return self.unionConfig.get(name, {})
 
-    def getDictionaries(self, webIDLFile=""):
+    def getDictionaries(self, webIDLFile: str = "") -> list[IDLInterface]:
         return self._filterForFile(self.dictionaries, webIDLFile=webIDLFile)
 
-    def getDictConfig(self, name):
+    def getDictConfig(self, name: str) -> dict[str, Any]:
         return self.dictConfig.get(name, {})
 
-    def getCallbacks(self, webIDLFile=""):
+    def getCallbacks(self, webIDLFile: str = "") -> list[IDLInterface]:
         return self._filterForFile(self.callbacks, webIDLFile=webIDLFile)
 
-    def getDescriptor(self, interfaceName):
+    def getDescriptor(self, interfaceName: str) -> "Descriptor":
         """
         Gets the appropriate descriptor for the given interface name.
         """
@@ -152,7 +172,7 @@ class Configuration:
                                         + str(len(descriptors)) + " matches")
         return descriptors[0]
 
-    def getDescriptorProvider(self):
+    def getDescriptorProvider(self) -> "DescriptorProvider":
         """
         Gets a descriptor provider that can provide descriptors as needed.
         """
@@ -171,7 +191,7 @@ class DescriptorProvider:
     def __init__(self, config) -> None:
         self.config = config
 
-    def getDescriptor(self, interfaceName):
+    def getDescriptor(self, interfaceName: str) -> "Descriptor":
         """
         Gets the appropriate descriptor for the given interface name given the
         context of the current descriptor.
@@ -179,7 +199,7 @@ class DescriptorProvider:
         return self.config.getDescriptor(interfaceName)
 
 
-def MemberIsLegacyUnforgeable(member, descriptor):
+def MemberIsLegacyUnforgeable(member: IDLAttribute | IDLMethod, descriptor: "Descriptor") -> bool:
     return ((member.isAttr() or member.isMethod())
             and not member.isStatic()
             and (member.isLegacyUnforgeable()
@@ -190,7 +210,10 @@ class Descriptor(DescriptorProvider):
     """
     Represents a single descriptor for an interface. See Bindings.conf.
     """
-    def __init__(self, config, interface, desc) -> None:
+    interface: IDLInterface
+    uniqueImplementation: bool
+
+    def __init__(self, config, interface: IDLInterface, desc: dict[str, Any]) -> None:
         DescriptorProvider.__init__(self, config)
         self.interface = interface
 
@@ -211,6 +234,7 @@ class Descriptor(DescriptorProvider):
         # functionality.
         prefix = "D::"
         if self.interface.isIteratorInterface():
+            assert self.interface.iterableInterface is not None
             itrName = self.interface.iterableInterface.identifier.name
             itrDesc = self.getDescriptor(itrName)
             nativeTypeDefault = iteratorNativeType(itrDesc)
@@ -290,7 +314,7 @@ class Descriptor(DescriptorProvider):
                 self.hasDefaultToJSON = True
 
         if self.concrete:
-            iface = self.interface
+            iface: IDLInterface | None = self.interface
             while iface:
                 for m in iface.members:
                     if not m.isMethod():
@@ -346,7 +370,7 @@ class Descriptor(DescriptorProvider):
             else:
                 assert isinstance(config, str)
                 if config == '*':
-                    iface = self.interface
+                    iface: IDLInterface | None = self.interface
                     while iface:
                         add('all', [m.name for m in iface.members], attribute)
                         iface = iface.parent
@@ -373,7 +397,7 @@ class Descriptor(DescriptorProvider):
 
         # Build the prototype chain.
         self.prototypeChain = []
-        parent = interface
+        parent: IDLInterface | None = interface
         while parent:
             self.prototypeChain.insert(0, parent.identifier.name)
             parent = parent.parent
@@ -392,10 +416,10 @@ class Descriptor(DescriptorProvider):
             return filename
         return None
 
-    def binaryNameFor(self, name, isStatic):
+    def binaryNameFor(self, name: str, isStatic: bool):
         return self._binaryNames.get((name, isStatic), name)
 
-    def internalNameFor(self, name):
+    def internalNameFor(self, name: str):
         return self._internalNames.get(name, name)
 
     def hasNamedPropertiesObject(self) -> bool:
@@ -487,15 +511,15 @@ def MakeNativeName(name):
     return name[0].upper() + name[1:]
 
 
-def getIdlFileName(object):
+def getIdlFileName(object: IDLObject):
     return os.path.basename(object.location.filename).split('.webidl')[0]
 
 
-def getModuleFromObject(object):
+def getModuleFromObject(object: IDLObject):
     return ('crate::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
 
 
-def getTypesFromDescriptor(descriptor):
+def getTypesFromDescriptor(descriptor: Descriptor):
     """
     Get all argument and return types for all members of the descriptor
     """
@@ -515,7 +539,7 @@ def getTypesFromDescriptor(descriptor):
     return types
 
 
-def getTypesFromDictionary(dictionary):
+def getTypesFromDictionary(dictionary: IDLDictionary) -> list[IDLType]:
     """
     Get all member types for this dictionary
     """
@@ -529,7 +553,7 @@ def getTypesFromDictionary(dictionary):
     return types
 
 
-def getTypesFromCallback(callback):
+def getTypesFromCallback(callback: IDLCallback) -> list[IDLType]:
     """
     Get the types this callback depends on: its return type and the
     types of its arguments.
@@ -540,13 +564,14 @@ def getTypesFromCallback(callback):
     return types
 
 
-def getUnwrappedType(type):
+def getUnwrappedType(type: IDLType) -> IDLType:
     while isinstance(type, IDLSequenceType):
         type = type.inner
     return type
 
 
-def iteratorNativeType(descriptor, infer=False):
+def iteratorNativeType(descriptor: Descriptor, infer: bool = False):
+    assert descriptor.interface.maplikeOrSetlikeOrIterable is not None
     iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
     assert (iterableDecl.isIterable() and iterableDecl.isPairIterator()) \
         or iterableDecl.isSetlike() or iterableDecl.isMaplike()

@@ -4,10 +4,10 @@
 
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
-use style::Zero;
 use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayInside;
+use style::{Atom, Zero};
 use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
 use taffy::{AvailableSpace, MaybeMath, RequestedAxis, RunMode};
 
@@ -98,6 +98,8 @@ impl taffy::TraversePartialTree for TaffyContainerContext<'_> {
 }
 
 impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
+    type CustomIdent = Atom;
+
     type CoreContainerStyle<'a>
         = TaffyStyloStyle<&'a ComputedValues>
     where
@@ -199,7 +201,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 };
 
                 child.positioning_context = PositioningContext::default();
-                let layout = independent_context.layout_without_caching(
+                let layout = independent_context.layout(
                     self.layout_context,
                     &mut child.positioning_context,
                     &content_box_size_override,

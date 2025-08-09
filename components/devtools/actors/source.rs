@@ -27,6 +27,8 @@ pub(crate) struct SourceForm {
     /// URL of the script, or URL of the page for inline scripts.
     pub url: String,
     pub is_black_boxed: bool,
+    /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
+    pub introduction_type: String,
 }
 
 #[derive(Serialize)]
@@ -53,6 +55,9 @@ pub struct SourceActor {
 
     pub content: Option<String>,
     pub content_type: Option<String>,
+
+    /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
+    pub introduction_type: String,
 }
 
 #[derive(Serialize)]
@@ -91,6 +96,7 @@ impl SourceActor {
         url: ServoUrl,
         content: Option<String>,
         content_type: Option<String>,
+        introduction_type: String,
     ) -> SourceActor {
         SourceActor {
             name,
@@ -98,6 +104,7 @@ impl SourceActor {
             content,
             content_type,
             is_black_boxed: false,
+            introduction_type,
         }
     }
 
@@ -107,10 +114,17 @@ impl SourceActor {
         url: ServoUrl,
         content: Option<String>,
         content_type: Option<String>,
+        introduction_type: String,
     ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
 
-        let source_actor = SourceActor::new(source_actor_name.clone(), url, content, content_type);
+        let source_actor = SourceActor::new(
+            source_actor_name.clone(),
+            url,
+            content,
+            content_type,
+            introduction_type,
+        );
         actors.register(Box::new(source_actor));
         actors.register_source_actor(pipeline_id, &source_actor_name);
 
@@ -122,6 +136,7 @@ impl SourceActor {
             actor: self.name.clone(),
             url: self.url.to_string(),
             is_black_boxed: self.is_black_boxed,
+            introduction_type: self.introduction_type.clone(),
         }
     }
 }

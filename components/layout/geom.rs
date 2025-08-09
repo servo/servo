@@ -993,7 +993,7 @@ impl From<Option<Au>> for SizeConstraint {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub(crate) struct Sizes {
     /// <https://drafts.csswg.org/css-sizing-3/#preferred-size-properties>
     pub preferred: Size<Au>,

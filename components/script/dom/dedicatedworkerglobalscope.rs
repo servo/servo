@@ -46,11 +46,12 @@ use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
 use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::reportingendpoint::ReportingEndpoint;
+use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
@@ -59,7 +60,9 @@ use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
+use crate::script_runtime::{
+    CanGc, IntroductionType, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext,
+};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 
@@ -425,6 +428,19 @@ impl DedicatedWorkerGlobalScope {
                     };
                     Runtime::new_with_parent(Some(parent), Some(task_source))
                 };
+                let debugger_global = DebuggerGlobalScope::new(
+                    &runtime,
+                    pipeline_id,
+                    init.to_devtools_sender.clone(),
+                    init.mem_profiler_chan.clone(),
+                    init.time_profiler_chan.clone(),
+                    init.script_to_constellation_chan.clone(),
+                    init.resource_threads.clone(),
+                    #[cfg(feature = "webgpu")]
+                    gpu_id_hub.clone(),
+                    CanGc::note(),
+                );
+                debugger_global.execute(CanGc::note());
 
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
@@ -451,6 +467,7 @@ impl DedicatedWorkerGlobalScope {
                     }
                 }
 
+                let worker_id = init.worker_id;
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     DOMString::from_string(worker_name),
@@ -468,6 +485,12 @@ impl DedicatedWorkerGlobalScope {
                     gpu_id_hub,
                     control_receiver,
                     insecure_requests_policy,
+                );
+                debugger_global.fire_add_debuggee(
+                    CanGc::note(),
+                    global.upcast(),
+                    pipeline_id,
+                    Some(worker_id),
                 );
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.
@@ -517,6 +540,10 @@ impl DedicatedWorkerGlobalScope {
                     let pipeline_id = global_scope.pipeline_id();
                     let source_info = SourceInfo {
                         url: metadata.final_url,
+                        introduction_type: IntroductionType::WORKER
+                            .to_str()
+                            .expect("Guaranteed by definition")
+                            .to_owned(),
                         external: true, // Worker scripts are always external.
                         worker_id: Some(global.upcast::<WorkerGlobalScope>().get_worker_id()),
                         content: Some(source.to_string()),
@@ -731,11 +758,9 @@ impl DedicatedWorkerGlobalScope {
                 HandleValue::null(),
                 CanGc::note(),
             );
-            let event_status =
-                event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note());
 
             // Step 2.
-            if event_status == EventStatus::NotCanceled {
+            if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note()) {
                 global.report_an_error(error_info, HandleValue::null(), CanGc::note());
             }
         }));

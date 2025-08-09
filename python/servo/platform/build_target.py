@@ -155,15 +155,15 @@ class AndroidTarget(CrossBuildTarget):
 
         android_api = android_platform.replace("android-", "")
 
-        # Check if the NDK version is 26
+        # Check if the NDK version is 28
         if not os.path.isfile(path.join(env["ANDROID_NDK_ROOT"], "source.properties")):
             print("ANDROID_NDK should have file `source.properties`.")
             print("The environment variable ANDROID_NDK_ROOT may be set at a wrong path.")
             sys.exit(1)
         with open(path.join(env["ANDROID_NDK_ROOT"], "source.properties"), encoding="utf8") as ndk_properties:
             lines = ndk_properties.readlines()
-            if lines[1].split(" = ")[1].split(".")[0] != "26":
-                print("Servo currently only supports NDK r26c.")
+            if lines[1].split(" = ")[1].split(".")[0] != "28":
+                print("Servo currently only supports NDK r28.")
                 sys.exit(1)
 
         # Android builds also require having the gcc bits on the PATH and various INCLUDE
@@ -239,6 +239,9 @@ class AndroidTarget(CrossBuildTarget):
 
         env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib")
         env["CLANG_PATH"] = to_ndk_bin("clang")
+        env["BINDGEN_EXTRA_CLANG_ARGS"] = (
+            f"--target={android_toolchain_name} --sysroot={path.join(llvm_toolchain, 'sysroot')}"
+        )
 
         # A cheat-sheet for some of the build errors caused by getting the search path wrong...
         #

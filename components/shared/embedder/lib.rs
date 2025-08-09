@@ -20,7 +20,7 @@ use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
+use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Point2D, Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -28,7 +28,6 @@ use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
-use num_derive::FromPrimitive;
 use pixels::RasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
@@ -38,6 +37,7 @@ use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
 use uuid::Uuid;
+use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, LayoutSize};
 
 pub use crate::input_events::*;
@@ -55,7 +55,7 @@ pub enum ShutdownState {
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Deserialize, Eq, FromPrimitive, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum Cursor {
     None,
     Default,
@@ -888,17 +888,8 @@ pub struct CompositorHitTestResult {
     /// containing block.
     pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,
 
-    /// The hit test point relative to the item itself.
-    pub point_relative_to_item: Point2D<f32, CSSPixel>,
-
-    /// The node address of the hit test result.
-    pub node: UntrustedNodeAddress,
-
-    /// The cursor that should be used when hovering the item hit by the hit test.
-    pub cursor: Option<Cursor>,
-
-    /// The scroll tree node associated with this hit test item.
-    pub scroll_tree_node: ScrollTreeNodeId,
+    /// The [`ExternalScrollId`] of the scroll tree node associated with this hit test item.
+    pub external_scroll_id: ExternalScrollId,
 }
 
 /// Whether the default action for a touch event was prevented by web content

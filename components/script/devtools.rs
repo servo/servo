@@ -12,6 +12,7 @@ use devtools_traits::{
     NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
 use ipc_channel::ipc::IpcSender;
+use js::conversions::jsstr_to_string;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
 use servo_config::pref;
@@ -28,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
+use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -42,7 +43,7 @@ use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, IntroductionType};
 
 #[allow(unsafe_code)]
 pub(crate) fn handle_evaluate_js(
@@ -57,6 +58,8 @@ pub(crate) fn handle_evaluate_js(
         let _ac = enter_realm(global);
         rooted!(in(*cx) let mut rval = UndefinedValue());
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string(eval)));
+        // TODO: run code with SpiderMonkey Debugger API, like Firefox does
+        // <https://searchfox.org/mozilla-central/rev/f6a806c38c459e0e0d797d264ca0e8ad46005105/devtools/server/actors/webconsole/eval-with-debugger.js#270>
         global.evaluate_script_on_global_with_result(
             &source_code,
             "<eval>",
@@ -65,7 +68,7 @@ pub(crate) fn handle_evaluate_js(
             ScriptFetchOptions::default_classic_script(global),
             global.api_base_url(),
             can_gc,
-            None,
+            Some(IntroductionType::DEBUGGER_EVAL),
         );
 
         if rval.is_undefined() {
@@ -81,17 +84,17 @@ pub(crate) fn handle_evaluate_js(
             )
         } else if rval.is_string() {
             let jsstr = std::ptr::NonNull::new(rval.to_string()).unwrap();
-            EvaluateJSReply::StringValue(String::from(jsstring_to_str(*cx, jsstr)))
+            EvaluateJSReply::StringValue(jsstr_to_string(*cx, jsstr))
         } else if rval.is_null() {
             EvaluateJSReply::NullValue
         } else {
             assert!(rval.is_object());
 
             let jsstr = std::ptr::NonNull::new(ToString(*cx, rval.handle())).unwrap();
-            let class_name = jsstring_to_str(*cx, jsstr);
+            let class_name = jsstr_to_string(*cx, jsstr);
 
             EvaluateJSReply::ActorValue {
-                class: class_name.to_string(),
+                class: class_name,
                 uuid: Uuid::new_v4().to_string(),
             }
         }

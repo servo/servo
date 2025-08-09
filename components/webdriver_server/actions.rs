@@ -20,7 +20,7 @@ use webdriver::actions::{
 use webdriver::command::ActionsParameters;
 use webdriver::error::{ErrorStatus, WebDriverError};
 
-use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_script_response};
+use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_ipc_response};
 
 // Interval between wheelScroll and pointerMove increments in ms, based on common vsync
 static POINTERMOVE_INTERVAL: u64 = 17;
@@ -801,7 +801,7 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)
             .map_err(|_| ErrorStatus::UnknownError)?;
 
-        let viewport_size = match wait_for_script_response(receiver) {
+        let viewport_size = match wait_for_ipc_response(receiver) {
             Ok(response) => response,
             Err(WebDriverError { error, .. }) => return Err(error),
         };
@@ -823,7 +823,7 @@ impl Handler {
             VerifyBrowsingContextIsOpen::No,
         )
         .unwrap();
-        let response = match wait_for_script_response(receiver) {
+        let response = match wait_for_ipc_response(receiver) {
             Ok(response) => response,
             Err(WebDriverError { error, .. }) => return Err(error),
         };

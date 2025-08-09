@@ -75,8 +75,8 @@ jobs:
   lint:
     if: ${{ inputs.workflow == 'lint' }}
     name: Lint
+    # Note: The lint workflow does not need access to any secrets.
     uses: ./.github/workflows/lint.yml
-    secrets: inherit
 
   android:
     if: ${{ inputs.workflow == 'android' }}

@@ -40,13 +40,13 @@ where
         unsafe fn add_to_root_list(object: *const dyn JSTraceable) -> *const RootCollection {
             assert_in_script();
             STACK_ROOTS.with(|root_list| {
-                let root_list = &*root_list.get().unwrap();
-                root_list.root(object);
+                let root_list = unsafe { &*root_list.get().unwrap() };
+                unsafe { root_list.root(object) };
                 root_list
             })
         }
 
-        let root_list = add_to_root_list(value.stable_trace_object());
+        let root_list = unsafe { add_to_root_list(value.stable_trace_object()) };
         Root { value, root_list }
     }
 }
@@ -79,7 +79,7 @@ where
         struct ReflectorStackRoot(Reflector);
         unsafe impl JSTraceable for ReflectorStackRoot {
             unsafe fn trace(&self, tracer: *mut JSTracer) {
-                trace_reflector(tracer, "on stack", &self.0);
+                unsafe { trace_reflector(tracer, "on stack", &self.0) };
             }
         }
         unsafe { &*(self.reflector() as *const Reflector as *const ReflectorStackRoot) }
@@ -102,9 +102,9 @@ where
         {
             unsafe fn trace(&self, tracer: *mut JSTracer) {
                 if self.0.reflector().get_jsobject().is_null() {
-                    self.0.trace(tracer);
+                    unsafe { self.0.trace(tracer) };
                 } else {
-                    trace_reflector(tracer, "on stack", self.0.reflector());
+                    unsafe { trace_reflector(tracer, "on stack", self.0.reflector()) };
                 }
             }
         }
@@ -283,8 +283,8 @@ where
     pub unsafe fn reflect_with(self, obj: *mut JSObject) -> DomRoot<T> {
         let ptr = self.as_ptr();
         drop(self);
-        let root = DomRoot::from_ref(&*ptr);
-        root.init_reflector(obj);
+        let root = DomRoot::from_ref(unsafe { &*ptr });
+        unsafe { root.init_reflector(obj) };
         root
     }
 }
@@ -400,13 +400,13 @@ impl RootCollection {
     /// Starts tracking a trace object.
     unsafe fn root(&self, object: *const dyn JSTraceable) {
         assert_in_script();
-        (*self.roots.get()).push(object);
+        unsafe { (*self.roots.get()).push(object) };
     }
 
     /// Stops tracking a trace object, asserting if it isn't found.
     unsafe fn unroot(&self, object: *const dyn JSTraceable) {
         assert_in_script();
-        let roots = &mut *self.roots.get();
+        let roots = unsafe { &mut *self.roots.get() };
         match roots
             .iter()
             .rposition(|r| std::ptr::addr_eq(*r as *const (), object as *const ()))

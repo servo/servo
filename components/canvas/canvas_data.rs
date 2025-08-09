@@ -749,8 +749,10 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         }
     }
 
-    pub(crate) fn pop_clip(&mut self) {
-        self.drawtarget.pop_clip();
+    pub(crate) fn pop_clips(&mut self, clips: usize) {
+        for _ in 0..clips {
+            self.drawtarget.pop_clip();
+        }
     }
 }
 

@@ -92,6 +92,7 @@ use log::{Log, Metadata, Record, debug, error, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
+use net_traits::{exit_fetch_thread, start_fetch_thread};
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time};
@@ -1257,6 +1258,9 @@ pub fn run_content_process(token: String) {
         UnprivilegedContent::Pipeline(mut content) => {
             media_platform::init();
 
+            // Start the fetch thread for this content process.
+            let fetch_thread_join_handle = start_fetch_thread(content.core_resource_thread());
+
             set_logger(content.script_to_constellation_chan().clone());
 
             let (background_hang_monitor_register, join_handle) =
@@ -1265,7 +1269,7 @@ pub fn run_content_process(token: String) {
 
             content.register_system_memory_reporter();
 
-            content.start_all::<script::ScriptThread>(
+            let script_join_handle = content.start_all::<script::ScriptThread>(
                 true,
                 layout_factory,
                 background_hang_monitor_register,
@@ -1274,10 +1278,19 @@ pub fn run_content_process(token: String) {
             // Since wait_for_completion is true,
             // here we know that the script-thread
             // will exit(or already has),
-            // and so we can join on the BHM worker thread.
+            // and so we can join first on the script, and then on the BHM worker, threads.
+            script_join_handle
+                .join()
+                .expect("Failed to join on the script thread.");
             join_handle
                 .join()
                 .expect("Failed to join on the BHM background thread.");
+
+            // Shut down the fetch thread started above.
+            exit_fetch_thread();
+            fetch_thread_join_handle
+                .join()
+                .expect("Failed to join on the fetch thread in the constellation");
         },
         UnprivilegedContent::ServiceWorker(content) => {
             content.start::<ServiceWorkerManager>();

@@ -7,4 +7,12 @@
 [Exposed=DebuggerGlobalScope]
 interface DebuggerEvent : Event {
     readonly attribute object global;
+    readonly attribute PipelineId pipelineId;
+    readonly attribute DOMString? workerId;
+};
+
+[Exposed=DebuggerGlobalScope]
+interface PipelineId {
+    readonly attribute unsigned long namespaceId;
+    readonly attribute unsigned long index;
 };

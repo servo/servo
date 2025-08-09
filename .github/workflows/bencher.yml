@@ -116,6 +116,7 @@ jobs:
             --branch-start-point ${{ github.base_ref }} \
             --branch-start-point-hash ${{ github.event.pull_request.base.sha }} \
             --branch-reset \
+            --start-point-clone-thresholds \
             --github-actions ${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_ENV"
       - name: Set bencher opts for main
         if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
@@ -132,6 +133,7 @@ jobs:
             --hash $(git rev-parse HEAD~1) \
             --branch-start-point main \
             --branch-start-point-hash $(git merge-base upstream/main HEAD) \
+            --start-point-clone-thresholds \
             --branch-reset" >> "$GITHUB_ENV"
       # we join results and send all data once to have it all in one report
       - name: Send results

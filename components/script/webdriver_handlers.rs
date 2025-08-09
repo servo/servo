@@ -14,6 +14,7 @@ use embedder_traits::{
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
+use js::conversions::jsstr_to_string;
 use js::jsapi::{
     self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
     JS_IsExceptionPending, JSAutoRealm, JSContext, JSType, PropertyDescriptor,
@@ -44,7 +45,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
@@ -52,7 +53,7 @@ use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
 };
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
-    get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
+    get_property, get_property_jsval, jsid_to_string, root_from_object,
 };
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -269,7 +270,7 @@ unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
     let Some(class_name) = NonNull::new(class_name.get()) else {
         return false;
     };
-    jsstring_to_str(cx, class_name) == "[object Arguments]"
+    jsstr_to_string(cx, class_name) == "[object Arguments]"
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]
@@ -327,7 +328,7 @@ unsafe fn jsval_to_webdriver_inner(
             },
         ))
     } else if val.get().is_string() {
-        //FIXME: use jsstring_to_str when jsval grows to_jsstring
+        //FIXME: use jsstr_to_string when jsval grows to_jsstring
         let string: DOMString =
             match FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default)
                 .unwrap()
@@ -529,6 +530,7 @@ pub(crate) fn handle_execute_script(
                 ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
                 can_gc,
+                None, // No known `introductionType` for JS code from WebDriver
             ) {
                 jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc)
             } else {
@@ -570,6 +572,7 @@ pub(crate) fn handle_execute_async_script(
                 ScriptFetchOptions::default_classic_script(global_scope),
                 global_scope.api_base_url(),
                 can_gc,
+                None, // No known `introductionType` for JS code from WebDriver
             ) {
                 reply_sender.send(Err(WebDriverJSError::JSError)).unwrap();
             }
@@ -1781,14 +1784,17 @@ fn get_option_parent(node: &Node) -> Option<DomRoot<Element>> {
     // >    reverse order from element, or undefined if the root of the tree is reached.
     // > 3. If datalist parent is undefined, the element context is select parent.
     // >    Otherwise, the element context is datalist parent.
-    let root_node = node.GetRootNode(&GetRootNodeOptions::empty());
-    node.preceding_nodes(&root_node)
-        .find(|preceding| preceding.is::<HTMLDataListElement>())
-        .or_else(|| {
-            node.preceding_nodes(&root_node)
-                .find(|preceding| preceding.is::<HTMLSelectElement>())
-        })
-        .map(|result_node| DomRoot::downcast::<Element>(result_node).unwrap())
+    let mut candidate_select = None;
+
+    for ancestor in node.ancestors() {
+        if ancestor.is::<HTMLDataListElement>() {
+            return Some(DomRoot::downcast::<Element>(ancestor).unwrap());
+        } else if candidate_select.is_none() && ancestor.is::<HTMLSelectElement>() {
+            candidate_select = Some(ancestor);
+        }
+    }
+
+    candidate_select.map(|ancestor| DomRoot::downcast::<Element>(ancestor).unwrap())
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-container>
@@ -1843,8 +1849,18 @@ pub(crate) fn handle_element_click(
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
-                // Step 7
-                // TODO: return error if obscured
+                // Step 7. If element's container is obscured by another element,
+                // return error with error code element click intercepted.
+                // https://w3c.github.io/webdriver/#dfn-obscuring
+                // An element is obscured if the pointer-interactable paint tree is empty,
+                // or the first element in this tree is not an inclusive descendant of itself.
+                // `paint_tree` is guaranteed not empty as element is "in view".
+                if !container
+                    .upcast::<Node>()
+                    .Contains(Some(paint_tree[0].upcast::<Node>()))
+                {
+                    return Err(ErrorStatus::ElementClickIntercepted);
+                }
 
                 // Step 8 for <option> element.
                 match element.downcast::<HTMLOptionElement>() {
@@ -1922,24 +1938,23 @@ fn get_element_pointer_interactable_paint_tree(
     document: &Document,
     can_gc: CanGc,
 ) -> Vec<DomRoot<Element>> {
-    // Step 2. Let rectangles be the DOMRect sequence returned by calling getClientRects()
-    let rect = element.GetClientRects(can_gc);
-
-    if rect.first().is_some() {
-        // Step 4. Let center point be the in-view center point of
-        // the first indexed element in rectangles.
-        match get_element_in_view_center_point(element, can_gc) {
-            // Step 5. Return the elements from point given the coordinates center point
-            Some(center_point) => document.ElementsFromPoint(
-                Finite::wrap(center_point.x as f64),
-                Finite::wrap(center_point.y as f64),
-            ),
-            None => Vec::new(),
-        }
-    } else {
-        // Step 3. If rectangles has the length of 0, return an empty sequence
-        Vec::new()
+    // Step 1. If element is not in the same tree as session's
+    // current browsing context's active document, return an empty sequence.
+    if !element.is_connected() {
+        return Vec::new();
     }
+
+    // Step 2 - 5: Return "elements from point" w.r.t. in-view center point of element.
+    // Spec has bugs in description and can be simplified.
+    // The original step 4 "compute in-view center point" takes an element as argument
+    // which internally computes first DOMRect of getClientRects
+
+    get_element_in_view_center_point(element, can_gc).map_or(Vec::new(), |center_point| {
+        document.ElementsFromPoint(
+            Finite::wrap(center_point.x as f64),
+            Finite::wrap(center_point.y as f64),
+        )
+    })
 }
 
 pub(crate) fn handle_is_enabled(

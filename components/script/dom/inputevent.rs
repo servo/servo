@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use embedder_traits::Cursor;
+use euclid::Point2D;
 use js::rust::HandleObject;
+use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEventMethods};
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEvent_Binding::UIEventMethods;
@@ -11,6 +14,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::node::Node;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -90,4 +94,14 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
     fn IsTrusted(&self) -> bool {
         self.uievent.IsTrusted()
     }
+}
+
+/// A [`HitTestResult`] that is the result of doing a hit test based on a less-fine-grained
+/// `CompositorHitTestResult` against our current layout.
+pub(crate) struct HitTestResult {
+    pub node: DomRoot<Node>,
+    pub cursor: Cursor,
+    pub point_in_node: Point2D<f32, CSSPixel>,
+    pub point_in_frame: Point2D<f32, CSSPixel>,
+    pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,
 }

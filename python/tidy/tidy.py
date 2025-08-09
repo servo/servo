@@ -232,7 +232,8 @@ class FileList(object):
 
 
 def filter_file(file_name: str) -> bool:
-    if any(file_name.startswith(ignored_file) for ignored_file in config["ignore"]["files"]):
+    current_file = os.path.join(".", relative_path(file_name))
+    if any(current_file.startswith(ignored_file) for ignored_file in config["ignore"]["files"]):
         return False
     base_name = os.path.basename(file_name)
     if any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_IGNORE):
@@ -848,7 +849,7 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
         messages = []  # Clear any old messages.
 
         suite_directory = os.path.abspath(os.path.join(WPT_PATH, suite))
-        tests_changed = FileList(suite_directory, only_changed_files=True, progress=False)
+        tests_changed = filter_files(suite_directory, only_changed_files=False, progress=False)
         tests_changed = [os.path.relpath(file, suite_directory) for file in tests_changed]
 
         if lint.lint(suite_directory, tests_changed, output_format="normal"):
@@ -862,9 +863,12 @@ def run_wpt_lints(only_changed_files: bool) -> Iterator[tuple[str, int, str]]:
         yield (WPT_CONFIG_INI_PATH, 0, f"{WPT_CONFIG_INI_PATH} is required but was not found")
         return
 
-    if not list(FileList("./tests/wpt", only_changed_files=only_changed_files, progress=False)):
-        print("\r ➤  Skipping WPT lint checks, because no relevant files changed.")
-        return
+    if only_changed_files:
+        try:
+            FileList("./tests/wpt", only_changed_files=only_changed_files, progress=False).next()
+        except StopIteration:
+            print("\r ➤  Skipping WPT lint checks, because no relevant files changed.")
+            return
 
     manifests_exist_errors = list(check_that_manifests_exist())
     if manifests_exist_errors:

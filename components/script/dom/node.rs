@@ -883,12 +883,12 @@ impl Node {
         })
     }
 
-    pub(crate) fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {
-        self == parent || self.is_ancestor_of(parent)
+    pub(crate) fn is_inclusive_ancestor_of(&self, child: &Node) -> bool {
+        self == child || self.is_ancestor_of(child)
     }
 
-    pub(crate) fn is_ancestor_of(&self, parent: &Node) -> bool {
-        parent.ancestors().any(|ancestor| &*ancestor == self)
+    pub(crate) fn is_ancestor_of(&self, child: &Node) -> bool {
+        child.ancestors().any(|ancestor| &*ancestor == self)
     }
 
     pub(crate) fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
@@ -942,18 +942,8 @@ impl Node {
         TrustedNodeAddress(self as *const Node as *const libc::c_void)
     }
 
-    /// Returns the rendered bounding content box if the element is rendered,
-    /// and none otherwise.
-    pub(crate) fn bounding_content_box(&self) -> Option<Rect<Au>> {
+    pub(crate) fn content_box(&self) -> Option<Rect<Au>> {
         self.owner_window().content_box_query(self)
-    }
-
-    pub(crate) fn bounding_content_box_or_zero(&self) -> Rect<Au> {
-        self.bounding_content_box().unwrap_or_else(Rect::zero)
-    }
-
-    pub(crate) fn bounding_content_box_no_reflow(&self) -> Option<Rect<Au>> {
-        self.owner_window().content_box_query_unchecked(self)
     }
 
     pub(crate) fn content_boxes(&self) -> Vec<Rect<Au>> {
@@ -3160,17 +3150,25 @@ impl Node {
     pub(crate) fn xml_serialize(
         &self,
         traversal_scope: xml_serialize::TraversalScope,
-    ) -> DOMString {
+    ) -> Fallible<DOMString> {
         let mut writer = vec![];
         xml_serialize::serialize(
             &mut writer,
             &self,
             xml_serialize::SerializeOpts { traversal_scope },
         )
-        .expect("Cannot serialize node");
+        .map_err(|error| {
+            error!("Cannot serialize node: {error}");
+            Error::InvalidState
+        })?;
 
         // FIXME(ajeffrey): Directly convert UTF8 to DOMString
-        DOMString::from(String::from_utf8(writer).unwrap())
+        let string = DOMString::from(String::from_utf8(writer).map_err(|error| {
+            error!("Cannot serialize node: {error}");
+            Error::InvalidState
+        })?);
+
+        Ok(string)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
@@ -3178,19 +3176,19 @@ impl Node {
         &self,
         require_well_formed: bool,
         can_gc: CanGc,
-    ) -> DOMString {
+    ) -> Fallible<DOMString> {
         // Step 1. Let context document be node's node document.
         let context_document = self.owner_document();
 
         // Step 2. If context document is an HTML document, return the result of HTML fragment serialization algorithm
         // with node, false, and « ».
         if context_document.is_html_document() {
-            return self.html_serialize(
+            return Ok(self.html_serialize(
                 html_serialize::TraversalScope::ChildrenOnly(None),
                 false,
                 vec![],
                 can_gc,
-            );
+            ));
         }
 
         // Step 3. Return the XML serialization of node given require well-formed.
