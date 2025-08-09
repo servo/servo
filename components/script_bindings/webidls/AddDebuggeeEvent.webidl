@@ -5,7 +5,7 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 [Exposed=DebuggerGlobalScope]
-interface DebuggerEvent : Event {
+interface AddDebuggeeEvent : Event {
     readonly attribute object global;
     readonly attribute PipelineId pipelineId;
     readonly attribute DOMString? workerId;
