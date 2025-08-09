@@ -950,7 +950,7 @@ impl ScriptThread {
         };
         let debugger_global = DebuggerGlobalScope::new(
             &js_runtime.clone(),
-            senders.self_sender.clone(),
+            PipelineId::new(),
             senders.devtools_server_sender.clone(),
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
@@ -3446,8 +3446,12 @@ impl ScriptThread {
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
         );
-        self.debugger_global
-            .fire_add_debuggee(can_gc, window.upcast());
+        self.debugger_global.fire_add_debuggee(
+            can_gc,
+            window.upcast(),
+            incomplete.pipeline_id,
+            None,
+        );
 
         let _realm = enter_realm(&*window);
 

@@ -4,8 +4,7 @@
 
 use base::id::PipelineId;
 use constellation_traits::ScriptToConstellationChan;
-use crossbeam_channel::Sender;
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use ipc_channel::ipc::IpcSender;
@@ -22,14 +21,12 @@ use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
 use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{DebuggerEvent, Event};
 #[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
-use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext};
@@ -40,15 +37,20 @@ use crate::script_runtime::{CanGc, JSContext};
 /// <https://firefox-source-docs.mozilla.org/js/Debugger/>
 pub(crate) struct DebuggerGlobalScope {
     global_scope: GlobalScope,
-    script_chan: Sender<MainThreadScriptMsg>,
 }
 
 impl DebuggerGlobalScope {
     /// Create a new heap-allocated `DebuggerGlobalScope`.
+    ///
+    /// `debugger_pipeline_id` is the pipeline id to use when creating the debugger’s [`GlobalScope`]:
+    /// - in normal script threads, it should be set to `PipelineId::new()`, because those threads can generate
+    ///   pipeline ids, and they may contain debuggees from more than one pipeline
+    /// - in web worker threads, it should be set to the pipeline id of the page that created the thread, because
+    ///   those threads can’t generate pipeline ids, and they only contain one debuggee from one pipeline
     #[allow(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn new(
         runtime: &Runtime,
-        script_chan: Sender<MainThreadScriptMsg>,
+        debugger_pipeline_id: PipelineId,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
@@ -59,7 +61,7 @@ impl DebuggerGlobalScope {
     ) -> DomRoot<Self> {
         let global = Box::new(Self {
             global_scope: GlobalScope::new_inherited(
-                PipelineId::new(),
+                debugger_pipeline_id,
                 devtools_chan,
                 mem_profiler_chan,
                 time_profiler_chan,
@@ -75,7 +77,6 @@ impl DebuggerGlobalScope {
                 None,
                 false,
             ),
-            script_chan,
         });
         let global = unsafe {
             DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
@@ -122,10 +123,24 @@ impl DebuggerGlobalScope {
         }
     }
 
-    pub(crate) fn fire_add_debuggee(&self, can_gc: CanGc, global: &GlobalScope) {
+    pub(crate) fn fire_add_debuggee(
+        &self,
+        can_gc: CanGc,
+        debuggee_global: &GlobalScope,
+        debuggee_pipeline_id: PipelineId,
+        debuggee_worker_id: Option<WorkerId>,
+    ) {
+        let debuggee_pipeline_id =
+            crate::dom::pipelineid::PipelineId::new(self.upcast(), debuggee_pipeline_id, can_gc);
+        let event = DomRoot::upcast::<Event>(DebuggerEvent::new(
+            self.upcast(),
+            debuggee_global,
+            &debuggee_pipeline_id,
+            debuggee_worker_id.map(|id| id.to_string().into()),
+            can_gc,
+        ));
         assert!(
-            DomRoot::upcast::<Event>(DebuggerEvent::new(self.upcast(), global, can_gc))
-                .fire(self.upcast(), can_gc),
+            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerEvent::new"
         );
     }

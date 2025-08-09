@@ -51,6 +51,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::reportingendpoint::ReportingEndpoint;
+use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
@@ -427,6 +428,19 @@ impl DedicatedWorkerGlobalScope {
                     };
                     Runtime::new_with_parent(Some(parent), Some(task_source))
                 };
+                let debugger_global = DebuggerGlobalScope::new(
+                    &runtime,
+                    pipeline_id,
+                    init.to_devtools_sender.clone(),
+                    init.mem_profiler_chan.clone(),
+                    init.time_profiler_chan.clone(),
+                    init.script_to_constellation_chan.clone(),
+                    init.resource_threads.clone(),
+                    #[cfg(feature = "webgpu")]
+                    gpu_id_hub.clone(),
+                    CanGc::note(),
+                );
+                debugger_global.execute(CanGc::note());
 
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
@@ -453,6 +467,7 @@ impl DedicatedWorkerGlobalScope {
                     }
                 }
 
+                let worker_id = init.worker_id;
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     DOMString::from_string(worker_name),
@@ -470,6 +485,12 @@ impl DedicatedWorkerGlobalScope {
                     gpu_id_hub,
                     control_receiver,
                     insecure_requests_policy,
+                );
+                debugger_global.fire_add_debuggee(
+                    CanGc::note(),
+                    global.upcast(),
+                    pipeline_id,
+                    Some(worker_id),
                 );
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.

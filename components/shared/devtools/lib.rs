@@ -12,7 +12,9 @@
 
 use core::fmt;
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::net::TcpStream;
+use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -488,6 +490,18 @@ impl StartedTimelineMarker {
 }
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct WorkerId(pub Uuid);
+impl Display for WorkerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+impl FromStr for WorkerId {
+    type Err = uuid::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
