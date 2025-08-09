@@ -10,7 +10,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::DomObject;
 use script_bindings::str::DOMString;
 
-use crate::dom::bindings::codegen::Bindings::DebuggerEventBinding::DebuggerEventMethods;
+use crate::dom::bindings::codegen::Bindings::DebuggerAddDebuggeeEventBinding::DebuggerAddDebuggeeEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -20,14 +20,14 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 /// Event for Rust → JS calls in [`crate::dom::DebuggerGlobalScope`].
-pub(crate) struct DebuggerEvent {
+pub(crate) struct DebuggerAddDebuggeeEvent {
     event: Event,
     global: Dom<GlobalScope>,
     pipeline_id: Dom<PipelineId>,
     worker_id: Option<DOMString>,
 }
 
-impl DebuggerEvent {
+impl DebuggerAddDebuggeeEvent {
     pub(crate) fn new(
         debugger_global: &GlobalScope,
         global: &GlobalScope,
@@ -48,7 +48,7 @@ impl DebuggerEvent {
     }
 }
 
-impl DebuggerEventMethods<crate::DomTypeHolder> for DebuggerEvent {
+impl DebuggerAddDebuggeeEventMethods<crate::DomTypeHolder> for DebuggerAddDebuggeeEvent {
     // check-tidy: no specs after this line
     fn Global(&self, cx: script_bindings::script_runtime::JSContext) -> NonNull<JSObject> {
         // Convert the debuggee global’s reflector to a Value, wrapping it from its originating realm (debuggee realm)

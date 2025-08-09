@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 
-use crate::dom::bindings::codegen::Bindings::DebuggerEventBinding::PipelineIdMethods;
+use crate::dom::bindings::codegen::Bindings::DebuggerAddDebuggeeEventBinding::PipelineIdMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
