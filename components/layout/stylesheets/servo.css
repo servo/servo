@@ -338,6 +338,13 @@ button {
   /* Note that line-height is also reset for all these, via the font shorthand */
 }
 
+input[type="reset" i],
+input[type="button" i],
+input[type="submit" i],
+button {
+  text-align: center;
+}
+
 slot {
   display: contents;
 }
