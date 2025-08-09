@@ -7,6 +7,7 @@ use constellation_traits::ScriptToConstellationChan;
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
+use embedder_traits::JavaScriptEvaluationError;
 use embedder_traits::resources::{self, Resource};
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
@@ -103,7 +104,7 @@ impl DebuggerGlobalScope {
         GlobalScope::get_cx()
     }
 
-    fn evaluate_js(&self, script: &str, can_gc: CanGc) -> Result<(), ()> {
+    fn evaluate_js(&self, script: &str, can_gc: CanGc) -> Result<(), JavaScriptEvaluationError> {
         rooted!(in (*Self::get_cx()) let mut rval = UndefinedValue());
         self.global_scope.evaluate_js_on_global_with_result(
             script,
@@ -116,7 +117,10 @@ impl DebuggerGlobalScope {
     }
 
     pub(crate) fn execute(&self, can_gc: CanGc) {
-        if let Err(()) = self.evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc) {
+        if self
+            .evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc)
+            .is_err()
+        {
             let ar = enter_realm(self);
             report_pending_exception(Self::get_cx(), true, InRealm::Entered(&ar), can_gc);
         }

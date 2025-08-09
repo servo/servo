@@ -1033,6 +1033,10 @@ impl From<&WebDriverJSValue> for JSValue {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum JavaScriptEvaluationError {
+    /// The script could not be compiled
+    CompilationFailure,
+    /// The script could not be evaluated
+    EvaluationFailure,
     /// An internal Servo error prevented the JavaSript evaluation from completing properly.
     /// This indicates a bug in Servo.
     InternalError,

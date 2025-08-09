@@ -523,16 +523,17 @@ pub(crate) fn handle_execute_script(
 
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let global = window.as_global_scope();
-            let result = match global.evaluate_js_on_global_with_result(
+            let evaluation_result = global.evaluate_js_on_global_with_result(
                 &eval,
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
                 can_gc,
                 None, // No known `introductionType` for JS code from WebDriver
-            ) {
-                Ok(()) => jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc),
-                Err(()) => Err(WebDriverJSError::JSError),
+            );
+            let result = match evaluation_result {
+                Ok(_) => jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc),
+                Err(_) => Err(WebDriverJSError::JSError),
             };
 
             if reply.send(result).is_err() {
@@ -564,14 +565,17 @@ pub(crate) fn handle_execute_async_script(
             rooted!(in(*cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
-            if let Err(()) = global_scope.evaluate_js_on_global_with_result(
-                &eval,
-                rval.handle_mut(),
-                ScriptFetchOptions::default_classic_script(global_scope),
-                global_scope.api_base_url(),
-                can_gc,
-                None, // No known `introductionType` for JS code from WebDriver
-            ) {
+            if global_scope
+                .evaluate_js_on_global_with_result(
+                    &eval,
+                    rval.handle_mut(),
+                    ScriptFetchOptions::default_classic_script(global_scope),
+                    global_scope.api_base_url(),
+                    can_gc,
+                    None, // No known `introductionType` for JS code from WebDriver
+                )
+                .is_err()
+            {
                 reply_sender.send(Err(WebDriverJSError::JSError)).unwrap();
             }
         },

@@ -556,7 +556,7 @@ impl JsTimerTask {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
-                let _: Result<(), ()> = global.evaluate_js_on_global_with_result(
+                _ = global.evaluate_js_on_global_with_result(
                     code_str,
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(&global),

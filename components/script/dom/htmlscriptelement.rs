@@ -1160,7 +1160,7 @@ impl HTMLScriptElement {
             self.line_number as u32
         };
         rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-        let _: Result<(), ()> = window
+        _ = window
             .as_global_scope()
             .evaluate_script_on_global_with_result(
                 &script.code,

@@ -31,7 +31,7 @@ pub(crate) fn load_script(head: &HTMLHeadElement) {
                 Rc::new(DOMString::from_string(user_script.script))
             );
             let global_scope = win.as_global_scope();
-            let _: Result<(), ()> = global_scope.evaluate_script_on_global_with_result(
+            _ = global_scope.evaluate_script_on_global_with_result(
                 &script_text,
                 &user_script.source_file.map(|path| path.to_string_lossy().to_string()).unwrap_or_default(),
                 rval.handle_mut(),
