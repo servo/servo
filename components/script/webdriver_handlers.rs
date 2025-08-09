@@ -529,6 +529,7 @@ pub(crate) fn handle_execute_script(
                 ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
                 can_gc,
+                None, // No known `introductionType` for JS code from WebDriver
             ) {
                 jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc)
             } else {
@@ -570,6 +571,7 @@ pub(crate) fn handle_execute_async_script(
                 ScriptFetchOptions::default_classic_script(global_scope),
                 global_scope.api_base_url(),
                 can_gc,
+                None, // No known `introductionType` for JS code from WebDriver
             ) {
                 reply_sender.send(Err(WebDriverJSError::JSError)).unwrap();
             }

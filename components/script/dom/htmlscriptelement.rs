@@ -213,6 +213,11 @@ pub(crate) struct HTMLScriptElement {
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#htmlscriptelement-script-text>
     script_text: DomRefCell<DOMString>,
+
+    /// `introductionType` value to set in the `CompileOptionsWrapper`, overriding the usual
+    /// `srcScript` or `inlineScript` that this script would normally use.
+    #[no_trace]
+    introduction_type_override: Cell<Option<&'static CStr>>,
 }
 
 impl HTMLScriptElement {
@@ -232,6 +237,7 @@ impl HTMLScriptElement {
             preparation_time_document: MutNullableDom::new(None),
             line_number: creator.return_line_number(),
             script_text: DomRefCell::new(DOMString::new()),
+            introduction_type_override: Cell::new(None),
         }
     }
 
@@ -688,7 +694,10 @@ impl HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
-    pub(crate) fn prepare(&self, can_gc: CanGc) {
+    pub(crate) fn prepare(&self, introduction_type_override: Option<&'static CStr>, can_gc: CanGc) {
+        self.introduction_type_override
+            .set(introduction_type_override);
+
         // Step 1. If el's already started is true, then return.
         if self.already_started.get() {
             return;
@@ -1165,7 +1174,14 @@ impl HTMLScriptElement {
         // Step 6.
         let document = self.owner_document();
         let old_script = document.GetCurrentScript();
-        let introduction_type = (!script.external).then_some(IntroductionType::INLINE_SCRIPT);
+        let introduction_type =
+            self.introduction_type_override
+                .get()
+                .unwrap_or(if script.external {
+                    IntroductionType::SRC_SCRIPT
+                } else {
+                    IntroductionType::INLINE_SCRIPT
+                });
 
         match script.type_ {
             ScriptType::Classic => {
@@ -1174,7 +1190,7 @@ impl HTMLScriptElement {
                 } else {
                     document.set_current_script(Some(self))
                 }
-                self.run_a_classic_script(&script, can_gc, introduction_type);
+                self.run_a_classic_script(&script, can_gc, Some(introduction_type));
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
@@ -1428,7 +1444,7 @@ impl VirtualMethods for HTMLScriptElement {
         if *attr.local_name() == local_name!("src") {
             if let AttributeMutation::Set(_) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                    self.prepare(can_gc);
+                    self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
                 }
             }
         }
@@ -1447,7 +1463,7 @@ impl VirtualMethods for HTMLScriptElement {
             // running any scripts until the DOM tree is safe for interactions.
             self.owner_document().add_delayed_task(
                 task!(ScriptPrepare: |script: DomRoot<HTMLScriptElement>| {
-                    script.prepare(CanGc::note());
+                    script.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::note());
                 }),
             );
         }
@@ -1460,7 +1476,7 @@ impl VirtualMethods for HTMLScriptElement {
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
-            self.prepare(CanGc::note());
+            self.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::note());
         }
     }
 

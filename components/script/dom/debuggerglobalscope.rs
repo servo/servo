@@ -112,6 +112,7 @@ impl DebuggerGlobalScope {
             ScriptFetchOptions::default_classic_script(&self.global_scope),
             self.global_scope.api_base_url(),
             can_gc,
+            None,
         )
     }
 

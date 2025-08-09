@@ -34,7 +34,7 @@ use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::{CanGc, IntroductionType, JSContext};
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -133,6 +133,7 @@ impl WorkletGlobalScope {
             ScriptFetchOptions::default_classic_script(&self.globalscope),
             self.globalscope.api_base_url(),
             can_gc,
+            Some(IntroductionType::WORKLET),
         )
     }
 

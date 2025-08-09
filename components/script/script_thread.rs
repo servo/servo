@@ -154,7 +154,8 @@ use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    CanGc, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
+    CanGc, IntroductionType, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory,
+    ThreadSafeJSContext,
 };
 use crate::task_queue::TaskQueue;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -3739,6 +3740,7 @@ impl ScriptThread {
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
             can_gc,
+            Some(IntroductionType::JAVASCRIPT_URL),
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
@@ -4093,6 +4095,7 @@ impl ScriptThread {
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
             can_gc,
+            None, // No known `introductionType` for JS code from embedder
         );
         let result = match jsval_to_webdriver(
             context,
