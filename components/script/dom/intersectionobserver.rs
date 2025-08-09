@@ -36,7 +36,8 @@ use crate::dom::document::Document;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
 use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
-use crate::dom::intersectionobserverrootmargin::IntersectionObserverRootMargin;
+use style::values::specified::intersection_observer::IntersectionObserverMargin;
+use euclid::default::{SideOffsets2D};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
@@ -82,12 +83,12 @@ pub(crate) struct IntersectionObserver {
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin-slot>
     #[no_trace]
     #[ignore_malloc_size_of = "Defined in style"]
-    root_margin: RefCell<IntersectionObserverRootMargin>,
+    root_margin: RefCell<IntersectionObserverMargin>,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-scrollmargin-slot>
     #[no_trace]
     #[ignore_malloc_size_of = "Defined in style"]
-    scroll_margin: RefCell<IntersectionObserverRootMargin>,
+    scroll_margin: RefCell<IntersectionObserverMargin>,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds-slot>
     thresholds: RefCell<Vec<Finite<f64>>>,
@@ -104,8 +105,8 @@ impl IntersectionObserver {
         window: &Window,
         callback: Rc<IntersectionObserverCallback>,
         root: IntersectionRoot,
-        root_margin: IntersectionObserverRootMargin,
-        scroll_margin: IntersectionObserverRootMargin,
+        root_margin: IntersectionObserverMargin,
+        scroll_margin: IntersectionObserverMargin,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -462,8 +463,6 @@ impl IntersectionObserver {
         // TODO(stevennovaryo): add check for same-origin-domain
         intersection_rectangle.map(|intersection_rectangle| {
             let margin = self
-                .root_margin
-                .borrow()
                 .resolve_percentages_with_basis(intersection_rectangle);
             intersection_rectangle.outer_rect(margin)
         })
@@ -658,6 +657,22 @@ impl IntersectionObserver {
                 .set(intersection_output.is_visible);
         }
     }
+
+    fn resolve_percentages_with_basis(
+        &self,
+        containing_block: Rect<Au>,
+    ) -> SideOffsets2D<Au> {
+        let inner = &self
+            .root_margin
+            .borrow()
+            .0;
+        SideOffsets2D::new(
+            inner.0.to_used_value(containing_block.height()),
+            inner.1.to_used_value(containing_block.width()),
+            inner.2.to_used_value(containing_block.height()),
+            inner.3.to_used_value(containing_block.width()),
+        )
+    }
 }
 
 impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver {
@@ -796,7 +811,7 @@ impl IntersectionObserverRegistration {
 }
 
 /// <https://w3c.github.io/IntersectionObserver/#parse-a-margin>
-fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverRootMargin, ()> {
+fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargin, ()> {
     // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-rootmargin> &&
     // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-scrollmargin>
     // > ... defaulting to "0px".
@@ -805,7 +820,7 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverRootM
         _ => "0px",
     };
 
-    // Create necessary style ParserContext and utilize stylo's IntersectionObserverRootMargin
+    // Create necessary style ParserContext and utilize stylo's IntersectionObserverMargin
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
 
@@ -822,7 +837,7 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverRootM
     );
 
     parser
-        .parse_entirely(|p| IntersectionObserverRootMargin::parse(&context, p))
+        .parse_entirely(|p| IntersectionObserverMargin::parse(&context, p))
         .map_err(|_| ())
 }
 

@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Wrapper of Stylo's [`style::values::specified::intersection_observer::IntersectionObserverMargin`] implementation.
+//! Copy of Stylo Gecko's [`style::values::specified::gecko::IntersectionObserverRootMargin`] implementation.
+//! TODO(#35907): make a thin wrapper and remove copied codes
 
 use std::fmt;
 
@@ -20,7 +21,6 @@ use style_traits::{CssWriter, ParseError, ToCss};
 ///
 /// <https://w3c.github.io/IntersectionObserver/#parse-a-root-margin>
 
-// Wrapper struct for stylo's IntersectionObserverMargin
 #[repr(transparent)]
 pub struct IntersectionObserverRootMargin(pub IntersectionObserverMargin);
 
@@ -42,6 +42,7 @@ impl ToCss for IntersectionObserverRootMargin {
     }
 }
 
+// TODO(stevennovaryo): move this to the wrapper later
 impl IntersectionObserverRootMargin {
     // Resolve to used values.
     pub(crate) fn resolve_percentages_with_basis(
