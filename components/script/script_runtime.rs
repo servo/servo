@@ -21,18 +21,18 @@ use std::{os, ptr, thread};
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
 use js::glue::{
-    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JS_GetReservedSlot,
-    JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
-    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError, SetUpEventLoopDispatch, DispatchablePointer,
+    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun,
+    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, SetUpEventLoopDispatch,
+    StreamConsumerConsumeChunk, StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd,
+    StreamConsumerStreamError,
 };
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, CompilationType, ContextOptionsRef,
     Dispatchable_MaybeShuttingDown, GCDescription, GCOptions, GCProgress, GCReason,
     GetPromiseUserInputEventHandlingState, HandleObject, HandleString, HandleValue, Heap,
-    InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_NewObject,
-    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
-    JS_SetOffthreadIonCompilationEnabled, JS_SetReservedSlot,
+    InitConsumeStreamCallback, JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback,
+    JS_InitReadPrincipalsCallback, JS_NewObject, JS_SetGCCallback, JS_SetGCParameter,
+    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetReservedSlot,
     JS_SetSecurityCallbacks, JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass,
     JSClassOps, JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
     JSSecurityCallbacks, JSTracer, JobQueue, MimeType, MutableHandleObject,
