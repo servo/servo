@@ -16,7 +16,7 @@ use std::os::raw::c_void;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use std::{os, ptr, thread};
+use std::{os, ptr::{self, NonNull}, thread};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
@@ -489,8 +489,8 @@ unsafe extern "C" fn content_security_policy_allows(
 
         allowed = match runtime_code {
             RuntimeCode::JS => {
-                let source = match sample {
-                    sample if !sample.is_null() => &jsstr_to_string(*cx, *sample),
+                let source = match NonNull::new(*sample) {
+                    Some(sample) => &jsstr_to_string(*cx, sample),
                     _ => "",
                 };
                 global

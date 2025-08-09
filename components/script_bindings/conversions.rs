@@ -133,7 +133,7 @@ impl FromJSValConvertible for DOMString {
 pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: ptr::NonNull<JSString>) -> DOMString {
     let latin1 = JS_DeprecatedStringHasLatin1Chars(s.as_ptr());
     DOMString::from_string(if latin1 {
-        latin1_to_string(cx, s.as_ptr())
+        latin1_to_string(cx, s)
     } else {
         let mut length = 0;
         let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), s.as_ptr(), &mut length);
