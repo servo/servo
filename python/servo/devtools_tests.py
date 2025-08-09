@@ -551,10 +551,10 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.start_web_server(test_dir=self.get_test_path("sources_breakable_lines_and_positions"))
         self.run_servoshell()
         self.assert_source_breakable_lines_and_positions(
-            f"{self.base_url}/test.html",
+            Source("inlineScript", f"{self.base_urls[0]}/test.html"),
             [4, 5, 6, 7],
             {
-                "4": [5, 13, 21, 29],
+                "4": [4, 12, 20, 28],
                 "5": [15, 23, 31, 39],  # includes 3 surrogate pairs
                 "6": [15, 23, 31, 39],  # includes 1 surrogate pair
                 "7": [0],
@@ -742,7 +742,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         client.disconnect()
 
     def assert_source_breakable_lines_and_positions(
-        self, source_url: str, expected_breakable_lines: list[int], expected_positions: dict[int, list[int]]
+        self, expected_source: Source, expected_breakable_lines: list[int], expected_positions: dict[int, list[int]]
     ):
         client, watcher, targets = self._setup_devtools_client()
 
@@ -754,8 +754,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 try:
                     self.assertEqual(resource_type, "source")
                     for source in sources:
-                        if source["url"] == source_url:
-                            source_actors[source_url] = source["actor"]
+                        if Source(source["introductionType"], source["url"]) == expected_source:
+                            source_actors[expected_source] = source["actor"]
                             done.set_result(None)
                 except Exception as e:
                     done.set_result(e)
@@ -773,8 +773,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             raise result
 
         # We found at least one source with the given url.
-        self.assertIn(source_url, source_actors)
-        source_actor = source_actors[source_url]
+        self.assertIn(expected_source, source_actors)
+        source_actor = source_actors[expected_source]
 
         response = client.send_receive({"to": source_actor, "type": "getBreakableLines"})
         self.assertEqual(response["lines"], expected_breakable_lines)
