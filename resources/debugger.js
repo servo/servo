@@ -35,3 +35,8 @@ addEventListener("addDebuggee", event => {
     });
     debuggeesToWorkerIds.set(debuggerObject, workerId);
 });
+
+addEventListener("getPossibleBreakpoints", event => {
+    const {spidermonkeyId} = event;
+    getPossibleBreakpointsResult(event, sourceIdsToScripts.get(spidermonkeyId).getPossibleBreakpoints(/* TODO: `query` */));
+});

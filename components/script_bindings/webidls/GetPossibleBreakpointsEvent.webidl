@@ -8,3 +8,16 @@
 interface GetPossibleBreakpointsEvent : Event {
     readonly attribute unsigned long spidermonkeyId;
 };
+
+partial interface DebuggerGlobalScope {
+    undefined getPossibleBreakpointsResult(
+        GetPossibleBreakpointsEvent event,
+        sequence<RecommendedBreakpointLocation> result);
+};
+
+dictionary RecommendedBreakpointLocation {
+    required unsigned long offset;
+    required unsigned long lineNumber;
+    required unsigned long columnNumber;
+    required boolean isStepStart;
+};

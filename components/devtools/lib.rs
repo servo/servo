@@ -256,9 +256,10 @@ impl DevtoolsInstance {
                     worker_id,
                 )) => self.handle_console_message(pipeline_id, worker_id, console_message),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::CreateSourceActor(
+                    script_sender,
                     pipeline_id,
                     source_info,
-                )) => self.handle_create_source_actor(pipeline_id, source_info),
+                )) => self.handle_create_source_actor(script_sender, pipeline_id, source_info),
                 DevtoolsControlMsg::FromScript(
                     ScriptToDevtoolsControlMsg::UpdateSourceContent(pipeline_id, source_content),
                 ) => self.handle_update_source_content(pipeline_id, source_content),
@@ -540,7 +541,12 @@ impl DevtoolsInstance {
         }
     }
 
-    fn handle_create_source_actor(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
+    fn handle_create_source_actor(
+        &mut self,
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        pipeline_id: PipelineId,
+        source_info: SourceInfo,
+    ) {
         let mut actors = self.actors.lock().unwrap();
 
         let source_content = source_info
@@ -554,6 +560,7 @@ impl DevtoolsInstance {
             source_info.content_type,
             source_info.spidermonkey_id,
             source_info.introduction_type,
+            script_sender,
         );
         let source_actor_name = source_actor.name.clone();
         let source_form = source_actor.source_form();

@@ -952,6 +952,7 @@ impl ScriptThread {
             &js_runtime.clone(),
             PipelineId::new(),
             senders.devtools_server_sender.clone(),
+            senders.devtools_client_to_script_thread_sender.clone(),
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
             script_to_constellation_chan,
@@ -2241,6 +2242,13 @@ impl ScriptThread {
             },
             DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => {
                 devtools::handle_highlight_dom_node(&documents, id, node_id)
+            },
+            DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
+                self.debugger_global.fire_get_possible_breakpoints(
+                    can_gc,
+                    spidermonkey_id,
+                    result_sender,
+                );
             },
         }
     }
