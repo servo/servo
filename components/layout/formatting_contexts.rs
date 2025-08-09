@@ -16,13 +16,14 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
-use crate::geom::LazySize;
 use crate::layout_box_base::{
     CacheableLayoutResult, CacheableLayoutResultAndInputs, LayoutBoxBase,
 };
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
-use crate::sizing::{self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
+use crate::sizing::{
+    self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize,
+};
 use crate::style_ext::{AspectRatio, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;

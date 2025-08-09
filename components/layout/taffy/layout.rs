@@ -20,12 +20,12 @@ use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
-use crate::geom::{
-    LazySize, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, SizeConstraint,
-};
+use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
-use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
+use crate::sizing::{
+    ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
+};
 use crate::style_ext::LayoutStyle;
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 

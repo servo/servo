@@ -31,19 +31,17 @@ use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, LazySize, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
+use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
+    LazySize, Size, SizeConstraint, Sizes,
 };
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
-use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
-    SizeConstraint,
-};
+use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock};
 
 /// Layout parameters and intermediate results about a flex container,
 /// grouped to avoid passing around many parameters

@@ -34,17 +34,17 @@ use crate::fragment_tree::{
     Fragment, FragmentFlags,
 };
 use crate::geom::{
-    AuOrAuto, LazySize, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint,
-    PhysicalRect, PhysicalSides, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
+    AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
+    PhysicalSides, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
-use crate::sizing::{self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{AspectRatio, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin};
-use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
-    SizeConstraint,
+use crate::sizing::{
+    self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
+    SizeConstraint, Sizes,
 };
+use crate::style_ext::{AspectRatio, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin};
+use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock};
 
 mod construct;
 pub mod float;

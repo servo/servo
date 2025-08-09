@@ -36,8 +36,9 @@ use crate::dom_traversal::{Contents, NonReplacedContents};
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalSides,
-    PhysicalSize, Size, Sizes,
+    PhysicalSize,
 };
+use crate::sizing::{Size, Sizes};
 use crate::table::TableLayoutStyle;
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
