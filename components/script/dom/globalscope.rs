@@ -26,7 +26,7 @@ use content_security_policy::CspList;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -2762,7 +2762,7 @@ impl GlobalScope {
         script_base_url: ServoUrl,
         can_gc: CanGc,
         introduction_type: Option<&'static CStr>,
-    ) -> bool {
+    ) -> Result<(), JavaScriptEvaluationError> {
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string((*code).to_string())));
         self.evaluate_script_on_global_with_result(
             &source_code,
@@ -2789,7 +2789,7 @@ impl GlobalScope {
         script_base_url: ServoUrl,
         can_gc: CanGc,
         introduction_type: Option<&'static CStr>,
-    ) -> bool {
+    ) -> Result<(), JavaScriptEvaluationError> {
         let cx = GlobalScope::get_cx();
 
         let ar = enter_realm(self);
@@ -2815,7 +2815,7 @@ impl GlobalScope {
                     if compiled_script.is_null() {
                         debug!("error compiling Dom string");
                         report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
-                        return false;
+                        return Err(JavaScriptEvaluationError::CompilationFailure);
                     }
                 },
                 SourceCode::Compiled(pre_compiled_script) => {
@@ -2865,10 +2865,11 @@ impl GlobalScope {
             if !result {
                 debug!("error evaluating Dom string");
                 report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+                return Err(JavaScriptEvaluationError::EvaluationFailure);
             }
 
             maybe_resume_unwind();
-            result
+            Ok(())
         }
     }
 
