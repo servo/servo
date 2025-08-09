@@ -6,9 +6,7 @@ use std::cell::RefCell;
 
 use canvas_traits::canvas::Path;
 use dom_struct::dom_struct;
-use euclid::default::Point2D;
 use js::rust::HandleObject;
-use kurbo::{PathEl, Point};
 use script_bindings::codegen::GenericBindings::DOMMatrixBinding::DOMMatrix2DInit;
 use script_bindings::error::ErrorResult;
 use script_bindings::str::DOMString;
