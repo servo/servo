@@ -930,7 +930,8 @@ struct OverflowFrameData {
 
 impl BoxFragment {
     fn get_stacking_context_type(&self) -> Option<StackingContextType> {
-        if self.style.establishes_stacking_context(self.base.flags) {
+        let flags = self.base.flags;
+        if self.style.establishes_stacking_context(flags) {
             return Some(StackingContextType::RealStackingContext);
         }
 
@@ -943,7 +944,10 @@ impl BoxFragment {
             return Some(StackingContextType::FloatStackingContainer);
         }
 
-        if self.is_atomic_inline_level() {
+        // Flex and grid items are painted like inline blocks.
+        // <https://drafts.csswg.org/css-flexbox-1/#painting>
+        // <https://drafts.csswg.org/css-grid/#z-order>
+        if self.is_atomic_inline_level() || flags.contains(FragmentFlags::IS_FLEX_OR_GRID_ITEM) {
             return Some(StackingContextType::AtomicInlineStackingContainer);
         }
 
