@@ -23,7 +23,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::types::{DebuggerEvent, Event};
+use crate::dom::types::{DebuggerAddDebuggeeEvent, Event};
 #[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -132,7 +132,7 @@ impl DebuggerGlobalScope {
     ) {
         let debuggee_pipeline_id =
             crate::dom::pipelineid::PipelineId::new(self.upcast(), debuggee_pipeline_id, can_gc);
-        let event = DomRoot::upcast::<Event>(DebuggerEvent::new(
+        let event = DomRoot::upcast::<Event>(DebuggerAddDebuggeeEvent::new(
             self.upcast(),
             debuggee_global,
             &debuggee_pipeline_id,
@@ -141,7 +141,7 @@ impl DebuggerGlobalScope {
         ));
         assert!(
             DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
-            "Guaranteed by DebuggerEvent::new"
+            "Guaranteed by DebuggerAddDebuggeeEvent::new"
         );
     }
 }
