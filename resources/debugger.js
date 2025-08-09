@@ -6,24 +6,21 @@ const dbg = new Debugger;
 const debuggeesToPipelineIds = new Map;
 const debuggeesToWorkerIds = new Map;
 
-dbg.onNewGlobalObject = function(global) {
+dbg.uncaughtExceptionHook = function(error) {
+    console.error(`[debugger] Uncaught exception at ${error.fileName}:${error.lineNumber}:${error.columnNumber}: ${error.name}: ${error.message}`);
 };
 
 dbg.onNewScript = function(script, /* undefined; seems to be `script.global` now */ global) {
-    try {
-        // TODO: notify script system about new source
-        /* notifyNewSource */({
-            pipelineId: debuggeesToPipelineIds.get(script.global),
-            workerId: debuggeesToWorkerIds.get(script.global),
-            spidermonkeyId: script.source.id,
-            url: script.source.url,
-            urlOverride: script.source.displayURL,
-            text: script.source.text,
-            introductionType: script.source.introductionType ?? null,
-        });
-    } catch (error) {
-        logError(error);
-    }
+    // TODO: handle wasm (`script.source.introductionType == wasm`)
+    notifyNewSource({
+        pipelineId: debuggeesToPipelineIds.get(script.global),
+        workerId: debuggeesToWorkerIds.get(script.global),
+        spidermonkeyId: script.source.id,
+        url: script.source.url,
+        urlOverride: script.source.displayURL,
+        text: script.source.text,
+        introductionType: script.source.introductionType ?? null,
+    });
 };
 
 addEventListener("addDebuggee", event => {
@@ -36,7 +33,3 @@ addEventListener("addDebuggee", event => {
     });
     debuggeesToWorkerIds.set(debuggerObject, workerId);
 });
-
-function logError(error) {
-    console.log(`[debugger] ERROR at ${error.fileName}:${error.lineNumber}:${error.columnNumber}: ${error.name}: ${error.message}`);
-}
