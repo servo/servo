@@ -19,7 +19,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::csskeyframerule::CSSKeyframeRule;
-use crate::dom::cssrule::CSSRule;
+use crate::dom::cssrule::{CSSRule, RulesModificationScope};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
@@ -107,6 +107,7 @@ impl CSSRuleList {
         parse_relative_rule_type: Option<CssRuleType>,
         can_gc: CanGc,
     ) -> Fallible<u32> {
+        let _rules_modification_scope = RulesModificationScope::new(&self.parent_stylesheet);
         let css_rules = if let RulesSource::Rules(ref rules) = self.rules {
             rules
         } else {
@@ -153,6 +154,7 @@ impl CSSRuleList {
 
     /// In case of a keyframe rule, index must be valid.
     pub(crate) fn remove_rule(&self, index: u32) -> ErrorResult {
+        let _rules_modification_scope = RulesModificationScope::new(&self.parent_stylesheet);
         let index = index as usize;
         let mut guard = self.parent_stylesheet.shared_lock().write();
 

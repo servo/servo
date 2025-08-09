@@ -198,3 +198,29 @@ pub(crate) trait SpecificCSSRule {
         // most CSSRules do nothing here
     }
 }
+
+pub(crate) struct RulesModificationScope<'stylesheet> {
+    stylesheet: &'stylesheet CSSStyleSheet,
+    has_modification: bool,
+}
+
+impl<'stylesheet> RulesModificationScope<'stylesheet> {
+    pub(crate) fn new(stylesheet: &'stylesheet CSSStyleSheet) -> Self {
+        Self {
+            stylesheet,
+            has_modification: true,
+        }
+    }
+
+    pub(crate) fn set_unmodified(&mut self) {
+        self.has_modification = false;
+    }
+}
+
+impl Drop for RulesModificationScope<'_> {
+    fn drop(&mut self) {
+        if self.has_modification {
+            self.stylesheet.notify_invalidations();
+        }
+    }
+}

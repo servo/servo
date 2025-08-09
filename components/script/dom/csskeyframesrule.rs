@@ -17,7 +17,7 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csskeyframerule::CSSKeyframeRule;
-use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
+use crate::dom::cssrule::{CSSRule, RulesModificationScope, SpecificCSSRule};
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
@@ -108,6 +108,8 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         );
 
         if let Ok(rule) = rule {
+            let _rules_modification_scope =
+                RulesModificationScope::new(self.cssrule.parent_stylesheet());
             let mut guard = self.cssrule.shared_lock().write();
             self.keyframesrule
                 .write_with(&mut guard)
@@ -139,6 +141,8 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
     fn SetName(&self, value: DOMString) -> ErrorResult {
+        let _rules_modification_scope =
+            RulesModificationScope::new(self.cssrule.parent_stylesheet());
         // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` does not throw,
         // it stores a value that serializes as a quoted string.
