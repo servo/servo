@@ -835,8 +835,8 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
 
             unsafe {
                 rooted!(in(*cx) let mut rooted_value = value);
-                let serialization =
-                    std::ptr::NonNull::new(ToString(*cx, rooted_value.handle())).unwrap();
+                let serialization = std::ptr::NonNull::new(ToString(*cx, rooted_value.handle()))
+                    .expect("Pointer cannot be null");
                 jsstr_to_string(*cx, serialization)
             }
         };
