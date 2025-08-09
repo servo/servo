@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::ToCssWithGuard;
+use style::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, SupportsRule};
 use style_traits::ToCss;
 
@@ -22,7 +24,7 @@ pub(crate) struct CSSSupportsRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    supportsrule: Arc<SupportsRule>,
+    supportsrule: RefCell<Arc<SupportsRule>>,
 }
 
 impl CSSSupportsRule {
@@ -33,7 +35,7 @@ impl CSSSupportsRule {
         let list = supportsrule.rules.clone();
         CSSSupportsRule {
             cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
-            supportsrule,
+            supportsrule: RefCell::new(supportsrule),
         }
     }
 
@@ -56,7 +58,17 @@ impl CSSSupportsRule {
 
     /// <https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface>
     pub(crate) fn get_condition_text(&self) -> DOMString {
-        self.supportsrule.condition.to_css_string().into()
+        self.supportsrule.borrow().condition.to_css_string().into()
+    }
+
+    pub(crate) fn update_rule(
+        &self,
+        supportsrule: Arc<SupportsRule>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        self.cssconditionrule
+            .update_rules(supportsrule.rules.clone(), guard);
+        *self.supportsrule.borrow_mut() = supportsrule;
     }
 }
 
@@ -67,6 +79,6 @@ impl SpecificCSSRule for CSSSupportsRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
-        self.supportsrule.to_css_string(&guard).into()
+        self.supportsrule.borrow().to_css_string(&guard).into()
     }
 }
