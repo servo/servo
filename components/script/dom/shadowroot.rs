@@ -9,7 +9,7 @@ use std::collections::hash_map::Entry;
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
 use js::rust::{HandleValue, MutableHandleValue};
-use script_bindings::error::ErrorResult;
+use script_bindings::error::{ErrorResult, Fallible};
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
@@ -459,17 +459,15 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
-    fn InnerHTML(&self, can_gc: CanGc) -> DOMString {
+    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
         // ShadowRoot's innerHTML getter steps are to return the result of running fragment serializing
         // algorithm steps with this and true.
         self.upcast::<Node>()
             .fragment_serialization_algorithm(true, can_gc)
-            .inspect_err(|error| warn!("fragment serialization failed: {error:?}"))
-            .unwrap_or_default()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
-    fn SetInnerHTML(&self, value: DOMString, can_gc: CanGc) {
+    fn SetInnerHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         // TODO Step 1. Let compliantString be the result of invoking the Get Trusted Type compliant string algorithm
         // with TrustedHTML, this's relevant global object, the given value, "ShadowRoot innerHTML", and "script".
         let compliant_string = value;
@@ -479,14 +477,14 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
         // Step 3. Let fragment be the result of invoking the fragment parsing algorithm steps with context and
         // compliantString.
-        let Ok(frag) = context.parse_fragment(compliant_string, can_gc) else {
-            // NOTE: The spec doesn't strictly tell us to bail out here, but
-            // we can't continue if parsing failed
-            return;
-        };
+        //
+        // NOTE: The spec doesn't strictly tell us to bail out here, but
+        // we can't continue if parsing failed
+        let frag = context.parse_fragment(compliant_string, can_gc)?;
 
         // Step 4. Replace all with fragment within this.
         Node::replace_all(Some(frag.upcast()), self.upcast(), can_gc);
+        Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-slotassignment>
