@@ -151,7 +151,7 @@ use crate::dom::element::{
     CustomElementCreationMode, Element, ElementCreator, ElementPerformFullscreenEnter,
     ElementPerformFullscreenExit,
 };
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::fontfaceset::FontFaceSet;
@@ -1678,11 +1678,12 @@ impl Document {
             vec![],                   // predicted_events
             can_gc,
         );
-        let event = menu_event.upcast::<Event>();
-        event.fire(target, can_gc);
 
-        // if the event was not canceled, notify the embedder to show the context menu
-        if event.status() == EventStatus::NotCanceled {
+        // Step 3. Let result = dispatch menuevent at target.
+        let result = menu_event.upcast::<Event>().fire(target, can_gc);
+
+        // Step 4. If result is true, then show the UA context menu
+        if result {
             let (sender, receiver) =
                 ipc::channel::<ContextMenuResult>().expect("Failed to create IPC channel.");
             self.send_to_embedder(EmbedderMsg::ShowContextMenu(
@@ -2393,13 +2394,8 @@ impl Document {
             false,
             can_gc,
         );
-        let event = event.upcast::<Event>();
-        let result = event.fire(&target, can_gc);
 
-        match result {
-            EventStatus::Canceled => TouchEventResult::Processed(false),
-            EventStatus::NotCanceled => TouchEventResult::Processed(true),
-        }
+        TouchEventResult::Processed(event.upcast::<Event>().fire(&target, can_gc))
     }
 
     // If hittest fails, we still need to update the active point information.
@@ -3026,8 +3022,7 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            let _ = self
-                .window
+            self.window
                 .dispatch_event_with_target_override(event, can_gc);
             // Step 6 Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(DocumentVisibilityState::Hidden, can_gc);
@@ -3044,8 +3039,7 @@ impl Document {
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
             let has_listeners = event_target.has_listeners_for(&atom!("unload"));
-            let _ = self
-                .window
+            self.window
                 .dispatch_event_with_target_override(&event, can_gc);
             self.fired_unload.set(true);
             // Step 9

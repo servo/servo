@@ -130,7 +130,7 @@ use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration
 use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::document::{AnimationFrameCallback, Document};
 use crate::dom::element::Element;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepadevent::GamepadEventType;
@@ -705,12 +705,8 @@ impl Window {
     }
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
-    pub(crate) fn dispatch_event_with_target_override(
-        &self,
-        event: &Event,
-        can_gc: CanGc,
-    ) -> EventStatus {
-        event.dispatch(self.upcast(), true, can_gc)
+    pub(crate) fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) {
+        event.dispatch(self.upcast(), true, can_gc);
     }
 
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {

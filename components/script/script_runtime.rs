@@ -75,7 +75,7 @@ use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
 use crate::dom::csp::CspReporting;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -559,10 +559,11 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
                             CanGc::note()
                         );
 
-                        let event_status = event.upcast::<Event>().fire(&target, CanGc::note());
+                        let not_canceled = event.upcast::<Event>().fire(&target, CanGc::note());
 
-                        // Step 4-3.
-                        if event_status == EventStatus::Canceled {
+                        // Step 4-3. If notCanceled is true, then the user agent
+                        // may report p.[[PromiseResult]] to a developer console.
+                        if not_canceled {
                             // TODO: The promise rejection is not handled; we need to add it back to the list.
                         }
 

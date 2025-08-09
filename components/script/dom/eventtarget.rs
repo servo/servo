@@ -57,7 +57,7 @@ use crate::dom::csp::{CspReporting, InlineCheckType};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::{Node, NodeTraits};
@@ -430,7 +430,7 @@ impl EventTarget {
             .map_or(EventListeners(vec![]), |listeners| listeners.clone())
     }
 
-    pub(crate) fn dispatch_event(&self, event: &Event, can_gc: CanGc) -> EventStatus {
+    pub(crate) fn dispatch_event(&self, event: &Event, can_gc: CanGc) -> bool {
         event.dispatch(self, false, can_gc)
     }
 
@@ -994,10 +994,7 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
             return Err(Error::InvalidState);
         }
         event.set_trusted(false);
-        Ok(match self.dispatch_event(event, can_gc) {
-            EventStatus::Canceled => false,
-            EventStatus::NotCanceled => true,
-        })
+        Ok(self.dispatch_event(event, can_gc))
     }
 }
 

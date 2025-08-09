@@ -279,7 +279,7 @@ impl Event {
         legacy_target_override: bool,
         can_gc: CanGc,
         // TODO legacy_did_output_listeners_throw_flag for indexeddb
-    ) -> EventStatus {
+    ) -> bool {
         let mut target = DomRoot::from_ref(target);
 
         // Step 1. Set event’s dispatch flag.
@@ -629,15 +629,7 @@ impl Event {
         }
 
         // Step 12 Return false if event’s canceled flag is set; otherwise true.
-        self.status()
-    }
-
-    pub(crate) fn status(&self) -> EventStatus {
-        if self.DefaultPrevented() {
-            EventStatus::Canceled
-        } else {
-            EventStatus::NotCanceled
-        }
+        !self.DefaultPrevented()
     }
 
     #[inline]
@@ -673,8 +665,8 @@ impl Event {
         self.composed.set(composed);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
-    pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> EventStatus {
+    /// <https://dom.spec.whatwg.org/#firing-events>
+    pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> bool {
         self.set_trusted(true);
         target.dispatch_event(self, can_gc)
     }
@@ -1103,12 +1095,6 @@ pub(crate) enum EventDefault {
     /// The event has been handled somewhere in the DOM, and it should be prevented from being
     /// re-handled elsewhere. This doesn't affect the judgement of `DefaultPrevented`
     Handled,
-}
-
-#[derive(Debug, PartialEq)]
-pub(crate) enum EventStatus {
-    Canceled,
-    NotCanceled,
 }
 
 /// <https://dom.spec.whatwg.org/#concept-event-fire>

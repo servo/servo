@@ -65,7 +65,7 @@ use crate::dom::element::{
     referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
     set_cross_origin_attribute,
 };
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
@@ -1416,7 +1416,7 @@ impl HTMLScriptElement {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         can_gc: CanGc,
-    ) -> EventStatus {
+    ) -> bool {
         let window = self.owner_window();
         let event = Event::new(window.upcast(), type_, bubbles, cancelable, can_gc);
         event.fire(self.upcast(), can_gc)
