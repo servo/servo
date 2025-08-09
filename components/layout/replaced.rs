@@ -29,11 +29,13 @@ use crate::dom::NodeExt;
 use crate::fragment_tree::{
     BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
 };
-use crate::geom::{LazySize, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
+use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
-use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult};
+use crate::sizing::{
+    ComputeInlineContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
+};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, LayoutStyle};
-use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
+use crate::{ConstraintSpace, ContainingBlock};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct ReplacedContents {
