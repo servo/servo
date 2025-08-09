@@ -8,13 +8,15 @@ use constellation_traits::StructuredSerializedData;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::{DoubleValue, JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, IdbResult, IndexedDBThreadMsg, IndexedDBTxnMode,
+    AsyncOperation, BackendResult, IndexedDBKeyType, IndexedDBThreadMsg, IndexedDBTxnMode,
+    PutItemResult,
 };
-use profile_traits::ipc;
+use profile_traits::ipc::IpcReceiver;
+use serde::{Deserialize, Serialize};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
@@ -42,8 +44,61 @@ struct RequestListener {
     request: Trusted<IDBRequest>,
 }
 
+pub enum IdbResult {
+    Key(IndexedDBKeyType),
+    Data(Vec<u8>),
+    Count(u64),
+    Error(Error),
+    None,
+}
+
+impl From<IndexedDBKeyType> for IdbResult {
+    fn from(value: IndexedDBKeyType) -> Self {
+        IdbResult::Key(value)
+    }
+}
+
+impl From<Vec<u8>> for IdbResult {
+    fn from(value: Vec<u8>) -> Self {
+        IdbResult::Data(value)
+    }
+}
+
+impl From<PutItemResult> for IdbResult {
+    fn from(value: PutItemResult) -> Self {
+        match value {
+            PutItemResult::Success => Self::None,
+            PutItemResult::CannotOverwrite => Self::Error(Error::Constraint),
+        }
+    }
+}
+
+impl From<()> for IdbResult {
+    fn from(_value: ()) -> Self {
+        Self::None
+    }
+}
+
+impl<T> From<Option<T>> for IdbResult
+where
+    T: Into<IdbResult>,
+{
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => value.into(),
+            None => IdbResult::None,
+        }
+    }
+}
+
+impl From<u64> for IdbResult {
+    fn from(value: u64) -> Self {
+        IdbResult::Count(value)
+    }
+}
+
 impl RequestListener {
-    fn handle_async_request_finished(&self, result: Result<Option<IdbResult>, ()>) {
+    fn handle_async_request_finished(&self, result: BackendResult<IdbResult>) {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
@@ -53,7 +108,7 @@ impl RequestListener {
         let _ac = enter_realm(&*request);
         rooted!(in(*cx) let mut answer = UndefinedValue());
 
-        if let Ok(Some(data)) = result {
+        if let Ok(data) = result {
             match data {
                 IdbResult::Key(key) => {
                     key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut())
@@ -67,6 +122,17 @@ impl RequestListener {
                     if structuredclone::read(&global, data, answer.handle_mut()).is_err() {
                         warn!("Error reading structuredclone data");
                     }
+                },
+                IdbResult::Count(count) => {
+                    answer.handle_mut().set(DoubleValue(count as f64));
+                },
+                IdbResult::None => {
+                    // no-op
+                },
+                IdbResult::Error(_err) => {
+                    request.set_result(answer.handle());
+                    Self::handle_async_request_error(request, &global);
+                    return;
                 },
             }
 
@@ -92,29 +158,32 @@ impl RequestListener {
             transaction.set_active_flag(false);
         } else {
             request.set_result(answer.handle());
-
-            // FIXME:(rasviitanen)
-            // Set the error of request to result
-
-            let transaction = request
-                .transaction
-                .get()
-                .expect("Request has no transaction");
-
-            let event = Event::new(
-                &global,
-                Atom::from("error"),
-                EventBubbles::Bubbles,
-                EventCancelable::Cancelable,
-                CanGc::note(),
-            );
-
-            transaction.set_active_flag(true);
-            event
-                .upcast::<Event>()
-                .fire(request.upcast(), CanGc::note());
-            transaction.set_active_flag(false);
+            Self::handle_async_request_error(request, &global);
         }
+    }
+
+    fn handle_async_request_error(request: DomRoot<IDBRequest>, global: &GlobalScope) {
+        // FIXME:(rasviitanen)
+        // Set the error of request to result
+
+        let transaction = request
+            .transaction
+            .get()
+            .expect("Request has no transaction");
+
+        let event = Event::new(
+            global,
+            Atom::from("error"),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            CanGc::note(),
+        );
+
+        transaction.set_active_flag(true);
+        event
+            .upcast::<Event>()
+            .fire(request.upcast(), CanGc::note());
+        transaction.set_active_flag(false);
     }
 }
 
@@ -174,12 +243,16 @@ impl IDBRequest {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#asynchronously-execute-a-request
-    pub fn execute_async(
+    pub fn execute_async<T>(
         source: &IDBObjectStore,
         operation: AsyncOperation,
+        receiver: IpcReceiver<BackendResult<T>>,
         request: Option<DomRoot<IDBRequest>>,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<IDBRequest>> {
+    ) -> Fallible<DomRoot<IDBRequest>>
+    where
+        T: Into<IdbResult> + for<'a> Deserialize<'a> + Serialize + Send + Sync + 'static,
+    {
         // Step 1: Let transaction be the transaction associated with source.
         let transaction = source.transaction().expect("Store has no transaction");
         let global = transaction.global();
@@ -208,10 +281,6 @@ impl IDBRequest {
             IDBTransactionMode::Versionchange => IndexedDBTxnMode::Versionchange,
         };
 
-        let (sender, receiver) =
-            ipc::channel::<Result<Option<IdbResult>, ()>>(global.time_profiler_chan().clone())
-                .unwrap();
-
         let response_listener = RequestListener {
             request: Trusted::new(&request),
         };
@@ -227,7 +296,7 @@ impl IDBRequest {
                 let response_listener = response_listener.clone();
                 task_source.queue(task!(request_callback: move || {
                     response_listener.handle_async_request_finished(
-                        message.expect("Could not unwrap message"));
+                        message.expect("Could not unwrap message").map(|t| t.into()));
                 }));
             }),
         );
@@ -237,7 +306,6 @@ impl IDBRequest {
             .resource_threads()
             .sender()
             .send(IndexedDBThreadMsg::Async(
-                sender,
                 global.origin().immutable().clone(),
                 transaction.get_db_name().to_string(),
                 source.get_name().to_string(),
