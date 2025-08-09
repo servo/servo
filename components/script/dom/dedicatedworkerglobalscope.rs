@@ -46,7 +46,7 @@ use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
 use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
@@ -731,11 +731,9 @@ impl DedicatedWorkerGlobalScope {
                 HandleValue::null(),
                 CanGc::note(),
             );
-            let event_status =
-                event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note());
 
             // Step 2.
-            if event_status == EventStatus::NotCanceled {
+            if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note()) {
                 global.report_an_error(error_info, HandleValue::null(), CanGc::note());
             }
         }));

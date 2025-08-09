@@ -1381,7 +1381,7 @@ impl HTMLScriptElement {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         can_gc: CanGc,
-    ) -> EventStatus {
+    ) -> bool {
         let window = self.owner_window();
         let event = Event::new(window.upcast(), type_, bubbles, cancelable, can_gc);
         event.fire(self.upcast(), can_gc)

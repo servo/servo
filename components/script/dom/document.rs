@@ -2393,13 +2393,8 @@ impl Document {
             false,
             can_gc,
         );
-        let event = event.upcast::<Event>();
-        let result = event.fire(&target, can_gc);
 
-        match result {
-            EventStatus::Canceled => TouchEventResult::Processed(false),
-            EventStatus::NotCanceled => TouchEventResult::Processed(true),
-        }
+        TouchEventResult::Processed(event.upcast::<Event>().fire(&target, can_gc))
     }
 
     // If hittest fails, we still need to update the active point information.

@@ -100,7 +100,7 @@ use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
 use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -2645,15 +2645,18 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
-        // Step 1.
+        // Step 6. Early return if global is in error reporting mode,
         if self.in_error_reporting_mode.get() {
             return;
         }
 
-        // Step 2.
+        // Step 6.1. Set global's in error reporting mode to true.
         self.in_error_reporting_mode.set(true);
 
-        // Steps 3-6.
+        // Step 6.2. Set notHandled to the result of firing an event named error at global,
+        // using ErrorEvent, with the cancelable attribute initialized to true,
+        // and additional attributes initialized according to errorInfo.
+
         // FIXME(#13195): muted errors.
         let event = ErrorEvent::new(
             self,
@@ -2668,16 +2671,15 @@ impl GlobalScope {
             can_gc,
         );
 
-        // Step 7.
-        let event_status = event
+        let not_handled = event
             .upcast::<Event>()
             .fire(self.upcast::<EventTarget>(), can_gc);
 
-        // Step 8.
+        // Step 6.3. Set global's in error reporting mode to false.
         self.in_error_reporting_mode.set(false);
 
-        // Step 9.
-        if event_status == EventStatus::NotCanceled {
+        // Step 7.
+        if not_handled {
             // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.forward_error_to_worker_object(error_info);

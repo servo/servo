@@ -279,7 +279,7 @@ impl Event {
         legacy_target_override: bool,
         can_gc: CanGc,
         // TODO legacy_did_output_listeners_throw_flag for indexeddb
-    ) -> EventStatus {
+    ) -> bool {
         let mut target = DomRoot::from_ref(target);
 
         // Step 1. Set event’s dispatch flag.
@@ -629,7 +629,7 @@ impl Event {
         }
 
         // Step 12 Return false if event’s canceled flag is set; otherwise true.
-        self.status()
+        self.status() == EventStatus::NotCanceled
     }
 
     pub(crate) fn status(&self) -> EventStatus {
@@ -673,8 +673,8 @@ impl Event {
         self.composed.set(composed);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
-    pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> EventStatus {
+    /// <https://dom.spec.whatwg.org/#firing-events>
+    pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> bool {
         self.set_trusted(true);
         target.dispatch_event(self, can_gc)
     }
