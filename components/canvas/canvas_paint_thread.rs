@@ -371,7 +371,7 @@ impl Canvas {
         text_options: TextOptions,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         match self {
             #[cfg(feature = "raqote")]
@@ -423,7 +423,7 @@ impl Canvas {
         style: FillOrStrokeStyle,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         match self {
             #[cfg(feature = "raqote")]
@@ -449,7 +449,7 @@ impl Canvas {
         line_options: LineOptions,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         match self {
             #[cfg(feature = "raqote")]
@@ -490,7 +490,7 @@ impl Canvas {
         style: FillOrStrokeStyle,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         match self {
             #[cfg(feature = "raqote")]
@@ -531,7 +531,7 @@ impl Canvas {
         line_options: LineOptions,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         match self {
             #[cfg(feature = "raqote")]
@@ -565,7 +565,7 @@ impl Canvas {
         }
     }
 
-    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
+    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {
         match self {
             #[cfg(feature = "raqote")]
             Canvas::Raqote(canvas_data) => canvas_data.clear_rect(rect, transform),
@@ -585,7 +585,7 @@ impl Canvas {
         smoothing_enabled: bool,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         match self {
             #[cfg(feature = "raqote")]
@@ -646,7 +646,7 @@ impl Canvas {
         }
     }
 
-    fn clip_path(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f32>) {
+    fn clip_path(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f64>) {
         match self {
             #[cfg(feature = "raqote")]
             Canvas::Raqote(canvas_data) => canvas_data.clip_path(path, fill_rule, transform),

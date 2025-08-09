@@ -141,7 +141,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         smoothing_enabled: bool,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
@@ -194,7 +194,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         style: FillOrStrokeStyle,
         text_options: &TextOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         // > Step 2: Replace all ASCII whitespace in text with U+0020 SPACE characters.
         let text = replace_ascii_whitespace(text);
@@ -299,7 +299,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         text_options: TextOptions,
         _shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         let Some(ref font_style) = text_options.font else {
             return;
@@ -481,7 +481,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         style: FillOrStrokeStyle,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         if style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
@@ -512,7 +512,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         }
     }
 
-    pub(crate) fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
+    pub(crate) fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {
         self.drawtarget.clear_rect(rect, transform);
     }
 
@@ -523,7 +523,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         line_options: LineOptions,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         if style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
@@ -571,7 +571,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         style: FillOrStrokeStyle,
         _shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         if style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
@@ -597,7 +597,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         line_options: LineOptions,
         _shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         if style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
@@ -620,7 +620,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         &mut self,
         path: &Path,
         fill_rule: FillRule,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.drawtarget.push_clip(path, fill_rule, transform);
     }
@@ -673,21 +673,23 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         rect: &Rect<f32>,
         shadow_options: ShadowOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
         draw_shadow_source: F,
     ) where
-        F: FnOnce(&mut DrawTarget, Transform2D<f32>),
+        F: FnOnce(&mut DrawTarget, Transform2D<f64>),
     {
-        let shadow_src_rect = transform.outer_transformed_rect(rect);
-        let mut new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
-        let shadow_transform = transform.then(
-            &Transform2D::identity()
-                .pre_translate(-shadow_src_rect.origin.to_vector().cast::<f32>()),
-        );
+        let shadow_src_rect = transform.outer_transformed_rect(&rect.cast());
+        // Because this comes from the rect on f32 precision, casting it down should be ok.
+        let mut new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect.cast());
+        let shadow_transform = transform
+            .then(&Transform2D::identity().pre_translate(-shadow_src_rect.origin.to_vector()));
         draw_shadow_source(&mut new_draw_target, shadow_transform);
         self.drawtarget.draw_surface_with_shadow(
             new_draw_target.surface(),
-            &Point2D::new(shadow_src_rect.origin.x, shadow_src_rect.origin.y),
+            &Point2D::new(
+                shadow_src_rect.origin.x as f32,
+                shadow_src_rect.origin.y as f32,
+            ),
             shadow_options,
             composition_options,
         );
@@ -700,7 +702,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
         path_bound_box: &Rect<f64>,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
         draw_shape: F,
     ) where
         F: FnOnce(&mut Self, FillOrStrokeStyle),
@@ -778,7 +780,7 @@ fn write_image<DrawTarget: GenericDrawTarget>(
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
     composition_options: CompositionOptions,
-    transform: Transform2D<f32>,
+    transform: Transform2D<f64>,
 ) {
     if snapshot.size().is_empty() {
         return;
