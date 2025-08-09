@@ -42,7 +42,7 @@ use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, IntroductionType};
 
 #[allow(unsafe_code)]
 pub(crate) fn handle_evaluate_js(
@@ -67,7 +67,7 @@ pub(crate) fn handle_evaluate_js(
             ScriptFetchOptions::default_classic_script(global),
             global.api_base_url(),
             can_gc,
-            Some(c"debugger eval"),
+            Some(IntroductionType::DEBUGGER_EVAL),
         );
 
         if rval.is_undefined() {

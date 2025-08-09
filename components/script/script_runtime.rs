@@ -1255,6 +1255,10 @@ pub(crate) use script_bindings::script_runtime::CanGc;
 // TODO: squish `scriptElement` <https://searchfox.org/mozilla-central/rev/202069c4c5113a1a9052d84fa4679d4c1b22113e/devtools/server/actors/source.js#199-201>
 pub(crate) struct IntroductionType;
 impl IntroductionType {
+    /// `introductionType` for code evaluated by debugger.
+    /// This includes code run via the devtools repl, even if the thread is not paused.
+    pub const DEBUGGER_EVAL: &CStr = c"debugger eval";
+
     /// `introductionType` for code loaded by worklet.
     pub const WORKLET: &CStr = c"Worklet";
 
