@@ -284,6 +284,8 @@ struct FocusTransaction {
     element: Option<Dom<Element>>,
     /// See [`Document::has_focus`].
     has_focus: bool,
+    /// Whether scrolling should be prevented when focusing
+    prevent_scroll: bool,
 }
 
 /// Information about a declarative refresh
@@ -1169,6 +1171,7 @@ impl Document {
         *self.focus_transaction.borrow_mut() = Some(FocusTransaction {
             element: self.focused.get().as_deref().map(Dom::from_ref),
             has_focus: self.has_focus.get(),
+            prevent_scroll: false, // Default to allowing scroll
         });
     }
 
@@ -1209,6 +1212,17 @@ impl Document {
         focus_initiator: FocusInitiator,
         can_gc: CanGc,
     ) {
+        self.request_focus_with_options(elem, focus_initiator, false, can_gc);
+    }
+
+    /// Requests focus for the given element, with optional scroll prevention.
+    pub(crate) fn request_focus_with_options(
+        &self,
+        elem: Option<&Element>,
+        focus_initiator: FocusInitiator,
+        prevent_scroll: bool,
+        can_gc: CanGc,
+    ) {
         // If an element is specified, and it's non-focusable, ignore the
         // request.
         if elem.is_some_and(|e| !e.is_focusable_area()) {
@@ -1226,6 +1240,7 @@ impl Document {
             let focus_transaction = focus_transaction.as_mut().unwrap();
             focus_transaction.element = elem.map(Dom::from_ref);
             focus_transaction.has_focus = true;
+            focus_transaction.prevent_scroll = prevent_scroll;
         }
 
         if implicit_transaction {
@@ -1265,7 +1280,7 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
     fn commit_focus_transaction(&self, focus_initiator: FocusInitiator, can_gc: CanGc) {
-        let (mut new_focused, new_focus_state) = {
+        let (mut new_focused, new_focus_state, prevent_scroll) = {
             let focus_transaction = self.focus_transaction.borrow();
             let focus_transaction = focus_transaction
                 .as_ref()
@@ -1276,6 +1291,7 @@ impl Document {
                     .as_ref()
                     .map(|e| DomRoot::from_ref(&**e)),
                 focus_transaction.has_focus,
+                focus_transaction.prevent_scroll,
             )
         };
         *self.focus_transaction.borrow_mut() = None;
@@ -1392,16 +1408,19 @@ impl Document {
                 }
                 // Scroll operation to happen after element gets focus.
                 // This is needed to ensure that the focused element is visible.
-                elem.ScrollIntoView(BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
-                    ScrollIntoViewOptions {
-                        parent: ScrollOptions {
-                            behavior: ScrollBehavior::Smooth,
+                // Only scroll if preventScroll was not specified
+                if !prevent_scroll {
+                    elem.ScrollIntoView(BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
+                        ScrollIntoViewOptions {
+                            parent: ScrollOptions {
+                                behavior: ScrollBehavior::Smooth,
+                            },
+                            block: ScrollLogicalPosition::Center,
+                            inline: ScrollLogicalPosition::Center,
+                            container: ScrollIntoViewContainer::All,
                         },
-                        block: ScrollLogicalPosition::Center,
-                        inline: ScrollLogicalPosition::Center,
-                        container: ScrollIntoViewContainer::All,
-                    },
-                ));
+                    ));
+                }
             }
         }
 
