@@ -6,6 +6,7 @@ use js::error::throw_type_error;
 use js::jsapi::JS_IsExceptionPending;
 
 use crate::codegen::PrototypeList::proto_id_to_name;
+use crate::num::Finite;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// DOM exceptions that can be thrown by a native DOM method.
@@ -55,7 +56,10 @@ pub enum Error {
     /// NoModificationAllowedError DOMException
     NoModificationAllowed,
     /// QuotaExceededError DOMException
-    QuotaExceeded,
+    QuotaExceeded {
+        quota: Option<Finite<f64>>,
+        requested: Option<Finite<f64>>,
+    },
     /// TypeMismatchError DOMException
     TypeMismatch,
     /// InvalidModificationError DOMException

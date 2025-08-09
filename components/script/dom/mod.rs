@@ -511,6 +511,7 @@ pub(crate) mod progressevent;
 pub(crate) mod promise;
 pub(crate) mod promisenativehandler;
 pub(crate) mod promiserejectionevent;
+pub(crate) mod quotaexceedederror;
 pub(crate) mod radionodelist;
 pub(crate) mod range;
 pub(crate) mod raredata;
