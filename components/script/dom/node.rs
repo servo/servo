@@ -1320,6 +1320,10 @@ impl Node {
             is_shadow_host,
             shadow_root_mode,
             display,
+            // It is not entirely clear when this should be set to false.
+            // Firefox considers nodes with "display: contents" to be displayed.
+            // The doctype node is displayed despite being `display: none`.
+            is_displayed: !self.is_display_none() || self.is::<DocumentType>(),
             doctype_name: self
                 .downcast::<DocumentType>()
                 .map(DocumentType::name)

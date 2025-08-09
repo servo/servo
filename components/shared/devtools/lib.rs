@@ -149,6 +149,10 @@ pub struct NodeInfo {
     pub shadow_root_mode: Option<ShadowRootMode>,
     pub is_shadow_host: bool,
     pub display: Option<String>,
+    /// Whether this node is currently displayed.
+    ///
+    /// For example, the node might have `display: none`.
+    pub is_displayed: bool,
 
     /// The `DOCTYPE` name if this is a `DocumentType` node, `None` otherwise
     pub doctype_name: Option<String>,
