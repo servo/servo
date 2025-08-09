@@ -1,26 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-#![allow(unused_imports)]
-use core::ffi::c_void;
 use std::cell::Cell;
 use std::ffi::CStr;
 use std::fs::read_to_string;
 use std::path::PathBuf;
-use std::process::Command;
-use std::ptr;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, WebViewId};
 use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
-use html5ever::serialize::TraversalScope;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
-use ipc_channel::ipc;
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::jsval::UndefinedValue;
-use js::rust::{CompileOptionsWrapper, HandleObject, Stencil, transform_str_to_source_text};
+use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -28,25 +21,21 @@ use net_traits::request::{
     RequestBuilder, RequestId,
 };
 use net_traits::{
-    FetchMetadata, FetchResponseListener, IpcSend, Metadata, NetworkError, ResourceFetchTiming,
+    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
-use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
-use crate::HasParent;
 use crate::document_loader::LoadType;
-use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElement_Binding::HTMLElementMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     TrustedScriptOrString, TrustedScriptURLOrUSVString,
 };
@@ -56,7 +45,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
@@ -75,14 +64,13 @@ use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_module::{
     ImportMap, ModuleOwner, ScriptFetchOptions, fetch_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
-use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::unminify::{ScriptSource, unminify_js};
 
 impl ScriptSource for ScriptOrigin {
@@ -111,71 +99,6 @@ impl ScriptSource for ScriptOrigin {
         self.external
     }
 }
-
-// TODO Implement offthread compilation in mozjs
-/*pub(crate) struct OffThreadCompilationContext {
-    script_element: Trusted<HTMLScriptElement>,
-    script_kind: ExternalScriptKind,
-    final_url: ServoUrl,
-    url: ServoUrl,
-    task_source: TaskSource,
-    script_text: String,
-    fetch_options: ScriptFetchOptions,
-}
-
-#[allow(unsafe_code)]
-unsafe extern "C" fn off_thread_compilation_callback(
-    token: *mut OffThreadToken,
-    callback_data: *mut c_void,
-) {
-    let mut context = Box::from_raw(callback_data as *mut OffThreadCompilationContext);
-    let token = OffThreadCompilationToken(token);
-
-    let url = context.url.clone();
-    let final_url = context.final_url.clone();
-    let script_element = context.script_element.clone();
-    let script_kind = context.script_kind;
-    let script = std::mem::take(&mut context.script_text);
-    let fetch_options = context.fetch_options.clone();
-
-    // Continue with <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
-    let _ = context.task_source.queue(
-        task!(off_thread_compile_continue: move || {
-            let elem = script_element.root();
-            let global = elem.global();
-            let cx = GlobalScope::get_cx();
-            let _ar = enter_realm(&*global);
-
-            // TODO: This is necessary because the rust compiler will otherwise try to move the *mut
-            // OffThreadToken directly, which isn't marked as Send. The correct fix is that this
-            // type is marked as Send in mozjs.
-            let used_token = token;
-
-            let compiled_script = FinishOffThreadStencil(*cx, used_token.0, ptr::null_mut());
-            let load = if compiled_script.is_null() {
-                Err(NoTrace(NetworkError::Internal(
-                    "Off-thread compilation failed.".into(),
-                )))
-            } else {
-                let script_text = DOMString::from(script);
-                let code = SourceCode::Compiled(CompiledSourceCode {
-                    source_code: compiled_script,
-                    original_text: Rc::new(script_text),
-                });
-
-                Ok(ScriptOrigin {
-                    code,
-                    url: final_url,
-                    external: true,
-                    fetch_options,
-                    type_: ScriptType::Classic,
-                })
-            };
-
-            finish_fetching_a_classic_script(&elem, script_kind, url, load);
-        })
-    );
-}*/
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
