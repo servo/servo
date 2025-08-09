@@ -2858,33 +2858,30 @@ impl Element {
         }
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
-    // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scroll>
     pub(crate) fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
         // Step 1.2 or 2.3
         let x = if x_.is_finite() { x_ } else { 0.0f64 };
         let y = if y_.is_finite() { y_ } else { 0.0f64 };
 
-        let node = self.upcast::<Node>();
-
         // Step 3
-        let doc = node.owner_doc();
+        let doc = self.upcast::<Node>().owner_doc();
 
         // Step 4
         if !doc.is_fully_active() {
             return;
         }
 
-        // Step 5
+        // Step 5-6
         let win = match doc.GetDefaultView() {
             None => return,
             Some(win) => win,
         };
 
-        // Step 7
+        // Step 7-8
         if *self.root_element() == *self {
             if doc.quirks_mode() != QuirksMode::Quirks {
-                win.scroll(x, y, behavior);
+                win.scroll(win.ScrollX() as f64, y, behavior);
             }
 
             return;
@@ -3509,7 +3506,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.scroll(left + x, top + y, ScrollBehavior::Auto);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrolltop>
     fn ScrollTop(&self) -> f64 {
         let node = self.upcast::<Node>();
 
@@ -3521,19 +3518,17 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             return 0.0;
         }
 
-        // Step 3
-        let win = match doc.GetDefaultView() {
-            None => return 0.0,
-            Some(win) => win,
+        // Step 3-4
+        let Some(win) = doc.GetDefaultView() else {
+            return 0.0;
         };
 
-        // Step 5
+        // Step 5-6
         if *self.root_element() == *self {
             if doc.quirks_mode() == QuirksMode::Quirks {
                 return 0.0;
             }
 
-            // Step 6
             return win.ScrollY() as f64;
         }
 
@@ -3555,31 +3550,27 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         point.y.abs() as f64
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
-    // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrolltop>
     fn SetScrollTop(&self, y_: f64) {
         let behavior = ScrollBehavior::Auto;
 
-        // Step 1, 2
+        // Step 1-2
         let y = if y_.is_finite() { y_ } else { 0.0f64 };
 
-        let node = self.upcast::<Node>();
-
         // Step 3
-        let doc = node.owner_doc();
+        let doc = self.upcast::<Node>().owner_doc();
 
         // Step 4
         if !doc.is_fully_active() {
             return;
         }
 
-        // Step 5
-        let win = match doc.GetDefaultView() {
-            None => return,
-            Some(win) => win,
+        // Step 5-6
+        let Some(win) = doc.GetDefaultView() else {
+            return;
         };
 
-        // Step 7
+        // Step. 7-8
         if *self.root_element() == *self {
             if doc.quirks_mode() != QuirksMode::Quirks {
                 win.scroll(win.ScrollX() as f64, y, behavior);
@@ -3606,7 +3597,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         win.scroll_an_element(self, self.ScrollLeft(), y, behavior);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
     fn ScrollLeft(&self) -> f64 {
         let node = self.upcast::<Node>();
 
@@ -3618,20 +3609,18 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             return 0.0;
         }
 
-        // Step 3
-        let win = match doc.GetDefaultView() {
-            None => return 0.0,
-            Some(win) => win,
+        // Step 3-4
+        let Some(win) = doc.GetDefaultView() else {
+            return 0.0;
         };
 
-        // Step 5
+        // Step 5-6
         if *self.root_element() == *self {
-            if doc.quirks_mode() != QuirksMode::Quirks {
-                // Step 6
-                return win.ScrollX() as f64;
+            if doc.quirks_mode() == QuirksMode::Quirks {
+                return 0.0;
             }
 
-            return 0.0;
+            return win.ScrollX() as f64;
         }
 
         // Step 7
@@ -3652,17 +3641,15 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         point.x.abs() as f64
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
     fn SetScrollLeft(&self, x_: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
         let x = if x_.is_finite() { x_ } else { 0.0f64 };
 
-        let node = self.upcast::<Node>();
-
         // Step 3
-        let doc = node.owner_doc();
+        let doc = self.upcast::<Node>().owner_doc();
 
         // Step 4
         if !doc.is_fully_active() {
