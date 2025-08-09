@@ -10,11 +10,12 @@ use app_units::Au;
 use base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use euclid::default::{Rect, Size2D};
+use euclid::default::{Rect, SideOffsets2D, Size2D};
 use js::rust::{HandleObject, MutableHandleValue};
 use style::context::QuirksMode;
 use style::parser::{Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
+use style::values::specified::intersection_observer::IntersectionObserverMargin;
 use style_traits::{ParsingMode, ToCss};
 use url::Url;
 
@@ -36,8 +37,6 @@ use crate::dom::document::Document;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
 use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
-use style::values::specified::intersection_observer::IntersectionObserverMargin;
-use euclid::default::{SideOffsets2D};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
@@ -463,8 +462,7 @@ impl IntersectionObserver {
         // > the width of the undilated rectangle.
         // TODO(stevennovaryo): add check for same-origin-domain
         intersection_rectangle.map(|intersection_rectangle| {
-            let margin = self
-                .resolve_percentages_with_basis(intersection_rectangle);
+            let margin = self.resolve_percentages_with_basis(intersection_rectangle);
             intersection_rectangle.outer_rect(margin)
         })
     }
@@ -661,14 +659,8 @@ impl IntersectionObserver {
         }
     }
 
-    fn resolve_percentages_with_basis(
-        &self,
-        containing_block: Rect<Au>,
-    ) -> SideOffsets2D<Au> {
-        let inner = &self
-            .root_margin
-            .borrow()
-            .0;
+    fn resolve_percentages_with_basis(&self, containing_block: Rect<Au>) -> SideOffsets2D<Au> {
+        let inner = &self.root_margin.borrow().0;
         SideOffsets2D::new(
             inner.0.to_used_value(containing_block.height()),
             inner.1.to_used_value(containing_block.width()),
