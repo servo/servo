@@ -122,10 +122,9 @@ impl DebuggerGlobalScope {
     }
 
     pub(crate) fn fire_add_debuggee(&self, can_gc: CanGc, global: &GlobalScope) {
-        assert_eq!(
+        assert!(
             DomRoot::upcast::<Event>(DebuggerEvent::new(self.upcast(), global, can_gc))
                 .fire(self.upcast(), can_gc),
-            true,
             "Guaranteed by DebuggerEvent::new"
         );
     }

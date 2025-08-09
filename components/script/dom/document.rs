@@ -3022,8 +3022,7 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            let _ = self
-                .window
+            self.window
                 .dispatch_event_with_target_override(event, can_gc);
             // Step 6 Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(DocumentVisibilityState::Hidden, can_gc);
@@ -3040,8 +3039,7 @@ impl Document {
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
             let has_listeners = event_target.has_listeners_for(&atom!("unload"));
-            let _ = self
-                .window
+            self.window
                 .dispatch_event_with_target_override(&event, can_gc);
             self.fired_unload.set(true);
             // Step 9
