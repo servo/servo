@@ -9,6 +9,7 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Angle;
 use euclid::default::{Transform2D, Transform3D};
+use js::conversions::jsstr_to_string;
 use js::jsapi::JSObject;
 use js::jsval;
 use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
@@ -24,7 +25,6 @@ use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::UnionTypes::StringOrUnrestrictedDoubleSequence;
-use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
@@ -835,11 +835,9 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
 
             unsafe {
                 rooted!(in(*cx) let mut rooted_value = value);
-                let serialization = ToString(*cx, rooted_value.handle());
-                jsstring_to_str(
-                    *cx,
-                    ptr::NonNull::new(serialization).expect("Pointer cannot be null"),
-                )
+                let serialization = std::ptr::NonNull::new(ToString(*cx, rooted_value.handle()))
+                    .expect("Pointer cannot be null");
+                jsstr_to_string(*cx, serialization)
             }
         };
 
