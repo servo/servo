@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: event.target and event.currentTarget for ::scroll-button is scroller</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    position: absolute;
+    top: 100px;
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    white-space: nowrap;
+  }
+
+  #scroller div {
+    display: inline-block;
+    width: 600px;
+    height: 200px;
+  }
+
+  #scroller::scroll-button(inline-end) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    content: "";
+    width: 100px;
+    height: 20px;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+  <div></div>
+</div>
+<script>
+  let target = null;
+  let currentTarget = null;
+
+  scroller.addEventListener('click', (e) => {
+    target = e.target;
+    currentTarget = e.currentTarget;
+    e.stopPropagation();
+  });
+
+  promise_test(async t => {
+    // Click on ::scroll-button
+    const scrollButtonX = 15;
+    const scrollButtonY = 15;
+    await new test_driver.Actions()
+      .pointerMove(scrollButtonX, scrollButtonY)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(currentTarget, scroller, "event.currentTarget for ::scroll-button click is scroller");
+    assert_equals(target, scroller, "event.target for ::scroll-button click is scroller");
+  });
+</script>

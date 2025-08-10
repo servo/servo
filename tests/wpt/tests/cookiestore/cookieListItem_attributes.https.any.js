@@ -1,18 +1,25 @@
 // META: title=Cookie Store API: cookieListItem attributes
-// META: global=window,serviceworker
+// META: global=serviceworker
+
+// This is a copy of cookieListItem_attributes.https.window.js, minus all the bits that only work
+// in a window context, which unfortunately includes the testdriver asserts.
+//
+// Please keep them synchronized.
 
 'use strict';
 
-const kCurrentHostname = (new URL(self.location.href)).hostname;
+const currentHostname = (new URL(self.location.href)).hostname;
 
-const kOneDay = 24 * 60 * 60 * 1000;
-const kFourHundredDays = 400 * kOneDay;
-const kTenYears = 10 * 365 * kOneDay;
-const kFourHundredDaysFromNow = Date.now() + kFourHundredDays;
-const kTenYearsFromNow = Date.now() + kTenYears;
+const oneDayInSeconds = 24 * 60 * 60;
+const fourHundredDaysInSeconds = 400 * oneDayInSeconds;
+const tenYearsInSeconds = 10 * 365 * oneDayInSeconds;
+const fourHundredDaysFromNowInSeconds = Date.now() / 1000 + fourHundredDaysInSeconds;
+const tenYearsFromNowInSeconds = Date.now() / 1000 + tenYearsInSeconds;
 
-const kCookieListItemKeys =
-    ['domain', 'expires', 'name', 'path', 'sameSite', 'secure', 'value'].sort();
+function assert_cookie_keys(cookie) {
+  const cookieKeys = Object.keys(cookie);
+  assert_array_equals(cookieKeys, ['name', 'value']);
+}
 
 promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
@@ -25,15 +32,7 @@ promise_test(async testCase => {
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, null);
-  assert_equals(cookie.path, '/');
-  assert_equals(cookie.expires, null);
-  assert_equals(cookie.secure, true);
-  assert_equals(cookie.sameSite, 'strict');
-  const itemKeys = Object.keys(cookie);
-  for (const key of kCookieListItemKeys) {
-    assert_in_array(key, itemKeys);
-  }
+  assert_cookie_keys(cookie);
 }, 'CookieListItem - cookieStore.set defaults with positional name and value');
 
 promise_test(async testCase => {
@@ -46,37 +45,21 @@ promise_test(async testCase => {
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, null);
-  assert_equals(cookie.path, '/');
-  assert_equals(cookie.expires, null);
-  assert_equals(cookie.secure, true);
-  assert_equals(cookie.sameSite, 'strict');
-  const itemKeys = Object.keys(cookie);
-  for (const key of kCookieListItemKeys) {
-    assert_in_array(key, itemKeys);
-  }
+  assert_cookie_keys(cookie);
 }, 'CookieListItem - cookieStore.set defaults with name and value in options');
 
 promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
 
   await cookieStore.set({ name: 'cookie-name', value: 'cookie-value',
-                          expires: kTenYearsFromNow });
+                          expires: tenYearsFromNowInSeconds * 1000 });
   testCase.add_cleanup(async () => {
     await cookieStore.delete('cookie-name');
   });
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, null);
-  assert_equals(cookie.path, '/');
-  assert_approx_equals(cookie.expires, kFourHundredDaysFromNow, kOneDay);
-  assert_equals(cookie.secure, true);
-  assert_equals(cookie.sameSite, 'strict');
-  const itemKeys = Object.keys(cookie);
-  for (const key of kCookieListItemKeys) {
-    assert_in_array(key, itemKeys);
-  }
+  assert_cookie_keys(cookie);
 }, 'CookieListItem - cookieStore.set with expires set to a timestamp 10 ' +
    'years in the future');
 
@@ -84,40 +67,29 @@ promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
 
   await cookieStore.set({ name: 'cookie-name', value: 'cookie-value',
-                          expires: new Date(kTenYearsFromNow) });
+                          expires: new Date(tenYearsFromNowInSeconds) * 1000 });
   testCase.add_cleanup(async () => {
     await cookieStore.delete('cookie-name');
   });
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, null);
-  assert_equals(cookie.path, '/');
-  assert_approx_equals(cookie.expires, kFourHundredDaysFromNow, kOneDay);
-  assert_equals(cookie.secure, true);
+  assert_cookie_keys(cookie);
 }, 'CookieListItem - cookieStore.set with expires set to a Date 10 ' +
    'years in the future');
 
 promise_test(async testCase => {
-  await cookieStore.delete({ name: 'cookie-name', domain: kCurrentHostname });
+  await cookieStore.delete({ name: 'cookie-name', domain: currentHostname });
 
   await cookieStore.set({ name: 'cookie-name', value: 'cookie-value',
-                          domain: kCurrentHostname });
+                          domain: currentHostname });
   testCase.add_cleanup(async () => {
-    await cookieStore.delete({ name: 'cookie-name', domain: kCurrentHostname });
+    await cookieStore.delete({ name: 'cookie-name', domain: currentHostname });
   });
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, kCurrentHostname);
-  assert_equals(cookie.path, '/');
-  assert_equals(cookie.expires, null);
-  assert_equals(cookie.secure, true);
-  assert_equals(cookie.sameSite, 'strict');
-  const itemKeys = Object.keys(cookie);
-  for (const key of kCookieListItemKeys) {
-    assert_in_array(key, itemKeys);
-  }
+  assert_cookie_keys(cookie);
 }, 'CookieListItem - cookieStore.set with domain set to the current hostname');
 
 promise_test(async testCase => {
@@ -135,15 +107,7 @@ promise_test(async testCase => {
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, null);
-  assert_equals(cookie.path, currentDirectory);
-  assert_equals(cookie.expires, null);
-  assert_equals(cookie.secure, true);
-  assert_equals(cookie.sameSite, 'strict');
-  const itemKeys = Object.keys(cookie);
-  for (const key of kCookieListItemKeys) {
-    assert_in_array(key, itemKeys);
-  }
+  assert_cookie_keys(cookie);
 }, 'CookieListItem - cookieStore.set with path set to the current directory');
 
 promise_test(async testCase => {
@@ -160,15 +124,7 @@ promise_test(async testCase => {
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, null);
-  assert_equals(cookie.path, currentDirectory);
-  assert_equals(cookie.expires, null);
-  assert_equals(cookie.secure, true);
-  assert_equals(cookie.sameSite, 'strict');
-  const itemKeys = Object.keys(cookie);
-  for (const key of kCookieListItemKeys) {
-    assert_in_array(key, itemKeys);
-  }
+  assert_cookie_keys(cookie);
 }, 'CookieListItem - cookieStore.set does not add / to path if it does not end with /');
 
 ['strict', 'lax', 'none'].forEach(sameSiteValue => {
@@ -183,47 +139,7 @@ promise_test(async testCase => {
     const cookie = await cookieStore.get('cookie-name');
     assert_equals(cookie.name, 'cookie-name');
     assert_equals(cookie.value, 'cookie-value');
-    assert_equals(cookie.domain, null);
-    assert_equals(cookie.path, '/');
-    assert_equals(cookie.expires, null);
-    assert_equals(cookie.secure, true);
-    assert_equals(cookie.sameSite, sameSiteValue);
-    const itemKeys = Object.keys(cookie);
-    for (const key of kCookieListItemKeys) {
-      assert_in_array(key, itemKeys);
-    }
+    assert_cookie_keys(cookie);
   }, `CookieListItem - cookieStore.set with sameSite set to ${sameSiteValue}`);
 
 });
-
-promise_test(async testCase => {
-  await cookieStore.delete('cookie-name');
-
-  await cookieStore.set('cookie-name', 'cookie-value');
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-
-  const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie.secure, true);
-}, 'CookieListItem - secure defaults to true');
-
-
-if (self.GLOBAL.isWindow()) {
-  promise_test(async testCase => {
-    await cookieStore.delete('cookie-name');
-    testCase.add_cleanup(async () => {
-      await cookieStore.delete('cookie-name');
-    });
-
-    let encodedCookie = encodeURIComponent(JSON.stringify("cookie-name=1; max-age=99999999999999999999999999999; path=/"));
-    await fetch(`/cookies/resources/cookie.py?set=${encodedCookie}`);
-
-    assert_equals(document.cookie, "cookie-name=1", 'The cookie was set as expected.');
-
-    const cookie = await cookieStore.get('cookie-name');
-    assert_equals(cookie.name, 'cookie-name');
-    assert_equals(cookie.value, '1');
-    assert_approx_equals(cookie.expires, kFourHundredDaysFromNow, kOneDay);
-  }, "Test max-age attribute over the 400 days");
-}

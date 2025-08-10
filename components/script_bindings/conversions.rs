@@ -5,7 +5,7 @@
 use std::{ptr, slice};
 
 use js::conversions::{
-    ConversionResult, FromJSValConvertible, ToJSValConvertible, latin1_to_string,
+    ConversionResult, FromJSValConvertible, ToJSValConvertible, jsstr_to_string,
 };
 use js::error::throw_type_error;
 use js::glue::{
@@ -14,7 +14,7 @@ use js::glue::{
 };
 use js::jsapi::{
     Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
-    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, JSContext, JSObject, JSString,
+    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, JSContext, JSObject,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::wrappers::IsArrayObject;
@@ -115,7 +115,9 @@ impl FromJSValConvertible for DOMString {
             Ok(ConversionResult::Success(DOMString::new()))
         } else {
             match ptr::NonNull::new(ToString(cx, value)) {
-                Some(jsstr) => Ok(ConversionResult::Success(jsstring_to_str(cx, jsstr))),
+                Some(jsstr) => Ok(ConversionResult::Success(DOMString::from_string(
+                    jsstr_to_string(cx, jsstr),
+                ))),
                 None => {
                     debug!("ToString failed");
                     Err(())
@@ -123,34 +125,6 @@ impl FromJSValConvertible for DOMString {
             }
         }
     }
-}
-
-/// Convert the given `JSString` to a `DOMString`. Fails if the string does not
-/// contain valid UTF-16.
-///
-/// # Safety
-/// cx and s must point to valid values.
-pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: ptr::NonNull<JSString>) -> DOMString {
-    let latin1 = JS_DeprecatedStringHasLatin1Chars(s.as_ptr());
-    DOMString::from_string(if latin1 {
-        latin1_to_string(cx, s)
-    } else {
-        let mut length = 0;
-        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), s.as_ptr(), &mut length);
-        assert!(!chars.is_null());
-        let potentially_ill_formed_utf16 = slice::from_raw_parts(chars, length);
-        let mut s = String::with_capacity(length);
-        for item in char::decode_utf16(potentially_ill_formed_utf16.iter().cloned()) {
-            match item {
-                Ok(c) => s.push(c),
-                Err(_) => {
-                    error!("Found an unpaired surrogate in a DOM string.");
-                    s.push('\u{FFFD}');
-                },
-            }
-        }
-        s
-    })
 }
 
 // http://heycam.github.io/webidl/#es-USVString
@@ -168,8 +142,8 @@ impl FromJSValConvertible for USVString {
         let latin1 = JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr());
         if latin1 {
             // FIXME(ajeffrey): Convert directly from DOMString to USVString
-            return Ok(ConversionResult::Success(USVString(String::from(
-                jsstring_to_str(cx, jsstr),
+            return Ok(ConversionResult::Success(USVString(jsstr_to_string(
+                cx, jsstr,
             ))));
         }
         let mut length = 0;
@@ -445,7 +419,7 @@ pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMStri
     let id_raw = *id;
     if id_raw.is_string() {
         let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
-        return Some(jsstring_to_str(cx, jsstr));
+        return Some(DOMString::from_string(jsstr_to_string(cx, jsstr)));
     }
 
     if id_raw.is_int() {

@@ -10,6 +10,12 @@
 </head>
 <body>
 <script>
+test_invalid_value("text-autospace", "punctuation normal");
+test_invalid_value("text-autospace", "punctuation normal insert");
+test_invalid_value("text-autospace", "insert punctuation normal");
+test_invalid_value("text-autospace", "punctuation normal replace");
+test_invalid_value("text-autospace", "replace punctuation normal");
+
 test_invalid_value("text-autospace", "normal ideograph-alpha");
 test_invalid_value("text-autospace", "normal ideograph-alpha ideograph-numeric");
 test_invalid_value("text-autospace", "normal punctuation");

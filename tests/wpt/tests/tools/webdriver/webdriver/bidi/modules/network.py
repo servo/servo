@@ -293,3 +293,28 @@ class Network(BidiModule):
             params["contexts"] = contexts
 
         return params
+
+    @command
+    def get_data(
+            self,
+            request: str,
+            data_type: str,
+            collector: Optional[str] = None,
+            disown: Optional[bool] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "request": request,
+            "dataType": data_type,
+        }
+
+        if collector is not None:
+            params["collector"] = collector
+
+        if disown is not None:
+            params["disown"] = disown
+
+        return params
+
+    @get_data.result
+    def _get_data(self, result: Mapping[str, Any]) -> Any:
+        assert result["bytes"] is not None
+        return result["bytes"]

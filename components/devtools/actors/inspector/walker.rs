@@ -156,7 +156,6 @@ impl Actor for WalkerActor {
                         .map(|child| {
                             child.encode(
                                 registry,
-                                true,
                                 self.script_chan.clone(),
                                 self.pipeline,
                                 self.name(),
@@ -182,7 +181,6 @@ impl Actor for WalkerActor {
                     .ok_or(ActorError::Internal)?;
                 let node = doc_elem_info.encode(
                     registry,
-                    true,
                     self.script_chan.clone(),
                     self.pipeline,
                     self.name(),
@@ -319,7 +317,7 @@ pub fn find_child(
     let children = rx.recv().unwrap().ok_or(vec![])?;
 
     for child in children {
-        let msg = child.encode(registry, true, script_chan.clone(), pipeline, name.into());
+        let msg = child.encode(registry, script_chan.clone(), pipeline, name.into());
         if compare_fn(&msg) {
             hierarchy.push(msg);
             return Ok(hierarchy);

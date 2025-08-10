@@ -8,7 +8,7 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::ptr;
 
-use js::conversions::ToJSValConvertible;
+use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::glue::{
     GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, InvokeGetOwnPropertyDescriptor,
     SetProxyPrivate,
@@ -33,7 +33,7 @@ use js::rust::{Handle, HandleObject, HandleValue, MutableHandle, MutableHandleOb
 use js::{jsapi, rooted};
 
 use crate::DomTypes;
-use crate::conversions::{is_dom_proxy, jsid_to_string, jsstring_to_str};
+use crate::conversions::{is_dom_proxy, jsid_to_string};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::realms::{AlreadyInRealm, InRealm};
@@ -232,7 +232,7 @@ pub(crate) fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMStri
                 jsstr.get()
             })
             .and_then(ptr::NonNull::new)
-            .map(|jsstr| jsstring_to_str(*cx, jsstr))
+            .map(|jsstr| DOMString::from_string(jsstr_to_string(*cx, jsstr)))
     }
 }
 

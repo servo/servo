@@ -761,6 +761,29 @@ class TestDriverProtocolPart(ProtocolPart):
     name = "testdriver"
 
     @abstractmethod
+    def run(self, url, script_resume, test_window=None):
+        """Run a test using the testdriver protocol
+
+        :param str url: URL of the test
+        :param str script_resume: Script to run implementing the browser
+                                  side of the protocol
+        :param test_window: Optional test window handle, otherwise the
+                            current active window is used.
+        :returns: Test result data"""
+        pass
+
+    @abstractmethod
+    def get_next_message(self, url, script_resume, test_window):
+        """Get the next message from the browser
+
+        :param str url: URL of the current test
+        :param str script_resume: Script implementing the browsr
+                                  side of the protocol.
+        :param test_window: Window handle of the test window
+        :returns: Testdriver message dict"""
+        pass
+
+    @abstractmethod
     def send_message(self, cmd_id, message_type, status, message=None):
         """Send a testdriver message to the browser.
 

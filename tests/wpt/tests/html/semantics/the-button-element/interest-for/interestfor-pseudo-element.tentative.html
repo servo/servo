@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id=examples>
+  <button interestfor=target>Button</button>
+  <a href=# interestfor=target>Link</a>
+</div>
+
+<div id=target popover>Target</div>
+<button id=unrelated>Unrelated</div>
+
+<style>
+  [interestfor] {
+    interest-delay: 1000s;
+  }
+  ::interest-hint {
+    content:"pseudo";
+    display: block;
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    left: 150px;
+    padding:0;
+    margin:0;
+  }
+  button, a {
+    display:block;
+    width: 100px;
+    height: 50px;
+  }
+</style>
+
+<script>
+const target = document.getElementById('target');
+const unrelated = document.getElementById('unrelated');
+
+let interestFired = 0;
+let loseInterestFired = 0;
+target.addEventListener('interest', (e) => {
+  ++interestFired;
+});
+target.addEventListener('loseinterest', (e) => {
+  ++loseInterestFired;
+});
+
+function test(invoker) {
+  promise_test(async (t) => {
+    interestFired = 0, loseInterestFired = 0;
+    await hoverOver(invoker);
+    assert_equals(interestFired, 0, 'Hovering should not immediately show interest (delay)');
+    await hoverOver(unrelated);
+    assert_equals(interestFired, 0, 'No extra events');
+    assert_equals(loseInterestFired, 0, 'No extra events');
+
+    let rect = invoker.getBoundingClientRect();
+    const buttonlocX = rect.x + 175;
+    const buttonlocY = rect.y + 30;
+    await new test_driver.Actions()
+      .pointerMove(buttonlocX, buttonlocY, {})
+      .send();
+    assert_equals(interestFired, 0, 'Hovering the pseudo button should not show interest (delay)');
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(buttonlocX, buttonlocY, {})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(interestFired, 1, 'Clicking/tapping the pseudo button should show interest immediately');
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(0,0,{unrelated})
+      .send();
+    assert_equals(interestFired, 1, 'No extra events');
+    assert_equals(loseInterestFired, 0, 'No "hover" with touch pointers, so we should\'t lose interest yet');
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(0,0,{unrelated})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await waitForRender();
+    assert_equals(interestFired, 1, 'No extra events');
+    assert_equals(loseInterestFired, 1, 'Tapping outside should lose interest');
+  },`pseudo element should work for ${invoker.textContent}`);
+}
+
+document.querySelectorAll('#examples > *').forEach(test);
+</script>

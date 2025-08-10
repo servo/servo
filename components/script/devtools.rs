@@ -12,6 +12,7 @@ use devtools_traits::{
     NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
 use ipc_channel::ipc::IpcSender;
+use js::conversions::jsstr_to_string;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
 use servo_config::pref;
@@ -28,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
+use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -83,17 +84,17 @@ pub(crate) fn handle_evaluate_js(
             )
         } else if rval.is_string() {
             let jsstr = std::ptr::NonNull::new(rval.to_string()).unwrap();
-            EvaluateJSReply::StringValue(String::from(jsstring_to_str(*cx, jsstr)))
+            EvaluateJSReply::StringValue(jsstr_to_string(*cx, jsstr))
         } else if rval.is_null() {
             EvaluateJSReply::NullValue
         } else {
             assert!(rval.is_object());
 
             let jsstr = std::ptr::NonNull::new(ToString(*cx, rval.handle())).unwrap();
-            let class_name = jsstring_to_str(*cx, jsstr);
+            let class_name = jsstr_to_string(*cx, jsstr);
 
             EvaluateJSReply::ActorValue {
-                class: class_name.to_string(),
+                class: class_name,
                 uuid: Uuid::new_v4().to_string(),
             }
         }

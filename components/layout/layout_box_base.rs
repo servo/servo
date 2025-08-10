@@ -13,9 +13,8 @@ use style::properties::ComputedValues;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{BaseFragmentInfo, CollapsedBlockMargins, Fragment, SpecificLayoutInfo};
-use crate::geom::SizeConstraint;
 use crate::positioned::PositioningContext;
-use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult};
+use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult, SizeConstraint};
 use crate::{ConstraintSpace, ContainingBlockSize};
 
 /// A box tree node that handles containing information about style and the original DOM

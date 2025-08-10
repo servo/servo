@@ -1,0 +1,50 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS gap width change computed value to non compatible value mid-animation</title>
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-width">
+  <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <style>
+    #target {
+      column-rule-width: 10px 10px;
+      column-rule-style: solid;
+      animation: color-anim 2s linear paused;
+    }
+    @keyframes color-anim {
+      from { column-rule-width: 0px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="target">Dynamic Gap-Width Test</div>
+
+  <script>
+    promise_test(async () => {
+      const el = document.getElementById('target');
+      const anim = el.getAnimations()[0];
+
+      assert_equals(getComputedStyle(el).columnRuleWidth, '0px');
+
+      // Jump to 50% of the animation.
+      anim.currentTime = anim.effect.getComputedTiming().duration / 2;
+
+      const snapped = getComputedStyle(el).columnRuleWidth;
+      assert_equals(
+        snapped,
+        '10px 10px'
+      );
+
+      el.style.columnRuleWidth = '10px';
+      const intermediate = getComputedStyle(el).columnRuleWidth;
+      assert_equals(
+        intermediate,
+        '5px'
+      );
+
+    });
+  </script>
+</body>
+</html>

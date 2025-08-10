@@ -220,3 +220,12 @@ promise_test(async testCase => {
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
 }, 'cookieStore.delete with a __Host- prefix should not have a domain');
+
+promise_test(async testCase => {
+  await cookieStore.set('cookie-name', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+  const cookie = await cookieStore.delete(' cookie-name \t');
+  assert_equals(cookie, undefined);
+}, 'cookieStore.delete with whitespace');
