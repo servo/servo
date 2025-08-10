@@ -10,6 +10,7 @@
         content="Test passes if justify-content shifts content
                  in the masonry axis of a masonry grid container.">
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
   <link rel="match" href="masonry-justify-content-003-ref.html">
   <style>
@@ -36,6 +37,11 @@ item {
 }
 
 .tall { padding-left: 30px; }
+
+.safe {
+  width: 10px;
+  margin-right: 50px;
+}
 </style>
 </head>
 <body>
@@ -58,6 +64,15 @@ item {
   <item>6</item>
 </grid>
 
+<grid style="justify-content:safe start" class="safe">
+  <item class="tall">1</item>
+  <item>2</item>
+  <item>3</item>
+  <item>4</item>
+  <item>5</item>
+  <item>6</item>
+</grid>
+
 <grid style="justify-content:end">
   <item class="tall">1</item>
   <item>2</item>
@@ -76,6 +91,15 @@ item {
   <item>6</item>
 </grid>
 
+<grid style="justify-content:safe end" class="safe">
+  <item class="tall">1</item>
+  <item>2</item>
+  <item>3</item>
+  <item>4</item>
+  <item>5</item>
+  <item>6</item>
+</grid>
+
 <grid style="justify-content:center">
   <item class="tall">1</item>
   <item>2</item>
@@ -88,6 +112,15 @@ item {
 <grid style="justify-content:center">
   <item>1</item>
   <item class="tall">2</item>
+  <item>3</item>
+  <item>4</item>
+  <item>5</item>
+  <item>6</item>
+</grid>
+
+<grid style="justify-content:safe center" class="safe">
+  <item class="tall">1</item>
+  <item>2</item>
   <item>3</item>
   <item>4</item>
   <item>5</item>

@@ -86,6 +86,14 @@
       ]
     },
     {
+      description: "arc",
+      input: "M 0 0 A 10 10 0 0 1 20 20",
+      output: [
+        { type: "M", values: [0, 0] },
+        { type: "A", values: [10, 10, 0, 0, 1, 20, 20] }
+      ]
+    },
+    {
       description: "cubic",
       input: "M 413 140 C 413 140 438 40 302 44",
       output: [

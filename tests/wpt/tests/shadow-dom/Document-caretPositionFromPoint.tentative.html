@@ -74,7 +74,7 @@ test(() => {
     assert_equals(typeof(caretPosition.offset), "number");
     assert_equals(caretPosition.offsetNode, shadowRoot.firstChild.firstChild);
     assert_equals(caretPosition.offset, characterIndex);
-}, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to a closed shadaw tree when the shadow tree is specified as an argument');
+}, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to a closed shadow tree when the shadow tree is specified as an argument');
 
 test(() => {
     container.setHTMLUnsafe(`

@@ -89,6 +89,35 @@ async def test_timestamp(
     )
 
 
+async def test_basic_auth(
+    bidi_session, subscribe_events, top_context, server_config, wait_for_event, wait_for_future_safe
+):
+    await subscribe_events(events=[NAVIGATION_COMMITTED_EVENT])
+
+    on_entry = wait_for_event(NAVIGATION_COMMITTED_EVENT)
+
+    url_with_auth = "https://foo:bar@{0}:{1}{2}".format(
+        server_config["browser_host"],
+        server_config["ports"]["https"][0],
+        PAGE_EMPTY
+    )
+
+    result = await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=url_with_auth, wait="complete"
+    )
+
+    event = await wait_for_future_safe(on_entry)
+
+    assert_navigation_info(
+        event,
+        {
+            "context": top_context["context"],
+            "navigation": result["navigation"],
+            "url": url_with_auth
+        },
+    )
+
+
 async def test_iframe(
     bidi_session, subscribe_events, top_context, test_page_same_origin_frame, test_page
 ):

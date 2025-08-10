@@ -21,6 +21,16 @@
   </div>
 </button>
 
+<div id=case4>
+  <template shadowrootmode=open>
+    <button popovertarget=case4>Button
+      <div popover id=case4>
+        <span class=descendant>Popover</span>
+      </div>
+    </button>
+  </template>
+</div>
+
 <script>
 promise_test(async t => {
   const invoker = document.querySelector('#case1');
@@ -60,4 +70,15 @@ promise_test(async t => {
   innerInvoker.click();
   assert_false(popover.matches(':popover-open'),'inner invoker still works');
 },'invoker inside popover still works, even with weird nesting');
+
+promise_test(async t => {
+  const popover = document.querySelector('#case4').shadowRoot.querySelector('[popover]');
+  const invoker = popover.parentElement;
+  const descendant = popover.querySelector('.descendant');
+  assert_false(popover.matches(':popover-open'));
+  invoker.click();
+  assert_true(popover.matches(':popover-open'));
+  descendant.click();
+  assert_true(popover.matches(':popover-open'),'descendant doesn\'t close popover');
+},'invoker inside popover still works, even inside of a shadowroot');
 </script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- TODO update link -->
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scoped view transition with inline block</title>
+</head>
+<style>
+  #target {
+    display: inline-block;
+    view-transition-name: target;
+  }
+
+  ::view-transition-group(target),
+  ::view-transition-old(target) {
+    animation: unset;
+  }
+
+  @keyframes colorize {
+    to { opacity: 0.5; }
+  }
+
+  ::view-transition-new(target) {
+   animation: colorize 1s paused steps(1, jump-start);
+  }
+</style>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <p><span id="target">Hello</span> World</p>
+</body>
+<script>
+  promise_test(async t => {
+    const vt = target.startViewTransition();
+    await vt.ready;
+    await Promise.all(document.getAnimations().map(a => a.ready));
+    const style =
+        getComputedStyle(target, '::view-transition-new(target)');
+    assert_equals(style.opacity, '0.5', 'Opacity animation is in effect');
+  }, 'Scoped view transition on an inline-block element');
+</script>
+</html>

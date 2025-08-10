@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gaps: parsing gap-rule-overlap with invalid values</title>
+  <link rel="author" title="Javier Contreras Tenorio" href="mailto:javiercon@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#paint-order">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    test_invalid_value('gap-rule-overlap', 'auto');
+    test_invalid_value('gap-rule-overlap', 'true');
+    test_invalid_value('gap-rule-overlap', 'none');
+    test_invalid_value('gap-rule-overlap', '10px');
+    test_invalid_value('gap-rule-overlap', '10%');
+  </script>
+</body>
+</html>

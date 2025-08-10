@@ -27,6 +27,9 @@ test_invalid_value("grid-template-rows", 'repeat(auto-fill, -10px)');
 test_invalid_value("grid-template-rows", 'repeat(auto-fill, 10px) repeat(auto-fit, 20%)');
 test_invalid_value("grid-template-rows", '[auto] 1px');
 test_invalid_value("grid-template-rows", '-10px repeat(auto-fit, auto)');
+test_invalid_value("grid-template-rows", '-10px repeat(auto-fill, min-content)');
+test_invalid_value("grid-template-rows", '-20% repeat(auto-fit, max-content)');
+test_invalid_value("grid-template-rows", 'repeat(auto-fill, fit-content)');
 </script>
 </body>
 </html>

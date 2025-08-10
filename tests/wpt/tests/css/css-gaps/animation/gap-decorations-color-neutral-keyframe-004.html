@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>gap decorations column-rule-color neutral keyframe</title>
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-color">
+    <meta name="assert" content="gap decorations column-rule-color value list supports neutral keyframe.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/support/interpolation-testcommon.js"></script>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+      test(() => {
+        target.style.rowRuleStyle = 'solid';
+        target.style.rowRuleColor = 'repeat(3, black black) repeat(1, red)';
+        var animation = target.animate([{}, {rowRuleColor: 'repeat(3, red red) repeat(1, black)'}], 1000);
+        animation.pause();
+        animation.currentTime = 500;
+        assert_equals(getComputedStyle(target).rowRuleColor, 'repeat(3, rgb(128, 0, 0) rgb(128, 0, 0)) repeat(1, rgb(128, 0, 0))');
+      }, 'gap decorations row-rule-color value list supports neutral keyframe.');
+    </script>
+  </body>
+</html>

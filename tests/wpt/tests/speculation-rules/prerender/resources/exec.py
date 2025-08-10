@@ -2,8 +2,8 @@ from wptserve.utils import isomorphic_decode
 import os
 
 def main(request, response):
-    purpose = request.headers.get(b"purpose")
-    if (purpose == b'prefetch' and b"code" in request.GET):
+    sec_purpose = request.headers.get(b"sec-purpose")
+    if (sec_purpose == b'prefetch;prerender' and b"code" in request.GET):
         code = int(request.GET.first(b"code"))
     else:
         code = 200

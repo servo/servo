@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>css-view-transitions IDL tests</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#idl-index">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+
+<style id="styleElement">
+@view-transition {
+  navigation: auto;
+}
+</style>
+
+<script>
+'use strict';
+
+idl_test(
+  ['css-view-transitions', 'css-view-transitions-2'],
+  ['dom', 'html', 'cssom'],
+  idl_array => {
+    idl_array.add_objects({
+      ViewTransition: ['document.startViewTransition()'],
+      Document: ['document'],
+      CSSViewTransitionRule: ['sheet.cssRules[0]'],
+    });
+    self.style_element = document.getElementById('styleElement');
+    self.sheet = style_element.sheet;
+  }
+);
+</script>

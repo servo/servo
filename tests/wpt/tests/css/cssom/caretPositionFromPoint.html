@@ -8,21 +8,29 @@
   #textDiv {
     display: inline-block;
   }
+
+  .user-select-none {
+    -webkit-user-select: none;
+    user-select: none;
+  }
 </style>
-<div id="textDiv">aaa</div>
+<div id="container"></div>
 <script>
   test(() => {
+    container.setHTMLUnsafe(`<div id="textDiv">aaa</div>`);
     assert_throws_js(TypeError, () => { document.caretPositionFromPoint(); });
     assert_throws_js(TypeError, () => { document.caretPositionFromPoint(5); });
     assert_throws_js(TypeError, () => { document.caretPositionFromPoint("foo", 5); });
   }, "document.caretPositionFromPoint() throws when called without the correct parameters");
 
   test(() => {
+    container.setHTMLUnsafe(`<div id="textDiv">aaa</div>`);
     const doc = document.implementation.createHTMLDocument("");
     assert_equals(doc.caretPositionFromPoint(0, 0), null);
   }, "document.caretPositionFromPoint() should return null for a document with no viewport");
 
   test(() => {
+    container.setHTMLUnsafe(`<div id="textDiv">aaa</div>`);
     assert_equals(document.caretPositionFromPoint(-5, 5), null);
     assert_equals(document.caretPositionFromPoint(5, -5), null);
     assert_equals(document.caretPositionFromPoint(document.documentElement.clientWidth * 2, 5), null);
@@ -30,6 +38,7 @@
   }, "document.caretPositionFromPoint() should return null if given coordinates outside of the viewport");
 
   test(() => {
+    container.setHTMLUnsafe(`<div id="textDiv">aaa</div>`);
     const textDiv = document.getElementById("textDiv");
     const rect = textDiv.getBoundingClientRect();
     const characterWidth = rect.width / textDiv.textContent.length;
@@ -45,6 +54,47 @@
   }, "document.caretPositionFromPoint() should return a CaretPosition at the specified location");
 
   test(() => {
+    container.setHTMLUnsafe(`<div id="textDiv" class="user-select-none">aaa</div>`);
+    const textDiv = document.getElementById("textDiv");
+    const rect = textDiv.getBoundingClientRect();
+    const characterWidth = rect.width / textDiv.textContent.length;
+    const characterIndex = 2
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Text);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, textDiv.firstChild);
+    assert_equals(caretPosition.offset, characterIndex);
+  }, "document.caretPositionFromPoint() should return a CaretPosition over elements with `user-select: none`");
+
+  test(() => {
+    container.setHTMLUnsafe(`<video controls></video>`);
+    const video = document.querySelector("video");
+    const caretPosition = document.caretPositionFromPoint(video.offsetLeft + video.offsetWidth / 2, video.offsetTop + video.offsetHeight / 2);
+    assert_equals(caretPosition.offsetNode, container);
+    assert_equals(caretPosition.offset, 0);
+  }, "document.caretPositionFromPoint() should return a CaretPosition over video elements");
+
+  test(() => {
+    container.setHTMLUnsafe(`<audio controls></audio>`);
+    const audio = document.querySelector("audio");
+    const caretPosition = document.caretPositionFromPoint(audio.offsetLeft + audio.offsetWidth / 2, audio.offsetTop + audio.offsetHeight / 2);
+    assert_equals(caretPosition.offsetNode, container);
+    assert_equals(caretPosition.offset, 0);
+  }, "document.caretPositionFromPoint() should return a CaretPosition over audio elements");
+
+  test(() => {
+    container.setHTMLUnsafe(`<svg width=100 height=100><circle cx=50 cy=50 r=50 /></svg>`);
+    const circle = document.querySelector("circle");
+    const caretPosition = document.caretPositionFromPoint(50, 50);
+    assert_equals(caretPosition.offsetNode, circle);
+    assert_equals(caretPosition.offset, 0);
+  }, "document.caretPositionFromPoint() should return a CaretPosition over SVG elements");
+
+  test(() => {
+    container.setHTMLUnsafe(`<div id="textDiv">aaa</div>`);
     const textDiv = document.getElementById("textDiv");
     const rect = textDiv.getBoundingClientRect();
     const characterWidth = rect.width / textDiv.textContent.length;

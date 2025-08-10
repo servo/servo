@@ -15,11 +15,46 @@ test_computed_value("text-autospace", "initial", "normal");
 
 test_computed_value("text-autospace", "normal");
 test_computed_value("text-autospace", "no-autospace");
+
 test_computed_value("text-autospace", "auto");
 
 test_computed_value("text-autospace", "ideograph-alpha");
 test_computed_value("text-autospace", "ideograph-numeric");
+test_computed_value("text-autospace", "ideograph-alpha ideograph-numeric");
 
+test_computed_value("text-autospace", "punctuation");
+test_computed_value("text-autospace", "punctuation ideograph-alpha", "ideograph-alpha punctuation");
+test_computed_value("text-autospace", "punctuation ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric punctuation");
+
+test_computed_value("text-autospace", "ideograph-alpha insert");
+test_computed_value("text-autospace", "ideograph-numeric insert");
+test_computed_value("text-autospace", "ideograph-alpha ideograph-numeric insert");
+
+test_computed_value("text-autospace", "punctuation insert");
+test_computed_value("text-autospace", "punctuation ideograph-alpha insert", "ideograph-alpha punctuation insert");
+
+test_computed_value("text-autospace", "insert ideograph-alpha", "ideograph-alpha insert");
+test_computed_value("text-autospace", "insert ideograph-numeric", "ideograph-numeric insert");
+test_computed_value("text-autospace", "insert ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric insert");
+
+test_computed_value("text-autospace", "insert punctuation", "punctuation insert");
+test_computed_value("text-autospace", "insert punctuation ideograph-alpha", "ideograph-alpha punctuation insert");
+test_computed_value("text-autospace", "insert punctuation ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric punctuation insert");
+
+test_computed_value("text-autospace", "ideograph-alpha replace");
+test_computed_value("text-autospace", "ideograph-numeric replace");
+test_computed_value("text-autospace", "ideograph-alpha ideograph-numeric replace");
+
+test_computed_value("text-autospace", "punctuation replace");
+test_computed_value("text-autospace", "punctuation ideograph-alpha replace", "ideograph-alpha punctuation replace");
+
+test_computed_value("text-autospace", "replace ideograph-alpha", "ideograph-alpha replace");
+test_computed_value("text-autospace", "replace ideograph-numeric", "ideograph-numeric replace");
+test_computed_value("text-autospace", "replace ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric replace");
+
+test_computed_value("text-autospace", "replace punctuation", "punctuation replace");
+test_computed_value("text-autospace", "replace punctuation ideograph-alpha", "ideograph-alpha punctuation replace");
+test_computed_value("text-autospace", "replace punctuation ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric punctuation replace");
 </script>
 </body>
 </html>

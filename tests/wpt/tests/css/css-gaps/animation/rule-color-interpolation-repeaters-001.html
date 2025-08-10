@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>rule-color interpolation with repeaters</title>
+    <link rel="author" title="Javier Contreras" href="mailto:javiercon@chromium.org">
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-color">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/support/interpolation-testcommon.js"></script>
+    <style>
+        .parent {
+            row-rule-style: solid;
+            row-rule-color: white;
+        }
+
+        .target {
+            row-gap: 40px;
+            column-gap: 40px;
+            row-rule-width: 10px;
+            row-rule-style: solid;
+            row-rule-color: black repeat(2, red blue) black;
+            flex-wrap: wrap;
+            column-rule-width: 10px;
+            column-rule-style: solid;
+            column-rule-color: repeat(2, black red);
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Valid Interpolations:
+        test_interpolation({
+            property: 'row-rule-color',
+            from: neutralKeyframe,
+            to: 'red repeat(2, black black) blue',
+        }, [
+            { at: -0.3, expect: 'black repeat(2, red blue) black' },
+            { at: 0, expect: 'black repeat(2, red blue) black' },
+            { at: 0.3, expect: 'rgb(77, 0, 0) repeat(2, rgb(179, 0, 0) rgb(0, 0, 179)) rgb(0, 0, 77)' },
+            { at: 0.6, expect: 'rgb(153, 0, 0) repeat(2, rgb(102, 0, 0) rgb(0, 0, 102)) rgb(0, 0, 153)' },
+            { at: 1, expect: 'rgb(255, 0, 0) repeat(2, rgb(0, 0, 0) rgb(0, 0, 0)) rgb(0, 0, 255)' },
+            { at: 1.5, expect: 'rgb(255, 0, 0) repeat(2, rgb(0, 0, 0) rgb(0, 0, 0)) rgb(0, 0, 255)' },
+        ]);
+        test_interpolation({
+            property: 'column-rule-color',
+            from: neutralKeyframe,
+            to: 'repeat(2, red black)',
+        }, [
+            { at: -0.3, expect: 'repeat(2, black red)' },
+            { at: 0, expect: 'repeat(2, black red)' },
+            { at: 0.3, expect: 'repeat(2, rgb(77, 0, 0) rgb(179, 0, 0))' },
+            { at: 0.6, expect: 'repeat(2, rgb(153, 0, 0) rgb(102, 0, 0))' },
+            { at: 1, expect: 'repeat(2, red black)' },
+            { at: 1.5, expect: 'repeat(2, red black)' },
+        ]);
+        test_interpolation({
+            property: 'column-rule-color',
+            from: 'repeat(auto, black black)',
+            to: 'repeat(auto, blue red)',
+        }, [
+            { at: -0.3, expect: 'repeat(auto, black black)' },
+            { at: 0, expect: 'repeat(auto, black black)' },
+            { at: 0.3, expect: 'repeat(auto, rgb(0, 0, 77) rgb(77, 0, 0))' },
+            { at: 0.6, expect: 'repeat(auto, rgb(0, 0, 153) rgb(153, 0, 0))' },
+            { at: 1, expect: 'repeat(auto, rgb(0, 0, 255) rgb(255, 0, 0))' },
+            { at: 1.5, expect: 'repeat(auto, rgb(0, 0, 255) rgb(255, 0, 0)' },
+        ]);
+
+        // // Shouldn't interpolate, length of the list is different:
+        test_no_interpolation({
+            property: 'row-rule-color',
+            from: neutralKeyframe,
+            to: 'repeat(2, blue blue) white',
+        });
+        test_no_interpolation({
+            property: 'row-rule-color',
+            from: neutralKeyframe,
+            to: 'repeat(2, red red) repeat(2, blue blue)',
+        });
+
+        // // Shouldn't interpolate, repeaters are not compatible:
+        test_no_interpolation({
+            property: 'column-rule-color',
+            from: neutralKeyframe,
+            to: 'repeat(3, white white)',
+        });
+        test_no_interpolation({
+            property: 'column-rule-color',
+            from: neutralKeyframe,
+            to: 'repeat(2, yellow orange green)',
+        });
+        test_no_interpolation({
+            property: 'row-rule-color',
+            from: neutralKeyframe,
+            to: 'black repeat(3, red white) blue',
+        });
+        test_no_interpolation({
+            property: 'row-rule-color',
+            from: neutralKeyframe,
+            to: 'white repeat(2, blue blue blue) yellow',
+        });
+        test_no_interpolation({
+            property: 'column-rule-color',
+            from: 'repeat(auto, red black)',
+            to: 'repeat(3, black red)',
+        });
+        test_no_interpolation({
+            property: 'column-rule-color',
+            from: 'repeat(auto, black black)',
+            to: 'repeat(auto, red white yellow)',
+        });
+
+        // // Shouldn't interpolate, repeater and a color are not compatible:
+        test_no_interpolation({
+            property: 'column-rule-color',
+            from: neutralKeyframe,
+            to: 'white',
+        });
+    </script>
+</body>

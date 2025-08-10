@@ -7,26 +7,33 @@
 </head>
 <body>
     <h1>json-module-crossorigin</h1>
-    <iframe id="import-WithCORS" src="crossorigin-import-with-cors.sub.html"></iframe>
-    <iframe id="import-NoCORS" src="crossorigin-import-without-cors.sub.html"></iframe>
-    <iframe id="import-parseerror-WithCors" src="crossorigin-import-parse-error-with-cors.sub.html"></iframe>
     <script>
 
         var tests = [
-                { "obj": async_test("Imported JSON module, cross-origin with CORS"), "id": "import-WithCORS", "expected": "imported JSON: 42" },
-                { "obj": async_test("Imported JSON module, cross-origin, missing CORS ACAO header"), "id": "import-NoCORS", "expected": "error" },
-                { "obj": async_test("Imported JSON module with parse error, cross-origin, with CORS"), "id": "import-parseerror-WithCors", "expected": "SyntaxError" },
+                { "obj": async_test("Imported JSON module, cross-origin with CORS"), "id": "import-WithCORS", "expected": "imported JSON: 42", "url": "crossorigin-import-with-cors.sub.html" },
+                { "obj": async_test("Imported JSON module, cross-origin, missing CORS ACAO header"), "id": "import-NoCORS", "expected": "error", "url": "crossorigin-import-without-cors.sub.html" },
+                { "obj": async_test("Imported JSON module with parse error, cross-origin, with CORS"), "id": "import-parseerror-WithCors", "expected": "SyntaxError", "url": "crossorigin-import-parse-error-with-cors.sub.html" },
             ];
 
-        window.addEventListener("load", function () {
-            tests.forEach(function (test) {
-                var target = document.getElementById(test.id);
+        async function loadTest(test) {
+            return new Promise((resolve) => {
+                const iframe = document.createElement('iframe');
+                iframe.id = test.id;
+                iframe.src = test.url;
+                iframe.onload = () => resolve(iframe);
+                document.body.appendChild(iframe);
+            });
+        }
+
+        (async function () {
+            for (const test of tests) {
+                const target = await loadTest(test);
                 test.obj.step(function () {
                     assert_equals(target.contentDocument._log, test.expected, "Unexpected _log value");
                 });
                 test.obj.done();
-            });
-        });
+            }
+        })();
 
     </script>
 </body>
