@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>rule-color interpolation</title>
+  <link rel="author" title="Javier Contreras" href="mailto:javiercon@chromium.org">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-color">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/interpolation-testcommon.js"></script>
+  <style>
+    .parent {
+      row-rule-style: solid;
+      row-rule-color: white;
+    }
+
+    .target {
+      display: flex;
+      row-gap: 10px;
+      row-rule-width: 10px;
+      row-rule-style: solid;
+      row-rule-color: black black black;
+      flex-wrap: wrap;
+      column-rule-color: 10px;
+      column-rule-style: solid;
+      column-rule-color: black red blue;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    test_interpolation({
+      property: 'row-rule-color',
+      from: neutralKeyframe,
+      to: 'red red red',
+    }, [
+      { at: -0.3, expect: 'black black black' },
+      { at: 0, expect: 'black black black' },
+      { at: 0.3, expect: 'rgb(77, 0, 0) rgb(77, 0, 0) rgb(77, 0, 0)' },
+      { at: 0.6, expect: 'rgb(153, 0, 0) rgb(153, 0, 0) rgb(153, 0, 0)' },
+      { at: 1, expect: 'red red red' },
+      { at: 1.5, expect: 'red red red' },
+    ]);
+
+    test_interpolation({
+      property: 'column-rule-color',
+      from: neutralKeyframe,
+      to: 'red blue red',
+    }, [
+      { at: -0.3, expect: 'black red blue' },
+      { at: 0, expect: 'black red blue' },
+      { at: 0.3, expect: 'rgb(77, 0, 0) rgb(179, 0, 77) rgb(77, 0, 179)' },
+      { at: 0.6, expect: 'rgb(153, 0, 0) rgb(102, 0, 153) rgb(153, 0, 102)' },
+      { at: 1, expect: 'red blue red' },
+      { at: 1.5, expect: 'red blue red' },
+    ]);
+  </script>
+</body>
+</html>

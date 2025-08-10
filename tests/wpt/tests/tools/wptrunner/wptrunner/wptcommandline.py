@@ -276,6 +276,11 @@ scheme host and port.""")
     config_group.add_argument("--no-suppress-handler-traceback", action="store_false",
                               dest="supress_handler_traceback",
                               help="Write the stacktrace for exceptions in server handlers")
+    config_group.add_argument("--update-status-on-crash", action="store_true", default=None,
+                              help="Update test status to CRASH if a crash dump is found")
+    config_group.add_argument("--no-update-status-on-crash", dest="update_status_on_crash",
+                              action="store_false",
+                              help="Don't update test status to CRASH if a crash dump is found")
     config_group.add_argument("--ws-extra", action="append",
                               help="Extra paths containing websockets handlers")
 
@@ -635,6 +640,9 @@ def check_args(kwargs):
         if not os.path.exists(kwargs["binary"]):
             print("Binary path %s does not exist" % kwargs["binary"], file=sys.stderr)
             sys.exit(1)
+
+    if kwargs["update_status_on_crash"] is None:
+        kwargs["update_status_on_crash"] = True
 
     if kwargs["ssl_type"] is None:
         if None not in (kwargs["ca_cert_path"], kwargs["host_cert_path"], kwargs["host_key_path"]):

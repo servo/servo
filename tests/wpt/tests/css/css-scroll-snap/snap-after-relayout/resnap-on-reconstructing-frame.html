@@ -36,6 +36,11 @@ video {
 </div>
 <script>
 promise_test(async () => {
+  // Ensure this document has been already loaded.
+  if (document.readyState != "complete") {
+    await new Promise(resolve => window.addEventListener("load", resolve));
+  }
+
   assert_equals(scroller.scrollTop, 0);
 
   const scrollendPromise = new Promise(resolve => {

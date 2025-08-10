@@ -27,9 +27,9 @@ promise_test(async () => {
     type: 'tldr',
     format: 'plain-text',
     length: 'medium',
-    expectedInputLanguages: ['es'], // not supported
+    expectedInputLanguages: ['zu'], // not supported
     expectedContextLanguages: ['en'],
-    outputLanguage: 'es', // not supported
+    outputLanguage: 'zu', // not supported
   });
   assert_equals(availability, 'unavailable');
 }, 'Summarizer.availability() returns unavailable for unsupported languages');

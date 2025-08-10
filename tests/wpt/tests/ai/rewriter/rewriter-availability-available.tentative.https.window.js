@@ -26,9 +26,9 @@ promise_test(async () => {
     tone: 'as-is',
     format: 'as-is',
     length: 'as-is',
-    expectedInputLanguages: ['es'], // not supported
+    expectedInputLanguages: ['zu'], // not supported
     expectedContextLanguages: ['en'],
-    outputLanguage: 'es', // not supported
+    outputLanguage: 'zu', // not supported
   });
   assert_equals(availability, 'unavailable');
 }, 'Rewriter.availability() returns unavailable for unsupported languages');

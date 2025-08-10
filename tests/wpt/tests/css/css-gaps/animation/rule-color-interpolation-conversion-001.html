@@ -1,0 +1,49 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS gap color change computed value to non compatible value mid-animation</title>
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-color">
+  <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <style>
+    #target {
+      column-rule-color: blue;
+      animation: color-anim 2s linear paused;
+    }
+    @keyframes color-anim {
+      from { column-rule-color: red; }
+    }
+  </style>
+</head>
+<body>
+  <div id="target">Dynamic Gap-Color Test</div>
+
+  <script>
+    promise_test(async () => {
+      const el = document.getElementById('target');
+      const anim = el.getAnimations()[0];
+
+      assert_equals(getComputedStyle(el).columnRuleColor, 'rgb(255, 0, 0)');
+
+      // Jump to 50% of the animation.
+      anim.currentTime = anim.effect.getComputedTiming().duration / 2;
+
+      const intermediate = getComputedStyle(el).columnRuleColor;
+      assert_equals(
+        intermediate,
+        'rgb(128, 0, 128)' // The color at 50% of the animation.
+      );
+
+      el.style.columnRuleColor = 'repeat(2, red)';
+
+      const snapped = getComputedStyle(el).columnRuleColor;
+      assert_equals(
+        snapped,
+        'repeat(2, rgb(255, 0, 0))'
+      );
+    });
+  </script>
+</body>
+</html>

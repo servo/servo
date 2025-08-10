@@ -1893,7 +1893,7 @@ const clampTests = [
       }],
       'expectedOutputs': {
         'clampOutput': {
-          'data': [0, Infinity, 0, 2147483647, 0, 1, 0],
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
           'descriptor': {shape: [7], dataType: 'float32'}
         }
       }
@@ -1917,7 +1917,7 @@ const clampTests = [
       }],
       'expectedOutputs': {
         'clampOutput': {
-          'data': [-Infinity, 0, -3e35, 0, -2, 0, 0],
+          'data': [-Infinity, Infinity, -3e35, 2147483647, -2, 1, 0],
           'descriptor': {shape: [7], dataType: 'float32'}
         }
       }

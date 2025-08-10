@@ -13,7 +13,7 @@ promise_test(async t => {
     assert_equals(placeholder.currentPatch, null, "no patch active, currentPatch should be null");
     doc.write('<template id=patchy patchfor="placeholder">');
     const {currentPatch} = placeholder;
-    assert_true(currentPatch instanceof PatchStatus);
+    assert_true(currentPatch instanceof Patch);
     const {finished, source} = currentPatch;
     assert_true(source instanceof HTMLTemplateElement);
     assert_equals(source.id, "patchy");

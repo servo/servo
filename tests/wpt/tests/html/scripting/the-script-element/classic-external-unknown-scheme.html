@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+window.onload = function() {
+    done();
+}
+setup({ single_test: true });
+var flag = false;
+function unknown() {
+    document.write("<scr" + "ipt>assert_false(flag); flag = true; assert_equals(document.readyState, 'loading');</scr" + "ipt>");
+}
+function known() {
+    document.write("<scr" + "ipt>assert_true(flag); assert_equals(document.readyState, 'loading');</scr" + "ipt>");
+}
+</script>
+<script onerror="unknown();" src="unknown://example/"></script>
+<script onerror="known();" src="resources/must-not-exist.js"></script>
+<script>
+assert_equals(document.getElementsByTagName("script").length, 8);
+</script>
