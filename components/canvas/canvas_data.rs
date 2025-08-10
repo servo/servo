@@ -62,6 +62,7 @@ impl UnshapedTextRun<'_> {
             word_spacing,
             script: self.script,
             flags: ShapingFlags::empty(),
+            variation_settings: Default::default(),
         };
         let glyphs = font.shape_text(self.string, &options);
         Some(TextRun { font, glyphs })

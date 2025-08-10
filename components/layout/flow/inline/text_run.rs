@@ -9,6 +9,7 @@ use app_units::Au;
 use base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
+    VariationValue,
 };
 use fonts_traits::ByteIndex;
 use log::warn;
@@ -210,7 +211,7 @@ impl TextRunSegment {
                 continue;
             }
 
-            let mut options = *shaping_options;
+            let mut options = shaping_options.clone();
 
             // Extend the slice to the next UAX#14 line break opportunity.
             let mut slice = last_slice.end..*break_index;
@@ -395,6 +396,12 @@ impl TextRun {
 
         let specified_word_spacing = &inherited_text_style.word_spacing;
         let style_word_spacing: Option<Au> = specified_word_spacing.to_length().map(|l| l.into());
+        let mut font_variation_settings = parent_style
+            .clone_font_variation_settings()
+            .0
+            .iter()
+            .map(|setting| (setting.tag.0, VariationValue(setting.value)))
+            .collect();
 
         let segments = self
             .segment_text_by_font(
@@ -418,11 +425,12 @@ impl TextRun {
                 if segment.bidi_level.is_rtl() {
                     flags.insert(ShapingFlags::RTL_FLAG);
                 }
-                let shaping_options = ShapingOptions {
+                let mut shaping_options = ShapingOptions {
                     letter_spacing,
                     word_spacing,
                     script: segment.script,
                     flags,
+                    variation_settings: mem::take(&mut font_variation_settings),
                 };
 
                 segment.shape_text(
@@ -432,6 +440,8 @@ impl TextRun {
                     &shaping_options,
                     font,
                 );
+                font_variation_settings = mem::take(&mut shaping_options.variation_settings);
+
                 segment
             })
             .collect();

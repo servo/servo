@@ -28,7 +28,7 @@ use style::values::computed::font::{
 };
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
-use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
+use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
 use crate::font::FontDescriptor;
 use crate::font_store::FontStore;
@@ -65,6 +65,7 @@ pub enum SystemFontServiceMessage {
         FontIdentifier,
         Au,
         FontInstanceFlags,
+        Vec<FontVariation>,
         IpcSender<FontInstanceKey>,
     ),
     GetFontKey(IpcSender<FontKey>),
@@ -94,7 +95,8 @@ pub struct SystemFontService {
     local_families: FontStore,
     compositor_api: CrossProcessCompositorApi,
     webrender_fonts: HashMap<FontIdentifier, FontKey>,
-    font_instances: HashMap<(FontKey, Au), FontInstanceKey>,
+    #[ignore_malloc_size_of = "can't measure font variations"]
+    font_instances: HashMap<(FontKey, Au, Vec<FontVariation>), FontInstanceKey>,
     generic_fonts: ResolvedGenericFontFamilies,
 
     /// This is an optimization that allows the [`SystemFontService`] to send font data to
@@ -176,8 +178,15 @@ impl SystemFontService {
                     let _ =
                         result_sender.send(self.get_font_templates(font_descriptor, font_family));
                 },
-                SystemFontServiceMessage::GetFontInstance(identifier, pt_size, flags, result) => {
-                    let _ = result.send(self.get_font_instance(identifier, pt_size, flags));
+                SystemFontServiceMessage::GetFontInstance(
+                    identifier,
+                    pt_size,
+                    flags,
+                    variations,
+                    result,
+                ) => {
+                    let _ =
+                        result.send(self.get_font_instance(identifier, pt_size, flags, variations));
                 },
                 SystemFontServiceMessage::GetFontKey(result_sender) => {
                     self.fetch_new_keys();
@@ -281,6 +290,7 @@ impl SystemFontService {
         identifier: FontIdentifier,
         pt_size: Au,
         flags: FontInstanceFlags,
+        variations: Vec<FontVariation>,
     ) -> FontInstanceKey {
         self.fetch_new_keys();
 
@@ -301,7 +311,7 @@ impl SystemFontService {
 
         *self
             .font_instances
-            .entry((font_key, pt_size))
+            .entry((font_key, pt_size, variations.clone()))
             .or_insert_with(|| {
                 let font_instance_key = self.free_font_instance_keys.pop().unwrap();
                 compositor_api.add_font_instance(
@@ -309,6 +319,7 @@ impl SystemFontService {
                     font_key,
                     pt_size.to_f32_px(),
                     flags,
+                    variations,
                 );
                 font_instance_key
             })
@@ -473,6 +484,7 @@ impl SystemFontServiceProxy {
         identifier: FontIdentifier,
         size: Au,
         flags: FontInstanceFlags,
+        variations: Vec<FontVariation>,
     ) -> FontInstanceKey {
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.sender
@@ -481,6 +493,7 @@ impl SystemFontServiceProxy {
                 identifier,
                 size,
                 flags,
+                variations,
                 response_chan,
             ))
             .expect("failed to send message to system font service");

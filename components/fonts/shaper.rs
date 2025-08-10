@@ -22,8 +22,8 @@ use harfbuzz_sys::{
     hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t, hb_font_create,
     hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
     hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
-    hb_font_set_scale, hb_font_t, hb_glyph_info_t, hb_glyph_position_t, hb_ot_layout_get_baseline,
-    hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t,
+    hb_font_set_scale, hb_font_set_variations, hb_font_t, hb_glyph_info_t, hb_glyph_position_t,
+    hb_ot_layout_get_baseline, hb_position_t, hb_shape, hb_tag_t, hb_variation_t,
 };
 use log::debug;
 use num_traits::Zero;
@@ -32,13 +32,13 @@ use crate::font::advance_for_shaped_glyph;
 use crate::platform::font::FontTable;
 use crate::{
     BASE, ByteIndex, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphData, GlyphId,
-    GlyphStore, KERN, ShapingFlags, ShapingOptions, fixed_to_float, float_to_fixed, ot_tag,
+    GlyphStore, KERN, ShapingFlags, ShapingOptions, Tag, fixed_to_float, float_to_fixed, ot_tag,
 };
 
 const NO_GLYPH: i32 = -1;
-const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');
-const HB_OT_TAG_DEFAULT_SCRIPT: u32 = ot_tag!('D', 'F', 'L', 'T');
-const HB_OT_TAG_DEFAULT_LANGUAGE: u32 = ot_tag!('d', 'f', 'l', 't');
+const LIGA: Tag = ot_tag!('l', 'i', 'g', 'a');
+const HB_OT_TAG_DEFAULT_SCRIPT: Tag = ot_tag!('D', 'F', 'L', 'T');
+const HB_OT_TAG_DEFAULT_LANGUAGE: Tag = ot_tag!('d', 'f', 'l', 't');
 
 pub struct ShapedGlyphData {
     count: usize,
@@ -264,12 +264,22 @@ impl Shaper {
                 })
             }
 
+            for (tag, value) in &options.variation_settings {
+                let variations = &[hb_variation_t {
+                    tag: *tag,
+                    value: value.0,
+                }];
+
+                hb_font_set_variations(self.hb_font, variations.as_ptr(), variations.len() as u32);
+            }
+
             hb_shape(
                 self.hb_font,
                 hb_buffer,
                 features.as_mut_ptr(),
                 features.len() as u32,
             );
+
             self.save_glyph_results(text, options, glyphs, hb_buffer);
             hb_buffer_destroy(hb_buffer);
         }

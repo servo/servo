@@ -73,6 +73,7 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         font_data: &FontData,
         requested_size: Option<Au>,
+        variations: Vec<(Tag, VariationValue)>,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
@@ -94,6 +95,7 @@ impl PlatformFontMethods for PlatformFont {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
+        variations: Vec<(Tag, VariationValue)>,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");

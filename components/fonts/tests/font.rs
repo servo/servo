@@ -27,7 +27,8 @@ fn make_font(path: PathBuf) -> Font {
     let data = FontData::from_bytes(&bytes);
 
     let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap());
-    let platform_font = PlatformFont::new_from_data(identifier.clone(), &data, None).unwrap();
+    let platform_font =
+        PlatformFont::new_from_data(identifier.clone(), &data, None, vec![]).unwrap();
 
     let template = FontTemplate {
         identifier,
@@ -40,6 +41,7 @@ fn make_font(path: PathBuf) -> Font {
         style: FontStyle::normal(),
         variant: FontVariantCaps::Normal,
         pt_size: Au::from_px(24),
+        variation_settings: vec![],
     };
     Font::new(FontTemplateRef::new(template), descriptor, Some(data), None).unwrap()
 }
@@ -77,6 +79,7 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: None,
         word_spacing: Au::zero(),
         script: Script::Latin,
+        variation_settings: vec![],
         flags: ShapingFlags::empty(),
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
@@ -87,6 +90,7 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: None,
         word_spacing: Au::zero(),
         script: Script::Cherokee,
+        variation_settings: vec![],
         flags: ShapingFlags::empty(),
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
@@ -97,6 +101,7 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: None,
         word_spacing: Au::zero(),
         script: Script::Latin,
+        variation_settings: vec![],
         flags: ShapingFlags::RTL_FLAG,
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
