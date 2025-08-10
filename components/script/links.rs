@@ -358,7 +358,10 @@ pub(crate) fn follow_hyperlink(
     let document = subject.owner_document();
     let target_attribute_value =
         if subject.is::<HTMLAreaElement>() || subject.is::<HTMLAnchorElement>() {
-            if document.alternate_action_keyboard_modifier_active() {
+            if document
+                .event_handler()
+                .alternate_action_keyboard_modifier_active()
+            {
                 Some("_blank".into())
             } else {
                 get_element_target(subject)

@@ -10,6 +10,7 @@ use euclid::Point2D;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_traits::ConstellationInputEvent;
 use servo_config::pref;
 use style_traits::CSSPixel;
 
@@ -22,6 +23,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::document::FireMouseEventType;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::inputevent::HitTestResult;
@@ -179,6 +181,36 @@ impl MouseEvent {
             point_in_target,
         );
         ev
+    }
+
+    pub(crate) fn new_simple(
+        window: &Window,
+        event_name: FireMouseEventType,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        hit_test_result: &HitTestResult,
+        input_event: &ConstellationInputEvent,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        Self::new(
+            window,
+            DOMString::from(event_name.as_str()),
+            can_bubble,
+            cancelable,
+            Some(window),
+            0i32,
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result
+                .point_relative_to_initial_containing_block
+                .to_i32(),
+            input_event.active_keyboard_modifiers,
+            0i16,
+            input_event.pressed_mouse_buttons,
+            None,
+            None,
+            can_gc,
+        )
     }
 
     /// <https://w3c.github.io/uievents/#initialize-a-mouseevent>

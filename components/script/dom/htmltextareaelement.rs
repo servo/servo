@@ -703,7 +703,9 @@ impl VirtualMethods for HTMLTextAreaElement {
                 .borrow_mut()
                 .handle_clipboard_event(clipboard_event);
             if reaction.contains(ClipboardEventReaction::FireClipboardChangedEvent) {
-                self.owner_document().fire_clipboardchange_event(can_gc);
+                self.owner_document()
+                    .event_handler()
+                    .fire_clipboardchange_event(can_gc);
             }
             if reaction.contains(ClipboardEventReaction::QueueInputEvent) {
                 self.owner_global()
