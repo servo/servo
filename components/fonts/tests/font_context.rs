@@ -133,7 +133,7 @@ mod font_context {
                         );
                     },
                     SystemFontServiceMessage::GetFontInstanceKey(result_sender) |
-                    SystemFontServiceMessage::GetFontInstance(_, _, _, result_sender) => {
+                    SystemFontServiceMessage::GetFontInstance(_, _, _, _, result_sender) => {
                         let _ = result_sender.send(FontInstanceKey(IdNamespace(0), 0));
                     },
                     SystemFontServiceMessage::GetFontKey(result_sender) => {
@@ -187,9 +187,12 @@ mod font_context {
                 path: path.to_str().expect("Could not load test font").into(),
                 variation_index: 0,
             };
-            let handle =
-                PlatformFont::new_from_local_font_identifier(local_font_identifier.clone(), None)
-                    .expect("Could not load test font");
+            let handle = PlatformFont::new_from_local_font_identifier(
+                local_font_identifier.clone(),
+                None,
+                vec![],
+            )
+            .expect("Could not load test font");
 
             family.add_template(FontTemplate::new(
                 FontIdentifier::Local(local_font_identifier),
@@ -352,6 +355,7 @@ mod font_context {
             style: FontStyle::normal(),
             variant: FontVariantCaps::Normal,
             pt_size: Au(10),
+            variation_settings: vec![],
         };
 
         let family = SingleFontFamily::FamilyName(FamilyName {

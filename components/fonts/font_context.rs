@@ -32,7 +32,7 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetInDocument};
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use url::Url;
-use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
+use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
 use crate::font::{
     Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope,
@@ -44,6 +44,8 @@ use crate::system_font_service::{CSSFontFaceDescriptors, FontIdentifier};
 use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontServiceProxy};
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
+
+pub type FontParameters = (FontKey, Au, Vec<FontVariation>);
 
 /// The FontContext represents the per-thread/thread state necessary for
 /// working with fonts. It is the public API used by the layout and
@@ -74,7 +76,7 @@ pub struct FontContext {
 
     /// A collection of WebRender [`FontInstanceKey`]s generated for the web fonts that
     /// this [`FontContext`] controls.
-    webrender_font_instance_keys: RwLock<HashMap<(FontKey, Au), FontInstanceKey>>,
+    webrender_font_instance_keys: RwLock<HashMap<FontParameters, FontInstanceKey>>,
 
     /// The data for each web font [`FontIdentifier`]. This data might be used by more than one
     /// [`FontTemplate`] as each identifier refers to a URL.
@@ -277,7 +279,7 @@ impl FontContext {
     ) -> Result<FontRef, &'static str> {
         Ok(Arc::new(Font::new(
             font_template.clone(),
-            font_descriptor.clone(),
+            font_descriptor,
             self.get_font_data(&font_template.identifier()),
             synthesized_small_caps,
         )?))
@@ -289,11 +291,13 @@ impl FontContext {
                 font.template.identifier(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
+                font.descriptor.variation_settings.clone(),
             ),
             FontIdentifier::Web(_) => self.create_web_font_instance(
                 font.template.clone(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
+                font.descriptor.variation_settings.clone(),
             ),
         }
     }
@@ -303,6 +307,7 @@ impl FontContext {
         font_template: FontTemplateRef,
         pt_size: Au,
         flags: FontInstanceFlags,
+        variations: Vec<FontVariation>,
     ) -> FontInstanceKey {
         let identifier = font_template.identifier().clone();
         let font_data = self
@@ -325,7 +330,7 @@ impl FontContext {
         let key = *self
             .webrender_font_instance_keys
             .write()
-            .entry((font_key, pt_size))
+            .entry((font_key, pt_size, variations.clone()))
             .or_insert_with(|| {
                 let font_instance_key = self.system_font_service_proxy.generate_font_instance_key();
                 self.compositor_api.lock().add_font_instance(
@@ -333,6 +338,7 @@ impl FontContext {
                     font_key,
                     pt_size.to_f32_px(),
                     flags,
+                    variations,
                 );
                 font_instance_key
             });
@@ -619,7 +625,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         });
 
         let mut removed_instance_keys: HashSet<FontInstanceKey> = HashSet::new();
-        webrender_font_instance_keys.retain(|(font_key, _), instance_key| {
+        webrender_font_instance_keys.retain(|(font_key, _, _), instance_key| {
             if removed_keys.contains(font_key) {
                 removed_instance_keys.insert(*instance_key);
                 false
@@ -864,7 +870,7 @@ impl RemoteWebFontDownloader {
 
         let url: ServoUrl = self.url.clone().into();
         let identifier = FontIdentifier::Web(url.clone());
-        let Ok(handle) = PlatformFont::new_from_data(identifier, &font_data, None) else {
+        let Ok(handle) = PlatformFont::new_from_data(identifier, &font_data, None, vec![]) else {
             return false;
         };
 

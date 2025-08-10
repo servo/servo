@@ -10,11 +10,13 @@ use std::{mem, ptr};
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use freetype_sys::{
-    FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
-    FT_FACE_FLAG_SCALABLE, FT_Face, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_Int32,
-    FT_KERNING_DEFAULT, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long,
-    FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Size_Metrics,
-    FT_SizeRec, FT_UInt, FT_ULong, FT_Vector,
+    FT_Byte, FT_Done_Face, FT_Done_MM_Var, FT_Error, FT_F26Dot6, FT_FACE_FLAG_COLOR,
+    FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE, FT_Face, FT_Get_Char_Index, FT_Get_Kerning,
+    FT_Get_MM_Var, FT_GlyphSlot, FT_HAS_MULTIPLE_MASTERS, FT_Int32, FT_KERNING_DEFAULT,
+    FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long, FT_MM_Var,
+    FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size,
+    FT_Set_Var_Design_Coordinates, FT_Size_Metrics, FT_SizeRec, FT_UInt, FT_ULong, FT_Vector,
+    FTErrorMethods,
 };
 use log::debug;
 use memmap2::Mmap;
@@ -29,13 +31,13 @@ use webrender_api::FontInstanceFlags;
 
 use super::LocalFontIdentifier;
 use super::library_handle::FreeTypeLibraryHandle;
-use crate::FontData;
 use crate::font::{
     FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
 };
 use crate::font_template::FontTemplateDescriptor;
 use crate::glyph::GlyphId;
 use crate::system_font_service::FontIdentifier;
+use crate::{FontData, VariationValue};
 
 // This constant is not present in the freetype
 // bindings due to bindgen not handling the way
@@ -96,6 +98,7 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         font_data: &FontData,
         requested_size: Option<Au>,
+        variations: Vec<(u32, VariationValue)>,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
@@ -119,6 +122,9 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
+        // SAFETY: "face" is known to be a valid FT_Face
+        unsafe { set_variations_for_font(face, &variations, &library)? };
+
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
@@ -130,6 +136,7 @@ impl PlatformFontMethods for PlatformFont {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
+        variations: Vec<(u32, VariationValue)>,
     ) -> Result<PlatformFont, &'static str> {
         let mut face: FT_Face = ptr::null_mut();
         let library = FreeTypeLibraryHandle::get().lock();
@@ -148,10 +155,14 @@ impl PlatformFontMethods for PlatformFont {
             return Err("Could not create FreeType face");
         }
 
+        // Set font size
         let (requested_face_size, actual_face_size) = match requested_size {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
             None => (Au::zero(), Au::zero()),
         };
+
+        // SAFETY: "face" is known to be a valid FT_Face
+        unsafe { set_variations_for_font(face, &variations, &library)? };
 
         let Ok(memory_mapped_font_data) =
             File::open(&*font_identifier.path).and_then(|file| unsafe { Mmap::map(&file) })
@@ -242,7 +253,7 @@ impl PlatformFontMethods for PlatformFont {
 
         let load_flags = face.glyph_load_flags();
         let result = unsafe { FT_Load_Glyph(*face, glyph as FT_UInt, load_flags) };
-        if 0 != result {
+        if !result.succeeded() {
             debug!("Unable to load glyph {}. reason: {:?}", glyph, result);
             return None;
         }
@@ -417,7 +428,7 @@ impl PlatformFontMethods for PlatformFont {
 
         let load_flags = FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING;
         let result = unsafe { FT_Load_Glyph(*face, glyph_id as FT_UInt, load_flags) };
-        if 0 != result {
+        if !result.succeeded() {
             debug!("Unable to load glyph {}. reason: {:?}", glyph_id, result);
             return Rect::default();
         }
@@ -470,7 +481,7 @@ impl FreeTypeFaceHelpers for FT_Face {
         if self.scalable() {
             let size_in_fixed_point = (requested_size.to_f64_px() * 64.0 + 0.5) as FT_F26Dot6;
             let result = unsafe { FT_Set_Char_Size(self, size_in_fixed_point, 0, 72, 72) };
-            if 0 != result {
+            if !result.succeeded() {
                 return Err("FT_Set_Char_Size failed");
             }
             return Ok(requested_size);
@@ -557,4 +568,57 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ok(())
     }
+}
+
+/// Applies to provided variations to the font face.
+///
+/// ## SAFETY:
+/// * `face` must point to a valid `FT_FaceRec` structure.
+unsafe fn set_variations_for_font(
+    face: FT_Face,
+    variations: &[(u32, VariationValue)],
+    library: &FreeTypeLibraryHandle,
+) -> Result<(), &'static str> {
+    if !FT_HAS_MULTIPLE_MASTERS(face) || variations.is_empty() {
+        // Nothing to do
+        return Ok(());
+    }
+
+    // Query variation axis of font
+    let mut mm_var: *mut FT_MM_Var = ptr::null_mut();
+    let result = unsafe { FT_Get_MM_Var(face, &mut mm_var as *mut _) };
+    if !result.succeeded() {
+        return Err("Failed to query font variations");
+    }
+
+    // Prepare values for each axis. These are either the provided values (if any) or the default
+    // ones for the axis.
+    let num_axis = unsafe { (*mm_var).num_axis } as usize;
+
+    let mut coords = vec![0; num_axis];
+    for (index, coord) in coords.iter_mut().enumerate() {
+        let axis_data = unsafe { (*mm_var).axis.add(index) };
+        *coord = variations
+            .iter()
+            .find(|(tag, _)| *tag == unsafe { (*axis_data).tag as u32 })
+            .map(|(_, value)| {
+                // Freetype expects the value to be in a 16.16 fixed point format
+                (value.0 * 16.0_f32.exp2()) as i64
+            })
+            .unwrap_or(unsafe { (*axis_data).def });
+    }
+
+    // Free the MM_Var structure
+    unsafe {
+        FT_Done_MM_Var(library.freetype_library, mm_var);
+    }
+
+    // Set the values for each variation axis
+    let result =
+        unsafe { FT_Set_Var_Design_Coordinates(face, coords.len() as u32, coords.as_ptr()) };
+    if !result.succeeded() {
+        return Err("Could not set variations for font face");
+    }
+
+    Ok(())
 }
