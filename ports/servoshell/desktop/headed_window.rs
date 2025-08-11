@@ -4,6 +4,9 @@
 
 //! A winit window implementation.
 
+#![deny(clippy::panic)]
+#![deny(clippy::unwrap_used)]
+
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::env;
@@ -118,7 +121,10 @@ impl Window {
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
 
-        Window::force_srgb_color_space(winit_window.window_handle().unwrap().as_raw());
+        let window_handle = winit_window
+            .window_handle()
+            .expect("winit window did not have a window handle");
+        Window::force_srgb_color_space(window_handle.as_raw());
 
         let monitor = winit_window
             .current_monitor()
@@ -153,7 +159,9 @@ impl Window {
         }
 
         // Make sure the gl context is made current.
-        window_rendering_context.make_current().unwrap();
+        window_rendering_context
+            .make_current()
+            .expect("Could not make window RenderingContext current");
 
         let rendering_context = Rc::new(window_rendering_context.offscreen_context(inner_size));
 
@@ -405,7 +413,10 @@ impl Window {
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
-                state.create_and_focus_toplevel_webview(Url::parse("servo:newtab").unwrap());
+                state.create_and_focus_toplevel_webview(
+                    Url::parse("servo:newtab")
+                        .expect("Should be able to unconditionally parse 'servo:newtab' as URL"),
+                );
             })
             .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
             .otherwise(|| handled = false);
@@ -425,7 +436,7 @@ impl Window {
                 unsafe {
                     let view = handle.ns_view.cast::<NSView>().as_ref();
                     view.window()
-                        .unwrap()
+                        .expect("Should have a window")
                         .setColorSpace(Some(&NSColorSpace::sRGBColorSpace()));
                 }
             }
@@ -888,7 +899,9 @@ impl servo::webxr::glwindow::GlWindow for XRWindow {
     }
 
     fn display_handle(&self) -> raw_window_handle::DisplayHandle {
-        self.winit_window.display_handle().unwrap()
+        self.winit_window
+            .display_handle()
+            .expect("Every window should have a display handle")
     }
 }
 

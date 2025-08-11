@@ -78,8 +78,4 @@ impl test {
     } else {
         let xif = 42 in {  xif  } // Should not trigger
     }
-
-    let option = Some(3);
-    println!("{}", option.unwrap());
-    panic!("What a way to end.");
 }
