@@ -6,6 +6,7 @@ use std::mem;
 use std::ops::Range;
 
 use app_units::Au;
+use base::id::WebViewId;
 use base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
@@ -96,6 +97,7 @@ impl TextRunSegment {
         bidi_level: Level,
         fonts: &[FontKeyAndMetrics],
         font_context: &FontContext,
+        webview_id: WebViewId,
     ) -> bool {
         fn is_specific(script: Script) -> bool {
             script != Script::Common && script != Script::Inherited
@@ -106,8 +108,8 @@ impl TextRunSegment {
         }
 
         let current_font_key_and_metrics = &fonts[self.font_index];
-        if new_font.key(font_context) != current_font_key_and_metrics.key ||
-            new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
+        if new_font.key(webview_id, font_context) != current_font_key_and_metrics.key
+            || new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
         {
             return false;
         }
@@ -199,9 +201,9 @@ impl TextRunSegment {
         self.break_at_start = false;
 
         let text_style = parent_style.get_inherited_text().clone();
-        let can_break_anywhere = text_style.word_break == WordBreak::BreakAll ||
-            text_style.overflow_wrap == OverflowWrap::Anywhere ||
-            text_style.overflow_wrap == OverflowWrap::BreakWord;
+        let can_break_anywhere = text_style.word_break == WordBreak::BreakAll
+            || text_style.overflow_wrap == OverflowWrap::Anywhere
+            || text_style.overflow_wrap == OverflowWrap::BreakWord;
 
         let mut last_slice = self.range.start..self.range.start;
         for break_index in linebreak_iter {
@@ -237,9 +239,9 @@ impl TextRunSegment {
                 // newline.
                 //
                 // An exception to this is if the style tells us that we can break in the middle of words.
-                if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces &&
-                    first_white_space_character != '\n' &&
-                    !can_break_anywhere
+                if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces
+                    && first_white_space_character != '\n'
+                    && !can_break_anywhere
                 {
                     whitespace.start += first_white_space_character.len_utf8();
                     options
@@ -252,10 +254,10 @@ impl TextRunSegment {
 
             // If there's no whitespace and `word-break` is set to `keep-all`, try increasing the slice.
             // TODO: This should only happen for CJK text.
-            if !ends_with_whitespace &&
-                *break_index != self.range.end &&
-                text_style.word_break == WordBreak::KeepAll &&
-                !can_break_anywhere
+            if !ends_with_whitespace
+                && *break_index != self.range.end
+                && text_style.word_break == WordBreak::KeepAll
+                && !can_break_anywhere
             {
                 continue;
             }
@@ -273,8 +275,8 @@ impl TextRunSegment {
             }
 
             options.flags.insert(
-                ShapingFlags::IS_WHITESPACE_SHAPING_FLAG |
-                    ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG,
+                ShapingFlags::IS_WHITESPACE_SHAPING_FLAG
+                    | ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG,
             );
 
             // If `white-space-collapse: break-spaces` is active, insert a line breaking opportunity
@@ -371,6 +373,7 @@ impl TextRun {
         linebreaker: &mut LineBreaker,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
+        webview_id: WebViewId,
     ) {
         let parent_style = self.inline_styles.style.borrow().clone();
         let inherited_text_style = parent_style.get_inherited_text().clone();
@@ -403,6 +406,7 @@ impl TextRun {
                 font_cache,
                 bidi_info,
                 &parent_style,
+                webview_id,
             )
             .into_iter()
             .map(|(mut segment, font)| {
@@ -450,6 +454,7 @@ impl TextRun {
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
         parent_style: &Arc<ComputedValues>,
+        webview_id: WebViewId,
     ) -> Vec<(TextRunSegment, FontRef)> {
         let font_group = font_context.font_group(parent_style.clone_font());
         let mut current: Option<(TextRunSegment, FontRef)> = None;
@@ -496,12 +501,13 @@ impl TextRun {
                     bidi_level,
                     font_cache,
                     font_context,
+                    webview_id,
                 ) {
                     continue;
                 }
             }
 
-            let font_index = add_or_get_font(&font, font_cache, font_context);
+            let font_index = add_or_get_font(&font, font_cache, font_context, webview_id);
 
             // Add the new segment and finish the existing one, if we had one. If the first
             // characters in the run were control characters we may be creating the first
@@ -526,7 +532,7 @@ impl TextRun {
         // of those cases, just use the first font.
         if current.is_none() {
             current = font_group.write().first(font_context).map(|font| {
-                let font_index = add_or_get_font(&font, font_cache, font_context);
+                let font_index = add_or_get_font(&font, font_cache, font_context, webview_id);
                 (
                     TextRunSegment::new(
                         font_index,
@@ -585,22 +591,24 @@ fn char_does_not_change_font(character: char) -> bool {
     }
 
     let class = linebreak_property(character);
-    class == XI_LINE_BREAKING_CLASS_CM ||
-        class == XI_LINE_BREAKING_CLASS_GL ||
-        class == XI_LINE_BREAKING_CLASS_ZW ||
-        class == XI_LINE_BREAKING_CLASS_WJ ||
-        class == XI_LINE_BREAKING_CLASS_ZWJ
+    class == XI_LINE_BREAKING_CLASS_CM
+        || class == XI_LINE_BREAKING_CLASS_GL
+        || class == XI_LINE_BREAKING_CLASS_ZW
+        || class == XI_LINE_BREAKING_CLASS_WJ
+        || class == XI_LINE_BREAKING_CLASS_ZWJ
 }
 
 pub(super) fn add_or_get_font(
     font: &FontRef,
     ifc_fonts: &mut Vec<FontKeyAndMetrics>,
     font_context: &FontContext,
+    webview_id: WebViewId,
 ) -> usize {
-    let font_instance_key = font.key(font_context);
+    //error!("Add or get font for {webview_id:?}");
+    let font_instance_key = font.key(webview_id, font_context);
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
-        if ifc_font_info.key == font_instance_key &&
-            ifc_font_info.pt_size == font.descriptor.pt_size
+        if ifc_font_info.key == font_instance_key
+            && ifc_font_info.pt_size == font.descriptor.pt_size
         {
             return index;
         }

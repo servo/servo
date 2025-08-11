@@ -10,6 +10,7 @@ use std::time::Instant;
 use std::{iter, str};
 
 use app_units::Au;
+use base::id::WebViewId;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
 use euclid::num::Zero;
@@ -238,7 +239,7 @@ pub struct Font {
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
-    pub font_instance_key: OnceLock<FontInstanceKey>,
+    font_instance_key: RwLock<HashMap<WebViewId, FontInstanceKey>>,
 
     /// If this is a synthesized small caps font, then this font reference is for
     /// the version of the font used to replace lowercase ASCII letters. It's up
@@ -263,12 +264,16 @@ impl malloc_size_of::MallocSizeOf for Font {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
         // TODO: Collect memory usage for platform fonts and for shapers.
         // This skips the template, because they are already stored in the template cache.
-        self.metrics.size_of(ops) +
-            self.descriptor.size_of(ops) +
-            self.cached_shape_data.read().size_of(ops) +
-            self.font_instance_key
+        0
+        /*
+        self.metrics.size_of(ops)
+            + self.descriptor.size_of(ops)
+            + self.cached_shape_data.read().size_of(ops)
+            + self
+                .font_instance_key
                 .get()
                 .map_or(0, |key| key.size_of(ops))
+                 */
     }
 }
 
@@ -309,16 +314,23 @@ impl Font {
 
     pub fn has_color_bitmap_or_colr_table(&self) -> bool {
         *self.has_color_bitmap_or_colr_table.get_or_init(|| {
-            self.table_for_tag(SBIX).is_some() ||
-                self.table_for_tag(CBDT).is_some() ||
-                self.table_for_tag(COLR).is_some()
+            self.table_for_tag(SBIX).is_some()
+                || self.table_for_tag(CBDT).is_some()
+                || self.table_for_tag(COLR).is_some()
         })
     }
 
-    pub fn key(&self, font_context: &FontContext) -> FontInstanceKey {
+    pub fn key(&self, webview_id: WebViewId, font_context: &FontContext) -> FontInstanceKey {
         *self
             .font_instance_key
-            .get_or_init(|| font_context.create_font_instance_key(self))
+            .write()
+            .entry(webview_id)
+            .or_insert_with(|| font_context.create_font_instance_key(self, webview_id))
+        /*
+        *self
+        .font_instance_key
+        .get_or_init(|| font_context.create_font_instance_key(self))
+        */
     }
 
     /// Return the data for this `Font`. Note that this is currently highly inefficient for system
@@ -436,14 +448,14 @@ impl Font {
     ///
     /// Note: This will eventually be removed.
     pub fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
-        options.script == Script::Latin &&
-            !options.flags.contains(ShapingFlags::RTL_FLAG) &&
-            *self.can_do_fast_shaping.get_or_init(|| {
-                self.table_for_tag(KERN).is_some() &&
-                    self.table_for_tag(GPOS).is_none() &&
-                    self.table_for_tag(GSUB).is_none()
-            }) &&
-            text.is_ascii()
+        options.script == Script::Latin
+            && !options.flags.contains(ShapingFlags::RTL_FLAG)
+            && *self.can_do_fast_shaping.get_or_init(|| {
+                self.table_for_tag(KERN).is_some()
+                    && self.table_for_tag(GPOS).is_none()
+                    && self.table_for_tag(GSUB).is_none()
+            })
+            && text.is_ascii()
     }
 
     /// Fast path for ASCII text that only needs simple horizontal LTR kerning.
@@ -598,8 +610,8 @@ impl FontGroup {
 
         let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint);
 
-        let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
-            options.character.is_ascii_lowercase();
+        let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps
+            && options.character.is_ascii_lowercase();
         let font_or_synthesized_small_caps = |font: FontRef| {
             if should_look_for_small_caps && font.synthesized_small_caps.is_some() {
                 return font.synthesized_small_caps.clone();
@@ -633,8 +645,8 @@ impl FontGroup {
         }
 
         if let Some(ref first_fallback) = first_fallback {
-            if char_in_template(first_fallback.template.clone()) &&
-                font_has_glyph_and_presentation(first_fallback)
+            if char_in_template(first_fallback.template.clone())
+                && font_has_glyph_and_presentation(first_fallback)
             {
                 return font_or_synthesized_small_caps(first_fallback.clone());
             }

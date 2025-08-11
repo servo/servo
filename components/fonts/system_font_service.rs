@@ -9,6 +9,7 @@ use std::ops::{Deref, RangeInclusive};
 use std::{fmt, thread};
 
 use app_units::Au;
+use base::id::WebViewId;
 use compositing_traits::CrossProcessCompositorApi;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::debug;
@@ -66,9 +67,10 @@ pub enum SystemFontServiceMessage {
         Au,
         FontInstanceFlags,
         IpcSender<FontInstanceKey>,
+        WebViewId,
     ),
-    GetFontKey(IpcSender<FontKey>),
-    GetFontInstanceKey(IpcSender<FontInstanceKey>),
+    GetFontKey(WebViewId, IpcSender<FontKey>),
+    GetFontInstanceKey(WebViewId, IpcSender<FontInstanceKey>),
     CollectMemoryReport(ReportsChan),
     Exit(IpcSender<()>),
     Ping,
@@ -88,26 +90,31 @@ struct ResolvedGenericFontFamilies {
 /// The system font service. There is one of these for every Servo instance. This is a thread,
 /// responsible for reading the list of system fonts, handling requests to match against
 /// them, and ensuring that only one copy of system font data is loaded at a time.
+/// TODO: The `webrender_fonts`, `font_instances`, `free_font_keys` and `free_font_instance_keys`
+/// only need to be per RenderingGroup and not per webview.
 #[derive(MallocSizeOf)]
 pub struct SystemFontService {
     port: IpcReceiver<SystemFontServiceMessage>,
     local_families: FontStore,
     compositor_api: CrossProcessCompositorApi,
-    webrender_fonts: HashMap<FontIdentifier, FontKey>,
-    font_instances: HashMap<(FontKey, Au), FontInstanceKey>,
+    // keys already have the IdNamespace for webrender
+    webrender_fonts: HashMap<(FontIdentifier, WebViewId), FontKey>,
+    font_instances: HashMap<(FontKey, Au, WebViewId), FontInstanceKey>,
     generic_fonts: ResolvedGenericFontFamilies,
 
     /// This is an optimization that allows the [`SystemFontService`] to send font data to
     /// the compositor asynchronously for creating WebRender fonts, while immediately
     /// returning a font key for that data. Once the free keys are exhausted, the
     /// [`SystemFontService`] will fetch a new batch.
-    free_font_keys: Vec<FontKey>,
+    /// TODO: We currently do not delete the free keys if a `WebView` is removed.
+    free_font_keys: HashMap<WebViewId, Vec<FontKey>>,
 
     /// This is an optimization that allows the [`SystemFontService`] to create WebRender font
     /// instances in the compositor asynchronously, while immediately returning a font
     /// instance key for the instance. Once the free keys are exhausted, the
     /// [`SystemFontService`] will fetch a new batch.
-    free_font_instance_keys: Vec<FontInstanceKey>,
+    /// TODO: We currently do not delete the free keys if a `WebView` is removed.
+    free_font_instance_keys: HashMap<WebViewId, Vec<FontInstanceKey>>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -145,7 +152,8 @@ impl SystemFontService {
                     free_font_instance_keys: Default::default(),
                 };
 
-                cache.fetch_new_keys();
+                //TODO We would like the populate the cache before first encountering a webviewid.
+                //cache.fetch_new_keys();
                 cache.refresh_local_families();
 
                 memory_profiler_sender.run_with_memory_reporting(
@@ -176,16 +184,36 @@ impl SystemFontService {
                     let _ =
                         result_sender.send(self.get_font_templates(font_descriptor, font_family));
                 },
-                SystemFontServiceMessage::GetFontInstance(identifier, pt_size, flags, result) => {
-                    let _ = result.send(self.get_font_instance(identifier, pt_size, flags));
+                SystemFontServiceMessage::GetFontInstance(
+                    identifier,
+                    pt_size,
+                    flags,
+                    result,
+                    webview_id,
+                ) => {
+                    let _ =
+                        result.send(self.get_font_instance(identifier, pt_size, flags, webview_id));
                 },
-                SystemFontServiceMessage::GetFontKey(result_sender) => {
-                    self.fetch_new_keys();
-                    let _ = result_sender.send(self.free_font_keys.pop().unwrap());
+                SystemFontServiceMessage::GetFontKey(webview_id, result_sender) => {
+                    self.fetch_new_keys(webview_id);
+
+                    let _ = result_sender.send(
+                        self.free_font_keys
+                            .get_mut(&webview_id)
+                            .expect("We just filled the keys")
+                            .pop()
+                            .unwrap(),
+                    );
                 },
-                SystemFontServiceMessage::GetFontInstanceKey(result_sender) => {
-                    self.fetch_new_keys();
-                    let _ = result_sender.send(self.free_font_instance_keys.pop().unwrap());
+                SystemFontServiceMessage::GetFontInstanceKey(webview_id, result_sender) => {
+                    self.fetch_new_keys(webview_id);
+                    let _ = result_sender.send(
+                        self.free_font_instance_keys
+                            .get_mut(&webview_id)
+                            .expect("We just filled the keys")
+                            .pop()
+                            .unwrap(),
+                    );
                 },
                 SystemFontServiceMessage::CollectMemoryReport(report_sender) => {
                     self.collect_memory_report(report_sender);
@@ -211,19 +239,36 @@ impl SystemFontService {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn fetch_new_keys(&mut self) {
-        if !self.free_font_keys.is_empty() && !self.free_font_instance_keys.is_empty() {
+    fn fetch_new_keys(&mut self, webview_id: WebViewId) {
+        log::error!("Cache fetch for {webview_id}");
+        if !self
+            .free_font_keys
+            .get(&webview_id)
+            .map_or(true, |v| v.is_empty())
+            && !self
+                .free_font_instance_keys
+                .get(&webview_id)
+                .map_or(true, |v| v.is_empty())
+        {
+            log::error!("DO NOT GET KEYS");
             return;
         }
 
+        log::error!("Fetching new {webview_id}");
         const FREE_FONT_KEYS_BATCH_SIZE: usize = 40;
         const FREE_FONT_INSTANCE_KEYS_BATCH_SIZE: usize = 40;
         let (mut new_font_keys, mut new_font_instance_keys) = self.compositor_api.fetch_font_keys(
             FREE_FONT_KEYS_BATCH_SIZE - self.free_font_keys.len(),
             FREE_FONT_INSTANCE_KEYS_BATCH_SIZE - self.free_font_instance_keys.len(),
+            webview_id,
         );
-        self.free_font_keys.append(&mut new_font_keys);
+        self.free_font_keys
+            .entry(webview_id)
+            .or_default()
+            .append(&mut new_font_keys);
         self.free_font_instance_keys
+            .entry(webview_id)
+            .or_default()
             .append(&mut new_font_instance_keys);
     }
 
@@ -281,16 +326,22 @@ impl SystemFontService {
         identifier: FontIdentifier,
         pt_size: Au,
         flags: FontInstanceFlags,
+        webview_id: WebViewId,
     ) -> FontInstanceKey {
-        self.fetch_new_keys();
+        self.fetch_new_keys(webview_id);
 
         let compositor_api = &self.compositor_api;
         let webrender_fonts = &mut self.webrender_fonts;
 
         let font_key = *webrender_fonts
-            .entry(identifier.clone())
+            .entry((identifier.clone(), webview_id))
             .or_insert_with(|| {
-                let font_key = self.free_font_keys.pop().unwrap();
+                let font_key = self
+                    .free_font_keys
+                    .get_mut(&webview_id)
+                    .expect("We just filled the keys")
+                    .pop()
+                    .unwrap();
                 let FontIdentifier::Local(local_font_identifier) = identifier else {
                     unreachable!("Should never have a web font in the system font service");
                 };
@@ -301,9 +352,14 @@ impl SystemFontService {
 
         *self
             .font_instances
-            .entry((font_key, pt_size))
+            .entry((font_key, pt_size, webview_id))
             .or_insert_with(|| {
-                let font_instance_key = self.free_font_instance_keys.pop().unwrap();
+                let font_instance_key = self
+                    .free_font_instance_keys
+                    .get_mut(&webview_id)
+                    .expect("We just filled the keys")
+                    .pop()
+                    .unwrap();
                 compositor_api.add_font_instance(
                     font_instance_key,
                     font_key,
@@ -473,6 +529,7 @@ impl SystemFontServiceProxy {
         identifier: FontIdentifier,
         size: Au,
         flags: FontInstanceFlags,
+        webview_id: WebViewId,
     ) -> FontInstanceKey {
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.sender
@@ -482,6 +539,7 @@ impl SystemFontServiceProxy {
                 size,
                 flags,
                 response_chan,
+                webview_id,
             ))
             .expect("failed to send message to system font service");
 
@@ -548,24 +606,30 @@ impl SystemFontServiceProxy {
         templates
     }
 
-    pub(crate) fn generate_font_key(&self) -> FontKey {
+    pub(crate) fn generate_font_key(&self, webview_id: WebViewId) -> FontKey {
         let (result_sender, result_receiver) =
             ipc::channel().expect("failed to create IPC channel");
         self.sender
             .lock()
-            .send(SystemFontServiceMessage::GetFontKey(result_sender))
+            .send(SystemFontServiceMessage::GetFontKey(
+                webview_id,
+                result_sender,
+            ))
             .expect("failed to send message to system font service");
         result_receiver
             .recv()
             .expect("Failed to communicate with system font service.")
     }
 
-    pub(crate) fn generate_font_instance_key(&self) -> FontInstanceKey {
+    pub(crate) fn generate_font_instance_key(&self, webview_id: WebViewId) -> FontInstanceKey {
         let (result_sender, result_receiver) =
             ipc::channel().expect("failed to create IPC channel");
         self.sender
             .lock()
-            .send(SystemFontServiceMessage::GetFontInstanceKey(result_sender))
+            .send(SystemFontServiceMessage::GetFontInstanceKey(
+                webview_id,
+                result_sender,
+            ))
             .expect("failed to send message to system font service");
         result_receiver
             .recv()
