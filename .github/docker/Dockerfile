@@ -40,10 +40,12 @@ FROM base_fetcher AS servo_fetcher
 
 
 RUN mkdir -p /data/servo/servo
-# Todo: Add arg with commit here, so we can easily update servo
-# Clone servo, ignoring the history.
-RUN cd /data/servo && git clone https://github.com/servo/servo.git --depth 1
+
+RUN cd /data/servo && git clone https://github.com/servo/servo.git
 WORKDIR /data/servo/servo
+# Incrementally update checked out version
+ARG SERVO_COMMIT_HASH
+RUN git fetch origin main && git checkout "${SERVO_COMMIT_HASH}"
 
 ##### END FETCH SERVO #################################################################
 
@@ -58,7 +60,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
 
 FROM base_fetcher AS uv
 
-ARG UV_VERSION=0.7.9
+ARG UV_VERSION=0.8.5
 RUN mkdir -p "$HOME/.local/bin" \
     && curl --proto '=https' --tlsv1.2  --fail \
         -LsSf https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-installer.sh | sh
@@ -74,13 +76,15 @@ FROM servo_base AS servo_check_cook
 
 COPY --from=servo_fetcher /data/servo/servo /__w/servo/servo
 WORKDIR /__w/servo/servo
-# Run cargo check once, so we can use incremental cargo check in CI
+# Run cargo check twice, so we can use incremental cargo check in CI.
+# Note: twice is necessary to avoid rebuilding due to generated files
 RUN mkdir -p /data/servo/target \
     && rm -f rust-toolchain.toml \
+    && cargo check --locked -p libservo --target-dir /data/servo/target \
     && cargo check --locked -p libservo --target-dir /data/servo/target
 
 
-FROM servo_base AS final
-# Add the target directory to the image, so we can do incremental checks in CI.
-# Trade-off image size (longer image download) for faster / incremental cargo check in CI
-COPY --from=servo_check_cook /data/servo/target /data/servo/target
+#FROM servo_base AS final
+## Add the target directory to the image, so we can do incremental checks in CI.
+## Trade-off image size (longer image download) for faster / incremental cargo check in CI
+#COPY --from=servo_check_cook /data/servo/target /data/servo/target

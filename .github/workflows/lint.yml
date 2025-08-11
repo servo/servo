@@ -53,23 +53,20 @@ jobs:
     name: Minimum supported Rust version check
     runs-on: ubuntu-22.04
     container:
-      image: 'ghcr.io/jschwe/servo_msrv_ci:0.1'
+      image: 'ghcr.io/jschwe/servo_msrv_ci:latest'
       env:
         # This version should be kept in sync with the `rust-version` in our
         # workspace Cargo.toml. Changes should be discussed on zulip.
         MINIMUM_SUPPORTED_RUST_VERSION: "1.85.0"
     steps:
-      - uses: actions/checkout@v4
-        if: github.event_name != 'pull_request_target'
-        with:
-          fetch-depth: 1
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v4
-        if: github.event_name == 'pull_request_target'
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 1
+      # Faster checkout for self-hosted runner that uses prebaked repo.
+      - if: ${{ github.event_name != 'pull_request_target' }}
+        run: git fetch --depth=1 origin $GITHUB_SHA
+      - if: ${{ github.event_name == 'pull_request_target' }}
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+      - run: |
+          git switch --detach
+          git reset --hard FETCH_HEAD
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Check for dockerenv file
