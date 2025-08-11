@@ -132,9 +132,9 @@ pub struct HTMLCanvasData {
     pub height: u32,
 }
 
-pub struct SVGSVGData {
-    pub width: u32,
-    pub height: u32,
+pub struct SVGElementData {
+    /// The SVG's XML source represented as a base64 encoded `data:` url.
+    pub source: Option<Result<ServoUrl, ()>>,
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
@@ -395,6 +395,10 @@ pub struct ReflowResult {
     pub pending_images: Vec<PendingImage>,
     /// The list of vector images that were encountered that still need to be rasterized.
     pub pending_rasterization_images: Vec<PendingRasterizationImage>,
+    /// The list of `SVGSVGElement`s encountered in the DOM that need to be serialized.
+    /// This is needed to support inline SVGs as the serialization needs to happen on
+    /// the script thread.
+    pub pending_svg_elements_for_serialization: Vec<UntrustedNodeAddress>,
     /// The list of iframes in this layout and their sizes, used in order
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages. Returning None if incremental reflow

@@ -9,7 +9,7 @@ use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
 use layout_api::IFrameSize;
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::{Image, ImageOrMetadataAvailable, UsePlaceholder};
+use net_traits::image_cache::{Image, ImageOrMetadataAvailable, UsePlaceholder, VectorImage};
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
@@ -117,6 +117,7 @@ pub(crate) enum ReplacedContentKind {
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(Option<VideoInfo>),
+    SVGElement(VectorImage),
 }
 
 impl ReplacedContents {
@@ -154,6 +155,39 @@ impl ReplacedContents {
                 (
                     ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
                     natural_size_in_dots,
+                )
+            } else if let Some(svg_data) = element.as_svg() {
+                let svg_source = match svg_data.source {
+                    None => {
+                        // The SVGSVGElement is not yet serialized, so we add it to a list
+                        // and hand it over to script to peform the serialization.
+                        context
+                            .image_resolver
+                            .queue_svg_element_for_serialization(element);
+                        return None;
+                    },
+                    Some(Err(_)) => {
+                        // Don't attempt to serialize if previous attempt had errored.
+                        return None;
+                    },
+                    Some(Ok(svg_source)) => svg_source,
+                };
+
+                let result = context
+                    .image_resolver
+                    .get_cached_image_for_url(element.opaque(), svg_source, UsePlaceholder::No)
+                    .ok()?;
+
+                let Image::Vector(vector_image) = result else {
+                    unreachable!("SVG element can't contain a raster image.")
+                };
+                let physical_size = PhysicalSize::new(
+                    vector_image.metadata.width as f64,
+                    vector_image.metadata.height as f64,
+                );
+                (
+                    ReplacedContentKind::SVGElement(vector_image),
+                    Some(physical_size),
                 )
             } else {
                 return None;
@@ -391,6 +425,28 @@ impl ReplacedContents {
                     clip,
                     image_key: Some(image_key),
                 }))]
+            },
+            ReplacedContentKind::SVGElement(vector_image) => {
+                let scale = layout_context.style_context.device_pixel_ratio();
+                let width = object_fit_size.width.scale_by(scale.0).to_px();
+                let height = object_fit_size.height.scale_by(scale.0).to_px();
+                let size = Size2D::new(width, height);
+                let tag = self.base_fragment_info.tag.unwrap();
+                layout_context
+                    .image_resolver
+                    .rasterize_vector_image(vector_image.id, size, tag.node)
+                    .and_then(|image| image.id)
+                    .map(|image_key| {
+                        Fragment::Image(ArcRefCell::new(ImageFragment {
+                            base: self.base_fragment_info.into(),
+                            style: style.clone(),
+                            rect,
+                            clip,
+                            image_key: Some(image_key),
+                        }))
+                    })
+                    .into_iter()
+                    .collect()
             },
         }
     }
