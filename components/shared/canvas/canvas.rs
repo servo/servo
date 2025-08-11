@@ -453,7 +453,7 @@ pub enum CanvasMsg {
     Close(CanvasId),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, strum::Display)]
 pub enum Canvas2dMsg {
     DrawImage(
         IpcSnapshot,

@@ -641,7 +641,15 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
 
     /// Update image in WebRender
     pub(crate) fn update_image_rendering(&mut self) {
-        let (descriptor, data) = self.drawtarget.image_descriptor_and_serializable_data();
+        let (descriptor, data) = {
+            #[cfg(feature = "tracing")]
+            let _span = tracing::trace_span!(
+                "image_descriptor_and_serializable_data",
+                servo_profiling = true,
+            )
+            .entered();
+            self.drawtarget.image_descriptor_and_serializable_data()
+        };
 
         self.compositor_api
             .update_image(self.image_key, descriptor, data);
@@ -730,7 +738,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     /// It reads image data from the canvas
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
-    #[allow(unsafe_code)]
+    #[servo_tracing::instrument(skip_all)]
     pub(crate) fn read_pixels(&mut self, read_rect: Option<Rect<u32>>) -> Snapshot {
         let canvas_size = self.drawtarget.get_size().cast();
 
