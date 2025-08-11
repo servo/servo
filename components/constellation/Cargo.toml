@@ -20,6 +20,10 @@ vello = ["canvas/vello"]
 vello_cpu = ["canvas/vello_cpu"]
 raqote = ["canvas/raqote"]
 
+[lints.clippy]
+unwrap_used = "deny"
+panic = "deny"
+
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
 background_hang_monitor_api = { workspace = true }

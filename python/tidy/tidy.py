@@ -557,20 +557,8 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     import_block = False
     whitespace = False
 
-    PANIC_NOT_ALLOWED_PATHS = [
-        os.path.join("*", "components", "compositing", "compositor.rs"),
-        os.path.join("*", "components", "constellation", "*"),
-        os.path.join("*", "ports", "servoshell", "headed_window.rs"),
-        os.path.join("*", "ports", "servoshell", "headless_window.rs"),
-        os.path.join("*", "ports", "servoshell", "embedder.rs"),
-        os.path.join("*", "rust_tidy.rs"),  # This is for the tests.
-    ]
-    is_panic_not_allowed_rs_file = any([fnmatch.fnmatch(file_name, path) for path in PANIC_NOT_ALLOWED_PATHS])
-
     prev_open_brace = False
     multi_line_string = False
-
-    panic_message = "unwrap() or panic!() found in code which should not panic."
 
     for idx, original_line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         # simplify the analysis
@@ -659,11 +647,6 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
         if prev_open_brace and not line:
             yield (idx + 1, "found an empty line following a {")
         prev_open_brace = line.endswith("{")
-
-        if is_panic_not_allowed_rs_file:
-            match = re.search(r"unwrap\(|panic!\(", line)
-            if match:
-                yield (idx + 1, panic_message)
 
 
 # Avoid flagging <Item=Foo> constructs

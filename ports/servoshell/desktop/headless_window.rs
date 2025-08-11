@@ -4,6 +4,9 @@
 
 //! A headless window implementation.
 
+#![deny(clippy::panic)]
+#![deny(clippy::unwrap_used)]
+
 use std::cell::Cell;
 use std::rc::Rc;
 
