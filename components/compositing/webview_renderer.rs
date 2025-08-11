@@ -337,11 +337,10 @@ impl WebViewRenderer {
         };
 
         // If we can't find a pipeline to send this event to, we cannot continue.
-        let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
         let Some(result) = self
             .global
             .borrow()
-            .hit_test_at_point(point, get_pipeline_details)
+            .hit_test_at_point(point)
             .into_iter()
             .nth(0)
         else {
@@ -852,12 +851,10 @@ impl WebViewRenderer {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let hit_test_results = self.global.borrow().hit_test_at_point_with_flags(
-            cursor,
-            HitTestFlags::FIND_ALL,
-            get_pipeline_details,
-        );
+        let hit_test_results = self
+            .global
+            .borrow()
+            .hit_test_at_point_with_flags(cursor, HitTestFlags::FIND_ALL);
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to

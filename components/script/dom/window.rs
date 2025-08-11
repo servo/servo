@@ -2611,6 +2611,10 @@ impl Window {
             .into_iter()
             .nth(0)?;
 
+        let point_in_frame = compositor_hit_test_result.point_in_viewport;
+        let point_relative_to_initial_containing_block =
+            point_in_frame + self.scroll_offset().cast_unit();
+
         // SAFETY: This is safe because `Window::query_elements_from_point` has ensured that
         // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
         let address = UntrustedNodeAddress(result.node.0 as *const c_void);
@@ -2618,9 +2622,8 @@ impl Window {
             node: unsafe { from_untrusted_node_address(address) },
             cursor: result.cursor,
             point_in_node: result.point_in_target,
-            point_in_frame: compositor_hit_test_result.point_in_viewport,
-            point_relative_to_initial_containing_block: compositor_hit_test_result
-                .point_relative_to_initial_containing_block,
+            point_in_frame,
+            point_relative_to_initial_containing_block,
         })
     }
 

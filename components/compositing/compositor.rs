@@ -259,20 +259,15 @@ impl ServoRenderer {
         self.shutdown_state.get()
     }
 
-    pub(crate) fn hit_test_at_point<'a>(
-        &self,
-        point: DevicePoint,
-        details_for_pipeline: impl Fn(PipelineId) -> Option<&'a PipelineDetails>,
-    ) -> Vec<CompositorHitTestResult> {
-        self.hit_test_at_point_with_flags(point, HitTestFlags::empty(), details_for_pipeline)
+    pub(crate) fn hit_test_at_point(&self, point: DevicePoint) -> Vec<CompositorHitTestResult> {
+        self.hit_test_at_point_with_flags(point, HitTestFlags::empty())
     }
 
     // TODO: split this into first half (global) and second half (one for whole compositor, one for webview)
-    pub(crate) fn hit_test_at_point_with_flags<'a>(
+    pub(crate) fn hit_test_at_point_with_flags(
         &self,
         point: DevicePoint,
         flags: HitTestFlags,
-        details_for_pipeline: impl Fn(PipelineId) -> Option<&'a PipelineDetails>,
     ) -> Vec<CompositorHitTestResult> {
         // DevicePoint and WorldPoint are the same for us.
         let world_point = WorldPoint::from_untyped(point.to_untyped());
@@ -286,26 +281,14 @@ impl ServoRenderer {
         results
             .items
             .iter()
-            .filter_map(|item| {
+            .map(|item| {
                 let pipeline_id = item.pipeline.into();
-                let details = details_for_pipeline(pipeline_id)?;
-
-                let offset = details
-                    .scroll_tree
-                    .scroll_offset(pipeline_id.root_scroll_id())
-                    .unwrap_or_default();
-                let point_in_initial_containing_block =
-                    (item.point_in_viewport + offset).to_untyped();
-
                 let external_scroll_id = ExternalScrollId(item.tag.0, item.pipeline);
-                Some(CompositorHitTestResult {
+                CompositorHitTestResult {
                     pipeline_id,
                     point_in_viewport: Point2D::from_untyped(item.point_in_viewport.to_untyped()),
-                    point_relative_to_initial_containing_block: Point2D::from_untyped(
-                        point_in_initial_containing_block,
-                    ),
                     external_scroll_id,
-                })
+                }
             })
             .collect()
     }
@@ -1112,19 +1095,6 @@ impl IOCompositor {
         }
     }
 
-    fn details_for_pipeline(&self, pipeline_id: PipelineId) -> Option<&PipelineDetails> {
-        let webview_id = self
-            .global
-            .borrow()
-            .pipeline_to_webview_map
-            .get(&pipeline_id)
-            .cloned()?;
-        self.webview_renderers
-            .get(webview_id)?
-            .pipelines
-            .get(&pipeline_id)
-    }
-
     /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.
     fn animation_callbacks_running(&self) -> bool {
         self.webview_renderers
@@ -1604,9 +1574,8 @@ impl IOCompositor {
             return;
         };
 
-        let details_for_pipeline = |pipeline_id| self.details_for_pipeline(pipeline_id);
         let Some(hit_test_result) = global
-            .hit_test_at_point(last_mouse_move_position, details_for_pipeline)
+            .hit_test_at_point(last_mouse_move_position)
             .first()
             .cloned()
         else {
