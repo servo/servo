@@ -92,6 +92,36 @@ fn is_stale(element: &Element) -> bool {
     !element.owner_document().is_active() || !element.is_connected()
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-disabled>
+fn is_disabled(element: &Element) -> bool {
+    // Step 1. If element is an option element or element is an optgroup element
+    if element.is::<HTMLOptionElement>() || element.is::<HTMLOptGroupElement>() {
+        // Step 1.1. For each inclusive ancestor `ancestor` of element
+        let disabled = element
+            .upcast::<Node>()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .any(|node| {
+                if node.is::<HTMLOptGroupElement>() || node.is::<HTMLSelectElement>() {
+                    // Step 1.1.1. If `ancestor` is an optgroup element or `ancestor` is a select element,
+                    // and `ancestor` is actually disabled, return true.
+                    node.downcast::<Element>().unwrap().is_actually_disabled()
+                } else {
+                    false
+                }
+            });
+
+        // Step 1.2
+        // The spec suggests that we immediately return false if the above is not true.
+        // However, it causes disabled option element to not be considered as disabled.
+        // Hence, here we also check if the element itself is actually disabled.
+        if disabled {
+            return true;
+        }
+    }
+    // Step 2. Return element is actually disabled.
+    element.is_actually_disabled()
+}
+
 /// <https://w3c.github.io/webdriver/#dfn-get-a-known-shadow-root>
 fn get_known_shadow_root(
     documents: &DocumentCollection,
@@ -1881,7 +1911,7 @@ pub(crate) fn handle_element_click(
                         }
 
                         // Step 8.6
-                        if !option_element.Disabled() {
+                        if !is_disabled(&element) {
                             // Step 8.6.1
                             event_target.fire_event(atom!("input"), can_gc);
 
@@ -1960,6 +1990,7 @@ fn get_element_pointer_interactable_paint_tree(
     })
 }
 
+/// <https://w3c.github.io/webdriver/#is-element-enabled>
 pub(crate) fn handle_is_enabled(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1968,8 +1999,22 @@ pub(crate) fn handle_is_enabled(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id)
-                .map(|element| element.enabled_state()),
+            // Step 3. Let element be the result of trying to get a known element
+            get_known_element(documents, pipeline, element_id).map(|element| {
+                // In `get_known_element`, we confirmed that document exists
+                let document = documents.find_document(pipeline).unwrap();
+
+                // Step 4
+                // Let enabled be a boolean initially set to true if session's
+                // current browsing context's active document's type is not "xml".
+                // Otherwise, let enabled to false and jump to the last step of this algorithm.
+                // Step 5. Set enabled to false if a form control is disabled.
+                if document.is_html_document() || document.is_xhtml_document() {
+                    !is_disabled(&element)
+                } else {
+                    false
+                }
+            }),
         )
         .unwrap();
 }
