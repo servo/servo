@@ -58,6 +58,7 @@ jobs:
         # This version should be kept in sync with the `rust-version` in our
         # workspace Cargo.toml. Changes should be discussed on zulip.
         MINIMUM_SUPPORTED_RUST_VERSION: "1.85.0"
+        CARGO_HOME: "/data/.cargo"
     steps:
       - run: pwd && ls -l
         working-directory: /data/servo/servo

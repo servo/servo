@@ -53,6 +53,7 @@ RUN git fetch origin main && git checkout "${SERVO_COMMIT_HASH}"
 FROM base_with_cc AS rust_toolchain
 # Should match the Rust MSRV!
 ARG RUST_VERSION=1.85.0
+ENV CARGO_HOME=/data/.cargo
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         | sh -s -- -y --default-toolchain ${RUST_VERSION} \
         --profile=default
@@ -66,10 +67,11 @@ RUN mkdir -p "$HOME/.local/bin" \
         -LsSf https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-installer.sh | sh
 
 FROM base AS servo_base
-COPY --from=rust_toolchain /root/.cargo /root/.cargo
+COPY --from=rust_toolchain /data/.cargo /data/.cargo
 COPY --from=rust_toolchain /root/.rustup /root/.rustup
-ENV PATH="/root/.cargo/bin:${PATH}"
-COPY --from=uv /root/.local/bin/uv /root/.local/bin/uvx /root/.cargo/bin/
+ENV CARGO_HOME=/data/.cargo
+ENV PATH="/data/.cargo/bin:${PATH}"
+COPY --from=uv /root/.local/bin/uv /root/.local/bin/uvx /data/.cargo/bin/
 
 ##### Pre-run cargo check ####################################################################
 FROM servo_base AS servo_check_cook
