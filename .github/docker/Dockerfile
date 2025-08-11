@@ -74,8 +74,8 @@ COPY --from=uv /root/.local/bin/uv /root/.local/bin/uvx /root/.cargo/bin/
 ##### Pre-run cargo check ####################################################################
 FROM servo_base AS servo_check_cook
 
-COPY --from=servo_fetcher /data/servo/servo /__w/servo/servo
-WORKDIR /__w/servo/servo
+COPY --from=servo_fetcher /data/servo/servo /data/servo/servo
+WORKDIR /data/servo/servo
 # Run cargo check twice, so we can use incremental cargo check in CI.
 # Note: twice is necessary to avoid rebuilding due to generated files
 RUN mkdir -p /data/servo/target \
