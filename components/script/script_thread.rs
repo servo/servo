@@ -3730,7 +3730,7 @@ impl ScriptThread {
         // Start with the scheme data of the parsed URL;
         // append question mark and query component, if any;
         // append number sign and fragment component if any.
-        let encoded = &load_data.url.clone()[Position::AfterScheme..][1..];
+        let encoded = &load_data.url[Position::AfterScheme..][1..];
 
         // Percent-decode (8.) and UTF-8 decode (9.)
         let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
