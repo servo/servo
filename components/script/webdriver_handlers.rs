@@ -1844,7 +1844,7 @@ pub(crate) fn handle_element_click(
     reply
         .send(
             // Step 3
-            get_known_element(documents, pipeline, element_id).and_then(|ref element| {
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
                 // Step 4
                 if let Some(input_element) = element.downcast::<HTMLInputElement>() {
                     if input_element.input_type() == InputType::File {
@@ -1852,7 +1852,7 @@ pub(crate) fn handle_element_click(
                     }
                 }
 
-                let Some(container) = get_container(element) else {
+                let Some(container) = get_container(&element) else {
                     return Err(ErrorStatus::UnknownError);
                 };
 
@@ -1892,7 +1892,7 @@ pub(crate) fn handle_element_click(
                         }
 
                         // Step 8.6
-                        if !is_disabled(element) {
+                        if !is_disabled(&element) {
                             // Step 8.6.1
                             event_target.fire_event(atom!("input"), can_gc);
 
