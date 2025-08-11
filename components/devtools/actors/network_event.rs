@@ -11,9 +11,12 @@ use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentLength, ContentType, Cookie, HeaderMapExt};
 use http::{HeaderMap, Method};
+use net::cookie::ServoCookie;
+use net_traits::CookieSource;
 use net_traits::request::Destination as RequestDestination;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_url::ServoUrl;
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
@@ -399,7 +402,10 @@ impl NetworkEventActor {
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
         self.response_headers = Some(Self::response_headers(&response));
-        self.response_cookies = Self::response_cookies(&response);
+        self.response_cookies = ServoUrl::parse(&self.request_url)
+            .ok()
+            .as_ref()
+            .and_then(|url| Self::response_cookies(&response, url));
         self.response_start = Some(Self::response_start(&response));
         self.response_content = Self::response_content(&response);
         self.response_body = response.body.clone();
@@ -479,14 +485,30 @@ impl NetworkEventActor {
         })
     }
 
-    pub fn response_cookies(response: &DevtoolsHttpResponse) -> Option<ResponseCookiesMsg> {
+    pub fn response_cookies(
+        response: &DevtoolsHttpResponse,
+        url: &ServoUrl,
+    ) -> Option<ResponseCookiesMsg> {
         let headers = response.headers.as_ref()?;
         let cookies = headers
             .get_all("set-cookie")
             .iter()
             .filter_map(|cookie| {
                 let cookie_str = String::from_utf8(cookie.as_bytes().to_vec()).ok()?;
-                Some(Self::parse_set_cookie(&cookie_str))
+                ServoCookie::from_cookie_string(cookie_str, &url, CookieSource::HTTP)
+            })
+            .map(|servo_cookie| {
+                let c = &servo_cookie.cookie;
+                ResponseCookieObj {
+                    name: c.name().to_string(),
+                    value: c.value().to_string(),
+                    path: c.path().map(|p| p.to_string()),
+                    domain: c.domain().map(|d| d.to_string()),
+                    expires: c.expires().map(|dt| format!("{:?}", dt)),
+                    http_only: c.http_only(),
+                    secure: c.secure(),
+                    same_site: c.same_site().map(|s| s.to_string()),
+                }
             })
             .collect::<Vec<_>>();
         Some(ResponseCookiesMsg { cookies })
@@ -527,51 +549,6 @@ impl NetworkEventActor {
             })
             .collect::<Vec<_>>();
         Some(RequestCookiesMsg { cookies })
-    }
-
-    pub fn parse_set_cookie(header: &str) -> ResponseCookieObj {
-        let mut name = String::new();
-        let mut value = String::new();
-        let mut path = None;
-        let mut domain = None;
-        let mut expires = None;
-        let mut http_only = None;
-        let mut secure = None;
-        let mut same_site = None;
-
-        let mut parts = header.split(';').map(|s| s.trim());
-        if let Some(first) = parts.next() {
-            if let Some(eq_idx) = first.find('=') {
-                name = first[..eq_idx].to_string();
-                value = first[eq_idx + 1..].to_string();
-            }
-        }
-        for part in parts {
-            let lower = part.to_ascii_lowercase();
-            if lower.starts_with("path=") {
-                path = Some(part[5..].to_string());
-            } else if lower.starts_with("domain=") {
-                domain = Some(part[7..].to_string());
-            } else if lower.starts_with("expires=") {
-                expires = Some(part[8..].to_string());
-            } else if lower == "httponly" {
-                http_only = Some(true);
-            } else if lower == "secure" {
-                secure = Some(true);
-            } else if lower.starts_with("samesite=") {
-                same_site = Some(part[9..].to_string());
-            }
-        }
-        ResponseCookieObj {
-            name,
-            value,
-            path,
-            domain,
-            expires,
-            http_only,
-            secure,
-            same_site,
-        }
     }
 
     pub fn total_time(request: &DevtoolsHttpRequest) -> Duration {

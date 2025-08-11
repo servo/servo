@@ -27,6 +27,7 @@ serde_json = { workspace = true }
 servo_config = { path = "../config" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
+net = { path = "../net" }
 uuid = { workspace = true }
 
 [build-dependencies]

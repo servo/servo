@@ -1919,6 +1919,7 @@ dependencies = [
  "http 1.3.1",
  "ipc-channel",
  "log",
+ "net",
  "net_traits",
  "serde",
  "serde_json",
