@@ -59,14 +59,18 @@ jobs:
         # workspace Cargo.toml. Changes should be discussed on zulip.
         MINIMUM_SUPPORTED_RUST_VERSION: "1.85.0"
     steps:
+      - run: pwd && ls -l
       # Faster checkout for self-hosted runner that uses prebaked repo.
       - if: ${{ github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $GITHUB_SHA
+        working-directory: ./servo
       - if: ${{ github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+        working-directory: ./servo
       - run: |
           git switch --detach
           git reset --hard FETCH_HEAD
+        working-directory: ./servo
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Check for dockerenv file
@@ -77,6 +81,7 @@ jobs:
       - name: Compile libservo with MSRV
         # /data/servo/target is part of the image, meaning we can do an incremental check here in CI
         # if we re-use the image.
+        working-directory: ./servo
         run: |
           # We don't want to download useless components like rust-src
           rm -f rust-toolchain.toml
