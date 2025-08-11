@@ -30,7 +30,7 @@ class VisualStudioInstallation:
     installation_path: str
     vc_install_path: str
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: "VisualStudioInstallation") -> bool:
         return self.version_number < other.version_number
 
 

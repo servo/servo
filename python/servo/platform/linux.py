@@ -11,7 +11,7 @@ import distro
 import os
 import subprocess
 import shutil
-from typing import Optional, Tuple
+from typing import Optional, Any
 
 from .base import Base
 from .build_target import BuildTarget
@@ -164,13 +164,13 @@ GSTREAMER_URL = (
 
 
 class Linux(Base):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: str, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.is_linux = True
         (self.distro, self.version) = Linux.get_distro_and_version()
 
     @staticmethod
-    def get_distro_and_version() -> Tuple[str, str]:
+    def get_distro_and_version() -> tuple[str, str]:
         distrib = distro.name()
         version = distro.version()
 

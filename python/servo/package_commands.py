@@ -10,7 +10,7 @@
 from datetime import datetime
 import random
 import time
-from typing import List
+from collections.abc import Generator
 from github import Github
 
 import hashlib
@@ -68,14 +68,14 @@ PACKAGES = {
 }
 
 
-def packages_for_platform(platform):
+def packages_for_platform(platform: str) -> Generator[str]:
     target_dir = get_target_dir()
 
     for package in PACKAGES[platform]:
         yield path.join(target_dir, package)
 
 
-def listfiles(directory) -> list[str]:
+def listfiles(directory: str) -> list[str]:
     return [f for f in os.listdir(directory) if path.isfile(path.join(directory, f))]
 
 
@@ -85,7 +85,7 @@ def copy_windows_dependencies(binary_path: str, destination: str) -> None:
             shutil.copy(path.join(binary_path, f), destination)
 
 
-def check_call_with_randomized_backoff(args: List[str], retries: int) -> int:
+def check_call_with_randomized_backoff(args: list[str], retries: int) -> int:
     """
     Run the given command-line arguments via `subprocess.check_call()`. If the command
     fails sleep for a random number of seconds between 2 and 5 and then try to the command
@@ -111,7 +111,9 @@ class PackageCommands(CommandBase):
     @CommandArgument("--target", "-t", default=None, help="Package for given target platform")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True, package_configuration=True)
     @CommandBase.allow_target_configuration
-    def package(self, build_type: BuildType, flavor=None, sanitizer: SanitizerKind = SanitizerKind.NONE) -> int | None:
+    def package(
+        self, build_type: BuildType, flavor: str | None = None, sanitizer: SanitizerKind = SanitizerKind.NONE
+    ) -> int | None:
         env = self.build_env()
         binary_path = self.get_binary_path(build_type, sanitizer=sanitizer)
         dir_to_root = self.get_top_dir()
@@ -398,10 +400,10 @@ class PackageCommands(CommandBase):
     def install(
         self,
         build_type: BuildType,
-        emulator=False,
-        usb=False,
+        emulator: bool = False,
+        usb: bool = False,
         sanitizer: SanitizerKind = SanitizerKind.NONE,
-        flavor=None,
+        flavor: str | None = None,
     ) -> int:
         env = self.build_env()
         try:
@@ -453,10 +455,10 @@ class PackageCommands(CommandBase):
     @CommandArgument(
         "--github-release-id", default=None, type=int, help="The github release to upload the nightly builds."
     )
-    def upload_nightly(self, platform, secret_from_environment, github_release_id) -> int:
+    def upload_nightly(self, platform: str, secret_from_environment: bool, github_release_id: int | None) -> int:
         import boto3
 
-        def get_s3_secret():
+        def get_s3_secret() -> tuple:
             aws_access_key = None
             aws_secret_access_key = None
             if secret_from_environment:
@@ -465,13 +467,13 @@ class PackageCommands(CommandBase):
                 aws_secret_access_key = secret["aws_secret_access_key"]
             return (aws_access_key, aws_secret_access_key)
 
-        def nightly_filename(package, timestamp) -> str:
+        def nightly_filename(package: str, timestamp: datetime) -> str:
             return "{}-{}".format(
                 timestamp.isoformat() + "Z",  # The `Z` denotes UTC
                 path.basename(package),
             )
 
-        def upload_to_github_release(platform, package: str, package_hash: str) -> None:
+        def upload_to_github_release(platform: str, package: str, package_hash: str) -> None:
             if not github_release_id:
                 return
 
@@ -488,7 +490,7 @@ class PackageCommands(CommandBase):
                 package_hash_fileobj, package_hash_fileobj.getbuffer().nbytes, name=f"{asset_name}.sha256"
             )
 
-        def upload_to_s3(platform, package: str, package_hash: str, timestamp: datetime) -> None:
+        def upload_to_s3(platform: str, package: str, package_hash: str, timestamp: datetime) -> None:
             (aws_access_key, aws_secret_access_key) = get_s3_secret()
             s3 = boto3.client("s3", aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_access_key)
 

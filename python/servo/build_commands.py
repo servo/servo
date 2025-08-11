@@ -18,7 +18,7 @@ import subprocess
 import sys
 
 from time import time
-from typing import Optional, List, Dict, Union
+from typing import Optional, Union, Any
 
 from mach.decorators import (
     CommandArgument,
@@ -54,7 +54,7 @@ SUPPORTED_TSAN_TARGETS = [
 ]
 
 
-def get_rustc_llvm_version() -> Optional[List[int]]:
+def get_rustc_llvm_version() -> Optional[list[int]]:
     """Determine the LLVM version of `rustc` and return it as a List[major, minor, patch, ...]
 
     In some cases we want to ensure that the LLVM version of rustc and clang match, e.g.
@@ -94,14 +94,14 @@ class MachCommands(CommandBase):
     def build(
         self,
         build_type: BuildType,
-        jobs=None,
-        params=None,
-        no_package=False,
-        verbose=False,
-        very_verbose=False,
+        jobs: str | None = None,
+        params: list[str] | None = None,
+        no_package: bool = False,
+        verbose: bool = False,
+        very_verbose: bool = False,
         sanitizer: SanitizerKind = SanitizerKind.NONE,
-        flavor=None,
-        **kwargs,
+        flavor: str | None = None,
+        **kwargs: Any,
     ) -> int:
         opts = params or []
 
@@ -200,7 +200,7 @@ class MachCommands(CommandBase):
     @CommandArgument("--manifest-path", default=None, help="Path to the manifest to the package to clean")
     @CommandArgument("--verbose", "-v", action="store_true", help="Print verbose output")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Cargo")
-    def clean(self, manifest_path=None, params=[], verbose=False) -> None:
+    def clean(self, manifest_path: str | None = None, params: list[str] = [], verbose: bool = False) -> None:
         self.ensure_bootstrapped()
 
         virtualenv_path = path.join(self.get_top_dir(), ".venv")
@@ -215,7 +215,7 @@ class MachCommands(CommandBase):
         return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
 
     def build_sanitizer_env(
-        self, env: Dict, opts: List[str], kwargs, target_triple: str, sanitizer: SanitizerKind = SanitizerKind.NONE
+        self, env: dict, opts: list[str], kwargs: Any, target_triple: str, sanitizer: SanitizerKind = SanitizerKind.NONE
     ) -> None:
         if sanitizer.is_none():
             return

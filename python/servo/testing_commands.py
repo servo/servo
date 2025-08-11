@@ -118,7 +118,7 @@ class MachCommands(CommandBase):
     DEFAULT_RENDER_MODE = "cpu"
     HELP_RENDER_MODE = "Value can be 'cpu', 'gpu' or 'both' (default " + DEFAULT_RENDER_MODE + ")"
 
-    def __init__(self, context) -> None:
+    def __init__(self, context: Any) -> None:
         CommandBase.__init__(self, context)
         if not hasattr(self.context, "built_tests"):
             self.context.built_tests = False
@@ -127,7 +127,7 @@ class MachCommands(CommandBase):
     @CommandArgument("--base", default=None, help="the base URL for testcases")
     @CommandArgument("--date", default=None, help="the datestamp for the data")
     @CommandArgument("--submit", "-a", default=False, action="store_true", help="submit the data to perfherder")
-    def test_perf(self, base=None, date=None, submit=False) -> int:
+    def test_perf(self, base: str | None = None, date: str | None = None, submit: bool = False) -> int:
         env = self.build_env()
         cmd = ["bash", "test_perf.sh"]
         if base:
@@ -147,7 +147,13 @@ class MachCommands(CommandBase):
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
     def test_unit(
-        self, build_type: BuildType, test_name=None, package=None, bench=False, nocapture=False, **kwargs
+        self,
+        build_type: BuildType,
+        test_name: list[str] | None = None,
+        package: str | None = None,
+        bench: bool = False,
+        nocapture: bool = False,
+        **kwargs: Any,
     ) -> int:
         if test_name is None:
             test_name = []
@@ -265,7 +271,7 @@ class MachCommands(CommandBase):
         action="store_true",
         help="Emit tidy warnings in the Github Actions annotations format",
     )
-    def test_tidy(self, all_files, no_progress, github_annotations) -> int:
+    def test_tidy(self, all_files: bool, no_progress: bool, github_annotations: bool) -> int:
         tidy_failed = tidy.scan(not all_files, not no_progress, github_annotations)
 
         print("\r ➤  Checking formatting of Rust files...")
@@ -299,7 +305,7 @@ class MachCommands(CommandBase):
     @CommandArgument(
         "tests", default=None, nargs="...", help="Specific WebIDL tests to run, relative to the tests directory"
     )
-    def test_scripts(self, verbose, very_verbose, all, tests) -> int:
+    def test_scripts(self, verbose: bool, very_verbose: bool, all: bool, tests: list[str]) -> int:
         if very_verbose:
             logging.getLogger().level = logging.DEBUG
         elif verbose:
@@ -356,7 +362,7 @@ class MachCommands(CommandBase):
 
     @Command("test-devtools", description="Run tests for devtools.", category="testing")
     @CommandBase.common_command_arguments(build_type=True)
-    def test_devtools(self, build_type: BuildType, **kwargs) -> int:
+    def test_devtools(self, build_type: BuildType, **kwargs: Any) -> int:
         print("Running devtools tests...")
         passed = servo.devtools_tests.run_tests(SCRIPT_PATH, build_type)
         return 0 if passed else 1
@@ -368,7 +374,7 @@ class MachCommands(CommandBase):
         parser=wpt.create_parser,
     )
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def test_wpt_failure(self, build_type: BuildType, **kwargs) -> bool:
+    def test_wpt_failure(self, build_type: BuildType, **kwargs: Any) -> bool:
         kwargs["pause_after_test"] = False
         kwargs["include"] = ["infrastructure/failing-test.html"]
         return not self._test_wpt(build_type=build_type, **kwargs)
@@ -377,11 +383,11 @@ class MachCommands(CommandBase):
         "test-wpt", description="Run the regular web platform test suite", category="testing", parser=wpt.create_parser
     )
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_wpt(self, servo_binary: str, **kwargs):
+    def test_wpt(self, servo_binary: str, **kwargs: Any) -> int:
         return self._test_wpt(servo_binary, **kwargs)
 
     @CommandBase.allow_target_configuration
-    def _test_wpt(self, servo_binary: str, **kwargs) -> int:
+    def _test_wpt(self, servo_binary: str, **kwargs: Any) -> int:
         # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?
         return_value = wpt.run.run_tests(servo_binary, **kwargs)
         return return_value if not kwargs["always_succeed"] else 0
@@ -392,7 +398,7 @@ class MachCommands(CommandBase):
         category="testing",
         parser=wpt.manifestupdate.create_parser,
     )
-    def update_manifest(self, **kwargs) -> int:
+    def update_manifest(self, **kwargs: Any) -> int:
         return wpt.manifestupdate.update(check_clean=False)
 
     @Command("fmt", description="Format Rust, Python, and TOML files", category="testing")
@@ -410,7 +416,7 @@ class MachCommands(CommandBase):
     @Command(
         "update-wpt", description="Update the web platform tests", category="testing", parser=wpt.update.create_parser
     )
-    def update_wpt(self, **kwargs) -> int:
+    def update_wpt(self, **kwargs: Any) -> int:
         patch = kwargs.get("patch", False)
         if not patch and kwargs["sync"]:
             print("Are you sure you don't want a patch?")
@@ -426,7 +432,7 @@ class MachCommands(CommandBase):
     @CommandArgument("tests", default=["recommended"], nargs="...", help="Specific tests to run")
     @CommandArgument("--bmf-output", default=None, help="Specify BMF JSON output file")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_dromaeo(self, tests, servo_binary: str, bmf_output: str | None = None) -> None:
+    def test_dromaeo(self, tests: list[str], servo_binary: str, bmf_output: str | None = None) -> None:
         return self.dromaeo_test_runner(tests, servo_binary, bmf_output)
 
     @Command("test-speedometer", description="Run servo's speedometer", category="testing")
@@ -454,7 +460,7 @@ class MachCommands(CommandBase):
     @CommandArgument(
         "params", default=None, nargs="...", help=" filepaths of output files of two runs of dromaeo test "
     )
-    def compare_dromaeo(self, params) -> None:
+    def compare_dromaeo(self, params: list[str]) -> None:
         prev_op_filename = params[0]
         cur_op_filename = params[1]
         result = {"Test": [], "Prev_Time": [], "Cur_Time": [], "Difference(%)": []}
@@ -551,7 +557,7 @@ class MachCommands(CommandBase):
 
         return call([run_file, cmd, bin_path, base_dir])
 
-    def dromaeo_test_runner(self, tests, binary: str, bmf_output: str | None) -> None:
+    def dromaeo_test_runner(self, tests: list[str], binary: str, bmf_output: str | None) -> None:
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
         run_file = path.join(base_dir, "run_dromaeo.py")
@@ -581,7 +587,7 @@ class MachCommands(CommandBase):
         output = dict()
         profile = "" if profile is None else profile + "/"
 
-        def parse_speedometer_result(result) -> None:
+        def parse_speedometer_result(result: dict[str, Any]) -> None:
             if result["unit"] == "ms":
                 output[profile + f"Speedometer/{result['name']}"] = {
                     "latency": {  # speedometer has ms we need to convert to ns
@@ -699,7 +705,7 @@ class MachCommands(CommandBase):
         description="Update the net unit tests with cookie tests from http-state",
         category="testing",
     )
-    def update_net_cookies(self):
+    def update_net_cookies(self) -> int:
         cache_dir = path.join(self.config["tools"]["cache-dir"], "tests")
         run_file = path.abspath(
             path.join(PROJECT_TOPLEVEL_PATH, "components", "net", "tests", "cookie_http_state_utils.py")
@@ -712,7 +718,7 @@ class MachCommands(CommandBase):
         "update-webgl", description="Update the WebGL conformance suite tests from Khronos repo", category="testing"
     )
     @CommandArgument("--version", default="2.0.0", help="WebGL conformance suite version")
-    def update_webgl(self, version=None):
+    def update_webgl(self, version: str | None = None) -> None:
         base_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "tests", "wpt", "mozilla", "tests", "webgl"))
         run_file = path.join(base_dir, "tools", "import-conformance-tests.py")
         dest_folder = path.join(base_dir, "conformance-%s" % version)
@@ -728,7 +734,7 @@ class MachCommands(CommandBase):
     @Command("update-webgpu", description="Update the WebGPU conformance test suite", category="testing")
     @CommandArgument("--repo", "-r", default="https://github.com/gpuweb/cts", help="Repo to vendor cts from")
     @CommandArgument("--checkout", "-c", default="main", help="Branch or commit of repo")
-    def cts(self, repo="https://github.com/gpuweb/cts", checkout="main"):
+    def cts(self, repo: str = "https://github.com/gpuweb/cts", checkout: str = "main") -> int:
         tdir = path.join(self.context.topdir, "tests/wpt/webgpu/tests")
         clone_dir = path.join(tdir, "cts_clone")
         # clone
@@ -785,7 +791,7 @@ class MachCommands(CommandBase):
     )
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def smoketest(self, servo_binary: str, params, **kwargs) -> int | None:
+    def smoketest(self, servo_binary: str, params: list[str], **kwargs: Any) -> int | None:
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.

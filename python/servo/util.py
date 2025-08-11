@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from os import PathLike
 import hashlib
 import os
 import os.path
@@ -18,7 +19,7 @@ import urllib.error
 import urllib.request
 import zipfile
 from zipfile import ZipInfo
-from typing import Dict, List, Union
+from typing import Union, Callable, Any
 
 from io import BufferedIOBase, BytesIO
 from socket import error as socket_error
@@ -27,13 +28,13 @@ SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 
 
-def remove_readonly(func, path, _) -> None:
+def remove_readonly(func: Callable[[str], None], path: str, _: Any) -> None:
     "Clear the readonly bit and reattempt the removal"
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
 
-def delete(path) -> None:
+def delete(path: str) -> None:
     if os.path.isdir(path) and not os.path.islink(path):
         shutil.rmtree(path, onerror=remove_readonly)
     else:
@@ -123,7 +124,7 @@ def download_file(description: str, url: str, destination_path: str) -> None:
 # https://stackoverflow.com/questions/39296101/python-zipfile-removes-execute-permissions-from-binaries
 # In particular, we want the executable bit for executable files.
 class ZipFileWithUnixPermissions(zipfile.ZipFile):
-    def extract(self, member, path=None, pwd=None) -> str:
+    def extract(self, member: ZipInfo | str, path: PathLike[str] | str | None = None, pwd: bytes | None = None) -> str:
         if not isinstance(member, zipfile.ZipInfo):
             member = self.getinfo(member)
 
@@ -137,7 +138,7 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
         return extracted
 
     # For Python 3.x
-    def _extract_member(self, member: ZipInfo, targetpath, pwd) -> str:
+    def _extract_member(self, member: ZipInfo, targetpath: PathLike[str] | str, pwd: bytes | None) -> str:
         if int(sys.version_info[0]) >= 3:
             if not isinstance(member, zipfile.ZipInfo):
                 member = self.getinfo(member)
@@ -154,7 +155,7 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
             return super(ZipFileWithUnixPermissions, self)._extract_member(member, targetpath, pwd)
 
 
-def extract(src, dst, movedir=None, remove=True) -> None:
+def extract(src: str, dst: str, movedir: PathLike[str] | str | None = None, remove: bool = True) -> None:
     assert src.endswith(".zip")
     ZipFileWithUnixPermissions(src).extractall(dst)
 
@@ -169,7 +170,7 @@ def extract(src, dst, movedir=None, remove=True) -> None:
         os.remove(src)
 
 
-def check_hash(filename, expected, algorithm) -> None:
+def check_hash(filename: str, expected: str, algorithm: str) -> None:
     hasher = hashlib.new(algorithm)
     with open(filename, "rb") as f:
         while True:
@@ -182,11 +183,11 @@ def check_hash(filename, expected, algorithm) -> None:
         sys.exit(1)
 
 
-def get_default_cache_dir(topdir) -> str:
+def get_default_cache_dir(topdir: str) -> str:
     return os.environ.get("SERVO_CACHE_DIR", os.path.join(topdir, ".servo"))
 
 
-def append_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[str]]) -> None:
+def append_paths_to_env(env: dict[str, str], key: str, paths: Union[str, list[str]]) -> None:
     if isinstance(paths, list):
         paths = os.pathsep.join(paths)
 
@@ -198,7 +199,7 @@ def append_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[st
     env[key] = new_value
 
 
-def prepend_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[str]]) -> None:
+def prepend_paths_to_env(env: dict[str, str], key: str, paths: Union[str, list[str]]) -> None:
     if isinstance(paths, list):
         paths = os.pathsep.join(paths)
 

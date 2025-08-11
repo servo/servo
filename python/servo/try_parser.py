@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import ClassVar, List, Optional
+from typing import ClassVar, Optional, Any
 import unittest
 import logging
 
@@ -44,7 +44,7 @@ class JobConfig(object):
     number_of_wpt_chunks: int = 20
     # These are the fields that must match in between two JobConfigs for them to be able to be
     # merged. If you modify any of the fields above, make sure to update this line as well.
-    merge_compatibility_fields: ClassVar[List[str]] = ["workflow", "profile", "wpt_args", "build_args"]
+    merge_compatibility_fields: ClassVar[list[str]] = ["workflow", "profile", "wpt_args", "build_args"]
 
     def merge(self, other: JobConfig) -> bool:
         """Try to merge another job with this job. Returns True if merging is successful
@@ -177,7 +177,7 @@ def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
 
 
 class Encoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o: Any) -> Any:
         if isinstance(o, (Config, JobConfig)):
             return o.__dict__
         return json.JSONEncoder.default(self, o)
@@ -235,7 +235,7 @@ class Config(object):
                 return
         self.matrix.append(job)
 
-    def to_json(self, **kwargs) -> str:
+    def to_json(self, **kwargs: Any) -> str:
         return json.dumps(self, cls=Encoder, **kwargs)
 
 
