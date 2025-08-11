@@ -106,6 +106,7 @@ impl CanvasPaintThread {
         (create_sender, ipc_sender)
     }
 
+    #[servo_tracing::instrument(skip_all)]
     pub fn create_canvas(&mut self, size: Size2D<u64>) -> Option<(CanvasId, ImageKey)> {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
@@ -117,6 +118,10 @@ impl CanvasPaintThread {
         Some((canvas_id, image_key))
     }
 
+    #[servo_tracing::instrument(
+        skip_all,
+        fields(message = message.to_string())
+    )]
     fn process_canvas_2d_message(&mut self, message: Canvas2dMsg, canvas_id: CanvasId) {
         match message {
             Canvas2dMsg::FillText(

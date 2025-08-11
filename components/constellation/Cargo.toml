@@ -14,7 +14,7 @@ path = "lib.rs"
 [features]
 bluetooth = ["bluetooth_traits"]
 default = []
-tracing = ["dep:tracing"]
+tracing = ["dep:tracing", "canvas/tracing"]
 webgpu = ["script_traits/webgpu"]
 vello = ["canvas/vello"]
 vello_cpu = ["canvas/vello_cpu"]
