@@ -135,6 +135,9 @@ pub struct HTMLCanvasData {
 pub struct SVGElementData {
     /// The SVG's XML source represented as a base64 encoded `data:` url.
     pub source: Option<Result<ServoUrl, ()>>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub ratio: Option<f32>,
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.

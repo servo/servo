@@ -6,18 +6,21 @@ use std::cell::RefCell;
 
 use base64::Engine as _;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
 use servo_url::ServoUrl;
+use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
+use style::str::char_is_whitespace;
 use xml5ever::serialize::TraversalScope;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::AttributeMutation;
-use crate::dom::node::Node;
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::node::{Node, NodeDamage};
 use crate::dom::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -87,14 +90,50 @@ pub(crate) trait LayoutSVGSVGElementHelpers {
     fn data(self) -> SVGElementData;
 }
 
+fn ratio_from_view_box(view_box: &AttrValue) -> Option<f32> {
+    let mut iter = view_box.chars();
+    let _min_x = parse_integer(&mut iter).ok()?;
+    let _min_y = parse_integer(&mut iter).ok()?;
+    let width = parse_unsigned_integer(&mut iter).ok()?;
+    if width == 0 {
+        return None;
+    }
+    let height = parse_unsigned_integer(&mut iter).ok()?;
+    if height == 0 {
+        return None;
+    }
+    let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
+    iter.next().is_none().then(|| width as f32 / height as f32)
+}
+
 impl LayoutSVGSVGElementHelpers for LayoutDom<'_, SVGSVGElement> {
     fn data(self) -> SVGElementData {
+        let element = self.upcast::<Element>();
+        let get_size = |attr| {
+            element
+                .get_attr_for_layout(&ns!(), &attr)
+                .map(|val| val.as_int())
+                .filter(|val| *val >= 0)
+        };
+        let width = get_size(local_name!("width"));
+        let height = get_size(local_name!("height"));
+        let ratio = match (width, height) {
+            (Some(width), Some(height)) if width != 0 && height != 0 => {
+                Some(width as f32 / height as f32)
+            },
+            _ => element
+                .get_attr_for_layout(&ns!(), &local_name!("viewBox"))
+                .and_then(ratio_from_view_box),
+        };
         SVGElementData {
             source: self
                 .unsafe_get()
                 .cached_serialized_data_url
                 .borrow()
                 .clone(),
+            width,
+            height,
+            ratio,
         }
     }
 }
@@ -110,6 +149,24 @@ impl VirtualMethods for SVGSVGElement {
             .attribute_mutated(attr, mutation, can_gc);
 
         self.invalidate_cached_serialized_subtree();
+
+        match attr.local_name() {
+            &local_name!("width") | &local_name!("height") | &local_name!("viewBox") => {
+                self.upcast::<Node>().dirty(NodeDamage::Other);
+            },
+            _ => {},
+        };
+    }
+
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+        match *name {
+            // TODO: This should accept lengths in arbitrary units instead of assuming px.
+            local_name!("width") | local_name!("height") => AttrValue::from_i32(value.into(), -1),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
+        }
     }
 
     fn children_changed(&self, mutation: &super::node::ChildrenMutation) {
