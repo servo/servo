@@ -35,8 +35,8 @@ use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheImpl;
-use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
+use net_traits::{CoreResourceThread, ResourceThreads};
 use profile::system_reporter;
 use profile_traits::mem::{ProfilerMsg, Reporter};
 use profile_traits::{mem as profile_mem, time};
@@ -573,6 +573,10 @@ impl UnprivilegedPipelineContent {
 
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
         &self.script_to_constellation_chan
+    }
+
+    pub fn core_resource_thread(&self) -> &CoreResourceThread {
+        &self.resource_threads.core_thread
     }
 
     pub fn opts(&self) -> Opts {

@@ -10,6 +10,7 @@
         content="Test passes if align-content distributes tracks
                  in the grid axis of a vertical writing-mode masonry grid container.">
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
   <link rel="match" href="masonry-align-content-004-ref.html">
   <style>
@@ -37,6 +38,10 @@ item {
 }
 
 .tall { padding-top: 30px; }
+
+.safe {
+  height: 10px;
+}
 </style>
 </head>
 <body>
@@ -59,6 +64,15 @@ item {
   <item>6</item>
 </grid>
 
+<grid style="align-content:safe start" class="safe">
+  <item class="tall">1</item>
+  <item>2</item>
+  <item>3</item>
+  <item>4</item>
+  <item>5</item>
+  <item>6</item>
+</grid>
+
 <grid style="align-content:end">
   <item class="tall">1</item>
   <item>2</item>
@@ -77,6 +91,15 @@ item {
   <item>6</item>
 </grid>
 
+<grid style="align-content:safe end" class="safe">
+  <item class="tall">1</item>
+  <item>2</item>
+  <item>3</item>
+  <item>4</item>
+  <item>5</item>
+  <item>6</item>
+</grid>
+
 <grid style="align-content:center">
   <item class="tall">1</item>
   <item>2</item>
@@ -89,6 +112,15 @@ item {
 <grid style="align-content:center">
   <item>1</item>
   <item class="tall">2</item>
+  <item>3</item>
+  <item>4</item>
+  <item>5</item>
+  <item>6</item>
+</grid>
+
+<grid style="align-content:safe center" class="safe">
+  <item class="tall">1</item>
+  <item>2</item>
   <item>3</item>
   <item>4</item>
   <item>5</item>

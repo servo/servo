@@ -24,7 +24,7 @@ use crate::formatting_contexts::Baselines;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
-use crate::style_ext::{AxesOverflow, ComputedValuesExt};
+use crate::style_ext::ComputedValuesExt;
 use crate::table::SpecificTableGridInfo;
 use crate::taffy::SpecificTaffyGridInfo;
 
@@ -271,13 +271,12 @@ impl BoxFragment {
         // overflow together, but from the specification it seems that if the border
         // box of an item is in the "wholly unreachable scrollable overflow region", but
         // its scrollable overflow is not, it should also be excluded.
-        let overflow_style = self.style.effective_overflow(self.base.flags);
         let scrollable_overflow = self
             .children
             .iter()
             .fold(physical_padding_rect, |acc, child| {
                 let scrollable_overflow_from_child = child
-                    .calculate_scrollable_overflow_for_parent(Some(overflow_style))
+                    .calculate_scrollable_overflow_for_parent()
                     .translate(content_origin);
 
                 // Note that this doesn't just exclude scrollable overflow outside the
@@ -360,33 +359,27 @@ impl BoxFragment {
         tree.end_level();
     }
 
-    pub(crate) fn scrollable_overflow_for_parent(
-        &self,
-        parent_overflow_style: Option<AxesOverflow>,
-    ) -> PhysicalRect<Au> {
+    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         let mut overflow = self.border_rect();
-        let overflow_style = self.style.effective_overflow(self.base.flags);
-        let scrollable_overflow = self.scrollable_overflow();
-        let bottom_right = PhysicalPoint::new(
-            overflow.max_x().max(scrollable_overflow.max_x()),
-            overflow.max_y().max(scrollable_overflow.max_y()),
-        );
+        if !self.style.establishes_scroll_container(self.base.flags) {
+            // https://www.w3.org/TR/css-overflow-3/#scrollable
+            // Only include the scrollable overflow of a child box if it has overflow: visible.
+            let scrollable_overflow = self.scrollable_overflow();
+            let bottom_right = PhysicalPoint::new(
+                overflow.max_x().max(scrollable_overflow.max_x()),
+                overflow.max_y().max(scrollable_overflow.max_y()),
+            );
 
-        // https://www.w3.org/TR/css-overflow-3/#scrollable
-        // For each axis, we only include the scrollable overflow of a child box
-        // if either its parent or child has overflow: visible.
-        if parent_overflow_style.is_some_and(|style| style.y == ComputedOverflow::Visible) ||
-            overflow_style.y == ComputedOverflow::Visible
-        {
-            overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
-            overflow.size.height = bottom_right.y - overflow.origin.y;
-        }
+            let overflow_style = self.style.effective_overflow(self.base.flags);
+            if overflow_style.y == ComputedOverflow::Visible {
+                overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
+                overflow.size.height = bottom_right.y - overflow.origin.y;
+            }
 
-        if parent_overflow_style.is_some_and(|style| style.x == ComputedOverflow::Visible) ||
-            overflow_style.x == ComputedOverflow::Visible
-        {
-            overflow.origin.x = overflow.origin.x.min(scrollable_overflow.origin.x);
-            overflow.size.width = bottom_right.x - overflow.origin.x;
+            if overflow_style.x == ComputedOverflow::Visible {
+                overflow.origin.x = overflow.origin.x.min(scrollable_overflow.origin.x);
+                overflow.size.width = bottom_right.x - overflow.origin.x;
+            }
         }
 
         if !self

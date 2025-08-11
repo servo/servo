@@ -12,7 +12,7 @@ use serde_json::{Map, Value};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::response::{ValueResponse, WebDriverResponse};
 
-use crate::{Handler, wait_for_script_response};
+use crate::{Handler, wait_for_ipc_response};
 
 const KNOWN_PROMPT_HANDLERS: [&str; 5] = [
     "dismiss",
@@ -188,7 +188,7 @@ impl Handler {
             sender,
         ))?;
 
-        match wait_for_script_response(receiver)? {
+        match wait_for_ipc_response(receiver)? {
             // Step 2. If the current user prompt is null, return error with error code no such alert.
             Err(()) => Err(WebDriverError::new(
                 ErrorStatus::NoSuchAlert,
@@ -213,7 +213,7 @@ impl Handler {
             sender,
         ))?;
 
-        match wait_for_script_response(receiver)? {
+        match wait_for_ipc_response(receiver)? {
             // Step 2. If the current user prompt is null, return error with error code no such alert.
             Err(()) => Err(WebDriverError::new(
                 ErrorStatus::NoSuchAlert,
@@ -236,7 +236,7 @@ impl Handler {
             sender,
         ))?;
 
-        match wait_for_script_response(receiver)? {
+        match wait_for_ipc_response(receiver)? {
             // Step 2. If the current user prompt is null, return error with error code no such alert.
             Err(()) => Err(WebDriverError::new(
                 ErrorStatus::NoSuchAlert,
@@ -271,7 +271,7 @@ impl Handler {
 
         self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
 
-        match wait_for_script_response(receiver)? {
+        match wait_for_ipc_response(receiver)? {
             // Step 4. If the current user prompt is null, return error with error code no such alert.
             None => Err(WebDriverError::new(
                 ErrorStatus::NoSuchAlert,
@@ -315,7 +315,7 @@ impl Handler {
 
         self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
 
-        match wait_for_script_response(receiver)? {
+        match wait_for_ipc_response(receiver)? {
             // Step 1. If the current user prompt is null, return success with data null.
             None => Ok(WebDriverResponse::Void),
             Some(prompt_type) => {
@@ -333,7 +333,7 @@ impl Handler {
 
                 if handler.notify || handler.handler == WebDriverUserPromptAction::Ignore {
                     // Step 6. If handler's notify is true, return annotated unexpected alert open error.
-                    let alert_text = wait_for_script_response(receiver)?
+                    let alert_text = wait_for_ipc_response(receiver)?
                         .unwrap_or_default()
                         .unwrap_or_default();
 

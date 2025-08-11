@@ -1,6 +1,5 @@
 .customizable-select-in-page {
   display: inline-block;
-  border: 1px solid;
   overflow-inline: auto;
   overflow-block: auto;
 }

@@ -6,10 +6,17 @@
 <script src="/resources/testharnessreport.js"></script>
 <style>
   body { margin: 0; }
+  #cb {
+    position: relative;
+    width: 400px;
+    height: 100px;
+    border: 1px solid black;
+  }
   #a1 {
     anchor-name: --a1;
     width: 100px;
     height: 100px;
+    background: green;
   }
   #t1 {
     position-anchor: --a1;
@@ -20,13 +27,16 @@
     position-try-fallbacks: --right;
     width: 200px;
     height: 100px;
+    background: cyan;
   }
   @position-try --right {
     position-area: right;
   }
 </style>
-<div id="a1"></div>
-<div id="t1"></div>
+<div id="cb">
+  <div id="a1"></div>
+  <div id="t1"></div>
+</div>
 <script>
   test(() => {
     assert_equals(t1.offsetLeft, 100, "Positioned using --right fallback");

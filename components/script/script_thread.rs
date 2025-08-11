@@ -92,6 +92,7 @@ use script_traits::{
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
+use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
@@ -153,7 +154,8 @@ use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    CanGc, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
+    CanGc, IntroductionType, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory,
+    ThreadSafeJSContext,
 };
 use crate::task_queue::TaskQueue;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -948,7 +950,7 @@ impl ScriptThread {
         };
         let debugger_global = DebuggerGlobalScope::new(
             &js_runtime.clone(),
-            senders.self_sender.clone(),
+            PipelineId::new(),
             senders.devtools_server_sender.clone(),
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
@@ -1137,8 +1139,7 @@ impl ScriptThread {
                     document.handle_mouse_leave_event(&event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
-                    let touch_result =
-                        document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
+                    let touch_result = document.handle_touch_event(touch_event, &event, can_gc);
                     if let (TouchEventResult::Processed(handled), true) =
                         (touch_result, touch_event.is_cancelable())
                     {
@@ -2042,6 +2043,9 @@ impl ScriptThread {
                         pipeline_id
                     );
                 }
+            },
+            ScriptThreadMessage::RefreshCursor(pipeline_id, cursor_position) => {
+                self.handle_refresh_cursor(pipeline_id, cursor_position);
             },
         }
     }
@@ -3442,8 +3446,12 @@ impl ScriptThread {
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
         );
-        self.debugger_global
-            .fire_add_debuggee(can_gc, window.upcast());
+        self.debugger_global.fire_add_debuggee(
+            can_gc,
+            window.upcast(),
+            incomplete.pipeline_id,
+            None,
+        );
 
         let _realm = enter_realm(&*window);
 
@@ -3730,12 +3738,13 @@ impl ScriptThread {
         // Script source is ready to be evaluated (11.)
         let _ac = enter_realm(global_scope);
         rooted!(in(*GlobalScope::get_cx()) let mut jsval = UndefinedValue());
-        global_scope.evaluate_js_on_global_with_result(
+        _ = global_scope.evaluate_js_on_global_with_result(
             &script_source,
             jsval.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
             can_gc,
+            Some(IntroductionType::JAVASCRIPT_URL),
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
@@ -4084,12 +4093,13 @@ impl ScriptThread {
         let context = window.get_cx();
 
         rooted!(in(*context) let mut return_value = UndefinedValue());
-        global_scope.evaluate_js_on_global_with_result(
+        _ = global_scope.evaluate_js_on_global_with_result(
             &script,
             return_value.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
             can_gc,
+            None, // No known `introductionType` for JS code from embedder
         );
         let result = match jsval_to_webdriver(
             context,
@@ -4106,6 +4116,17 @@ impl ScriptThread {
             pipeline_id,
             ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result),
         ));
+    }
+
+    fn handle_refresh_cursor(
+        &self,
+        pipeline_id: PipelineId,
+        cursor_position: Point2D<f32, CSSPixel>,
+    ) {
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            return;
+        };
+        window.handle_refresh_cursor(cursor_position);
     }
 }
 

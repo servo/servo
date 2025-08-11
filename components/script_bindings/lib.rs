@@ -45,7 +45,7 @@ pub mod trace;
 pub mod utils;
 pub mod weakref;
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, unsafe_op_in_unsafe_fn)]
 pub mod codegen {
     pub mod Globals {
         include!(concat!(env!("OUT_DIR"), "/Globals.rs"));

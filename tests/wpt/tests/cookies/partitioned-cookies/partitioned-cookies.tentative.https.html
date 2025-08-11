@@ -8,6 +8,8 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <script src="/cookies/partitioned-cookies/resources/test-helpers.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 
 <body>
 <script>
@@ -65,7 +67,9 @@ document.body.onload = async () => {
           encodeURIComponent(self.origin)}`,
       get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
   const popup = window.open(crossSiteUrl);
-  fetch_tests_from_window(popup);
+  await fetch_tests_from_window(popup);
+
+  await test_driver.delete_all_cookies();
 };
 
 </script>

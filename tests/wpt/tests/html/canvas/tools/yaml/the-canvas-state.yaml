@@ -25,6 +25,21 @@
     @assert pixel 50,25 == 0,255,0,255;
   expected: green
 
+- name: 2d.state.saverestore.clip.2
+  desc: save()/restore() affects the clipping path
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.save();
+    ctx.rect(0, 0, 1, 1);
+    ctx.clip();
+    ctx.clip();
+    ctx.restore();
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
 - name: 2d.state.saverestore.path
   desc: save()/restore() does not affect the current path
   code: |

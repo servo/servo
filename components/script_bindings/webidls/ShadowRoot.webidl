@@ -29,5 +29,5 @@ partial interface ShadowRoot {
   DOMString getHTML(optional GetHTMLOptions options = {});
 
   // [CEReactions] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
-  [CEReactions] attribute [LegacyNullToEmptyString] DOMString innerHTML;
+  [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString innerHTML;
 };

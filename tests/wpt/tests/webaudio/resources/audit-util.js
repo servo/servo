@@ -315,3 +315,20 @@ function assert_close_to_array(actual, expected, epsilon, desc) {
         `${desc}[${i}] |${actual[i]} - ${expected[i]}| = ${diff} > ${epsilon}`);
   }
 }
+
+/**
+ * Asserts that all elements of an array are (approximately) equal to a value.
+ *
+ * @param {!Array<number>} array - The array to be checked.
+ * @param {number} constantValue - The expected constant value.
+ * @param {string} message - Description used for assertion failures.
+ * @param {number=} epsilon - Allowed tolerance for floating-point comparison.
+ * Default to 1e-7
+ */
+function assert_array_constant_value(
+    array, constantValue, message, epsilon = 1e-7) {
+      for (let i = 0; i < array.length; ++i) {
+        assert_approx_equals(
+            array[i], constantValue, epsilon, `${message} sample[${i}]`);
+      }
+}

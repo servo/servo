@@ -10,12 +10,14 @@
   <body>
     <img id="image" src="resources/animated.webp" />
     <script>
-      const image = document.getElementById("image");
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          takeScreenshot();
-        }, 150);
-      });
+      window.addEventListener("load", go);
+      function go() {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            takeScreenshot();
+          }, 150);
+        });
+      }
     </script>
   </body>
 </html>

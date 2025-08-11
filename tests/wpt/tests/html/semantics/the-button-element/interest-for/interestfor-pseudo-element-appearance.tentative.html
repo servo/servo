@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-appearance-ref.html">
+
+<div class=example>
+  <button interestfor=target><span>Button</span></button>
+</div>
+<div class=example>
+  <a href=# interestfor=target><span>Link</span></a>
+</div>
+<div class=example>
+  <img src="/images/blue.png" usemap="#map1" width=40 height=40>
+  <map id="map1"><area href="/" shape="default" interestfor=target></map>
+</div>
+
+<div id=target></div>
+
+<style>
+  [interestfor]::before {
+    content: "::before";
+    border: 1px solid green;
+  }
+  [interestfor]::interest-hint {
+    content: "::interest-hint";
+    font-family: arial;
+    font-size: 13px;
+  }
+  [interestfor]::after {
+    content: "::after";
+    border: 1px solid green;
+  }
+  /* Test convenience: */
+  .example {
+    display:block;
+    width: 400px;
+    height: 50px;
+  }
+  [interestfor]>span {
+    border: 1px solid black;
+  }
+</style>

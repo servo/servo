@@ -8,6 +8,7 @@ use std::cmp;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
+use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -33,8 +34,8 @@ use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
-    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
-    WebDriverJSResult, WebDriverLoadStatus,
+    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, UntrustedNodeAddress, ViewportDetails,
+    WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -51,9 +52,10 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    FragmentType, Layout, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
-    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason,
-    TrustedNodeAddress, combine_id_with_fragment_type,
+    ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout, PendingImage,
+    PendingImageState, PendingRasterizationImage, QueryMsg, ReflowGoal, ReflowPhasesRun,
+    ReflowRequest, ReflowRequestRestyle, RestyleReason, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -72,7 +74,7 @@ use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMe
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
 use script_bindings::root::Root;
-use script_traits::ScriptThreadMessage;
+use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
@@ -88,7 +90,7 @@ use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
+use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -128,7 +130,7 @@ use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration
 use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::document::{AnimationFrameCallback, Document};
 use crate::dom::element::Element;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepadevent::GamepadEventType;
@@ -138,6 +140,7 @@ use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::idbfactory::IDBFactory;
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::location::Location;
 use crate::dom::medialist::MediaList;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
@@ -702,12 +705,8 @@ impl Window {
     }
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
-    pub(crate) fn dispatch_event_with_target_override(
-        &self,
-        event: &Event,
-        can_gc: CanGc,
-    ) -> EventStatus {
-        event.dispatch(self.upcast(), true, can_gc)
+    pub(crate) fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) {
+        event.dispatch(self.upcast(), true, can_gc);
     }
 
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
@@ -2589,6 +2588,42 @@ impl Window {
             .query_text_indext(node.to_opaque(), point_in_node)
     }
 
+    pub(crate) fn elements_from_point_query(
+        &self,
+        point: LayoutPoint,
+        flags: ElementsFromPointFlags,
+    ) -> Vec<ElementsFromPointResult> {
+        self.layout_reflow(QueryMsg::ElementsFromPoint);
+        self.layout().query_elements_from_point(point, flags)
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn hit_test_from_input_event(
+        &self,
+        input_event: &ConstellationInputEvent,
+    ) -> Option<HitTestResult> {
+        let compositor_hit_test_result = input_event.hit_test_result.as_ref()?;
+        let result = self
+            .elements_from_point_query(
+                compositor_hit_test_result.point_in_viewport.cast_unit(),
+                ElementsFromPointFlags::empty(),
+            )
+            .into_iter()
+            .nth(0)?;
+
+        // SAFETY: This is safe because `Window::query_elements_from_point` has ensured that
+        // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
+        let address = UntrustedNodeAddress(result.node.0 as *const c_void);
+        Some(HitTestResult {
+            node: unsafe { from_untrusted_node_address(address) },
+            cursor: result.cursor,
+            point_in_node: result.point_in_target,
+            point_in_frame: compositor_hit_test_result.point_in_viewport,
+            point_relative_to_initial_containing_block: compositor_hit_test_result
+                .point_relative_to_initial_containing_block,
+        })
+    }
+
     #[allow(unsafe_code)]
     pub(crate) fn init_window_proxy(&self, window_proxy: &WindowProxy) {
         assert!(self.window_proxy.get().is_none());
@@ -3050,6 +3085,20 @@ impl Window {
                 nodes.push(Dom::from_ref(&*node));
             }
         }
+    }
+
+    pub fn handle_refresh_cursor(&self, cursor_position: Point2D<f32, CSSPixel>) {
+        let layout = self.layout.borrow();
+        layout.ensure_stacking_context_tree(self.viewport_details.get());
+        let Some(hit_test_result) = layout
+            .query_elements_from_point(cursor_position.cast_unit(), ElementsFromPointFlags::empty())
+            .into_iter()
+            .nth(0)
+        else {
+            return;
+        };
+
+        self.Document().set_cursor(hit_test_result.cursor);
     }
 }
 

@@ -287,6 +287,7 @@ interface Path2D {
   constructor();
   constructor(Path2D other);
   constructor(DOMString pathString);
-  undefined addPath(Path2D path/*, SVGMatrix? transformation*/);
+  [Throws]
+  undefined addPath(Path2D path, optional DOMMatrix2DInit transform = {});
 };
 Path2D includes CanvasPath;

@@ -42,7 +42,8 @@ use servo_arc::Arc as ServoArc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
-use crate::geom::{LogicalVec2, SizeConstraint};
+use crate::geom::LogicalVec2;
+use crate::sizing::SizeConstraint;
 use crate::style_ext::AspectRatio;
 
 /// At times, a style is "owned" by more than one layout object. For example, text

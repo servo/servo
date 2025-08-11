@@ -21,24 +21,26 @@ use std::{os, ptr, thread};
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
 use js::glue::{
-    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JobQueueTraps,
-    RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
+    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JS_GetReservedSlot,
+    JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
     StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::{
-    AsmJSOption, BuildIdCharVector, ContextOptionsRef, DisableIncrementalGC,
-    Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown, GCDescription, GCOptions,
-    GCProgress, GCReason, GetPromiseUserInputEventHandlingState, HandleObject, HandleString, Heap,
+    AsmJSOption, BuildIdCharVector, CompilationType, ContextOptionsRef, Dispatchable as JSRunnable,
+    Dispatchable_MaybeShuttingDown, GCDescription, GCOptions, GCProgress, GCReason,
+    GetPromiseUserInputEventHandlingState, HandleObject, HandleString, HandleValue, Heap,
     InitConsumeStreamCallback, InitDispatchToEventLoop, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_SetGCCallback,
-    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks, JSContext as RawJSContext, JSGCParamKey,
-    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer, JobQueue, MimeType,
+    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_NewObject,
+    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled, JS_SetReservedSlot,
+    JS_SetSecurityCallbacks, JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass,
+    JSClassOps, JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
+    JSSecurityCallbacks, JSTracer, JobQueue, MimeType, MutableHandleObject,
     PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, RuntimeCode,
     SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
     SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
-use js::jsval::UndefinedValue;
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
 pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
@@ -72,20 +74,20 @@ use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
 use crate::dom::csp::CspReporting;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
 use crate::task_source::SendableTaskSource;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
-    getIncumbentGlobal: Some(get_incumbent_global),
+    getHostDefinedData: Some(get_host_defined_data),
     enqueuePromiseJob: Some(enqueue_promise_job),
     runJobs: Some(run_jobs),
     empty: Some(empty),
@@ -96,6 +98,7 @@ static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
 
 static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
     contentSecurityPolicyAllows: Some(content_security_policy_allows),
+    codeForEvalGets: None, //TODO
     subsumes: Some(principals::subsumes),
 };
 
@@ -227,19 +230,58 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
     }
 }
 
+static HOST_DEFINED_DATA: JSClassOps = JSClassOps {
+    addProperty: None,
+    delProperty: None,
+    enumerate: None,
+    newEnumerate: None,
+    resolve: None,
+    mayResolve: None,
+    finalize: None,
+    call: None,
+    construct: None,
+    trace: None,
+};
+
+static HOST_DEFINED_DATA_CLASS: JSClass = JSClass {
+    name: c"HostDefinedData".as_ptr(),
+    flags: (HOST_DEFINED_DATA_SLOTS & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT,
+    cOps: &HOST_DEFINED_DATA,
+    spec: ptr::null(),
+    ext: ptr::null(),
+    oOps: ptr::null(),
+};
+
+const INCUMBENT_SETTING_SLOT: u32 = 0;
+const HOST_DEFINED_DATA_SLOTS: u32 = 1;
+
+/// <https://searchfox.org/mozilla-central/rev/2a8a30f4c9b918b726891ab9d2d62b76152606f1/xpcom/base/CycleCollectedJSContext.cpp#316>
 #[allow(unsafe_code)]
-unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut RawJSContext) -> *mut JSObject {
-    let mut result = ptr::null_mut();
+unsafe extern "C" fn get_host_defined_data(
+    _: *const c_void,
+    cx: *mut RawJSContext,
+    data: MutableHandleObject,
+) -> bool {
     wrap_panic(&mut || {
-        let incumbent_global = GlobalScope::incumbent();
+        let Some(incumbent_global) = GlobalScope::incumbent() else {
+            data.set(ptr::null_mut());
+            return;
+        };
 
-        assert!(incumbent_global.is_some());
+        let _realm = enter_realm(&*incumbent_global);
 
-        result = incumbent_global
-            .map(|g| g.reflector().get_jsobject().get())
-            .unwrap_or(ptr::null_mut())
+        rooted!(in(cx) let result = JS_NewObject(cx, &HOST_DEFINED_DATA_CLASS));
+        assert!(!result.is_null());
+
+        JS_SetReservedSlot(
+            *result,
+            INCUMBENT_SETTING_SLOT,
+            &ObjectValue(*incumbent_global.reflector().get_jsobject()),
+        );
+
+        data.set(result.get());
     });
-    result
+    true
 }
 
 #[allow(unsafe_code)]
@@ -298,6 +340,7 @@ unsafe extern "C" fn drop_interrupt_queues(interrupt_queues: *mut c_void) {
     });
 }
 
+/// <https://searchfox.org/mozilla-central/rev/2a8a30f4c9b918b726891ab9d2d62b76152606f1/xpcom/base/CycleCollectedJSContext.cpp#355>
 /// SM callback for promise job resolution. Adds a promise callback to the current
 /// global's microtask queue.
 #[allow(unsafe_code)]
@@ -307,14 +350,20 @@ unsafe extern "C" fn enqueue_promise_job(
     promise: HandleObject,
     job: HandleObject,
     _allocation_site: HandleObject,
-    incumbent_global: HandleObject,
+    host_defined_data: HandleObject,
 ) -> bool {
     let cx = JSContext::from_ptr(cx);
     let mut result = false;
     wrap_panic(&mut || {
         let microtask_queue = &*(extra as *const MicrotaskQueue);
-        let global = if !incumbent_global.is_null() {
-            GlobalScope::from_object(incumbent_global.get())
+        let global = if !host_defined_data.is_null() {
+            let mut incumbent_global = UndefinedValue();
+            JS_GetReservedSlot(
+                host_defined_data.get(),
+                INCUMBENT_SETTING_SLOT,
+                &mut incumbent_global,
+            );
+            GlobalScope::from_object(incumbent_global.to_object())
         } else {
             let realm = AlreadyInRealm::assert_for_cx(cx);
             GlobalScope::from_context(*cx, InRealm::already(&realm))
@@ -424,6 +473,12 @@ unsafe extern "C" fn content_security_policy_allows(
     cx: *mut RawJSContext,
     runtime_code: RuntimeCode,
     sample: HandleString,
+    _compilation_type: CompilationType,
+    _parameter_strings: u8, //FIXME in bindings generation
+    _body_string: HandleString,
+    _parameter_args: u8, //FIXME in bindings generation
+    _body_arg: HandleValue,
+    can_compile_strings: *mut bool,
 ) -> bool {
     let mut allowed = false;
     let cx = JSContext::from_ptr(cx);
@@ -434,18 +489,17 @@ unsafe extern "C" fn content_security_policy_allows(
 
         allowed = match runtime_code {
             RuntimeCode::JS => {
-                let source = match sample {
-                    sample if !sample.is_null() => &jsstr_to_string(*cx, *sample),
-                    _ => "",
-                };
+                let source = std::ptr::NonNull::new(*sample)
+                    .map_or_else(String::new, |jsstr| jsstr_to_string(*cx, jsstr));
                 global
                     .get_csp_list()
-                    .is_js_evaluation_allowed(global, source)
+                    .is_js_evaluation_allowed(global, &source)
             },
             RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(global),
         };
     });
-    allowed
+    *can_compile_strings = allowed;
+    true
 }
 
 #[allow(unsafe_code)]
@@ -503,10 +557,11 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
                             CanGc::note()
                         );
 
-                        let event_status = event.upcast::<Event>().fire(&target, CanGc::note());
+                        let not_canceled = event.upcast::<Event>().fire(&target, CanGc::note());
 
-                        // Step 4-3.
-                        if event_status == EventStatus::Canceled {
+                        // Step 4-3. If notCanceled is true, then the user agent
+                        // may report p.[[PromiseResult]] to a developer console.
+                        if not_canceled {
                             // TODO: The promise rejection is not handled; we need to add it back to the list.
                         }
 
@@ -601,7 +656,7 @@ impl Runtime {
             Some(empty_has_released_callback),
         );
         // Pre barriers aren't working correctly at the moment
-        DisableIncrementalGC(cx);
+        JS_SetGCParameter(cx, JSGCParamKey::JSGC_INCREMENTAL_GC_ENABLED, 0);
 
         unsafe extern "C" fn dispatch_to_event_loop(
             closure: *mut c_void,
@@ -778,9 +833,6 @@ impl Runtime {
         */
         if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_min), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
-        }
-        if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_max), 0, 10_000) {
-            JS_SetGCParameter(cx, JSGCParamKey::JSGC_MAX_EMPTY_CHUNK_COUNT, val as u32);
         }
 
         Runtime {
@@ -1196,7 +1248,67 @@ impl Runnable {
 pub(crate) use script_bindings::script_runtime::CanGc;
 
 /// `introductionType` values in SpiderMonkey TransitiveCompileOptions.
+///
+/// Value definitions are based on the SpiderMonkey Debugger API docs:
+/// <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Source.html#introductiontype>
+// TODO: squish `scriptElement` <https://searchfox.org/mozilla-central/rev/202069c4c5113a1a9052d84fa4679d4c1b22113e/devtools/server/actors/source.js#199-201>
 pub(crate) struct IntroductionType;
 impl IntroductionType {
-    pub const INLINE_SCRIPT: &'static CStr = c"inlineScript";
+    /// `introductionType` for code passed to `eval`.
+    pub const EVAL: &CStr = c"eval";
+    pub const EVAL_STR: &str = "eval";
+
+    /// `introductionType` for code evaluated by debugger.
+    /// This includes code run via the devtools repl, even if the thread is not paused.
+    pub const DEBUGGER_EVAL: &CStr = c"debugger eval";
+    pub const DEBUGGER_EVAL_STR: &str = "debugger eval";
+
+    /// `introductionType` for code passed to the `Function` constructor.
+    pub const FUNCTION: &CStr = c"Function";
+    pub const FUNCTION_STR: &str = "Function";
+
+    /// `introductionType` for code loaded by worklet.
+    pub const WORKLET: &CStr = c"Worklet";
+    pub const WORKLET_STR: &str = "Worklet";
+
+    /// `introductionType` for code assigned to DOM elements’ event handler IDL attributes as a string.
+    pub const EVENT_HANDLER: &CStr = c"eventHandler";
+    pub const EVENT_HANDLER_STR: &str = "eventHandler";
+
+    /// `introductionType` for code belonging to `<script src="file.js">` elements.
+    /// This includes `<script type="module" src="...">`.
+    pub const SRC_SCRIPT: &CStr = c"srcScript";
+    pub const SRC_SCRIPT_STR: &str = "srcScript";
+
+    /// `introductionType` for code belonging to `<script>code;</script>` elements.
+    /// This includes `<script type="module" src="...">`.
+    pub const INLINE_SCRIPT: &CStr = c"inlineScript";
+    pub const INLINE_SCRIPT_STR: &str = "inlineScript";
+
+    /// `introductionType` for code belonging to scripts that *would* be `"inlineScript"` except that they were not
+    /// part of the initial file itself.
+    /// For example, scripts created via:
+    /// - `document.write("<script>code;</script>")`
+    /// - `var s = document.createElement("script"); s.text = "code";`
+    pub const INJECTED_SCRIPT: &CStr = c"injectedScript";
+    pub const INJECTED_SCRIPT_STR: &str = "injectedScript";
+
+    /// `introductionType` for code that was loaded indirectly by being imported by another script
+    /// using ESM static or dynamic imports.
+    pub const IMPORTED_MODULE: &CStr = c"importedModule";
+    pub const IMPORTED_MODULE_STR: &str = "importedModule";
+
+    /// `introductionType` for code presented in `javascript:` URLs.
+    pub const JAVASCRIPT_URL: &CStr = c"javascriptURL";
+    pub const JAVASCRIPT_URL_STR: &str = "javascriptURL";
+
+    /// `introductionType` for code passed to `setTimeout`/`setInterval` as a string.
+    pub const DOM_TIMER: &CStr = c"domTimer";
+    pub const DOM_TIMER_STR: &str = "domTimer";
+
+    /// `introductionType` for web workers.
+    /// FIXME: only documented in older(?) devtools user docs
+    /// <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.source/index.html>
+    pub const WORKER: &CStr = c"Worker";
+    pub const WORKER_STR: &str = "Worker";
 }

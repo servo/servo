@@ -1,17 +1,13 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <title>Test AudioParam events very close in time</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
   </head>
-
   <body>
     <script>
-      const audit = Audit.createTaskRunner();
-
       // Largest sample rate that is required to be supported and is a power of
       // two, to eliminate round-off as much as possible.
       const sampleRate = 65536;
@@ -27,135 +23,137 @@
       // epsneg is the smallest x such that 1 - x != 1
       const epsneg = 5.551115123125784e-17;
 
-      audit.define(
-          {label: 'no-nan', description: 'NaN does not occur'},
-          (task, should) => {
-            const context = new OfflineAudioContext({
-              numberOfChannels: 1,
-              sampleRate: sampleRate,
-              length: testFrames
-            });
+      promise_test(async t => {
+        const context = new OfflineAudioContext({
+          numberOfChannels: 1,
+          sampleRate,
+          length: testFrames
+        });
 
-            const src0 = new ConstantSourceNode(context, {offset: 0});
+        const src0 = new ConstantSourceNode(context, {offset: 0});
 
-            // This should always succeed.  We just want to print out a message
-            // that |src0| is a constant source node for the following
-            // processing.
-            should(src0, 'src0 = new ConstantSourceNode(context, {offset: 0})')
-                .beEqualTo(src0);
+        // This should always succeed.  We just want to print out a message
+        // that |src0| is a constant source node for the following
+        // processing.
+        assert_equals(
+            src0, src0,
+            'src0 = new ConstantSourceNode(context, {offset: 0}) ' +
+                'should succeed');
 
-            src0.connect(context.destination);
+        src0.connect(context.destination);
 
-            // Values for the first event (setValue).  |time1| MUST be 0.
-            const time1 = 0;
-            const value1 = 10;
+        // Values for the first event (setValue).  |time1| MUST be 0.
+        const time1 = 0;
+        const value1 = 10;
 
-            // Values for the second event (linearRamp).  |value2| must be huge,
-            // and |time2| must be small enough that 1/|time2| overflows a
-            // single float. This value is the least positive single float.
-            const value2 = floatMax;
-            const time2 = 1.401298464324817e-45;
+        // Values for the second event (linearRamp).  |value2| must be huge,
+        // and |time2| must be small enough that 1/|time2| overflows a
+        // single float. This value is the least positive single float.
+        const time2 = 1.401298464324817e-45;
+        const value2 = floatMax;
 
-            // These should always succeed; the messages are just informational
-            // to show the events that we scheduled.
-            should(
-                src0.offset.setValueAtTime(value1, time1),
-                `src0.offset.setValueAtTime(${value1}, ${time1})`)
-                .beEqualTo(src0.offset);
-            should(
-                src0.offset.linearRampToValueAtTime(value2, time2),
-                `src0.offset.linearRampToValueAtTime(${value2}, ${time2})`)
-                .beEqualTo(src0.offset);
+        // These should always succeed; the messages are just informational
+        // to show the events that we scheduled.
+        assert_equals(
+            src0.offset.setValueAtTime(value1, time1),
+            src0.offset,
+            `src0.offset.setValueAtTime(${value1}, ${time1}) should ` +
+                `return AudioParam`);
+        assert_equals(
+            src0.offset.linearRampToValueAtTime(value2, time2),
+            src0.offset,
+            `src0.offset.linearRampToValueAtTime(${value2}, ${time2}) should ` +
+                `return AudioParam`);
 
-            src0.start();
+        src0.start();
 
-            context.startRendering()
-                .then(buffer => {
-                  const output = buffer.getChannelData(0);
+        const renderedBuffer = await context.startRendering();
+        const output = renderedBuffer.getChannelData(0);
 
-                  // Since time1 = 0, the output at frame 0 MUST be value1.
-                  should(output[0], 'output[0]').beEqualTo(value1);
+        // Since time1 = 0, the output at frame 0 MUST be value1.
+        assert_equals(
+            output[0], value1, 'Frame 0 should equal initial value set');
 
-                  // Since time2 < 1, output from frame 1 and later must be a
-                  // constant.
-                  should(output.slice(1), 'output[1]')
-                      .beConstantValueOf(value2);
-                })
-                .then(() => task.done());
-          });
+        // Since time2 < 1, output from frame 1 and later must be a
+        // constant.
+        assert_array_constant_value(
+            output.slice(1),
+            value2,
+            'Frames 1+ should equal ramp target value');
+      }, 'NaN should not occur during extreme linearRampToValueAtTime events');
 
-      audit.define(
-          {label: 'interpolation', description: 'Interpolation of linear ramp'},
-          (task, should) => {
-            const context = new OfflineAudioContext({
-              numberOfChannels: 1,
-              sampleRate: sampleRate,
-              length: testFrames
-            });
+      promise_test(async t => {
+        const context = new OfflineAudioContext({
+          numberOfChannels: 1,
+          sampleRate,
+          length: testFrames
+        });
 
-            const src1 = new ConstantSourceNode(context, {offset: 0});
+        const src1 = new ConstantSourceNode(context, {offset: 0});
 
-            // This should always succeed.  We just want to print out a message
-            // that |src1| is a constant source node for the following
-            // processing.
-            should(src1, 'src1 = new ConstantSourceNode(context, {offset: 0})')
-                .beEqualTo(src1);
+        // This should always succeed.  We just want to print out a message
+        // that |src1| is a constant source node for the following
+        // processing.
+        assert_equals(
+            src1, src1,
+            'src1 = new ConstantSourceNode(context, {offset: 0}) ' +
+                'should succeed');
 
-            src1.connect(context.destination);
+        src1.connect(context.destination);
 
-            const frame = 1;
+        const frameIndex = 1;
 
-            // These time values are arranged so that time1 < frame/sampleRate <
-            // time2.  This means we need to interpolate to get a value at given
-            // frame.
-            //
-            // The values are not so important, but |value2| should be huge.
-            const time1 = frame * (1 - epsneg) / context.sampleRate;
-            const value1 = 1e15;
+        // These time values are arranged so that time1 < frame/sampleRate <
+        // time2.  This means we need to interpolate to get a value at given
+        // frame.
+        //
+        // The values are not so important, but |value2| should be huge.
+        const time1 = frameIndex * (1 - epsneg) / context.sampleRate;
+        const value1 = 1e15;
 
-            const time2 = frame * (1 + epspos) / context.sampleRate;
-            const value2 = floatMax;
+        const time2 = frameIndex * (1 + epspos) / context.sampleRate;
+        const value2 = floatMax;
 
-            should(
-                src1.offset.setValueAtTime(value1, time1),
-                `src1.offset.setValueAtTime(${value1}, ${time1})`)
-                .beEqualTo(src1.offset);
-            should(
-                src1.offset.linearRampToValueAtTime(value2, time2),
-                `src1.offset.linearRampToValueAtTime(${value2}, ${time2})`)
-                .beEqualTo(src1.offset);
+        assert_equals(
+            src1.offset.setValueAtTime(value1, time1),
+            src1.offset,
+            `src1.offset.setValueAtTime(${value1}, ${time1}) should ` +
+                `return AudioParam`);
+        assert_equals(
+            src1.offset.linearRampToValueAtTime(value2, time2),
+            src1.offset,
+            `src1.offset.linearRampToValueAtTime(${value2}, ${time2}) should ` +
+                `return AudioParam`);
 
-            src1.start();
+        src1.start();
 
-            context.startRendering()
-                .then(buffer => {
-                  const output = buffer.getChannelData(0);
+        const renderedBuffer = await context.startRendering();
+        const output = renderedBuffer.getChannelData(0);
 
-                  // Sanity check
-                  should(time2 - time1, 'Event time difference')
-                      .notBeEqualTo(0);
+        // Sanity check
+        assert_not_equals(
+            time2 - time1, 0,
+            'Sanity check: time1 and time2 should not be equal');
+        // Because 0 < time1 < 1, output must be 0 at time 0.
+        assert_equals(
+            output[0], 0, 'output[0] should be 0 before any automation');
 
-                  // Because 0 < time1 < 1, output must be 0 at time 0.
-                  should(output[0], 'output[0]').beEqualTo(0);
+        // Because time1 < 1/sampleRate < time2, we need to
+        // interpolate the value between these times to determine the
+        // output at frame 1.
+        const sampleTime = frameIndex / context.sampleRate;
+        const interpolated =
+            value1 + (value2 - value1) * (sampleTime - time1) / (time2 - time1);
+        assert_approx_equals(
+            output[1],
+            interpolated, 0,
+            'Interpolated value at frame 1 should match ramp');
 
-                  // Because time1 < 1/sampleRate < time2, we need to
-                  // interpolate the value between these times to determine the
-                  // output at frame 1.
-                  const t = frame / context.sampleRate;
-                  const v = value1 +
-                      (value2 - value1) * (t - time1) / (time2 - time1);
-
-                  should(output[1], 'output[1]').beCloseTo(v, {threshold: 0});
-
-                  // Because 1 < time2 < 2, the output at frame 2 and higher is
-                  // constant.
-                  should(output.slice(2), 'output[2:]')
-                      .beConstantValueOf(value2);
-                })
-                .then(() => task.done());
-          });
-
-      audit.run();
+        // Because 1 < time2 < 2, the output at frame 2 and higher is
+        // constant.
+        assert_array_constant_value(
+            output.slice(2), value2, 'output[2:] should be constant at value2');
+      }, 'Interpolation of linear ramp between very close time values');
     </script>
   </body>
 </html>

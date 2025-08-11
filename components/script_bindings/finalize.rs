@@ -18,14 +18,16 @@ use crate::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable};
 
 /// Drop the resources held by reserved slots of a global object
 unsafe fn do_finalize_global(obj: *mut JSObject) {
-    let protolist = get_proto_or_iface_array(obj);
-    let list = (*protolist).as_mut_ptr();
-    for idx in 0..PROTO_OR_IFACE_LENGTH as isize {
-        let entry = list.offset(idx);
-        let value = *entry;
-        <*mut JSObject>::post_barrier(entry, value, ptr::null_mut());
+    unsafe {
+        let protolist = get_proto_or_iface_array(obj);
+        let list = (*protolist).as_mut_ptr();
+        for idx in 0..PROTO_OR_IFACE_LENGTH as isize {
+            let entry = list.offset(idx);
+            let value = *entry;
+            <*mut JSObject>::post_barrier(entry, value, ptr::null_mut());
+        }
+        let _: Box<ProtoOrIfaceArray> = Box::from_raw(protolist);
     }
-    let _: Box<ProtoOrIfaceArray> = Box::from_raw(protolist);
 }
 
 /// # Safety
@@ -33,7 +35,7 @@ unsafe fn do_finalize_global(obj: *mut JSObject) {
 pub(crate) unsafe fn finalize_common<T>(this: *const T) {
     if !this.is_null() {
         // The pointer can be null if the object is the unforgeable holder of that interface.
-        let _ = Box::from_raw(this as *mut T);
+        let _ = unsafe { Box::from_raw(this as *mut T) };
     }
     debug!("{} finalize: {:p}", type_name::<T>(), this);
 }
@@ -42,8 +44,10 @@ pub(crate) unsafe fn finalize_common<T>(this: *const T) {
 /// `obj` must point to a valid, non-null JS object.
 /// `this` must point to a valid, non-null instance of T.
 pub(crate) unsafe fn finalize_global<T>(obj: *mut JSObject, this: *const T) {
-    do_finalize_global(obj);
-    finalize_common::<T>(this);
+    unsafe {
+        do_finalize_global(obj);
+        finalize_common::<T>(this);
+    }
 }
 
 /// # Safety
@@ -54,11 +58,11 @@ pub(crate) unsafe fn finalize_weak_referenceable<T: WeakReferenceable>(
     this: *const T,
 ) {
     let mut slot = UndefinedValue();
-    JS_GetReservedSlot(obj, DOM_WEAK_SLOT, &mut slot);
+    unsafe { JS_GetReservedSlot(obj, DOM_WEAK_SLOT, &mut slot) };
     let weak_box_ptr = slot.to_private() as *mut WeakBox<T>;
     if !weak_box_ptr.is_null() {
         let count = {
-            let weak_box = &*weak_box_ptr;
+            let weak_box = unsafe { &*weak_box_ptr };
             assert!(weak_box.value.get().is_some());
             assert!(weak_box.count.get() > 0);
             weak_box.value.set(None);
@@ -67,8 +71,8 @@ pub(crate) unsafe fn finalize_weak_referenceable<T: WeakReferenceable>(
             count
         };
         if count == 0 {
-            mem::drop(Box::from_raw(weak_box_ptr));
+            mem::drop(unsafe { Box::from_raw(weak_box_ptr) });
         }
     }
-    finalize_common::<T>(this);
+    unsafe { finalize_common::<T>(this) };
 }

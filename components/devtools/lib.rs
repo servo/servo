@@ -552,6 +552,8 @@ impl DevtoolsInstance {
             source_info.url,
             source_content,
             source_info.content_type,
+            source_info.spidermonkey_id,
+            source_info.introduction_type,
         );
         let source_actor_name = source_actor.name.clone();
         let source_form = source_actor.source_form();

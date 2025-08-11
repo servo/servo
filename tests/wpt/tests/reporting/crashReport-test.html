@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CrashReportStorage API</title>
+<link rel="author" title="Dominic Farolino" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+'use strict';
+
+// These tests verify the throwing and promise rejection behavior of the
+// crashReport API. Each test is run in an iframe to ensure a fresh state.
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  await loadPromise;
+
+  const child_window = iframe.contentWindow;
+  // Detach the document.
+  iframe.remove();
+  assert_equals(child_window.crashReport, null, "getter returns null");
+}, 'crashReport getter returns null in detached Documents');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  await loadPromise;
+
+  // Cache the iframe's `crashReport` and other important things for the
+  // following assertions.
+  const child_window = iframe.contentWindow;
+  const cachedCrashReport = child_window.crashReport;
+  const cachedDOMExceptionConstructor = child_window.DOMException;
+
+  iframe.remove();
+  const createRejection = cachedCrashReport.initialize(256);
+  try {
+    await createRejection;
+    assert_unreached('createRejection must reject');
+  } catch (e) {
+    // Note that we should be using `promise_rejects_dom` here, but this does
+    // not reliably work with detached Windows/event loops, so we have to run
+    // some manual assertions here.
+    assert_true(e instanceof cachedDOMExceptionConstructor,
+        "promise rejects with DOMException");
+    assert_equals(e.code, cachedDOMExceptionConstructor.INVALID_STATE_ERR,
+        "promise rejects with InvalidStateError specifically");
+  }
+}, 'crashReport initialize() throws InvalidStateError in detached Documents');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  await loadPromise;
+
+  const child_window = iframe.contentWindow;
+  const cachedCrashReport = child_window.crashReport;
+  await cachedCrashReport.initialize(256);
+  assert_throws_dom('InvalidStateError', child_window.DOMException, () => {
+    // Detach the document.
+    iframe.remove();
+    cachedCrashReport.set('key', 'value');
+  });
+}, 'crashReport.set() throws InvalidStateError in detached Documents');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  await loadPromise;
+
+  const child_window = iframe.contentWindow;
+  const cachedCrashReport = child_window.crashReport;
+  await cachedCrashReport.initialize(256);
+  cachedCrashReport.set('key', 'value');
+
+  assert_throws_dom('InvalidStateError', child_window.DOMException, () => {
+    // Detach the document.
+    iframe.remove();
+    cachedCrashReport.remove('key', 'value');
+  });
+}, 'crashReport.remove() throws InvalidStateError in detached Documents');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const child_window = iframe.contentWindow;
+  // The maximum allowed size is 5MB.
+  const large_size = 5 * 1024 * 1024 + 1;
+  await promise_rejects_dom(t, 'NotAllowedError', child_window.DOMException,
+      child_window.crashReport.initialize(large_size));
+}, 'crashReport.initialize() with size > 5MB rejects with NotAllowedError');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const child_window = iframe.contentWindow;
+  child_window.crashReport.initialize(1024);
+  await promise_rejects_dom(t, 'InvalidStateError', child_window.DOMException,
+      child_window.crashReport.initialize(1024));
+}, 'Calling crashReport.initialize() a second time throws InvalidStateError');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const child_window = iframe.contentWindow;
+  child_window.crashReport.initialize(1024);
+  assert_throws_dom('InvalidStateError', child_window.DOMException, () => {
+    child_window.crashReport.set('key', 'value');
+  });
+}, 'crashReport.set() throws before initialize() resolves');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const child_window = iframe.contentWindow;
+  await child_window.crashReport.initialize(1024);
+  child_window.crashReport.set('key', 'value');
+  child_window.crashReport.remove('key');
+}, 'crashReport.set() and .remove() succeed after initialize() resolves');
+</script>
+</body>

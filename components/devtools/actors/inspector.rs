@@ -92,13 +92,8 @@ impl Actor for InspectorActor {
                     .clone()
                     .unwrap_or_else(|| registry.new_name("walker"));
 
-                let root = root_info.encode(
-                    registry,
-                    false,
-                    self.script_chan.clone(),
-                    pipeline,
-                    name.clone(),
-                );
+                let root =
+                    root_info.encode(registry, self.script_chan.clone(), pipeline, name.clone());
 
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {

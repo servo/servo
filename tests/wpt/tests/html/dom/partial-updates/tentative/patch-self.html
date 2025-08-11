@@ -15,7 +15,7 @@ promise_test(async t => {
     assert_true(writable instanceof WritableStream, "node.patchSelf() returns a writable stream");
     const response = new Response("Content", {headers: {"Content-Type": "text/html"}});
     response.body.pipeTo(writable);
-    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    assert_true(placeholder.currentPatch instanceof Patch, "currentPatch should be a Patch right after connecting a stream");
     await placeholder.currentPatch.finished;
     assert_equals(placeholder.textContent, "Content");
     assert_equals(placeholder.currentPatch, null);
@@ -29,7 +29,7 @@ promise_test(async t => {
     const writer = writable.getWriter();
     await writer.write("Text");
     const {currentPatch} = placeholder;
-    assert_true(currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    assert_true(currentPatch instanceof Patch, "currentPatch should be a Patch right after connecting a stream");
     writer.close();
     await currentPatch.finished;
     assert_equals(placeholder.textContent, "Text");

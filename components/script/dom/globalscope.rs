@@ -26,12 +26,12 @@ use content_security_policy::CspList;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
-    Compile1, CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap,
+    Compile1, CurrentGlobalOrNull, DelazificationOption, GetNonCCWObjectGlobal, HandleObject, Heap,
     InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
 };
 use js::jsval::{PrivateValue, UndefinedValue};
@@ -100,7 +100,7 @@ use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
 use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -2645,15 +2645,18 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
-        // Step 1.
+        // Step 6. Early return if global is in error reporting mode,
         if self.in_error_reporting_mode.get() {
             return;
         }
 
-        // Step 2.
+        // Step 6.1. Set global's in error reporting mode to true.
         self.in_error_reporting_mode.set(true);
 
-        // Steps 3-6.
+        // Step 6.2. Set notHandled to the result of firing an event named error at global,
+        // using ErrorEvent, with the cancelable attribute initialized to true,
+        // and additional attributes initialized according to errorInfo.
+
         // FIXME(#13195): muted errors.
         let event = ErrorEvent::new(
             self,
@@ -2668,16 +2671,15 @@ impl GlobalScope {
             can_gc,
         );
 
-        // Step 7.
-        let event_status = event
+        let not_handled = event
             .upcast::<Event>()
             .fire(self.upcast::<EventTarget>(), can_gc);
 
-        // Step 8.
+        // Step 6.3. Set global's in error reporting mode to false.
         self.in_error_reporting_mode.set(false);
 
-        // Step 9.
-        if event_status == EventStatus::NotCanceled {
+        // Step 7.
+        if not_handled {
             // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.forward_error_to_worker_object(error_info);
@@ -2759,7 +2761,8 @@ impl GlobalScope {
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
         can_gc: CanGc,
-    ) -> bool {
+        introduction_type: Option<&'static CStr>,
+    ) -> Result<(), JavaScriptEvaluationError> {
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string((*code).to_string())));
         self.evaluate_script_on_global_with_result(
             &source_code,
@@ -2769,7 +2772,7 @@ impl GlobalScope {
             fetch_options,
             script_base_url,
             can_gc,
-            None,
+            introduction_type,
         )
     }
 
@@ -2786,7 +2789,7 @@ impl GlobalScope {
         script_base_url: ServoUrl,
         can_gc: CanGc,
         introduction_type: Option<&'static CStr>,
-    ) -> bool {
+    ) -> Result<(), JavaScriptEvaluationError> {
         let cx = GlobalScope::get_cx();
 
         let ar = enter_realm(self);
@@ -2812,7 +2815,7 @@ impl GlobalScope {
                     if compiled_script.is_null() {
                         debug!("error compiling Dom string");
                         report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
-                        return false;
+                        return Err(JavaScriptEvaluationError::CompilationFailure);
                     }
                 },
                 SourceCode::Compiled(pre_compiled_script) => {
@@ -2820,6 +2823,7 @@ impl GlobalScope {
                         skipFilenameValidation: false,
                         hideScriptFromDebugger: false,
                         deferDebugMetadata: false,
+                        eagerDelazificationStrategy_: DelazificationOption::OnDemandOnly,
                     };
                     let script = InstantiateGlobalStencil(
                         *cx,
@@ -2861,10 +2865,11 @@ impl GlobalScope {
             if !result {
                 debug!("error evaluating Dom string");
                 report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+                return Err(JavaScriptEvaluationError::EvaluationFailure);
             }
 
             maybe_resume_unwind();
-            result
+            Ok(())
         }
     }
 

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::ptr;
+use std::ptr::NonNull;
 use std::sync::LazyLock;
 
 use js::conversions::jsstr_to_string;
@@ -115,7 +116,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     }
 
     let s = if id.is_string() {
-        unsafe { jsstr_to_string(*cx, id.to_string()) }
+        unsafe { jsstr_to_string(*cx, NonNull::new(id.to_string()).unwrap()) }
     } else if id.is_int() {
         // If the property key is an integer index, convert it to a String too.
         // For indexed access on the window object, which may shadow this, see

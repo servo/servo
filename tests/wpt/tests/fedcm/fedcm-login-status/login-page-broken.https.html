@@ -17,6 +17,7 @@ fedcm_test(async t => {
   await select_manifest(t, test_options);
 
   let cred_promise = navigator.credentials.get(test_options);
+  const cred_check = promise_rejects_dom(t, 'NetworkError', cred_promise);
   let type = await fedcm_get_dialog_type_promise(t);
   assert_equals(type, "ConfirmIdpLogin");
 
@@ -29,6 +30,6 @@ fedcm_test(async t => {
 
   // Because the login page never sends a signin status header, we
   // expect a promise rejection.
-  return promise_rejects_dom(t, 'NetworkError', cred_promise);
+  return cred_check;
 }, 'Tests that the promise does get resolved if a login page does not send a signin status header.');
 </script>

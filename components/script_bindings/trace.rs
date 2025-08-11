@@ -106,14 +106,14 @@ pub unsafe trait CustomTraceable {
 unsafe impl<T: CustomTraceable> CustomTraceable for Box<T> {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        (**self).trace(trc);
+        unsafe { (**self).trace(trc) };
     }
 }
 
 unsafe impl<T: JSTraceable> CustomTraceable for OnceCell<T> {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         if let Some(value) = self.get() {
-            value.trace(tracer)
+            unsafe { value.trace(tracer) }
         }
     }
 }
@@ -124,13 +124,13 @@ unsafe impl<T> CustomTraceable for Sender<T> {
 
 unsafe impl<T: JSTraceable> CustomTraceable for ServoArc<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        (**self).trace(trc)
+        unsafe { (**self).trace(trc) }
     }
 }
 
 unsafe impl<T: JSTraceable> CustomTraceable for RwLock<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        self.read().trace(trc)
+        unsafe { self.read().trace(trc) }
     }
 }
 
@@ -138,7 +138,7 @@ unsafe impl<T: JSTraceable + Eq + Hash> CustomTraceable for indexmap::IndexSet<T
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
         for e in self.iter() {
-            e.trace(trc);
+            unsafe { e.trace(trc) };
         }
     }
 }
@@ -149,7 +149,7 @@ unsafe impl<T: JSTraceable + 'static> CustomTraceable for SmallVec<[T; 1]> {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
         for e in self.iter() {
-            e.trace(trc);
+            unsafe { e.trace(trc) };
         }
     }
 }
@@ -163,8 +163,8 @@ where
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
         for (k, v) in self {
-            k.trace(trc);
-            v.trace(trc);
+            unsafe { k.trace(trc) };
+            unsafe { v.trace(trc) };
         }
     }
 }
@@ -175,7 +175,7 @@ where
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         for (s, _origin) in self.iter() {
-            s.trace(tracer)
+            unsafe { s.trace(tracer) };
         }
     }
 }
@@ -186,7 +186,7 @@ where
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         for s in self.iter() {
-            s.trace(tracer)
+            unsafe { s.trace(tracer) };
         }
     }
 }
@@ -196,7 +196,7 @@ where
     S: JSTraceable + ::style::stylesheets::StylesheetInDocument + PartialEq + 'static,
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
-        self.stylesheets.trace(tracer)
+        unsafe { self.stylesheets.trace(tracer) };
     }
 }
 
@@ -205,7 +205,7 @@ where
     Sink: JSTraceable + TendrilSink<UTF8>,
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
-        self.inner_sink().trace(tracer);
+        unsafe { self.inner_sink().trace(tracer) };
     }
 }
 
@@ -228,15 +228,17 @@ where
             ref ring,
             ref little,
         } = *self;
-        wrist.trace(trc);
-        thumb_metacarpal.trace(trc);
-        thumb_phalanx_proximal.trace(trc);
-        thumb_phalanx_distal.trace(trc);
-        thumb_phalanx_tip.trace(trc);
-        index.trace(trc);
-        middle.trace(trc);
-        ring.trace(trc);
-        little.trace(trc);
+        unsafe {
+            wrist.trace(trc);
+            thumb_metacarpal.trace(trc);
+            thumb_phalanx_proximal.trace(trc);
+            thumb_phalanx_distal.trace(trc);
+            thumb_phalanx_tip.trace(trc);
+            index.trace(trc);
+            middle.trace(trc);
+            ring.trace(trc);
+            little.trace(trc);
+        }
     }
 }
 
@@ -255,11 +257,13 @@ where
             ref phalanx_distal,
             ref phalanx_tip,
         } = *self;
-        metacarpal.trace(trc);
-        phalanx_proximal.trace(trc);
-        phalanx_intermediate.trace(trc);
-        phalanx_distal.trace(trc);
-        phalanx_tip.trace(trc);
+        unsafe {
+            metacarpal.trace(trc);
+            phalanx_proximal.trace(trc);
+            phalanx_intermediate.trace(trc);
+            phalanx_distal.trace(trc);
+            phalanx_tip.trace(trc);
+        }
     }
 }
 
@@ -281,7 +285,7 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: TreeSink<Handle = Handle> + JSTra
         }
 
         self.trace_handles(&tracer);
-        self.sink.trace(trc);
+        unsafe { self.sink.trace(trc) };
     }
 }
 
@@ -290,7 +294,7 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: TokenSink<Handle = Handle> + Cust
     CustomTraceable for Tokenizer<Sink>
 {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        self.sink.trace(trc);
+        unsafe { self.sink.trace(trc) };
     }
 }
 
@@ -314,7 +318,7 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: JSTraceable + XmlTreeSink<Handle 
 
         let tree_builder = &self.sink;
         tree_builder.trace_handles(&tracer);
-        tree_builder.sink.trace(trc);
+        unsafe { tree_builder.sink.trace(trc) };
     }
 }
 
@@ -329,7 +333,7 @@ pub struct RootedTraceableBox<T: JSTraceable + 'static>(js::gc::RootedTraceableB
 
 unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
-        self.0.trace(tracer);
+        unsafe { self.0.trace(tracer) };
     }
 }
 

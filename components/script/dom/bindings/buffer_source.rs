@@ -604,7 +604,7 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> 
     unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
-                buffer.trace(tracer);
+                unsafe { buffer.trace(tracer) };
             },
         }
     }
@@ -879,7 +879,7 @@ impl DataBlock {
             // the exact same line to fix it. Doing the cast is tricky because of the use of
             // a generic type in this parameter.
             #[allow(clippy::from_raw_with_void_ptr)]
-            drop(Arc::from_raw(free_user_data as *const _));
+            drop(unsafe { Arc::from_raw(free_user_data as *const _) });
         }
         let raw: *mut Box<[u8]> = Arc::into_raw(Arc::clone(&self.data)) as _;
         rooted!(in(*cx) let object = unsafe {

@@ -2,10 +2,10 @@
 <script src="classic.js"></script>
 <script>
     console.log("inline classic");
-    new Worker("worker.js");
+    new Worker("classic_worker.js");
 </script>
 <script type="module">
     import module from "./module.js";
     console.log("inline module");
 </script>
-<script src="https://servo.org/js/load-table.js"></script>
+<script src="http://127.0.0.1:10001/classic.js"></script>

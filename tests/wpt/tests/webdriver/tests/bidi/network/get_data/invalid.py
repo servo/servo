@@ -1,0 +1,81 @@
+import pytest
+import webdriver.bidi.error as error
+
+from .. import PAGE_EMPTY_TEXT
+
+pytestmark = pytest.mark.asyncio
+
+
+@pytest.mark.parametrize("value", [None, False, 42, {}, []])
+async def test_params_request_invalid_type(bidi_session, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.get_data(request=value, data_type="response")
+
+
+async def test_params_request_non_existent(bidi_session):
+    with pytest.raises(error.NoSuchNetworkDataException):
+        await bidi_session.network.get_data(
+            request="does_not_exist", data_type="response"
+        )
+
+
+@pytest.mark.parametrize("value", [None, False, 42, {}, []])
+async def test_params_data_type_invalid_type(
+    bidi_session, url, setup_collected_response, value
+):
+    [request, _] = await setup_collected_response(fetch_url=url(PAGE_EMPTY_TEXT))
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.get_data(request=request, data_type=value)
+
+
+@pytest.mark.parametrize("value", ["", "invalid"])
+async def test_params_data_type_invalid_value(
+    bidi_session, url, setup_collected_response, value
+):
+    [request, _] = await setup_collected_response(fetch_url=url(PAGE_EMPTY_TEXT))
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.get_data(request=request, data_type=value)
+
+
+@pytest.mark.parametrize("value", [False, 42, {}, []])
+async def test_params_collector_invalid_type(
+    bidi_session, url, setup_collected_response, value
+):
+    [request, _] = await setup_collected_response(fetch_url=url(PAGE_EMPTY_TEXT))
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.get_data(
+            request=request, data_type="response", collector=value
+        )
+
+
+async def test_params_collector_non_existent(
+    bidi_session, url, setup_collected_response
+):
+    [request, _] = await setup_collected_response(fetch_url=url(PAGE_EMPTY_TEXT))
+    with pytest.raises(error.NoSuchNetworkCollectorException):
+        await bidi_session.network.get_data(
+            request=request, data_type="response", collector="does_not_exist"
+        )
+
+
+@pytest.mark.parametrize("value", ["", "true", "false", 42, {}, []])
+async def test_params_disown_invalid_type(
+    bidi_session, url, setup_collected_response, value
+):
+    [request, _] = await setup_collected_response(fetch_url=url(PAGE_EMPTY_TEXT))
+
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.get_data(
+            request=request, data_type="response", disown=value
+        )
+
+
+async def test_params_disown_true_without_collector(
+    bidi_session, url, setup_collected_response
+):
+    [request, _] = await setup_collected_response(fetch_url=url(PAGE_EMPTY_TEXT))
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.get_data(
+            request=request, data_type="response", disown=True
+        )
+

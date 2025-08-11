@@ -390,26 +390,29 @@ promise_test(async testCase => {
 }, 'cookieStore.set with whitespace only name and value');
 
 promise_test(async testCase => {
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('a b');
-  });
-  await cookieStore.set('a b', 'x y');
-  const cookie = await cookieStore.get('a b');
-  assert_equals(cookie.value, "x y");
+  const tests = [
+    { set: ['a b', 'x y'], get: ['a b', 'x y'] },
+    { set: ['a ', 'x'], get: ['a', 'x'] },
+    { set: ['a\t', 'x'], get: ['a', 'x'] },
+    { set: ['  a', 'x'], get: ['a', 'x'] },
+    { set: [' \t a', 'x'], get: ['a', 'x'] },
+    { set: [' \t a  \t\t', 'x'], get: ['a', 'x'] },
+    { set: ['a', 'x '], get: ['a', 'x'] },
+    { set: ['a', 'x\t'], get: ['a', 'x'] },
+    { set: ['a', ' x'], get: ['a', 'x'] },
+    { set: ['a', ' \t x'], get: ['a', 'x'] },
+    { set: ['a', ' \t x  \t\t'], get: ['a', 'x'] },
+  ];
 
-  await promise_rejects_js(testCase, TypeError, cookieStore.set(
-      { name: 'a  ',
-        value: 'x' }));
+  for (const t of tests) {
+    await cookieStore.set(t.set[0], t.set[1]);
+    let cookie = await cookieStore.get(t.get[0]);
+    assert_equals(cookie.value, t.get[1]);
 
-  await promise_rejects_js(testCase, TypeError, cookieStore.set(
-      { name: '  a',
-        value: 'x' }));
+    await cookieStore.delete(t.get[0]);
 
-  await promise_rejects_js(testCase, TypeError, cookieStore.set(
-      { name: 'a',
-        value: 'x ' }));
+    cookie = await cookieStore.get(t.get[0]);
+    assert_equals(cookie, null);
+  }
 
-  await promise_rejects_js(testCase, TypeError, cookieStore.set(
-      { name: 'a',
-        value: 'x ' }));
 }, 'cookieStore.set with whitespace at begining or end');

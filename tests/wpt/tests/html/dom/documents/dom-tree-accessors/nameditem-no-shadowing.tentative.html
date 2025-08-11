@@ -9,9 +9,11 @@
 <img name="constructor">
 <img name="currentScript">
 <img name="forms">
+<img name="onreadystatechange">
 
 <!-- interface Node -->
 <img name="firstChild">
+<img name="isSameNode">
 
 <!-- Object.prototype -->
 <img name="__proto__">
@@ -33,9 +35,18 @@ test(function() {
 }, "document.forms is not shadowed");
 
 test(function() {
+  assert_equals(document.onreadystatechange, null);
+}, "document.onreadystatechange is not shadowed");
+
+test(function() {
   assert_true(document.firstChild instanceof DocumentType);
   assert_equals(document.firstChild, document.childNodes[0]);
 }, "document.firstChild is not shadowed");
+
+test(function() {
+  assert_true(document.isSameNode instanceof Function);
+  assert_true(document.isSameNode(document));
+}, "document.isSameNode() is not shadowed");
 
 test(function() {
   assert_equals(document.__proto__, HTMLDocument.prototype);

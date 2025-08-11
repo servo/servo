@@ -71,7 +71,7 @@ impl<T: DomObject> ToLayout<T> for Dom<T> {
     unsafe fn to_layout(&self) -> LayoutDom<T> {
         assert_in_layout();
         LayoutDom {
-            value: self.as_ptr().as_ref().unwrap(),
+            value: unsafe { self.as_ptr().as_ref().unwrap() },
         }
     }
 }
@@ -162,7 +162,7 @@ impl LayoutDom<'_, Node> {
         assert_in_layout();
         let TrustedNodeAddress(addr) = inner;
         LayoutDom {
-            value: &*(addr as *const Node),
+            value: unsafe { &*(addr as *const Node) },
         }
     }
 }
@@ -268,7 +268,7 @@ impl<T: DomObject> MutNullableDom<T> {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) unsafe fn get_inner_as_layout(&self) -> Option<LayoutDom<T>> {
         assert_in_layout();
-        (*self.ptr.get()).as_ref().map(|js| js.to_layout())
+        unsafe { (*self.ptr.get()).as_ref().map(|js| js.to_layout()) }
     }
 
     /// Get a rooted value out of this object
@@ -385,7 +385,7 @@ impl<T: DomObject> MallocSizeOf for DomOnceCell<T> {
 unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         if let Some(ptr) = self.ptr.get() {
-            ptr.trace(trc);
+            unsafe { ptr.trace(trc) };
         }
     }
 }
@@ -407,7 +407,7 @@ where
         // This doesn't compile if Dom and LayoutDom don't have the same
         // representation.
         let _ = mem::transmute::<Dom<T>, LayoutDom<T>>;
-        &*(slice as *const [Dom<T>] as *const [LayoutDom<T>])
+        unsafe { &*(slice as *const [Dom<T>] as *const [LayoutDom<T>]) }
     }
 }
 

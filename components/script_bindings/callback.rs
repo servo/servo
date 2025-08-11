@@ -96,11 +96,13 @@ impl<D: DomTypes> CallbackObject<D> {
     unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.callback.set(callback);
         self.permanent_js_root.set(ObjectValue(callback));
-        assert!(AddRawValueRoot(
-            *cx,
-            self.permanent_js_root.get_unsafe(),
-            b"CallbackObject::root\n".as_c_char_ptr()
-        ));
+        unsafe {
+            assert!(AddRawValueRoot(
+                *cx,
+                self.permanent_js_root.get_unsafe(),
+                b"CallbackObject::root\n".as_c_char_ptr()
+            ));
+        }
     }
 }
 
@@ -173,7 +175,7 @@ impl<D: DomTypes> CallbackFunction<D> {
     /// # Safety
     /// `callback` must point to a valid, non-null JSObject.
     pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
-        self.object.init(cx, callback);
+        unsafe { self.object.init(cx, callback) };
     }
 }
 
@@ -205,7 +207,7 @@ impl<D: DomTypes> CallbackInterface<D> {
     /// # Safety
     /// `callback` must point to a valid, non-null JSObject.
     pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
-        self.object.init(cx, callback);
+        unsafe { self.object.init(cx, callback) };
     }
 
     /// Returns the property with the given `name`, if it is a callable object,

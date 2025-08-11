@@ -1,26 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-#![allow(unused_imports)]
-use core::ffi::c_void;
 use std::cell::Cell;
 use std::ffi::CStr;
 use std::fs::read_to_string;
 use std::path::PathBuf;
-use std::process::Command;
-use std::ptr;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, WebViewId};
-use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
-use html5ever::serialize::TraversalScope;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
-use ipc_channel::ipc;
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::jsval::UndefinedValue;
-use js::rust::{CompileOptionsWrapper, HandleObject, Stencil, transform_str_to_source_text};
+use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -28,25 +20,21 @@ use net_traits::request::{
     RequestBuilder, RequestId,
 };
 use net_traits::{
-    FetchMetadata, FetchResponseListener, IpcSend, Metadata, NetworkError, ResourceFetchTiming,
+    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
-use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
-use crate::HasParent;
 use crate::document_loader::LoadType;
-use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElement_Binding::HTMLElementMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     TrustedScriptOrString, TrustedScriptURLOrUSVString,
 };
@@ -56,7 +44,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
@@ -65,7 +53,7 @@ use crate::dom::element::{
     referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
     set_cross_origin_attribute,
 };
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
@@ -75,14 +63,13 @@ use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_module::{
     ImportMap, ModuleOwner, ScriptFetchOptions, fetch_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
-use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::unminify::{ScriptSource, unminify_js};
 
 impl ScriptSource for ScriptOrigin {
@@ -111,71 +98,6 @@ impl ScriptSource for ScriptOrigin {
         self.external
     }
 }
-
-// TODO Implement offthread compilation in mozjs
-/*pub(crate) struct OffThreadCompilationContext {
-    script_element: Trusted<HTMLScriptElement>,
-    script_kind: ExternalScriptKind,
-    final_url: ServoUrl,
-    url: ServoUrl,
-    task_source: TaskSource,
-    script_text: String,
-    fetch_options: ScriptFetchOptions,
-}
-
-#[allow(unsafe_code)]
-unsafe extern "C" fn off_thread_compilation_callback(
-    token: *mut OffThreadToken,
-    callback_data: *mut c_void,
-) {
-    let mut context = Box::from_raw(callback_data as *mut OffThreadCompilationContext);
-    let token = OffThreadCompilationToken(token);
-
-    let url = context.url.clone();
-    let final_url = context.final_url.clone();
-    let script_element = context.script_element.clone();
-    let script_kind = context.script_kind;
-    let script = std::mem::take(&mut context.script_text);
-    let fetch_options = context.fetch_options.clone();
-
-    // Continue with <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
-    let _ = context.task_source.queue(
-        task!(off_thread_compile_continue: move || {
-            let elem = script_element.root();
-            let global = elem.global();
-            let cx = GlobalScope::get_cx();
-            let _ar = enter_realm(&*global);
-
-            // TODO: This is necessary because the rust compiler will otherwise try to move the *mut
-            // OffThreadToken directly, which isn't marked as Send. The correct fix is that this
-            // type is marked as Send in mozjs.
-            let used_token = token;
-
-            let compiled_script = FinishOffThreadStencil(*cx, used_token.0, ptr::null_mut());
-            let load = if compiled_script.is_null() {
-                Err(NoTrace(NetworkError::Internal(
-                    "Off-thread compilation failed.".into(),
-                )))
-            } else {
-                let script_text = DOMString::from(script);
-                let code = SourceCode::Compiled(CompiledSourceCode {
-                    source_code: compiled_script,
-                    original_text: Rc::new(script_text),
-                });
-
-                Ok(ScriptOrigin {
-                    code,
-                    url: final_url,
-                    external: true,
-                    fetch_options,
-                    type_: ScriptType::Classic,
-                })
-            };
-
-            finish_fetching_a_classic_script(&elem, script_kind, url, load);
-        })
-    );
-}*/
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
@@ -213,6 +135,11 @@ pub(crate) struct HTMLScriptElement {
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#htmlscriptelement-script-text>
     script_text: DomRefCell<DOMString>,
+
+    /// `introductionType` value to set in the `CompileOptionsWrapper`, overriding the usual
+    /// `srcScript` or `inlineScript` that this script would normally use.
+    #[no_trace]
+    introduction_type_override: Cell<Option<&'static CStr>>,
 }
 
 impl HTMLScriptElement {
@@ -232,6 +159,7 @@ impl HTMLScriptElement {
             preparation_time_document: MutNullableDom::new(None),
             line_number: creator.return_line_number(),
             script_text: DomRefCell::new(DOMString::new()),
+            introduction_type_override: Cell::new(None),
         }
     }
 
@@ -688,7 +616,10 @@ impl HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
-    pub(crate) fn prepare(&self, can_gc: CanGc) {
+    pub(crate) fn prepare(&self, introduction_type_override: Option<&'static CStr>, can_gc: CanGc) {
+        self.introduction_type_override
+            .set(introduction_type_override);
+
         // Step 1. If el's already started is true, then return.
         if self.already_started.get() {
             return;
@@ -1092,40 +1023,6 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        if let Some(chan) = self.global().devtools_chan() {
-            let pipeline_id = self.global().pipeline_id();
-
-            let (url, content, content_type, is_external) = if script.external {
-                let content = match &script.code {
-                    SourceCode::Text(text) => text.to_string(),
-                    SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
-                };
-
-                // content_type: https://html.spec.whatwg.org/multipage/#scriptingLanguages
-                (script.url.clone(), Some(content), "text/javascript", true)
-            } else {
-                // TODO: if needed, fetch the page again, in the same way as in the original request.
-                // Fetch it from cache, even if the original request was non-idempotent (e.g. POST).
-                // If we can’t fetch it from cache, we should probably give up, because with a real
-                // fetch, the server could return a different response.
-
-                // TODO: handle cases where Content-Type is not text/html.
-                (doc.url(), None, "text/html", false)
-            };
-
-            let source_info = SourceInfo {
-                url,
-                external: is_external,
-                worker_id: None,
-                content,
-                content_type: Some(content_type.to_string()),
-            };
-            let _ = chan.send(ScriptToDevtoolsControlMsg::CreateSourceActor(
-                pipeline_id,
-                source_info,
-            ));
-        }
-
         if script.type_ == ScriptType::Classic {
             unminify_js(&mut script);
             self.substitute_with_local_script(&mut script);
@@ -1146,7 +1043,14 @@ impl HTMLScriptElement {
         // Step 6.
         let document = self.owner_document();
         let old_script = document.GetCurrentScript();
-        let introduction_type = (!script.external).then_some(IntroductionType::INLINE_SCRIPT);
+        let introduction_type =
+            self.introduction_type_override
+                .get()
+                .unwrap_or(if script.external {
+                    IntroductionType::SRC_SCRIPT
+                } else {
+                    IntroductionType::INLINE_SCRIPT
+                });
 
         match script.type_ {
             ScriptType::Classic => {
@@ -1155,7 +1059,7 @@ impl HTMLScriptElement {
                 } else {
                     document.set_current_script(Some(self))
                 }
-                self.run_a_classic_script(&script, can_gc, introduction_type);
+                self.run_a_classic_script(&script, can_gc, Some(introduction_type));
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
@@ -1202,7 +1106,7 @@ impl HTMLScriptElement {
             self.line_number as u32
         };
         rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-        window
+        _ = window
             .as_global_scope()
             .evaluate_script_on_global_with_result(
                 &script.code,
@@ -1381,7 +1285,7 @@ impl HTMLScriptElement {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         can_gc: CanGc,
-    ) -> EventStatus {
+    ) -> bool {
         let window = self.owner_window();
         let event = Event::new(window.upcast(), type_, bubbles, cancelable, can_gc);
         event.fire(self.upcast(), can_gc)
@@ -1409,7 +1313,7 @@ impl VirtualMethods for HTMLScriptElement {
         if *attr.local_name() == local_name!("src") {
             if let AttributeMutation::Set(_) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                    self.prepare(can_gc);
+                    self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
                 }
             }
         }
@@ -1428,7 +1332,7 @@ impl VirtualMethods for HTMLScriptElement {
             // running any scripts until the DOM tree is safe for interactions.
             self.owner_document().add_delayed_task(
                 task!(ScriptPrepare: |script: DomRoot<HTMLScriptElement>| {
-                    script.prepare(CanGc::note());
+                    script.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::note());
                 }),
             );
         }
@@ -1441,7 +1345,7 @@ impl VirtualMethods for HTMLScriptElement {
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
-            self.prepare(CanGc::note());
+            self.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::note());
         }
     }
 

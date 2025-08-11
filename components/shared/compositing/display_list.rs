@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use bitflags::bitflags;
-use embedder_traits::{Cursor, ViewportDetails};
+use embedder_traits::ViewportDetails;
 use euclid::{SideOffsets2D, Transform3D};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -55,20 +55,6 @@ impl From<Overflow> for ScrollType {
 pub struct AxesScrollSensitivity {
     pub x: ScrollType,
     pub y: ScrollType,
-}
-
-/// Information that Servo keeps alongside WebRender display items
-/// in order to add more context to hit test results.
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
-pub struct HitTestInfo {
-    /// The id of the node of this hit test item.
-    pub node: u64,
-
-    /// The cursor of this node's hit test item.
-    pub cursor: Option<Cursor>,
-
-    /// The id of the [ScrollTree] associated with this hit test item.
-    pub scroll_tree_node: ScrollTreeNodeId,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -514,17 +500,33 @@ impl ScrollTree {
         })
     }
 
-    /// Scroll the given scroll node on this scroll tree. If the node cannot be scrolled,
-    /// because it isn't a scrollable node or it's already scrolled to the maximum scroll
+    fn node_with_external_scroll_node_id(
+        &self,
+        external_id: &ExternalScrollId,
+    ) -> Option<ScrollTreeNodeId> {
+        self.nodes
+            .iter()
+            .enumerate()
+            .find_map(|(index, node)| match &node.info {
+                SpatialTreeNodeInfo::Scroll(info) if info.external_id == *external_id => {
+                    Some(ScrollTreeNodeId { index })
+                },
+                _ => None,
+            })
+    }
+
+    /// Scroll the scroll node with the given [`ExternalScrollId`] on this scroll tree. If
+    /// the node cannot be scrolled, because it's already scrolled to the maximum scroll
     /// extent, try to scroll an ancestor of this node. Returns the node scrolled and the
     /// new offset if a scroll was performed, otherwise returns None.
     pub fn scroll_node_or_ancestor(
         &mut self,
-        scroll_node_id: &ScrollTreeNodeId,
+        external_id: &ExternalScrollId,
         scroll_location: ScrollLocation,
         context: ScrollType,
     ) -> Option<(ExternalScrollId, LayoutVector2D)> {
-        let result = self.scroll_node_or_ancestor_inner(scroll_node_id, scroll_location, context);
+        let scroll_node_id = self.node_with_external_scroll_node_id(external_id)?;
+        let result = self.scroll_node_or_ancestor_inner(&scroll_node_id, scroll_location, context);
         if result.is_some() {
             self.invalidate_cached_transforms();
         }
@@ -713,6 +715,22 @@ impl ScrollTree {
         };
         root_node.invalidate_cached_transforms(self, false /* ancestors_invalid */);
     }
+
+    fn external_scroll_id_for_scroll_tree_node(
+        &self,
+        id: ScrollTreeNodeId,
+    ) -> Option<ExternalScrollId> {
+        let mut maybe_node = Some(self.get_node(&id));
+
+        while let Some(node) = maybe_node {
+            if let Some(external_scroll_id) = node.external_id() {
+                return Some(external_scroll_id);
+            }
+            maybe_node = node.parent.map(|id| self.get_node(&id));
+        }
+
+        None
+    }
 }
 
 /// In order to pretty print the [ScrollTree] structure, we are converting
@@ -787,11 +805,6 @@ pub struct CompositorDisplayListInfo {
     /// The epoch of the display list.
     pub epoch: Epoch,
 
-    /// An array of `HitTestInfo` which is used to store information
-    /// to assist the compositor to take various actions (set the cursor,
-    /// scroll without layout) using a WebRender hit test result.
-    pub hit_test_info: Vec<HitTestInfo>,
-
     /// A ScrollTree used by the compositor to scroll the contents of the
     /// display list.
     pub scroll_tree: ScrollTree,
@@ -856,7 +869,6 @@ impl CompositorDisplayListInfo {
             viewport_details,
             content_size,
             epoch,
-            hit_test_info: Default::default(),
             scroll_tree,
             root_reference_frame_id,
             root_scroll_node_id,
@@ -865,27 +877,12 @@ impl CompositorDisplayListInfo {
         }
     }
 
-    /// Add or re-use a duplicate HitTestInfo entry in this `CompositorHitTestInfo`
-    /// and return the index.
-    pub fn add_hit_test_info(
-        &mut self,
-        node: u64,
-        cursor: Option<Cursor>,
-        scroll_tree_node: ScrollTreeNodeId,
-    ) -> usize {
-        let hit_test_info = HitTestInfo {
-            node,
-            cursor,
-            scroll_tree_node,
-        };
-
-        if let Some(last) = self.hit_test_info.last() {
-            if hit_test_info == *last {
-                return self.hit_test_info.len() - 1;
-            }
-        }
-
-        self.hit_test_info.push(hit_test_info);
-        self.hit_test_info.len() - 1
+    pub fn external_scroll_id_for_scroll_tree_node(
+        &self,
+        id: ScrollTreeNodeId,
+    ) -> ExternalScrollId {
+        self.scroll_tree
+            .external_scroll_id_for_scroll_tree_node(id)
+            .unwrap_or(ExternalScrollId(0, self.pipeline_id))
     }
 }

@@ -483,7 +483,7 @@ pub enum Canvas2dMsg {
     ),
     ClearRect(Rect<f32>, Transform2D<f32>),
     ClipPath(Path, FillRule, Transform2D<f32>),
-    PopClip,
+    PopClips(usize),
     FillPath(
         FillOrStrokeStyle,
         Path,

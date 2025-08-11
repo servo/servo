@@ -287,7 +287,7 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor):
         self.sanitizer_enabled = sanitizer_enabled
         self.reuse_window = reuse_window
 
-    def get_or_create_test_window(self, protocol):
+    def create_test_window(self, protocol):
         test_window = self.protocol.testharness.persistent_test_window
         if test_window:
             try:
@@ -303,7 +303,7 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor):
                 protocol.base.set_window(protocol.testharness.runner_handle)
                 test_window = self.protocol.testharness.persistent_test_window = None
         if not test_window:
-            test_window = super().get_or_create_test_window(protocol)
+            test_window = super().create_test_window(protocol)
             if self.reuse_window:
                 self.logger.info(f"Created new test window {test_window}")
             # Without `--reuse-window`, each testharness test always creates a

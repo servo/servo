@@ -29,11 +29,13 @@ use crate::dom::NodeExt;
 use crate::fragment_tree::{
     BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
 };
-use crate::geom::{LazySize, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
+use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
-use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult};
+use crate::sizing::{
+    ComputeInlineContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
+};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, LayoutStyle};
-use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
+use crate::{ConstraintSpace, ContainingBlock};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct ReplacedContents {
@@ -471,7 +473,9 @@ impl ReplacedContents {
             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
             content_block_size,
             content_inline_size_for_table: None,
-            depends_on_block_constraints: false,
+            // The result doesn't depend on `containing_block_for_children.size.block`,
+            // but it depends on `lazy_block_size`, which is probably tied to that.
+            depends_on_block_constraints: true,
             fragments: self.make_fragments(layout_context, &base.style, size),
             specific_layout_info: None,
         }
