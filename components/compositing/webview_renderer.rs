@@ -340,6 +340,16 @@ impl WebViewRenderer {
                     .into_iter()
                     .nth(0);
                 if hit_test_result.is_none() {
+                    if event.webdriver_message_id().is_some() {
+                        if let Err(error) = self
+                            .global
+                            .borrow()
+                            .constellation_sender
+                            .send(EmbedderToConstellationMessage::WebDriverHitTestFailed)
+                        {
+                            warn!("Notifying failed hit test to constellation failed ({error:?}).");
+                        }
+                    }
                     warn!("Empty hit test result for input event, ignoring.");
                     return false;
                 }

@@ -56,6 +56,7 @@ servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 stylo_traits = { workspace = true }
 tracing = { workspace = true, optional = true }
+webdriver = { workspace = true }
 webgpu = { path = "../webgpu" }
 webgpu_traits = { workspace = true }
 webrender = { workspace = true }

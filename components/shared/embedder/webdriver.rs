@@ -288,7 +288,7 @@ pub enum WebDriverFrameId {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct WebDriverCommandResponse {
-    pub id: WebDriverMessageId,
+    pub id: Result<WebDriverMessageId, ErrorStatus>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

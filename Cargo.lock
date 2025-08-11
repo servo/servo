@@ -1484,6 +1484,7 @@ dependencies = [
  "servo_url",
  "stylo_traits",
  "tracing",
+ "webdriver",
  "webgpu",
  "webgpu_traits",
  "webrender",

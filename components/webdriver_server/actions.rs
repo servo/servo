@@ -189,12 +189,13 @@ impl Handler {
         for _ in 0..self.num_pending_actions.get() {
             match self.webdriver_response_receiver.recv() {
                 Ok(response) => {
+                    let response_id = response.id?;
                     let current_waiting_id = self
                         .current_action_id
                         .get()
                         .expect("Current id should be set before dispatch_actions_inner is called");
 
-                    if current_waiting_id != response.id {
+                    if current_waiting_id != response_id {
                         error!("Dispatch actions completed with wrong id in response");
                         return Err(ErrorStatus::UnknownError);
                     }
