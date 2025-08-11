@@ -244,7 +244,6 @@ class MergePRStep(Step):
             run.steps = []
             run.add_step(CommentStep(self.pull_request, COULD_NOT_MERGE_CHANGES_UPSTREAM_COMMENT))
             run.add_step(CommentStep(run.servo_pr, COULD_NOT_MERGE_CHANGES_DOWNSTREAM_COMMENT))
-            # pyrefly: ignore  # bad-argument-type
             self.pull_request.add_labels(["stale-servo-export"])
 
 
