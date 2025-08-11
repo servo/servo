@@ -49,6 +49,22 @@ jobs:
     uses: ./.github/workflows/mac.yml
     secrets: inherit
     with:
+      arm: false
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+      wpt: ${{ inputs.wpt }}
+      unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
+
+  macos-arm:
+    if: ${{ inputs.workflow == 'macos-arm' }}
+    name: MacOS
+    uses: ./.github/workflows/mac.yml
+    secrets: inherit
+    with:
+      arm: true
       profile: ${{ inputs.profile }}
       build-args: ${{ inputs.build-args }}
       wpt: ${{ inputs.wpt }}
