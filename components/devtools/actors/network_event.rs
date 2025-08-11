@@ -172,8 +172,10 @@ pub struct ResponseCookieObj {
     pub path: Option<String>,
     pub domain: Option<String>,
     pub expires: Option<String>,
+    #[serde(rename = "httpOnly")]
     pub http_only: Option<bool>,
     pub secure: Option<bool>,
+    #[serde(rename = "sameSite")]
     pub same_site: Option<String>,
 }
 
