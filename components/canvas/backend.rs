@@ -20,7 +20,7 @@ pub(crate) trait GenericDrawTarget {
     fn new(size: Size2D<u32>) -> Self;
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
 
-    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>);
+    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>);
     fn copy_surface(
         &mut self,
         surface: Self::SourceSurface,
@@ -35,7 +35,7 @@ pub(crate) trait GenericDrawTarget {
         source: Rect<f64>,
         filter: Filter,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     );
     fn draw_surface_with_shadow(
         &self,
@@ -50,7 +50,7 @@ pub(crate) trait GenericDrawTarget {
         fill_rule: FillRule,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     );
     fn fill_text(
         &mut self,
@@ -58,18 +58,18 @@ pub(crate) trait GenericDrawTarget {
         start: Point2D<f32>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     );
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     );
     fn get_size(&self) -> Size2D<i32>;
     fn pop_clip(&mut self);
-    fn push_clip(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f32>);
+    fn push_clip(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f64>);
     fn push_clip_rect(&mut self, rect: &Rect<i32>);
     fn stroke(
         &mut self,
@@ -77,7 +77,7 @@ pub(crate) trait GenericDrawTarget {
         style: FillOrStrokeStyle,
         line_options: LineOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     );
     fn stroke_rect(
         &mut self,
@@ -85,7 +85,7 @@ pub(crate) trait GenericDrawTarget {
         style: FillOrStrokeStyle,
         line_options: LineOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     );
     fn surface(&mut self) -> Self::SourceSurface;
     fn image_descriptor_and_serializable_data(

@@ -105,7 +105,7 @@ pub(crate) struct CanvasContextState {
     line_dash: Vec<f64>,
     line_dash_offset: f64,
     #[no_trace]
-    transform: Transform2D<f32>,
+    transform: Transform2D<f64>,
     shadow_offset_x: f64,
     shadow_offset_y: f64,
     shadow_blur: f64,
@@ -1005,7 +1005,7 @@ impl CanvasState {
         (source_rect, dest_rect)
     }
 
-    fn update_transform(&self, transform: Transform2D<f32>) {
+    fn update_transform(&self, transform: Transform2D<f64>) {
         let mut state = self.state.borrow_mut();
         self.current_default_path
             .borrow_mut()
@@ -1991,7 +1991,7 @@ impl CanvasState {
         }
 
         let transform = self.state.borrow().transform;
-        self.update_transform(transform.pre_scale(x as f32, y as f32))
+        self.update_transform(transform.pre_scale(x, y))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-rotate
@@ -2002,10 +2002,7 @@ impl CanvasState {
 
         let (sin, cos) = (angle.sin(), angle.cos());
         let transform = self.state.borrow().transform;
-        self.update_transform(
-            Transform2D::new(cos as f32, sin as f32, -sin as f32, cos as f32, 0.0, 0.0)
-                .then(&transform),
-        )
+        self.update_transform(Transform2D::new(cos, sin, -sin, cos, 0.0, 0.0).then(&transform))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-translate
@@ -2015,7 +2012,7 @@ impl CanvasState {
         }
 
         let transform = self.state.borrow().transform;
-        self.update_transform(transform.pre_translate(vec2(x as f32, y as f32)))
+        self.update_transform(transform.pre_translate(vec2(x, y)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-transform
@@ -2031,16 +2028,13 @@ impl CanvasState {
         }
 
         let transform = self.state.borrow().transform;
-        self.update_transform(
-            Transform2D::new(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32)
-                .then(&transform),
-        )
+        self.update_transform(Transform2D::new(a, b, c, d, e, f).then(&transform))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
     pub(crate) fn get_transform(&self, global: &GlobalScope, can_gc: CanGc) -> DomRoot<DOMMatrix> {
         let transform = self.state.borrow_mut().transform;
-        DOMMatrix::new(global, true, transform.cast::<f64>().to_3d(), can_gc)
+        DOMMatrix::new(global, true, transform.to_3d(), can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>
@@ -2057,9 +2051,7 @@ impl CanvasState {
         }
 
         // Step 2. Reset the current transformation matrix to the matrix described by:
-        self.update_transform(Transform2D::new(
-            a as f32, b as f32, c as f32, d as f32, e as f32, f as f32,
-        ))
+        self.update_transform(Transform2D::new(a, b, c, d, e, f))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform-matrix>
