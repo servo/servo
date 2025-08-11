@@ -1101,7 +1101,7 @@ fn handle_send_keys_file(
     // Step 6. Set the selected files on the input event.
     // TODO: If multiple is true files are be appended to element's selected files.
     // Step 7. Fire input and change event (should already be fired in `htmlinputelement.rs`)
-    if file_input.select_files(Some(files), true, can_gc).is_err() {
+    if file_input.select_files(Some(files), can_gc).is_err() {
         return Err(ErrorStatus::InvalidArgument);
     }
 

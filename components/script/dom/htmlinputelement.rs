@@ -31,6 +31,7 @@ use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg};
 use net_traits::{CoreResourceMsg, IpcSend};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use servo_config::pref;
 use style::attr::AttrValue;
 use style::selector_parser::PseudoElement;
 use style::str::{split_commas, str_join};
@@ -1963,7 +1964,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // check-tidy: no specs after this line
     fn SelectFiles(&self, paths: Vec<DOMString>, can_gc: CanGc) {
         if self.input_type() == InputType::File {
-            let _ = self.select_files(Some(paths), false, can_gc);
+            let _ = self.select_files(Some(paths), can_gc);
         }
     }
 
@@ -2282,7 +2283,6 @@ impl HTMLInputElement {
     pub(crate) fn select_files(
         &self,
         opt_test_paths: Option<Vec<DOMString>>,
-        append: bool,
         can_gc: CanGc,
     ) -> FileManagerResult<()> {
         let window = self.owner_window();
@@ -2298,7 +2298,7 @@ impl HTMLInputElement {
         if self.Multiple() {
             // When using WebDriver command element send keys,
             // we are expected to append the files to the existing filelist.
-            if append {
+            if pref!(dom_testing_html_input_element_select_files_enabled) {
                 let filelist = self.filelist.get();
                 if let Some(filelist) = filelist {
                     for i in 0..filelist.Length() {
@@ -3480,7 +3480,7 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
             InputType::File => {
-                let _ = self.select_files(None, false, can_gc);
+                let _ = self.select_files(None, can_gc);
             },
             // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
             InputType::Color => {
