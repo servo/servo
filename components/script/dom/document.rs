@@ -4128,8 +4128,7 @@ impl Document {
             string = TrustedHTML::get_trusted_script_compliant_string(
                 &self.global(),
                 TrustedHTMLOrString::String(string.into()),
-                containing_class,
-                field,
+                &format!("{} {}", containing_class, field),
                 can_gc,
             )?
             .as_ref()

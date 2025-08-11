@@ -616,17 +616,15 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, the given value, "HTMLIFrameElement srcdoc", and "script".
         let element = self.upcast::<Element>();
-        let local_name = &local_name!("srcdoc");
         let value = TrustedHTML::get_trusted_script_compliant_string(
             &element.owner_global(),
             value,
-            "HTMLIFrameElement",
-            local_name,
+            "HTMLIFrameElement srcdoc",
             can_gc,
         )?;
         // Step 2: Set an attribute value given this, srcdoc's local name, and compliantString.
         element.set_attribute(
-            local_name,
+            &local_name!("srcdoc"),
             AttrValue::String(value.as_ref().to_owned()),
             can_gc,
         );
