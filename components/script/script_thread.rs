@@ -49,15 +49,14 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    EmbedderMsg, FocusSequenceNumber, InputEvent, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionActionType, MouseButton, MouseButtonAction,
-    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    FocusSequenceNumber, InputEvent, JavaScriptEvaluationError, JavaScriptEvaluationId,
+    MediaSessionActionType, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
-use html5ever::{local_name, ns};
 use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
@@ -115,9 +114,7 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{
-    Dom, DomRoot, MutNullableDom, RootCollection, ThreadLocalStackRoots,
-};
+use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
@@ -130,11 +127,10 @@ use crate::dom::document::{
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::node::NodeTraits;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
@@ -252,9 +248,6 @@ pub struct ScriptThread {
 
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
-
-    /// The topmost element over the mouse.
-    topmost_mouse_over_target: MutNullableDom<Element>,
 
     /// List of pipelines that have been owned and closed by this script thread.
     #[no_trace]
@@ -978,7 +971,6 @@ impl ScriptThread {
             timer_scheduler: Default::default(),
             microtask_queue,
             js_runtime,
-            topmost_mouse_over_target: MutNullableDom::new(Default::default()),
             closed_pipelines: DomRefCell::new(HashSet::new()),
             mutation_observer_microtask_queued: Default::default(),
             mutation_observers: Default::default(),
@@ -1053,59 +1045,7 @@ impl ScriptThread {
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
-        // Get the previous target temporarily
-        let prev_mouse_over_target = self.topmost_mouse_over_target.get();
-
-        unsafe {
-            document.handle_mouse_move_event(input_event, &self.topmost_mouse_over_target, can_gc)
-        }
-
-        // Short-circuit if nothing changed
-        if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
-            return;
-        }
-
-        let mut state_already_changed = false;
-
-        // Notify Constellation about the topmost anchor mouse over target.
-        let window = document.window();
-        if let Some(target) = self.topmost_mouse_over_target.get() {
-            if let Some(anchor) = target
-                .upcast::<Node>()
-                .inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                .next()
-            {
-                let status = anchor
-                    .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("href"))
-                    .and_then(|href| {
-                        let value = href.value();
-                        let url = document.url();
-                        url.join(&value).map(|url| url.to_string()).ok()
-                    });
-                let event = EmbedderMsg::Status(document.webview_id(), status);
-                window.send_to_embedder(event);
-
-                state_already_changed = true;
-            }
-        }
-
-        // We might have to reset the anchor state
-        if !state_already_changed {
-            if let Some(target) = prev_mouse_over_target {
-                if target
-                    .upcast::<Node>()
-                    .inclusive_ancestors(ShadowIncluding::No)
-                    .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                    .next()
-                    .is_some()
-                {
-                    let event = EmbedderMsg::Status(window.webview_id(), None);
-                    window.send_to_embedder(event);
-                }
-            }
-        }
+        unsafe { document.handle_mouse_move_event(input_event, can_gc) }
     }
 
     /// Process compositor events as part of a "update the rendering task".
@@ -1131,12 +1071,10 @@ impl ScriptThread {
                     document.handle_mouse_button_event(mouse_button_event, &event, can_gc);
                 },
                 InputEvent::MouseMove(_) => {
-                    // The event itself is unecessary here, because the point in the viewport is in the hit test.
                     self.process_mouse_move_event(&document, &event, can_gc);
                 },
-                InputEvent::MouseLeave(_) => {
-                    self.topmost_mouse_over_target.take();
-                    document.handle_mouse_leave_event(&event, can_gc);
+                InputEvent::MouseLeave(mouse_leave_event) => {
+                    document.handle_mouse_leave_event(&event, &mouse_leave_event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
                     let touch_result = document.handle_touch_event(touch_event, &event, can_gc);
@@ -3061,13 +2999,6 @@ impl ScriptThread {
             // Clear any active animations and unroot all of the associated DOM objects.
             debug!("{id}: Clearing animations");
             document.animations().clear();
-
-            // We don't want to dispatch `mouseout` event pointing to non-existing element
-            if let Some(target) = self.topmost_mouse_over_target.get() {
-                if target.upcast::<Node>().owner_doc() == document {
-                    self.topmost_mouse_over_target.set(None);
-                }
-            }
 
             // We discard the browsing context after requesting layout shut down,
             // to avoid running layout on detached iframes.
