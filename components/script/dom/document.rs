@@ -1543,6 +1543,7 @@ impl Document {
         }
     }
 
+    /// <https://w3c.github.io/uievents/#mouseevent-algorithms>
     pub(crate) fn handle_mouse_button_event(
         &self,
         event: MouseButtonEvent,
@@ -1576,15 +1577,6 @@ impl Document {
             if el.is_actually_disabled() {
                 return;
             }
-
-            // For a node within a text input UA shadow DOM, delegate the focus target into its shadow host.
-            // TODO: This focus delegation should be done with shadow DOM delegateFocus attribute.
-            let target_el = el.find_focusable_shadow_host_if_necessary();
-
-            self.begin_focus_transaction();
-            // Try to focus `el`. If it's not focusable, focus the document instead.
-            self.request_focus(None, FocusInitiator::Local, can_gc);
-            self.request_focus(target_el.as_deref(), FocusInitiator::Local, can_gc);
         }
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
@@ -1596,43 +1588,64 @@ impl Document {
             can_gc,
         ));
 
-        // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
         let activatable = el.as_maybe_activatable();
         match event.action {
+            // https://w3c.github.io/uievents/#handle-native-mouse-click
             MouseButtonAction::Click => {
                 el.set_click_in_progress(true);
-                dom_event.fire(node.upcast(), can_gc);
+                dom_event.dispatch(node.upcast(), false, can_gc);
                 el.set_click_in_progress(false);
+
+                self.maybe_fire_dblclick(node, &hit_test_result, input_event, can_gc);
             },
+            // https://w3c.github.io/uievents/#handle-native-mouse-down
             MouseButtonAction::Down => {
+                // (TODO) Step 6. Maybe send pointerdown event with `dom_event`.
                 if let Some(a) = activatable {
                     a.enter_formal_activation_state();
                 }
 
-                let target = node.upcast();
-                dom_event.fire(target, can_gc);
+                // For a node within a text input UA shadow DOM,
+                // delegate the focus target into its shadow host.
+                // TODO: This focus delegation should be done
+                // with shadow DOM delegateFocus attribute.
+                let target_el = el.find_focusable_shadow_host_if_necessary();
+                self.begin_focus_transaction();
+                // Try to focus `el`. If it's not focusable, focus the document instead.
+                self.request_focus(None, FocusInitiator::Local, can_gc);
+                self.request_focus(target_el.as_deref(), FocusInitiator::Local, can_gc);
+
+                // Step 7. Let result = dispatch event at target
+                let result = dom_event.dispatch(node.upcast(), false, can_gc);
+
+                // Step 8. If result is true and target is a focusable area
+                // that is click focusable, then Run the focusing steps at target.
+                if result && self.focus_transaction.borrow().is_some() {
+                    self.commit_focus_transaction(FocusInitiator::Local, can_gc);
+                }
+
+                // Step 9. If mbutton is the secondary mouse button, then
+                // Maybe show context menu with native, target.
+                if let (MouseButtonAction::Down, MouseButton::Right) = (event.action, event.button)
+                {
+                    self.maybe_show_context_menu(
+                        node.upcast(),
+                        &hit_test_result,
+                        input_event,
+                        can_gc,
+                    );
+                }
             },
+            // https://w3c.github.io/uievents/#handle-native-mouse-up
             MouseButtonAction::Up => {
                 if let Some(a) = activatable {
                     a.exit_formal_activation_state();
                 }
+                // (TODO) Step 6. Maybe send pointerup event with `dom_event``.
 
-                let target = node.upcast();
-                dom_event.fire(target, can_gc);
+                // Step 7. dispatch event at target.
+                dom_event.dispatch(node.upcast(), false, can_gc);
             },
-        }
-
-        if let MouseButtonAction::Click = event.action {
-            if self.focus_transaction.borrow().is_some() {
-                self.commit_focus_transaction(FocusInitiator::Local, can_gc);
-            }
-            self.maybe_fire_dblclick(node, &hit_test_result, input_event, can_gc);
-        }
-
-        // When the contextmenu event is triggered by right mouse button
-        // the contextmenu event MUST be dispatched after the mousedown event.
-        if let (MouseButtonAction::Down, MouseButton::Right) = (event.action, event.button) {
-            self.maybe_show_context_menu(node.upcast(), &hit_test_result, input_event, can_gc);
         }
     }
 

@@ -222,6 +222,7 @@ impl MouseEvent {
     }
 
     /// Create a [MouseEvent] triggered by the embedder
+    /// <https://w3c.github.io/uievents/#create-a-cancelable-mouseevent-id>
     pub(crate) fn for_platform_mouse_event(
         event: embedder_traits::MouseButtonEvent,
         pressed_mouse_buttons: u16,
