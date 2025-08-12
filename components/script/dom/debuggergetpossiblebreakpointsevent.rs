@@ -6,8 +6,8 @@ use std::fmt::Debug;
 
 use dom_struct::dom_struct;
 
+use crate::dom::bindings::codegen::Bindings::DebuggerGetPossibleBreakpointsEventBinding::DebuggerGetPossibleBreakpointsEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::GetPossibleBreakpointsEventBinding::GetPossibleBreakpointsEventMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::Event;
@@ -16,12 +16,12 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 /// Event for Rust → JS calls in [`crate::dom::DebuggerGlobalScope`].
-pub(crate) struct GetPossibleBreakpointsEvent {
+pub(crate) struct DebuggerGetPossibleBreakpointsEvent {
     event: Event,
     spidermonkey_id: u32,
 }
 
-impl GetPossibleBreakpointsEvent {
+impl DebuggerGetPossibleBreakpointsEvent {
     pub(crate) fn new(
         debugger_global: &GlobalScope,
         spidermonkey_id: u32,
@@ -40,7 +40,9 @@ impl GetPossibleBreakpointsEvent {
     }
 }
 
-impl GetPossibleBreakpointsEventMethods<crate::DomTypeHolder> for GetPossibleBreakpointsEvent {
+impl DebuggerGetPossibleBreakpointsEventMethods<crate::DomTypeHolder>
+    for DebuggerGetPossibleBreakpointsEvent
+{
     // check-tidy: no specs after this line
     fn SpidermonkeyId(&self) -> u32 {
         self.spidermonkey_id
@@ -51,9 +53,9 @@ impl GetPossibleBreakpointsEventMethods<crate::DomTypeHolder> for GetPossibleBre
     }
 }
 
-impl Debug for GetPossibleBreakpointsEvent {
+impl Debug for DebuggerGetPossibleBreakpointsEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("GetPossibleBreakpointsEvent")
+        f.debug_struct("DebuggerGetPossibleBreakpointsEvent")
             .field("spidermonkey_id", &self.spidermonkey_id)
             .finish()
     }

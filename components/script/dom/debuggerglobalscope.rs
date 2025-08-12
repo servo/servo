@@ -16,10 +16,10 @@ use js::rust::Runtime;
 use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
 use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
     DebuggerGlobalScopeMethods, NotifyNewSource,
 };
-use script_bindings::codegen::GenericBindings::GetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -30,7 +30,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::types::{DebuggerAddDebuggeeEvent, Event, GetPossibleBreakpointsEvent};
+use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerGetPossibleBreakpointsEvent, Event};
 #[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -178,7 +178,7 @@ impl DebuggerGlobalScope {
                 .replace(Some(result_sender))
                 .is_none()
         );
-        let event = DomRoot::upcast::<Event>(GetPossibleBreakpointsEvent::new(
+        let event = DomRoot::upcast::<Event>(DebuggerGetPossibleBreakpointsEvent::new(
             self.upcast(),
             spidermonkey_id,
             can_gc,
@@ -288,7 +288,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
 
     fn GetPossibleBreakpointsResult(
         &self,
-        event: &GetPossibleBreakpointsEvent,
+        event: &DebuggerGetPossibleBreakpointsEvent,
         result: Vec<RecommendedBreakpointLocation>,
     ) {
         info!("GetPossibleBreakpointsResult: {event:?} {result:?}");

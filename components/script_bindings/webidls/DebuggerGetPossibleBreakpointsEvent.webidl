@@ -5,13 +5,13 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 [Exposed=DebuggerGlobalScope]
-interface GetPossibleBreakpointsEvent : Event {
+interface DebuggerGetPossibleBreakpointsEvent : Event {
     readonly attribute unsigned long spidermonkeyId;
 };
 
 partial interface DebuggerGlobalScope {
     undefined getPossibleBreakpointsResult(
-        GetPossibleBreakpointsEvent event,
+        DebuggerGetPossibleBreakpointsEvent event,
         sequence<RecommendedBreakpointLocation> result);
 };
 
