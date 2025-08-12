@@ -532,6 +532,7 @@ impl Handler {
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
         match self.session {
             Some(ref x) => Ok(x),
+            // https://w3c.github.io/webdriver/#ref-for-dfn-invalid-session-id-1
             None => Err(WebDriverError::new(
                 ErrorStatus::InvalidSessionId,
                 "Session not created",
