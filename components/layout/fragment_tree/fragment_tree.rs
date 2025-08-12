@@ -10,6 +10,7 @@ use compositing_traits::display_list::AxesScrollSensitivity;
 use fxhash::FxHashSet;
 use malloc_size_of_derive::MallocSizeOf;
 use style::animation::AnimationSetKey;
+use style::computed_values::position::T as Position;
 
 use super::{BoxFragment, ContainingBlockManager, Fragment};
 use crate::ArcRefCell;
@@ -117,9 +118,27 @@ impl FragmentTree {
             let scrollable_overflow = self.root_fragments.iter().fold(
                 self.initial_containing_block,
                 |overflow, fragment| {
-                    fragment
-                        .calculate_scrollable_overflow_for_parent()
-                        .union(&overflow)
+                    // We need to calculate the overflow for each fragments within the tree
+                    // to be processed in the further stages of reflow.
+                    let calculated_overflow = fragment.calculate_scrollable_overflow_for_parent();
+
+                    // Fixed positioned fragment without any ancestor that establishes
+                    // its containing block is placed as a child of the fragment tree.
+                    // But, it is not contained by the initial containing block, cannot
+                    // be scrolled, and should not included in the calculation. These
+                    // fragments should be ignored.
+                    // <https://drafts.csswg.org/css-position/#fixed-cb>
+                    let should_include_overflow =
+                        fragment
+                            .retrieve_box_fragment()
+                            .is_some_and(|box_fragment| {
+                                box_fragment.borrow().style.get_box().position != Position::Fixed
+                            });
+
+                    match should_include_overflow {
+                        true => overflow.union(&calculated_overflow),
+                        false => overflow,
+                    }
                 },
             );
 
