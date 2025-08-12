@@ -381,6 +381,17 @@ impl App {
                         running_state.set_pending_focus(focus_id, response_sender);
                     }
                 },
+                WebDriverCommandMsg::GetAllWebViews(response_sender) => {
+                    let webviews = running_state
+                        .webviews()
+                        .iter()
+                        .map(|(id, _)| *id)
+                        .collect::<Vec<_>>();
+
+                    if let Err(error) = response_sender.send(Ok(webviews)) {
+                        warn!("Failed to send response of GetAllWebViews: {error}");
+                    }
+                },
                 WebDriverCommandMsg::GetWindowRect(_webview_id, response_sender) => {
                     let window = self
                         .windows
