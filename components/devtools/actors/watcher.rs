@@ -25,6 +25,7 @@ use super::breakpoint::BreakpointListActor;
 use super::thread::ThreadActor;
 use super::worker::WorkerMsg;
 use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actors::breakpoint::BreakpointListActorMsg;
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::RootActor;
 use crate::actors::watcher::target_configuration::{
@@ -151,12 +152,7 @@ struct GetThreadConfigurationActorReply {
 #[serde(rename_all = "camelCase")]
 struct GetBreakpointListActorReply {
     from: String,
-    breakpoint_list: GetBreakpointListActorReplyInner,
-}
-
-#[derive(Serialize)]
-struct GetBreakpointListActorReplyInner {
-    actor: String,
+    breakpoint_list: BreakpointListActorMsg,
 }
 
 #[derive(Serialize)]
@@ -191,6 +187,7 @@ pub struct WatcherActor {
     network_parent: String,
     target_configuration: String,
     thread_configuration: String,
+    breakpoint_list: String,
     session_context: SessionContext,
 }
 
@@ -376,15 +373,10 @@ impl Actor for WatcherActor {
                 request.reply_final(&msg)?
             },
             "getBreakpointListActor" => {
-                let breakpoint_list_name = registry.new_name("breakpoint-list");
-                let breakpoint_list = BreakpointListActor::new(breakpoint_list_name.clone());
-                registry.register_later(Box::new(breakpoint_list));
-
+                let breakpoint_list = registry.find::<BreakpointListActor>(&self.breakpoint_list);
                 request.reply_final(&GetBreakpointListActorReply {
                     from: self.name(),
-                    breakpoint_list: GetBreakpointListActorReplyInner {
-                        actor: breakpoint_list_name,
-                    },
+                    breakpoint_list: breakpoint_list.encodable(),
                 })?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -410,6 +402,7 @@ impl WatcherActor {
             TargetConfigurationActor::new(actors.new_name("target-configuration"));
         let thread_configuration =
             ThreadConfigurationActor::new(actors.new_name("thread-configuration"));
+        let breakpoint_list = BreakpointListActor::new(actors.new_name("breakpoint-list"));
 
         let watcher = Self {
             name: actors.new_name("watcher"),
@@ -417,12 +410,14 @@ impl WatcherActor {
             network_parent: network_parent.name(),
             target_configuration: target_configuration.name(),
             thread_configuration: thread_configuration.name(),
+            breakpoint_list: breakpoint_list.name(),
             session_context,
         };
 
         actors.register(Box::new(network_parent));
         actors.register(Box::new(target_configuration));
         actors.register(Box::new(thread_configuration));
+        actors.register(Box::new(breakpoint_list));
 
         watcher
     }
