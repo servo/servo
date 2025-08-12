@@ -190,6 +190,9 @@ jobs:
           timeout_minutes: 20
           max_attempts: 2 # https://github.com/servo/servo/issues/30683
           command: ./mach test-unit --${{ inputs.profile }}
+      - name: Devtools tests
+        if: ${{ inputs.unit-tests }}
+        run: ./mach test-devtools --${{ inputs.profile }}
       - name: Build libservo with examples
         if: ${{ inputs.build-libservo }}
         continue-on-error: true
