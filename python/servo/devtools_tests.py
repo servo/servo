@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from __future__ import annotations
 from concurrent.futures import Future
 from dataclasses import dataclass
 import logging
@@ -24,7 +25,7 @@ import socketserver
 import subprocess
 import time
 from threading import Thread
-from typing import Optional
+from typing import Any, Optional
 import unittest
 
 from servo.command_base import BuildType
@@ -46,7 +47,7 @@ class Devtools:
     targets: list
     exited: bool = False
 
-    def connect(*, expected_targets=1):
+    def connect(*, expected_targets: int = 1) -> Devtools:
         """
         Connect to the Servo devtools server.
         You should use a `with` statement to ensure we disconnect unconditionally.
@@ -87,7 +88,7 @@ class Devtools:
 
         return Devtools(client, watcher, targets)
 
-    def __getattribute__(self, name):
+    def __getattribute__(self, name: str) -> Any:
         """
         Access a property, raising a ValueError if the instance was previously marked as exited.
         """
@@ -95,7 +96,7 @@ class Devtools:
             raise ValueError("Devtools instance must not be used after __exit__()")
         return object.__getattribute__(self, name)
 
-    def __enter__(self):
+    def __enter__(self) -> Devtools:
         """
         Enter the `with` context for this instance, raising a ValueError if it was previously marked as exited.
         """
@@ -103,7 +104,7 @@ class Devtools:
             raise ValueError("Devtools instance must not be used after __exit__()")
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         """
         Exit the `with` context for this instance, disconnecting the client and marking it as exited.
         Does not raise a ValueError if it was previously marked as exited, so you can nest `with` statements.
