@@ -12,6 +12,7 @@ use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
 use base::Epoch;
+use base::generic_channel::{GenericReceiver, GenericSender};
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, PipelineNamespaceId,
     PipelineNamespaceRequest, WebViewId,
@@ -239,7 +240,9 @@ impl Pipeline {
                 (script_chan, (None, None, None))
             },
             None => {
-                let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
+                let (script_chan, script_port) =
+                    base::generic_channel::channel(opts::get().multiprocess)
+                        .expect("Pipeline script chan");
 
                 // Route messages coming from content to devtools as appropriate.
                 let script_to_devtools_ipc_sender =
@@ -482,9 +485,9 @@ pub struct UnprivilegedPipelineContent {
     mem_profiler_chan: profile_mem::ProfilerChan,
     viewport_details: ViewportDetails,
     theme: Theme,
-    script_chan: IpcSender<ScriptThreadMessage>,
+    script_chan: GenericSender<ScriptThreadMessage>,
     load_data: LoadData,
-    script_port: IpcReceiver<ScriptThreadMessage>,
+    script_port: GenericReceiver<ScriptThreadMessage>,
     opts: Opts,
     prefs: Box<Preferences>,
     pipeline_namespace_id: PipelineNamespaceId,
