@@ -13,6 +13,7 @@ use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
 use base::Epoch;
+use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
@@ -25,7 +26,6 @@ use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
-use ipc_channel::ipc::IpcSender;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
     IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, OffsetParentResponse,
@@ -135,7 +135,7 @@ pub struct LayoutThread {
     is_iframe: bool,
 
     /// The channel on which messages can be sent to the script thread.
-    script_chan: IpcSender<ScriptThreadMessage>,
+    script_chan: GenericSender<ScriptThreadMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,

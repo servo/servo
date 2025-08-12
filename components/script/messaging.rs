@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
+use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -331,7 +332,7 @@ pub(crate) struct ScriptThreadSenders {
 
     /// A [`Sender`] that sends messages to the `Constellation`.
     #[no_trace]
-    pub(crate) constellation_sender: IpcSender<ScriptThreadMessage>,
+    pub(crate) constellation_sender: GenericSender<ScriptThreadMessage>,
 
     /// A [`Sender`] that sends messages to the `Constellation` associated with
     /// particular pipelines.
