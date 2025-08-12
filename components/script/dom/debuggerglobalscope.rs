@@ -185,7 +185,7 @@ impl DebuggerGlobalScope {
         ));
         assert!(
             DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
-            "Guaranteed by AddDebuggeeEvent::new"
+            "Guaranteed by DebuggerGetPossibleBreakpointsEvent::new"
         );
     }
 }
