@@ -34,7 +34,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::csp::CspReporting;
 use crate::dom::document::{Document, determine_policy_for_token};
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
@@ -167,18 +166,14 @@ impl HTMLIFrameElement {
         if load_data.url.scheme() == "javascript" {
             let window_proxy = self.GetContentWindow();
             if let Some(window_proxy) = window_proxy {
-                let global = &document.global();
-                if global.get_csp_list().should_navigation_request_be_blocked(
-                    global,
-                    &load_data,
+                if !ScriptThread::navigate_to_javascript_url(
+                    &document.global(),
+                    &window_proxy.global(),
+                    &mut load_data,
                     Some(self.upcast()),
+                    can_gc,
                 ) {
                     return;
-                }
-                // Important re security. See https://github.com/servo/servo/issues/23373
-                if ScriptThread::check_load_origin(&load_data.load_origin, &document.url().origin())
-                {
-                    ScriptThread::eval_js_url(&window_proxy.global(), &mut load_data, can_gc);
                 }
             }
         }
