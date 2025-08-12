@@ -1130,7 +1130,7 @@ impl Handler {
         // Step 3. Close session's current top-level browsing context.
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd_msg = WebDriverCommandMsg::CloseWebView(self.session().unwrap().webview_id, sender);
+        let cmd_msg = WebDriverCommandMsg::CloseWebView(webview_id, sender);
         self.send_message_to_embedder(cmd_msg)?;
 
         wait_for_ipc_response(receiver)?;
