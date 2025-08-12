@@ -254,7 +254,7 @@ def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path
         output: list[str],
         text: str,
         results: List[UnexpectedResult],
-        filter_func: Callable[[UnexpectedResult], list[str] | bool],
+        filter_func: Callable[[UnexpectedResult], bool],
     ) -> None:
         filtered = [str(result) for result in filter(filter_func, results)]
         if filtered:
@@ -269,7 +269,7 @@ def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path
         output,
         "Stable unexpected results that are known-intermittent",
         unexpected_results,
-        lambda result: not result.flaky and result.issues,
+        lambda result: not result.flaky and bool(result.issues),
     )
     add_result(output, "Stable unexpected results", unexpected_results, is_stable_and_unexpected)
     print("\n".join(output))
