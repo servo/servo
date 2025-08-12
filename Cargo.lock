@@ -7752,6 +7752,7 @@ dependencies = [
  "egui-file-dialog",
  "egui-winit",
  "egui_glow",
+ "embedder_traits",
  "env_filter",
  "euclid",
  "getopts",

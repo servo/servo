@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
+use embedder_traits::webdriver::WebDriverSenders;
 use euclid::Vector2D;
 use keyboard_types::{Key, Modifiers, NamedKey, ShortcutMatcher};
 use log::{error, info};
@@ -38,16 +39,6 @@ pub(crate) enum AppState {
     Initializing,
     Running(Rc<RunningAppState>),
     ShuttingDown,
-}
-
-/// A collection of [`IpcSender`]s that are used to asynchronously communicate
-/// to a WebDriver server with information about application state.
-#[derive(Clone, Default)]
-struct WebDriverSenders {
-    pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
-    pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
-    pub pending_traversals: HashMap<TraversalId, IpcSender<WebDriverLoadStatus>>,
-    pub pending_focus: HashMap<FocusId, IpcSender<bool>>,
 }
 
 pub(crate) struct RunningAppState {
