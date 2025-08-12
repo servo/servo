@@ -11,7 +11,7 @@ use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use app_units::Au;
@@ -3172,7 +3172,7 @@ impl Window {
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
-            script_chan: Arc::new(Mutex::new(control_chan)),
+            script_chan: control_chan,
         };
 
         let initial_viewport = f32_rect_to_au_rect(UntypedRect::new(
@@ -3395,14 +3395,10 @@ impl Window {
     }
 }
 
-#[derive(Clone, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub(crate) struct CSSErrorReporter {
     pub(crate) pipelineid: PipelineId,
-    // Arc+Mutex combo is necessary to make this struct Sync,
-    // which is necessary to fulfill the bounds required by the
-    // uses of the ParseErrorReporter trait.
-    #[ignore_malloc_size_of = "Arc is defined in libstd"]
-    pub(crate) script_chan: Arc<Mutex<IpcSender<ScriptThreadMessage>>>,
+    pub(crate) script_chan: IpcSender<ScriptThreadMessage>,
 }
 unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 
@@ -3424,17 +3420,13 @@ impl ParseErrorReporter for CSSErrorReporter {
         }
 
         //TODO: report a real filename
-        let _ = self
-            .script_chan
-            .lock()
-            .unwrap()
-            .send(ScriptThreadMessage::ReportCSSError(
-                self.pipelineid,
-                url.0.to_string(),
-                location.line,
-                location.column,
-                error.to_string(),
-            ));
+        let _ = self.script_chan.send(ScriptThreadMessage::ReportCSSError(
+            self.pipelineid,
+            url.0.to_string(),
+            location.line,
+            location.column,
+            error.to_string(),
+        ));
     }
 }
 
