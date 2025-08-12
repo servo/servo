@@ -83,6 +83,7 @@ impl SVGSVGElement {
 
     fn invalidate_cached_serialized_subtree(&self) {
         *self.cached_serialized_data_url.borrow_mut() = None;
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 }
 
@@ -149,13 +150,6 @@ impl VirtualMethods for SVGSVGElement {
             .attribute_mutated(attr, mutation, can_gc);
 
         self.invalidate_cached_serialized_subtree();
-
-        match attr.local_name() {
-            &local_name!("width") | &local_name!("height") | &local_name!("viewBox") => {
-                self.upcast::<Node>().dirty(NodeDamage::Other);
-            },
-            _ => {},
-        };
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
