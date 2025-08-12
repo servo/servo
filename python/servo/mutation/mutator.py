@@ -11,7 +11,7 @@ import fileinput
 import re
 from re import Match
 import random
-from typing import Iterator
+from collections.abc import Iterator
 
 
 def is_comment(line: str) -> Match[str] | None:

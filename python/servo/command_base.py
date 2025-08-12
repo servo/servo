@@ -29,8 +29,8 @@ from enum import Enum
 from glob import glob
 from os import path
 from subprocess import PIPE, CompletedProcess
-from typing import Any, Optional, Union, LiteralString, cast, Callable
-from collections.abc import Generator
+from typing import Any, Optional, Union, LiteralString, cast
+from collections.abc import Generator, Callable
 from xml.etree.ElementTree import XML
 
 import toml

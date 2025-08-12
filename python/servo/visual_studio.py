@@ -12,7 +12,8 @@ import json
 import os
 import subprocess
 import sys
-from typing import Generator, List, Optional
+from typing import Optional
+from collections.abc import Generator
 
 COMPATIBLE_MSVC_VERSIONS = {
     "2019": "16.0",
@@ -108,7 +109,7 @@ def find_compatible_msvc_with_environment_variables() -> Optional[VisualStudioIn
     )
 
 
-def find_msvc_installations() -> List[VisualStudioInstallation]:
+def find_msvc_installations() -> list[VisualStudioInstallation]:
     # First try to find Visual Studio via `vswhere.exe` and in well-known paths.
     installations = list(find_compatible_msvc_with_vswhere())
     installations.extend(find_compatible_msvc_with_path())

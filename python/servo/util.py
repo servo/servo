@@ -19,7 +19,8 @@ import urllib.error
 import urllib.request
 import zipfile
 from zipfile import ZipInfo
-from typing import Union, Callable, Any
+from typing import Union, Any
+from collections.abc import Callable
 
 from io import BufferedIOBase, BytesIO
 from socket import error as socket_error
