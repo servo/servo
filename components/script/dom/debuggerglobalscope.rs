@@ -29,6 +29,7 @@ use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerGetPossibleBreakpointsEvent, Event};
 #[cfg(feature = "testbinding")]
@@ -49,6 +50,8 @@ pub(crate) struct DebuggerGlobalScope {
     #[no_trace]
     get_possible_breakpoints_result_sender:
         RefCell<Option<IpcSender<Vec<devtools_traits::RecommendedBreakpointLocation>>>>,
+    #[no_trace]
+    set_breakpoint_result_sender: RefCell<Option<IpcSender<bool>>>,
 }
 
 impl DebuggerGlobalScope {
@@ -92,6 +95,7 @@ impl DebuggerGlobalScope {
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
+            set_breakpoint_result_sender: RefCell::new(None),
         });
         let global = unsafe {
             DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
@@ -186,6 +190,30 @@ impl DebuggerGlobalScope {
         assert!(
             DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerGetPossibleBreakpointsEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_set_breakpoint(
+        &self,
+        can_gc: CanGc,
+        spidermonkey_id: u32,
+        offset: u32,
+        result_sender: IpcSender<bool>,
+    ) {
+        assert!(
+            self.set_breakpoint_result_sender
+                .replace(Some(result_sender))
+                .is_none()
+        );
+        let event = DomRoot::upcast::<Event>(DebuggerSetBreakpointEvent::new(
+            self.upcast(),
+            spidermonkey_id,
+            offset,
+            can_gc,
+        ));
+        assert!(
+            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerSetBreakpointEvent::new"
         );
     }
 }
@@ -307,5 +335,14 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 })
                 .collect(),
         );
+    }
+
+    fn SetBreakpointResult(&self, event: &DebuggerSetBreakpointEvent, result: bool) {
+        info!("SetBreakpointResult: {event:?} {result:?}");
+        let sender = self
+            .set_breakpoint_result_sender
+            .take()
+            .expect("Guaranteed by Self::fire_set_breakpoint()");
+        let _ = sender.send(result);
     }
 }

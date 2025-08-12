@@ -2091,6 +2091,14 @@ impl ScriptThread {
                     result_sender,
                 );
             },
+            DevtoolScriptControlMsg::SetBreakpoint(spidermonkey_id, offset, result_sender) => {
+                self.debugger_global.fire_set_breakpoint(
+                    can_gc,
+                    spidermonkey_id,
+                    offset,
+                    result_sender,
+                );
+            },
         }
     }
 
