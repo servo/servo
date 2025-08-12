@@ -7,19 +7,20 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import concurrent.futures
 import configparser
 import fnmatch
 import glob
 import io
 import itertools
 import json
+import multiprocessing
 import os
 import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, TypedDict, LiteralString
-from collections.abc import Iterator, Callable
+from typing import Any, Dict, List, TypedDict, LiteralString, Tuple, Callable, Iterator
 import types
 
 import colorama
@@ -934,6 +935,31 @@ We only expect files with {ext} extensions in {dir_name}""".format(**details)
                 yield (filename, 1, message)
 
 
+def file_checking(
+    filename: str,
+    checking_functions: tuple[CheckingFunction, ...],
+    line_checking_functions: tuple[LineCheckingFunction, ...],
+):
+    errors = []
+    if not os.path.exists(filename):
+        return errors
+    with open(filename, "rb") as f:
+        contents = f.read()
+
+        if not contents.strip():
+            errors.append((filename, 0, "file is empty"))
+            return errors
+        for check in checking_functions:
+            for error in check(filename, contents):
+                errors.append((filename,) + error)
+        lines = contents.splitlines(True)
+        for check in line_checking_functions:
+            for error in check(filename, lines):
+                errors.append((filename,) + error)
+
+        return errors
+
+
 def collect_errors_for_files(
     files_to_check: Iterator[str],
     checking_functions: tuple[CheckingFunction, ...],
@@ -946,30 +972,62 @@ def collect_errors_for_files(
     if print_text:
         print("\r ➤  Checking files for tidiness...")
 
-    for filename in files_to_check:
-        if not os.path.exists(filename):
-            continue
-        with open(filename, "rb") as f:
-            contents: bytes = f.read()
-            if not contents.strip():
-                yield filename, 0, "file is empty"
-                continue
-            for check in checking_functions:
-                for error in check(filename, contents):
-                    # the result will be: `(filename, line, message)`
-                    yield (filename,) + error
-            lines: list[bytes] = contents.splitlines(True)
-            for check in line_checking_functions:
-                for error in check(filename, lines):
-                    yield (filename,) + error
+    number_of_core = multiprocessing.cpu_count()
+
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=number_of_core, mp_context=multiprocessing.get_context("fork")
+    ) as executor:
+        futures = {
+            executor.submit(file_checking, filename, checking_functions, line_checking_functions): filename
+            for filename in files_to_check
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                errors = future.result()
+            except Exception:
+                pass
+            else:
+                for error in errors:
+                    yield error
+
+
+def execute_task(task: Tuple[Callable, Tuple]) -> List[Any]:
+    generator_function, args = task
+
+    try:
+        return list(generator_function(*args))
+    except Exception as error:
+        print(
+            "\r  | "
+            + f"{colorama.Fore.YELLOW}WARNING:{colorama.Style.RESET_ALL}: {error} from {generator_function.__name__}"
+        )
+
+    return []
+
+
+def paralell_executor(jobs: List[Tuple[Callable, Tuple]]) -> Iterator[Tuple[str, int, str]]:
+    number_of_core = multiprocessing.cpu_count()
+
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=number_of_core, mp_context=multiprocessing.get_context("fork")
+    ) as executor:
+        futures = {executor.submit(execute_task, job): job for job in jobs}
+
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                errors = future.result()
+            except Exception as error:
+                print("\r  | " + f"{colorama.Fore.YELLOW}WARNING:{colorama.Style.RESET_ALL}: {error}")
+            else:
+                for error in errors:
+                    yield error
 
 
 def scan(only_changed_files=False, progress=False, github_annotations=False) -> int:
     github_annotation_manager = GitHubAnnotationManager("test-tidy")
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
-    # check directories contain expected files
-    directory_errors = check_directory_files(config["check_ext"])
     # standard checks
     files_to_check = filter_files(".", only_changed_files, progress)
     checking_functions: tuple[CheckingFunction, ...] = (check_webidl_spec,)
@@ -984,15 +1042,20 @@ def scan(only_changed_files=False, progress=False, github_annotations=False) -> 
     )
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
-    python_errors = check_ruff_lints()
-    python_type_check = run_python_type_checker()
-    cargo_lock_errors = run_cargo_deny_lints()
-    wpt_errors = run_wpt_lints(only_changed_files)
-
+    jobs = [
+        # check directories contain expected files
+        (check_directory_files, (config["check_ext"],)),
+        (check_ruff_lints, ()),
+        (run_python_type_checker, ()),
+        (run_cargo_deny_lints, ()),
+        (
+            run_wpt_lints,
+            (only_changed_files,),
+        ),
+    ]
+    all_results = paralell_executor(jobs)
     # chain all the iterators
-    errors = itertools.chain(
-        config_errors, directory_errors, file_errors, python_errors, python_type_check, wpt_errors, cargo_lock_errors
-    )
+    errors = itertools.chain(config_errors, file_errors, all_results)
 
     colorama.init()
     error = None
