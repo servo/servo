@@ -180,9 +180,7 @@ impl App {
                 .send(EmbedderToConstellationMessage::SetWebDriverResponseSender(
                     webdriver_response_sender,
                 ))
-                .unwrap_or_else(|_| {
-                    warn!("Failed to set WebDriver response sender in constellation");
-                });
+                .expect("Failed to set WebDriver response sender in constellation when initing");
 
             webdriver_server::start_server(
                 port,
