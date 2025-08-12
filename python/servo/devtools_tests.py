@@ -57,6 +57,16 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.web_servers = None
         self.web_server_threads = None
 
+    # Watcher tests
+
+    def test_watcher_returns_same_breakpoint_list_actor_every_time(self):
+        self.run_servoshell(url="data:text/html,")
+        devtools = self._setup_devtools_client()
+        response1 = devtools.watcher.get_breakpoint_list_actor()
+        response2 = devtools.watcher.get_breakpoint_list_actor()
+        self.assertEqual(response1["breakpointList"]["actor"], response2["breakpointList"]["actor"])
+
+    # Sources list
     # Classic script vs module script:
     # - <https://html.spec.whatwg.org/multipage/#classic-script>
     # - <https://html.spec.whatwg.org/multipage/#module-script>
@@ -65,8 +75,6 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # - <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
     # Non-worker(?) script sources can be inline, external, or blob.
     # Worker script sources can be external or blob.
-
-    # Sources list
 
     def test_sources_list(self):
         self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))

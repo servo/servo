@@ -52,4 +52,8 @@ impl BreakpointListActor {
     pub fn new(name: String) -> Self {
         Self { name }
     }
+
+    pub fn encodable(&self) -> BreakpointListActorMsg {
+        BreakpointListActorMsg { actor: self.name() }
+    }
 }
