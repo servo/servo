@@ -354,7 +354,7 @@ impl App {
                     let context = running_state.webview_by_id(webview_id);
 
                     if let Err(error) = sender.send(context.is_some()) {
-                        warn!("Failed to send response of IsWebViewOpein: {error}");
+                        warn!("Failed to send response of IsWebViewOpen: {error}");
                     }
                 },
                 WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
@@ -371,8 +371,11 @@ impl App {
                         running_state.set_load_status_sender(new_webview.id(), load_status_sender);
                     }
                 },
-                WebDriverCommandMsg::CloseWebView(webview_id) => {
+                WebDriverCommandMsg::CloseWebView(webview_id, response_sender) => {
                     running_state.close_webview(webview_id);
+                    if let Err(error) = response_sender.send(()) {
+                        warn!("Failed to send response of CloseWebView: {error}");
+                    }
                 },
                 WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {

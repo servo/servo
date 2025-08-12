@@ -533,7 +533,7 @@ impl Handler {
         match self.session {
             Some(ref x) => Ok(x),
             None => Err(WebDriverError::new(
-                ErrorStatus::SessionNotCreated,
+                ErrorStatus::InvalidSessionId,
                 "Session not created",
             )),
         }
@@ -1093,8 +1093,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#get-window-handles>
     fn handle_window_handles(&self) -> WebDriverResult<WebDriverResponse> {
         let handles = self
-            .session
-            .as_ref()
+            .session()
             .unwrap()
             .window_handles
             .values()
@@ -1128,10 +1127,18 @@ impl Handler {
         self.handle_any_user_prompts(webview_id)?;
 
         // Step 3. Close session's current top-level browsing context.
-        let session = self.session_mut().unwrap();
-        session.window_handles.remove(&webview_id);
-        let cmd_msg = WebDriverCommandMsg::CloseWebView(session.webview_id);
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let cmd_msg = WebDriverCommandMsg::CloseWebView(self.session().unwrap().webview_id, sender);
         self.send_message_to_embedder(cmd_msg)?;
+
+        wait_for_ipc_response(receiver)?;
+        self.session_mut()
+            .unwrap()
+            .window_handles
+            .remove(&webview_id);
+
+        // Step 4. If there are no more open top-level browsing contexts, try to close the session.
         let window_handles: Vec<String> = self
             .session()
             .unwrap()
@@ -1139,7 +1146,7 @@ impl Handler {
             .values()
             .cloned()
             .collect();
-        // Step 4. If there are no more open top-level browsing contexts, try to close the session.
+
         if window_handles.is_empty() {
             self.session = None;
         }
