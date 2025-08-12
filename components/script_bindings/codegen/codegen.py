@@ -2782,6 +2782,10 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
         for parent in chain:
             traits += [f"crate::conversions::DerivedFrom<Self::{parent}>"]
 
+        for marker in ["Serializable", "Transferable"]:
+            if descriptor.interface.getExtendedAttribute(marker):
+                traits += [f"crate::structuredclone::{marker}Marker"]
+
         iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
         if iterableDecl:
             if iterableDecl.isMaplike():
@@ -7609,6 +7613,28 @@ class CGRegisterProxyHandlers(CGThing):
         return self.root.define()
 
 
+class CGStructuredCloneMarker(CGThing):
+    """
+    Generate a type assertion for inheritance
+    """
+    def __init__(self, descriptor, marker):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+        self.marker = marker
+        self.marker_lower = marker.lower()
+
+    def define(self):
+        ifaceName = self.descriptor.interface.identifier.name
+        return f"""
+impl script_bindings::structuredclone::{self.marker}Marker for {ifaceName} {{
+    #[allow(path_statements)]
+    fn assert_{self.marker_lower}() {{
+        crate::dom::bindings::{self.marker_lower}::assert_{self.marker_lower}::<Self>;
+    }}
+}}
+"""
+
+
 class CGConcreteBindingRoot(CGThing):
     """
     Root codegen class for binding generation, specialized on the concrete
@@ -7676,6 +7702,10 @@ class CGConcreteBindingRoot(CGThing):
                     f"pub(crate) use {originalBinding}::{firstCap(ifaceName)}_Binding as {firstCap(ifaceName)}_Binding;"
                 ),
             ]
+
+            for marker in ["Serializable", "Transferable"]:
+                if d.interface.getExtendedAttribute(marker):
+                    cgthings += [CGStructuredCloneMarker(d, marker)]
 
             if d.concrete:
                 if not d.interface.isIteratorInterface():

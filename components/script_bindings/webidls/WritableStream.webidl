@@ -4,7 +4,7 @@
 
 // https://streams.spec.whatwg.org/#writablestream
 
-[Exposed=*] // [Transferable] - See Bug 1562065
+[Exposed=*, Transferable]
 interface WritableStream {
   [Throws]
   constructor(optional object underlyingSink, optional QueuingStrategy strategy = {});

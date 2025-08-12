@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use base::id::NamespaceIndex;
+use script_bindings::structuredclone::TransferableMarker;
 
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomObject;
@@ -16,7 +17,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 
-pub(crate) trait Transferable: DomObject
+pub(crate) trait Transferable: DomObject + TransferableMarker
 where
     Self: Sized,
 {
@@ -41,3 +42,5 @@ where
         data: StructuredData<'a, '_>,
     ) -> &'a mut Option<HashMap<NamespaceIndex<Self::Index>, Self::Data>>;
 }
+
+pub(crate) fn assert_transferable<T: Transferable>() {}

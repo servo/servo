@@ -8,6 +8,7 @@
 use std::collections::HashMap;
 
 use base::id::{Index, NamespaceIndex, PipelineNamespaceId};
+use script_bindings::structuredclone::SerializableMarker;
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -45,7 +46,7 @@ impl<T> From<StorageKey> for NamespaceIndex<T> {
 
 /// Interface for serializable platform objects.
 /// <https://html.spec.whatwg.org/multipage/#serializable>
-pub(crate) trait Serializable: DomObject
+pub(crate) trait Serializable: DomObject + SerializableMarker
 where
     Self: Sized,
 {
@@ -69,3 +70,5 @@ where
         data: StructuredData<'a, '_>,
     ) -> &'a mut Option<HashMap<NamespaceIndex<Self::Index>, Self::Data>>;
 }
+
+pub(crate) fn assert_serializable<T: Serializable>() {}
