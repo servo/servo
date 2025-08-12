@@ -558,10 +558,11 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             .intersection(ElementSelectorFlags::RELATIVE_SELECTOR_SEARCH_DIRECTION_ANCESTOR_SIBLING)
     }
 
-    fn each_custom_state<F>(&self, _callback: F)
+    fn each_custom_state<F>(&self, callback: F)
     where
         F: FnMut(&AtomIdent),
     {
+        self.element.each_custom_state(callback);
     }
 
     /// Returns the implicit scope root for given sheet index and host.
@@ -958,8 +959,12 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
         true
     }
 
-    fn has_custom_state(&self, _name: &AtomIdent) -> bool {
-        false
+    fn has_custom_state(&self, name: &AtomIdent) -> bool {
+        let mut has_state = false;
+        self.element
+            .each_custom_state(|state| has_state |= state == name);
+
+        has_state
     }
 }
 

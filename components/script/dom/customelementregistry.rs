@@ -343,7 +343,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         rooted!(in(*cx) let constructor = constructor_.callback());
         let name = LocalName::from(&*name);
 
-        // Step 1
+        // Step 1. If IsConstructor(constructor) is false, then throw a TypeError.
         // We must unwrap the constructor as all wrappers are constructable if they are callable.
         rooted!(in(*cx) let unwrapped_constructor = unsafe { UnwrapObjectStatic(constructor.get()) });
 
@@ -358,17 +358,19 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             ));
         }
 
-        // Step 2
+        // Step 2. If name is not a valid custom element name, then throw a "SyntaxError" DOMException.
         if !is_valid_custom_element_name(&name) {
             return Err(Error::Syntax);
         }
 
-        // Step 3
+        // Step 3. If this's custom element definition set contains an item with name name,
+        // then throw a "NotSupportedError" DOMException.
         if self.definitions.borrow().contains_key(&name) {
             return Err(Error::NotSupported);
         }
 
-        // Step 4
+        // Step 4. If this's custom element definition set contains an
+        // item with constructor constructor, then throw a "NotSupportedError" DOMException.
         if self
             .definitions
             .borrow()
@@ -378,24 +380,29 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             return Err(Error::NotSupported);
         }
 
-        // Step 6
+        // Step 6. Let extends be options["extends"] if it exists; otherwise null.
         let extends = &options.extends;
 
         // Steps 5, 7
         let local_name = if let Some(ref extended_name) = *extends {
-            // Step 7.1
+            // TODO Step 7.1 If this's is scoped is true, then throw a "NotSupportedError" DOMException.
+
+            // Step 7.2 If extends is a valid custom element name, then throw a "NotSupportedError" DOMException.
             if is_valid_custom_element_name(extended_name) {
                 return Err(Error::NotSupported);
             }
 
-            // Step 7.2
+            // Step 7.3 If the element interface for extends and the HTML namespace is HTMLUnknownElement
+            // (e.g., if extends does not indicate an element definition in this specification)
+            // then throw a "NotSupportedError" DOMException.
             if !is_extendable_element_interface(extended_name) {
                 return Err(Error::NotSupported);
             }
 
+            // Step 7.4 Set localName to extends.
             LocalName::from(&**extended_name)
         } else {
-            // Step 7.3
+            // Step 5. Let localName be name.
             name.clone()
         };
 
