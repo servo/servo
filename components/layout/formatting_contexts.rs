@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
+use script::layout_dom::{ServoLayoutElement, ServoThreadSafeLayoutNode};
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::logical_geometry::Direction;
@@ -217,7 +217,7 @@ impl IndependentFormattingContext {
     pub(crate) fn repair_style(
         &mut self,
         context: &SharedStyleContext,
-        node: &ServoLayoutNode,
+        node: &ServoThreadSafeLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         self.base.repair_style(new_style);

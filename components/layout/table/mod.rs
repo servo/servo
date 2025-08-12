@@ -76,7 +76,7 @@ pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
+use script::layout_dom::{ServoLayoutElement, ServoThreadSafeLayoutNode};
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
@@ -425,7 +425,7 @@ impl TableLevelBox {
     pub(crate) fn repair_style(
         &self,
         context: &SharedStyleContext<'_>,
-        node: &ServoLayoutNode,
+        node: &ServoThreadSafeLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         match self {

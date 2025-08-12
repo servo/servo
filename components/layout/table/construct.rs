@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::iter::repeat;
 
 use atomic_refcell::AtomicRef;
-use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
+use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use log::warn;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -1028,9 +1028,8 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                         // This value will already have filtered out rowspan=0
                         // in quirks mode, so we don't have to worry about that.
                         let (rowspan, colspan) = if info.pseudo_element_type.is_none() {
-                            let node = info.node.to_threadsafe();
-                            let rowspan = node.get_rowspan().unwrap_or(1) as usize;
-                            let colspan = node.get_colspan().unwrap_or(1) as usize;
+                            let rowspan = info.node.get_rowspan().unwrap_or(1) as usize;
+                            let colspan = info.node.get_colspan().unwrap_or(1) as usize;
 
                             // The HTML specification clamps value of `rowspan` to [0, 65534] and
                             // `colspan` to [1, 1000].
@@ -1150,7 +1149,7 @@ fn add_column(
     old_column: Option<ArcRefCell<TableTrack>>,
 ) -> ArcRefCell<TableTrack> {
     let span = if column_info.pseudo_element_type.is_none() {
-        column_info.node.to_threadsafe().get_span().unwrap_or(1)
+        column_info.node.get_span().unwrap_or(1)
     } else {
         1
     };
