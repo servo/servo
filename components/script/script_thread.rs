@@ -4048,14 +4048,21 @@ impl ScriptThread {
         let context = window.get_cx();
 
         rooted!(in(*context) let mut return_value = UndefinedValue());
-        _ = global_scope.evaluate_js_on_global_with_result(
+        if let Err(err) = global_scope.evaluate_js_on_global_with_result(
             &script,
             return_value.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
             can_gc,
             None, // No known `introductionType` for JS code from embedder
-        );
+        ) {
+            _ = self.senders.pipeline_to_constellation_sender.send((
+                pipeline_id,
+                ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, Err(err)),
+            ));
+            return;
+        };
+
         let result = match jsval_to_webdriver(
             context,
             global_scope,
