@@ -28,7 +28,7 @@ impl<'a, T: Serialize> Deserialize<'a> for GenericSender<T> {
     where
         D: Deserializer<'a>,
     {
-        // Only ipc_channle will encounter deserialize scenario.
+        // Only ipc_channel will encounter deserialize scenario.
         ipc_channel::ipc::IpcSender::<T>::deserialize(d).map(|s| GenericSender::Ipc(s))
     }
 }
@@ -81,6 +81,7 @@ impl<T> GenericReceiver<T>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
+    #[inline]
     pub fn recv(&self) -> ReceiveResult<T> {
         match *self {
             GenericReceiver::Ipc(ref receiver) => receiver.recv().map_err(|_| ReceiveError),
@@ -88,6 +89,7 @@ where
         }
     }
 
+    #[inline]
     pub fn try_recv(&self) -> ReceiveResult<T> {
         match *self {
             GenericReceiver::Ipc(ref receiver) => receiver.try_recv().map_err(|_| ReceiveError),
@@ -97,6 +99,7 @@ where
         }
     }
 
+    #[inline]
     pub fn into_inner(self) -> crossbeam_channel::Receiver<T>
     where
         T: Send + 'static,
@@ -107,6 +110,31 @@ where
             },
             GenericReceiver::Crossbeam(receiver) => receiver,
         }
+    }
+}
+
+impl<T> Serialize for GenericReceiver<T>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        match self {
+            GenericReceiver::Ipc(i) => i.serialize(s),
+            GenericReceiver::Crossbeam(_) => unreachable!(),
+        }
+    }
+}
+
+impl<'a, T> Deserialize<'a> for GenericReceiver<T>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    fn deserialize<D>(d: D) -> Result<GenericReceiver<T>, D::Error>
+    where
+        D: Deserializer<'a>,
+    {
+        // Only ipc_channel will encounter deserialize scenario.
+        ipc_channel::ipc::IpcReceiver::<T>::deserialize(d).map(|r| GenericReceiver::Ipc(r))
     }
 }
 
