@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #![allow(unsafe_code)]
 
@@ -48,7 +48,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 // Represents a `BufferSource` as defined in the WebIDL specification.
-///
 /// A `BufferSource` is either an `ArrayBuffer` or an `ArrayBufferView`, which
 /// provides a view onto an `ArrayBuffer`.
 ///

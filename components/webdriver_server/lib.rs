@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #![crate_name = "webdriver_server"]
 #![crate_type = "rlib"]
@@ -1571,7 +1571,7 @@ impl Handler {
         }
     }
 
-    ///<https://w3c.github.io/webdriver/#get-active-element>
+    /// <https://w3c.github.io/webdriver/#get-active-element>
     fn handle_active_element(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.

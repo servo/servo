@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cmp::{PartialEq, PartialOrd};
 
@@ -340,7 +340,7 @@ pub enum IdbResult {
 pub enum IndexedDBThreadMsg {
     Sync(SyncOperation),
     Async(
-        IpcSender<Result<Option<IdbResult>, ()>>, // Sender to send the result of the async operation
+        IpcSender<Result<Option<IdbResult>, ()>>, /* Sender to send the result of the async operation */
         ImmutableOrigin,
         String, // Database
         String, // ObjectStore

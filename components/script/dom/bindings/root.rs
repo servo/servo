@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Smart pointers for the JS-managed DOM objects.
 //!
@@ -22,7 +22,6 @@
 //! `Root` object's lifetime. A reference to the object can then be obtained
 //! from the `Root` object. These references are not allowed to outlive their
 //! originating `DomRoot<T>`.
-//!
 
 use std::cell::{OnceCell, UnsafeCell};
 use std::default::Default;

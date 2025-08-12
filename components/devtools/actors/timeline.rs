@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // TODO: Is this actor still relevant?
 #![allow(dead_code)]
@@ -209,7 +209,7 @@ impl Actor for TimelineActor {
                     ))
                     .unwrap();
 
-                //TODO: support multiple connections by using root actor's streams instead.
+                // TODO: support multiple connections by using root actor's streams instead.
                 *self.stream.borrow_mut() = request.try_clone_stream().ok();
 
                 // init memory actor
@@ -268,7 +268,7 @@ impl Actor for TimelineActor {
                     ))
                     .unwrap();
 
-                //TODO: move this to the cleanup method.
+                // TODO: move this to the cleanup method.
                 if let Some(ref actor_name) = *self.framerate_actor.borrow() {
                     registry.drop_actor_later(actor_name.clone());
                 }

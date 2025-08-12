@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #![cfg(test)]
 #![allow(dead_code)]
@@ -150,7 +150,7 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
             net::connector::CACertificates::Default,
-            false, /* ignore_certificate_errors */
+            false, // ignore_certificate_errors
             override_manager.clone(),
         )),
         override_manager,

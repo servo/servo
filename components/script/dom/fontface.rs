@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -51,7 +51,6 @@ pub struct FontFace {
 
     /// This holds the [`FontTemplate`] resulting from loading this `FontFace`, to be used when the
     /// `FontFace` is added to the global `FontFaceSet` and thus the `[FontContext]`.
-    //
     // TODO: This could potentially share the `FontTemplateRef` created by `FontContext`, rather
     // than having its own copy of the template.
     #[no_trace = "Does not contain managed objects"]
@@ -89,7 +88,7 @@ fn parse_font_face_descriptors(
         Some(CssRuleType::FontFace),
         ParsingMode::DEFAULT,
         quirks_mode,
-        /* namespaces = */ Default::default(),
+        Default::default(), // namespaces
         Some(&error_reporter as &dyn ParseErrorReporter),
         None,
     );

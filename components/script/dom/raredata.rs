@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::rc::Rc;
 
@@ -23,7 +23,7 @@ use crate::dom::range::WeakRangeVec;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::LayoutValue;
 
-//XXX(ferjm) Ideally merge NodeRareData and ElementRareData so they share
+// XXX(ferjm) Ideally merge NodeRareData and ElementRareData so they share
 //           storage.
 
 #[derive(Default, JSTraceable, MallocSizeOf)]

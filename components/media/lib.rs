@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #![deny(unsafe_code)]
 #![allow(clippy::type_complexity)]
@@ -194,7 +194,7 @@ impl PlayerGLContext for WindowGLContext {
 struct GLPlayerExternalImages {
     // @FIXME(victor): this should be added when GstGLSyncMeta is
     // added
-    //webrender_gl: Rc<dyn gl::Gl>,
+    // webrender_gl: Rc<dyn gl::Gl>,
     glplayer_channel: IpcSender<GLPlayerMsg>,
     // Used to avoid creating a new channel on each received WebRender
     // request.
@@ -226,7 +226,7 @@ impl WebrenderExternalImageApi for GLPlayerExternalImages {
         // order to avoid WR using a semi-ready GLPlayer texture.
         // glWaitSync doesn't block WR thread, it affects only
         // internal OpenGL subsystem.
-        //self.webrender_gl
+        // self.webrender_gl
         //    .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
         (WebrenderImageSource::TextureHandle(image_id), size)
     }

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -297,9 +297,7 @@ impl FileManager {
         response: &mut Response,
     ) -> Result<(), BlobURLStoreError> {
         let file_impl = self.store.get_impl(id, file_token, origin_in)?;
-        /*
-           Only Fetch Blob Range Request would have unresolved range, and only in that case we care about range header.
-        */
+        // Only Fetch Blob Range Request would have unresolved range, and only in that case we care about range header.
         let mut is_range_requested = false;
         match file_impl {
             FileImpl::Memory(buf) => {
@@ -328,7 +326,8 @@ impl FileManager {
                     &mut response.headers,
                     len,
                     buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
-                    /* filename */ None,
+                    // filename
+                    None,
                     content_range,
                 );
 
@@ -341,11 +340,10 @@ impl FileManager {
                 Ok(())
             },
             FileImpl::MetaDataOnly(metadata) => {
-                /* XXX: Snapshot state check (optional) https://w3c.github.io/FileAPI/#snapshot-state.
-                        Concretely, here we create another file, and this file might not
-                        has the same underlying file state (meta-info plus content) as the time
-                        create_entry is called.
-                */
+                // XXX: Snapshot state check (optional) https://w3c.github.io/FileAPI/#snapshot-state.
+                // Concretely, here we create another file, and this file might not
+                // has the same underlying file state (meta-info plus content) as the time
+                // create_entry is called.
 
                 let file = File::open(&metadata.path)
                     .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
@@ -754,11 +752,10 @@ impl FileManagerStore {
                 Ok(())
             },
             FileImpl::MetaDataOnly(metadata) => {
-                /* XXX: Snapshot state check (optional) https://w3c.github.io/FileAPI/#snapshot-state.
-                        Concretely, here we create another file, and this file might not
-                        has the same underlying file state (meta-info plus content) as the time
-                        create_entry is called.
-                */
+                // XXX: Snapshot state check (optional) https://w3c.github.io/FileAPI/#snapshot-state.
+                // Concretely, here we create another file, and this file might not
+                // has the same underlying file state (meta-info plus content) as the time
+                // create_entry is called.
 
                 let opt_filename = metadata
                     .path

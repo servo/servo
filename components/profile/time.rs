@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Timing functions.
 
@@ -33,7 +33,7 @@ impl Formattable for Option<TimerMetadata> {
                 let url = &*meta.url;
                 match *output {
                     Some(OutputOptions::FileName(_)) => {
-                        /* The profiling output is a CSV file */
+                        // The profiling output is a CSV file
                         let incremental = match meta.incremental {
                             TimerMetadataReflowType::Incremental => "yes",
                             TimerMetadataReflowType::FirstReflow => "no",
@@ -45,7 +45,7 @@ impl Formattable for Option<TimerMetadata> {
                         format!(" {}\t{}\t{}", incremental, iframe, url)
                     },
                     _ => {
-                        /* The profiling output is the terminal */
+                        // The profiling output is the terminal
                         let url = if url.len() > 30 { &url[..30] } else { url };
                         let incremental = match meta.incremental {
                             TimerMetadataReflowType::Incremental => "    yes",

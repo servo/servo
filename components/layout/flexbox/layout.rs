@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::{Cell, LazyCell};
 use std::cmp::Ordering;
@@ -419,7 +419,7 @@ impl FlexContainer {
                         layout_context,
                         containing_block_for_children,
                         &LogicalVec2::zero(),
-                        false, /* auto_block_size_stretches_to_containing_block */
+                        false, // auto_block_size_stretches_to_containing_block
                     );
                     sizes.max_assign(result.sizes);
                     depends_on_block_constraints |= result.depends_on_block_constraints;
@@ -2572,7 +2572,7 @@ impl FlexItemBox {
                     // However, above we laid out the table with a SizeConstraint::default() block size,
                     // so the content block size doesn't take sizing properties into account.
                     // Therefore, pretending that it's never a table tends to provide a better result.
-                    false, /* is_table */
+                    false, // is_table
                 );
                 inner_block_size + pbm_auto_is_zero.main
             },

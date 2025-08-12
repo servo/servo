@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
@@ -2691,7 +2691,7 @@ impl GlobalScope {
                             type_: "PageError".to_string(),
                             error_message: error_info.message.clone(),
                             source_name: error_info.filename.clone(),
-                            line_text: "".to_string(), //TODO
+                            line_text: "".to_string(), // TODO
                             line_number: error_info.lineno,
                             column_number: error_info.column,
                             category: "script".to_string(),

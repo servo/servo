@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::ops::{Deref, DerefMut};
 
@@ -84,7 +84,7 @@ impl SnapshotAlphaMode {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SnapshotData {
     // TODO: https://github.com/servo/servo/issues/36594
-    //IPC(IpcSharedMemory),
+    // IPC(IpcSharedMemory),
     Owned(Vec<u8>),
 }
 
@@ -93,7 +93,7 @@ impl Deref for SnapshotData {
 
     fn deref(&self) -> &Self::Target {
         match &self {
-            //Data::IPC(ipc_shared_memory) => ipc_shared_memory,
+            // Data::IPC(ipc_shared_memory) => ipc_shared_memory,
             SnapshotData::Owned(items) => items,
         }
     }
@@ -102,7 +102,7 @@ impl Deref for SnapshotData {
 impl DerefMut for SnapshotData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            //Data::IPC(ipc_shared_memory) => unsafe { ipc_shared_memory.deref_mut() },
+            // Data::IPC(ipc_shared_memory) => unsafe { ipc_shared_memory.deref_mut() },
             SnapshotData::Owned(items) => items,
         }
     }
@@ -117,6 +117,8 @@ pub type IpcSnapshot = Snapshot<IpcSharedMemory>;
 ///
 /// Inspired by snapshot for concept in WebGPU spec:
 /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-get-a-copy-of-the-image-contents-of-a-context>
+///
+/// TODO: <https://github.com/servo/servo/issues/36594>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct Snapshot<T = SnapshotData> {
     size: Size2D<u32>,
@@ -184,27 +186,6 @@ impl Snapshot<SnapshotData> {
         let data = rgba8_get_rect(self.as_raw_bytes(), self.size(), rect).to_vec();
         Self::from_vec(rect.size, self.format, self.alpha_mode, data)
     }
-
-    // TODO: https://github.com/servo/servo/issues/36594
-    /*
-    /// # Safety
-    ///
-    /// This is safe if data is owned by this process only
-    /// (ownership is transferred on send)
-    pub unsafe fn from_shared_memory(
-        size: Size2D<u32>,
-        format: PixelFormat,
-        alpha_mode: AlphaMode,
-        ism: IpcSharedMemory,
-    ) -> Self {
-        Self {
-            size,
-            data: Data::IPC(ism),
-            format,
-            alpha_mode,
-        }
-    }
-    */
 
     /// Convert inner data of snapshot to target format and alpha mode.
     /// If data is already in target format and alpha mode no work will be done.
@@ -288,7 +269,7 @@ impl Snapshot<SnapshotData> {
             alpha_mode,
         } = self;
         let data = match data {
-            //Data::IPC(ipc_shared_memory) => ipc_shared_memory,
+            // Data::IPC(ipc_shared_memory) => ipc_shared_memory,
             SnapshotData::Owned(items) => IpcSharedMemory::from_bytes(&items),
         };
         Snapshot {
@@ -359,27 +340,6 @@ impl Snapshot<SnapshotData> {
 }
 
 impl Snapshot<IpcSharedMemory> {
-    // TODO: https://github.com/servo/servo/issues/36594
-    /*
-    /// # Safety
-    ///
-    /// This is safe if data is owned by this process only
-    /// (ownership is transferred on send)
-    pub unsafe fn to_data(self) -> Snapshot<Data> {
-        let Snapshot {
-            size,
-            data,
-            format,
-            alpha_mode,
-        } = self;
-        Snapshot {
-            size,
-            data: Data::IPC(data),
-            format,
-            alpha_mode,
-        }
-    }
-    */
     pub fn to_owned(self) -> Snapshot<SnapshotData> {
         let Snapshot {
             size,

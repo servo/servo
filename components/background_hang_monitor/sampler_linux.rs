@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #![allow(unsafe_code)]
 
@@ -173,7 +173,7 @@ impl Sampler for LinuxSampler {
                     let ip = frame.ip();
                     let sp = frame.sp();
 
-                    //This return value here determines whether we proceed to the next stack frame or not.
+                    // This return value here determines whether we proceed to the next stack frame or not.
                     native_stack.process_register(ip, sp).is_ok()
                 })
             };

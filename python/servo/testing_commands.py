@@ -55,6 +55,8 @@ UNSTABLE_RUSTFMT_ARGUMENTS = [
     "imports_granularity=Module",
     "--config",
     "group_imports=StdExternalCrate",
+    "--config",
+    "normalize_comments=true",
 ]
 
 # Listing these globs manually is a work-around for very slow `taplo` invocation

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
 use bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
@@ -564,7 +564,7 @@ impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
             sender,
             can_gc,
         );
-        //Note: Step 3 - 4. in response function, Step 5. in handle_response function.
+        // Note: Step 3 - 4. in response function, Step 5. in handle_response function.
         p
     }
 

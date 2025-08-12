@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
@@ -205,7 +205,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
             // Step 9 If convert-to-URL is true, then parse result as appropriate for text/uri-list data,
             // and then set result to the first URL from the list, if any, or the empty string otherwise.
             if convert_to_url {
-                //TODO parse uri-list as [RFC2483]
+                // TODO parse uri-list as [RFC2483]
             }
 
             // Step 10 Return result.

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::f32;
 
@@ -43,9 +43,9 @@ impl ConstantSourceNode {
         let source_node = AudioScheduledSourceNode::new_inherited(
             AudioNodeInit::ConstantSourceNode(options.convert()),
             context,
-            node_options, /* 2, MAX, Speakers */
-            0,            /* inputs */
-            1,            /* outputs */
+            node_options, // 2, MAX, Speakers
+            0,            // inputs
+            1,            // outputs
         )?;
         let node_id = source_node.node().node_id();
         let offset = AudioParam::new(

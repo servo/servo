@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
@@ -179,7 +179,7 @@ impl InlineFormattingContextBuilder {
         let inline_level_box = ArcRefCell::new(InlineItem::Atomic(
             independent_formatting_context,
             self.current_text_offset,
-            Level::ltr(), /* This will be assigned later if necessary. */
+            Level::ltr(), // This will be assigned later if necessary.
         ));
         self.inline_items.push(inline_level_box.clone());
 
@@ -493,7 +493,8 @@ impl InlineFormattingContextBuilder {
         inline_builder_from_before_split.finish(
             layout_context,
             has_first_formatted_line,
-            /* is_single_line_text_input = */ false,
+            // is_single_line_text_input =
+            false,
             default_bidi_level,
         )
     }

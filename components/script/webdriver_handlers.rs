@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
@@ -382,7 +382,7 @@ unsafe fn jsval_to_webdriver_inner(
             },
         ))
     } else if val.get().is_string() {
-        //FIXME: use jsstr_to_string when jsval grows to_jsstring
+        // FIXME: use jsstr_to_string when jsval grows to_jsstring
         let string: DOMString =
             match FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default)
                 .unwrap()
@@ -399,7 +399,7 @@ unsafe fn jsval_to_webdriver_inner(
         if seen.contains(&hashable) {
             return Err(WebDriverJSError::JSError);
         }
-        //Step 2. Append value to `seen`.
+        // Step 2. Append value to `seen`.
         seen.insert(hashable.clone());
 
         rooted!(in(cx) let object = match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {

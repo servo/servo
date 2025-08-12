@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 use std::cell::Cell;
 use std::ffi::CStr;
 use std::fs::read_to_string;
@@ -424,39 +424,8 @@ impl FetchResponseListener for ClassicContext {
 
         let elem = self.elem.root();
         let global = elem.global();
-        //let cx = GlobalScope::get_cx();
         let _ar = enter_realm(&*global);
 
-        /*
-        let options = unsafe { CompileOptionsWrapper::new(*cx, final_url.as_str(), 1) };
-
-        let can_compile_off_thread = pref!(dom_script_asynch) &&
-            unsafe { CanCompileOffThread(*cx, options.ptr as *const _, source_text.len()) };
-
-        if can_compile_off_thread {
-            let source_string = source_text.to_string();
-
-            let context = Box::new(OffThreadCompilationContext {
-                script_element: self.elem.clone(),
-                script_kind: self.kind,
-                final_url,
-                url: self.url.clone(),
-                task_source: elem.owner_global().task_manager().dom_manipulation_task_source(),
-                script_text: source_string,
-                fetch_options: self.fetch_options.clone(),
-            });
-
-            unsafe {
-                assert!(!CompileToStencilOffThread1(
-                    *cx,
-                    options.ptr as *const _,
-                    &mut transform_str_to_source_text(&context.script_text) as *mut _,
-                    Some(off_thread_compilation_callback),
-                    Box::into_raw(context) as *mut c_void,
-                )
-                .is_null());
-            }
-        } else {*/
         let load = ScriptOrigin::external(
             Rc::new(DOMString::from(source_text)),
             final_url.clone(),

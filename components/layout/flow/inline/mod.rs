@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! # Inline Formatting Context Layout
 //!
@@ -66,7 +66,6 @@
 //! block via [`PositioningContext`].
 //!
 //! The code for this phase, can mainly be found in `line.rs`.
-//!
 
 pub mod construct;
 pub mod inline_box;
@@ -208,13 +207,13 @@ pub(crate) enum InlineItem {
     TextRun(ArcRefCell<TextRun>),
     OutOfFlowAbsolutelyPositionedBox(
         ArcRefCell<AbsolutelyPositionedBox>,
-        usize, /* offset_in_text */
+        usize, // offset_in_text
     ),
     OutOfFlowFloatBox(ArcRefCell<FloatBox>),
     Atomic(
         ArcRefCell<IndependentFormattingContext>,
-        usize, /* offset_in_text */
-        Level, /* bidi_level */
+        usize, // offset_in_text
+        Level, // bidi_level
     ),
 }
 
@@ -1757,7 +1756,7 @@ impl InlineFormattingContext {
             root_nesting_level: InlineContainerState::new(
                 style.to_arc(),
                 inline_container_state_flags,
-                None, /* parent_container */
+                None, // parent_container
                 default_font_metrics.as_ref(),
             ),
             inline_box_state_stack: Vec::new(),
@@ -2469,7 +2468,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     self.layout_context,
                     &self.constraint_space.into(),
                     &LogicalVec2::zero(),
-                    false, /* auto_block_size_stretches_to_containing_block */
+                    false, // auto_block_size_stretches_to_containing_block
                 );
                 self.depends_on_block_constraints |= depends_on_block_constraints;
 

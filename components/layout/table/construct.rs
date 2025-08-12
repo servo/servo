@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::borrow::Cow;
 use std::iter::repeat;
@@ -224,7 +224,7 @@ impl TableBuilder {
             testing_style.clone(),
             testing_style.clone(),
             BaseFragmentInfo::anonymous(),
-            true, /* percentage_columns_allowed_for_inline_content_sizes */
+            true, // percentage_columns_allowed_for_inline_content_sizes
         )
     }
 
@@ -815,8 +815,8 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     let column = add_column(
                         &mut self.builder.table.columns,
                         info,
-                        None,  /* group_index */
-                        false, /* is_anonymous */
+                        None,  // group_index
+                        false, // is_anonymous
                         old_column,
                     );
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
@@ -839,7 +839,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                             &mut self.builder.table.columns,
                             info,
                             Some(column_group_index),
-                            true, /* is_anonymous */
+                            true, // is_anonymous
                             None,
                         );
                     } else {
@@ -878,7 +878,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                                 info,
                                 non_replaced_contents,
                                 self.current_propagated_data,
-                                false, /* is_list_item */
+                                false, // is_list_item
                             ),
                         );
                         let base = LayoutBoxBase::new(info.into(), info.style.clone());
@@ -1053,7 +1053,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                             info,
                             non_replaced_contents,
                             propagated_data,
-                            false, /* is_list_item */
+                            false, // is_list_item
                         );
 
                         ArcRefCell::new(TableSlotCell {
@@ -1123,7 +1123,7 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
             &mut self.columns,
             info,
             Some(self.column_group_index),
-            false, /* is_anonymous */
+            false, // is_anonymous
             old_column,
         );
         box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));

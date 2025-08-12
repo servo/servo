@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -236,8 +236,8 @@ impl ServiceWorkerGlobalScope {
                 closing,
                 #[cfg(feature = "webgpu")]
                 Arc::new(IdentityHub::default()),
-                InsecureRequestsPolicy::DoNotUpgrade, // FIXME: investigate what environment this value comes from for
-                                                      // service workers.
+                InsecureRequestsPolicy::DoNotUpgrade, /* FIXME: investigate what environment this value comes from for
+                                                       * service workers. */
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,

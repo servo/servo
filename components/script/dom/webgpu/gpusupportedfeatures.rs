@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // check-tidy: no specs after this line
 
@@ -64,11 +64,9 @@ impl GPUSupportedFeatures {
         }
         // While this feature exists in wgpu, it's not supported by naga yet
         // https://github.com/gfx-rs/wgpu/issues/4384
-        /*
-        if features.contains(Features::SHADER_F16) {
-            set.insert(GPUFeatureName::Shader_f16);
-        }
-        */
+        // if features.contains(Features::SHADER_F16) {
+        // set.insert(GPUFeatureName::Shader_f16);
+        // }
         if features.contains(Features::RG11B10UFLOAT_RENDERABLE) {
             set.insert(GPUFeatureName::Rg11b10ufloat_renderable);
         }

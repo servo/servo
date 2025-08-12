@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Vello implementation of 2D canvas backend.
 //!
@@ -353,12 +353,10 @@ impl GenericDrawTarget for VelloDrawTarget {
         _composition_options: CompositionOptions,
     ) {
         log::warn!("no support for drawing shadows");
-        /*
-        We will need to do some changes to support drawing shadows with vello, as current abstraction is made for azure.
-        In vello we do not need new draw target (we will use layers) and we need to pass whole rect.
-        offsets will be applied to rect directly. shadow blur will be passed directly to let backend do transforms.
-        */
-        //self_.scene.draw_blurred_rounded_rect(self_.transform, rect, color, 0.0, sigma);
+        // We will need to do some changes to support drawing shadows with vello, as current abstraction is made for azure.
+        // In vello we do not need new draw target (we will use layers) and we need to pass whole rect.
+        // offsets will be applied to rect directly. shadow blur will be passed directly to let backend do transforms.
+        // self_.scene.draw_blurred_rounded_rect(self_.transform, rect, color, 0.0, sigma);
     }
 
     fn fill(

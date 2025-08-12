@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use dom_struct::dom_struct;
 use regex::Regex;
@@ -25,7 +25,7 @@ pub(crate) struct BluetoothUUID {
     reflector_: Reflector,
 }
 
-//https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
+// https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
 const BLUETOOTH_ASSIGNED_SERVICES: &[(&str, u32)] = &[
     ("org.bluetooth.service.alert_notification", 0x1811_u32),
     ("org.bluetooth.service.automation_io", 0x1815_u32),
@@ -76,7 +76,7 @@ const BLUETOOTH_ASSIGNED_SERVICES: &[(&str, u32)] = &[
     ("org.bluetooth.service.weight_scale", 0x181d_u32),
 ];
 
-//https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
+// https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
 const BLUETOOTH_ASSIGNED_CHARCTERISTICS: &[(&str, u32)] = &[
     (
         "org.bluetooth.characteristic.aerobic_heart_rate_lower_limit",
@@ -524,7 +524,7 @@ const BLUETOOTH_ASSIGNED_CHARCTERISTICS: &[(&str, u32)] = &[
     ("org.bluetooth.characteristic.wind_chill", 0x2a79_u32),
 ];
 
-//https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
+// https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
 const BLUETOOTH_ASSIGNED_DESCRIPTORS: &[(&str, u32)] = &[
     (
         "org.bluetooth.descriptor.gatt.characteristic_extended_properties",

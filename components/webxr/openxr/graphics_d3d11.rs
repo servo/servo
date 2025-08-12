@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::{mem, ptr};
 
@@ -40,7 +40,7 @@ impl GraphicsProviderMethods<D3D11> for GraphicsProvider {
             match *format {
                 dxgiformat::DXGI_FORMAT_B8G8R8A8_UNORM_SRGB => return *format,
                 dxgiformat::DXGI_FORMAT_B8G8R8A8_UNORM => return *format,
-                //dxgiformat::DXGI_FORMAT_R8G8B8A8_UNORM => return *format,
+                // dxgiformat::DXGI_FORMAT_R8G8B8A8_UNORM => return *format,
                 f => {
                     warn!("Backend requested unsupported format {:?}", f);
                 },

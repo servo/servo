@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Element nodes.
 
@@ -278,7 +278,6 @@ struct ScrollPosition {
     y: f64,
 }
 
-//
 // Element methods
 //
 impl Element {
@@ -709,7 +708,6 @@ impl Element {
     ///
     /// With UA shadow root element being assumed as one element, any focus should
     /// be delegated to its host.
-    ///
     // TODO: Ideally, all of the UA shadow root should use UA widget styling, but
     //       some of the UA widget implemented prior to the implementation of Gecko's
     //       UA widget matching might need some tweaking.
@@ -858,7 +856,7 @@ impl Element {
             Some(CssRuleType::Style),
             CssParsingMode::all(),
             quirks_mode,
-            /* namespaces = */ Default::default(),
+            Default::default(), // namespaces
             None,
             None,
         );
@@ -2033,8 +2031,8 @@ impl Element {
             return false;
         }
         match self.local_name {
-            /* List of void elements from
-            https://html.spec.whatwg.org/multipage/#html-fragment-serialisation-algorithm */
+            // List of void elements from
+            // https://html.spec.whatwg.org/multipage/#html-fragment-serialisation-algorithm
             local_name!("area") |
             local_name!("base") |
             local_name!("basefont") |
@@ -3032,8 +3030,8 @@ impl Element {
                 HTMLElementTypeId::HTMLAnchorElement,
             )) => element.has_attribute(&local_name!("href")),
 
-            //TODO focusable if editing host
-            //TODO focusable if "sorting interface th elements"
+            // TODO focusable if editing host
+            // TODO focusable if "sorting interface th elements"
             _ => {
                 // Draggable elements are focusable.
                 element.get_string_attribute(&local_name!("draggable")) == "true"

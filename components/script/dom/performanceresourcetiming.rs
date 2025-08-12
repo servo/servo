@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
@@ -63,9 +63,9 @@ pub(crate) struct PerformanceResourceTiming {
     response_start: Option<CrossProcessInstant>,
     #[no_trace]
     response_end: Option<CrossProcessInstant>,
-    transfer_size: u64,     //size in octets
-    encoded_body_size: u64, //size in octets
-    decoded_body_size: u64, //size in octets
+    transfer_size: u64,     // size in octets
+    encoded_body_size: u64, // size in octets
+    decoded_body_size: u64, // size in octets
 }
 
 // TODO(#21269): next_hop
@@ -114,7 +114,7 @@ impl PerformanceResourceTiming {
         }
     }
 
-    //TODO fetch start should be in RFT
+    // TODO fetch start should be in RFT
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn from_resource_timing(
         url: ServoUrl,
@@ -140,7 +140,7 @@ impl PerformanceResourceTiming {
             redirect_end: resource_timing.redirect_end,
             fetch_start: resource_timing.fetch_start,
             domain_lookup_start: resource_timing.domain_lookup_start,
-            //TODO (#21260)
+            // TODO (#21260)
             domain_lookup_end: None,
             connect_start: resource_timing.connect_start,
             connect_end: resource_timing.connect_end,

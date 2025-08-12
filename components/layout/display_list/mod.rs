@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
@@ -285,8 +285,8 @@ impl DisplayListBuilder<'_> {
                         info.external_id,
                         info.content_rect,
                         info.clip_rect,
-                        LayoutVector2D::zero(), /* external_scroll_offset */
-                        0,                      /* scroll_offset_generation */
+                        LayoutVector2D::zero(), // external_scroll_offset
+                        0,                      // scroll_offset_generation
                         wr::HasScrollLinkedEffect::No,
                         spatial_tree_item_key,
                     )
@@ -298,9 +298,9 @@ impl DisplayListBuilder<'_> {
                         info.margins,
                         info.vertical_offset_bounds,
                         info.horizontal_offset_bounds,
-                        LayoutVector2D::zero(), /* previously_applied_offset */
+                        LayoutVector2D::zero(), // previously_applied_offset
                         spatial_tree_item_key,
-                        None, /* transform */
+                        None, // transform
                     )
                 },
             });
@@ -324,7 +324,7 @@ impl DisplayListBuilder<'_> {
             ClipChainId::INVALID,
             SpatialId::root_reference_frame(pipeline_id),
             PrimitiveFlags::default(),
-            (0, 0), /* tag */
+            (0, 0), // tag
         );
 
         for item in scroll_frame_hit_test_items {
@@ -338,7 +338,7 @@ impl DisplayListBuilder<'_> {
                 clip_chain_id,
                 spatial_id,
                 PrimitiveFlags::default(),
-                (item.external_scroll_id.0, 0), /* tag */
+                (item.external_scroll_id.0, 0), // tag
             );
         }
     }
@@ -742,7 +742,7 @@ impl Fragment {
                     color: rgba(shadow.color.resolve_to_absolute(&color)),
                     blur_radius: shadow.blur.px(),
                 },
-                true, /* should_inflate */
+                true, // should_inflate
             );
         }
 

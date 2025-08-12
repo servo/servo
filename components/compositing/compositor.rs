@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
@@ -273,7 +273,7 @@ impl ServoRenderer {
         let world_point = WorldPoint::from_untyped(point.to_untyped());
         let results = self.webrender_api.hit_test(
             self.webrender_document,
-            None, /* pipeline_id */
+            None, // pipeline_id
             world_point,
             flags,
         );

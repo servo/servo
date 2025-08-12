@@ -1,23 +1,21 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-/**
-```
-extern crate malloc_size_of;
-extern crate servo_arc;
-
-fn sizeable<T: malloc_size_of::MallocSizeOf>() {}
-fn shallow_sizeable<T: malloc_size_of::MallocShallowSizeOf>() {}
-fn cloneable<T: Clone>() {}
-
-fn main() {
-    cloneable::<servo_arc::Arc<i32>>();
-    cloneable::<std::sync::Arc<i32>>();
-    cloneable::<std::rc::Rc<i32>>();
-}
-```
-*/
+/// ```
+/// extern crate malloc_size_of;
+/// extern crate servo_arc;
+///
+/// fn sizeable<T: malloc_size_of::MallocSizeOf>() {}
+/// fn shallow_sizeable<T: malloc_size_of::MallocShallowSizeOf>() {}
+/// fn cloneable<T: Clone>() {}
+///
+/// fn main() {
+///     cloneable::<servo_arc::Arc<i32>>();
+///     cloneable::<std::sync::Arc<i32>>();
+///     cloneable::<std::rc::Rc<i32>>();
+/// }
+/// ```
 pub fn imports_ok() {}
 
 #[rustfmt::skip]

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
@@ -1610,7 +1610,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
-    //TODO Include Scrollbar
+    // TODO Include Scrollbar
     fn InnerHeight(&self) -> i32 {
         self.viewport_details
             .get()
@@ -1621,7 +1621,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerwidth
-    //TODO Include Scrollbar
+    // TODO Include Scrollbar
     fn InnerWidth(&self) -> i32 {
         self.viewport_details.get().size.width.to_i32().unwrap_or(0)
     }
@@ -1719,7 +1719,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-moveto
     fn MoveTo(&self, x: i32, y: i32) {
         // Step 1
-        //TODO determine if this operation is allowed
+        // TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
         let point = Point2D::new(x, y).to_f32() * dpr;
         let msg = EmbedderMsg::MoveTo(self.webview_id(), point.to_i32());
@@ -2127,13 +2127,13 @@ impl Window {
             .max(0.0f64);
 
         // Step 10
-        //TODO handling ongoing smooth scrolling
+        // TODO handling ongoing smooth scrolling
         let scroll_offset = self.scroll_offset();
         if x == scroll_offset.x as f64 && y == scroll_offset.y as f64 {
             return;
         }
 
-        //TODO Step 11
+        // TODO Step 11
 
         // Step 12: Perform a scroll of the viewport to position, document’s root element
         // as the associated element, if there is one, or null otherwise, and the scroll
@@ -3423,7 +3423,7 @@ impl ParseErrorReporter for CSSErrorReporter {
             )
         }
 
-        //TODO: report a real filename
+        // TODO: report a real filename
         let _ = self
             .script_chan
             .lock()

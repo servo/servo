@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
@@ -175,7 +175,7 @@ impl FontContext {
         self.get_font_maybe_synthesizing_small_caps(
             font_template,
             font_descriptor,
-            true, /* synthesize_small_caps */
+            true, // synthesize_small_caps
         )
     }
 
@@ -196,7 +196,7 @@ impl FontContext {
                 self.get_font_maybe_synthesizing_small_caps(
                     font_template.clone(),
                     &small_caps_descriptor,
-                    false, /* synthesize_small_caps */
+                    false, // synthesize_small_caps
                 )
             } else {
                 None

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use rustc_ast::token::TokenKind;
 use rustc_ast::tokenstream::TokenTree;
@@ -164,10 +164,10 @@ jsmanaged inside on {pos}-th position. Consider removing the wrapper."
 impl<'tcx> LateLintPass<'tcx> for NotracePass {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
         // TODO: better performance if we limit with lint attr???
-        /*let attrs = cx.tcx.hir().attrs(item.hir_id());
-        if has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
-            return;
-        }*/
+        // let attrs = cx.tcx.hir().attrs(item.hir_id());
+        // if has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
+        // return;
+        // }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
             for field in def.fields() {
                 let field_type = cx.tcx.type_of(field.def_id);

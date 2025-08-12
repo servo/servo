@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js).
 //! Mediates interaction between the remote web console and equivalent functionality (object
@@ -373,7 +373,7 @@ impl Actor for ConsoleActor {
             },
 
             "startListeners" => {
-                //TODO: actually implement listener filters that support starting/stopping
+                // TODO: actually implement listener filters that support starting/stopping
                 let listeners = msg.get("listeners").unwrap().as_array().unwrap().to_owned();
                 let msg = StartedListenersReply {
                     from: self.name(),
@@ -388,7 +388,7 @@ impl Actor for ConsoleActor {
             },
 
             "stopListeners" => {
-                //TODO: actually implement listener filters that support starting/stopping
+                // TODO: actually implement listener filters that support starting/stopping
                 let msg = StopListenersReply {
                     from: self.name(),
                     stopped_listeners: msg
@@ -403,7 +403,7 @@ impl Actor for ConsoleActor {
                 request.reply_final(&msg)?
             },
 
-            //TODO: implement autocompletion like onAutocomplete in
+            // TODO: implement autocompletion like onAutocomplete in
             //      http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js
             "autocomplete" => {
                 let msg = AutocompleteReply {

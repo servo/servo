@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
@@ -180,32 +180,6 @@ pub fn get_array_index_from_id(id: HandleId) -> Option<u32> {
             None
         }
     }
-
-    /*let s = jsstr_to_string(cx, RUST_JSID_TO_STRING(raw_id));
-    if s.len() == 0 {
-        return None;
-    }
-
-    let first = s.chars().next().unwrap();
-    if first.is_ascii_lowercase() {
-        return None;
-    }
-
-    let mut i: u32 = 0;
-    let is_array = if s.is_ascii() {
-        let chars = s.as_bytes();
-        StringIsArrayIndex1(chars.as_ptr() as *const _, chars.len() as u32, &mut i)
-    } else {
-        let chars = s.encode_utf16().collect::<Vec<u16>>();
-        let slice = chars.as_slice();
-        StringIsArrayIndex2(slice.as_ptr(), chars.len() as u32, &mut i)
-    };
-
-    if is_array {
-        Some(i)
-    } else {
-        None
-    }*/
 }
 
 /// Find the enum equivelent of a string given by `v` in `pairs`.
@@ -503,7 +477,7 @@ pub(crate) unsafe extern "C" fn generic_static_promise_method(
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
     assert!(!info.is_null());
     // TODO: we need safe wrappers for this in mozjs!
-    //assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
+    // assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
     let static_fn = (*info).__bindgen_anon_1.staticMethod.unwrap();
     if static_fn(cx, argc, vp) {
         return true;

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -304,12 +304,12 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             "bitmaprenderer" => Ok(self
                 .get_or_init_bitmaprenderer_context(can_gc)
                 .map(RootedOffscreenRenderingContext::ImageBitmapRenderingContext)),
-            /*"webgl" | "experimental-webgl" => self
-                .get_or_init_webgl_context(cx, options)
-                .map(OffscreenRenderingContext::WebGLRenderingContext),
-            "webgl2" | "experimental-webgl2" => self
-                .get_or_init_webgl2_context(cx, options)
-                .map(OffscreenRenderingContext::WebGL2RenderingContext),*/
+            // "webgl" | "experimental-webgl" => self
+            // .get_or_init_webgl_context(cx, options)
+            // .map(OffscreenRenderingContext::WebGLRenderingContext),
+            // "webgl2" | "experimental-webgl2" => self
+            // .get_or_init_webgl2_context(cx, options)
+            // .map(OffscreenRenderingContext::WebGL2RenderingContext),
             _ => Err(Error::Type(String::from(
                 "Unrecognized OffscreenCanvas context type",
             ))),

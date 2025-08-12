@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use app_units::Au;
 use bitflags::bitflags;
@@ -459,7 +459,7 @@ impl LineItemLayout<'_, '_> {
             padding.to_physical(ifc_writing_mode),
             border.to_physical(ifc_writing_mode),
             margin.to_physical(ifc_writing_mode),
-            None, /* specific_layout_info */
+            None, // specific_layout_info
         );
 
         let offset_from_parent_ifc = LogicalVec2 {

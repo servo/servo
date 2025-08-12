@@ -249,8 +249,8 @@ pub mod cb {
 
     // CBCentralManager
 
-    pub fn centralmanager(delegate: *mut Object, /*CBCentralManagerDelegate* */) -> *mut Object /*CBCentralManager* */
-    {
+    pub fn centralmanager(delegate: *mut Object, // CBCentralManagerDelegate*
+    ) -> *mut Object /*CBCentralManager* */ {
         unsafe {
             let cbcentralmanager: *mut Object =
                 msg_send![Class::get("CBCentralManager").unwrap(), alloc];
@@ -261,7 +261,7 @@ pub mod cb {
 
     pub fn centralmanager_scanforperipherals_options(
         cbcentralmanager: *mut Object,
-        options: *mut Object, /* NSDictionary<NSString*,id> */
+        options: *mut Object, // NSDictionary<NSString*,id>
     ) {
         unsafe {
             let () =
@@ -277,7 +277,7 @@ pub mod cb {
 
     pub fn centralmanager_connectperipheral(
         cbcentralmanager: *mut Object,
-        peripheral: *mut Object, /* CBPeripheral* */
+        peripheral: *mut Object, // CBPeripheral*
     ) {
         unsafe {
             let () = msg_send![cbcentralmanager, connectPeripheral:peripheral options:nil];
@@ -286,7 +286,7 @@ pub mod cb {
 
     pub fn centralmanager_cancelperipheralconnection(
         cbcentralmanager: *mut Object,
-        peripheral: *mut Object, /* CBPeripheral* */
+        peripheral: *mut Object, // CBPeripheral*
     ) {
         unsafe {
             let () = msg_send![cbcentralmanager, cancelPeripheralConnection: peripheral];
@@ -320,7 +320,7 @@ pub mod cb {
 
     pub fn peripheral_setdelegate(
         cbperipheral: *mut Object,
-        delegate: *mut Object, /* CBPeripheralDelegate* */
+        delegate: *mut Object, // CBPeripheralDelegate*
     ) {
         unsafe {
             let () = msg_send![cbperipheral, setDelegate: delegate];
@@ -335,7 +335,7 @@ pub mod cb {
 
     pub fn peripheral_discoverincludedservicesforservice(
         cbperipheral: *mut Object,
-        service: *mut Object, /* CBService* */
+        service: *mut Object, // CBService*
     ) {
         unsafe {
             let () = msg_send![cbperipheral, discoverIncludedServices:nil forService:service];
@@ -352,7 +352,7 @@ pub mod cb {
 
     pub fn peripheral_discovercharacteristicsforservice(
         cbperipheral: *mut Object,
-        service: *mut Object, /* CBService* */
+        service: *mut Object, // CBService*
     ) {
         unsafe {
             let () = msg_send![cbperipheral, discoverCharacteristics:nil forService:service];
@@ -361,7 +361,7 @@ pub mod cb {
 
     pub fn peripheral_readvalueforcharacteristic(
         cbperipheral: *mut Object,
-        characteristic: *mut Object, /* CBCharacteristic* */
+        characteristic: *mut Object, // CBCharacteristic*
     ) {
         unsafe {
             let () = msg_send![cbperipheral, readValueForCharacteristic: characteristic];
@@ -370,8 +370,8 @@ pub mod cb {
 
     pub fn peripheral_writevalue_forcharacteristic(
         cbperipheral: *mut Object,
-        value: *mut Object,          /* NSData* */
-        characteristic: *mut Object, /* CBCharacteristic* */
+        value: *mut Object,          // NSData*
+        characteristic: *mut Object, // CBCharacteristic*
     ) {
         unsafe {
             let () =
@@ -383,7 +383,7 @@ pub mod cb {
     pub fn peripheral_setnotifyvalue_forcharacteristic(
         cbperipheral: *mut Object,
         value: BOOL,
-        characteristic: *mut Object, /* CBCharacteristic* */
+        characteristic: *mut Object, // CBCharacteristic*
     ) {
         unsafe {
             let () = msg_send![cbperipheral, setNotifyValue:value forCharacteristic:characteristic];
@@ -392,7 +392,7 @@ pub mod cb {
 
     pub fn peripheral_discoverdescriptorsforcharacteristic(
         cbperipheral: *mut Object,
-        characteristic: *mut Object, /* CBCharacteristic* */
+        characteristic: *mut Object, // CBCharacteristic*
     ) {
         unsafe {
             let () = msg_send![

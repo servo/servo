@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -32,8 +32,8 @@ pub(crate) const VALID_ENTRY_TYPES: &[&str] = &[
     "measure",    // User Timing API
     "navigation", // Navigation Timing API
     "paint",      // Paint Timing API
-    "resource",   // Resource Timing API
-                  // "server", XXX Server Timing API
+    "resource",   /* Resource Timing API
+                   * "server", XXX Server Timing API */
 ];
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]

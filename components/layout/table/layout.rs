@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use core::cmp::Ordering;
 use std::mem;
@@ -722,7 +722,7 @@ impl<'a> TableLayout<'a> {
                         layout_context,
                         &containing_block,
                         &LogicalVec2::zero(),
-                        false, /* auto_block_size_stretches_to_containing_block */
+                        false, // auto_block_size_stretches_to_containing_block
                     )
                     .sizes
                     .min_content
@@ -1317,7 +1317,7 @@ impl<'a> TableLayout<'a> {
                 rows_spanned,
                 row_sizes,
                 None,
-                true, /* rowspan_distribution */
+                true, // rowspan_distribution
             );
         }
     }
@@ -1493,7 +1493,7 @@ impl<'a> TableLayout<'a> {
             0..self.table.size.height,
             &mut row_sizes,
             Some(self.final_table_height),
-            false, /* rowspan_distribution */
+            false, // rowspan_distribution
         );
         self.row_sizes = row_sizes;
     }
@@ -1525,7 +1525,7 @@ impl<'a> TableLayout<'a> {
                 .as_mut()
                 .unwrap_or(parent_positioning_context),
             containing_block,
-            None, /* sequential_layout_state */
+            None, // sequential_layout_state
             ignore_block_margins_for_stretch,
         );
 
@@ -2352,10 +2352,10 @@ impl<'a> RowFragmentLayout<'a> {
             self.row.base.style.clone(),
             self.fragments,
             self.rect.as_physical(Some(&row_group_containing_block)),
-            PhysicalSides::zero(), /* padding */
-            PhysicalSides::zero(), /* border */
-            PhysicalSides::zero(), /* margin */
-            None,                  /* specific_layout_info */
+            PhysicalSides::zero(), // padding
+            PhysicalSides::zero(), // border
+            PhysicalSides::zero(), // margin
+            None,                  // specific_layout_info
         );
         row_fragment.set_does_not_paint_background();
 
@@ -2424,10 +2424,10 @@ impl RowGroupFragmentLayout {
             self.fragments,
             self.rect
                 .as_physical(Some(containing_block_for_logical_conversion)),
-            PhysicalSides::zero(), /* padding */
-            PhysicalSides::zero(), /* border */
-            PhysicalSides::zero(), /* margin */
-            None,                  /* specific_layout_info */
+            PhysicalSides::zero(), // padding
+            PhysicalSides::zero(), // border
+            PhysicalSides::zero(), // margin
+            None,                  // specific_layout_info
         );
         row_group_fragment.set_does_not_paint_background();
 
@@ -2822,7 +2822,7 @@ impl TableSlotCell {
     fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         let constraint_space = ConstraintSpace::new_for_style_and_ratio(
             &self.base.style,
-            None, /* TODO: support preferred aspect ratios on non-replaced boxes */
+            None, // TODO: support preferred aspect ratios on non-replaced boxes
         );
         self.base
             .inline_content_sizes(layout_context, &constraint_space, &self.contents.contents)
@@ -2903,7 +2903,7 @@ impl TableSlotCell {
             physical_cell_rect,
             layout.padding.to_physical(table_style.writing_mode),
             layout.border.to_physical(table_style.writing_mode),
-            PhysicalSides::zero(), /* margin */
+            PhysicalSides::zero(), // margin
             specific_layout_info,
         )
         .with_baselines(layout.layout.baselines)

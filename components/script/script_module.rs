@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! The script module mod contains common traits and structs
 //! related to `type=module` for script thread or worker threads.
@@ -1440,7 +1440,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
     let promise = Promise::new_with_js_promise(Handle::from_raw(promise), cx);
 
-    //Step 5 & 6.
+    // Step 5 & 6.
     if let Err(e) = fetch_an_import_module_script_graph(
         &global_scope,
         specifier,

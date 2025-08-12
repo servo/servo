@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::str::{self, FromStr};
@@ -527,7 +527,7 @@ fn is_legal_header_value(value: &[u8]) -> bool {
     // If accepting non-UTF8 header values causes breakage,
     // removing the above "true" and uncommenting the below code
     // would ameliorate it while still accepting most reasonable headers:
-    //match str::from_utf8(value) {
+    // match str::from_utf8(value) {
     //    Ok(_) => true,
     //    Err(_) => {
     //        warn!(

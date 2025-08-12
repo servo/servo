@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use rustc_ast::Mutability;
 use rustc_hir::def::{DefKind, Res};
@@ -65,9 +65,7 @@ macro_rules! symbols {
     }
 }
 
-/*
-Stuff copied from clippy:
-*/
+// Stuff copied from clippy:
 
 // This is adapted from
 // https://github.com/rust-lang/rust-clippy/blob/546408be416f0355a39601c1457b37727bc74395/clippy_utils/src/lib.rs#L517.

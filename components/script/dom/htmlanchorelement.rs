@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::default::Default;
@@ -318,7 +318,7 @@ impl Activatable for HTMLAnchorElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
+    // https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
     fn activation_behavior(&self, event: &Event, target: &EventTarget, _: CanGc) {
         let element = self.as_element();
         let mouse_event = event.downcast::<MouseEvent>().unwrap();
@@ -339,7 +339,7 @@ impl Activatable for HTMLAnchorElement {
         }
 
         // Step 2.
-        //TODO: Download the link is `download` attribute is set.
+        // TODO: Download the link is `download` attribute is set.
         follow_hyperlink(element, self.relations.get(), ismap_suffix);
     }
 }

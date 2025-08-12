@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use script::test::srcset::{Descriptor, ImageSource, parse_a_srcset_attribute};
 
@@ -114,7 +114,7 @@ fn without_descriptor() {
     assert_eq!(parse_a_srcset_attribute("small-image.jpg"), sources);
 }
 
-//Does not parse an ImageSource when both width and density descriptor present
+// Does not parse an ImageSource when both width and density descriptor present
 #[test]
 fn two_descriptor() {
     let empty_vec = Vec::new();

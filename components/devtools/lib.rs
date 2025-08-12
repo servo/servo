@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! An actor-based remote devtools server implementation. Only tested with
 //! nightly Firefox versions at time of writing. Largely based on
@@ -526,7 +526,7 @@ impl DevtoolsInstance {
         let mut actors = self.actors.lock().unwrap();
         match self.actor_requests.entry(request_id) {
             Occupied(name) => {
-                //TODO: Delete from map like Firefox does?
+                // TODO: Delete from map like Firefox does?
                 name.into_mut().clone()
             },
             Vacant(entry) => {

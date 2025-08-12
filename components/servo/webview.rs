@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::{Ref, RefCell, RefMut};
 use std::hash::Hash;
@@ -480,7 +480,7 @@ impl WebView {
             .send(EmbedderToConstellationMessage::ForwardInputEvent(
                 self.id(),
                 event,
-                None, /* hit_test */
+                None, // hit_test
             ))
     }
 

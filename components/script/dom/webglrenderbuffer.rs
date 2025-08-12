@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
@@ -105,15 +105,13 @@ impl WebGLRenderbuffer {
 
             let context = self.upcast::<WebGLObject>().context();
 
-            /*
-            If a renderbuffer object is deleted while its image is attached to one or more
-            attachment points in a currently bound framebuffer object, then it is as if
-            FramebufferRenderbuffer had been called, with a renderbuffer of zero, for each
-            attachment point to which this image was attached in that framebuffer object.
-            In other words,the renderbuffer image is first detached from all attachment points
-            in that frame-buffer object.
-            - GLES 3.0, 4.4.2.3, "Attaching Renderbuffer Images to a Framebuffer"
-            */
+            // If a renderbuffer object is deleted while its image is attached to one or more
+            // attachment points in a currently bound framebuffer object, then it is as if
+            // FramebufferRenderbuffer had been called, with a renderbuffer of zero, for each
+            // attachment point to which this image was attached in that framebuffer object.
+            // In other words,the renderbuffer image is first detached from all attachment points
+            // in that frame-buffer object.
+            // - GLES 3.0, 4.4.2.3, "Attaching Renderbuffer Images to a Framebuffer"
             if let Some(fb) = context.get_draw_framebuffer_slot().get() {
                 let _ = fb.detach_renderbuffer(self);
             }

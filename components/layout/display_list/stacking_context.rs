@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use core::f32;
 use std::cell::{Cell, RefCell};
@@ -658,7 +658,7 @@ impl StackingContext {
         let mut fragment_builder = BuilderForBoxFragment::new(
             &root_fragment,
             &fragment_tree.initial_containing_block,
-            false, /* is_collapsed_table_borders */
+            false, // is_collapsed_table_borders
         );
         let painter = super::background::BackgroundPainter {
             style: &source_style,
@@ -1108,7 +1108,7 @@ impl BoxFragment {
                 BuilderForBoxFragment::new(
                     self,
                     &containing_block.rect,
-                    false, /* is_collapsed_table_borders */
+                    false, // is_collapsed_table_borders
                 ),
             )
             .unwrap_or(containing_block.clip_id);
@@ -1191,7 +1191,7 @@ impl BoxFragment {
             BuilderForBoxFragment::new(
                 self,
                 &containing_block.rect,
-                false, /* is_collapsed_table_borders */
+                false, // is_collapsed_table_borders
             ),
         ) {
             new_clip_id = clip_id;

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Servo, the mighty web browser engine from the future.
 //!
@@ -189,7 +189,6 @@ mod media_platform {
 /// It does everything necessary to render the web, primarily
 /// orchestrating the interaction between JavaScript, CSS layout,
 /// rendering, and the client window.
-///
 // Clients create an event loop to pump messages between the embedding
 // application and various browser components.
 pub struct Servo {

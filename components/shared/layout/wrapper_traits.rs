@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #![allow(unsafe_code)]
 
@@ -264,7 +264,6 @@ pub trait ThreadSafeLayoutElement<'dom>:
     /// This type alias is just a work-around to avoid writing
     ///
     ///   <Self::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteElement
-    ///
     type ConcreteElement: TElement;
 
     fn as_node(&self) -> Self::ConcreteThreadSafeLayoutNode;
@@ -343,8 +342,10 @@ pub trait ThreadSafeLayoutElement<'dom>:
                                 &style_pseudo,
                                 RuleInclusion::All,
                                 data.styles.primary(),
-                                /* is_probe = */ false,
-                                /* matching_func = */ None,
+                                // is_probe =
+                                false,
+                                // matching_func =
+                                None,
                             )
                             .unwrap()
                     },

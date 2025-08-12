@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::ptr;
@@ -139,7 +139,7 @@ impl FileReaderSharedFunctionality {
         blob_type: &str,
         blob_label: &Option<String>,
     ) -> DOMString {
-        //https://w3c.github.io/FileAPI/#encoding-determination
+        // https://w3c.github.io/FileAPI/#encoding-determination
         // Steps 1 & 2 & 3
         let mut encoding = blob_label
             .as_ref()
@@ -194,7 +194,7 @@ impl FileReader {
         reflect_dom_object_with_proto(Box::new(FileReader::new_inherited()), global, proto, can_gc)
     }
 
-    //https://w3c.github.io/FileAPI/#dfn-error-steps
+    // https://w3c.github.io/FileAPI/#dfn-error-steps
     pub(crate) fn process_read_error(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
@@ -244,7 +244,7 @@ impl FileReader {
             );
         );
         return_on_abort!();
-        //FIXME Step 7 send current progress
+        // FIXME Step 7 send current progress
         fr.dispatch_progress_event(atom!("progress"), 0, None, can_gc);
     }
 
@@ -328,7 +328,7 @@ impl FileReader {
         *result.borrow_mut() = Some(FileReaderResult::String(output));
     }
 
-    //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
+    // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
     fn perform_readasdataurl(
         result: &DomRefCell<Option<FileReaderResult>>,
         data: ReadMetaData,

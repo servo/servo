@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -344,7 +344,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         }
 
         // Step 5
-        //FIXME(seanmonstar): use a Trie instead?
+        // FIXME(seanmonstar): use a Trie instead?
         let maybe_method = method.as_str().and_then(|s| {
             // Note: hyper tests against the uppercase versions
             // Since we want to pass methods not belonging to the short list above
@@ -662,7 +662,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         }
 
         // Step 6
-        //TODO - set referrer_policy/referrer_url in request
+        // TODO - set referrer_policy/referrer_url in request
         let credentials_mode = if self.with_credentials.get() {
             CredentialsMode::Include
         } else {

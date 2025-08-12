@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::ffi::CString;
 use std::fs::File;
@@ -105,7 +105,7 @@ impl PlatformFontMethods for PlatformFont {
                 library.freetype_library,
                 data.as_ptr(),
                 data.len() as FT_Long,
-                0, /* face_index */
+                0, // face_index
                 &mut face,
             )
         };

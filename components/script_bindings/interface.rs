@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Machinery to initialise interface prototype objects and interface objects.
 
@@ -577,7 +577,7 @@ pub(crate) fn get_per_interface_object_handle(
     unsafe {
         assert!(((*get_object_class(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
 
-        /* Check to see whether the interface objects are already installed */
+        // Check to see whether the interface objects are already installed
         let proto_or_iface_array = get_proto_or_iface_array(global.get());
         let index: usize = id.into();
         rval.set((*proto_or_iface_array)[index]);

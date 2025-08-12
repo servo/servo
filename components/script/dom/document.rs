@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
@@ -1877,7 +1877,7 @@ impl Document {
                 _ => (),
             }
         }
-        //Step 5
+        // Step 5
         true
     }
 
@@ -3013,7 +3013,7 @@ impl Document {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
-        //Step 3-5.
+        // Step 3-5.
         let beforeunload_event = BeforeUnloadEvent::new(
             &self.window,
             atom!("beforeunload"),
@@ -3776,7 +3776,6 @@ impl Document {
 
     /// An implementation of step 22 from
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>:
-    ///
     // > Step 22: For each doc of docs, update the rendering or user interface of
     // > doc and its node navigable to reflect the current state.
     //
@@ -4424,7 +4423,7 @@ impl Document {
                     LazyLock::new(StyleSharedRwLock::new);
 
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
-                //StyleSharedRwLock::new()
+                // StyleSharedRwLock::new()
             },
             stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),

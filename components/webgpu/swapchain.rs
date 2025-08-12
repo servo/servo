@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::collections::HashMap;
 use std::ptr::NonNull;
@@ -288,7 +288,7 @@ impl ContextData {
         for (buffer_id, buffer_state) in &mut self.buffer_ids {
             match buffer_state {
                 PresentationBufferState::Unassigned => {
-                    /* These buffer were not yet created in wgpu */
+                    // These buffer were not yet created in wgpu
                 },
                 _ => {
                     global.buffer_drop(*buffer_id);

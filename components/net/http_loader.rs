@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
@@ -1615,7 +1615,7 @@ async fn http_network_or_cache_fetch(
             loop {
                 match ch.1.recv().await {
                     Some(Data::Payload(_)) => {},
-                    Some(Data::Done) => break, // Return the full response as if it was initially cached as such.
+                    Some(Data::Done) => break, /* Return the full response as if it was initially cached as such. */
                     Some(Data::Cancelled) => {
                         // The response was cancelled while the fetch was ongoing.
                         // Set response to None, which will trigger a network fetch below.
@@ -1760,7 +1760,7 @@ async fn http_network_or_cache_fetch(
         // Step 14.4 Set response to the result of running HTTP-network-or-cache fetch given fetchParams and true.
         response = http_network_or_cache_fetch(
             fetch_params,
-            true, /* authentication flag */
+            true, // authentication flag
             cors_flag,
             done_chan,
             context,
@@ -1808,7 +1808,7 @@ async fn http_network_or_cache_fetch(
         // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
         response = http_network_or_cache_fetch(
             fetch_params,
-            false, /* authentication flag */
+            false, // authentication flag
             cors_flag,
             done_chan,
             context,

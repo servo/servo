@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Data and main loop of WebGPU thread.
 
@@ -1026,7 +1026,7 @@ impl WGPU {
                     } => {
                         let global = &self.global;
                         let _guard = self.poller.lock();
-                        //TODO: Report result to content process
+                        // TODO: Report result to content process
                         let result = global.queue_write_texture(
                             queue_id,
                             &texture_cv,

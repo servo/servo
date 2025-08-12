@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cmp::min;
 
@@ -36,7 +36,6 @@ pub(crate) const MAX_SAMPLE_RATE: f32 = 192000.;
 /// and remain attached until its contents are needed by some other API
 /// implementation. Follow <https://webaudio.github.io/web-audio-api/#acquire-the-content>
 /// to know in which situations js_channels buffers must be detached.
-///
 #[dom_struct]
 pub(crate) struct AudioBuffer {
     reflector_: Reflector,

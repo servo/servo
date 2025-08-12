@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::default::Default;
@@ -354,7 +354,7 @@ impl Activatable for HTMLButtonElement {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        //https://html.spec.whatwg.org/multipage/#the-button-element
+        // https://html.spec.whatwg.org/multipage/#the-button-element
         !self.upcast::<Element>().disabled_state()
     }
 
@@ -362,7 +362,7 @@ impl Activatable for HTMLButtonElement {
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
         let ty = self.button_type.get();
         match ty {
-            //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
+            // https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
             ButtonType::Submit => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Types used by the embedding layer and/or exposed to the API. This crate is responsible for
 //! defining types that cross the process boundary from the embedding/rendering layer all the way
@@ -375,7 +375,7 @@ pub enum EmbedderMsg {
     RequestAuthentication(
         WebViewId,
         ServoUrl,
-        bool, /* for proxy */
+        bool, // for proxy
         IpcSender<Option<AuthenticationResponse>>,
     ),
     /// Show a context menu to the user

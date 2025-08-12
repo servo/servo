@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::collections::VecDeque;
@@ -237,7 +237,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     return;
                 };
 
-                /* update current_frame */
+                // update current_frame
                 current_frame.image_key = new_image_key;
                 current_frame.width = frame.get_width();
                 current_frame.height = frame.get_height();
@@ -1560,7 +1560,8 @@ impl HTMLMediaElement {
         if self.Loop() {
             self.seek(
                 self.earliest_possible_position(),
-                /* approximate_for_speed*/ false,
+                // approximate_for_speed
+                false,
             );
             return;
         }
@@ -1823,7 +1824,8 @@ impl HTMLMediaElement {
         if self.default_playback_start_position.get() > 0. {
             self.seek(
                 self.default_playback_start_position.get(),
-                /* approximate_for_speed*/ false,
+                // approximate_for_speed
+                false,
             );
             jumped = true;
         }
@@ -2358,7 +2360,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         if self.Ended() && self.direction_of_playback() == PlaybackDirection::Forwards {
             self.seek(
                 self.earliest_possible_position(),
-                /* approximate_for_speed */ false,
+                // approximate_for_speed
+                false,
             );
         }
 

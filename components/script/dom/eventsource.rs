@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::mem;
@@ -715,7 +715,7 @@ impl EventSourceTimeoutCallback {
         let mut request = event_source.request();
         // Step 5.3
         if !event_source.last_event_id.borrow().is_empty() {
-            //TODO(eijebong): Change this once typed header support custom values
+            // TODO(eijebong): Change this once typed header support custom values
             request.headers.insert(
                 HeaderName::from_static("last-event-id"),
                 HeaderValue::from_str(&String::from(event_source.last_event_id.borrow().clone()))

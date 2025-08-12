@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -50,7 +50,6 @@ const FALLBACK_RIPPY: &[u8] = include_bytes!("../../resources/rippy.png");
 /// width/height of the pixmap allocated for rasterization.
 const MAX_SVG_PIXMAP_DIMENSION: u32 = 5000;
 
-//
 // TODO(gw): Remaining work on image cache:
 //     * Make use of the prefetch support in various parts of the code.
 //     * Profile time in GetImageIfAvailable - might be worth caching these
@@ -1018,7 +1017,7 @@ impl ImageCache for ImageCacheImpl {
                 let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                 pending_load.bytes.extend_from_slice(&data);
 
-                //jmr0 TODO: possibly move to another task?
+                // jmr0 TODO: possibly move to another task?
                 if pending_load.metadata.is_none() {
                     let mut reader = std::io::Cursor::new(pending_load.bytes.as_slice());
                     if let Ok(info) = imsz_from_reader(&mut reader) {

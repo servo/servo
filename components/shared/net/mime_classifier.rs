@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use mime::{self, Mime};
 
@@ -70,7 +70,7 @@ impl Default for MimeClassifier {
 }
 
 impl MimeClassifier {
-    //Performs MIME Type Sniffing Algorithm (sections 7 and 8)
+    // Performs MIME Type Sniffing Algorithm (sections 7 and 8)
     pub fn classify<'a>(
         &'a self,
         context: LoadContext,
@@ -200,7 +200,7 @@ impl MimeClassifier {
         Ok(())
     }
 
-    //some sort of iterator over the classifiers might be better?
+    // some sort of iterator over the classifiers might be better?
     fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) -> Mime {
         let should_sniff_scriptable = no_sniff_flag == NoSniffFlag::Off;
         let sniffed = if should_sniff_scriptable {
@@ -327,7 +327,7 @@ impl MimeClassifier {
     }
 }
 
-//Interface used for composite types
+// Interface used for composite types
 trait MIMEChecker {
     fn classify(&self, data: &[u8]) -> Option<Mime>;
     /// Validate the MIME checker configuration
@@ -743,10 +743,10 @@ impl MIMEChecker for FeedsClassifier {
     }
 }
 
-//Contains hard coded byte matchers
-//TODO: These should be configured and not hard coded
+// Contains hard coded byte matchers
+// TODO: These should be configured and not hard coded
 impl ByteMatcher {
-    //A Windows Icon signature
+    // A Windows Icon signature
     fn image_x_icon() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x01\x00",
@@ -755,7 +755,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //A Windows Cursor signature.
+    // A Windows Cursor signature.
     fn image_x_icon_cursor() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x02\x00",
@@ -764,7 +764,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "BM", a BMP signature.
+    // The string "BM", a BMP signature.
     fn image_bmp() -> ByteMatcher {
         ByteMatcher {
             pattern: b"BM",
@@ -773,7 +773,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "GIF89a", a GIF signature.
+    // The string "GIF89a", a GIF signature.
     fn image_gif89a() -> ByteMatcher {
         ByteMatcher {
             pattern: b"GIF89a",
@@ -782,7 +782,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "GIF87a", a GIF signature.
+    // The string "GIF87a", a GIF signature.
     fn image_gif87a() -> ByteMatcher {
         ByteMatcher {
             pattern: b"GIF87a",
@@ -791,7 +791,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "RIFF" followed by four bytes followed by the string "WEBPVP".
+    // The string "RIFF" followed by four bytes followed by the string "WEBPVP".
     fn image_webp() -> ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00WEBPVP",
@@ -800,8 +800,8 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //An error-checking byte followed by the string "PNG" followed by CR LF SUB LF, the PNG
-    //signature.
+    // An error-checking byte followed by the string "PNG" followed by CR LF SUB LF, the PNG
+    // signature.
     fn image_png() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x89PNG\r\n\x1A\n",
@@ -819,7 +819,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The WebM signature. [TODO: Use more bytes?]
+    // The WebM signature. [TODO: Use more bytes?]
     fn video_webm() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x1A\x45\xDF\xA3",
@@ -828,7 +828,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string ".snd", the basic audio signature.
+    // The string ".snd", the basic audio signature.
     fn audio_basic() -> ByteMatcher {
         ByteMatcher {
             pattern: b".snd",
@@ -837,7 +837,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "FORM" followed by four bytes followed by the string "AIFF", the AIFF signature.
+    // The string "FORM" followed by four bytes followed by the string "AIFF", the AIFF signature.
     fn audio_aiff() -> ByteMatcher {
         ByteMatcher {
             pattern: b"FORM\x00\x00\x00\x00AIFF",
@@ -846,7 +846,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "ID3", the ID3v2-tagged MP3 signature.
+    // The string "ID3", the ID3v2-tagged MP3 signature.
     fn audio_mpeg() -> ByteMatcher {
         ByteMatcher {
             pattern: b"ID3",
@@ -855,7 +855,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "OggS" followed by NUL, the Ogg container signature.
+    // The string "OggS" followed by NUL, the Ogg container signature.
     fn application_ogg() -> ByteMatcher {
         ByteMatcher {
             pattern: b"OggS\x00",
@@ -864,8 +864,8 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "MThd" followed by four bytes representing the number 6 in 32 bits (big-endian),
-    //the MIDI signature.
+    // The string "MThd" followed by four bytes representing the number 6 in 32 bits (big-endian),
+    // the MIDI signature.
     fn audio_midi() -> ByteMatcher {
         ByteMatcher {
             pattern: b"MThd\x00\x00\x00\x06",
@@ -874,7 +874,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "RIFF" followed by four bytes followed by the string "AVI ", the AVI signature.
+    // The string "RIFF" followed by four bytes followed by the string "AVI ", the AVI signature.
     fn video_avi() -> ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00AVI ",
@@ -1096,7 +1096,7 @@ impl ByteMatcher {
         }
     }
 
-    //The string "<?xml".
+    // The string "<?xml".
     fn text_xml() -> ByteMatcher {
         ByteMatcher {
             pattern: b"<?xml",
@@ -1105,7 +1105,7 @@ impl ByteMatcher {
             leading_ignore: b"\t\n\x0C\r ",
         }
     }
-    //The string "%PDF-", the PDF signature.
+    // The string "%PDF-", the PDF signature.
     fn application_pdf() -> ByteMatcher {
         ByteMatcher {
             pattern: b"%PDF-",
@@ -1114,7 +1114,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //34 bytes followed by the string "LP", the Embedded OpenType signature.
+    // 34 bytes followed by the string "LP", the Embedded OpenType signature.
     fn application_vnd_ms_font_object() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
@@ -1127,7 +1127,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //4 bytes representing the version number 1.0, a TrueType signature.
+    // 4 bytes representing the version number 1.0, a TrueType signature.
     fn true_type() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x01\x00\x00",
@@ -1136,7 +1136,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "OTTO", the OpenType signature.
+    // The string "OTTO", the OpenType signature.
     fn open_type() -> ByteMatcher {
         ByteMatcher {
             pattern: b"OTTO",
@@ -1163,7 +1163,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The GZIP archive signature.
+    // The GZIP archive signature.
     fn application_x_gzip() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x1F\x8B\x08",
@@ -1172,7 +1172,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "PK" followed by ETX EOT, the ZIP archive signature.
+    // The string "PK" followed by ETX EOT, the ZIP archive signature.
     fn application_zip() -> ByteMatcher {
         ByteMatcher {
             pattern: b"PK\x03\x04",
@@ -1181,7 +1181,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //The string "Rar " followed by SUB BEL NUL, the RAR archive signature.
+    // The string "Rar " followed by SUB BEL NUL, the RAR archive signature.
     fn application_x_rar_compressed() -> ByteMatcher {
         ByteMatcher {
             pattern: b"Rar \x1A\x07\x00",
@@ -1208,7 +1208,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //UTF-16LE BOM
+    // UTF-16LE BOM
     fn text_plain_utf_16le_bom() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\xFF\xFE\x00\x00",
@@ -1217,7 +1217,7 @@ impl ByteMatcher {
             leading_ignore: &[],
         }
     }
-    //UTF-8 BOM
+    // UTF-8 BOM
     fn text_plain_utf_8_bom() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\xEF\xBB\xBF\x00",

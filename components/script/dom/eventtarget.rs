@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -285,7 +285,7 @@ impl CompiledEventListener {
                         ) {
                             let value = rooted_return_value.handle();
 
-                            //Step 5
+                            // Step 5
                             let should_cancel = value.is_boolean() && !value.to_boolean();
 
                             if should_cancel {

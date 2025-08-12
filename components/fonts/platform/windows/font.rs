@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // NOTE: https://www.chromium.org/directwrite-font-proxy has useful
 // information for an approach that we'll likely need to take when the
@@ -120,7 +120,7 @@ impl PlatformFontMethods for PlatformFont {
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
             .create_face(
-                0, /* face_index */
+                0, // face_index
                 dwrote::DWRITE_FONT_SIMULATIONS_NONE,
             )
             .map_err(|_| "Could not create FontFace")?;

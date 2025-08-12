@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::{f64, ptr};
@@ -1101,7 +1101,7 @@ pub(crate) fn transform_to_matrix(value: String) -> Fallible<(bool, Transform3D<
         Some(::style::stylesheets::CssRuleType::Style),
         ::style_traits::ParsingMode::DEFAULT,
         ::style::context::QuirksMode::NoQuirks,
-        /* namespaces = */ Default::default(),
+        Default::default(), // namespaces
         None,
         None,
     );

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Utilities for querying the layout, as needed by layout.
 use std::rc::Rc;
@@ -928,7 +928,7 @@ fn rendered_text_collection_steps(
                 Display::TableCell => {
                     if !state.first_table_cell {
                         items.push(InnerOrOuterTextItem::Text(String::from(
-                            "\u{0009}", /* tab */
+                            "\u{0009}", // tab
                         )));
                         // Make sure we don't add a white-space we removed from the previous node
                         state.did_truncate_trailing_white_space = false;
@@ -943,7 +943,7 @@ fn rendered_text_collection_steps(
                 Display::TableRow => {
                     if !state.first_table_row {
                         items.push(InnerOrOuterTextItem::Text(String::from(
-                            "\u{000A}", /* Line Feed */
+                            "\u{000A}", // Line Feed
                         )));
                         // Make sure we don't add a white-space we removed from the previous node
                         state.did_truncate_trailing_white_space = false;

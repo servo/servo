@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -186,7 +186,7 @@ impl ShadowRoot {
     }
 
     pub(crate) fn get_focused_element(&self) -> Option<DomRoot<Element>> {
-        //XXX get retargeted focused element
+        // XXX get retargeted focused element
         None
     }
 

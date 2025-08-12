@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Messages send from the ScriptThread to the Constellation.
 
@@ -478,11 +478,11 @@ pub enum ScriptToConstellationMessage {
     CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),
     /// The results of attempting to complete the transfer of a batch of ports.
     MessagePortTransferResult(
-        /* The router whose transfer of ports succeeded, if any */
+        // The router whose transfer of ports succeeded, if any
         Option<MessagePortRouterId>,
-        /* The ids of ports transferred successfully */
+        // The ids of ports transferred successfully
         Vec<MessagePortId>,
-        /* The ids, and buffers, of ports whose transfer failed */
+        // The ids, and buffers, of ports whose transfer failed
         HashMap<MessagePortId, PortTransferInfo>,
     ),
     /// A new message-port was created or transferred, with corresponding control-sender.

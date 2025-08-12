@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::default::Default;
@@ -1085,7 +1085,6 @@ pub(crate) enum EventPhase {
 /// handled once again for page scrolling (which is definitely not what we'd want).
 ///
 /// [msg]: https://doc.servo.org/compositing/enum.ConstellationMsg.html#variant.KeyEvent
-///
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum EventDefault {
     /// The default action of the event is allowed (constructor's default)

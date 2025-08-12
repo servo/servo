@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::borrow::Cow;
 
@@ -782,7 +782,7 @@ impl BlockLevelJob<'_> {
                     info,
                     contents,
                     self.propagated_data,
-                    false, /* is_list_item */
+                    false, // is_list_item
                 );
                 // An outside ::marker must establish a BFC, and can't contain floats.
                 let block_formatting_context = BlockFormattingContext {

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! The script runtime contains common traits and structs commonly used by the
 //! script thread, the dom, and the worker threads.
@@ -504,9 +504,9 @@ unsafe extern "C" fn content_security_policy_allows(
     runtime_code: RuntimeCode,
     code_string: HandleString,
     compilation_type: CompilationType,
-    parameter_strings: u8, //FIXME in bindings generation
+    parameter_strings: u8, // FIXME in bindings generation
     body_string: HandleString,
-    parameter_args: u8, //FIXME in bindings generation
+    parameter_args: u8, // FIXME in bindings generation
     body_arg: RawHandleValue,
     can_compile_strings: *mut bool,
 ) -> bool {
@@ -855,16 +855,14 @@ impl Runtime {
         if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_high_limit_mb), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_LARGE_HEAP_SIZE_MIN, val as u32);
         }
-        /*if let Some(val) = in_range(pref!(js_mem_gc_allocation_threshold_factor), 0, 10_000) {
-            JS_SetGCParameter(cx, JSGCParamKey::JSGC_NON_INCREMENTAL_FACTOR, val as u32);
-        }*/
-        /*
-            // JSGC_SMALL_HEAP_INCREMENTAL_LIMIT
-            pref("javascript.options.mem.gc_small_heap_incremental_limit", 140);
-
-            // JSGC_LARGE_HEAP_INCREMENTAL_LIMIT
-            pref("javascript.options.mem.gc_large_heap_incremental_limit", 110);
-        */
+        // if let Some(val) = in_range(pref!(js_mem_gc_allocation_threshold_factor), 0, 10_000) {
+        // JS_SetGCParameter(cx, JSGCParamKey::JSGC_NON_INCREMENTAL_FACTOR, val as u32);
+        // }
+        // JSGC_SMALL_HEAP_INCREMENTAL_LIMIT
+        // pref("javascript.options.mem.gc_small_heap_incremental_limit", 140);
+        //
+        // JSGC_LARGE_HEAP_INCREMENTAL_LIMIT
+        // pref("javascript.options.mem.gc_large_heap_incremental_limit", 110);
         if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_min), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
         }
@@ -1177,14 +1175,14 @@ unsafe extern "C" fn consume_stream(
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
 
-    //Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
+    // Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
     if let Ok(unwrapped_source) =
         root_from_handleobject::<Response>(RustHandleObject::from_raw(obj), *cx)
     {
-        //Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
+        // Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
         let mimetype = unwrapped_source.Headers(CanGc::note()).extract_mime_type();
 
-        //Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
+        // Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
         if !&mimetype[..].eq_ignore_ascii_case(b"application/wasm") {
             throw_dom_exception(
                 cx,
@@ -1195,7 +1193,7 @@ unsafe extern "C" fn consume_stream(
             return false;
         }
 
-        //Step 2.4 If response is not CORS-same-origin, return with a TypeError and abort these substeps.
+        // Step 2.4 If response is not CORS-same-origin, return with a TypeError and abort these substeps.
         match unwrapped_source.Type() {
             DOMResponseType::Basic | DOMResponseType::Cors | DOMResponseType::Default => {},
             _ => {
@@ -1209,7 +1207,7 @@ unsafe extern "C" fn consume_stream(
             },
         }
 
-        //Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
+        // Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
         if !unwrapped_source.Ok() {
             throw_dom_exception(
                 cx,
@@ -1243,7 +1241,7 @@ unsafe extern "C" fn consume_stream(
         }
         unwrapped_source.set_stream_consumer(Some(StreamConsumer(_consumer)));
     } else {
-        //Step 3 Upon rejection of source, return with reason.
+        // Step 3 Upon rejection of source, return with reason.
         throw_dom_exception(
             cx,
             &global,

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::ptr::NonNull;
 
@@ -95,7 +95,7 @@ unsafe extern "C" fn principals_is_system_or_addon_principal(_: *mut JSPrincipal
     false
 }
 
-//TODO is same_origin_domain equivalent to subsumes for our purposes
+// TODO is same_origin_domain equivalent to subsumes for our purposes
 pub(crate) unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) -> bool {
     match (NonNull::new(obj), NonNull::new(other)) {
         (Some(obj), Some(other)) => {

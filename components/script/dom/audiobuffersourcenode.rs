@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::f32;
@@ -56,8 +56,8 @@ impl AudioBufferSourceNode {
             AudioNodeInit::AudioBufferSourceNode(options.convert()),
             context,
             node_options,
-            0, /* inputs */
-            1, /* outputs */
+            0, // inputs
+            1, // outputs
         )?;
         let node_id = source_node.node().node_id();
         let playback_rate = AudioParam::new(

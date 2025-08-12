@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 
@@ -243,14 +243,12 @@ impl WebGLTexture {
             self.is_deleted.set(true);
             let context = self.upcast::<WebGLObject>().context();
 
-            /*
-            If a texture object is deleted while its image is attached to one or more attachment
-            points in a currently bound framebuffer, then it is as if FramebufferTexture had been
-            called, with a texture of zero, for each attachment point to which this im-age was
-            attached in that framebuffer. In other words, this texture image is firstdetached from
-            all attachment points in a currently bound framebuffer.
-            - GLES 3.0, 4.4.2.3, "Attaching Texture Images to a Framebuffer"
-            */
+            // If a texture object is deleted while its image is attached to one or more attachment
+            // points in a currently bound framebuffer, then it is as if FramebufferTexture had been
+            // called, with a texture of zero, for each attachment point to which this im-age was
+            // attached in that framebuffer. In other words, this texture image is firstdetached from
+            // all attachment points in a currently bound framebuffer.
+            // - GLES 3.0, 4.4.2.3, "Attaching Texture Images to a Framebuffer"
             if let Some(fb) = context.get_draw_framebuffer_slot().get() {
                 let _ = fb.detach_texture(self);
             }

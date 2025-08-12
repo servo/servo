@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
@@ -169,7 +169,7 @@ fn create_html_element(
                 // steps while catching any exceptions:
                 CustomElementCreationMode::Synchronous => {
                     let local_name = name.local.clone();
-                    //TODO(jdm) Pass proto to create_element?
+                    // TODO(jdm) Pass proto to create_element?
                     // Steps 4.1.1-4.1.11
                     return match definition.create_element(document, prefix.clone(), can_gc) {
                         Ok(element) => {

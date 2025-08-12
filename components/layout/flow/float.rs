@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Float layout.
 //!
@@ -820,7 +820,7 @@ impl FloatBandLink {
     }
 
     /// Corrects tree balance:
-    ///```text
+    /// ```text
     ///         T          L
     ///        / \        / \
     ///       L   R  →   A   T      if level(T) = level(L)
@@ -850,7 +850,7 @@ impl FloatBandLink {
     }
 
     /// Corrects tree balance:
-    ///```text
+    /// ```text
     ///         T            R
     ///        / \          / \
     ///       A   R   →    T   X    if level(T) = level(X)

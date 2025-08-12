@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::collections::HashMap;
 
@@ -78,7 +78,7 @@ impl GamepadSupport {
                         gilrs::Axis::LeftStickY => 1,
                         gilrs::Axis::RightStickX => 2,
                         gilrs::Axis::RightStickY => 3,
-                        _ => 4, // Other axes do not map to "standard" gamepad mapping and are ignored
+                        _ => 4, /* Other axes do not map to "standard" gamepad mapping and are ignored */
                     };
                     if mapped_axis < 4 {
                         // The Gamepad spec designates down as positive and up as negative.

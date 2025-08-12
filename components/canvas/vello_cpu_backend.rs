@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -192,7 +192,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         self.ignore_clips(|self_| {
             // Clipped blending does not work correctly:
             // https://github.com/linebender/vello/issues/1119
-            //self_.push_layer(Some(rect.to_path(0.1)), Some(peniko::Compose::Copy.into()), None, None);
 
             self_.ctx.set_paint(vello_cpu::Image {
                 source: vello_cpu::ImageSource::Pixmap(surface),
@@ -201,8 +200,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
                 quality: peniko::ImageQuality::Low,
             });
             self_.ctx.fill_rect(&rect);
-
-            //self_.ctx.pop_layer();
         });
     }
 
@@ -258,12 +255,11 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         _composition_options: CompositionOptions,
     ) {
         log::warn!("no support for drawing shadows");
-        /*
-        We will need to do some changes to support drawing shadows with vello, as current abstraction is made for azure.
-        In vello we do not need new draw target (we will use layers) and we need to pass whole rect.
-        offsets will be applied to rect directly. shadow blur will be passed directly to let backend do transforms.
-        */
-        //self_.scene.draw_blurred_rounded_rect(self_.transform, rect, color, 0.0, sigma);
+        // We will need to do some changes to support drawing shadows with vello, as
+        // current abstraction is made for azure. In vello we do not need new draw target
+        // (we will use layers) and we need to pass whole rect. offsets will be applied to
+        // rect directly. shadow blur will be passed directly to let backend do
+        // transforms.
     }
 
     fn fill(

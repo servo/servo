@@ -1,20 +1,18 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Adapted from an implementation in reqwest.
 
-/*!
-A non-blocking response decoder.
-
-The decoder wraps a stream of bytes and produces a new stream of decompressed bytes.
-The decompressed bytes aren't guaranteed to align to the compressed ones.
-
-If the response is plaintext then no additional work is carried out.
-Bytes are just passed along.
-
-If the response is gzip, deflate or brotli then the bytes are decompressed.
-*/
+//! A non-blocking response decoder.
+//!
+//! The decoder wraps a stream of bytes and produces a new stream of decompressed bytes.
+//! The decompressed bytes aren't guaranteed to align to the compressed ones.
+//!
+//! If the response is plaintext then no additional work is carried out.
+//! Bytes are just passed along.
+//!
+//! If the response is gzip, deflate or brotli then the bytes are decompressed.
 
 use std::error::Error;
 use std::fmt;

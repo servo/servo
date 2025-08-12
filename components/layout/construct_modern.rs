@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Layout construction code that is shared between modern layout modes (Flexbox and CSS Grid)
 
@@ -60,8 +60,8 @@ impl<'dom> ModernContainerJob<'dom> {
 
                 let inline_formatting_context = inline_formatting_context_builder.finish(
                     builder.context,
-                    true,  /* has_first_formatted_line */
-                    false, /* is_single_line_text_box */
+                    true,  // has_first_formatted_line
+                    false, // is_single_line_text_box
                     builder.info.style.to_bidi_level(),
                 )?;
 

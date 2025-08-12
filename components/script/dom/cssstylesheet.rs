@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -447,7 +447,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             UrlExtraData(window.get_url().get_arc()),
             None,
             window.css_error_reporter(),
-            AllowImportRules::No, // Step 3.If rules contains one or more @import rules, remove those rules from rules.
+            AllowImportRules::No, /* Step 3.If rules contains one or more @import rules, remove those rules from rules. */
         );
 
         // Step 4. Set sheet’s CSS rules to rules.

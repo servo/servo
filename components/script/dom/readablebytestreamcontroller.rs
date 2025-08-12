@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 use std::cmp::min;
@@ -1180,7 +1180,7 @@ impl ReadableByteStreamController {
         // Assert: bytesFilled ≤ pullIntoDescriptor’s byte length.
         assert!(bytes_filled <= pull_into_descriptor.byte_length);
 
-        //Assert: the remainder after dividing bytesFilled by elementSize is 0.
+        // Assert: the remainder after dividing bytesFilled by elementSize is 0.
         assert!(bytes_filled % element_size == 0);
 
         // Let buffer be ! TransferArrayBuffer(pullIntoDescriptor’s buffer).

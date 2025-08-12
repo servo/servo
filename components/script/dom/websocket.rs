@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -102,12 +102,12 @@ pub(crate) struct WebSocket {
     url: ServoUrl,
     ready_state: Cell<WebSocketRequestState>,
     buffered_amount: Cell<u64>,
-    clearing_buffer: Cell<bool>, //Flag to tell if there is a running thread to clear buffered_amount
+    clearing_buffer: Cell<bool>, /* Flag to tell if there is a running thread to clear buffered_amount */
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
     sender: IpcSender<WebSocketDomAction>,
     binary_type: Cell<BinaryType>,
-    protocol: DomRefCell<String>, //Subprotocol selected by server
+    protocol: DomRefCell<String>, // Subprotocol selected by server
 }
 
 impl WebSocket {
@@ -373,10 +373,9 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send_(&self, blob: &Blob) -> ErrorResult {
-        /* As per https://html.spec.whatwg.org/multipage/#websocket
-           the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
-           If the buffer limit is reached in the first place, there are likely other major problems
-        */
+        // As per https://html.spec.whatwg.org/multipage/#websocket
+        // the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
+        // If the buffer limit is reached in the first place, there are likely other major problems
         let data_byte_len = blob.Size();
         let send_data = self.send_impl(data_byte_len)?;
 
@@ -421,24 +420,24 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
     // https://html.spec.whatwg.org/multipage/#dom-websocket-close
     fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> ErrorResult {
         if let Some(code) = code {
-            //Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
+            // Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
             if code != close_code::NORMAL && !(3000..=4999).contains(&code) {
                 return Err(Error::InvalidAccess);
             }
         }
         if let Some(ref reason) = reason {
             if reason.0.len() > 123 {
-                //reason cannot be larger than 123 bytes
+                // reason cannot be larger than 123 bytes
                 return Err(Error::Syntax);
             }
         }
 
         match self.ready_state.get() {
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {}, //Do nothing
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {}, // Do nothing
             WebSocketRequestState::Connecting => {
-                //Connection is not yet established
-                /*By setting the state to closing, the open function
-                will abort connecting the websocket*/
+                // Connection is not yet established
+                // By setting the state to closing, the open function
+                // will abort connecting the websocket
                 self.ready_state.set(WebSocketRequestState::Closing);
 
                 fail_the_websocket_connection(

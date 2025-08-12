@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
@@ -207,7 +207,7 @@ impl IndependentFormattingContext {
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
             self.is_replaced(),
-            true, /* establishes_containing_block */
+            true, // establishes_containing_block
             |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
             |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
             |preferred_aspect_ratio| self.tentative_block_content_size(preferred_aspect_ratio),

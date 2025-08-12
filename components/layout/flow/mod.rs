@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #![allow(rustdoc::private_intra_doc_links)]
 
 //! Flow layout, also known as block-and-inline layout.
@@ -239,7 +239,7 @@ impl BlockLevelBox {
             let constraint_space = ConstraintSpace::new(
                 tentative_block_size,
                 style.writing_mode,
-                None, /* TODO: support preferred aspect ratios on non-replaced boxes */
+                None, // TODO: support preferred aspect ratios on non-replaced boxes
             );
             self.inline_content_sizes(layout_context, &constraint_space)
                 .sizes
@@ -250,7 +250,7 @@ impl BlockLevelBox {
             Au::zero,
             Some(available_inline_size),
             get_inline_content_sizes,
-            false, /* is_table */
+            false, // is_table
         );
 
         let containing_block_for_children = ContainingBlock {
@@ -329,7 +329,7 @@ impl OutsideMarker {
     ) -> Fragment {
         let constraint_space = ConstraintSpace::new_for_style_and_ratio(
             &self.base.style,
-            None, /* TODO: support preferred aspect ratios on non-replaced boxes */
+            None, // TODO: support preferred aspect ratios on non-replaced boxes
         );
         let content_sizes = self.inline_content_sizes(layout_context, &constraint_space);
         let containing_block_for_children = ContainingBlock {
@@ -501,7 +501,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     layout_context,
                     containing_block,
                     &LogicalVec2::zero(),
-                    false, /* auto_block_size_stretches_to_containing_block */
+                    false, // auto_block_size_stretches_to_containing_block
                 );
                 let style = &float_box.contents.style();
                 Some((
@@ -521,10 +521,10 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     &contents.layout_style(base),
                     containing_block,
                     &LogicalVec2::zero(),
-                    false, /* auto_block_size_stretches_to_containing_block */
-                    false, /* is_replaced */
+                    false, // auto_block_size_stretches_to_containing_block
+                    false, // is_replaced
                     !matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox)),
-                    |_| None, /* TODO: support preferred aspect ratios on non-replaced boxes */
+                    |_| None, // TODO: support preferred aspect ratios on non-replaced boxes
                     |constraint_space| {
                         base.inline_content_sizes(layout_context, constraint_space, contents)
                     },
@@ -540,7 +540,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     layout_context,
                     containing_block,
                     &LogicalVec2::zero(),
-                    false, /* auto_block_size_stretches_to_containing_block */
+                    false, // auto_block_size_stretches_to_containing_block
                 );
                 Some((
                     inline_content_sizes_result,
@@ -760,8 +760,8 @@ fn layout_block_level_children_in_parallel(
                 layout_context,
                 &mut child_positioning_context,
                 containing_block,
-                /* sequential_layout_state = */ None,
-                /* collapsible_with_parent_start_margin = */ None,
+                None, // sequential_layout_state
+                None, // collapsible_with_parent_start_margin
                 ignore_block_margins_for_stretch,
             );
             (fragment, child_positioning_context)
@@ -1110,7 +1110,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         Au::zero,
         available_block_size,
         || content_block_size.into(),
-        false, /* is_table */
+        false, // is_table
     );
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {

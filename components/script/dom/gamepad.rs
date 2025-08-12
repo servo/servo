@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::cell::Cell;
 
@@ -279,7 +279,7 @@ impl Gamepad {
                 let pressed = normalized_value >= BUTTON_PRESS_THRESHOLD;
                 // TODO: Determine a way of getting touch capability for button
                 if let Some(button) = self.buttons.IndexedGetter(button_index as u32) {
-                    button.update(pressed, /*touched*/ pressed, normalized_value);
+                    button.update(pressed, /* touched */ pressed, normalized_value);
                 }
             } else {
                 warn!("Button value is not finite!");
