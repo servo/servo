@@ -13,7 +13,7 @@ import mozlog.formatters.base
 import mozlog.reader
 
 from dataclasses import dataclass, field
-from typing import DefaultDict, Dict, Optional, NotRequired, Union, TypedDict, Literal
+from typing import DefaultDict, Optional, NotRequired, Union, TypedDict, Literal
 from six import itervalues
 
 DEFAULT_MOVE_UP_CODE = "\x1b[A"
@@ -124,11 +124,11 @@ LogLevel = Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
 
 
 class SuiteStartData(GlobalTestData):
-    tests: Dict
+    tests: dict
     name: NotRequired[str]
-    run_info: NotRequired[Dict]
-    version_info: NotRequired[Dict]
-    device_info: NotRequired[Dict]
+    run_info: NotRequired[dict]
+    version_info: NotRequired[dict]
+    device_info: NotRequired[dict]
 
 
 class TestStartData(GlobalTestData):
@@ -175,13 +175,13 @@ class ServoHandler(mozlog.reader.LogHandler):
     number_of_tests: int
     completed_tests: int
     need_to_erase_last_line: int
-    running_tests: Dict[str, str]
+    running_tests: dict[str, str]
     test_output: DefaultDict[str, str]
     subtest_failures: DefaultDict[str, list]
     tests_with_failing_subtests: list
     unexpected_results: list
-    expected: Dict[str, int]
-    unexpected_tests: Dict[str, list]
+    expected: dict[str, int]
+    unexpected_tests: dict[str, list]
     suite_start_time: int
 
     def __init__(self, detect_flakes: bool = False) -> None:

@@ -14,7 +14,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from typing import List, NamedTuple, Optional, Union, cast, Callable, Any
+from typing import List, NamedTuple, Optional, Union, cast, Any
+from collections.abc import Callable
 
 import mozlog
 import mozlog.formatters

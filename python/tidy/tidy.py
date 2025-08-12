@@ -19,7 +19,7 @@ from re import Match
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, TypedDict, LiteralString
+from typing import Any, TypedDict, LiteralString
 from collections.abc import Iterator, Callable
 import types
 
@@ -833,7 +833,7 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
 
     # Override the logging function so that we can collect errors from
     # the lint script, which doesn't allow configuration of the output.
-    messages: List[str] = []
+    messages: list[str] = []
     assert lint.logger is not None
 
     def collect_messages(_: None, message: str) -> None:
@@ -1119,7 +1119,7 @@ def scan(only_changed_files: bool = False, progress: bool = False, github_annota
 
 
 class CargoDenyKrate:
-    def __init__(self, data: Dict[Any, Any]) -> None:
+    def __init__(self, data: dict[Any, Any]) -> None:
         crate = data["Krate"]
         self.name = crate["name"]
         self.version = crate["version"]
