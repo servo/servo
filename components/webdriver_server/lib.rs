@@ -950,11 +950,19 @@ impl Handler {
     }
 
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        // Step 1. If session's current browsing context is no longer open,
+        // return error with error code no such window.
+        let browsing_context = self.session()?.browsing_context_id;
+        self.verify_browsing_context_is_open(browsing_context)?;
 
+        // Step 2. Try to handle any user prompts with session.
+        let webview_id = self.session()?.webview_id;
+        self.handle_any_user_prompts(webview_id)?;
+
+        let (sender, receiver) = ipc::channel().unwrap();
         self.browsing_context_script_command(
             WebDriverScriptCommand::IsEnabled(element.to_string(), sender),
-            VerifyBrowsingContextIsOpen::Yes,
+            VerifyBrowsingContextIsOpen::No,
         )?;
 
         match wait_for_ipc_response(receiver)? {
@@ -966,11 +974,19 @@ impl Handler {
     }
 
     fn handle_is_selected(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        // Step 1. If session's current browsing context is no longer open,
+        // return error with error code no such window.
+        let browsing_context = self.session()?.browsing_context_id;
+        self.verify_browsing_context_is_open(browsing_context)?;
 
+        // Step 2. Try to handle any user prompts with session.
+        let webview_id = self.session()?.webview_id;
+        self.handle_any_user_prompts(webview_id)?;
+
+        let (sender, receiver) = ipc::channel().unwrap();
         self.browsing_context_script_command(
             WebDriverScriptCommand::IsSelected(element.to_string(), sender),
-            VerifyBrowsingContextIsOpen::Yes,
+            VerifyBrowsingContextIsOpen::No,
         )?;
 
         match wait_for_ipc_response(receiver)? {
@@ -2233,13 +2249,7 @@ impl Handler {
     }
 
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
-        // Step 1. If session's current top-level browsing context is no longer open,
-        // return error with error code no such window.
         let webview_id = self.session()?.webview_id;
-        self.verify_top_level_browsing_context_is_open(webview_id)?;
-
-        self.handle_any_user_prompts(webview_id)?;
-
         let mut img = None;
 
         let interval = 1000;
@@ -2292,6 +2302,14 @@ impl Handler {
     }
 
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        let webview_id = self.session()?.webview_id;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
+        self.handle_any_user_prompts(webview_id)?;
+
+        // Step 2
         let encoded = self.take_screenshot(None)?;
 
         Ok(WebDriverResponse::Generic(ValueResponse(
@@ -2305,13 +2323,24 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        let webview_id = self.session()?.webview_id;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
+        // Step 2. Try to handle any user prompts with session.
+        self.handle_any_user_prompts(webview_id)?;
+
+        // Step 3 - 4
         let cmd = WebDriverScriptCommand::GetBoundingClientRect(element.to_string(), sender);
-        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
         match wait_for_ipc_response(receiver)? {
             Ok(rect) => {
+                // Step 5
                 let encoded = self.take_screenshot(Some(Rect::from_untyped(&rect)))?;
 
+                // Step 6 return success with data encoded string.
                 Ok(WebDriverResponse::Generic(ValueResponse(
                     serde_json::to_value(encoded)?,
                 )))
