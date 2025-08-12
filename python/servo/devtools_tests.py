@@ -50,13 +50,13 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # /path/to/servo/python/servo
     script_path = None
     build_type: Optional[BuildType] = None
+    base_urls = None
+    web_servers = None
+    web_server_threads = None
 
     def __init__(self, methodName="runTest"):
         super().__init__(methodName)
         self.servoshell = None
-        self.base_urls = None
-        self.web_servers = None
-        self.web_server_threads = None
 
     # Watcher tests
 
@@ -78,22 +78,21 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # Worker script sources can be external or blob.
 
     def test_sources_list(self):
-        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.run_servoshell()
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test.html")
         self.assert_sources_list(
             set(
                 [
                     # TODO: update expectations when we fix ES modules
                     tuple(
                         [
-                            Source("srcScript", f"{self.base_urls[0]}/classic.js"),
-                            Source("inlineScript", f"{self.base_urls[0]}/test.html"),
-                            Source("inlineScript", f"{self.base_urls[0]}/test.html"),
-                            Source("srcScript", f"{self.base_urls[1]}/classic.js"),
-                            Source("importedModule", f"{self.base_urls[0]}/module.js"),
+                            Source("srcScript", f"{self.base_urls[0]}/sources/classic.js"),
+                            Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"),
+                            Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"),
+                            Source("srcScript", f"{self.base_urls[1]}/sources/classic.js"),
+                            Source("importedModule", f"{self.base_urls[0]}/sources/module.js"),
                         ]
                     ),
-                    tuple([Source("Worker", f"{self.base_urls[0]}/classic_worker.js")]),
+                    tuple([Source("Worker", f"{self.base_urls[0]}/sources/classic_worker.js")]),
                 ]
             ),
         )
@@ -113,9 +112,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(set([tuple([Source("inlineScript", "data:text/html,<script>;</script>")])]))
 
     def test_sources_list_with_data_external_classic_script(self):
-        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.run_servoshell(url=f'data:text/html,<script src="{self.base_urls[0]}/classic.js"></script>')
-        self.assert_sources_list(set([tuple([Source("srcScript", f"{self.base_urls[0]}/classic.js")])]))
+        self.run_servoshell(url=f'data:text/html,<script src="{self.base_urls[0]}/sources/classic.js"></script>')
+        self.assert_sources_list(set([tuple([Source("srcScript", f"{self.base_urls[0]}/sources/classic.js")])]))
 
     def test_sources_list_with_data_empty_inline_module_script(self):
         self.run_servoshell(url="data:text/html,<script type=module></script>")
@@ -128,24 +126,23 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         )
 
     def test_sources_list_with_data_external_module_script(self):
-        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.run_servoshell(url=f"{self.base_urls[0]}/test_sources_list_with_data_external_module_script.html")
-        self.assert_sources_list(set([tuple([Source("srcScript", f"{self.base_urls[0]}/module.js")])]))
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_data_external_module_script.html")
+        self.assert_sources_list(set([tuple([Source("srcScript", f"{self.base_urls[0]}/sources/module.js")])]))
 
     # Sources list for `introductionType` = `importedModule`
 
     def test_sources_list_with_static_import_module(self):
-        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.run_servoshell(url=f"{self.base_urls[0]}/test_sources_list_with_static_import_module.html")
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_static_import_module.html")
         self.assert_sources_list(
             set(
                 [
                     tuple(
                         [
                             Source(
-                                "inlineScript", f"{self.base_urls[0]}/test_sources_list_with_static_import_module.html"
+                                "inlineScript",
+                                f"{self.base_urls[0]}/sources/test_sources_list_with_static_import_module.html",
                             ),
-                            Source("importedModule", f"{self.base_urls[0]}/module.js"),
+                            Source("importedModule", f"{self.base_urls[0]}/sources/module.js"),
                         ]
                     )
                 ]
@@ -153,17 +150,17 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         )
 
     def test_sources_list_with_dynamic_import_module(self):
-        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.run_servoshell(url=f"{self.base_urls[0]}/test_sources_list_with_dynamic_import_module.html")
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_dynamic_import_module.html")
         self.assert_sources_list(
             set(
                 [
                     tuple(
                         [
                             Source(
-                                "inlineScript", f"{self.base_urls[0]}/test_sources_list_with_dynamic_import_module.html"
+                                "inlineScript",
+                                f"{self.base_urls[0]}/sources/test_sources_list_with_dynamic_import_module.html",
                             ),
-                            Source("importedModule", f"{self.base_urls[0]}/module.js"),
+                            Source("importedModule", f"{self.base_urls[0]}/sources/module.js"),
                         ]
                     )
                 ]
@@ -173,19 +170,21 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # Sources list for `introductionType` = `Worker`
 
     def test_sources_list_with_classic_worker(self):
-        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.run_servoshell(url=f"{self.base_urls[0]}/test_sources_list_with_classic_worker.html")
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_classic_worker.html")
         self.assert_sources_list(
             set(
                 [
                     tuple(
                         [
-                            Source("inlineScript", f"{self.base_urls[0]}/test_sources_list_with_classic_worker.html"),
+                            Source(
+                                "inlineScript",
+                                f"{self.base_urls[0]}/sources/test_sources_list_with_classic_worker.html",
+                            ),
                         ]
                     ),
                     tuple(
                         [
-                            Source("Worker", f"{self.base_urls[0]}/classic_worker.js"),
+                            Source("Worker", f"{self.base_urls[0]}/sources/classic_worker.js"),
                         ]
                     ),
                 ]
@@ -193,19 +192,20 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         )
 
     def test_sources_list_with_module_worker(self):
-        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.run_servoshell(url=f"{self.base_urls[0]}/test_sources_list_with_module_worker.html")
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_module_worker.html")
         self.assert_sources_list(
             set(
                 [
                     tuple(
                         [
-                            Source("inlineScript", f"{self.base_urls[0]}/test_sources_list_with_module_worker.html"),
+                            Source(
+                                "inlineScript", f"{self.base_urls[0]}/sources/test_sources_list_with_module_worker.html"
+                            ),
                         ]
                     ),
                     tuple(
                         [
-                            Source("Worker", f"{self.base_urls[0]}/module_worker.js"),
+                            Source("Worker", f"{self.base_urls[0]}/sources/module_worker.js"),
                         ]
                     ),
                 ]
@@ -538,24 +538,20 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_source_content(Source("inlineScript", f"data:text/html,{script_tag}"), script_tag)
 
     def test_source_content_external_script(self):
-        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.run_servoshell(url=f'data:text/html,<script src="{self.base_urls[0]}/classic.js"></script>')
+        self.run_servoshell(url=f'data:text/html,<script src="{self.base_urls[0]}/sources/classic.js"></script>')
         expected_content = 'console.log("external classic");\n'
-        self.assert_source_content(Source("srcScript", f"{self.base_urls[0]}/classic.js"), expected_content)
+        self.assert_source_content(Source("srcScript", f"{self.base_urls[0]}/sources/classic.js"), expected_content)
 
     def test_source_content_html_file(self):
-        self.start_web_server(test_dir=self.get_test_path("sources"))
-        self.run_servoshell()
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test.html")
         expected_content = open(self.get_test_path("sources/test.html")).read()
-        self.assert_source_content(Source("inlineScript", f"{self.base_urls[0]}/test.html"), expected_content)
+        self.assert_source_content(Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"), expected_content)
 
     def test_source_content_with_inline_module_import_external(self):
-        self.start_web_server(test_dir=self.get_test_path("sources_content_with_inline_module_import_external"))
-        self.run_servoshell()
-        expected_content = open(
-            self.get_test_path("sources_content_with_inline_module_import_external/test.html")
-        ).read()
-        self.assert_source_content(Source("inlineScript", f"{self.base_urls[0]}/test.html"), expected_content)
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources_content_with_inline_module_import_external/test.html")
+        path = "sources_content_with_inline_module_import_external/test.html"
+        expected_content = open(self.get_test_path(path)).read()
+        self.assert_source_content(Source("inlineScript", f"{self.base_urls[0]}/{path}"), expected_content)
 
     # Test case that uses innerHTML and would actually need the HTML parser
     # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
@@ -581,16 +577,16 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # Test case that uses XMLHttpRequest#responseXML and would actually need the HTML parser
     # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
     def test_source_content_inline_script_with_responsexml(self):
-        self.start_web_server(test_dir=self.get_test_path("sources_content_with_responsexml"))
-        self.run_servoshell()
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources_content_with_responsexml/test.html")
         expected_content = open(self.get_test_path("sources_content_with_responsexml/test.html")).read()
-        self.assert_source_content(Source("inlineScript", f"{self.base_urls[0]}/test.html"), expected_content)
+        self.assert_source_content(
+            Source("inlineScript", f"{self.base_urls[0]}/sources_content_with_responsexml/test.html"), expected_content
+        )
 
     def test_source_breakable_lines_and_positions(self):
-        self.start_web_server(test_dir=self.get_test_path("sources_breakable_lines_and_positions"))
-        self.run_servoshell()
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources_breakable_lines_and_positions/test.html")
         self.assert_source_breakable_lines_and_positions(
-            Source("inlineScript", f"{self.base_urls[0]}/test.html"),
+            Source("inlineScript", f"{self.base_urls[0]}/sources_breakable_lines_and_positions/test.html"),
             [4, 5, 6, 7],
             {
                 "4": [4, 12, 20, 28],
@@ -601,13 +597,14 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         )
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
-    def start_web_server(self, *, test_dir=None, num_servers=2):
-        assert self.base_urls is None and self.web_servers is None and self.web_server_threads is None
-        if test_dir is None:
-            test_dir = os.path.join(DevtoolsTests.script_path, "devtools_tests")
+    @classmethod
+    def setUpClass(cls):
+        assert cls.base_urls is None and cls.web_servers is None and cls.web_server_threads is None
+        test_dir = os.path.join(DevtoolsTests.script_path, "devtools_tests")
+        num_servers = 2
         base_urls = [Future() for i in range(num_servers)]
-        self.web_servers = [None for i in range(num_servers)]
-        self.web_server_threads = [None for i in range(num_servers)]
+        cls.web_servers = [None for i in range(num_servers)]
+        cls.web_server_threads = [None for i in range(num_servers)]
 
         class Handler(http.server.SimpleHTTPRequestHandler):
             def __init__(self, *args, **kwargs):
@@ -626,24 +623,22 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             web_server = socketserver.TCPServer(("127.0.0.1", 10000 + index), Handler)
             base_url = f"http://127.0.0.1:{web_server.server_address[1]}"
             base_urls[index].set_result(base_url)
-            self.web_servers[index] = web_server
+            cls.web_servers[index] = web_server
             web_server.serve_forever()
 
         # Start a web server for the test.
         for index in range(num_servers):
             thread = Thread(target=server_thread, args=[index])
-            self.web_server_threads[index] = thread
+            cls.web_server_threads[index] = thread
             thread.start()
-        self.base_urls = [base_url.result(1) for base_url in base_urls]
+        cls.base_urls = [base_url.result(1) for base_url in base_urls]
 
     # Sets `servoshell`.
-    def run_servoshell(self, *, url=None):
+    def run_servoshell(self, *, url):
         # Change this setting if you want to debug Servo.
         os.environ["RUST_LOG"] = "error,devtools=warn"
 
         # Run servoshell.
-        if url is None:
-            url = f"{self.base_urls[0]}/test.html"
         self.servoshell = subprocess.Popen([f"target/{self.build_type.directory_name()}/servo", "--devtools=6080", url])
 
         sleep_per_try = 1 / 8  # seconds
@@ -664,23 +659,25 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 continue
 
     def tearDown(self):
-        # Terminate servoshell.
+        # Terminate servoshell, but do not stop the web servers.
         if self.servoshell is not None:
             self.servoshell.terminate()
             self.servoshell = None
 
+    @classmethod
+    def tearDownClass(cls):
         # Stop the web servers.
-        if self.web_servers is not None:
-            for web_server in self.web_servers:
+        if cls.web_servers is not None:
+            for web_server in cls.web_servers:
                 web_server.shutdown()
                 web_server.server_close()
-            self.web_servers = None
-        if self.web_server_threads is not None:
-            for web_server_thread in self.web_server_threads:
+            cls.web_servers = None
+        if cls.web_server_threads is not None:
+            for web_server_thread in cls.web_server_threads:
                 web_server_thread.join()
-            self.web_server_threads = None
-        if self.base_urls is not None:
-            self.base_urls = None
+            cls.web_server_threads = None
+        if cls.base_urls is not None:
+            cls.base_urls = None
 
     def _setup_devtools_client(self, *, expected_targets=1) -> Devtools:
         client = RDPClient()
