@@ -10,10 +10,13 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentLength, ContentType, Cookie, HeaderMapExt};
-use http::{HeaderMap, Method, header};
+use http::{HeaderMap, Method};
+use net::cookie::ServoCookie;
+use net_traits::CookieSource;
 use net_traits::request::Destination as RequestDestination;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_url::ServoUrl;
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
@@ -71,7 +74,7 @@ pub struct EventActor {
 
 #[derive(Serialize)]
 pub struct ResponseCookiesMsg {
-    pub cookies: usize,
+    pub cookies: Vec<ResponseCookieObj>,
 }
 
 #[derive(Serialize)]
@@ -104,7 +107,7 @@ pub struct ResponseHeadersMsg {
 
 #[derive(Serialize)]
 pub struct RequestCookiesMsg {
-    pub cookies: usize,
+    pub cookies: Vec<RequestCookieObj>,
 }
 
 #[derive(Serialize)]
@@ -157,13 +160,32 @@ struct GetRequestPostDataReply {
 #[derive(Serialize)]
 struct GetRequestCookiesReply {
     from: String,
-    cookies: Vec<u8>,
+    cookies: Vec<RequestCookieObj>,
 }
 
 #[derive(Serialize)]
 struct GetResponseCookiesReply {
     from: String,
-    cookies: Vec<u8>,
+    cookies: Vec<ResponseCookieObj>,
+}
+#[derive(Clone, Serialize)]
+pub struct ResponseCookieObj {
+    pub name: String,
+    pub value: String,
+    pub path: Option<String>,
+    pub domain: Option<String>,
+    pub expires: Option<String>,
+    #[serde(rename = "httpOnly")]
+    pub http_only: Option<bool>,
+    pub secure: Option<bool>,
+    #[serde(rename = "sameSite")]
+    pub same_site: Option<String>,
+}
+
+#[derive(Clone, Serialize)]
+pub struct RequestCookieObj {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Clone, Default, Serialize)]
@@ -236,14 +258,11 @@ impl Actor for NetworkEventActor {
                 request.reply_final(&msg)?
             },
             "getRequestCookies" => {
-                let mut cookies = Vec::new();
-                if let Some(ref headers) = self.request_headers_raw {
-                    for cookie in headers.get_all(header::COOKIE) {
-                        if let Ok(cookie_value) = String::from_utf8(cookie.as_bytes().to_vec()) {
-                            cookies = cookie_value.into_bytes();
-                        }
-                    }
-                }
+                let cookies = self
+                    .request_cookies
+                    .as_ref()
+                    .map(|msg| msg.cookies.clone())
+                    .unwrap_or_default();
                 let msg = GetRequestCookiesReply {
                     from: self.name(),
                     cookies,
@@ -287,15 +306,11 @@ impl Actor for NetworkEventActor {
                 }
             },
             "getResponseCookies" => {
-                let mut cookies = Vec::new();
-                // TODO: This seems quite broken
-                if let Some(ref headers) = self.response_headers_raw {
-                    for cookie in headers.get_all(header::SET_COOKIE) {
-                        if let Ok(cookie_value) = String::from_utf8(cookie.as_bytes().to_vec()) {
-                            cookies = cookie_value.into_bytes();
-                        }
-                    }
-                }
+                let cookies = self
+                    .response_cookies
+                    .as_ref()
+                    .map(|msg| msg.cookies.clone())
+                    .unwrap_or_default();
                 let msg = GetResponseCookiesReply {
                     from: self.name(),
                     cookies,
@@ -372,7 +387,7 @@ impl NetworkEventActor {
 
     pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
         self.is_xhr = request.is_xhr;
-        self.request_cookies = Some(Self::request_cookies(&request));
+        self.request_cookies = Self::request_cookies(&request);
         self.request_headers = Some(Self::request_headers(&request));
         self.total_time = Self::total_time(&request);
         self.event_timing = Some(Self::event_timing(&request));
@@ -387,7 +402,10 @@ impl NetworkEventActor {
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
         self.response_headers = Some(Self::response_headers(&response));
-        self.response_cookies = Some(Self::response_cookies(&response));
+        self.response_cookies = ServoUrl::parse(&self.request_url)
+            .ok()
+            .as_ref()
+            .and_then(|url| Self::response_cookies(&response, url));
         self.response_start = Some(Self::response_start(&response));
         self.response_content = Self::response_content(&response);
         self.response_body = response.body.clone();
@@ -467,15 +485,33 @@ impl NetworkEventActor {
         })
     }
 
-    pub fn response_cookies(response: &DevtoolsHttpResponse) -> ResponseCookiesMsg {
-        let cookies_size = response
-            .headers
-            .as_ref()
-            .map(|headers| headers.get_all("set-cookie").iter().count())
-            .unwrap_or(0);
-        ResponseCookiesMsg {
-            cookies: cookies_size,
-        }
+    pub fn response_cookies(
+        response: &DevtoolsHttpResponse,
+        url: &ServoUrl,
+    ) -> Option<ResponseCookiesMsg> {
+        let headers = response.headers.as_ref()?;
+        let cookies = headers
+            .get_all("set-cookie")
+            .iter()
+            .filter_map(|cookie| {
+                let cookie_str = String::from_utf8(cookie.as_bytes().to_vec()).ok()?;
+                ServoCookie::from_cookie_string(cookie_str, url, CookieSource::HTTP)
+            })
+            .map(|servo_cookie| {
+                let c = &servo_cookie.cookie;
+                ResponseCookieObj {
+                    name: c.name().to_string(),
+                    value: c.value().to_string(),
+                    path: c.path().map(|p| p.to_string()),
+                    domain: c.domain().map(|d| d.to_string()),
+                    expires: c.expires().map(|dt| format!("{:?}", dt)),
+                    http_only: c.http_only(),
+                    secure: c.secure(),
+                    same_site: c.same_site().map(|s| s.to_string()),
+                }
+            })
+            .collect::<Vec<_>>();
+        Some(ResponseCookiesMsg { cookies })
     }
 
     pub fn response_headers(response: &DevtoolsHttpResponse) -> ResponseHeadersMsg {
@@ -503,15 +539,16 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn request_cookies(request: &DevtoolsHttpRequest) -> RequestCookiesMsg {
-        let cookies_size = request
-            .headers
-            .typed_get::<Cookie>()
-            .map(|c| c.len())
-            .unwrap_or(0);
-        RequestCookiesMsg {
-            cookies: cookies_size,
-        }
+    pub fn request_cookies(request: &DevtoolsHttpRequest) -> Option<RequestCookiesMsg> {
+        let header_value = request.headers.typed_get::<Cookie>()?;
+        let cookies = header_value
+            .iter()
+            .map(|cookie| RequestCookieObj {
+                name: cookie.0.to_string(),
+                value: cookie.1.to_string(),
+            })
+            .collect::<Vec<_>>();
+        Some(RequestCookiesMsg { cookies })
     }
 
     pub fn total_time(request: &DevtoolsHttpRequest) -> Duration {
