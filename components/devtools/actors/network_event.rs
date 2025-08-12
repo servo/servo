@@ -145,7 +145,7 @@ struct GetResponseHeadersReply {
 #[serde(rename_all = "camelCase")]
 struct GetResponseContentReply {
     from: String,
-    content: Option<Vec<u8>>,
+    content: Option<ResponseContentObj>,
     content_discarded: bool,
 }
 
@@ -180,6 +180,28 @@ pub struct ResponseCookieObj {
     pub secure: Option<bool>,
     #[serde(rename = "sameSite")]
     pub same_site: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ResponseContentObj {
+    mime_type: String,
+    text: LongStringObj,
+    body_size: usize,
+    decoded_body_size: usize,
+    size: usize,
+    headers_size: usize,
+    transferred_size: usize,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LongStringObj {
+    #[serde(rename = "type")]
+    type_: String,
+    actor: String,
+    length: usize,
+    initial: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -318,9 +340,43 @@ impl Actor for NetworkEventActor {
                 request.reply_final(&msg)?
             },
             "getResponseContent" => {
+                let content_obj = self.response_body.as_ref().map(|body| {
+                    let mime_type = self
+                        .response_content
+                        .as_ref()
+                        .map(|c| c.mime_type.clone())
+                        .unwrap_or_default();
+                    let headers_size = self
+                        .response_headers
+                        .as_ref()
+                        .map(|h| h.headers_size)
+                        .unwrap_or(0);
+                    let transferred_size = self
+                        .response_content
+                        .as_ref()
+                        .map(|c| c.transferred_size as usize)
+                        .unwrap_or(0);
+                    let body_size = body.len();
+                    let decoded_body_size = body.len();
+                    let size = body.len();
+                    ResponseContentObj {
+                        mime_type,
+                        text: LongStringObj {
+                            type_: "longString".to_string(),
+                            actor: self.name(),
+                            length: body.len(),
+                            initial: String::from_utf8_lossy(body).to_string(),
+                        },
+                        body_size,
+                        decoded_body_size,
+                        size,
+                        headers_size,
+                        transferred_size,
+                    }
+                });
                 let msg = GetResponseContentReply {
                     from: self.name(),
-                    content: self.response_body.clone(),
+                    content: content_obj,
                     content_discarded: self.response_body.is_none(),
                 };
                 request.reply_final(&msg)?
@@ -410,7 +466,6 @@ impl NetworkEventActor {
         if let Some(response_content) = Self::response_content(self, &response) {
             self.response_content = Some(response_content);
         }
-        self.response_body = response.body.clone();
         self.response_headers_raw = response.headers.clone();
     }
 
@@ -487,7 +542,7 @@ impl NetworkEventActor {
             mime_type,
             content_size: content_size.unwrap_or(0) as u32,
             transferred_size: transferred_size.unwrap_or(0) as u32,
-            discard_response_body: true,
+            discard_response_body: false,
         })
     }
 
