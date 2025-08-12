@@ -82,7 +82,6 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    # TODO: update expectations when we fix ES modules
                     tuple(
                         [
                             Source("srcScript", f"{self.base_urls[0]}/sources/classic.js"),
