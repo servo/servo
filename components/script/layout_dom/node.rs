@@ -14,8 +14,8 @@ use layout_api::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use layout_api::{
-    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGElementData, StyleData,
-    TrustedNodeAddress,
+    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
+    SVGElementData, StyleData, TrustedNodeAddress,
 };
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
@@ -258,8 +258,16 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
             .map(Self::new)
     }
 
-    pub fn is_text_container_of_single_line_input(&self) -> bool {
-        self.pseudo.is_none() && self.node.node.is_text_container_of_single_line_input()
+    /// Whether this is a container for the text within a single-line text input. This
+    /// is used to solve the special case of line height for a text entry widget.
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+    // TODO(stevennovaryo): Remove the addition of HTMLInputElement here once all of the
+    //                      input element is implemented with UA shadow DOM. This is temporary
+    //                      workaround for past version of input element where we are
+    //                      rendering it as a bare html element.
+    pub fn is_single_line_text_input(&self) -> bool {
+        self.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement)) ||
+            (self.pseudo.is_none() && self.node.node.is_text_container_of_single_line_input())
     }
 
     pub fn is_text_input(&self) -> bool {

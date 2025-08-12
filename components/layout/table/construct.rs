@@ -91,7 +91,7 @@ impl Table {
         propagated_data: PropagatedBoxTreeData,
     ) -> (NodeAndStyleInfo<'dom>, IndependentFormattingContext) {
         let table_info = parent_info
-            .pseudo(context, PseudoElement::ServoAnonymousTable)
+            .with_pseudo_element(context, PseudoElement::ServoAnonymousTable)
             .expect("Should never fail to create anonymous table info.");
         let table_style = table_info.style.clone();
         let mut table_builder =
@@ -688,7 +688,7 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
         let row_content = std::mem::take(&mut self.current_anonymous_row_content);
         let anonymous_info = self
             .info
-            .pseudo(self.context, PseudoElement::ServoAnonymousTableRow)
+            .with_pseudo_element(self.context, PseudoElement::ServoAnonymousTableRow)
             .expect("Should never fail to create anonymous row info.");
         let mut row_builder =
             TableRowBuilder::new(self, &anonymous_info, self.current_propagated_data);
@@ -957,7 +957,7 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
         let context = self.table_traversal.context;
         let anonymous_info = self
             .info
-            .pseudo(context, PseudoElement::ServoAnonymousTableCell)
+            .with_pseudo_element(context, PseudoElement::ServoAnonymousTableCell)
             .expect("Should never fail to create anonymous table cell info");
         let propagated_data = self.propagated_data.disallowing_percentage_table_columns();
         let mut builder = BlockContainerBuilder::new(context, &anonymous_info, propagated_data);
@@ -1027,7 +1027,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                     let cell = old_cell.unwrap_or_else(|| {
                         // This value will already have filtered out rowspan=0
                         // in quirks mode, so we don't have to worry about that.
-                        let (rowspan, colspan) = if info.pseudo_element_type.is_none() {
+                        let (rowspan, colspan) = if info.pseudo_element().is_none() {
                             let rowspan = info.node.get_rowspan().unwrap_or(1) as usize;
                             let colspan = info.node.get_colspan().unwrap_or(1) as usize;
 
@@ -1148,7 +1148,7 @@ fn add_column(
     is_anonymous: bool,
     old_column: Option<ArcRefCell<TableTrack>>,
 ) -> ArcRefCell<TableTrack> {
-    let span = if column_info.pseudo_element_type.is_none() {
+    let span = if column_info.pseudo_element().is_none() {
         column_info.node.get_span().unwrap_or(1)
     } else {
         1

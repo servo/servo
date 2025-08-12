@@ -31,7 +31,6 @@ use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOuts
 #[derive(Clone)]
 pub(crate) struct NodeAndStyleInfo<'dom> {
     pub node: ServoThreadSafeLayoutNode<'dom>,
-    pub pseudo_element_type: Option<PseudoElement>,
     pub style: ServoArc<ComputedValues>,
     pub damage: LayoutDamage,
 }
@@ -44,37 +43,24 @@ impl<'dom> NodeAndStyleInfo<'dom> {
     ) -> Self {
         Self {
             node,
-            pseudo_element_type: None,
             style,
             damage,
         }
     }
 
-    /// Whether this is a container for the text within a single-line text input. This
-    /// is used to solve the special case of line height for a text entry widget.
-    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
-    // TODO(stevennovaryo): Remove the addition of HTMLInputElement here once all of the
-    //                      input element is implemented with UA shadow DOM. This is temporary
-    //                      workaround for past version of input element where we are
-    //                      rendering it as a bare html element.
-    pub(crate) fn is_single_line_text_input(&self) -> bool {
-        self.node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement)) ||
-            self.node.is_text_container_of_single_line_input()
+    pub(crate) fn pseudo_element(&self) -> Option<PseudoElement> {
+        self.node.pseudo_element()
     }
 
-    pub(crate) fn pseudo(
+    pub(crate) fn with_pseudo_element(
         &self,
         context: &LayoutContext,
         pseudo_element_type: PseudoElement,
     ) -> Option<Self> {
-        let style = self
-            .node
-            .as_element()?
-            .with_pseudo(pseudo_element_type)?
-            .style(&context.style_context);
+        let element = self.node.as_element()?.with_pseudo(pseudo_element_type)?;
+        let style = element.style(&context.style_context);
         Some(NodeAndStyleInfo {
-            node: self.node,
-            pseudo_element_type: Some(pseudo_element_type),
+            node: element.as_node(),
             style,
             damage: self.damage,
         })
@@ -88,7 +74,7 @@ impl<'dom> NodeAndStyleInfo<'dom> {
 impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
     fn from(info: &NodeAndStyleInfo<'dom>) -> Self {
         let threadsafe_node = info.node;
-        let pseudo = info.pseudo_element_type;
+        let pseudo = info.node.pseudo_element();
         let mut flags = FragmentFlags::empty();
 
         // Anonymous boxes should not have a tag, because they should not take part in hit testing.
@@ -284,7 +270,8 @@ fn traverse_eager_pseudo_element<'dom>(
 
     // If this node doesn't have this eager pseudo-element, exit early. This depends on
     // the style applied to the element.
-    let Some(pseudo_element_info) = node_info.pseudo(context, pseudo_element_type) else {
+    let Some(pseudo_element_info) = node_info.with_pseudo_element(context, pseudo_element_type)
+    else {
         return;
     };
     if pseudo_element_info.style.ineffective_content_property() {
@@ -328,7 +315,7 @@ fn traverse_pseudo_element_contents<'dom>(
             PseudoElementContentItem::Text(text) => handler.handle_text(info, text.into()),
             PseudoElementContentItem::Replaced(contents) => {
                 let anonymous_info = anonymous_info.get_or_insert_with(|| {
-                    info.pseudo(context, PseudoElement::ServoAnonymousBox)
+                    info.with_pseudo_element(context, PseudoElement::ServoAnonymousBox)
                         .unwrap_or_else(|| info.clone())
                 });
                 let display_inline = DisplayGeneratingBox::OutsideInside {
