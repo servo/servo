@@ -44,6 +44,74 @@ class Devtools:
     client: RDPClient
     watcher: WatcherActor
     targets: list
+    exited: bool = False
+
+    def connect(*, expected_targets=1):
+        """
+        Connect to the Servo devtools server.
+        You should use a `with` statement to ensure we disconnect unconditionally.
+        """
+        client = RDPClient()
+        client.connect("127.0.0.1", 6080)
+        root = RootActor(client)
+        tabs = root.list_tabs()
+        tab_dict = tabs[0]
+        tab = TabActor(client, tab_dict["actor"])
+        watcher = tab.get_watcher()
+        watcher = WatcherActor(client, watcher["actor"])
+
+        done = Future()
+        targets = []
+
+        def on_target(data):
+            try:
+                targets.append(data["target"])
+                if len(targets) == expected_targets:
+                    done.set_result(None)
+            except Exception as e:
+                # Raising here does nothing, for some reason.
+                # Send the exception back so it can be raised.
+                done.set_result(e)
+
+        client.add_event_listener(
+            watcher.actor_id,
+            Events.Watcher.TARGET_AVAILABLE_FORM,
+            on_target,
+        )
+        watcher.watch_targets(WatcherActor.Targets.FRAME)
+        watcher.watch_targets(WatcherActor.Targets.WORKER)
+
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
+
+        return Devtools(client, watcher, targets)
+
+    def __getattribute__(self, name):
+        """
+        Access a property, raising a ValueError if the instance was previously marked as exited.
+        """
+        if name != "exited" and object.__getattribute__(self, "exited"):
+            raise ValueError("Devtools instance must not be used after __exit__()")
+        return object.__getattribute__(self, name)
+
+    def __enter__(self):
+        """
+        Enter the `with` context for this instance, raising a ValueError if it was previously marked as exited.
+        """
+        if self.exited:
+            raise ValueError("Devtools instance must not be used after __exit__()")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Exit the `with` context for this instance, disconnecting the client and marking it as exited.
+        Does not raise a ValueError if it was previously marked as exited, so you can nest `with` statements.
+        """
+        if not self.exited:
+            # Ignore any return value; we never want to return True to suppress exceptions
+            self.client.__exit__(exc_type, exc_value, traceback)
+        self.exited = True
 
 
 class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
@@ -62,10 +130,10 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def test_watcher_returns_same_breakpoint_list_actor_every_time(self):
         self.run_servoshell(url="data:text/html,")
-        devtools = self._setup_devtools_client()
-        response1 = devtools.watcher.get_breakpoint_list_actor()
-        response2 = devtools.watcher.get_breakpoint_list_actor()
-        self.assertEqual(response1["breakpointList"]["actor"], response2["breakpointList"]["actor"])
+        with Devtools.connect() as devtools:
+            response1 = devtools.watcher.get_breakpoint_list_actor()
+            response2 = devtools.watcher.get_breakpoint_list_actor()
+            self.assertEqual(response1["breakpointList"]["actor"], response2["breakpointList"]["actor"])
 
     # Sources list
     # Classic script vs module script:
@@ -310,31 +378,35 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def test_sources_list_with_debugger_eval_and_display_url(self):
         self.run_servoshell(url="data:text/html,")
-        devtools = self._setup_devtools_client()
-        console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
-        evaluation_result = Future()
+        with Devtools.connect() as devtools:
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            evaluation_result = Future()
 
-        async def on_evaluation_result(data: dict):
-            evaluation_result.set_result(data)
+            async def on_evaluation_result(data: dict):
+                evaluation_result.set_result(data)
 
-        devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation_result)
-        console.evaluate_js_async("//# sourceURL=http://test")
-        evaluation_result.result(1)
-        self.assert_sources_list(set([tuple([Source("debugger eval", "http://test/")])]))
+            devtools.client.add_event_listener(
+                console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation_result
+            )
+            console.evaluate_js_async("//# sourceURL=http://test")
+            evaluation_result.result(1)
+            self.assert_sources_list(set([tuple([Source("debugger eval", "http://test/")])]), devtools=devtools)
 
     def test_sources_list_with_debugger_eval_but_no_display_url(self):
         self.run_servoshell(url="data:text/html,")
-        devtools = self._setup_devtools_client()
-        console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
-        evaluation_result = Future()
+        with Devtools.connect() as devtools:
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            evaluation_result = Future()
 
-        async def on_evaluation_result(data: dict):
-            evaluation_result.set_result(data)
+            async def on_evaluation_result(data: dict):
+                evaluation_result.set_result(data)
 
-        devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation_result)
-        console.evaluate_js_async("1")
-        evaluation_result.result(1)
-        self.assert_sources_list(set([tuple([])]))
+            devtools.client.add_event_listener(
+                console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation_result
+            )
+            console.evaluate_js_async("1")
+            evaluation_result.result(1)
+            self.assert_sources_list(set([tuple([])]), devtools=devtools)
 
     def test_sources_list_with_function_and_display_url(self):
         self.run_servoshell(url='data:text/html,<script>new Function("//%23 sourceURL=http://test")</script>')
@@ -696,123 +768,84 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         if cls.base_urls is not None:
             cls.base_urls = None
 
-    def _setup_devtools_client(self, *, expected_targets=1) -> Devtools:
-        client = RDPClient()
-        client.connect("127.0.0.1", 6080)
-        root = RootActor(client)
-        tabs = root.list_tabs()
-        tab_dict = tabs[0]
-        tab = TabActor(client, tab_dict["actor"])
-        watcher = tab.get_watcher()
-        watcher = WatcherActor(client, watcher["actor"])
-
-        done = Future()
-        targets = []
-
-        def on_target(data):
-            try:
-                targets.append(data["target"])
-                if len(targets) == expected_targets:
-                    done.set_result(None)
-            except Exception as e:
-                # Raising here does nothing, for some reason.
-                # Send the exception back so it can be raised.
-                done.set_result(e)
-
-        client.add_event_listener(
-            watcher.actor_id,
-            Events.Watcher.TARGET_AVAILABLE_FORM,
-            on_target,
-        )
-        watcher.watch_targets(WatcherActor.Targets.FRAME)
-        watcher.watch_targets(WatcherActor.Targets.WORKER)
-
-        result: Optional[Exception] = done.result(1)
-        if result:
-            raise result
-
-        return Devtools(client, watcher, targets)
-
     def assert_sources_list(
         self, expected_sources_by_target: set[tuple[Source]], *, devtools: Optional[Devtools] = None
     ):
         expected_targets = len(expected_sources_by_target)
         if devtools is None:
-            devtools = self._setup_devtools_client(expected_targets=expected_targets)
-        done = Future()
-        # NOTE: breaks if two targets have the same list of source urls.
-        # This should really be a multiset, but Python does not have multisets.
-        actual_sources_by_target: set[tuple[Source]] = set()
+            devtools = Devtools.connect(expected_targets=expected_targets)
+        with devtools:
+            done = Future()
+            # NOTE: breaks if two targets have the same list of source urls.
+            # This should really be a multiset, but Python does not have multisets.
+            actual_sources_by_target: set[tuple[Source]] = set()
 
-        def on_source_resource(data):
-            for [resource_type, sources] in data["array"]:
-                try:
-                    self.assertEqual(resource_type, "source")
-                    source_urls = tuple([Source(source["introductionType"], source["url"]) for source in sources])
-                    self.assertFalse(source_urls in actual_sources_by_target)  # See NOTE above
-                    actual_sources_by_target.add(source_urls)
-                    if len(actual_sources_by_target) == expected_targets:
-                        done.set_result(None)
-                except Exception as e:
-                    # Raising here does nothing, for some reason.
-                    # Send the exception back so it can be raised.
-                    done.set_result(e)
+            def on_source_resource(data):
+                for [resource_type, sources] in data["array"]:
+                    try:
+                        self.assertEqual(resource_type, "source")
+                        source_urls = tuple([Source(source["introductionType"], source["url"]) for source in sources])
+                        self.assertFalse(source_urls in actual_sources_by_target)  # See NOTE above
+                        actual_sources_by_target.add(source_urls)
+                        if len(actual_sources_by_target) == expected_targets:
+                            done.set_result(None)
+                    except Exception as e:
+                        # Raising here does nothing, for some reason.
+                        # Send the exception back so it can be raised.
+                        done.set_result(e)
 
-        for target in devtools.targets:
-            devtools.client.add_event_listener(
-                target["actor"],
-                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                on_source_resource,
-            )
-        devtools.watcher.watch_resources([Resources.SOURCE])
+            for target in devtools.targets:
+                devtools.client.add_event_listener(
+                    target["actor"],
+                    Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                    on_source_resource,
+                )
+            devtools.watcher.watch_resources([Resources.SOURCE])
 
-        result: Optional[Exception] = done.result(1)
-        if result:
-            raise result
-        self.assertEqual(actual_sources_by_target, expected_sources_by_target)
-        devtools.client.disconnect()
+            result: Optional[Exception] = done.result(1)
+            if result:
+                raise result
+            self.assertEqual(actual_sources_by_target, expected_sources_by_target)
 
     def assert_source_content(
         self, expected_source: Source, expected_content: str, *, devtools: Optional[Devtools] = None
     ):
         if devtools is None:
-            devtools = self._setup_devtools_client()
+            devtools = Devtools.connect()
+        with devtools:
+            done = Future()
+            source_actors = {}
 
-        done = Future()
-        source_actors = {}
+            def on_source_resource(data):
+                for [resource_type, sources] in data["array"]:
+                    try:
+                        self.assertEqual(resource_type, "source")
+                        for source in sources:
+                            if Source(source["introductionType"], source["url"]) == expected_source:
+                                source_actors[expected_source] = source["actor"]
+                                done.set_result(None)
+                    except Exception as e:
+                        done.set_result(e)
 
-        def on_source_resource(data):
-            for [resource_type, sources] in data["array"]:
-                try:
-                    self.assertEqual(resource_type, "source")
-                    for source in sources:
-                        if Source(source["introductionType"], source["url"]) == expected_source:
-                            source_actors[expected_source] = source["actor"]
-                            done.set_result(None)
-                except Exception as e:
-                    done.set_result(e)
+            for target in devtools.targets:
+                devtools.client.add_event_listener(
+                    target["actor"],
+                    Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                    on_source_resource,
+                )
+            devtools.watcher.watch_resources([Resources.SOURCE])
 
-        for target in devtools.targets:
-            devtools.client.add_event_listener(
-                target["actor"],
-                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                on_source_resource,
-            )
-        devtools.watcher.watch_resources([Resources.SOURCE])
+            result: Optional[Exception] = done.result(1)
+            if result:
+                raise result
 
-        result: Optional[Exception] = done.result(1)
-        if result:
-            raise result
+            # We found at least one source with the given url.
+            self.assertIn(expected_source, source_actors)
+            source_actor = source_actors[expected_source]
 
-        # We found at least one source with the given url.
-        self.assertIn(expected_source, source_actors)
-        source_actor = source_actors[expected_source]
+            response = devtools.client.send_receive({"to": source_actor, "type": "source"})
 
-        response = devtools.client.send_receive({"to": source_actor, "type": "source"})
-
-        self.assertEqual(response["source"], expected_content)
-
-        devtools.client.disconnect()
+            self.assertEqual(response["source"], expected_content)
 
     def assert_source_breakable_lines_and_positions(
         self,
@@ -823,45 +856,43 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         devtools: Optional[Devtools] = None,
     ):
         if devtools is None:
-            devtools = self._setup_devtools_client()
+            devtools = Devtools.connect()
+        with devtools:
+            done = Future()
+            source_actors = {}
 
-        done = Future()
-        source_actors = {}
+            def on_source_resource(data):
+                for [resource_type, sources] in data["array"]:
+                    try:
+                        self.assertEqual(resource_type, "source")
+                        for source in sources:
+                            if Source(source["introductionType"], source["url"]) == expected_source:
+                                source_actors[expected_source] = source["actor"]
+                                done.set_result(None)
+                    except Exception as e:
+                        done.set_result(e)
 
-        def on_source_resource(data):
-            for [resource_type, sources] in data["array"]:
-                try:
-                    self.assertEqual(resource_type, "source")
-                    for source in sources:
-                        if Source(source["introductionType"], source["url"]) == expected_source:
-                            source_actors[expected_source] = source["actor"]
-                            done.set_result(None)
-                except Exception as e:
-                    done.set_result(e)
+            for target in devtools.targets:
+                devtools.client.add_event_listener(
+                    target["actor"],
+                    Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                    on_source_resource,
+                )
+            devtools.watcher.watch_resources([Resources.SOURCE])
 
-        for target in devtools.targets:
-            devtools.client.add_event_listener(
-                target["actor"],
-                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                on_source_resource,
-            )
-        devtools.watcher.watch_resources([Resources.SOURCE])
+            result: Optional[Exception] = done.result(1)
+            if result:
+                raise result
 
-        result: Optional[Exception] = done.result(1)
-        if result:
-            raise result
+            # We found at least one source with the given url.
+            self.assertIn(expected_source, source_actors)
+            source_actor = source_actors[expected_source]
 
-        # We found at least one source with the given url.
-        self.assertIn(expected_source, source_actors)
-        source_actor = source_actors[expected_source]
+            response = devtools.client.send_receive({"to": source_actor, "type": "getBreakableLines"})
+            self.assertEqual(response["lines"], expected_breakable_lines)
 
-        response = devtools.client.send_receive({"to": source_actor, "type": "getBreakableLines"})
-        self.assertEqual(response["lines"], expected_breakable_lines)
-
-        response = devtools.client.send_receive({"to": source_actor, "type": "getBreakpointPositionsCompressed"})
-        self.assertEqual(response["positions"], expected_positions)
-
-        devtools.client.disconnect()
+            response = devtools.client.send_receive({"to": source_actor, "type": "getBreakpointPositionsCompressed"})
+            self.assertEqual(response["positions"], expected_positions)
 
     def get_test_path(self, path: str) -> str:
         return os.path.join(DevtoolsTests.script_path, os.path.join("devtools_tests", path))
