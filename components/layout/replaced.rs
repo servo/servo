@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
@@ -86,6 +86,16 @@ impl NaturalSizes {
         }
     }
 
+    pub(crate) fn from_natural_size_in_dots(natural_size_in_dots: PhysicalSize<f64>) -> Self {
+        // FIXME: should 'image-resolution' (when implemented) be used *instead* of
+        // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
+        // https://drafts.csswg.org/css-images-4/#the-image-resolution
+        let dppx = 1.0;
+        let width = natural_size_in_dots.width as f32 / dppx;
+        let height = natural_size_in_dots.height as f32 / dppx;
+        Self::from_width_and_height(width, height)
+    }
+
     pub(crate) fn empty() -> Self {
         Self {
             width: None,
@@ -117,7 +127,7 @@ pub(crate) enum ReplacedContentKind {
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(Option<VideoInfo>),
-    SVGElement(VectorImage),
+    SVGElement(Option<VectorImage>),
 }
 
 impl ReplacedContents {
@@ -132,16 +142,16 @@ impl ReplacedContents {
             }
         }
 
-        let (kind, natural_size_in_dots) = {
+        let (kind, natural_size) = {
             if let Some((image, natural_size_in_dots)) = element.as_image() {
                 (
                     ReplacedContentKind::Image(image),
-                    Some(natural_size_in_dots),
+                    NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
             } else if let Some((canvas_info, natural_size_in_dots)) = element.as_canvas() {
                 (
                     ReplacedContentKind::Canvas(canvas_info),
-                    Some(natural_size_in_dots),
+                    NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
             } else if let Some((pipeline_id, browsing_context_id)) = element.as_iframe() {
                 (
@@ -149,12 +159,13 @@ impl ReplacedContents {
                         pipeline_id,
                         browsing_context_id,
                     }),
-                    None,
+                    NaturalSizes::empty(),
                 )
             } else if let Some((image_key, natural_size_in_dots)) = element.as_video() {
                 (
                     ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
-                    natural_size_in_dots,
+                    natural_size_in_dots
+                        .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
             } else if let Some(svg_data) = element.as_svg() {
                 let svg_source = match svg_data.source {
@@ -176,19 +187,18 @@ impl ReplacedContents {
                 let result = context
                     .image_resolver
                     .get_cached_image_for_url(element.opaque(), svg_source, UsePlaceholder::No)
-                    .ok()?;
+                    .ok();
 
-                let Image::Vector(vector_image) = result else {
-                    unreachable!("SVG element can't contain a raster image.")
+                let vector_image = result.map(|result| match result {
+                    Image::Vector(vector_image) => vector_image,
+                    _ => unreachable!("SVG element can't contain a raster image."),
+                });
+                let natural_size = NaturalSizes {
+                    width: svg_data.width.map(Au::from_px),
+                    height: svg_data.height.map(Au::from_px),
+                    ratio: svg_data.ratio,
                 };
-                let physical_size = PhysicalSize::new(
-                    vector_image.metadata.width as f64,
-                    vector_image.metadata.height as f64,
-                );
-                (
-                    ReplacedContentKind::SVGElement(vector_image),
-                    Some(physical_size),
-                )
+                (ReplacedContentKind::SVGElement(vector_image), natural_size)
             } else {
                 return None;
             }
@@ -199,18 +209,6 @@ impl ReplacedContents {
                 .image_resolver
                 .handle_animated_image(element.opaque(), image.clone());
         }
-
-        let natural_size = if let Some(naturalc_size_in_dots) = natural_size_in_dots {
-            // FIXME: should 'image-resolution' (when implemented) be used *instead* of
-            // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
-            // https://drafts.csswg.org/css-images-4/#the-image-resolution
-            let dppx = 1.0;
-            let width = (naturalc_size_in_dots.width as CSSFloat) / dppx;
-            let height = (naturalc_size_in_dots.height as CSSFloat) / dppx;
-            NaturalSizes::from_width_and_height(width, height)
-        } else {
-            NaturalSizes::empty()
-        };
 
         let base_fragment_info = BaseFragmentInfo::new_for_node(element.opaque());
         Some(Self {
@@ -427,14 +425,32 @@ impl ReplacedContents {
                 }))]
             },
             ReplacedContentKind::SVGElement(vector_image) => {
+                let Some(vector_image) = vector_image else {
+                    return vec![];
+                };
                 let scale = layout_context.style_context.device_pixel_ratio();
-                let width = object_fit_size.width.scale_by(scale.0).to_px();
-                let height = object_fit_size.height.scale_by(scale.0).to_px();
-                let size = Size2D::new(width, height);
+                // TODO: This is incorrect if the SVG has a viewBox.
+                let size = PhysicalSize::new(
+                    vector_image
+                        .metadata
+                        .width
+                        .try_into()
+                        .map_or(MAX_AU, Au::from_px),
+                    vector_image
+                        .metadata
+                        .height
+                        .try_into()
+                        .map_or(MAX_AU, Au::from_px),
+                );
+                let rect = PhysicalRect::from_size(size);
+                let raster_size = Size2D::new(
+                    size.width.scale_by(scale.0).to_px(),
+                    size.height.scale_by(scale.0).to_px(),
+                );
                 let tag = self.base_fragment_info.tag.unwrap();
                 layout_context
                     .image_resolver
-                    .rasterize_vector_image(vector_image.id, size, tag.node)
+                    .rasterize_vector_image(vector_image.id, raster_size, tag.node)
                     .and_then(|image| image.id)
                     .map(|image_key| {
                         Fragment::Image(ArcRefCell::new(ImageFragment {
