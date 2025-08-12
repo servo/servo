@@ -115,7 +115,7 @@ impl PlatformFontMethods for PlatformFont {
         }
 
         let (requested_face_size, actual_face_size) = match requested_size {
-            Some(requested_size) => (requested_size, face.set_size(requested_size)?),
+            Some(requested_size) => (requested_size, unsafe { face.set_size(requested_size) }?),
             None => (Au::zero(), Au::zero()),
         };
 
@@ -149,7 +149,7 @@ impl PlatformFontMethods for PlatformFont {
         }
 
         let (requested_face_size, actual_face_size) = match requested_size {
-            Some(requested_size) => (requested_size, face.set_size(requested_size)?),
+            Some(requested_size) => (requested_size, unsafe { face.set_size(requested_size) }?),
             None => (Au::zero(), Au::zero()),
         };
 
@@ -240,7 +240,7 @@ impl PlatformFontMethods for PlatformFont {
         let face = self.face.lock();
         assert!(!face.is_null());
 
-        let load_flags = face.glyph_load_flags();
+        let load_flags = unsafe { face.glyph_load_flags() };
         let result = unsafe { FT_Load_Glyph(*face, glyph as FT_UInt, load_flags) };
         if 0 != result {
             debug!("Unable to load glyph {}. reason: {:?}", glyph, result);
@@ -270,7 +270,7 @@ impl PlatformFontMethods for PlatformFont {
         let mut line_height;
         let mut y_scale = 0.0;
         let mut em_height;
-        if face_ptr.scalable() {
+        if unsafe { face_ptr.scalable() } {
             // Prefer FT_Size_Metrics::y_scale to y_ppem as y_ppem does not have subpixel accuracy.
             //
             // FT_Size_Metrics::y_scale is in 16.16 fixed point format.  Its (fractional) value is a
@@ -300,7 +300,7 @@ impl PlatformFontMethods for PlatformFont {
                 // Bug 1267909 - Even if the font is not explicitly scalable, if the face has color
                 // bitmaps, it should be treated as scalable and scaled to the desired size. Metrics
                 // based on y_ppem need to be rescaled for the adjusted size.
-                if face_ptr.color() {
+                if unsafe { face_ptr.color() } {
                     em_height = self.requested_face_size.to_f64_px();
                     let adjust_scale = em_height / (freetype_metrics.y_ppem as f64);
                     max_advance *= adjust_scale;
@@ -451,23 +451,53 @@ impl PlatformFont {
 }
 
 trait FreeTypeFaceHelpers {
-    fn scalable(self) -> bool;
-    fn color(self) -> bool;
-    fn set_size(self, pt_size: Au) -> Result<Au, &'static str>;
-    fn glyph_load_flags(self) -> FT_Int32;
+    /// Return true iff the font face flags contain [FT_FACE_FLAG_SCALABLE].
+    ///
+    /// ## SAFETY
+    /// `self` must be non-null, aligned and non-dangling.
+    /// No mutable reference to the [FT_FaceRec](freetype_sys::FT_FaceRec) must exist,
+    /// as that would violate aliasing rules.
+    unsafe fn scalable(self) -> bool;
+
+    /// Return true iff the font face flags contain [FT_FACE_FLAG_COLOR].
+    ///
+    /// ## SAFETY
+    /// `self` must be non-null, aligned and non-dangling.
+    /// No mutable reference to the [FT_FaceRec](freetype_sys::FT_FaceRec) must exist,
+    /// as that would violate aliasing rules.
+    unsafe fn color(self) -> bool;
+
+    /// Scale the font to the given size if it is scalable, or select the closest
+    /// available size if it is not, preferring larger sizes over smaller ones.
+    ///
+    /// Returns the selected size on success and a error message on failure.
+    ///
+    /// ## SAFETY
+    /// `self` must be non-null, aligned and non-dangling.
+    /// No mutable reference to the [FT_FaceRec](freetype_sys::FT_FaceRec) must exist,
+    /// as that would violate aliasing rules.
+    unsafe fn set_size(self, pt_size: Au) -> Result<Au, &'static str>;
+
+    /// Select a reasonable set of glyph loading flags for the font.
+    ///
+    /// ## SAFETY
+    /// `self` must be non-null, aligned and non-dangling.
+    /// No mutable reference to the [FT_FaceRec](freetype_sys::FT_FaceRec) must exist,
+    /// as that would violate aliasing rules.
+    unsafe fn glyph_load_flags(self) -> FT_Int32;
 }
 
 impl FreeTypeFaceHelpers for FT_Face {
-    fn scalable(self) -> bool {
+    unsafe fn scalable(self) -> bool {
         unsafe { (*self).face_flags & FT_FACE_FLAG_SCALABLE as c_long != 0 }
     }
 
-    fn color(self) -> bool {
+    unsafe fn color(self) -> bool {
         unsafe { (*self).face_flags & FT_FACE_FLAG_COLOR as c_long != 0 }
     }
 
-    fn set_size(self, requested_size: Au) -> Result<Au, &'static str> {
-        if self.scalable() {
+    unsafe fn set_size(self, requested_size: Au) -> Result<Au, &'static str> {
+        if unsafe { self.scalable() } {
             let size_in_fixed_point = (requested_size.to_f64_px() * 64.0 + 0.5) as FT_F26Dot6;
             let result = unsafe { FT_Set_Char_Size(self, size_in_fixed_point, 0, 72, 72) };
             if 0 != result {
@@ -508,7 +538,7 @@ impl FreeTypeFaceHelpers for FT_Face {
         }
     }
 
-    fn glyph_load_flags(self) -> FT_Int32 {
+    unsafe fn glyph_load_flags(self) -> FT_Int32 {
         let mut load_flags = FT_LOAD_DEFAULT;
 
         // Default to slight hinting, which is what most
