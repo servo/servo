@@ -2396,6 +2396,22 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::GetKnownElement(element_id, reply) => {
+                webdriver_handlers::handle_get_known_element(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::GetKnownShadowRoot(element_id, reply) => {
+                webdriver_handlers::handle_get_known_shadow_root(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::GetActiveElement(reply) => {
                 webdriver_handlers::handle_get_active_element(&documents, pipeline_id, reply)
             },
