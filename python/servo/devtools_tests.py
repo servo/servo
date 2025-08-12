@@ -10,6 +10,7 @@
 from concurrent.futures import Future
 from dataclasses import dataclass
 import logging
+import socket
 from geckordp.actors.root import RootActor
 from geckordp.actors.descriptors.tab import TabActor
 from geckordp.actors.watcher import WatcherActor
@@ -661,8 +662,22 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             url = f"{self.base_urls[0]}/test.html"
         self.servoshell = subprocess.Popen([f"target/{self.build_type.directory_name()}/servo", "--devtools=6080", url])
 
-        # FIXME: Don’t do this
-        time.sleep(1)
+        sleep_per_try = 1 / 8  # seconds
+        remaining_tries = 5 / sleep_per_try  # 5 seconds
+        while True:
+            print(".", end="", flush=True)
+            stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                stream.connect(("127.0.0.1", 6080))
+                stream.recv(4096)  # FIXME: without this, geckordp RDPClient.connect() may fail
+                stream.shutdown(socket.SHUT_RDWR)
+                print("+", end="", flush=True)
+                break
+            except Exception:
+                time.sleep(sleep_per_try)
+                self.assertGreater(remaining_tries, 0)
+                remaining_tries -= 1
+                continue
 
     def tearDown(self):
         # Terminate servoshell.
