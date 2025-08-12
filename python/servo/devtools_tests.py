@@ -638,7 +638,9 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         os.environ["RUST_LOG"] = "error,devtools=warn"
 
         # Run servoshell.
-        self.servoshell = subprocess.Popen([f"target/{self.build_type.directory_name()}/servo", "--devtools=6080", url])
+        self.servoshell = subprocess.Popen(
+            [f"target/{self.build_type.directory_name()}/servo", "--headless", "--devtools=6080", url]
+        )
 
         sleep_per_try = 1 / 8  # seconds
         remaining_tries = 5 / sleep_per_try  # 5 seconds
