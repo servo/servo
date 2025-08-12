@@ -2,14 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from __future__ import annotations
 import hashlib
 import os
 from os import PathLike
 import subprocess
 import sys
 import runpy
-from typing import Any
+from typing import TYPE_CHECKING
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 TOP_DIR = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
@@ -81,6 +80,10 @@ CATEGORIES = {
         "priority": 0,
     },
 }
+
+
+if TYPE_CHECKING:
+    from mach.main import Mach
 
 
 def _process_exec(args: list[str], cwd: PathLike[bytes] | PathLike[str] | bytes | str) -> None:
@@ -191,7 +194,7 @@ def bootstrap_command_only(topdir: str) -> int:
     return 0
 
 
-def bootstrap(topdir: str) -> Any:
+def bootstrap(topdir: str) -> "Mach":
     _ensure_case_insensitive_if_windows()
 
     topdir = os.path.abspath(topdir)
