@@ -159,14 +159,14 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         run: |
-          .\mach build --use-crown --locked --${{ inputs.profile }} ${{ inputs.build-args }}
+          .\mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
         # GitHub-hosted runners sometimes check out the repo on D: drive.
         if: ${{ runner.environment != 'self-hosted' && startsWith(github.workspace, 'D:\') }}
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        run: .\mach smoketest --${{ inputs.profile }}
+        run: .\mach smoketest --profile ${{ inputs.profile }}
       - name: Install cargo nextest
         if: ${{ runner.environment != 'self-hosted' }}
         uses: taiki-e/install-action@v2
@@ -180,10 +180,10 @@ jobs:
         if: ${{ inputs.unit-tests }}
         env:
           NEXTEST_RETRIES: 3 # https://github.com/servo/servo/issues/30683
-        run: ./mach test-unit --${{ inputs.profile }}
+        run: ./mach test-unit --profile ${{ inputs.profile }}
       - name: Devtools tests
         if: ${{ false && inputs.unit-tests }}  # FIXME #39273
-        run: .\mach test-devtools --${{ inputs.profile }}
+        run: .\mach test-devtools --profile ${{ inputs.profile }}
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
@@ -191,7 +191,7 @@ jobs:
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
-        run: .\mach package --${{ inputs.profile }}
+        run: .\mach package --profile ${{ inputs.profile }}
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
