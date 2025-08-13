@@ -11,7 +11,7 @@ import distro
 import os
 import subprocess
 import shutil
-from typing import Optional, Tuple
+from typing import Optional
 
 from .base import Base
 from .build_target import BuildTarget
