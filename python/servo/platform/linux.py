@@ -167,19 +167,7 @@ class Linux(Base):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.is_linux = True
-        self.distro = Linux.get_distro()
-
-    @staticmethod
-    def get_distro() -> str:
-        distrib = distro.name()
-
-        if distrib in ["LinuxMint", "Linux Mint", "KDE neon", "Pop!_OS", "TUXEDO OS"]:
-            distrib = "Ubuntu"
-
-        if distrib.lower() == "elementary":
-            distrib = "Ubuntu"
-
-        return distrib
+        self.distro = distro.name()
 
     def _platform_bootstrap(self, force: bool) -> bool:
         if self.distro.lower() == "nixos":
@@ -204,6 +192,12 @@ class Linux(Base):
             "fedora",
             "nixos",
             "ubuntu",
+            "linuxmint",
+            "linux mint",
+            "kde neon",
+            "pop!_os",
+            "tuxedo os",
+            "elementary",
             "void",
             "fedora linux asahi remix",
         ]:
