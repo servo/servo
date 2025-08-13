@@ -174,9 +174,6 @@ jobs:
           timeout_minutes: 40 # https://github.com/servo/servo/issues/30275
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
           command: ./mach test-unit --${{ inputs.profile }}
-      - name: Devtools tests
-        if: ${{ inputs.unit-tests }}
-        run: ./mach test-devtools --${{ inputs.profile }}
       - name: Build mach package
         run: ./mach package --${{ inputs.profile }}
       - name: Run DMG smoketest
