@@ -2784,7 +2784,7 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
 
         for marker in ["Serializable", "Transferable"]:
             if descriptor.interface.getExtendedAttribute(marker):
-                traits += [f"crate::structuredclone::{marker}Marker"]
+                traits += [f"crate::structuredclone::MarkedAs{marker}InIdl"]
 
         iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
         if iterableDecl:
@@ -7626,7 +7626,7 @@ class CGStructuredCloneMarker(CGThing):
     def define(self):
         ifaceName = self.descriptor.interface.identifier.name
         return f"""
-impl script_bindings::structuredclone::{self.marker}Marker for {ifaceName} {{
+impl script_bindings::structuredclone::MarkedAs{self.marker}InIdl for {ifaceName} {{
     #[allow(path_statements)]
     fn assert_{self.marker_lower}() {{
         crate::dom::bindings::{self.marker_lower}::assert_{self.marker_lower}::<Self>;

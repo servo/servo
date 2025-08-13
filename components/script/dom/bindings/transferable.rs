@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use base::id::NamespaceIndex;
-use script_bindings::structuredclone::TransferableMarker;
+use script_bindings::structuredclone::MarkedAsTransferableInIdl;
 
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomObject;
@@ -17,7 +17,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 
-pub(crate) trait Transferable: DomObject + TransferableMarker
+pub(crate) trait Transferable: DomObject + MarkedAsTransferableInIdl
 where
     Self: Sized,
 {
