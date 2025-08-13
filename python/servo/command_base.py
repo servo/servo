@@ -660,7 +660,7 @@ class CommandBase(object):
             ]
 
         def decorator_function(original_function: Callable) -> Callable:
-            def configuration_decorator(self: "CommandBase", *args: Any, **kwargs: Any) -> Callable:
+            def configuration_decorator(self: CommandBase, *args: Any, **kwargs: Any) -> Callable:
                 if build_type or binary_selection:
                     # If `build_type` already exists in kwargs we are doing a recursive dispatch.
                     if "build_type" not in kwargs:
@@ -708,7 +708,7 @@ class CommandBase(object):
 
     @staticmethod
     def allow_target_configuration(original_function: Callable) -> Callable:
-        def target_configuration_decorator(self: "CommandBase", *args: Any, **kwargs: Any) -> Callable:
+        def target_configuration_decorator(self: CommandBase, *args: Any, **kwargs: Any) -> Callable:
             self.configure_build_target(kwargs, suppress_log=True)
             kwargs.pop("target", False)
             kwargs.pop("android", False)
