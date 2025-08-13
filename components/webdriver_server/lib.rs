@@ -757,7 +757,9 @@ impl Handler {
                         Ok(WebDriverResponse::Void)
                     },
                     Ok(WebDriverLoadStatus::Complete) |
-                    Ok(WebDriverLoadStatus::NavigationStop) => Ok(WebDriverResponse::Void),
+                    Ok(WebDriverLoadStatus::NavigationStop) =>
+                        Ok(WebDriverResponse::Void)
+                    ,
                     _ => Err(WebDriverError::new(
                         ErrorStatus::UnknownError,
                         "Unexpected load status received while waiting for document ready state",
@@ -1078,12 +1080,19 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#get-window-handle>
-    fn handle_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
-        let session = self.session()?;
+    fn handle_window_handle(&mut self) -> WebDriverResult<WebDriverResponse> {
+        let webview_id = self.session()?.webview_id;
+        let browsing_context_id = self.session()?.browsing_context_id;
+
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_top_level_browsing_context_is_open(session.webview_id)?;
-        match session.window_handles.get(&session.webview_id) {
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+        let handle = self.get_window_handle(browsing_context_id)?;
+        self.session_mut()?
+            .window_handles
+            .insert(webview_id, handle);
+
+        match self.session()?.window_handles.get(&webview_id) {
             Some(handle) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(handle)?,
             ))),
@@ -1093,6 +1102,8 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#get-window-handles>
     fn handle_window_handles(&mut self) -> WebDriverResult<WebDriverResponse> {
+        self.handle_any_user_prompts(self.session()?.webview_id)?;
+
         self.session_mut()?.window_handles = self.get_window_handles()?;
 
         let handles = self
@@ -1212,21 +1223,19 @@ impl Handler {
 
         if let Ok(webview_id) = receiver.recv() {
             let _ = self.wait_for_document_ready_state();
-
             let handle = self.get_window_handle(BrowsingContextId::from(webview_id))?;
             self.session_mut()?
                 .window_handles
                 .insert(webview_id, handle.clone());
-
             Ok(WebDriverResponse::NewWindow(NewWindowResponse {
                 handle,
                 typ: "tab".to_string(),
             }))
         } else {
-            return Err(WebDriverError::new(
+            Err(WebDriverError::new(
                 ErrorStatus::UnknownError,
                 "No webview ID received",
-            ));
+            ))
         }
     }
 
@@ -1318,7 +1327,7 @@ impl Handler {
         } else {
             Err(WebDriverError::new(
                 ErrorStatus::NoSuchWindow,
-                "No such window",
+                "No such window hahaha",
             ))
         }
     }
@@ -2505,6 +2514,10 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         msg: WebDriverMessage<ServoExtensionRoute>,
     ) -> WebDriverResult<WebDriverResponse> {
         info!("{:?}", msg.command);
+
+        // Drain the load status receiver to avoid blocking
+        // the command processing.
+        while self.load_status_receiver.try_recv().is_ok() {}
 
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
