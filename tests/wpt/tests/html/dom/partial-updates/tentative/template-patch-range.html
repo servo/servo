@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: patchstartafter and patchendbefore</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder">
+    <span id="first"></span>
+    <span id="last"></span>
+</div>
+<script>
+    const placeholder = document.querySelector("#placeholder");
+    const original_placeholder_text = placeholder.innerHTML;
+    function reset_state() {
+        placeholder.innerHTML = original_placeholder_text;
+    }
+</script>
+<template patchfor="placeholder" patchstartafter="first" patchendbefore="last">
+    <span id="inserted_element">content</span>
+</template>
+<script>
+test(t => {
+    const inserted_element = document.querySelector("#inserted_element");
+    assert_equals(inserted_element.parentElement.id, "placeholder");
+    assert_equals(inserted_element.nextElementSibling.id, "last");
+    assert_equals(inserted_element.previousElementSibling.id, "first");
+}, "<template patchstartafter=first patchendbefore=last> should insert the patch between two existing nodes");
+
+promise_test(async t => {
+    reset_state();
+    const writer = document.patchAll().getWriter();
+    await writer.write("<span>garbage</span><template patchfor=placeholder patchendbefore=last><span id=content>abc</span></template>");
+    await writer.close();
+    const inserted_element = document.querySelector("#content");
+    assert_true(!!inserted_element);
+    assert_equals(inserted_element.parentElement.id, "placeholder");
+    assert_equals(inserted_element.nextElementSibling.id, "last");
+    assert_equals(inserted_element.previousElementSibling, null);
+}, "<template patchendbefore=last> should insert the patch before an existing node");
+
+promise_test(async t => {
+    reset_state();
+    const writer = document.patchAll().getWriter();
+    await writer.write("<span>garbage</span><template patchfor=placeholder patchstartafter=first><span id=content>abc</span></template>");
+    await writer.close();
+    const inserted_element = document.querySelector("#content");
+    assert_equals(inserted_element.parentElement.id, "placeholder");
+    assert_equals(inserted_element.nextElementSibling, null);
+    assert_equals(inserted_element.previousElementSibling.id, "first");
+}, "<template patchstartafter=first> should insert the patch after an existing node");
+
+</script>

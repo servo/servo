@@ -59,6 +59,9 @@ pub struct NodeActorMsg {
     is_anonymous: bool,
     is_before_pseudo_element: bool,
     is_direct_shadow_host_child: Option<bool>,
+    /// Whether or not this node is displayed.
+    ///
+    /// Setting this value to `false` will cause the devtools to render the node name in gray.
     is_displayed: bool,
     #[serde(rename = "isInHTMLDocument")]
     is_in_html_document: Option<bool>,
@@ -158,7 +161,6 @@ impl Actor for NodeActor {
                     .ok_or(ActorError::Internal)?;
                 let node = doc_elem_info.encode(
                     registry,
-                    true,
                     self.script_chan.clone(),
                     self.pipeline,
                     self.walker.clone(),
@@ -181,7 +183,6 @@ pub trait NodeInfoToProtocol {
     fn encode(
         self,
         actors: &ActorRegistry,
-        display: bool,
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
         walker: String,
@@ -192,7 +193,6 @@ impl NodeInfoToProtocol for NodeInfo {
     fn encode(
         self,
         actors: &ActorRegistry,
-        display: bool,
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
         walker: String,
@@ -239,7 +239,7 @@ impl NodeInfoToProtocol for NodeInfo {
             let mut children = rx.recv().ok()??;
 
             let child = children.pop()?;
-            let msg = child.encode(actors, true, script_chan.clone(), pipeline, walker);
+            let msg = child.encode(actors, script_chan.clone(), pipeline, walker);
 
             // If the node child is not a text node, do not represent it inline.
             if msg.node_type != TEXT_NODE {
@@ -267,7 +267,7 @@ impl NodeInfoToProtocol for NodeInfo {
             is_anonymous: false,
             is_before_pseudo_element: false,
             is_direct_shadow_host_child: None,
-            is_displayed: display,
+            is_displayed: self.is_displayed,
             is_in_html_document: Some(true),
             is_marker_pseudo_element: false,
             is_native_anonymous: false,

@@ -20,7 +20,7 @@ thread_local!(pub(super) static STACK: RefCell<Vec<StackEntry<crate::DomTypeHold
 /// Traces the script settings stack.
 pub(crate) unsafe fn trace(tracer: *mut JSTracer) {
     STACK.with(|stack| {
-        stack.borrow().trace(tracer);
+        unsafe { stack.borrow().trace(tracer) };
     })
 }
 

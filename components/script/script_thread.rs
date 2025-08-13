@@ -49,15 +49,14 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    EmbedderMsg, FocusSequenceNumber, InputEvent, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionActionType, MouseButton, MouseButtonAction,
-    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    FocusSequenceNumber, InputEvent, JavaScriptEvaluationError, JavaScriptEvaluationId,
+    MediaSessionActionType, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
-use html5ever::{local_name, ns};
 use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
@@ -92,6 +91,7 @@ use script_traits::{
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
+use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
@@ -114,9 +114,7 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{
-    Dom, DomRoot, MutNullableDom, RootCollection, ThreadLocalStackRoots,
-};
+use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
@@ -129,11 +127,10 @@ use crate::dom::document::{
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::node::NodeTraits;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
@@ -153,7 +150,8 @@ use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    CanGc, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
+    CanGc, IntroductionType, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory,
+    ThreadSafeJSContext,
 };
 use crate::task_queue::TaskQueue;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -250,9 +248,6 @@ pub struct ScriptThread {
 
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
-
-    /// The topmost element over the mouse.
-    topmost_mouse_over_target: MutNullableDom<Element>,
 
     /// List of pipelines that have been owned and closed by this script thread.
     #[no_trace]
@@ -948,8 +943,9 @@ impl ScriptThread {
         };
         let debugger_global = DebuggerGlobalScope::new(
             &js_runtime.clone(),
-            senders.self_sender.clone(),
+            PipelineId::new(),
             senders.devtools_server_sender.clone(),
+            senders.devtools_client_to_script_thread_sender.clone(),
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
             script_to_constellation_chan,
@@ -976,7 +972,6 @@ impl ScriptThread {
             timer_scheduler: Default::default(),
             microtask_queue,
             js_runtime,
-            topmost_mouse_over_target: MutNullableDom::new(Default::default()),
             closed_pipelines: DomRefCell::new(HashSet::new()),
             mutation_observer_microtask_queued: Default::default(),
             mutation_observers: Default::default(),
@@ -1051,59 +1046,7 @@ impl ScriptThread {
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
-        // Get the previous target temporarily
-        let prev_mouse_over_target = self.topmost_mouse_over_target.get();
-
-        unsafe {
-            document.handle_mouse_move_event(input_event, &self.topmost_mouse_over_target, can_gc)
-        }
-
-        // Short-circuit if nothing changed
-        if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
-            return;
-        }
-
-        let mut state_already_changed = false;
-
-        // Notify Constellation about the topmost anchor mouse over target.
-        let window = document.window();
-        if let Some(target) = self.topmost_mouse_over_target.get() {
-            if let Some(anchor) = target
-                .upcast::<Node>()
-                .inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                .next()
-            {
-                let status = anchor
-                    .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("href"))
-                    .and_then(|href| {
-                        let value = href.value();
-                        let url = document.url();
-                        url.join(&value).map(|url| url.to_string()).ok()
-                    });
-                let event = EmbedderMsg::Status(document.webview_id(), status);
-                window.send_to_embedder(event);
-
-                state_already_changed = true;
-            }
-        }
-
-        // We might have to reset the anchor state
-        if !state_already_changed {
-            if let Some(target) = prev_mouse_over_target {
-                if target
-                    .upcast::<Node>()
-                    .inclusive_ancestors(ShadowIncluding::No)
-                    .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                    .next()
-                    .is_some()
-                {
-                    let event = EmbedderMsg::Status(window.webview_id(), None);
-                    window.send_to_embedder(event);
-                }
-            }
-        }
+        unsafe { document.handle_mouse_move_event(input_event, can_gc) }
     }
 
     /// Process compositor events as part of a "update the rendering task".
@@ -1129,16 +1072,13 @@ impl ScriptThread {
                     document.handle_mouse_button_event(mouse_button_event, &event, can_gc);
                 },
                 InputEvent::MouseMove(_) => {
-                    // The event itself is unecessary here, because the point in the viewport is in the hit test.
                     self.process_mouse_move_event(&document, &event, can_gc);
                 },
-                InputEvent::MouseLeave(_) => {
-                    self.topmost_mouse_over_target.take();
-                    document.handle_mouse_leave_event(&event, can_gc);
+                InputEvent::MouseLeave(mouse_leave_event) => {
+                    document.handle_mouse_leave_event(&event, &mouse_leave_event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
-                    let touch_result =
-                        document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
+                    let touch_result = document.handle_touch_event(touch_event, &event, can_gc);
                     if let (TouchEventResult::Processed(handled), true) =
                         (touch_result, touch_event.is_cancelable())
                     {
@@ -2043,6 +1983,9 @@ impl ScriptThread {
                     );
                 }
             },
+            ScriptThreadMessage::RefreshCursor(pipeline_id, cursor_position) => {
+                self.handle_refresh_cursor(pipeline_id, cursor_position);
+            },
         }
     }
 
@@ -2237,6 +2180,13 @@ impl ScriptThread {
             },
             DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => {
                 devtools::handle_highlight_dom_node(&documents, id, node_id)
+            },
+            DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
+                self.debugger_global.fire_get_possible_breakpoints(
+                    can_gc,
+                    spidermonkey_id,
+                    result_sender,
+                );
             },
         }
     }
@@ -2444,6 +2394,22 @@ impl ScriptThread {
                     element_id,
                     reply,
                     can_gc,
+                )
+            },
+            WebDriverScriptCommand::GetKnownElement(element_id, reply) => {
+                webdriver_handlers::handle_get_known_element(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::GetKnownShadowRoot(element_id, reply) => {
+                webdriver_handlers::handle_get_known_shadow_root(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
                 )
             },
             WebDriverScriptCommand::GetActiveElement(reply) => {
@@ -3058,13 +3024,6 @@ impl ScriptThread {
             debug!("{id}: Clearing animations");
             document.animations().clear();
 
-            // We don't want to dispatch `mouseout` event pointing to non-existing element
-            if let Some(target) = self.topmost_mouse_over_target.get() {
-                if target.upcast::<Node>().owner_doc() == document {
-                    self.topmost_mouse_over_target.set(None);
-                }
-            }
-
             // We discard the browsing context after requesting layout shut down,
             // to avoid running layout on detached iframes.
             let window = document.window();
@@ -3442,8 +3401,12 @@ impl ScriptThread {
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
         );
-        self.debugger_global
-            .fire_add_debuggee(can_gc, window.upcast());
+        self.debugger_global.fire_add_debuggee(
+            can_gc,
+            window.upcast(),
+            incomplete.pipeline_id,
+            None,
+        );
 
         let _realm = enter_realm(&*window);
 
@@ -3730,12 +3693,13 @@ impl ScriptThread {
         // Script source is ready to be evaluated (11.)
         let _ac = enter_realm(global_scope);
         rooted!(in(*GlobalScope::get_cx()) let mut jsval = UndefinedValue());
-        global_scope.evaluate_js_on_global_with_result(
+        _ = global_scope.evaluate_js_on_global_with_result(
             &script_source,
             jsval.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
             can_gc,
+            Some(IntroductionType::JAVASCRIPT_URL),
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
@@ -4084,13 +4048,21 @@ impl ScriptThread {
         let context = window.get_cx();
 
         rooted!(in(*context) let mut return_value = UndefinedValue());
-        global_scope.evaluate_js_on_global_with_result(
+        if let Err(err) = global_scope.evaluate_js_on_global_with_result(
             &script,
             return_value.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
             can_gc,
-        );
+            None, // No known `introductionType` for JS code from embedder
+        ) {
+            _ = self.senders.pipeline_to_constellation_sender.send((
+                pipeline_id,
+                ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, Err(err)),
+            ));
+            return;
+        };
+
         let result = match jsval_to_webdriver(
             context,
             global_scope,
@@ -4106,6 +4078,17 @@ impl ScriptThread {
             pipeline_id,
             ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result),
         ));
+    }
+
+    fn handle_refresh_cursor(
+        &self,
+        pipeline_id: PipelineId,
+        cursor_position: Point2D<f32, CSSPixel>,
+    ) {
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            return;
+        };
+        window.handle_refresh_cursor(cursor_position);
     }
 }
 

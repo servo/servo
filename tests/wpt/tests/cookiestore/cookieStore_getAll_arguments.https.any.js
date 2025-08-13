@@ -194,3 +194,14 @@ promise_test(async testCase => {
     assert_equals(cookies[0].value, 'cookie-value');
   }
 }, 'cookieStore.getAll with absolute different url in options');
+
+promise_test(async testCase => {
+  await cookieStore.set('cookie-name', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+  const cookies = await cookieStore.getAll(' cookie-name \t');
+  assert_equals(cookies.length, 1);
+  assert_equals(cookies[0].name, 'cookie-name');
+  assert_equals(cookies[0].value, 'cookie-value');
+}, 'cookieStore.getAll with whitespace');

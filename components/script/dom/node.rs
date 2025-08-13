@@ -27,7 +27,7 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
-    SVGSVGData, StyleData, TrustedNodeAddress,
+    SVGElementData, StyleData, TrustedNodeAddress,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -1320,6 +1320,10 @@ impl Node {
             is_shadow_host,
             shadow_root_mode,
             display,
+            // It is not entirely clear when this should be set to false.
+            // Firefox considers nodes with "display: contents" to be displayed.
+            // The doctype node is displayed despite being `display: none`.
+            is_displayed: !self.is_display_none() || self.is::<DocumentType>(),
             doctype_name: self
                 .downcast::<DocumentType>()
                 .map(DocumentType::name)
@@ -1669,7 +1673,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
     fn canvas_data(self) -> Option<HTMLCanvasData>;
     fn media_data(self) -> Option<HTMLMediaData>;
-    fn svg_data(self) -> Option<SVGSVGData>;
+    fn svg_data(self) -> Option<SVGElementData>;
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(self) -> Option<PipelineId>;
     fn opaque(self) -> OpaqueNode;
@@ -1958,7 +1962,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .map(|media| media.data())
     }
 
-    fn svg_data(self) -> Option<SVGSVGData> {
+    fn svg_data(self) -> Option<SVGElementData> {
         self.downcast::<SVGSVGElement>().map(|svg| svg.data())
     }
 
@@ -3150,17 +3154,25 @@ impl Node {
     pub(crate) fn xml_serialize(
         &self,
         traversal_scope: xml_serialize::TraversalScope,
-    ) -> DOMString {
+    ) -> Fallible<DOMString> {
         let mut writer = vec![];
         xml_serialize::serialize(
             &mut writer,
             &self,
             xml_serialize::SerializeOpts { traversal_scope },
         )
-        .expect("Cannot serialize node");
+        .map_err(|error| {
+            error!("Cannot serialize node: {error}");
+            Error::InvalidState
+        })?;
 
         // FIXME(ajeffrey): Directly convert UTF8 to DOMString
-        DOMString::from(String::from_utf8(writer).unwrap())
+        let string = DOMString::from(String::from_utf8(writer).map_err(|error| {
+            error!("Cannot serialize node: {error}");
+            Error::InvalidState
+        })?);
+
+        Ok(string)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
@@ -3168,19 +3180,19 @@ impl Node {
         &self,
         require_well_formed: bool,
         can_gc: CanGc,
-    ) -> DOMString {
+    ) -> Fallible<DOMString> {
         // Step 1. Let context document be node's node document.
         let context_document = self.owner_document();
 
         // Step 2. If context document is an HTML document, return the result of HTML fragment serialization algorithm
         // with node, false, and « ».
         if context_document.is_html_document() {
-            return self.html_serialize(
+            return Ok(self.html_serialize(
                 html_serialize::TraversalScope::ChildrenOnly(None),
                 false,
                 vec![],
                 can_gc,
-            );
+            ));
         }
 
         // Step 3. Return the XML serialization of node given require well-formed.

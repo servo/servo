@@ -7,12 +7,15 @@ use std::cell::RefCell;
 use canvas_traits::canvas::Path;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::DOMMatrixBinding::DOMMatrix2DInit;
+use script_bindings::error::ErrorResult;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Path2DMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -48,14 +51,60 @@ impl Path2D {
     pub(crate) fn segments(&self) -> Path {
         self.path.borrow().clone()
     }
+
+    pub(crate) fn is_path_empty(&self) -> bool {
+        self.path.borrow().0.is_empty()
+    }
+
+    fn add_path(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
+        // Step 1. If the Path2D object path has no subpaths, then return.
+        if other.is_path_empty() {
+            return Ok(());
+        }
+
+        // Step 2 Let matrix be the result of creating a DOMMatrix from the 2D dictionary transform.
+        let matrix = dommatrix2dinit_to_matrix(transform)?;
+
+        // Step 3. If one or more of matrix's m11 element, m12 element, m21
+        // element, m22 element, m41 element, or m42 element are infinite or
+        // NaN, then return.
+        if !matrix.m11.is_finite() ||
+            !matrix.m12.is_finite() ||
+            !matrix.m21.is_finite() ||
+            !matrix.m22.is_finite() ||
+            !matrix.m31.is_finite() ||
+            !matrix.m32.is_finite()
+        {
+            return Ok(());
+        }
+
+        // Step 4. Create a copy of all the subpaths in path. Let c be this copy.
+        let mut c = other.segments();
+
+        // Step 5. Transform all the coordinates and lines in c by the transform matrix `matrix`.
+        c.transform(matrix);
+
+        let mut path = self.path.borrow_mut();
+
+        // Step 6. Let (x, y) be the last point in the last subpath of c
+        let last_point = path.last_point();
+
+        // Step 7. Add all the subpaths in c to a.
+        path.0.extend(c.0);
+
+        // Step 8. Create a new subpath in `a` with (x, y) as the only point in the subpath.
+        if let Some(last_point) = last_point {
+            path.move_to(last_point.x, last_point.y);
+        }
+
+        Ok(())
+    }
 }
 
 impl Path2DMethods<crate::DomTypeHolder> for Path2D {
     /// <https://html.spec.whatwg.org/multipage/#dom-path2d-addpath>
-    fn AddPath(&self, other: &Path2D) {
-        let other = other.segments();
-        // Step 7. Add all the subpaths in c to a.
-        self.path.borrow_mut().0.extend(other.0);
+    fn AddPath(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
+        self.add_path(other, transform)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-closepath>

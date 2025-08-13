@@ -6,7 +6,6 @@ use std::cell::Cell;
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use embedder_traits::CompositorHitTestResult;
 use euclid::Point2D;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
@@ -25,6 +24,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::node::Node;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
@@ -222,11 +222,12 @@ impl MouseEvent {
     }
 
     /// Create a [MouseEvent] triggered by the embedder
+    /// <https://w3c.github.io/uievents/#create-a-cancelable-mouseevent-id>
     pub(crate) fn for_platform_mouse_event(
         event: embedder_traits::MouseButtonEvent,
         pressed_mouse_buttons: u16,
         window: &Window,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         modifiers: Modifiers,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -236,7 +237,7 @@ impl MouseEvent {
             embedder_traits::MouseButtonAction::Down => "mousedown",
         };
 
-        let client_point = hit_test_result.point_in_viewport.to_i32();
+        let client_point = hit_test_result.point_in_frame.to_i32();
         let page_point = hit_test_result
             .point_relative_to_initial_containing_block
             .to_i32();
@@ -256,7 +257,7 @@ impl MouseEvent {
             event.button.into(),
             pressed_mouse_buttons,
             None,
-            Some(hit_test_result.point_relative_to_item),
+            Some(hit_test_result.point_in_node),
             can_gc,
         );
 
@@ -525,5 +526,24 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.uievent.IsTrusted()
+    }
+
+    /// <https://w3c.github.io/uievents/#dom-mouseevent-getmodifierstate>
+    fn GetModifierState(&self, key_arg: DOMString) -> bool {
+        self.modifiers.get().contains(match &*key_arg {
+            "Alt" => Modifiers::ALT,
+            "AltGraph" => Modifiers::ALT_GRAPH,
+            "CapsLock" => Modifiers::CAPS_LOCK,
+            "Control" => Modifiers::CONTROL,
+            "Fn" => Modifiers::FN,
+            "FnLock" => Modifiers::FN_LOCK,
+            "Meta" => Modifiers::META,
+            "NumLock" => Modifiers::NUM_LOCK,
+            "ScrollLock" => Modifiers::SCROLL_LOCK,
+            "Shift" => Modifiers::SHIFT,
+            "Symbol" => Modifiers::SYMBOL,
+            "SymbolLock" => Modifiers::SYMBOL_LOCK,
+            _ => return false,
+        })
     }
 }

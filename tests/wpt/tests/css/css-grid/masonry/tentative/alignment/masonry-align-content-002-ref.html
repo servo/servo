@@ -7,6 +7,7 @@
   <meta charset="utf-8">
   <title>Reference: Masonry layout with `align-content` in masonry axis</title>
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
   <style>
 html,body {
   color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
@@ -31,6 +32,11 @@ item {
 }
 
 .tall { padding-right:30px; grid-row:span 2; }
+
+.safe {
+  width: 10px;
+  margin-right: 50px;
+}
 </style>
 </head>
 <body>
@@ -53,6 +59,15 @@ item {
   <item style="grid-column:3/4">6</item>
 </grid>
 
+<grid style="align-content:safe start" class="safe">
+  <item style="grid-column:1/2" class="tall">1</item>
+  <item style="grid-column:2/3">2</item>
+  <item style="grid-column:3/4">3</item>
+  <item style="grid-column:4/5">4</item>
+  <item style="grid-column:2/3">5</item>
+  <item style="grid-column:3/4">6</item>
+</grid>
+
 <grid style="align-content:end">
   <item style="grid-column:1/2" class="tall">1</item>
   <item style="grid-column:2/3">2</item>
@@ -71,6 +86,15 @@ item {
   <item style="grid-column:3/4">6</item>
 </grid>
 
+<grid style="align-content:safe end" class="safe">
+  <item style="grid-column:1/2" class="tall">1</item>
+  <item style="grid-column:2/3">2</item>
+  <item style="grid-column:3/4">3</item>
+  <item style="grid-column:4/5">4</item>
+  <item style="grid-column:2/3">5</item>
+  <item style="grid-column:3/4">6</item>
+</grid>
+
 <grid style="align-content:center">
   <item style="grid-column:1/2" class="tall">1</item>
   <item style="grid-column:2/3">2</item>
@@ -86,6 +110,15 @@ item {
   <item style="grid-column:3/4">3</item>
   <item style="grid-column:4/5">4</item>
   <item style="grid-column:1/2">5</item>
+  <item style="grid-column:3/4">6</item>
+</grid>
+
+<grid style="align-content:safe center" class="safe">
+  <item style="grid-column:1/2" class="tall">1</item>
+  <item style="grid-column:2/3">2</item>
+  <item style="grid-column:3/4">3</item>
+  <item style="grid-column:4/5">4</item>
+  <item style="grid-column:2/3">5</item>
   <item style="grid-column:3/4">6</item>
 </grid>
 

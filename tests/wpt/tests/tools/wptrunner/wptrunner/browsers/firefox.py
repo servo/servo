@@ -896,7 +896,8 @@ class FirefoxBrowser(Browser):
                           "lsan_max_stack_depth": test.lsan_max_stack_depth,
                           "mozleak_allowed": self.leak_check and test.mozleak_allowed,
                           "mozleak_thresholds": self.leak_check and test.mozleak_threshold,
-                          "special_powers": self.specialpowers_path and test.url_base == "/_mozilla/"}
+                          "special_powers": self.specialpowers_path and test.url_base == "/_mozilla/",
+                          "testdriver": True if test.test_type == "testharness" else getattr(test, "testdriver", False)}
         return self._settings
 
     def start(self, group_metadata=None, **kwargs):
@@ -926,7 +927,8 @@ class FirefoxBrowser(Browser):
         return ExecutorBrowser, {"marionette_port": self.instance.marionette_port,
                                  "extensions": extensions,
                                  "supports_devtools": True,
-                                 "supports_window_resize": True}
+                                 "supports_window_resize": True,
+                                 "testdriver": self._settings["testdriver"]}
 
     def check_crash(self, process, test):
         return log_gecko_crashes(self.logger,
@@ -1056,7 +1058,8 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
                 "lsan_allowed": test.lsan_allowed,
                 "lsan_max_stack_depth": test.lsan_max_stack_depth,
                 "mozleak_allowed": self.leak_check and test.mozleak_allowed,
-                "mozleak_thresholds": self.leak_check and test.mozleak_threshold}
+                "mozleak_thresholds": self.leak_check and test.mozleak_threshold,
+                "testdriver": False}
 
     @property
     def port(self):

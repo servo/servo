@@ -16,7 +16,6 @@
       display: inline-grid;
       gap: 10px 20px;
       grid-template-columns:  repeat(4,auto);
-      grid-template-rows: masonry;
       color: #444;
       border: 1px solid;
       padding: 2px;
@@ -29,15 +28,25 @@
       margin: 3px;
       border: 5px solid blue;
     }
+
+    flex {
+      display: flex;
+      flex-direction: column;
+      height: fit-content;
+    }
   </style>
 </head>
 <body>
 
 <grid>
-  <item>1</item>
-  <item style="margin-top:10px">4</item>
-  <item>6</item>
-  <item>2</item>
-  <item style="grid-column: span 2">5</item>
-  <item>3</item>
+  <item style="height: fit-content;">1</item>
+  <flex style="gap: 10px;">
+    <item style="margin-top:10px; height: fit-content; width: fit-content;">4</item>
+    <item style="transform: translateX(-91px); width: calc(200% - 36px);">5</item>
+  </flex>
+  <flex style="gap: 10px;">
+    <item style="height: fit-content">6</item>
+    <item >3</item>
+  </flex>
+  <item style="height: fit-content">2</item>
 </grid>

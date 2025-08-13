@@ -130,14 +130,14 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy, FocusId,
+    AnimationState, CompositorHitTestResult, EmbedderMsg, EmbedderProxy, FocusId,
     FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
     KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
     WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
 };
-use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
+use euclid::{Point2D, Size2D};
 use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -149,7 +149,10 @@ use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::{self, AsyncRuntime, IpcSend, ReferrerPolicy, ResourceThreads};
+use net_traits::{
+    self, AsyncRuntime, IpcSend, ReferrerPolicy, ResourceThreads, exit_fetch_thread,
+    start_fetch_thread,
+};
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use script_traits::{
@@ -160,6 +163,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
@@ -726,6 +730,11 @@ where
 
     /// The main event loop for the constellation.
     fn run(&mut self) {
+        // Start a fetch thread.
+        // In single-process mode this will be the global fetch thread;
+        // in multi-process mode this will be used only by the canvas paint thread.
+        let join_handle = start_fetch_thread(&self.public_resource_threads.core_thread);
+
         while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
             // This is for testing the hardening of the constellation.
@@ -733,6 +742,12 @@ where
             self.handle_request();
         }
         self.handle_shutdown();
+
+        // Shut down the fetch thread started above.
+        exit_fetch_thread();
+        join_handle
+            .join()
+            .expect("Failed to join on the fetch thread in the constellation");
     }
 
     /// Generate a new pipeline id namespace.
@@ -1431,8 +1446,8 @@ where
             EmbedderToConstellationMessage::ForwardInputEvent(webview_id, event, hit_test) => {
                 self.forward_input_event(webview_id, event, hit_test);
             },
-            EmbedderToConstellationMessage::SetCursor(webview_id, cursor) => {
-                self.handle_set_cursor_msg(webview_id, cursor)
+            EmbedderToConstellationMessage::RefreshCursor(pipeline_id, point) => {
+                self.handle_refresh_cursor(pipeline_id, point)
             },
             EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration) => {
                 for background_monitor_control_sender in &self.background_monitor_control_senders {
@@ -2924,34 +2939,8 @@ where
             }
         }
 
-        let pipeline_id = match &hit_test_result {
-            Some(hit_test) => hit_test.pipeline_id,
-            None => {
-                // If there's no hit test, send to the focused browsing context of the given webview.
-                let Some(browsing_context_id) = self
-                    .webviews
-                    .get(webview_id)
-                    .map(|webview| webview.focused_browsing_context_id)
-                else {
-                    warn!("Handling InputEvent for an unknown webview: {webview_id}");
-                    return;
-                };
-
-                let Some(pipeline_id) = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .map(|context| context.pipeline_id)
-                else {
-                    warn!("{browsing_context_id}: Got InputEvent for nonexistent browsing context");
-                    return;
-                };
-
-                pipeline_id
-            },
-        };
-
-        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-            debug!("Got event for pipeline ({pipeline_id}) after closure");
+        let Some(webview) = self.webviews.get_mut(webview_id) else {
+            warn!("Got input event for unknown WebViewId: {webview_id:?}");
             return;
         };
 
@@ -2961,13 +2950,7 @@ where
             active_keyboard_modifiers,
             event,
         };
-
-        if let Err(error) = pipeline
-            .event_loop
-            .send(ScriptThreadMessage::SendInputEvent(pipeline_id, event))
-        {
-            self.handle_send_error(pipeline_id, error);
-        }
+        webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts);
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3424,9 +3407,17 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_set_cursor_msg(&mut self, webview_id: WebViewId, cursor: Cursor) {
-        self.embedder_proxy
-            .send(EmbedderMsg::SetCursor(webview_id, cursor));
+    fn handle_refresh_cursor(&self, pipeline_id: PipelineId, point: Point2D<f32, CSSPixel>) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::RefreshCursor(pipeline_id, point))
+        {
+            warn!("Could not send RefreshCursor message to pipeline: {error:?}");
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]

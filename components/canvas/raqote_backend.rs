@@ -184,7 +184,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         raqote::DrawTarget::new(size.width as i32, size.height as i32)
     }
 
-    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
+    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {
         <Self as GenericDrawTarget>::fill_rect(
             self,
             rect,
@@ -230,7 +230,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         src: Rect<f64>,
         filter: Filter,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         let paint_transform =
             raqote::Transform::translation(-dest.origin.x as f32, -dest.origin.y as f32)
@@ -239,7 +239,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
                     src.size.height as f32 / dest.size.height as f32,
                 );
 
-        self.set_transform(&transform);
+        self.set_transform(&transform.cast());
         let dest = dest.cast();
         let mut pb = raqote::PathBuilder::new();
         pb.rect(
@@ -280,9 +280,9 @@ impl GenericDrawTarget for raqote::DrawTarget {
         fill_rule: FillRule,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
-        self.set_transform(&transform);
+        self.set_transform(&transform.cast());
         let draw_options = draw_options(composition_options);
         let pattern = style.to_raqote_pattern();
         let mut path = to_path(path);
@@ -299,9 +299,9 @@ impl GenericDrawTarget for raqote::DrawTarget {
         start: Point2D<f32>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
-        self.set_transform(&transform);
+        self.set_transform(&transform.cast());
         let draw_options = draw_options(composition_options);
         let pattern = style.to_raqote_pattern();
         let mut advance = 0.;
@@ -362,7 +362,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         rect: &Rect<f32>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         let rect = rect.cast();
         let mut pb = canvas_traits::canvas::Path::new();
@@ -392,9 +392,9 @@ impl GenericDrawTarget for raqote::DrawTarget {
         &mut self,
         path: &canvas_traits::canvas::Path,
         fill_rule: FillRule,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
-        self.set_transform(&transform);
+        self.set_transform(&transform.cast());
         let mut path = to_path(path);
         path.winding = match fill_rule {
             FillRule::Nonzero => raqote::Winding::NonZero,
@@ -414,11 +414,11 @@ impl GenericDrawTarget for raqote::DrawTarget {
         style: FillOrStrokeStyle,
         line_options: LineOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         let pattern = style.to_raqote_pattern();
         let options = draw_options(composition_options);
-        self.set_transform(&transform);
+        self.set_transform(&transform.cast());
         self.stroke(
             &to_path(path),
             &source(&pattern),
@@ -432,9 +432,9 @@ impl GenericDrawTarget for raqote::DrawTarget {
         style: FillOrStrokeStyle,
         line_options: LineOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
-        self.set_transform(&transform);
+        self.set_transform(&transform.cast());
         let pattern = style.to_raqote_pattern();
         let options = draw_options(composition_options);
         let mut pb = raqote::PathBuilder::new();

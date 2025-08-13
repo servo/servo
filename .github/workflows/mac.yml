@@ -174,10 +174,9 @@ jobs:
           timeout_minutes: 40 # https://github.com/servo/servo/issues/30275
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
           command: ./mach test-unit --${{ inputs.profile }}
-      - name: Build libservo with examples
-        if: ${{ inputs.build-libservo }}
-        continue-on-error: true
-        run: cargo build -p libservo --all-targets
+      - name: Devtools tests
+        if: ${{ inputs.unit-tests }}
+        run: ./mach test-devtools --${{ inputs.profile }}
       - name: Build mach package
         run: ./mach package --${{ inputs.profile }}
       - name: Run DMG smoketest
@@ -238,3 +237,32 @@ jobs:
       speedometer: false
       dromaeo: false
     secrets: inherit
+
+  build-libservo:
+    if: ${{ inputs.build-libservo }}
+    name: Build libservo and MSRV check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 1
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Determine MSRV
+        id: msrv
+        uses: ./.github/actions/parse_msrv
+      - name: Install MSRV
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.rust_version }}
+      - name: Compile libservo with MSRV
+        run: |
+          cargo +${{ steps.msrv.outputs.rust_version }} build -p libservo --locked --all-targets

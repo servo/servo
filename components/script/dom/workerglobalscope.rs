@@ -72,7 +72,7 @@ use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch::{CspViolationsProcessor, Fetch, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{InRealm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext, JSContextHelper, Runtime};
+use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
 
@@ -644,12 +644,13 @@ impl WorkerGlobalScope {
         let _aes = AutoEntryScript::new(self.upcast());
         let cx = self.runtime.borrow().as_ref().unwrap().cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
-        let options = self
+        let mut options = self
             .runtime
             .borrow()
             .as_ref()
             .unwrap()
             .new_compile_options(self.worker_url.borrow().as_str(), 1);
+        options.set_introduction_type(IntroductionType::WORKER);
         match self.runtime.borrow().as_ref().unwrap().evaluate_script(
             self.reflector().get_jsobject(),
             &source,

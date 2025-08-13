@@ -76,7 +76,7 @@ use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::PreInvoke;
 use crate::realms::enter_realm;
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 
 mod async_html;
@@ -682,7 +682,9 @@ impl ServoParser {
 
             self.script_nesting_level.set(script_nesting_level + 1);
             script.set_initial_script_text();
-            script.prepare(can_gc);
+            let introduction_type_override =
+                (script_nesting_level > 0).then_some(IntroductionType::INJECTED_SCRIPT);
+            script.prepare(introduction_type_override, can_gc);
             self.script_nesting_level.set(script_nesting_level);
 
             if self.document.has_pending_parsing_blocking_script() {

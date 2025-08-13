@@ -18,13 +18,14 @@ pub(crate) unsafe fn is_platform_object_same_origin(
     cx: SafeJSContext,
     obj: RawHandleObject,
 ) -> bool {
-    let subject_realm = get_context_realm(*cx);
-    let obj_realm = GetObjectRealmOrNull(*obj);
+    let subject_realm = unsafe { get_context_realm(*cx) };
+    let obj_realm = unsafe { GetObjectRealmOrNull(*obj) };
     assert!(!obj_realm.is_null());
 
     let subject_principals =
-        ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(subject_realm));
-    let obj_principals = ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(obj_realm));
+        unsafe { ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(subject_realm)) };
+    let obj_principals =
+        unsafe { ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(obj_realm)) };
 
     let subject_origin = subject_principals.origin();
     let obj_origin = obj_principals.origin();

@@ -20,15 +20,16 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment};
 use crate::geom::{
-    AuOrAuto, LazySize, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalSides1D,
-    LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec, Size,
-    Sizes, ToLogical, ToLogicalWithContainingBlock,
+    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2,
+    PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec, ToLogical,
+    ToLogicalWithContainingBlock,
 };
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
+use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
-    PropagatedBoxTreeData, SizeConstraint,
+    PropagatedBoxTreeData,
 };
 
 #[derive(Debug, MallocSizeOf)]

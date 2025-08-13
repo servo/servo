@@ -25,17 +25,17 @@ use std::sync::{Arc, Mutex};
 
 use bitflags::bitflags;
 use display_list::CompositorDisplayListInfo;
-use embedder_traits::{CompositorHitTestResult, ScreenGeometry};
+use embedder_traits::ScreenGeometry;
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
-use webrender_api::units::{DevicePoint, LayoutVector2D, TexelRect};
+use webrender_api::units::{LayoutVector2D, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
     ExternalImageHandler, ExternalImageId, ExternalImageSource, ExternalScrollId,
-    FontInstanceFlags, FontInstanceKey, FontKey, HitTestFlags, ImageData, ImageDescriptor,
-    ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
+    FontInstanceFlags, FontInstanceKey, FontKey, ImageData, ImageDescriptor, ImageKey,
+    NativeFontHandle, PipelineId as WebRenderPipelineId,
 };
 
 use crate::viewport_description::ViewportDescription;
@@ -110,14 +110,6 @@ pub enum CompositorMsg {
         /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
         display_list_receiver: ipc::IpcBytesReceiver,
     },
-    /// Perform a hit test operation. The result will be returned via
-    /// the provided channel sender.
-    HitTest(
-        Option<WebRenderPipelineId>,
-        DevicePoint,
-        HitTestFlags,
-        IpcSender<Vec<CompositorHitTestResult>>,
-    ),
     /// Create a new image key. The result will be returned via the
     /// provided channel sender.
     GenerateImageKey(IpcSender<ImageKey>),
@@ -243,21 +235,6 @@ impl CrossProcessCompositorApi {
         if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
             warn!("Error sending display spatial tree: {error}");
         }
-    }
-
-    /// Perform a hit test operation. Blocks until the operation is complete and
-    /// and a result is available.
-    pub fn hit_test(
-        &self,
-        pipeline: Option<WebRenderPipelineId>,
-        point: DevicePoint,
-        flags: HitTestFlags,
-    ) -> Vec<CompositorHitTestResult> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.0
-            .send(CompositorMsg::HitTest(pipeline, point, flags, sender))
-            .expect("error sending hit test");
-        receiver.recv().expect("error receiving hit test result")
     }
 
     /// Create a new image key. Blocks until the key is available.

@@ -12,7 +12,9 @@
 
 use core::fmt;
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::net::TcpStream;
+use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -106,7 +108,7 @@ pub enum ScriptToDevtoolsControlMsg {
     TitleChanged(PipelineId, String),
 
     /// Get source information from script
-    CreateSourceActor(PipelineId, SourceInfo),
+    CreateSourceActor(IpcSender<DevtoolScriptControlMsg>, PipelineId, SourceInfo),
 
     UpdateSourceContent(PipelineId, String),
 }
@@ -147,6 +149,10 @@ pub struct NodeInfo {
     pub shadow_root_mode: Option<ShadowRootMode>,
     pub is_shadow_host: bool,
     pub display: Option<String>,
+    /// Whether this node is currently displayed.
+    ///
+    /// For example, the node might have `display: none`.
+    pub is_displayed: bool,
 
     /// The `DOCTYPE` name if this is a `DocumentType` node, `None` otherwise
     pub doctype_name: Option<String>,
@@ -278,6 +284,8 @@ pub enum DevtoolScriptControlMsg {
     SimulateColorScheme(PipelineId, Theme),
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
+
+    GetPossibleBreakpoints(u32, IpcSender<Vec<RecommendedBreakpointLocation>>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -488,6 +496,18 @@ impl StartedTimelineMarker {
 }
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct WorkerId(pub Uuid);
+impl Display for WorkerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+impl FromStr for WorkerId {
+    type Err = uuid::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -583,8 +603,19 @@ impl fmt::Display for ShadowRootMode {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SourceInfo {
     pub url: ServoUrl,
-    pub external: bool,
+    pub introduction_type: String,
+    pub inline: bool,
     pub worker_id: Option<WorkerId>,
     pub content: Option<String>,
     pub content_type: Option<String>,
+    pub spidermonkey_id: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecommendedBreakpointLocation {
+    pub offset: u32,
+    pub line_number: u32,
+    pub column_number: u32,
+    pub is_step_start: bool,
 }

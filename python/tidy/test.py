@@ -73,11 +73,6 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual("file is empty", next(errors)[2])
         self.assertNoMoreErrors(errors)
 
-    def test_long_line(self):
-        errors = tidy.collect_errors_for_files(iterFile("long_line.rs"), [], [tidy.check_by_line], print_text=False)
-        self.assertEqual("Line is longer than 120 characters", next(errors)[2])
-        self.assertNoMoreErrors(errors)
-
     def test_whatwg_link(self):
         errors = tidy.collect_errors_for_files(iterFile("whatwg_link.rs"), [], [tidy.check_by_line], print_text=False)
         self.assertEqual(
@@ -122,26 +117,12 @@ class CheckTidiness(unittest.TestCase):
 
     def test_rust(self):
         errors = tidy.collect_errors_for_files(iterFile("rust_tidy.rs"), [], [tidy.check_rust], print_text=False)
-        self.assertTrue("mod declaration is not in alphabetical order" in next(errors)[2])
-        self.assertEqual("mod declaration spans multiple lines", next(errors)[2])
-        self.assertTrue("derivable traits list is not in alphabetical order" in next(errors)[2])
-        self.assertEqual("found an empty line following a {", next(errors)[2])
-        self.assertEqual("use &[T] instead of &Vec<T>", next(errors)[2])
-        self.assertEqual("use &str instead of &String", next(errors)[2])
         self.assertEqual("use &T instead of &Root<T>", next(errors)[2])
         self.assertEqual("use &T instead of &DomRoot<T>", next(errors)[2])
-        self.assertEqual("encountered function signature with -> ()", next(errors)[2])
-        self.assertEqual("operators should go at the end of the first line", next(errors)[2])
-        self.assertEqual("unwrap() or panic!() found in code which should not panic.", next(errors)[2])
-        self.assertEqual("unwrap() or panic!() found in code which should not panic.", next(errors)[2])
         self.assertNoMoreErrors(errors)
 
         feature_errors = tidy.collect_errors_for_files(iterFile("lib.rs"), [], [tidy.check_rust], print_text=False)
 
-        self.assertTrue("feature attribute is not in alphabetical order" in next(feature_errors)[2])
-        self.assertTrue("feature attribute is not in alphabetical order" in next(feature_errors)[2])
-        self.assertTrue("feature attribute is not in alphabetical order" in next(feature_errors)[2])
-        self.assertTrue("feature attribute is not in alphabetical order" in next(feature_errors)[2])
         self.assertNoMoreErrors(feature_errors)
 
         ban_errors = tidy.collect_errors_for_files(iterFile("ban.rs"), [], [tidy.check_rust], print_text=False)

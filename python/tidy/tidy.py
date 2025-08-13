@@ -15,7 +15,6 @@ import itertools
 import json
 import os
 import re
-from re import Match
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -60,9 +59,7 @@ IgnoreConfig = TypedDict(
 Config = TypedDict(
     "Config",
     {
-        "skip-check-length": bool,
         "skip-check-licenses": bool,
-        "check-alphabetical-order": bool,
         "lint-scripts": list,
         "blocked-packages": dict[str, Any],
         "ignore": IgnoreConfig,
@@ -71,9 +68,7 @@ Config = TypedDict(
 )
 
 config: Config = {
-    "skip-check-length": False,
     "skip-check-licenses": False,
-    "check-alphabetical-order": True,
     "lint-scripts": [],
     "blocked-packages": {},
     "ignore": {
@@ -235,7 +230,8 @@ class FileList(object):
 
 
 def filter_file(file_name: str) -> bool:
-    if any(file_name.startswith(ignored_file) for ignored_file in config["ignore"]["files"]):
+    current_file = os.path.join(".", relative_path(file_name))
+    if any(current_file.startswith(ignored_file) for ignored_file in config["ignore"]["files"]):
         return False
     base_name = os.path.basename(file_name)
     if any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_IGNORE):
@@ -316,16 +312,6 @@ def check_modeline(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, st
             yield (idx + 1, "emacs file variables present")
 
 
-def check_length(file_name: str, idx: int, line: bytes) -> Iterator[tuple[int, str]]:
-    if any(file_name.endswith(ext) for ext in (".lock", ".json", ".html", ".toml")) or config["skip-check-length"]:
-        return
-
-    # Prefer shorter lines when shell scripting.
-    max_length = 80 if file_name.endswith(".sh") else 120
-    if len(line.decode("utf-8").rstrip("\n")) > max_length and not is_unsplittable(file_name, line):
-        yield (idx + 1, "Line is longer than %d characters" % max_length)
-
-
 def contains_url(line: bytes) -> bool:
     return bool(URL_REGEX.search(line))
 
@@ -393,7 +379,6 @@ def check_for_raw_urls_in_rustdoc(file_name: str, idx: int, line: bytes) -> Iter
 def check_by_line(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     for idx, line in enumerate(lines):
         errors = itertools.chain(
-            check_length(file_name, idx, line),
             check_whitespace(idx, line),
             check_whatwg_specific_url(idx, line),
             check_whatwg_single_page_url(idx, line),
@@ -569,206 +554,23 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     ):
         return
 
-    comment_depth = 0
-    merged_lines = ""
-    import_block = False
-    whitespace = False
-
-    is_lib_rs_file = file_name.endswith("lib.rs")
-
-    PANIC_NOT_ALLOWED_PATHS = [
-        os.path.join("*", "components", "compositing", "compositor.rs"),
-        os.path.join("*", "components", "constellation", "*"),
-        os.path.join("*", "ports", "servoshell", "headed_window.rs"),
-        os.path.join("*", "ports", "servoshell", "headless_window.rs"),
-        os.path.join("*", "ports", "servoshell", "embedder.rs"),
-        os.path.join("*", "rust_tidy.rs"),  # This is for the tests.
-    ]
-    is_panic_not_allowed_rs_file = any([fnmatch.fnmatch(file_name, path) for path in PANIC_NOT_ALLOWED_PATHS])
-
-    prev_open_brace = False
-    multi_line_string = False
-    prev_mod: dict[int, str] = {}
-    prev_feature_name = ""
-    indent = 0
-
-    check_alphabetical_order = config["check-alphabetical-order"]
-    decl_message = "{} is not in alphabetical order"
-    decl_expected = "\n\t\033[93mexpected: {}\033[0m"
-    decl_found = "\n\t\033[91mfound: {}\033[0m"
-    panic_message = "unwrap() or panic!() found in code which should not panic."
-
-    for idx, original_line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
-        # simplify the analysis
-        line = original_line.strip()
-        indent = len(original_line) - len(line)
-
-        is_attribute = re.search(r"#\[.*\]", line)
-        is_comment = re.search(r"^//|^/\*|^\*", line)
-
-        # Simple heuristic to avoid common case of no comments.
-        if "/" in line:
-            comment_depth += line.count("/*")
-            comment_depth -= line.count("*/")
-
-        if line.endswith("\\"):
-            merged_lines += line[:-1]
-            continue
-        if comment_depth:
-            merged_lines += line
-            continue
-        if merged_lines:
-            line = merged_lines + line
-            merged_lines = ""
-
-        if multi_line_string:
-            line, count = re.subn(r'^(\\.|[^"\\])*?"', "", line, count=1)
-            if count == 1:
-                multi_line_string = False
-            else:
-                continue
-
-        # Ignore attributes, comments, and imports
-        # Keep track of whitespace to enable checking for a merged import block
-        if import_block:
-            if not (is_comment or is_attribute or line.startswith("use ")):
-                whitespace = line == ""
-
-                if not whitespace:
-                    import_block = False
-
-        # get rid of strings and chars because cases like regex expression, keep attributes
-        if not is_attribute and not is_comment:
-            line = re.sub(r'"(\\.|[^\\"])*?"', '""', line)
-            line = re.sub(r"'(\\.|[^\\']|(\\x[0-9a-fA-F]{2})|(\\u{[0-9a-fA-F]{1,6}}))'", "''", line)
-            # If, after parsing all single-line strings, we still have
-            # an odd number of double quotes, this line starts a
-            # multiline string
-            if line.count('"') % 2 == 1:
-                line = re.sub(r'"(\\.|[^\\"])*?$', '""', line)
-                multi_line_string = True
-
-        # get rid of comments
+    for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         line = re.sub(r"//.*?$|/\*.*?$|^\*.*?$", "//", line)
-
-        # get rid of attributes that do not contain =
-        line = re.sub(r"^#[A-Za-z0-9\(\)\[\]_]*?$", "#[]", line)
-
-        # flag this line if it matches one of the following regular expressions
-        # tuple format: (pattern, format_message, filter_function(match, line))
-        def no_filter(match: Match[str], line: str) -> bool:
-            return True
-
-        regex_rules = [
-            # There should not be any extra pointer dereferencing
-            (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
-            # No benefit over using &str
-            (r": &String", "use &str instead of &String", no_filter),
+        rules = [
             # There should be any use of banned types:
             # Cell<JSVal>, Cell<Dom<T>>, DomRefCell<Dom<T>>, DomRefCell<HEAP<T>>
-            (r"(\s|:)+Cell<JSVal>", "Banned type Cell<JSVal> detected. Use MutDom<JSVal> instead", no_filter),
-            (r"(\s|:)+Cell<Dom<.+>>", "Banned type Cell<Dom<T>> detected. Use MutDom<T> instead", no_filter),
-            (r"DomRefCell<Dom<.+>>", "Banned type DomRefCell<Dom<T>> detected. Use MutDom<T> instead", no_filter),
-            (r"DomRefCell<Heap<.+>>", "Banned type DomRefCell<Heap<T>> detected. Use MutDom<T> instead", no_filter),
+            (r"(\s|:)+Cell<JSVal>", "Banned type Cell<JSVal> detected. Use MutDom<JSVal> instead"),
+            (r"(\s|:)+Cell<Dom<.+>>", "Banned type Cell<Dom<T>> detected. Use MutDom<T> instead"),
+            (r"DomRefCell<Dom<.+>>", "Banned type DomRefCell<Dom<T>> detected. Use MutDom<T> instead"),
+            (r"DomRefCell<Heap<.+>>", "Banned type DomRefCell<Heap<T>> detected. Use MutDom<T> instead"),
             # No benefit to using &Root<T>
-            (r": &Root<", "use &T instead of &Root<T>", no_filter),
-            (r": &DomRoot<", "use &T instead of &DomRoot<T>", no_filter),
-            (r"^&&", "operators should go at the end of the first line", no_filter),
-            # -> () is unnecessary
-            (r"-> \(\)", "encountered function signature with -> ()", no_filter),
+            (r": &Root<", "use &T instead of &Root<T>"),
+            (r": &DomRoot<", "use &T instead of &DomRoot<T>"),
         ]
 
-        for pattern, message, filter_func in regex_rules:
+        for pattern, message in rules:
             for match in re.finditer(pattern, line):
-                if filter_func(match, line):
-                    yield (idx + 1, message.format(*match.groups(), **match.groupdict()))
-
-        if prev_open_brace and not line:
-            yield (idx + 1, "found an empty line following a {")
-        prev_open_brace = line.endswith("{")
-
-        # check alphabetical order of feature attributes in lib.rs files
-        if is_lib_rs_file:
-            match = re.search(r"#!\[feature\((.*)\)\]", line)
-
-            if match:
-                features = list(map(lambda w: w.strip(), match.group(1).split(",")))
-                sorted_features = sorted(features)
-                if sorted_features != features and check_alphabetical_order:
-                    yield (
-                        idx + 1,
-                        decl_message.format("feature attribute")
-                        + decl_expected.format(tuple(sorted_features))
-                        + decl_found.format(tuple(features)),
-                    )
-
-                if prev_feature_name > sorted_features[0] and check_alphabetical_order:
-                    yield (
-                        idx + 1,
-                        decl_message.format("feature attribute")
-                        + decl_expected.format(prev_feature_name + " after " + sorted_features[0])
-                        + decl_found.format(prev_feature_name + " before " + sorted_features[0]),
-                    )
-
-                prev_feature_name = sorted_features[0]
-            else:
-                # not a feature attribute line, so empty previous name
-                prev_feature_name = ""
-
-        if is_panic_not_allowed_rs_file:
-            match = re.search(r"unwrap\(|panic!\(", line)
-            if match:
-                yield (idx + 1, panic_message)
-
-        # modules must be in the same line and alphabetically sorted
-        if line.startswith("mod ") or line.startswith("pub mod "):
-            # strip /(pub )?mod/ from the left and ";" from the right
-            mod = line[4:-1] if line.startswith("mod ") else line[8:-1]
-
-            if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1].decode("utf-8"):
-                match = line.find(" {")
-                if indent not in prev_mod:
-                    prev_mod[indent] = ""
-                if match == -1 and not line.endswith(";"):
-                    yield (idx + 1, "mod declaration spans multiple lines")
-                if prev_mod[indent] and mod < prev_mod[indent] and check_alphabetical_order:
-                    yield (
-                        idx + 1,
-                        decl_message.format("mod declaration")
-                        + decl_expected.format(prev_mod[indent])
-                        + decl_found.format(mod),
-                    )
-                prev_mod[indent] = mod
-        else:
-            # we now erase previous entries
-            prev_mod = {}
-
-        # derivable traits should be alphabetically ordered
-        if is_attribute:
-            # match the derivable traits filtering out macro expansions
-            match = re.search(r"#\[derive\(([a-zA-Z, ]*)", line)
-            if match:
-                derives = list(map(lambda w: w.strip(), match.group(1).split(",")))
-                # sort, compare and report
-                sorted_derives = sorted(derives)
-                if sorted_derives != derives and check_alphabetical_order:
-                    yield (
-                        idx + 1,
-                        decl_message.format("derivable traits list")
-                        + decl_expected.format(", ".join(sorted_derives))
-                        + decl_found.format(", ".join(derives)),
-                    )
-
-
-# Avoid flagging <Item=Foo> constructs
-def is_associated_type(match: Match[str], line: str) -> bool:
-    if match.group(1) != "=":
-        return False
-    open_angle = line[0 : match.end()].rfind("<")
-    close_angle = line[open_angle:].find(">") if open_angle != -1 else -1
-    generic_open = open_angle != -1 and open_angle < match.start()
-    generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
-    return generic_open and generic_close
+                yield (idx + 1, message.format(*match.groups(), **match.groupdict()))
 
 
 def check_webidl_spec(file_name: str, contents: bytes) -> Iterator[tuple[int, str]]:
@@ -851,7 +653,7 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
         messages = []  # Clear any old messages.
 
         suite_directory = os.path.abspath(os.path.join(WPT_PATH, suite))
-        tests_changed = FileList(suite_directory, only_changed_files=True, progress=False)
+        tests_changed = filter_files(suite_directory, only_changed_files=False, progress=False)
         tests_changed = [os.path.relpath(file, suite_directory) for file in tests_changed]
 
         if lint.lint(suite_directory, tests_changed, output_format="normal"):
@@ -865,9 +667,12 @@ def run_wpt_lints(only_changed_files: bool) -> Iterator[tuple[str, int, str]]:
         yield (WPT_CONFIG_INI_PATH, 0, f"{WPT_CONFIG_INI_PATH} is required but was not found")
         return
 
-    if not list(FileList("./tests/wpt", only_changed_files=only_changed_files, progress=False)):
-        print("\r ➤  Skipping WPT lint checks, because no relevant files changed.")
-        return
+    if only_changed_files:
+        try:
+            FileList("./tests/wpt", only_changed_files=only_changed_files, progress=False).next()
+        except StopIteration:
+            print("\r ➤  Skipping WPT lint checks, because no relevant files changed.")
+            return
 
     manifests_exist_errors = list(check_that_manifests_exist())
     if manifests_exist_errors:

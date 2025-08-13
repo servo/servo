@@ -9,6 +9,7 @@ use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessa
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
+use embedder_traits::JavaScriptEvaluationError;
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
@@ -34,7 +35,7 @@ use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::{CanGc, IntroductionType, JSContext};
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -124,7 +125,11 @@ impl WorkletGlobalScope {
     }
 
     /// Evaluate a JS script in this global.
-    pub(crate) fn evaluate_js(&self, script: &str, can_gc: CanGc) -> bool {
+    pub(crate) fn evaluate_js(
+        &self,
+        script: &str,
+        can_gc: CanGc,
+    ) -> Result<(), JavaScriptEvaluationError> {
         debug!("Evaluating Dom in a worklet.");
         rooted!(in (*GlobalScope::get_cx()) let mut rval = UndefinedValue());
         self.globalscope.evaluate_js_on_global_with_result(
@@ -133,6 +138,7 @@ impl WorkletGlobalScope {
             ScriptFetchOptions::default_classic_script(&self.globalscope),
             self.globalscope.api_base_url(),
             can_gc,
+            Some(IntroductionType::WORKLET),
         )
     }
 

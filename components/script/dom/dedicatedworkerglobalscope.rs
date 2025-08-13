@@ -9,7 +9,7 @@ use std::thread::{self, JoinHandle};
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, SourceInfo};
+use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcReceiver;
@@ -46,11 +46,12 @@ use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
 use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::reportingendpoint::ReportingEndpoint;
+use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
@@ -425,6 +426,22 @@ impl DedicatedWorkerGlobalScope {
                     };
                     Runtime::new_with_parent(Some(parent), Some(task_source))
                 };
+                let debugger_global = DebuggerGlobalScope::new(
+                    &runtime,
+                    pipeline_id,
+                    init.to_devtools_sender.clone(),
+                    init.from_devtools_sender
+                        .clone()
+                        .expect("Guaranteed by Worker::Constructor"),
+                    init.mem_profiler_chan.clone(),
+                    init.time_profiler_chan.clone(),
+                    init.script_to_constellation_chan.clone(),
+                    init.resource_threads.clone(),
+                    #[cfg(feature = "webgpu")]
+                    gpu_id_hub.clone(),
+                    CanGc::note(),
+                );
+                debugger_global.execute(CanGc::note());
 
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
@@ -451,6 +468,7 @@ impl DedicatedWorkerGlobalScope {
                     }
                 }
 
+                let worker_id = init.worker_id;
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     DOMString::from_string(worker_name),
@@ -468,6 +486,12 @@ impl DedicatedWorkerGlobalScope {
                     gpu_id_hub,
                     control_receiver,
                     insecure_requests_policy,
+                );
+                debugger_global.fire_add_debuggee(
+                    CanGc::note(),
+                    global.upcast(),
+                    pipeline_id,
+                    Some(worker_id),
                 );
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.
@@ -513,20 +537,6 @@ impl DedicatedWorkerGlobalScope {
                 ));
                 global_scope.set_https_state(metadata.https_state);
                 let source = String::from_utf8_lossy(&bytes);
-                if let Some(chan) = global_scope.devtools_chan() {
-                    let pipeline_id = global_scope.pipeline_id();
-                    let source_info = SourceInfo {
-                        url: metadata.final_url,
-                        external: true, // Worker scripts are always external.
-                        worker_id: Some(global.upcast::<WorkerGlobalScope>().get_worker_id()),
-                        content: Some(source.to_string()),
-                        content_type: metadata.content_type.map(|c_type| c_type.0.to_string()),
-                    };
-                    let _ = chan.send(ScriptToDevtoolsControlMsg::CreateSourceActor(
-                        pipeline_id,
-                        source_info,
-                    ));
-                }
 
                 unsafe {
                     // Handle interrupt requests
@@ -731,11 +741,9 @@ impl DedicatedWorkerGlobalScope {
                 HandleValue::null(),
                 CanGc::note(),
             );
-            let event_status =
-                event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note());
 
             // Step 2.
-            if event_status == EventStatus::NotCanceled {
+            if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note()) {
                 global.report_an_error(error_info, HandleValue::null(), CanGc::note());
             }
         }));

@@ -9,21 +9,19 @@ use std::cmp::min;
 use std::default::Default;
 use std::ops::{Add, AddAssign, Range};
 
+use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::clipboard_provider::{ClipboardProvider, EmbedderClipboardProvider};
-use crate::dom::bindings::cell::DomRefCell;
+use crate::clipboard_provider::ClipboardProvider;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::event::Event;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::node::NodeTraits;
 use crate::dom::types::ClipboardEvent;
-use crate::drag_data_store::{DragDataStore, Kind};
-use crate::script_runtime::CanGc;
+use crate::drag_data_store::Kind;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {
@@ -206,6 +204,15 @@ pub enum KeyReaction {
     Nothing,
 }
 
+bitflags! {
+    /// Resulting action to be taken by the owner of a text input that is handling a clipboard
+    /// event.
+    pub struct ClipboardEventReaction: u8 {
+        const QueueInputEvent = 1 << 0;
+        const FireClipboardChangedEvent = 1 << 1;
+    }
+}
+
 impl Default for TextPoint {
     fn default() -> TextPoint {
         TextPoint {
@@ -338,7 +345,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.insert_string(ch.to_string());
     }
 
-    /// Insert a string at the current editing point
+    /// Insert a string at the current editing point or replace the selection if
+    /// one exists.
     pub fn insert_string<S: Into<String>>(&mut self, s: S) {
         if self.selection_origin.is_none() {
             self.selection_origin = Some(self.edit_point);
@@ -1199,81 +1207,103 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.edit_point.index = byte_offset;
     }
 
-    fn paste_contents(&mut self, drag_data_store: &DragDataStore) {
-        for item in drag_data_store.iter_item_list() {
-            if let Kind::Text { data, .. } = item {
-                self.insert_string(data.to_string());
-            }
+    /// This implements step 3 onward from:
+    ///
+    ///  - <https://www.w3.org/TR/clipboard-apis/#copy-action>
+    ///  - <https://www.w3.org/TR/clipboard-apis/#cut-action>
+    ///  - <https://www.w3.org/TR/clipboard-apis/#paste-action>
+    ///
+    /// Earlier steps should have already been run by the callers.
+    pub(crate) fn handle_clipboard_event(
+        &mut self,
+        clipboard_event: &ClipboardEvent,
+    ) -> ClipboardEventReaction {
+        let event = clipboard_event.upcast::<Event>();
+        if !event.IsTrusted() {
+            return ClipboardEventReaction::empty();
         }
-    }
-}
 
-/// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions> step 3
-pub(crate) fn handle_text_clipboard_action(
-    owning_node: &impl NodeTraits,
-    textinput: &DomRefCell<TextInput<EmbedderClipboardProvider>>,
-    event: &ClipboardEvent,
-    can_gc: CanGc,
-) -> bool {
-    let e = event.upcast::<Event>();
+        // This step is common to all event types in the specification.
+        // Step 3: If the event was not canceled, then
+        if event.DefaultPrevented() {
+            // Step 4: Else, if the event was canceled
+            // Step 4.1: Return false.
+            return ClipboardEventReaction::empty();
+        }
 
-    if !e.IsTrusted() {
-        return false;
-    }
+        match event.Type().str() {
+            "copy" => {
+                // These steps are from <https://www.w3.org/TR/clipboard-apis/#copy-action>:
+                let selection = self.get_selection_text();
 
-    // Step 3
-    match e.Type().str() {
-        "copy" => {
-            let selection = textinput.borrow().get_selection_text();
+                // Step 3.1 Copy the selected contents, if any, to the clipboard
+                if let Some(text) = selection {
+                    self.clipboard_provider.set_text(text);
+                }
 
-            // Step 3.1 Copy the selected contents, if any, to the clipboard
-            if let Some(text) = selection {
-                textinput.borrow_mut().clipboard_provider.set_text(text);
-            }
+                // Step 3.2 Fire a clipboard event named clipboardchange
+                ClipboardEventReaction::FireClipboardChangedEvent
+            },
+            "cut" => {
+                // These steps are from <https://www.w3.org/TR/clipboard-apis/#cut-action>:
+                let selection = self.get_selection_text();
 
-            // Step 3.2 Fire a clipboard event named clipboardchange
-            owning_node
-                .owner_document()
-                .fire_clipboardchange_event(can_gc);
-        },
-        "cut" => {
-            let selection = textinput.borrow().get_selection_text();
+                // Step 3.1 If there is a selection in an editable context where cutting is enabled, then
+                let Some(text) = selection else {
+                    // Step 3.2 Else, if there is no selection or the context is not editable, then
+                    return ClipboardEventReaction::empty();
+                };
 
-            // Step 3.1 If there is a selection in an editable context where cutting is enabled, then
-            if let Some(text) = selection {
                 // Step 3.1.1 Copy the selected contents, if any, to the clipboard
-                textinput.borrow_mut().clipboard_provider.set_text(text);
+                self.clipboard_provider.set_text(text);
 
                 // Step 3.1.2 Remove the contents of the selection from the document and collapse the selection.
-                textinput.borrow_mut().delete_char(Direction::Backward);
+                self.delete_char(Direction::Backward);
 
                 // Step 3.1.3 Fire a clipboard event named clipboardchange
-                owning_node
-                    .owner_document()
-                    .fire_clipboardchange_event(can_gc);
-
                 // Step 3.1.4 Queue tasks to fire any events that should fire due to the modification.
-            } else {
-                // Step 3.2 Else, if there is no selection or the context is not editable, then
-                return false;
-            }
-        },
-        "paste" => {
-            // Step 3.1 If there is a selection or cursor in an editable context where pasting is enabled, then
-            if let Some(data) = event.get_clipboard_data() {
-                // Step 3.1.1 Insert the most suitable content found on the clipboard, if any, into the context.
-                let drag_data_store = data.data_store().expect("This shouldn't fail");
-                textinput.borrow_mut().paste_contents(&drag_data_store);
+                ClipboardEventReaction::FireClipboardChangedEvent |
+                    ClipboardEventReaction::QueueInputEvent
+            },
+            "paste" => {
+                // These steps are from <https://www.w3.org/TR/clipboard-apis/#paste-action>:
+                let Some(data_transfer) = clipboard_event.get_clipboard_data() else {
+                    return ClipboardEventReaction::empty();
+                };
+                let Some(drag_data_store) = data_transfer.data_store() else {
+                    return ClipboardEventReaction::empty();
+                };
 
-                // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
-            } else {
-                // Step 3.2 Else return false.
-                return false;
-            }
-        },
-        _ => (),
+                // Step 3.1: If there is a selection or cursor in an editable context where pasting is
+                // enabled, then:
+                // TODO: Our TextInput always has a selection or an input point. It's likely that this
+                // shouldn't be the case when the entry loses the cursor.
+
+                // Step 3.1.1: Insert the most suitable content found on the clipboard, if any, into the
+                // context.
+                // TODO: Only text content is currently supported, but other data types should be supported
+                // in the future.
+                let Some(text_content) =
+                    drag_data_store
+                        .iter_item_list()
+                        .find_map(|item| match item {
+                            Kind::Text { data, .. } => Some(data.to_string()),
+                            _ => None,
+                        })
+                else {
+                    return ClipboardEventReaction::empty();
+                };
+                if text_content.is_empty() {
+                    return ClipboardEventReaction::empty();
+                }
+
+                self.insert_string(text_content);
+
+                // Step 3.1.2: Queue tasks to fire any events that should fire due to the
+                // modification, see § 5.3 Integration with other scripts and events for details.
+                ClipboardEventReaction::QueueInputEvent
+            },
+            _ => ClipboardEventReaction::empty(),
+        }
     }
-
-    //Step 5
-    true
 }

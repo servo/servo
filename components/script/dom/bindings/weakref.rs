@@ -54,12 +54,9 @@ impl<T: WeakReferenceable> MallocSizeOf for MutableWeakRef<T> {
 unsafe impl<T: WeakReferenceable> JSTraceable for MutableWeakRef<T> {
     unsafe fn trace(&self, _: *mut JSTracer) {
         let ptr = self.cell.get();
-        let should_drop = match *ptr {
-            Some(ref value) => !value.is_alive(),
-            None => false,
-        };
-        if should_drop {
-            mem::drop((*ptr).take().unwrap());
+        let value = unsafe { &mut *ptr };
+        if value.as_ref().is_some_and(|value| !value.is_alive()) {
+            mem::drop(value.take().unwrap());
         }
     }
 }

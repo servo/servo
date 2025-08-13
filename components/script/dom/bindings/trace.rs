@@ -54,7 +54,7 @@ use crate::task::TaskBox;
 
 unsafe impl<T: CustomTraceable> CustomTraceable for DomRefCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        (*self).borrow().trace(trc)
+        unsafe { (*self).borrow().trace(trc) }
     }
 }
 
@@ -193,7 +193,7 @@ unsafe impl<K, V: JSTraceable, S> JSTraceable for HashMapTracedValues<K, V, S> {
     #[inline]
     unsafe fn trace(&self, trc: *mut ::js::jsapi::JSTracer) {
         for v in self.0.values() {
-            v.trace(trc);
+            unsafe { v.trace(trc) };
         }
     }
 }
@@ -247,7 +247,7 @@ pub(crate) fn trace_string(tracer: *mut JSTracer, description: &str, s: &Heap<*m
 
 unsafe impl<T: JSTraceable> JSTraceable for DomRefCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        (*self).borrow().trace(trc)
+        unsafe { (*self).borrow().trace(trc) };
     }
 }
 

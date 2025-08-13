@@ -24,8 +24,9 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::LoadData;
-use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
-use euclid::default::{Point2D, Rect};
+use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
+use euclid::Point2D;
+use euclid::default::{Point2D as UntypedPoint2D, Rect};
 use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
@@ -54,6 +55,7 @@ use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
+use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
@@ -130,9 +132,12 @@ pub struct HTMLCanvasData {
     pub height: u32,
 }
 
-pub struct SVGSVGData {
-    pub width: u32,
-    pub height: u32,
+pub struct SVGElementData {
+    /// The SVG's XML source represented as a base64 encoded `data:` url.
+    pub source: Option<Result<ServoUrl, ()>>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub ratio: Option<f32>,
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
@@ -288,7 +293,7 @@ pub trait Layout {
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
-    fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
+    fn query_text_indext(&self, node: OpaqueNode, point: UntypedPoint2D<f32>) -> Option<usize>;
     fn query_elements_from_point(
         &self,
         point: LayoutPoint,
@@ -393,6 +398,10 @@ pub struct ReflowResult {
     pub pending_images: Vec<PendingImage>,
     /// The list of vector images that were encountered that still need to be rasterized.
     pub pending_rasterization_images: Vec<PendingRasterizationImage>,
+    /// The list of `SVGSVGElement`s encountered in the DOM that need to be serialized.
+    /// This is needed to support inline SVGs as the serialization needs to happen on
+    /// the script thread.
+    pub pending_svg_elements_for_serialization: Vec<UntrustedNodeAddress>,
     /// The list of iframes in this layout and their sizes, used in order
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages. Returning None if incremental reflow
@@ -608,9 +617,12 @@ pub struct ElementsFromPointResult {
     /// An [`OpaqueNode`] that contains a pointer to the node hit by
     /// this hit test result.
     pub node: OpaqueNode,
-    /// The [`LayoutPoint`] of the original query point relative to the
+    /// The [`Point2D`] of the original query point relative to the
     /// node fragment rectangle.
-    pub point_in_target: LayoutPoint,
+    pub point_in_target: Point2D<f32, CSSPixel>,
+    /// The [`Cursor`] that's defined on the item that is hit by this
+    /// hit test result.
+    pub cursor: Cursor,
 }
 
 bitflags! {

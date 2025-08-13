@@ -14,6 +14,7 @@ use embedder_traits::{
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
+use js::conversions::jsstr_to_string;
 use js::jsapi::{
     self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
     JS_IsExceptionPending, JSAutoRealm, JSContext, JSType, PropertyDescriptor,
@@ -52,7 +53,7 @@ use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
 };
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
-    get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
+    get_property, get_property_jsval, jsid_to_string, root_from_object,
 };
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -89,6 +90,48 @@ fn is_stale(element: &Element) -> bool {
     // An element is stale if its node document is not the active document
     // or if it is not connected.
     !element.owner_document().is_active() || !element.is_connected()
+}
+
+/// <https://w3c.github.io/webdriver/#dfn-disabled>
+fn is_disabled(element: &Element) -> bool {
+    // Step 1. If element is an option element or element is an optgroup element
+    if element.is::<HTMLOptionElement>() || element.is::<HTMLOptGroupElement>() {
+        // Step 1.1. For each inclusive ancestor `ancestor` of element
+        let disabled = element
+            .upcast::<Node>()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .any(|node| {
+                if node.is::<HTMLOptGroupElement>() || node.is::<HTMLSelectElement>() {
+                    // Step 1.1.1. If `ancestor` is an optgroup element or `ancestor` is a select element,
+                    // and `ancestor` is actually disabled, return true.
+                    node.downcast::<Element>().unwrap().is_actually_disabled()
+                } else {
+                    false
+                }
+            });
+
+        // Step 1.2
+        // The spec suggests that we immediately return false if the above is not true.
+        // However, it causes disabled option element to not be considered as disabled.
+        // Hence, here we also check if the element itself is actually disabled.
+        if disabled {
+            return true;
+        }
+    }
+    // Step 2. Return element is actually disabled.
+    element.is_actually_disabled()
+}
+
+pub(crate) fn handle_get_known_shadow_root(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    shadow_root_id: String,
+    reply: IpcSender<Result<(), ErrorStatus>>,
+) {
+    let result = get_known_shadow_root(documents, pipeline, shadow_root_id).map(|_| ());
+    if reply.send(result).is_err() {
+        error!("Webdriver get known shadow root reply failed");
+    }
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-get-a-known-shadow-root>
@@ -137,6 +180,18 @@ fn get_known_shadow_root(
     }
     // Step 5. Return success with data node.
     Ok(shadow_root)
+}
+
+pub(crate) fn handle_get_known_element(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    element_id: String,
+    reply: IpcSender<Result<(), ErrorStatus>>,
+) {
+    let result = get_known_element(documents, pipeline, element_id).map(|_| ());
+    if reply.send(result).is_err() {
+        error!("Webdriver get known element reply failed");
+    }
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-get-a-known-element>
@@ -269,7 +324,7 @@ unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
     let Some(class_name) = NonNull::new(class_name.get()) else {
         return false;
     };
-    jsstring_to_str(cx, class_name) == "[object Arguments]"
+    jsstr_to_string(cx, class_name) == "[object Arguments]"
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]
@@ -327,7 +382,7 @@ unsafe fn jsval_to_webdriver_inner(
             },
         ))
     } else if val.get().is_string() {
-        //FIXME: use jsstring_to_str when jsval grows to_jsstring
+        //FIXME: use jsstr_to_string when jsval grows to_jsstring
         let string: DOMString =
             match FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default)
                 .unwrap()
@@ -523,16 +578,17 @@ pub(crate) fn handle_execute_script(
 
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let global = window.as_global_scope();
-            let result = if global.evaluate_js_on_global_with_result(
+            let evaluation_result = global.evaluate_js_on_global_with_result(
                 &eval,
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
                 can_gc,
-            ) {
-                jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc)
-            } else {
-                Err(WebDriverJSError::JSError)
+                None, // No known `introductionType` for JS code from WebDriver
+            );
+            let result = match evaluation_result {
+                Ok(_) => jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc),
+                Err(_) => Err(WebDriverJSError::JSError),
             };
 
             if reply.send(result).is_err() {
@@ -564,13 +620,17 @@ pub(crate) fn handle_execute_async_script(
             rooted!(in(*cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
-            if !global_scope.evaluate_js_on_global_with_result(
-                &eval,
-                rval.handle_mut(),
-                ScriptFetchOptions::default_classic_script(global_scope),
-                global_scope.api_base_url(),
-                can_gc,
-            ) {
+            if global_scope
+                .evaluate_js_on_global_with_result(
+                    &eval,
+                    rval.handle_mut(),
+                    ScriptFetchOptions::default_classic_script(global_scope),
+                    global_scope.api_base_url(),
+                    can_gc,
+                    None, // No known `introductionType` for JS code from WebDriver
+                )
+                .is_err()
+            {
                 reply_sender.send(Err(WebDriverJSError::JSError)).unwrap();
             }
         },
@@ -1846,8 +1906,18 @@ pub(crate) fn handle_element_click(
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
-                // Step 7
-                // TODO: return error if obscured
+                // Step 7. If element's container is obscured by another element,
+                // return error with error code element click intercepted.
+                // https://w3c.github.io/webdriver/#dfn-obscuring
+                // An element is obscured if the pointer-interactable paint tree is empty,
+                // or the first element in this tree is not an inclusive descendant of itself.
+                // `paint_tree` is guaranteed not empty as element is "in view".
+                if !container
+                    .upcast::<Node>()
+                    .Contains(Some(paint_tree[0].upcast::<Node>()))
+                {
+                    return Err(ErrorStatus::ElementClickIntercepted);
+                }
 
                 // Step 8 for <option> element.
                 match element.downcast::<HTMLOptionElement>() {
@@ -1865,7 +1935,7 @@ pub(crate) fn handle_element_click(
                         }
 
                         // Step 8.6
-                        if !option_element.Disabled() {
+                        if !is_disabled(&element) {
                             // Step 8.6.1
                             event_target.fire_event(atom!("input"), can_gc);
 
@@ -1944,6 +2014,7 @@ fn get_element_pointer_interactable_paint_tree(
     })
 }
 
+/// <https://w3c.github.io/webdriver/#is-element-enabled>
 pub(crate) fn handle_is_enabled(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1952,8 +2023,22 @@ pub(crate) fn handle_is_enabled(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id)
-                .map(|element| element.enabled_state()),
+            // Step 3. Let element be the result of trying to get a known element
+            get_known_element(documents, pipeline, element_id).map(|element| {
+                // In `get_known_element`, we confirmed that document exists
+                let document = documents.find_document(pipeline).unwrap();
+
+                // Step 4
+                // Let enabled be a boolean initially set to true if session's
+                // current browsing context's active document's type is not "xml".
+                // Otherwise, let enabled to false and jump to the last step of this algorithm.
+                // Step 5. Set enabled to false if a form control is disabled.
+                if document.is_html_document() || document.is_xhtml_document() {
+                    !is_disabled(&element)
+                } else {
+                    false
+                }
+            }),
         )
         .unwrap();
 }

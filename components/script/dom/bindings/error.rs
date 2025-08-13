@@ -179,11 +179,7 @@ impl ErrorInfo {
     }
 
     fn from_dom_exception(object: HandleObject, cx: SafeJSContext) -> Option<ErrorInfo> {
-        let exception = match unsafe { root_from_object::<DOMException>(object.get(), *cx) } {
-            Ok(exception) => exception,
-            Err(_) => return None,
-        };
-
+        let exception = unsafe { root_from_object::<DOMException>(object.get(), *cx).ok()? };
         Some(ErrorInfo {
             filename: "".to_string(),
             message: exception.stringifier().into(),

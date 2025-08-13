@@ -35,7 +35,7 @@ use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
 
@@ -556,12 +556,13 @@ impl JsTimerTask {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
-                global.evaluate_js_on_global_with_result(
+                _ = global.evaluate_js_on_global_with_result(
                     code_str,
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(&global),
                     global.api_base_url(),
                     can_gc,
+                    Some(IntroductionType::DOM_TIMER),
                 );
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {

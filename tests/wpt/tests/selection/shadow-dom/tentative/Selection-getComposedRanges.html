@@ -56,7 +56,7 @@ test(() => {
     assert_equals(ranges[0].startOffset, 0);
     assert_equals(ranges[0].endContainer, shadowRoot.firstChild);
     assert_equals(ranges[0].endOffset, 5);
-}, 'getComposedRanges returns a sequence with a static range pointing to a shadaw tree when there is a selection in the shadow tree and the shadow tree is specified as an argument');
+}, 'getComposedRanges returns a sequence with a static range pointing to a shadow tree when there is a selection in the shadow tree and the shadow tree is specified as an argument');
 
 test(() => {
     container.innerHTML = 'a<div id="host"></div>b';

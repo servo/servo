@@ -43,18 +43,16 @@ impl TrustedHTML {
     pub(crate) fn get_trusted_script_compliant_string(
         global: &GlobalScope,
         value: TrustedHTMLOrString,
-        containing_class: &str,
-        field: &str,
+        sink: &str,
         can_gc: CanGc,
     ) -> Fallible<DOMString> {
         match value {
             TrustedHTMLOrString::String(value) => {
-                let sink = format!("{} {}", containing_class, field);
                 TrustedTypePolicyFactory::get_trusted_type_compliant_string(
                     TrustedType::TrustedHTML,
                     global,
                     value,
-                    &sink,
+                    sink,
                     "'script'",
                     can_gc,
                 )

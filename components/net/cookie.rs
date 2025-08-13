@@ -13,12 +13,12 @@ use cookie::Cookie;
 use log::{Level, debug, log_enabled};
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
-use nom::IResult;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, tag_no_case, take, take_while_m_n};
 use nom::combinator::{opt, recognize};
 use nom::multi::{many0, many1, separated_list1};
-use nom::sequence::{delimited, preceded, terminated, tuple};
+use nom::sequence::{delimited, preceded, terminated};
+use nom::{IResult, Parser};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use time::{Date, Duration, Month, OffsetDateTime, Time};
@@ -431,23 +431,26 @@ impl ServoCookie {
             }
         };
         // time-field = 1*2DIGIT
-        let time_field = |input| take_while_m_n(1, 2, |byte: u8| byte.is_ascii_digit())(input);
+        let time_field =
+            |input| take_while_m_n(1, 2, |byte: u8| byte.is_ascii_digit()).parse(input);
         // hms-time = time-field ":" time-field ":" time-field
         let hms_time = |input| {
-            tuple((
+            (
                 time_field,
                 preceded(tag(":"), time_field),
                 preceded(tag(":"), time_field),
-            ))(input)
+            )
+                .parse(input)
         };
         // time = hms-time [ non-digit *OCTET ]
-        let time = |input| terminated(hms_time, opt(tuple((non_digit, any_octets))))(input);
+        let time = |input| terminated(hms_time, opt((non_digit, any_octets))).parse(input);
         // year = 2*4DIGIT [ non-digit *OCTET ]
         let year = |input| {
             terminated(
                 take_while_m_n(2, 4, |byte: u8| byte.is_ascii_digit()),
-                opt(tuple((non_digit, any_octets))),
-            )(input)
+                opt((non_digit, any_octets)),
+            )
+            .parse(input)
         };
         // month = ( "jan" / "feb" / "mar" / "apr" /
         //           "may" / "jun" / "jul" / "aug" /
@@ -469,22 +472,24 @@ impl ServoCookie {
                     tag_no_case("dec"),
                 )),
                 any_octets,
-            )(input)
+            )
+            .parse(input)
         };
         // day-of-month = 1*2DIGIT [ non-digit *OCTET ]
         let day_of_month = |input| {
             terminated(
                 take_while_m_n(1, 2, |byte: u8| byte.is_ascii_digit()),
-                opt(tuple((non_digit, any_octets))),
-            )(input)
+                opt((non_digit, any_octets)),
+            )
+            .parse(input)
         };
         // date-token = 1*non-delimiter
-        let date_token = |input| recognize(many1(non_delimiter))(input);
+        let date_token = |input| recognize(many1(non_delimiter)).parse(input);
         // date-token-list = date-token *( 1*delimiter date-token )
-        let date_token_list = |input| separated_list1(delimiter, date_token)(input);
+        let date_token_list = |input| separated_list1(delimiter, date_token).parse(input);
         // cookie-date = *delimiter date-token-list *delimiter
         let cookie_date =
-            |input| delimited(many0(delimiter), date_token_list, many0(delimiter))(input);
+            |input| delimited(many0(delimiter), date_token_list, many0(delimiter)).parse(input);
 
         // Step 2. Process each date-token sequentially in the order the date-tokens appear in the cookie-date:
         let mut time_value: Option<(u8, u8, u8)> = None; // Also represents found-time flag.

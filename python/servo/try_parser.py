@@ -210,6 +210,7 @@ class Config(object):
             if word == "full":
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
+                words.extend(["linux-build-libservo", "macos-build-libservo", "windows-build-libservo"])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(["linux-bencher", "macos-bencher", "windows-bencher", "android-bencher", "ohos-bencher"])
@@ -278,37 +279,37 @@ class TestParser(unittest.TestCase):
                 "fail_fast": False,
                 "matrix": [
                     {
-                        "name": "Linux (Unit Tests, WPT, Bencher)",
+                        "name": "Linux (Unit Tests, Build libservo, WPT, Bencher)",
                         "number_of_wpt_chunks": 20,
                         "workflow": "linux",
                         "wpt": True,
                         "profile": "release",
                         "unit_tests": True,
-                        "build_libservo": False,
+                        "build_libservo": True,
                         "bencher": True,
                         "wpt_args": "",
                         "build_args": "",
                     },
                     {
-                        "name": "MacOS (Unit Tests)",
+                        "name": "MacOS (Unit Tests, Build libservo)",
                         "number_of_wpt_chunks": 20,
                         "workflow": "macos",
                         "wpt": False,
                         "profile": "release",
                         "unit_tests": True,
-                        "build_libservo": False,
+                        "build_libservo": True,
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
                     },
                     {
-                        "name": "Windows (Unit Tests)",
+                        "name": "Windows (Unit Tests, Build libservo)",
                         "number_of_wpt_chunks": 20,
                         "workflow": "windows",
                         "wpt": False,
                         "profile": "release",
                         "unit_tests": True,
-                        "build_libservo": False,
+                        "build_libservo": True,
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",

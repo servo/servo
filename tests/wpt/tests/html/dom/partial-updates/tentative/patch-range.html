@@ -21,7 +21,7 @@ promise_test(async t => {
     const writable = placeholder.patchBetween(first, last);
     const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
     response.body.pipeTo(writable);
-    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    assert_true(placeholder.currentPatch instanceof Patch, "currentPatch should be a Patch right after connecting a stream");
     await placeholder.currentPatch.finished;
     assert_equals(placeholder.currentPatch, null);
     const middle = placeholder.querySelector("#middle");
@@ -40,7 +40,7 @@ promise_test(async t => {
     const writable = placeholder.patchAfter(first);
     const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
     response.body.pipeTo(writable);
-    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    assert_true(placeholder.currentPatch instanceof Patch, "currentPatch should be a Patch right after connecting a stream");
     await placeholder.currentPatch.finished;
     assert_equals(placeholder.currentPatch, null);
     const middle = placeholder.querySelector("#middle");
@@ -59,7 +59,7 @@ promise_test(async t => {
     const writable = placeholder.patchBefore(last);
     const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
     response.body.pipeTo(writable);
-    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    assert_true(placeholder.currentPatch instanceof Patch, "currentPatch should be a Patch right after connecting a stream");
     await placeholder.currentPatch.finished;
     assert_equals(placeholder.currentPatch, null);
     const middle = placeholder.querySelector("#middle");
@@ -78,7 +78,7 @@ promise_test(async t => {
     const writable = placeholder.patchAfter(last);
     const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
     response.body.pipeTo(writable);
-    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    assert_true(placeholder.currentPatch instanceof Patch, "currentPatch should be a Patch right after connecting a stream");
     await placeholder.currentPatch.finished;
     assert_equals(placeholder.currentPatch, null);
     const middle = placeholder.querySelector("#middle");
@@ -97,7 +97,7 @@ promise_test(async t => {
     const writable = placeholder.patchBefore(first);
     const response = new Response("<span id=middle>Content</span>", {headers: {"Content-Type": "text/html"}});
     response.body.pipeTo(writable);
-    assert_true(placeholder.currentPatch instanceof PatchStatus, "currentPatch should be a PatchStatus right after connecting a stream");
+    assert_true(placeholder.currentPatch instanceof Patch, "currentPatch should be a Patch right after connecting a stream");
     await placeholder.currentPatch.finished;
     assert_equals(placeholder.currentPatch, null);
     const middle = placeholder.querySelector("#middle");

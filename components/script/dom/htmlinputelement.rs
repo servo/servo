@@ -92,8 +92,7 @@ use crate::textinput::KeyReaction::{
 };
 use crate::textinput::Lines::Single;
 use crate::textinput::{
-    Direction, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
-    handle_text_clipboard_action,
+    ClipboardEventReaction, Direction, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -2233,7 +2232,11 @@ impl HTMLInputElement {
         self.update_checked_state(self.DefaultChecked(), false);
         self.value_changed(can_gc);
         // Step 4. Empty selected files
-        self.filelist.set(None);
+        if self.filelist.get().is_some() {
+            let window = self.owner_window();
+            let filelist = FileList::new(&window, vec![], can_gc);
+            self.filelist.set(Some(&filelist));
+        }
         // Step 5. invoke the value sanitization algorithm iff
         // the type attribute's current state defines one.
         // This is covered in `fn sanitize_value` called below.
@@ -3156,8 +3159,26 @@ impl VirtualMethods for HTMLInputElement {
                 event.mark_as_handled();
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
-            if !event.DefaultPrevented() {
-                handle_text_clipboard_action(self, &self.textinput, clipboard_event, can_gc);
+            let reaction = self
+                .textinput
+                .borrow_mut()
+                .handle_clipboard_event(clipboard_event);
+            if reaction.contains(ClipboardEventReaction::FireClipboardChangedEvent) {
+                self.owner_document().fire_clipboardchange_event(can_gc);
+            }
+            if reaction.contains(ClipboardEventReaction::QueueInputEvent) {
+                self.owner_global()
+                    .task_manager()
+                    .user_interaction_task_source()
+                    .queue_event(
+                        self.upcast(),
+                        atom!("input"),
+                        EventBubbles::Bubbles,
+                        EventCancelable::NotCancelable,
+                    );
+            }
+            if !reaction.is_empty() {
+                self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
             }
         }
 

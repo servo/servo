@@ -321,8 +321,8 @@ pub fn serialize_jsval_to_json_utf8(
         data: *mut std::ffi::c_void,
     ) -> bool {
         let data = data as *mut ToJSONCallbackData;
-        let string_chars = slice::from_raw_parts(string, len as usize);
-        (*data)
+        let string_chars = unsafe { slice::from_raw_parts(string, len as usize) };
+        unsafe { &mut *data }
             .string
             .get_or_insert_with(Default::default)
             .push_str(&String::from_utf16_lossy(string_chars));

@@ -8,9 +8,10 @@ use std::cmp;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
+use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use app_units::Au;
@@ -33,8 +34,8 @@ use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
-    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
-    WebDriverJSResult, WebDriverLoadStatus,
+    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, UntrustedNodeAddress, ViewportDetails,
+    WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -51,9 +52,10 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    FragmentType, Layout, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
-    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason,
-    TrustedNodeAddress, combine_id_with_fragment_type,
+    ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout, PendingImage,
+    PendingImageState, PendingRasterizationImage, QueryMsg, ReflowGoal, ReflowPhasesRun,
+    ReflowRequest, ReflowRequestRestyle, RestyleReason, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -72,7 +74,7 @@ use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMe
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
 use script_bindings::root::Root;
-use script_traits::ScriptThreadMessage;
+use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
@@ -88,10 +90,11 @@ use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
+use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
+use super::types::SVGSVGElement;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -128,7 +131,7 @@ use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration
 use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::document::{AnimationFrameCallback, Document};
 use crate::dom::element::Element;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepadevent::GamepadEventType;
@@ -138,6 +141,7 @@ use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::idbfactory::IDBFactory;
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::location::Location;
 use crate::dom::medialist::MediaList;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
@@ -702,12 +706,8 @@ impl Window {
     }
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
-    pub(crate) fn dispatch_event_with_target_override(
-        &self,
-        event: &Event,
-        can_gc: CanGc,
-    ) -> EventStatus {
-        event.dispatch(self.upcast(), true, can_gc)
+    pub(crate) fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) {
+        event.dispatch(self.upcast(), true, can_gc);
     }
 
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
@@ -1524,9 +1524,22 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .map(Root::upcast::<Element>)
     }
 
-    fn WebdriverWindow(&self, _id: DOMString) -> Option<DomRoot<Window>> {
-        warn!("Window references are not supported in webdriver yet");
-        None
+    fn WebdriverWindow(&self, id: DOMString) -> Option<DomRoot<WindowProxy>> {
+        let window_proxy = self.window_proxy.get()?;
+
+        // Window must be top level browsing context.
+        if window_proxy.browsing_context_id() != window_proxy.webview_id() {
+            return None;
+        }
+
+        let pipeline_id = window_proxy.currently_active()?;
+        let document = ScriptThread::find_document(pipeline_id)?;
+
+        if document.upcast::<Node>().unique_id(pipeline_id) == id.str() {
+            Some(DomRoot::from_ref(&window_proxy))
+        } else {
+            None
+        }
     }
 
     fn WebdriverShadowRoot(&self, id: DOMString) -> Option<DomRoot<ShadowRoot>> {
@@ -2270,6 +2283,7 @@ impl Window {
         self.handle_pending_images_post_reflow(
             reflow_result.pending_images,
             reflow_result.pending_rasterization_images,
+            reflow_result.pending_svg_elements_for_serialization,
         );
 
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
@@ -2587,6 +2601,49 @@ impl Window {
         self.layout
             .borrow()
             .query_text_indext(node.to_opaque(), point_in_node)
+    }
+
+    pub(crate) fn elements_from_point_query(
+        &self,
+        point: LayoutPoint,
+        flags: ElementsFromPointFlags,
+    ) -> Vec<ElementsFromPointResult> {
+        self.layout_reflow(QueryMsg::ElementsFromPoint);
+        self.layout().query_elements_from_point(point, flags)
+    }
+
+    pub(crate) fn hit_test_from_input_event(
+        &self,
+        input_event: &ConstellationInputEvent,
+    ) -> Option<HitTestResult> {
+        self.hit_test_from_point_in_viewport(
+            input_event.hit_test_result.as_ref()?.point_in_viewport,
+        )
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn hit_test_from_point_in_viewport(
+        &self,
+        point_in_frame: Point2D<f32, CSSPixel>,
+    ) -> Option<HitTestResult> {
+        let result = self
+            .elements_from_point_query(point_in_frame.cast_unit(), ElementsFromPointFlags::empty())
+            .into_iter()
+            .nth(0)?;
+
+        let point_relative_to_initial_containing_block =
+            point_in_frame + self.scroll_offset().cast_unit();
+
+        // SAFETY: This is safe because `Window::query_elements_from_point` has ensured that
+        // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
+        let address = UntrustedNodeAddress(result.node.0 as *const c_void);
+        Some(HitTestResult {
+            node: unsafe { from_untrusted_node_address(address) },
+            cursor: result.cursor,
+            point_in_node: result.point_in_target,
+            point_in_frame,
+            point_relative_to_initial_containing_block,
+        })
     }
 
     #[allow(unsafe_code)]
@@ -3002,6 +3059,7 @@ impl Window {
         &self,
         pending_images: Vec<PendingImage>,
         pending_rasterization_images: Vec<PendingRasterizationImage>,
+        pending_svg_element_for_serialization: Vec<UntrustedNodeAddress>,
     ) {
         let pipeline_id = self.pipeline_id();
         for image in pending_images {
@@ -3050,6 +3108,27 @@ impl Window {
                 nodes.push(Dom::from_ref(&*node));
             }
         }
+
+        for node in pending_svg_element_for_serialization.into_iter() {
+            let node = unsafe { from_untrusted_node_address(node) };
+            let svg = node.downcast::<SVGSVGElement>().unwrap();
+            svg.serialize_and_cache_subtree();
+            node.dirty(NodeDamage::Other);
+        }
+    }
+
+    pub fn handle_refresh_cursor(&self, cursor_position: Point2D<f32, CSSPixel>) {
+        let layout = self.layout.borrow();
+        layout.ensure_stacking_context_tree(self.viewport_details.get());
+        let Some(hit_test_result) = layout
+            .query_elements_from_point(cursor_position.cast_unit(), ElementsFromPointFlags::empty())
+            .into_iter()
+            .nth(0)
+        else {
+            return;
+        };
+
+        self.Document().set_cursor(hit_test_result.cursor);
     }
 }
 
@@ -3093,7 +3172,7 @@ impl Window {
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
-            script_chan: Arc::new(Mutex::new(control_chan)),
+            script_chan: control_chan,
         };
 
         let initial_viewport = f32_rect_to_au_rect(UntypedRect::new(
@@ -3316,14 +3395,10 @@ impl Window {
     }
 }
 
-#[derive(Clone, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub(crate) struct CSSErrorReporter {
     pub(crate) pipelineid: PipelineId,
-    // Arc+Mutex combo is necessary to make this struct Sync,
-    // which is necessary to fulfill the bounds required by the
-    // uses of the ParseErrorReporter trait.
-    #[ignore_malloc_size_of = "Arc is defined in libstd"]
-    pub(crate) script_chan: Arc<Mutex<IpcSender<ScriptThreadMessage>>>,
+    pub(crate) script_chan: IpcSender<ScriptThreadMessage>,
 }
 unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 
@@ -3345,17 +3420,13 @@ impl ParseErrorReporter for CSSErrorReporter {
         }
 
         //TODO: report a real filename
-        let _ = self
-            .script_chan
-            .lock()
-            .unwrap()
-            .send(ScriptThreadMessage::ReportCSSError(
-                self.pipelineid,
-                url.0.to_string(),
-                location.line,
-                location.column,
-                error.to_string(),
-            ));
+        let _ = self.script_chan.send(ScriptThreadMessage::ReportCSSError(
+            self.pipelineid,
+            url.0.to_string(),
+            location.line,
+            location.column,
+            error.to_string(),
+        ));
     }
 }
 

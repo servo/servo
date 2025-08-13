@@ -13,6 +13,11 @@ authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2024"
 publish = false
+# We have yet to decide on a policy for updating the minimum supported rust version.
+# Before increasing this, please open a discussion on zulip explaining the reason
+# why we should consider increasing our minimum supported rust version.
+# Please also note, that the **default** rust version in rust-toolchain.toml may be
+# bumped freely.
 rust-version = "1.85.0"
 
 [workspace.dependencies]
@@ -87,7 +92,7 @@ indexmap = { version = "2.10.0", features = ["std"] }
 ipc-channel = "0.20"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
-keyboard-types = { version = "0.8.0", features = ["serde", "webdriver"] }
+keyboard-types = { version = "0.8.1", features = ["serde", "webdriver"] }
 kurbo = { version = "0.11.3", features = ["euclid"] }
 layout_api = { path = "components/shared/layout" }
 libc = "0.2"
@@ -102,7 +107,7 @@ mime_guess = "2.0.5"
 mozangle = "0.5.3"
 net_traits = { path = "components/shared/net" }
 nix = "0.29"
-nom = "7.1.3"
+nom = "8.0.0"
 num-traits = "0.2"
 num_cpus = "1.17.0"
 openxr = "0.19"
@@ -149,7 +154,7 @@ stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-08-01" }
 surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-taffy = { version = "0.8.3", default-features = false, features = ["detailed_layout_info", "grid", "std"] }
+taffy = { version = "0.9", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
 time = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
@@ -167,9 +172,9 @@ unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
-uuid = { version = "1.12.1", features = ["v4"] }
-vello = { git = "https://github.com/linebender/vello", rev = "65975d7612e38c199afaa547268763e1b4b826c9" }
-vello_cpu = { git = "https://github.com/linebender/vello", rev = "65975d7612e38c199afaa547268763e1b4b826c9" }
+uuid = { version = "1.18.0", features = ["v4"] }
+vello = { git = "https://github.com/linebender/vello", rev = "b0e2e598ac62c7b3d04d8660e7b1b7659b596970" }
+vello_cpu = { git = "https://github.com/linebender/vello", rev = "b0e2e598ac62c7b3d04d8660e7b1b7659b596970" }
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"

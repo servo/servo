@@ -28,9 +28,9 @@ use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    AllowOrDeny, AnimationState, CompositorHitTestResult, ContextMenuResult, EditingActionEvent,
-    EmbedderMsg, FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton,
-    MouseButtonAction, MouseButtonEvent, ScrollEvent, TouchEvent, TouchEventType, TouchId,
+    AllowOrDeny, AnimationState, ContextMenuResult, Cursor, EditingActionEvent, EmbedderMsg,
+    FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseLeaveEvent, ScrollEvent, TouchEvent, TouchEventType, TouchId,
     UntrustedNodeAddress, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
@@ -141,6 +141,7 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
 use crate::dom::datatransfer::DataTransfer;
+use crate::dom::document_event_handler::DocumentEventHandler;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{
     DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource,
@@ -151,7 +152,7 @@ use crate::dom::element::{
     CustomElementCreationMode, Element, ElementCreator, ElementPerformFullscreenEnter,
     ElementPerformFullscreenExit,
 };
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::fontfaceset::FontFaceSet;
@@ -172,6 +173,7 @@ use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::{Location, NavigationType};
@@ -321,6 +323,8 @@ pub(crate) struct Document {
     #[ignore_malloc_size_of = "defined in selectors"]
     #[no_trace]
     quirks_mode: Cell<QuirksMode>,
+    /// A helper used to process and store data related to input event handling.
+    event_handler: DocumentEventHandler,
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
     name_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
@@ -1542,7 +1546,7 @@ impl Document {
         }
     }
 
-    #[allow(unsafe_code)]
+    /// <https://w3c.github.io/uievents/#mouseevent-algorithms>
     pub(crate) fn handle_mouse_button_event(
         &self,
         event: MouseButtonEvent,
@@ -1550,17 +1554,17 @@ impl Document {
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
         };
 
         debug!(
             "{:?}: at {:?}",
-            event.action, hit_test_result.point_in_viewport
+            event.action, hit_test_result.point_in_frame
         );
 
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        let Some(el) = node
+        let Some(el) = hit_test_result
+            .node
             .inclusive_ancestors(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
@@ -1576,63 +1580,75 @@ impl Document {
             if el.is_actually_disabled() {
                 return;
             }
-
-            // For a node within a text input UA shadow DOM, delegate the focus target into its shadow host.
-            // TODO: This focus delegation should be done with shadow DOM delegateFocus attribute.
-            let target_el = el.find_focusable_shadow_host_if_necessary();
-
-            self.begin_focus_transaction();
-            // Try to focus `el`. If it's not focusable, focus the document instead.
-            self.request_focus(None, FocusInitiator::Local, can_gc);
-            self.request_focus(target_el.as_deref(), FocusInitiator::Local, can_gc);
         }
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
             event,
             input_event.pressed_mouse_buttons,
             &self.window,
-            hit_test_result,
+            &hit_test_result,
             input_event.active_keyboard_modifiers,
             can_gc,
         ));
 
-        // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
         let activatable = el.as_maybe_activatable();
         match event.action {
+            // https://w3c.github.io/uievents/#handle-native-mouse-click
             MouseButtonAction::Click => {
                 el.set_click_in_progress(true);
-                dom_event.fire(node.upcast(), can_gc);
+                dom_event.dispatch(node.upcast(), false, can_gc);
                 el.set_click_in_progress(false);
+
+                self.maybe_fire_dblclick(node, &hit_test_result, input_event, can_gc);
             },
+            // https://w3c.github.io/uievents/#handle-native-mouse-down
             MouseButtonAction::Down => {
+                // (TODO) Step 6. Maybe send pointerdown event with `dom_event`.
                 if let Some(a) = activatable {
                     a.enter_formal_activation_state();
                 }
 
-                let target = node.upcast();
-                dom_event.fire(target, can_gc);
+                // For a node within a text input UA shadow DOM,
+                // delegate the focus target into its shadow host.
+                // TODO: This focus delegation should be done
+                // with shadow DOM delegateFocus attribute.
+                let target_el = el.find_focusable_shadow_host_if_necessary();
+                self.begin_focus_transaction();
+                // Try to focus `el`. If it's not focusable, focus the document instead.
+                self.request_focus(None, FocusInitiator::Local, can_gc);
+                self.request_focus(target_el.as_deref(), FocusInitiator::Local, can_gc);
+
+                // Step 7. Let result = dispatch event at target
+                let result = dom_event.dispatch(node.upcast(), false, can_gc);
+
+                // Step 8. If result is true and target is a focusable area
+                // that is click focusable, then Run the focusing steps at target.
+                if result && self.focus_transaction.borrow().is_some() {
+                    self.commit_focus_transaction(FocusInitiator::Local, can_gc);
+                }
+
+                // Step 9. If mbutton is the secondary mouse button, then
+                // Maybe show context menu with native, target.
+                if let (MouseButtonAction::Down, MouseButton::Right) = (event.action, event.button)
+                {
+                    self.maybe_show_context_menu(
+                        node.upcast(),
+                        &hit_test_result,
+                        input_event,
+                        can_gc,
+                    );
+                }
             },
+            // https://w3c.github.io/uievents/#handle-native-mouse-up
             MouseButtonAction::Up => {
                 if let Some(a) = activatable {
                     a.exit_formal_activation_state();
                 }
+                // (TODO) Step 6. Maybe send pointerup event with `dom_event``.
 
-                let target = node.upcast();
-                dom_event.fire(target, can_gc);
+                // Step 7. dispatch event at target.
+                dom_event.dispatch(node.upcast(), false, can_gc);
             },
-        }
-
-        if let MouseButtonAction::Click = event.action {
-            if self.focus_transaction.borrow().is_some() {
-                self.commit_focus_transaction(FocusInitiator::Local, can_gc);
-            }
-            self.maybe_fire_dblclick(node, hit_test_result, input_event, can_gc);
-        }
-
-        // When the contextmenu event is triggered by right mouse button
-        // the contextmenu event MUST be dispatched after the mousedown event.
-        if let (MouseButtonAction::Down, MouseButton::Right) = (event.action, event.button) {
-            self.maybe_show_context_menu(node.upcast(), hit_test_result, input_event, can_gc);
         }
     }
 
@@ -1640,7 +1656,7 @@ impl Document {
     fn maybe_show_context_menu(
         &self,
         target: &EventTarget,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
@@ -1652,8 +1668,8 @@ impl Document {
             EventCancelable::Cancelable,    // cancelable
             Some(&self.window),             // view
             0,                              // detail
-            hit_test_result.point_in_viewport.to_i32(),
-            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
             hit_test_result
                 .point_relative_to_initial_containing_block
                 .to_i32(),
@@ -1678,11 +1694,12 @@ impl Document {
             vec![],                   // predicted_events
             can_gc,
         );
-        let event = menu_event.upcast::<Event>();
-        event.fire(target, can_gc);
 
-        // if the event was not canceled, notify the embedder to show the context menu
-        if event.status() == EventStatus::NotCanceled {
+        // Step 3. Let result = dispatch menuevent at target.
+        let result = menu_event.upcast::<Event>().fire(target, can_gc);
+
+        // Step 4. If result is true, then show the UA context menu
+        if result {
             let (sender, receiver) =
                 ipc::channel::<ContextMenuResult>().expect("Failed to create IPC channel.");
             self.send_to_embedder(EmbedderMsg::ShowContextMenu(
@@ -1698,13 +1715,13 @@ impl Document {
     fn maybe_fire_dblclick(
         &self,
         target: &Node,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         // https://w3c.github.io/uievents/#event-type-dblclick
         let now = Instant::now();
-        let point_in_viewport = hit_test_result.point_in_viewport;
+        let point_in_frame = hit_test_result.point_in_frame;
         let opt = self.last_click_info.borrow_mut().take();
 
         if let Some((last_time, last_pos)) = opt {
@@ -1713,7 +1730,7 @@ impl Document {
             let DBL_CLICK_DIST_THRESHOLD = pref!(dom_document_dblclick_dist) as u64;
 
             // Calculate distance between this click and the previous click.
-            let line = point_in_viewport - last_pos;
+            let line = point_in_frame - last_pos;
             let dist = (line.dot(line) as f64).sqrt();
 
             if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
@@ -1729,8 +1746,8 @@ impl Document {
                     EventCancelable::Cancelable,
                     Some(&self.window),
                     click_count,
-                    point_in_viewport.to_i32(),
-                    point_in_viewport.to_i32(),
+                    point_in_frame.to_i32(),
+                    point_in_frame.to_i32(),
                     hit_test_result
                         .point_relative_to_initial_containing_block
                         .to_i32(),
@@ -1750,7 +1767,7 @@ impl Document {
         }
 
         // Update last_click_info with the time and position of the click.
-        *self.last_click_info.borrow_mut() = Some((now, point_in_viewport));
+        *self.last_click_info.borrow_mut() = Some((now, point_in_frame));
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1760,7 +1777,7 @@ impl Document {
         event_name: FireMouseEventType,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
@@ -1771,8 +1788,8 @@ impl Document {
             cancelable,
             Some(&self.window),
             0i32,
-            hit_test_result.point_in_viewport.to_i32(),
-            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
             hit_test_result
                 .point_relative_to_initial_containing_block
                 .to_i32(),
@@ -2000,16 +2017,18 @@ impl Document {
     pub(crate) unsafe fn handle_mouse_move_event(
         &self,
         input_event: &ConstellationInputEvent,
-        prev_mouse_over_target: &MutNullableDom<Element>,
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
         };
 
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        let Some(new_target) = node
+        // Update the cursor when the mouse moves, if it has changed.
+        self.set_cursor(hit_test_result.cursor);
+
+        let Some(new_target) = hit_test_result
+            .node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
@@ -2017,7 +2036,9 @@ impl Document {
             return;
         };
 
-        let target_has_changed = prev_mouse_over_target
+        let target_has_changed = self
+            .event_handler
+            .current_hover_target
             .get()
             .as_ref()
             .is_none_or(|old_target| old_target != &new_target);
@@ -2026,7 +2047,7 @@ impl Document {
         // dispatch mouseout to the previous one, mouseover to the new one.
         if target_has_changed {
             // Dispatch mouseout and mouseleave to previous target.
-            if let Some(old_target) = prev_mouse_over_target.get() {
+            if let Some(old_target) = self.event_handler.current_hover_target.get() {
                 let old_target_is_ancestor_of_new_target = old_target
                     .upcast::<Node>()
                     .is_ancestor_of(new_target.upcast::<Node>());
@@ -2049,7 +2070,7 @@ impl Document {
                     FireMouseEventType::Out,
                     EventBubbles::Bubbles,
                     EventCancelable::Cancelable,
-                    hit_test_result,
+                    &hit_test_result,
                     input_event,
                     can_gc,
                 );
@@ -2061,7 +2082,7 @@ impl Document {
                         event_target,
                         moving_into,
                         FireMouseEventType::Leave,
-                        hit_test_result,
+                        &hit_test_result,
                         input_event,
                         can_gc,
                     );
@@ -2074,9 +2095,6 @@ impl Document {
                 .inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
             {
-                if element.hover_state() {
-                    break;
-                }
                 element.set_hover_state(true);
             }
 
@@ -2085,12 +2103,14 @@ impl Document {
                 FireMouseEventType::Over,
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
-                hit_test_result,
+                &hit_test_result,
                 input_event,
                 can_gc,
             );
 
-            let moving_from = prev_mouse_over_target
+            let moving_from = self
+                .event_handler
+                .current_hover_target
                 .get()
                 .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
             let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
@@ -2098,7 +2118,7 @@ impl Document {
                 event_target,
                 moving_from,
                 FireMouseEventType::Enter,
-                hit_test_result,
+                &hit_test_result,
                 input_event,
                 can_gc,
             );
@@ -2111,14 +2131,59 @@ impl Document {
             FireMouseEventType::Move,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            hit_test_result,
+            &hit_test_result,
             input_event,
             can_gc,
         );
 
-        // If the target has changed then store the current mouse over target for next frame.
-        if target_has_changed {
-            prev_mouse_over_target.set(Some(&new_target));
+        self.update_current_hover_target_and_status(Some(new_target));
+    }
+
+    fn update_current_hover_target_and_status(&self, new_hover_target: Option<DomRoot<Element>>) {
+        let previous_hover_target = self.event_handler.current_hover_target.get();
+        if previous_hover_target == new_hover_target {
+            return;
+        }
+
+        self.event_handler
+            .current_hover_target
+            .set(new_hover_target.as_deref());
+
+        // If the new hover target is an anchor with a status value, inform the embedder
+        // of the new value.
+        let window = self.window();
+        if let Some(anchor) = new_hover_target.and_then(|new_hover_target| {
+            new_hover_target
+                .upcast::<Node>()
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                .next()
+        }) {
+            let status = anchor
+                .upcast::<Element>()
+                .get_attribute(&ns!(), &local_name!("href"))
+                .and_then(|href| {
+                    let value = href.value();
+                    let url = self.url();
+                    url.join(&value).map(|url| url.to_string()).ok()
+                });
+            window.send_to_embedder(EmbedderMsg::Status(self.webview_id(), status));
+            return;
+        }
+
+        // No state was set above, which means that the new value of the status in the embedder
+        // should be `None`. Set that now. If `previous_hover_target` is `None` that means this
+        // is the first mouse move event we are seeing after getting the cursor. In that case,
+        // we also clear the status.
+        if previous_hover_target.is_none_or(|previous_hover_target| {
+            previous_hover_target
+                .upcast::<Node>()
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                .next()
+                .is_some()
+        }) {
+            window.send_to_embedder(EmbedderMsg::Status(window.webview_id(), None));
         }
     }
 
@@ -2126,42 +2191,52 @@ impl Document {
     pub(crate) fn handle_mouse_leave_event(
         &self,
         input_event: &ConstellationInputEvent,
+        mouse_leave_event: &MouseLeaveEvent,
         can_gc: CanGc,
     ) {
-        // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
-            return;
-        };
+        if let Some(current_hover_target) = self.event_handler.current_hover_target.get() {
+            let current_hover_target = current_hover_target.upcast::<Node>();
+            for element in current_hover_target
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Element>)
+            {
+                element.set_hover_state(false);
+                element.set_active_state(false);
+            }
 
-        self.window()
-            .send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
-
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        for element in node
-            .inclusive_ancestors(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Element>)
-        {
-            element.set_hover_state(false);
-            element.set_active_state(false);
+            if let Some(hit_test_result) = self
+                .window()
+                .hit_test_from_point_in_viewport(self.event_handler.most_recent_mousemove_point)
+            {
+                self.fire_mouse_event(
+                    current_hover_target.upcast(),
+                    FireMouseEventType::Out,
+                    EventBubbles::Bubbles,
+                    EventCancelable::Cancelable,
+                    &hit_test_result,
+                    input_event,
+                    can_gc,
+                );
+                self.handle_mouse_enter_leave_event(
+                    DomRoot::from_ref(current_hover_target),
+                    None,
+                    FireMouseEventType::Leave,
+                    &hit_test_result,
+                    input_event,
+                    can_gc,
+                );
+            }
         }
 
-        self.fire_mouse_event(
-            node.upcast(),
-            FireMouseEventType::Out,
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            hit_test_result,
-            input_event,
-            can_gc,
-        );
-        self.handle_mouse_enter_leave_event(
-            node,
-            None,
-            FireMouseEventType::Leave,
-            hit_test_result,
-            input_event,
-            can_gc,
-        );
+        self.event_handler.current_cursor.set(None);
+        self.event_handler.current_hover_target.set(None);
+
+        // If focus is moving to another frame, it will decide what the new status text is, but if
+        // this mouse leave event is leaving the WebView entirely, then clear it.
+        if !mouse_leave_event.focus_moving_to_another_iframe {
+            self.window()
+                .send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
+        }
     }
 
     fn handle_mouse_enter_leave_event(
@@ -2169,7 +2244,7 @@ impl Document {
         event_target: DomRoot<Node>,
         related_target: Option<DomRoot<Node>>,
         event_type: FireMouseEventType,
-        hit_test_result: &CompositorHitTestResult,
+        hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
@@ -2224,12 +2299,12 @@ impl Document {
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = &input_event.hit_test_result else {
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
         };
 
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        let Some(el) = node
+        let Some(el) = hit_test_result
+            .node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
@@ -2243,7 +2318,7 @@ impl Document {
             "{}: on {:?} at {:?}",
             wheel_event_type_string,
             node.debug_str(),
-            hit_test_result.point_in_viewport
+            hit_test_result.point_in_frame
         );
 
         // https://w3c.github.io/uievents/#event-wheelevents
@@ -2254,8 +2329,8 @@ impl Document {
             EventCancelable::Cancelable,
             Some(&self.window),
             0i32,
-            hit_test_result.point_in_viewport.to_i32(),
-            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
             hit_test_result
                 .point_relative_to_initial_containing_block
                 .to_i32(),
@@ -2286,11 +2361,11 @@ impl Document {
     pub(crate) fn handle_touch_event(
         &self,
         event: TouchEvent,
-        hit_test_result: Option<CompositorHitTestResult>,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) -> TouchEventResult {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = hit_test_result else {
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             self.update_active_touch_points_when_early_return(event);
             return TouchEventResult::Forwarded;
         };
@@ -2303,8 +2378,8 @@ impl Document {
             TouchEventType::Cancel => "touchcancel",
         };
 
-        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
-        let Some(el) = node
+        let Some(el) = hit_test_result
+            .node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
@@ -2316,12 +2391,12 @@ impl Document {
         let target = DomRoot::upcast::<EventTarget>(el);
         let window = &*self.window;
 
-        let client_x = Finite::wrap(hit_test_result.point_in_viewport.x as f64);
-        let client_y = Finite::wrap(hit_test_result.point_in_viewport.y as f64);
+        let client_x = Finite::wrap(hit_test_result.point_in_frame.x as f64);
+        let client_y = Finite::wrap(hit_test_result.point_in_frame.y as f64);
         let page_x =
-            Finite::wrap(hit_test_result.point_in_viewport.x as f64 + window.PageXOffset() as f64);
+            Finite::wrap(hit_test_result.point_in_frame.x as f64 + window.PageXOffset() as f64);
         let page_y =
-            Finite::wrap(hit_test_result.point_in_viewport.y as f64 + window.PageYOffset() as f64);
+            Finite::wrap(hit_test_result.point_in_frame.y as f64 + window.PageYOffset() as f64);
 
         let touch = Touch::new(
             window, identifier, &target, client_x,
@@ -2386,13 +2461,8 @@ impl Document {
             false,
             can_gc,
         );
-        let event = event.upcast::<Event>();
-        let result = event.fire(&target, can_gc);
 
-        match result {
-            EventStatus::Canceled => TouchEventResult::Processed(false),
-            EventStatus::NotCanceled => TouchEventResult::Processed(true),
-        }
+        TouchEventResult::Processed(event.upcast::<Event>().fire(&target, can_gc))
     }
 
     // If hittest fails, we still need to update the active point information.
@@ -3019,8 +3089,7 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            let _ = self
-                .window
+            self.window
                 .dispatch_event_with_target_override(event, can_gc);
             // Step 6 Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(DocumentVisibilityState::Hidden, can_gc);
@@ -3037,8 +3106,7 @@ impl Document {
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
             let has_listeners = event_target.has_listeners_for(&atom!("unload"));
-            let _ = self
-                .window
+            self.window
                 .dispatch_event_with_target_override(&event, can_gc);
             self.fired_unload.set(true);
             // Step 9
@@ -4073,8 +4141,7 @@ impl Document {
             string = TrustedHTML::get_trusted_script_compliant_string(
                 &self.global(),
                 TrustedHTMLOrString::String(string.into()),
-                containing_class,
-                field,
+                &format!("{} {}", containing_class, field),
                 can_gc,
             )?
             .as_ref()
@@ -4121,6 +4188,14 @@ impl Document {
         parser.write(string.into(), can_gc);
 
         Ok(())
+    }
+
+    pub(crate) fn set_cursor(&self, cursor: Cursor) {
+        if Some(cursor) == self.event_handler.current_cursor.get() {
+            return;
+        }
+        self.event_handler.current_cursor.set(Some(cursor));
+        self.send_to_embedder(EmbedderMsg::SetCursor(self.webview_id(), cursor));
     }
 }
 
@@ -4320,6 +4395,7 @@ impl Document {
             url: DomRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
+            event_handler: DocumentEventHandler::default(),
             id_map: DomRefCell::new(HashMapTracedValues::new()),
             name_map: DomRefCell::new(HashMapTracedValues::new()),
             // https://dom.spec.whatwg.org/#concept-document-encoding
@@ -4820,14 +4896,14 @@ impl Document {
         })
     }
 
-    pub(crate) fn element_state_will_change(&self, el: &Element) {
-        let mut entry = self.ensure_pending_restyle(el);
+    pub(crate) fn element_state_will_change(&self, element: &Element) {
+        let mut entry = self.ensure_pending_restyle(element);
         if entry.snapshot.is_none() {
             entry.snapshot = Some(Snapshot::new());
         }
         let snapshot = entry.snapshot.as_mut().unwrap();
         if snapshot.state.is_none() {
-            snapshot.state = Some(el.state());
+            snapshot.state = Some(element.state());
         }
     }
 

@@ -10,6 +10,7 @@
         content="Test passes if align-content shifts content
                  in the masonry axis of a vertical writing-mode masonry grid container.">
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
   <link rel="match" href="masonry-align-content-002-ref.html">
   <style>
@@ -35,6 +36,11 @@ item {
   color: #fff;
 }
 
+.safe {
+  width: 10px;
+  margin-right: 50px;
+}
+
 </style>
 </head>
 <body>
@@ -57,6 +63,15 @@ item {
   <item>6</item>
 </grid>
 
+<grid style="align-content:safe start" class="safe">
+  <item style="padding-right:30px">1</item>
+  <item>2</item>
+  <item>3</item>
+  <item>4</item>
+  <item>5</item>
+  <item>6</item>
+</grid>
+
 <grid style="align-content:end">
   <item style="padding-right:30px">1</item>
   <item>2</item>
@@ -75,6 +90,15 @@ item {
   <item>6</item>
 </grid>
 
+<grid style="align-content:safe end" class="safe">
+  <item style="padding-right:30px">1</item>
+  <item>2</item>
+  <item>3</item>
+  <item>4</item>
+  <item>5</item>
+  <item>6</item>
+</grid>
+
 <grid style="align-content:center">
   <item style="padding-right:30px">1</item>
   <item>2</item>
@@ -87,6 +111,15 @@ item {
 <grid style="align-content:center">
   <item>1</item>
   <item style="padding-right:30px">2</item>
+  <item>3</item>
+  <item>4</item>
+  <item>5</item>
+  <item>6</item>
+</grid>
+
+<grid style="align-content:safe center" class="safe">
+  <item style="padding-right:30px">1</item>
+  <item>2</item>
   <item>3</item>
   <item>4</item>
   <item>5</item>

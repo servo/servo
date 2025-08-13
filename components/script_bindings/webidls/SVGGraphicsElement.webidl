@@ -10,7 +10,7 @@
 //  boolean clipped = false;
 //};
 
-[Exposed=Window, Abstract, Pref="dom_svg_enabled"]
+[Exposed=Window, Abstract]
 interface SVGGraphicsElement : SVGElement {
   //[SameObject] readonly attribute SVGAnimatedTransformList transform;
 

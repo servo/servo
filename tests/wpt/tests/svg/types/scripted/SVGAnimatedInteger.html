@@ -31,5 +31,18 @@ test(function() {
   assert_equals(feConvolveMatrix.targetX.baseVal, 0);
   feConvolveMatrix.targetX.baseVal = 300;
   assert_equals(feConvolveMatrix.targetX.baseVal, 300);
+
+  // Check initial orderX value.
+  assert_true(feConvolveMatrix.orderX instanceof SVGAnimatedInteger);
+  assert_equals(typeof(feConvolveMatrix.orderX.baseVal), "number");
+  assert_equals(feConvolveMatrix.orderX.baseVal, 3);
+
+  // Check assigning various valid and invalid values.
+  feConvolveMatrix.setAttribute("order", "5");
+  assert_equals(feConvolveMatrix.orderX.baseVal, 5);
+  feConvolveMatrix.setAttribute("order", "-1.5");
+  assert_equals(feConvolveMatrix.orderX.baseVal, -1);
+  feConvolveMatrix.orderX.baseVal = -2.7;
+  assert_equals(feConvolveMatrix.orderX.baseVal, -2); // Negative values are allowed from SVG DOM, but should lead to an error when rendering (disable the filter)
 });
 </script>

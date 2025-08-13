@@ -14,7 +14,7 @@ use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafe
 use layout_api::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
-use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect};
+use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
 use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
@@ -39,7 +39,6 @@ use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
 use style::values::specified::text::TextTransformCase;
 use style_traits::{ParsingMode, ToCss};
-use webrender_api::units::LayoutTransform;
 
 use crate::ArcRefCell;
 use crate::display_list::StackingContextTree;
@@ -55,7 +54,7 @@ use crate::taffy::SpecificTaffyGridInfo;
 fn root_transform_for_layout_node(
     scroll_tree: &ScrollTree,
     node: ServoLayoutNode<'_>,
-) -> Option<LayoutTransform> {
+) -> Option<FastLayoutTransform> {
     let fragments = node.fragments_for_pseudo(None);
     let box_fragment = fragments
         .first()
@@ -90,7 +89,7 @@ pub(crate) fn process_content_box_request(
         return Some(rect_union);
     };
 
-    Some(transform_au_rectangle(rect_union, transform))
+    transform_au_rectangle(rect_union, transform)
 }
 
 pub(crate) fn process_content_boxes_request(
@@ -110,7 +109,7 @@ pub(crate) fn process_content_boxes_request(
     };
 
     content_boxes
-        .map(|rect| transform_au_rectangle(rect, transform))
+        .filter_map(|rect| transform_au_rectangle(rect, transform))
         .collect()
 }
 
@@ -1150,9 +1149,17 @@ where
     Some(computed_values.clone_font())
 }
 
-fn transform_au_rectangle(rect_to_transform: Rect<Au>, transform: LayoutTransform) -> Rect<Au> {
-    transform
-        .outer_transformed_rect(&au_rect_to_f32_rect(rect_to_transform).cast_unit())
+fn transform_au_rectangle(
+    rect_to_transform: Rect<Au>,
+    transform: FastLayoutTransform,
+) -> Option<Rect<Au>> {
+    let rect_to_transform = &au_rect_to_f32_rect(rect_to_transform).cast_unit();
+    let outer_transformed_rect = match transform {
+        FastLayoutTransform::Offset(offset) => Some(rect_to_transform.translate(offset)),
+        FastLayoutTransform::Transform { transform, .. } => {
+            transform.outer_transformed_rect(rect_to_transform)
+        },
+    };
+    outer_transformed_rect
         .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()))
-        .unwrap_or(rect_to_transform)
 }

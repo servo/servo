@@ -7,6 +7,7 @@
   <meta charset="utf-8">
   <title>Reference: Masonry layout with `align-content` in grid axis</title>
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
   <style>
 html,body {
   color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
@@ -31,6 +32,10 @@ item {
 }
 
 .tall { grid-column: span 2; padding-top: 30px; }
+
+.safe {
+  height: 10px;
+}
 </style>
 </head>
 <body>
@@ -53,6 +58,15 @@ item {
   <item style="grid-row:3/4">6</item>
 </grid>
 
+<grid style="align-content:safe start" class="safe">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
 <grid style="align-content:end">
   <item class="tall" style="grid-row:1/2">1</item>
   <item style="grid-row:2/3">2</item>
@@ -71,6 +85,15 @@ item {
   <item style="grid-row:3/4">6</item>
 </grid>
 
+<grid style="align-content:safe end" class="safe">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
 <grid style="align-content:center">
   <item class="tall" style="grid-row:1/2">1</item>
   <item style="grid-row:2/3">2</item>
@@ -86,6 +109,15 @@ item {
   <item style="grid-row:3/4">3</item>
   <item style="grid-row:4/5">4</item>
   <item style="grid-row:1/2">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:safe center" class="safe">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
   <item style="grid-row:3/4">6</item>
 </grid>
 

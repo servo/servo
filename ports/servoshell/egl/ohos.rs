@@ -345,6 +345,8 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             while let Ok(action) = rx.recv() {
                 trace!("Wakeup message received!");
                 action.do_action(&servo);
+                // Also handle any pending WebDriver messages
+                servo.handle_webdriver_messages();
             }
 
             info!("Sender disconnected - Terminating main surface thread");

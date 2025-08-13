@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::collections::hash_map::{Entry, Keys};
-use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
@@ -27,7 +27,7 @@ use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
-use crate::compositor::{HitTestError, PipelineDetails, ServoRenderer};
+use crate::compositor::{PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
 
 #[derive(Clone, Copy)]
@@ -96,10 +96,6 @@ pub(crate) struct WebViewRenderer {
     /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
     /// active animations or animation frame callbacks.
     animating: bool,
-    /// Pending input events queue. Priavte and only this thread pushes events to it.
-    pending_point_input_events: RefCell<VecDeque<InputEvent>>,
-    /// WebRender is not ready between `SendDisplayList` and `WebRenderFrameReady` messages.
-    pub webrender_frame_ready: Cell<bool>,
     /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
     /// and initial values for zoom derived from the `viewport` meta tag in web content.
     viewport_description: Option<ViewportDescription>,
@@ -135,8 +131,6 @@ impl WebViewRenderer {
             pinch_zoom: PinchZoomFactor::new(1.0),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
-            pending_point_input_events: Default::default(),
-            webrender_frame_ready: Cell::default(),
             viewport_description: None,
         }
     }
@@ -335,78 +329,41 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_point_input_event(&self, event: InputEvent) -> bool {
-        self.dispatch_point_input_event_internal(event, true)
-    }
-
-    pub(crate) fn dispatch_pending_point_input_events(&self) {
-        while let Some(event) = self.pending_point_input_events.borrow_mut().pop_front() {
-            // TODO: Add multiple retry later if needed.
-            self.dispatch_point_input_event_internal(event, false);
-        }
-    }
-
-    pub(crate) fn dispatch_point_input_event_internal(
-        &self,
-        mut event: InputEvent,
-        retry_on_error: bool,
-    ) -> bool {
-        // Events that do not need to do hit testing are sent directly to the
-        // constellation to filter down.
-        let Some(point) = event.point() else {
-            return false;
-        };
-
-        // Delay the event if the epoch is not synchronized yet (new frame is not ready),
-        // or hit test result would fail and the event is rejected anyway.
-        if retry_on_error &&
-            (!self.webrender_frame_ready.get() ||
-                !self.pending_point_input_events.borrow().is_empty())
-        {
-            self.pending_point_input_events
-                .borrow_mut()
-                .push_back(event);
-            return false;
-        }
-
-        // If we can't find a pipeline to send this event to, we cannot continue.
-        let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let result = match self
-            .global
-            .borrow()
-            .hit_test_at_point(point, get_pipeline_details)
-        {
-            Ok(hit_test_results) => Some(hit_test_results),
-            Err(HitTestError::EpochMismatch) if retry_on_error => {
-                self.pending_point_input_events
-                    .borrow_mut()
-                    .push_back(event.clone());
-                return false;
+    pub(crate) fn dispatch_input_event_with_hit_testing(&self, mut event: InputEvent) -> bool {
+        let event_point = event.point();
+        let hit_test_result = match event_point {
+            Some(point) => {
+                let hit_test_result = self
+                    .global
+                    .borrow()
+                    .hit_test_at_point(point)
+                    .into_iter()
+                    .nth(0);
+                if hit_test_result.is_none() {
+                    warn!("Empty hit test result for input event, ignoring.");
+                    return false;
+                }
+                hit_test_result
             },
-            _ => None,
+            None => None,
         };
 
         match event {
             InputEvent::Touch(ref mut touch_event) => {
                 touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
             },
-            InputEvent::MouseButton(_) |
-            InputEvent::MouseLeave(_) |
-            InputEvent::MouseMove(_) |
-            InputEvent::Wheel(_) => {
-                if let Some(ref result) = result {
-                    self.global
-                        .borrow_mut()
-                        .update_cursor_from_hittest(point, result);
-                } else {
-                    warn!("Not hit test result.");
-                }
+            InputEvent::MouseMove(_) => {
+                self.global.borrow_mut().last_mouse_move_position = event_point;
             },
+            InputEvent::MouseLeave(_) => {
+                self.global.borrow_mut().last_mouse_move_position = None;
+            },
+            InputEvent::MouseButton(_) | InputEvent::Wheel(_) => {},
             _ => unreachable!("Unexpected input event type: {event:?}"),
         }
 
         if let Err(error) = self.global.borrow().constellation_sender.send(
-            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, result),
+            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, hit_test_result),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
             false
@@ -481,11 +438,11 @@ impl WebViewRenderer {
             }
         }
 
-        self.dispatch_point_input_event(event);
+        self.dispatch_input_event_with_hit_testing(event);
     }
 
     fn send_touch_event(&mut self, event: TouchEvent) -> bool {
-        self.dispatch_point_input_event(InputEvent::Touch(event))
+        self.dispatch_input_event_with_hit_testing(InputEvent::Touch(event))
     }
 
     pub(crate) fn on_touch_event(&mut self, event: TouchEvent) {
@@ -749,13 +706,15 @@ impl WebViewRenderer {
     /// <http://w3c.github.io/touch-events/#mouse-events>
     fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
-        self.dispatch_point_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        self.dispatch_input_event_with_hit_testing(InputEvent::MouseMove(MouseMoveEvent::new(
+            point,
+        )));
+        self.dispatch_input_event_with_hit_testing(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Down,
             button,
             point,
         )));
-        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        self.dispatch_input_event_with_hit_testing(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Up,
             button,
             point,
@@ -894,17 +853,10 @@ impl WebViewRenderer {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
         let hit_test_results = self
             .global
             .borrow()
-            .hit_test_at_point_with_flags_and_pipeline(
-                cursor,
-                HitTestFlags::FIND_ALL,
-                None,
-                get_pipeline_details,
-            )
-            .unwrap_or_default();
+            .hit_test_at_point_with_flags(cursor, HitTestFlags::FIND_ALL);
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
@@ -916,7 +868,7 @@ impl WebViewRenderer {
                 Some(&hit_test_result.pipeline_id)
             {
                 let scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
-                    &hit_test_result.scroll_tree_node,
+                    &hit_test_result.external_scroll_id,
                     scroll_location,
                     ScrollType::InputEvents,
                 );

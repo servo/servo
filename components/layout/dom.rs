@@ -12,7 +12,8 @@ use layout_api::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use layout_api::{
-    GenericLayoutDataTrait, LayoutDamage, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+    GenericLayoutDataTrait, LayoutDamage, LayoutElementType,
+    LayoutNodeType as ScriptLayoutNodeType, SVGElementData,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::Image;
@@ -232,6 +233,7 @@ pub(crate) trait NodeExt<'dom> {
     fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)>;
     fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
+    fn as_svg(&self) -> Option<SVGElementData>;
     fn as_typeless_object_with_data_attribute(&self) -> Option<String>;
     fn style(&self, context: &SharedStyleContext) -> ServoArc<ComputedValues>;
 
@@ -271,6 +273,10 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
             height /= density;
         }
         Some((resource, PhysicalSize::new(width, height)))
+    }
+
+    fn as_svg(&self) -> Option<SVGElementData> {
+        self.to_threadsafe().svg_data()
     }
 
     fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)> {

@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use base::id::PipelineId;
+use devtools_traits::DevtoolScriptControlMsg;
+use ipc_channel::ipc::{IpcSender, channel};
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -27,6 +29,8 @@ pub(crate) struct SourceForm {
     /// URL of the script, or URL of the page for inline scripts.
     pub url: String,
     pub is_black_boxed: bool,
+    /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
+    pub introduction_type: String,
 }
 
 #[derive(Serialize)]
@@ -53,6 +57,14 @@ pub struct SourceActor {
 
     pub content: Option<String>,
     pub content_type: Option<String>,
+
+    // TODO: use it in #37667, then remove this allow
+    #[allow(unused)]
+    pub spidermonkey_id: u32,
+    /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
+    pub introduction_type: String,
+
+    script_sender: IpcSender<DevtoolScriptControlMsg>,
 }
 
 #[derive(Serialize)]
@@ -61,6 +73,24 @@ struct SourceContentReply {
     #[serde(rename = "contentType")]
     content_type: Option<String>,
     source: String,
+}
+
+#[derive(Serialize)]
+struct GetBreakableLinesReply {
+    from: String,
+    // Line numbers are one-based.
+    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+    lines: BTreeSet<u32>,
+}
+
+#[derive(Serialize)]
+struct GetBreakpointPositionsCompressedReply {
+    from: String,
+    // Column numbers are in UTF-16 code units, not Unicode scalar values or grapheme clusters.
+    // Line number are one-based. Column numbers are zero-based.
+    // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
+    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+    positions: BTreeMap<u32, BTreeSet<u32>>,
 }
 
 impl SourceManager {
@@ -91,6 +121,9 @@ impl SourceActor {
         url: ServoUrl,
         content: Option<String>,
         content_type: Option<String>,
+        spidermonkey_id: u32,
+        introduction_type: String,
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
     ) -> SourceActor {
         SourceActor {
             name,
@@ -98,19 +131,34 @@ impl SourceActor {
             content,
             content_type,
             is_black_boxed: false,
+            spidermonkey_id,
+            introduction_type,
+            script_sender,
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new_registered(
         actors: &mut ActorRegistry,
         pipeline_id: PipelineId,
         url: ServoUrl,
         content: Option<String>,
         content_type: Option<String>,
+        spidermonkey_id: u32,
+        introduction_type: String,
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
     ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
 
-        let source_actor = SourceActor::new(source_actor_name.clone(), url, content, content_type);
+        let source_actor = SourceActor::new(
+            source_actor_name.clone(),
+            url,
+            content,
+            content_type,
+            spidermonkey_id,
+            introduction_type,
+            script_sender,
+        );
         actors.register(Box::new(source_actor));
         actors.register_source_actor(pipeline_id, &source_actor_name);
 
@@ -122,6 +170,7 @@ impl SourceActor {
             actor: self.name.clone(),
             url: self.url.to_string(),
             is_black_boxed: self.is_black_boxed,
+            introduction_type: self.introduction_type.clone(),
         }
     }
 }
@@ -145,6 +194,10 @@ impl Actor for SourceActor {
                 let reply = SourceContentReply {
                     from: self.name(),
                     content_type: self.content_type.clone(),
+                    // TODO: if needed, fetch the page again, in the same way as in the original request.
+                    // Fetch it from cache, even if the original request was non-idempotent (e.g. POST).
+                    // If we can’t fetch it from cache, we should probably give up, because with a real
+                    // fetch, the server could return a different response.
                     // TODO: do we want to wait instead of giving up immediately, in cases where the content could
                     // become available later (e.g. after a fetch)?
                     source: self
@@ -152,6 +205,54 @@ impl Actor for SourceActor {
                         .as_deref()
                         .unwrap_or("<!-- not available; please reload! -->")
                         .to_owned(),
+                };
+                request.reply_final(&reply)?
+            },
+            // Client wants to know which lines can have breakpoints.
+            // Sent when opening a source in the Sources panel, and controls whether the line numbers can be clicked.
+            "getBreakableLines" => {
+                let (tx, rx) = channel().map_err(|_| ActorError::Internal)?;
+                self.script_sender
+                    .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
+                        self.spidermonkey_id,
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+                let result = rx.recv().map_err(|_| ActorError::Internal)?;
+                let lines = result
+                    .into_iter()
+                    .map(|entry| entry.line_number)
+                    .collect::<BTreeSet<_>>();
+                let reply = GetBreakableLinesReply {
+                    from: self.name(),
+                    lines,
+                };
+                request.reply_final(&reply)?
+            },
+            // Client wants to know which columns in the line can have breakpoints.
+            // Sent when the user tries to set a breakpoint by clicking a line number in a source.
+            "getBreakpointPositionsCompressed" => {
+                let (tx, rx) = channel().map_err(|_| ActorError::Internal)?;
+                self.script_sender
+                    .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
+                        self.spidermonkey_id,
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+                let result = rx.recv().map_err(|_| ActorError::Internal)?;
+                let mut positions: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::default();
+                for entry in result {
+                    // Line number are one-based. Column numbers are zero-based.
+                    // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
+                    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+                    positions
+                        .entry(entry.line_number)
+                        .or_default()
+                        .insert(entry.column_number - 1);
+                }
+                let reply = GetBreakpointPositionsCompressedReply {
+                    from: self.name(),
+                    positions,
                 };
                 request.reply_final(&reply)?
             },
