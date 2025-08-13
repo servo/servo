@@ -197,7 +197,6 @@ pub struct FontDescriptor {
     pub style: FontStyle,
     pub variant: font_variant_caps::T,
     pub pt_size: Au,
-    #[ignore_malloc_size_of = "can't measure font variations"]
     pub variation_settings: Vec<FontVariation>,
 }
 
