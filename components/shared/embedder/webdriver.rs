@@ -75,9 +75,6 @@ impl WebDriverUserPromptAction {
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
-    /// Used in the initialization of the WebDriver server to set the sender for sending responses
-    /// back to the WebDriver client. It is set to constellation for now
-    SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
     /// Get the window rectangle.
     GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the viewport size.

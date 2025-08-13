@@ -339,9 +339,6 @@ impl App {
 
         while let Ok(msg) = webdriver_receiver.try_recv() {
             match msg {
-                WebDriverCommandMsg::SetWebDriverResponseSender(..) => {
-                    running_state.servo().execute_webdriver_command(msg);
-                },
                 WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
                     let context = running_state.webview_by_id(webview_id);
 
