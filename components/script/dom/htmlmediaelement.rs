@@ -24,8 +24,8 @@ use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError,
-    ResourceFetchTiming, ResourceTimingType,
+    CoreResourceThread, FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata,
+    NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
 use pixels::RasterImage;
 use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
@@ -945,7 +945,10 @@ impl HTMLMediaElement {
             current_fetch_context.cancel(CancelReason::Overridden);
         }
 
-        *current_fetch_context = Some(HTMLMediaElementFetchContext::new(request.id));
+        *current_fetch_context = Some(HTMLMediaElementFetchContext::new(
+            request.id,
+            global.core_resource_thread(),
+        ));
         let listener =
             HTMLMediaElementFetchListener::new(self, request.id, url.clone(), offset.unwrap_or(0));
 
@@ -2848,14 +2851,17 @@ pub(crate) struct HTMLMediaElementFetchContext {
 }
 
 impl HTMLMediaElementFetchContext {
-    fn new(request_id: RequestId) -> HTMLMediaElementFetchContext {
+    fn new(
+        request_id: RequestId,
+        core_resource_thread: CoreResourceThread,
+    ) -> HTMLMediaElementFetchContext {
         HTMLMediaElementFetchContext {
             request_id,
             cancel_reason: None,
             is_seekable: false,
             origin_clean: true,
             data_source: DomRefCell::new(BufferedDataSource::new()),
-            fetch_canceller: FetchCanceller::new(request_id),
+            fetch_canceller: FetchCanceller::new(request_id, core_resource_thread.clone()),
         }
     }
 

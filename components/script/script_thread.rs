@@ -3638,7 +3638,10 @@ impl ScriptThread {
             .push((incomplete.pipeline_id, context));
 
         let request_builder = incomplete.request_builder();
-        incomplete.canceller = FetchCanceller::new(request_builder.id);
+        incomplete.canceller = FetchCanceller::new(
+            request_builder.id,
+            self.resource_threads.core_thread.clone(),
+        );
         NavigationListener::new(request_builder, self.senders.self_sender.clone())
             .initiate_fetch(&self.resource_threads.core_thread, None);
         self.incomplete_loads.borrow_mut().push(incomplete);
@@ -3771,7 +3774,10 @@ impl ScriptThread {
                 .unwrap_or(200),
         });
 
-        incomplete_load.canceller = FetchCanceller::new(request_builder.id);
+        incomplete_load.canceller = FetchCanceller::new(
+            request_builder.id,
+            self.resource_threads.core_thread.clone(),
+        );
         NavigationListener::new(request_builder, self.senders.self_sender.clone())
             .initiate_fetch(&self.resource_threads.core_thread, response_init);
     }
