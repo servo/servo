@@ -8,7 +8,8 @@ extend-exclude = [
     # upstream
     "third_party/**",
     "python/mach/**",
-    "components/**",
+    "components/net/**",
+    "components/shared/**",
     "tests/**",
 ]
 
@@ -17,13 +18,23 @@ select = [
     "E",
     "W",
     "F",
+    # Type Annotation
+    "ANN",
 ]
 ignore = [
     # Trailing whitespace; the standard tidy process will enforce no trailing whitespace
     "W291",
     # 80 character line length; the standard tidy process will enforce line length
     "E501",
+    # allow Any type
+    "ANN401",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"!components/script_bindings/codegen/**.py" = ["ANN"]
+"**/test.py" = ["ANN"]
+"**/*_tests.py" = ["ANN"]
+"**/tests/**/*.py" = ["ANN"]
 
 [tool.pyrefly]
 search-path = [
