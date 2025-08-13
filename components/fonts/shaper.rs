@@ -28,6 +28,7 @@ use harfbuzz_sys::{
 use log::debug;
 use num_traits::Zero;
 
+use crate::font::advance_for_shaped_glyph;
 use crate::platform::font::FontTable;
 use crate::{
     BASE, ByteIndex, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphData, GlyphId,
@@ -561,8 +562,7 @@ impl Shaper {
                         )
                     } else {
                         let shape = glyph_data.entry_for_glyph(glyph_span.start, &mut y_pos);
-                        let advance =
-                            self.advance_for_shaped_glyph(shape.advance, character, options);
+                        let advance = advance_for_shaped_glyph(shape.advance, character, options);
                         (shape.codepoint, advance, shape.offset)
                     };
 
@@ -595,28 +595,6 @@ impl Shaper {
         // this must be called after adding all glyph data; it sorts the
         // lookup table for finding detailed glyphs by associated char index.
         glyphs.finalize_changes();
-    }
-
-    fn advance_for_shaped_glyph(
-        &self,
-        mut advance: Au,
-        character: char,
-        options: &ShapingOptions,
-    ) -> Au {
-        if let Some(letter_spacing) = options.letter_spacing {
-            advance += letter_spacing;
-        };
-
-        // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
-        // space (U+00A0) left in the text after the white space processing rules have been
-        // applied. The effect of the property on other word-separator characters is undefined."
-        // We elect to only space the two required code points.
-        if character == ' ' || character == '\u{a0}' {
-            // https://drafts.csswg.org/css-text-3/#word-spacing-property
-            advance += options.word_spacing;
-        }
-
-        advance
     }
 
     pub fn baseline(&self) -> Option<FontBaseline> {
