@@ -545,7 +545,7 @@ impl Handler {
             Some(ref mut x) => Ok(x),
             // https://w3c.github.io/webdriver/#ref-for-dfn-invalid-session-id-1
             None => Err(WebDriverError::new(
-                ErrorStatus::SessionNotCreated,
+                ErrorStatus::InvalidSessionId,
                 "Session not created",
             )),
         }
