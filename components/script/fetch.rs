@@ -48,10 +48,12 @@ struct FetchContext {
     resource_timing: ResourceFetchTiming,
 }
 
-/// RAII fetch canceller object. By default initialized to not having a canceller
-/// in it, however you can ask it for a cancellation receiver to send to Fetch
-/// in which case it will store the sender. You can manually cancel it
-/// or let it cancel on Drop in that case.
+/// RAII fetch canceller object.
+/// By default initialized to having a
+/// request associated with it, which can be manually cancelled with `cancel`,
+/// or automatically cancelled on drop.
+/// Calling `ignore` will sever the relationship with the request,
+/// meaning it cannot be cancelled through this canceller from that point on.
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct FetchCanceller {
     #[no_trace]
@@ -61,7 +63,8 @@ pub(crate) struct FetchCanceller {
 }
 
 impl FetchCanceller {
-    /// Create an empty FetchCanceller
+    /// Create a FetchCanceller associated with a request,
+    // and a particular(public vs private) resource thread.
     pub(crate) fn new(request_id: RequestId, core_resource_thread: CoreResourceThread) -> Self {
         Self {
             request_id: Some(request_id),
