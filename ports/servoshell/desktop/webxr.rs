@@ -4,9 +4,11 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use servo::config::pref;
-use servo::config::prefs::Preferences;
+use servo::config::prefs::{self, Preferences};
 use servo::webxr::WebXrRegistry;
 use servo::webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
@@ -60,14 +62,29 @@ impl XrDiscoveryWebXrRegistry {
     }
 }
 
+struct XrPrefObserver(Arc<AtomicBool>);
+
+impl prefs::Observer for XrPrefObserver {
+    fn prefs_changed(&self, changes: Vec<(&'static str, prefs::PrefValue)>) {
+        if let Some((_, value)) = changes.iter().find(|(name, _)| *name == "dom_webxr_test") {
+            let prefs::PrefValue::Bool(value) = value else {
+                return;
+            };
+            self.0.store(*value, Ordering::Relaxed);
+        }
+    }
+}
+
 #[cfg(feature = "webxr")]
 impl WebXrRegistry for XrDiscoveryWebXrRegistry {
     fn register(&self, xr: &mut servo::webxr::MainThreadRegistry) {
         use servo::webxr::headless::HeadlessMockDiscovery;
 
-        if pref!(dom_webxr_test) {
-            xr.register_mock(HeadlessMockDiscovery::default());
-        } else if let Some(xr_discovery) = self.xr_discovery.take() {
+        let mock_enabled = Arc::new(AtomicBool::new(pref!(dom_webxr_test)));
+        xr.register_mock(HeadlessMockDiscovery::new(mock_enabled.clone()));
+        prefs::set_observer(Box::new(XrPrefObserver(mock_enabled)));
+
+        if let Some(xr_discovery) = self.xr_discovery.take() {
             match xr_discovery {
                 XrDiscovery::GlWindow(discovery) => xr.register(discovery),
                 #[cfg(target_os = "windows")]

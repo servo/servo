@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -19,8 +20,15 @@ use webxr_api::{
 
 use crate::{SurfmanGL, SurfmanLayerManager};
 
-#[derive(Default)]
-pub struct HeadlessMockDiscovery {}
+pub struct HeadlessMockDiscovery {
+    enabled: Arc<AtomicBool>,
+}
+
+impl HeadlessMockDiscovery {
+    pub fn new(enabled: Arc<AtomicBool>) -> Self {
+        Self { enabled }
+    }
+}
 
 struct HeadlessDiscovery {
     data: Arc<Mutex<HeadlessDeviceData>>,
@@ -76,6 +84,10 @@ impl MockDiscoveryAPI<SurfmanGL> for HeadlessMockDiscovery {
         init: MockDeviceInit,
         receiver: WebXrReceiver<MockDeviceMsg>,
     ) -> Result<Box<dyn DiscoveryAPI<SurfmanGL>>, Error> {
+        if !self.enabled.load(Ordering::Relaxed) {
+            return Err(Error::NoMatchingDevice);
+        }
+
         let viewer_origin = init.viewer_origin;
         let floor_transform = init.floor_origin.map(|f| f.inverse());
         let views = init.views.clone();
