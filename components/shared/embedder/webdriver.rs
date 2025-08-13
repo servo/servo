@@ -151,7 +151,7 @@ pub enum WebDriverCommandMsg {
     /// associated with the new webview, and sets a "load status sender" if provided.
     NewWebView(IpcSender<WebViewId>, Option<IpcSender<WebDriverLoadStatus>>),
     /// Close the webview associated with the provided id.
-    CloseWebView(WebViewId),
+    CloseWebView(WebViewId, IpcSender<()>),
     /// Focus the webview associated with the provided id.
     /// Sends back a bool indicating whether the focus was successfully set.
     FocusWebView(WebViewId, IpcSender<bool>),

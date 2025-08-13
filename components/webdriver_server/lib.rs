@@ -532,8 +532,9 @@ impl Handler {
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
         match self.session {
             Some(ref x) => Ok(x),
+            // https://w3c.github.io/webdriver/#ref-for-dfn-invalid-session-id-1
             None => Err(WebDriverError::new(
-                ErrorStatus::SessionNotCreated,
+                ErrorStatus::InvalidSessionId,
                 "Session not created",
             )),
         }
@@ -542,8 +543,9 @@ impl Handler {
     fn session_mut(&mut self) -> WebDriverResult<&mut WebDriverSession> {
         match self.session {
             Some(ref mut x) => Ok(x),
+            // https://w3c.github.io/webdriver/#ref-for-dfn-invalid-session-id-1
             None => Err(WebDriverError::new(
-                ErrorStatus::SessionNotCreated,
+                ErrorStatus::InvalidSessionId,
                 "Session not created",
             )),
         }
@@ -1078,7 +1080,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#get-window-handle>
     fn handle_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
-        let session = self.session.as_ref().unwrap();
+        let session = self.session()?;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(session.webview_id)?;
@@ -1093,9 +1095,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#get-window-handles>
     fn handle_window_handles(&self) -> WebDriverResult<WebDriverResponse> {
         let handles = self
-            .session
-            .as_ref()
-            .unwrap()
+            .session()?
             .window_handles
             .values()
             .map(serde_json::to_value)
@@ -1128,18 +1128,18 @@ impl Handler {
         self.handle_any_user_prompts(webview_id)?;
 
         // Step 3. Close session's current top-level browsing context.
-        let session = self.session_mut().unwrap();
-        session.window_handles.remove(&webview_id);
-        let cmd_msg = WebDriverCommandMsg::CloseWebView(session.webview_id);
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        let cmd_msg = WebDriverCommandMsg::CloseWebView(webview_id, sender);
         self.send_message_to_embedder(cmd_msg)?;
-        let window_handles: Vec<String> = self
-            .session()
-            .unwrap()
-            .window_handles
-            .values()
-            .cloned()
-            .collect();
+
+        wait_for_ipc_response(receiver)?;
+        self.session_mut()?.window_handles.remove(&webview_id);
+
         // Step 4. If there are no more open top-level browsing contexts, try to close the session.
+        let window_handles: Vec<String> =
+            self.session()?.window_handles.values().cloned().collect();
+
         if window_handles.is_empty() {
             self.session = None;
         }
@@ -1157,7 +1157,7 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let session = self.session().unwrap();
+        let session = self.session()?;
 
         // Step 2. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
@@ -1172,9 +1172,9 @@ impl Handler {
         // This MUST be done without invoking the focusing steps.
         self.send_message_to_embedder(cmd_msg)?;
 
-        let mut handle = self.session.as_ref().unwrap().id.to_string();
+        let mut handle = self.session()?.id.to_string();
         if let Ok(new_webview_id) = receiver.recv() {
-            let session = self.session_mut().unwrap();
+            let session = self.session_mut()?;
             let new_handle = Uuid::new_v4().to_string();
             handle = new_handle.clone();
             session.window_handles.insert(new_webview_id, new_handle);
@@ -1259,7 +1259,7 @@ impl Handler {
         &mut self,
         parameters: &SwitchToWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let session = self.session_mut().unwrap();
+        let session = self.session_mut()?;
         if session.id.to_string() == parameters.handle {
             // There's only one main window, so there's nothing to do here.
             Ok(WebDriverResponse::Void)
@@ -1852,10 +1852,7 @@ impl Handler {
     }
 
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let session = self
-            .session
-            .as_ref()
-            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
+        let session = self.session()?;
 
         let timeouts = TimeoutsResponse {
             script: session.timeouts.script,
