@@ -10,7 +10,7 @@ use euclid::default::Size2D as UntypedSize2D;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{LayoutElementType, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::ServoLayoutNode;
+use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc;
 use style::dom::{NodeInfo, TNode};
 use style::properties::ComputedValues;
@@ -20,7 +20,7 @@ use style_traits::CSSPixel;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
-use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, iter_child_nodes};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexLevelBox;
 use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineItem;
@@ -47,6 +47,7 @@ pub struct BoxTree {
 impl BoxTree {
     #[servo_tracing::instrument(name = "Box Tree Construction", skip_all)]
     pub(crate) fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
+        let root_element = root_element.to_threadsafe();
         let boxes = construct_for_root_element(context, root_element);
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
@@ -68,9 +69,8 @@ impl BoxTree {
             viewport_overflow_y == Overflow::Visible &&
             !root_style.get_box().display.is_none()
         {
-            for child in iter_child_nodes(root_element) {
+            for child in root_element.children() {
                 if !child
-                    .to_threadsafe()
                     .as_element()
                     .is_some_and(|element| element.is_body_element_of_html_element_root())
                 {
@@ -138,7 +138,7 @@ impl BoxTree {
 
 fn construct_for_root_element(
     context: &LayoutContext,
-    root_element: ServoLayoutNode<'_>,
+    root_element: ServoThreadSafeLayoutNode<'_>,
 ) -> Vec<ArcRefCell<BlockLevelBox>> {
     let info = NodeAndStyleInfo::new(
         root_element,
@@ -292,7 +292,8 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
         }
 
         // Don't update unstyled nodes or nodes that have pseudo-elements.
-        let element_data = potential_dirty_root_node
+        let potential_thread_safe_dirty_root_node = potential_dirty_root_node.to_threadsafe();
+        let element_data = potential_thread_safe_dirty_root_node
             .style_data()?
             .element_data
             .borrow();
@@ -300,7 +301,7 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
             return None;
         }
 
-        let layout_data = NodeExt::layout_data(&potential_dirty_root_node)?;
+        let layout_data = NodeExt::layout_data(&potential_thread_safe_dirty_root_node)?;
         if !layout_data.pseudo_boxes.is_empty() {
             return None;
         }
@@ -377,14 +378,12 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
 
     #[servo_tracing::instrument(name = "Box Tree Update From Dirty Root", skip_all)]
     fn update_from_dirty_root(&self, context: &LayoutContext) {
-        let contents = ReplacedContents::for_element(self.node, context)
+        let node = self.node.to_threadsafe();
+        let contents = ReplacedContents::for_element(node, context)
             .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
 
-        let info = NodeAndStyleInfo::new(
-            self.node,
-            self.primary_style.clone(),
-            self.node.take_restyle_damage(),
-        );
+        let info =
+            NodeAndStyleInfo::new(node, self.primary_style.clone(), node.take_restyle_damage());
 
         let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
             AbsolutelyPositionedBox::construct(context, &info, self.display_inside, contents),
@@ -424,7 +423,7 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
             //
             // TODO: This isn't going to be good enough for incremental fragment tree
             // reconstruction, as fragment tree damage might extend further up the tree.
-            parent_node.take_restyle_damage();
+            parent_node.to_threadsafe().take_restyle_damage();
 
             invalidate_start_point = parent_node;
         }

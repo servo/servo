@@ -4,8 +4,8 @@
 
 use bitflags::Flags;
 use layout_api::LayoutDamage;
-use layout_api::wrapper_traits::LayoutNode;
-use script::layout_dom::ServoLayoutNode;
+use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
+use script::layout_dom::ServoThreadSafeLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
@@ -15,7 +15,6 @@ use style::values::computed::Display;
 
 use crate::context::LayoutContext;
 use crate::dom::{DOMLayoutData, NodeExt};
-use crate::dom_traversal::iter_child_nodes;
 
 pub struct RecalcStyle<'a> {
     context: &'a LayoutContext<'a>,
@@ -97,7 +96,7 @@ where
 #[servo_tracing::instrument(skip_all)]
 pub(crate) fn compute_damage_and_repair_style(
     context: &SharedStyleContext,
-    node: ServoLayoutNode<'_>,
+    node: ServoThreadSafeLayoutNode<'_>,
     damage_from_environment: RestyleDamage,
 ) -> RestyleDamage {
     compute_damage_and_repair_style_inner(context, node, damage_from_environment)
@@ -105,7 +104,7 @@ pub(crate) fn compute_damage_and_repair_style(
 
 pub(crate) fn compute_damage_and_repair_style_inner(
     context: &SharedStyleContext,
-    node: ServoLayoutNode<'_>,
+    node: ServoThreadSafeLayoutNode<'_>,
     damage_from_parent: RestyleDamage,
 ) -> RestyleDamage {
     let mut element_damage;
@@ -136,7 +135,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     }
 
     let mut damage_from_children = RestyleDamage::empty();
-    for child in iter_child_nodes(node) {
+    for child in node.children() {
         if child.is_element() {
             damage_from_children |=
                 compute_damage_and_repair_style_inner(context, child, damage_for_children);

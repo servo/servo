@@ -9,6 +9,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use fonts::FontContext;
 use fxhash::FxHashMap;
+use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{
     IFrameSizes, ImageAnimationState, PendingImage, PendingImageState, PendingRasterizationImage,
 };
@@ -18,9 +19,10 @@ use net_traits::image_cache::{
 };
 use parking_lot::{Mutex, RwLock};
 use pixels::RasterImage;
+use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
-use style::dom::{OpaqueNode, TNode};
+use style::dom::OpaqueNode;
 use style::values::computed::image::{Gradient, Image};
 use webrender_api::units::{DeviceIntSize, DeviceSize};
 
@@ -247,7 +249,7 @@ impl ImageResolver {
 
     pub(crate) fn queue_svg_element_for_serialization(
         &self,
-        element: script::layout_dom::ServoLayoutNode<'_>,
+        element: ServoThreadSafeLayoutNode<'_>,
     ) {
         self.pending_svg_elements_for_serialization
             .lock()

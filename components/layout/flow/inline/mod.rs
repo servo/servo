@@ -83,7 +83,6 @@ use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{ByteIndex, FontMetrics, GlyphStore};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
-use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
     TextRunLineItem,
@@ -91,7 +90,7 @@ use line::{
 use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
 use range::Range;
-use script::layout_dom::ServoLayoutNode;
+use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
@@ -188,7 +187,7 @@ impl From<&NodeAndStyleInfo<'_>> for SharedInlineStyles {
     fn from(info: &NodeAndStyleInfo) -> Self {
         Self {
             style: SharedStyle::new(info.style.clone()),
-            selected: SharedStyle::new(info.get_selected_style()),
+            selected: SharedStyle::new(info.node.selected_style()),
         }
     }
 }
@@ -222,7 +221,7 @@ impl InlineItem {
     pub(crate) fn repair_style(
         &self,
         context: &SharedStyleContext,
-        node: &ServoLayoutNode,
+        node: &ServoThreadSafeLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         match self {
@@ -1696,9 +1695,13 @@ impl InlineFormattingContext {
         }
     }
 
-    pub(crate) fn repair_style(&self, node: &ServoLayoutNode, new_style: &Arc<ComputedValues>) {
+    pub(crate) fn repair_style(
+        &self,
+        node: &ServoThreadSafeLayoutNode,
+        new_style: &Arc<ComputedValues>,
+    ) {
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
-        *self.shared_inline_styles.selected.borrow_mut() = node.to_threadsafe().selected_style();
+        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
     }
 
     pub(super) fn layout(
