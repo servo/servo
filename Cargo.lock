@@ -1355,16 +1355,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
-name = "colored"
-version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
-dependencies = [
- "lazy_static",
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "combine"
 version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1984,9 +1974,6 @@ name = "diplomat-runtime"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29f9efe348e178ba77b6035bc6629138486f8b461654e7ac7ad8afaa61bd4d98"
-dependencies = [
- "log",
-]
 
 [[package]]
 name = "diplomat_core"
@@ -2521,7 +2508,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0febbeb1118a9ecdee6e4520ead6b54882e843dd0592ad233247dbee84c53db8"
 dependencies = [
  "displaydoc",
- "ryu",
  "smallvec",
  "writeable",
 ]
@@ -4018,7 +4004,6 @@ checksum = "acc33c4f501b515cdb6b583b31ec009479a4c0cb4cf28dcdfcd54b29069d725e"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
- "fixed_decimal",
  "icu_calendar",
  "icu_casemap",
  "icu_collator",
@@ -4036,8 +4021,6 @@ dependencies = [
  "icu_provider_adapters",
  "icu_segmenter",
  "icu_timezone",
- "log",
- "simple_logger",
  "tinystr",
  "unicode-bidi",
  "writeable",
@@ -4328,7 +4311,6 @@ dependencies = [
  "displaydoc",
  "icu_locid",
  "icu_provider_macros",
- "log",
  "stable_deref_trait",
  "tinystr",
  "writeable",
@@ -5267,7 +5249,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#0bebd6872b1a061b69bcfcf73162abf0af27eebc"
+source = "git+https://github.com/servo/mozjs#e0a4ee47e686f581faefb201a6fd73bd4dcd67f0"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -5279,8 +5261,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "0.137.0-1"
-source = "git+https://github.com/servo/mozjs#0bebd6872b1a061b69bcfcf73162abf0af27eebc"
+version = "0.137.0-2"
+source = "git+https://github.com/servo/mozjs#e0a4ee47e686f581faefb201a6fd73bd4dcd67f0"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -7895,18 +7877,6 @@ name = "simd-adler32"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
-
-[[package]]
-name = "simple_logger"
-version = "4.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e7e46c8c90251d47d08b28b8a419ffb4aede0f87c2eea95e17d1d5bacbf3ef1"
-dependencies = [
- "colored",
- "log",
- "time",
- "windows-sys 0.48.0",
-]
 
 [[package]]
 name = "simplecss"
