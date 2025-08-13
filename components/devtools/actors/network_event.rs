@@ -367,7 +367,7 @@ impl Actor for NetworkEventActor {
 
                     if Self::is_text_mime(&mime_type) {
                         let full_str = String::from_utf8_lossy(body).to_string();
-                        let initial: String = full_str.chars().take(1000).collect();
+                        let initial: String = full_str.chars().collect();
                         // Queue a LongStringActor for this body
                         let long_string_actor_name = format!("longStringActor{}", self.resource_id);
                         let long_string_actor = LongStringActor {
