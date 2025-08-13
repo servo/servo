@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+PerfTestRunner.measureTime({
+    description: "Measures performance of creating one million divs without retaining references, then running the garbage collector.",
+    run: function() {
+      (function() {
+          for (var i = 0; i < 1000000; i++)
+              document.createElement("div");
+      })();
+      PerfTestRunner.gc();
+  }
+});
+</script>
+</body>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Wavy decoration painting: one long decoration</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<style>
+* {
+  text-decoration-skip: none;
+  text-decoration-skip-ink: none;
+}
+main {
+  text-decoration: red wavy underline;
+}
+main.blue {
+  text-decoration: blue wavy underline;
+}
+</style>
+<main>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. </main>
+<script>
+  const main = document.querySelector("main");
+  main.innerHTML = main.innerHTML.repeat(420);
+
+  measurePaint({
+    description: "Measure frame time for painting wavy decorations with one long decoration",
+    run: () => void document.querySelector("main").classList.toggle("blue"),
+  });
+</script>

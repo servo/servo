@@ -1,0 +1,28 @@
+<script src="../resources/runner.js"></script>
+
+<div id="holder"></div>
+
+<script>
+const holderElement = document.getElementById("holder");
+customElements.define('my-element', class MyElement extends HTMLElement {
+  constructor() {
+    super();
+    const shadowRoot = this.attachShadow({mode: 'open'});
+    shadowRoot.innerHTML = '<style>:host { color: red; }</style>';
+  }
+});
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of styling custom elements with shadowRoot's innerHTML.",
+
+    run: function() {
+      holderElement.textContent = '';
+      for (i = 0; i < 100; i++) {
+        holderElement.appendChild(document.createElement('my-element'));
+        // force layout.
+        document.body.offsetWidth;
+      }
+    },
+    warmUpCount: 1,
+});
+</script>

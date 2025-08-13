@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<div id="host">
+  <div id="child"></div>
+</div>
+<script>
+  const host = document.querySelector("#host");
+  const shadow_root = host.attachShadow({ mode: 'open', slotAssignment: 'manual' });
+  const slot1 = document.createElement("slot");
+  const child1 = document.createElement("child");
+  const child = document.querySelector("#child");
+  slot1.assign(child1);
+  shadow_root.appendChild(slot1);
+  window.onload = function() {
+    PerfTestRunner.measureTime({
+      description: "Measure performance of insertBefore in manual-slotting mode in shadow root.",
+      run: function() {
+        const start = PerfTestRunner.now();
+        for (let i = 0; i < 100; i++) {
+          host.insertBefore(child1,child);
+          child1.remove();
+        }
+
+        return PerfTestRunner.now() - start;
+      }
+    });
+  }
+</script>

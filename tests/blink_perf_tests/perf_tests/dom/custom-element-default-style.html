@@ -1,0 +1,30 @@
+<script src="../resources/runner.js"></script>
+
+<div id="holder"></div>
+
+<script>
+const holderElement = document.getElementById("holder");
+
+const constructedStyleSheet = new CSSStyleSheet();
+constructedStyleSheet.insertRule("* { color: red; }");
+window.customElements.define("element-constructed", class extends HTMLElement {
+  constructor() {
+    super();
+  }
+}, { style: constructedStyleSheet });
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of styling custom elements with default style.",
+
+    run: function() {
+      holderElement.textContent = '';
+      for (i = 0; i < 100; i++) {
+        holderElement.appendChild(document.createElement('element-constructed'));
+        // force layout.
+        document.body.offsetWidth;
+      }
+    },
+
+    warmUpCount: 1,
+});
+</script>

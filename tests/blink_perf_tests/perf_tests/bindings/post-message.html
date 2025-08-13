@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var isDone = false;
+
+function runTest() {
+    var numRound = 1000;
+    var worker = new Worker('resources/worker.js');
+
+    var startTime = PerfTestRunner.now();
+    worker.onmessage = function(event) {
+        numRound--;
+        if (numRound > 0) {
+            worker.postMessage('next');
+        } else {
+            PerfTestRunner.measureValueAsync(PerfTestRunner.now() - startTime);
+            if (!isDone)
+                runTest();
+        }
+    };
+    worker.postMessage('start');
+}
+
+function testDone() {
+    isDone = true;
+}
+
+window.onload = function () {
+    PerfTestRunner.startMeasureValuesAsync({
+        description: "Measures time to run 1000 postMessage round trips in serial.",
+        unit: 'ms',
+        run: runTest,
+        done: testDone,
+    });
+};
+</script>
+<div id="log"></div>
+</body>

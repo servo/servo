@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Measure :focus update for a simple cursor change</title>
+    <script src="../resources/runner.js"></script>
+    <style type="text/css">
+        body { margin: 0 }
+        a { cursor: pointer; }
+        a:focus { cursor: crosshair; }
+    </style>
+</head>
+<body>
+    <script>
+        for (var i=0; i<100; i++) {
+            document.write('<div>');
+            for (var j=0; j<100; j++)
+                document.write('<a></a>');
+            document.write('</div>');
+        }
+    </script>
+    <div id="test"><a href="."></a><a href="."></div></div>
+    <script type="text/javascript">
+        document.body.offsetTop; // Force layout.
+
+        var testDiv = document.getElementById("test");
+        var a1 = testDiv.firstChild;
+        var a2 = a1.nextSibling;
+
+        PerfTestRunner.measureRunsPerSecond({
+        description: "Measure :focus update for a simple cursor change",
+        run:function() {
+            a1.focus();
+            document.body.offsetTop; // Update layout for focused state.
+            a2.focus();
+            document.body.offsetTop; // Update layout for focused state.
+        }});
+    </script>
+</body>
+</html>

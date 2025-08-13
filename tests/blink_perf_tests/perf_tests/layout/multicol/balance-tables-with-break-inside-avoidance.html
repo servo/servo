@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<script src="../../resources/runner.js"></script>
+<style>
+  #target .table {
+    display: table;
+    width: 100%;
+  }
+  .table > div {
+    display: table-row;
+  }
+  .table > div > div {
+    display: table-cell;
+    padding-bottom: 8px;
+  }
+</style>
+<pre id="log"></pre>
+<div style="overflow:hidden; width:0; height:0;">
+  <div id="target" style="columns:3; orphans:1; widows:1; width:40em; line-height: 20px;">
+    <div style="break-inside: avoid;">
+      <div style="height:30px;"></div>
+      <div class="table">
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+      </div>
+    </div>
+    <div style="break-inside: avoid;">
+      <div style="height:30px;"></div>
+      <div class="table">
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+      </div>
+    </div>
+    <div style="break-inside: avoid;">
+      <div style="height:30px;"></div>
+      <div class="table">
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+      </div>
+    </div>
+    <div style="break-inside: avoid;">
+      <div style="height:30px;"></div>
+      <div class="table">
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+      </div>
+    </div>
+    <div style="break-inside: avoid;">
+      <div style="height:30px;"></div>
+      <div class="table">
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+	<div><div><br></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  var target = document.getElementById("target");
+  var style = target.style;
+
+  function test() {
+    style.display = "block";
+    PerfTestRunner.forceLayout();
+    style.display = "none";
+    PerfTestRunner.forceLayout();
+  }
+
+  PerfTestRunner.measureRunsPerSecond({
+    description: "Lists items with tall markers in balanced multicol.",
+    run: test
+  });
+</script>

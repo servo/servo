@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<style>
+#test-container span {
+    float: left; /* This is the root cause */
+    width: 18px;
+    height: 18px;
+}
+</style>
+<div id="test-container"></div>
+<script src="../resources/runner.js"></script>
+<script>
+    var count = 3000;
+
+    function addFloats() {
+        var container = document.getElementById("test-container");
+        var newDiv = document.createElement("div");
+        for (var i = 0; i < count; i++) {
+            var span = document.createElement("span");
+            newDiv.appendChild(span);
+        }
+        container.appendChild(newDiv);
+    };
+
+    function removeFloats() {
+        var container = document.getElementById("test-container");
+        if (container.lastChild) container.removeChild(container.lastChild);
+    }
+
+    function test() {
+        addFloats();
+        PerfTestRunner.forceLayout();
+        removeFloats();
+    }
+
+    PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of removing floats in a block with a lot of inline children.",
+    run: test
+});
+</script>
+</html>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/worker-structured-clone-perf-test.js"></script>
+<script>
+WorkerStructuredClonePerfTestRunner.measureTimeAsync({
+  description: "Measures performance of sending JSON data representing a Worker DOM DBMon from a worker back to the main thread using deserialization.",
+  data: JSON.parse(PerfTestRunner.loadFile("resources/data/WorkerDOM-DBMon.json")),
+  measure: "fromWorker",
+});
+</script>
+</body>

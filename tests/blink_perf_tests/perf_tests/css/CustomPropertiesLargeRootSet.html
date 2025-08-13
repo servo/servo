@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+    <style>
+    </style>
+</head>
+<body>
+    <script>
+        function createDOMChainWithCustomProps(node, depth) {
+            if (!depth) {
+                return;
+            }
+            let div = document.createElement("div");
+            let style = 'cursor: crosshair;';  // Avoid matched properties cache.
+
+            let props = [];
+            let value = 2**32;
+            for (let i = 0; i < 100; ++i) {
+                props.push(`--property-with-long-name-and-value-${depth}-${i}: ${value.toString(2)};`);
+                // Use a unique value every time to avoid optimization that might
+                // utilize identical values.
+                value--;
+            }
+
+            div.style = style + props.join('\n');
+            node.appendChild(div);
+            createDOMChainWithCustomProps(div, depth - 1);
+        }
+        createDOMChainWithCustomProps(document.body, 1000);
+
+        PerfTestRunner.measureTime({
+            description: 'Measure impact inheriting large numbers of unchanged custom properties.',
+            run: function() {
+                document.body.style = 'display: none';
+                forceStyleRecalc(document.body);
+                document.body.style = '';
+                forceStyleRecalc(document.body);
+            }
+        });
+    </script>
+</body>
+</html>

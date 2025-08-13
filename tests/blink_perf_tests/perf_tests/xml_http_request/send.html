@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script>
+// Use measureTime instead of runsPerSecond to avoid a ridiculous number of requests in flight.
+// 100 is realistic, 1000 is plausible, but 10000 is crazy.
+PerfTestRunner.measureTime({
+    description: "Measure the time it takes to create, open, and send 1000 async XMLHttpRequests",
+    run: function() {
+        var xhrs = [];
+        for (var i = 0; i < 1000; ++i) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "file" + i + ".txt", true);
+            xhr.send();
+            xhrs.push(xhr);
+        }
+    },
+});
+</script>

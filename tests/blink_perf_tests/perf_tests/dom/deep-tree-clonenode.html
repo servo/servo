@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+
+<div id="source" style="display:none">
+  <div></div>
+</div>
+<div id="destination" style="display:none"></div>
+
+<script>
+'use strict';
+
+var sourceEl = document.getElementById('source').firstElementChild;
+var destinationEl = document.getElementById('destination');
+
+function buildTree(depth,parent) {
+  while (depth--) {
+    parent = parent.appendChild(document.createElement('span'));
+  }
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: 'Measure the speed of cloning and appending a very deep tree',
+  setup: () => {
+    const treeDepth = 10000;
+    if (!sourceEl.childNodes.length) {
+      sourceEl.replaceChildren();
+      buildTree(treeDepth, sourceEl);
+      PerfTestRunner.assert_true(sourceEl.querySelectorAll('span').length === treeDepth,'Tree depth mismatch');
+    }
+    destinationEl.replaceChildren();
+    PerfTestRunner.gc();
+  },
+  run: () => {
+    destinationEl.appendChild(sourceEl.cloneNode(true));
+  }
+});
+</script>

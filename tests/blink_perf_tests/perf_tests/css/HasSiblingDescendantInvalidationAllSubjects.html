@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+  div { color: grey }
+  .a:has(~ .b .c) { color: green }
+</style>
+</head>
+<body>
+<div id=container></div></div>
+<script>
+
+function makeTree(element, depth, children) {
+  if (depth <= 0) {
+    var child = document.createElement("div");
+    child.id = 'sibling_descendant';
+    element.appendChild(child);
+    return;
+  }
+
+  for (var i = 0; i < children - 1; i++) {
+    var child = document.createElement("div");
+    child.classList.add("a");
+    child.id = 'subject_' + depth + '_' + i;
+    element.appendChild(child);
+  }
+  var child = document.createElement("div");
+  child.classList.add("b");
+  element.appendChild(child);
+  makeTree(child, depth - 1, children);
+}
+
+makeTree(container, 10, 10);
+container.offsetHeight; // force recalc style
+
+var runFunction = function()
+{
+  sibling_descendant.classList.toggle("c");
+  container.offsetHeight; // force recalc style
+  sibling_descendant.classList.toggle("c");
+  container.offsetHeight; // force recalc style
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "Measures performance of the '.a:has(~ .b .c)' invalidation with all subject elements.",
+  run: runFunction
+});
+
+</script>
+</body>
+</html>

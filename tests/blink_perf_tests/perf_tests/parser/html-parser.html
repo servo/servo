@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var spec = PerfTestRunner.loadFile("resources/html5.html");
+
+PerfTestRunner.measureTime({
+    description: "Measures performance of the HTML parser.",
+    run: function() {
+        var iframe = document.createElement("iframe");
+        iframe.style.display = "none";  // Prevent creation of the rendering tree, so we only test HTML parsing.
+        iframe.sandbox = 'allow-same-origin';  // Prevent external script loads which could cause write() to return before completing the parse.
+        document.body.appendChild(iframe);
+        iframe.contentDocument.open();
+        iframe.contentDocument.write(spec);
+        iframe.contentDocument.close();
+        document.body.removeChild(iframe);
+    }
+});
+
+</script>
+</body>

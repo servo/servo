@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+  #container {
+      display: flex;
+      flex-direction: column;
+      height: 100px;
+  }
+  .flex-row {
+      display: flex;
+      flex-direction: row;
+      overflow: hidden;
+  }
+  .flex-column {
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: auto;
+  }
+</style>
+
+<div id="container">
+  <div class="flex-row">
+    <div class="flex-column">
+      <div class="flex-row">
+	<div class="flex-column">
+	  <div class="flex-row">
+	    <div class="flex-column">
+	      <div class="flex-row">
+		<div class="flex-column">
+		  <div class="flex-row">
+		    <div class="flex-column">
+		      <div class="flex-row">
+			<div class="flex-column">
+			  <div class="flex-row">
+			    <div class="flex-column">
+			      <div class="flex-row">
+				<div class="flex-column">
+				  <div class="flex-row">
+				    <div class="flex-column">
+				      <div class="flex-row">
+					<div class="flex-column">
+					  <div class="flex-row">
+					    <div class="flex-column">
+					      <div class="flex-row">
+						<div class="flex-column">
+                                                  <div>
+						    <div id="descendant"></div>
+						    <div style="width:100px; height:2000px;"></div>
+						  </div>
+						</div>
+					      </div>
+					    </div>
+					  </div>
+					</div>
+				      </div>
+				    </div>
+				  </div>
+				</div>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+		      </div>
+		    </div>
+		  </div>
+		</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function runTest() {
+      document.body.offsetTop;
+      descendant.style.display = "none";
+      document.body.offsetTop;
+      descendant.style.display = "block";
+      document.body.offsetTop;
+  }
+
+  PerfTestRunner.measureRunsPerSecond({
+      description: "Nested flex containers with alternating row and column flow, with auto overflow",
+      run: runTest
+  });
+</script>
+

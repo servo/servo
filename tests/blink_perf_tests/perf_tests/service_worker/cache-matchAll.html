@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src='../resources/runner.js'></script>
+</head>
+<body>
+<script>
+
+function runTest() {
+  navigator.serviceWorker.addEventListener('message', (msg) => {
+    PerfTestRunner.recordResultFromWorker(msg.data);
+  });
+
+  const script =
+      '/service_worker/resources/cache-matchAll-service-worker.js';
+  const scope = '/service_worker/resources/';
+
+  navigator.serviceWorker.register(script, { scope: scope }).catch((error) => {
+    PerfTestRunner.logFatalError(
+        'Failed to register service worker script:' + script);
+  });
+  return;
+}
+
+PerfTestRunner.startMeasureValuesInWorker({
+  description: 'Measure performance of Cache.matchAll().',
+  unit: 'ms',
+  run: runTest
+});
+</script>
+</body>
+</html>

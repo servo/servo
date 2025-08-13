@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="test-target">
+    <div>
+        <div></div>
+        <div>
+            <p></p>
+            <p></p>
+            <p></p>
+        </div>
+        <div></div>
+    </div>
+    <div>
+        <div>
+            <p></p>
+        </div>
+    </div>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+</div>
+<script src="../resources/runner.js"></script>
+<script>
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark tests CSS Selector performance with querySelector().",
+    run: function() {
+        for (var i = 0; i < 100; i++) {
+            document.querySelector("p:first-child");
+            document.querySelector("p:last-child");
+            document.querySelector("p:first-of-type");
+            document.querySelector("p:last-of-type");
+            document.querySelector("p:nth-child(4n+3)");
+            document.querySelector("p:nth-last-child(4n+3)");
+            document.querySelector("p:nth-of-type(4n+3)");
+            document.querySelector("p:nth-last-of-type(4n+3)");
+        }
+    }
+});
+</script>
+</body>
+</html>

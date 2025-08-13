@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<div id=root></div>
+<script>
+
+function setup() {
+  createDOMTree(root, /* siblings */ 8, /* depth */ 4);
+
+  let leaf = document.querySelector('#root div:empty');
+  let leaf_style = document.createElement('style');
+
+  // Create many non-matching rules with an expensive selector
+  // implicitly scoped to a leaf node in the tree.
+  //
+  // @scope {
+  //   :not(.a0, .a1, ... .aN):not(div) { --x: 0; }
+  //   :not(.a0, .a1, ... .aN):not(div) { --x: 1; }
+  //   .
+  //   .
+  //   .
+  //   :not(.a0, .a1, ... .aN):not(div) { --x: M; }
+  // }
+  leaf_style.textContent = (() => {
+    const PSEUDO_NOT_COUNT = 50;
+    let selector = `:not(${[...Array(PSEUDO_NOT_COUNT).keys()].map(x => `.a${x}`).join(', ')}):not(div)`;
+    const RULES = 100;
+    let rules = [...Array(RULES).keys()].map(x => `${selector} { --x:${x}; }`).join('\n');
+    return `
+      @scope {
+        ${rules}
+      }
+    `;
+  })();
+
+  return [leaf, leaf_style];
+}
+
+const [leaf, leaf_style] = setup();
+
+PerfTestRunner.measureTime({
+    description: 'Insertion of stylesheet with implicit @scope',
+    run: () => {
+      leaf.append(leaf_style);
+      root.offsetTop;
+      leaf_style.remove();
+      root.offsetTop;
+    }
+});
+
+</script>
+

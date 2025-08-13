@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<body>
+<style>
+textarea:valid {
+    background-color: lime;
+}
+textarea:invalid {
+    background-color: red;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<textarea maxlength=2147483647 id="container"></textarea>
+<script>
+var container = document.getElementById('container');
+var nodes = [];
+var childCount = 1000;
+// Vary the text nodes added, avoiding secondary effects of using identical strings and allocation reuse.
+for (var i = 0; i < childCount; ++i)
+    nodes.push(document.createTextNode('A quick brown fox jumps over the ' + i + 'th lazy dog.\n'));
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of adding text nodes to a textarea, then clearing it.",
+    run: function() {
+        for (var i = 0; i < childCount; ++i)
+            container.appendChild(nodes[i]);
+        container.innerHTML = '';
+    }
+});
+</script>
+</body>

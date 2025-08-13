@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<style>
+  .column {
+    width: 180px;
+    height: 310px;
+    border: 1px solid black;
+    font-size: 1px;
+  }
+  .row {
+    width: 150px;
+    border: 1px solid cornflowerblue;
+  }
+  .row > span {
+    border: 1px solid rebeccapurple;
+  }
+</style>
+<script>
+// This test measures the lifecycle update performance of changing paint offset.
+
+// Create a column with many rows of divs and many spans on each row.
+function createColumn(parent) {
+  var rowsPerColumn = 200;
+  var spansPerRow = 100;
+  var columnDiv = document.createElement('div');
+  parent.appendChild(columnDiv);
+  columnDiv.setAttribute('class', 'column');
+  for (var row = 0; row < rowsPerColumn; row++) {
+    var rowDiv = document.createElement('div');
+    rowDiv.setAttribute('class', 'row');
+    columnDiv.appendChild(rowDiv);
+    for (var span = 0; span < spansPerRow; span++) {
+      var spanElement = document.createElement('span');
+      rowDiv.appendChild(spanElement);
+    }
+  }
+  return columnDiv;
+}
+
+var rowMarginsToChange = createColumn(document.body).querySelectorAll('.row');
+var changeRowMargins = function(runCount) {
+  for (var index = 0; index < rowMarginsToChange.length; index++)
+    rowMarginsToChange[index].style.marginLeft = (runCount % 10) + 'px';
+}
+
+var spanMarginsToChange = createColumn(document.body).querySelectorAll('.row > span');
+var changeRowSpanMargins = function(runCount) {
+  for (var index = 0; index < spanMarginsToChange.length; index += 8)
+    spanMarginsToChange[index].style.marginLeft = ((runCount + index) % 3) + 'px';
+}
+
+var firstRowHeightToChange = createColumn(document.body).querySelector('.row');
+var changeFirstRowHeight = function(rowCount) {
+  firstRowHeightToChange.style.height = (5 + runCount % 5) + 'px';
+}
+
+var runCount = 0;
+measurePaint({
+  run: function() {
+    runCount++;
+    changeRowMargins(runCount);
+    changeRowSpanMargins(runCount);
+    changeFirstRowHeight(runCount);
+  },
+});
+</script>
+</body>

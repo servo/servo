@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var domParser = new DOMParser();
+var xmlArray = [];
+
+xmlArray.push('<root>');
+for (var i = 0; i < 0x7FFF; ++i)
+    xmlArray.push('<item attribute1="value1" attribute2="value2" attribute3="value3" attribute4="value4" attribute5="value5" />');
+xmlArray.push('</root>')
+var xmlData = xmlArray.join('');
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of the XML parser.",
+    run: function() {
+        domParser.parseFromString(xmlData, "text/xml");
+    }
+});
+</script>
+</body>

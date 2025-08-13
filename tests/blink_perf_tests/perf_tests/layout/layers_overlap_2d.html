@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Performance tester for non-overlaping 2D layers</title>
+        <style>
+            .container {
+                position: relative;
+                width: 20px;
+                height: 20px;
+                border: 1px solid #AAA;
+                margin: 0 auto 5px;
+            }
+
+            .box {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                background: red;
+            }
+
+            .composited {
+                -webkit-transform: translateZ(1px);
+            }
+        </style>
+        <script src="../resources/runner.js"></script>
+    </head>
+    <body>
+        <pre id="log"></pre>
+        <script>
+            function createTestFunction(count) {
+                return function() {
+                    var container = document.createElement("div");
+                    for(i = 0; i < count; ++i) {
+                        var outer = document.createElement('div');
+                        outer.className = 'container';
+                        var inner = document.createElement('div');
+                        inner.className = 'box';
+                        if (i == 0) {
+                            // Use at least one 3D layer to trigger the overlap map checking.
+                            inner.className += " composited";
+                        }
+                        outer.appendChild(inner);
+                        container.appendChild(outer);
+                    }
+                    document.body.appendChild(container);
+                    PerfTestRunner.forceLayout();
+                    container.remove();
+                }
+            }
+            PerfTestRunner.measureTime({
+                description: "Measures performance of non-overlapping 2D layers.",
+                run: createTestFunction(5000)
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+#abs {
+  position: absolute;
+}
+.container {
+  position: relative;
+}
+</style>
+<body>
+<script>
+window.requestAnimationFrame(function () {
+  setupTest();
+  PerfTestRunner.measureTime({
+    description: "Measures performance of animating a deep absolute positioned object with siblings.",
+    run: runTest
+  });
+});
+
+let abspos;
+
+function setupTest() {
+  let container = document.body;
+  abspos = buildTree(container, 30);
+  appendSiblings(container, 50);
+}
+
+function runTest() {
+  for (let x = 0; x < 1000; x++) {
+    abspos.style.left = `${x}px`;
+    document.body.offsetTop;
+  }
+}
+
+// Create #abs element at the specified depth.
+// <div>
+//   <div>
+//     ...
+//       <div class=container>
+//         <div id=abs></div>
+//       </div>
+//     ...
+//   </div>
+// </div>
+function buildTree(parent, depth) {
+  if (depth > 0) {
+    let child = document.createElement('div');
+    parent.appendChild(child);
+    return buildTree(child, depth - 1);
+  }
+
+  parent.classList.add('container');
+  let abspos = document.createElement('div');
+  abspos.id = 'abs';
+  abspos.appendChild(document.createTextNode('abs'));
+  parent.appendChild(abspos);
+  return abspos;
+}
+
+function appendSiblings(parent, siblings) {
+  for (let i = 0; i < siblings; i++) {
+    let child = document.createElement('div');
+    child.appendChild(document.createTextNode(`sibling${i}`));
+    parent.appendChild(child);
+  }
+}
+</script>
+</body>

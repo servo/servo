@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<style>
+#log {
+ position: fixed; top: 0; left: 0;
+}
+::-webkit-scrollbar {
+  width:.75rem;
+  height:.75rem
+}
+html, body, x-table, table, div {
+  width: 100%;
+  height: 100%;
+}
+x-table {
+  display: table;
+}
+</style>
+<body id="target" style="overflow: auto;">
+  <x-table>
+    <div style="position: relative; overflow: auto;">
+      <div style="position: absolute; top: 0; left: 0;">
+        <x-table>
+          <x-table>
+            <x-table>
+              <x-table>
+                <x-table>
+                  <x-table>
+                    <x-table>
+                      <x-table>
+                        <x-table>
+                          <x-table>
+                            <table>
+                              <tr></tr>
+                              <tr>
+                                <td>
+                                  <div style="position: relative; overflow: auto;">
+                                    <div style="position: absolute; top: 0; left: 0;">
+                                      <x-table>
+                                        <x-table></x-table>
+                                      </x-table>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            </table>
+                          </x-table>
+                        </x-table>
+                      </x-table>
+                    </x-table>
+                  </x-table>
+                </x-table>
+              </x-table>
+            </x-table>
+          </x-table>
+        </x-table>
+      </div>
+    </div>
+  </x-table>
+</body>
+<script src="../resources/runner.js"></script>
+<script>
+const target = document.getElementById("target");
+const style = target.style;
+PerfTestRunner.measureRunsPerSecond({
+  description: "Measures performance of nested tables with overflow auto inner children.",
+  run: () => {
+    style.display = 'none';
+    PerfTestRunner.forceLayout();
+    style.display = 'block';
+    PerfTestRunner.forceLayout();
+  },
+});
+</script>

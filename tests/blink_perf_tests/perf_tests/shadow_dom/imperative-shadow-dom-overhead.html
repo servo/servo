@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<body>
+<pre id="log"></pre>
+<script src="../resources/runner.js"></script>
+<script src="resources/declarative.js"></script>
+<script>
+
+/* See third_party/blink/perf_tests/shadow_dom/shadow-dom-overhead.html
+   for methodology here. The differences here are:
+    1. No declarative shadow DOM is used.
+    2. A "loop at the end" polyfill is used, which is the fastest
+       known method for polyfilling declarative Shadow DOM [1].
+    3. The measurement is done via an iframe, so that the polyfill
+       can execute synchronously, immediately after parsing.
+
+  [1] https://github.com/mfreed7/declarative-shadow-dom/blob/master/README.md#results
+*/
+
+const depth = 6;
+const copies = 100;
+const shadowHtml = getShadowMarkup(false, depth, copies, /*lightDomDuplicates=*/1) + getPolyfillMarkup(/*escapeScript=*/true);
+const lightDomHtml1 = getShadowMarkup(false, depth, copies, /*lightDomDuplicates=*/1);
+const lightDomHtml2 = getShadowMarkup(false, depth, copies, /*lightDomDuplicates=*/2);
+
+async function runSingleTest() {
+  let samples = [];
+  for (let i = 0; i < 100; i++) {
+    const t1 = await measureLoadTimeIframe(lightDomHtml1);
+    const t2 = await measureLoadTimeIframe(shadowHtml);
+    const t3 = await measureLoadTimeIframe(lightDomHtml2);
+    if (t2 > t1 && t3 > t1) {
+      samples.push((t2-t1) / (t3-t1));
+    }
+  }
+  PerfTestRunner.assert_true(samples.length > 3,'Too many skipped measurements');
+  // The result is the total overhead, in *percent*, *per shadow root*.
+  return 100*median(samples);
+}
+
+let isDone = false;
+PerfTestRunner.startMeasureValuesAsync({
+  description: 'This benchmark tests the overhead of imperative Shadow DOM',
+  unit: 'percent',
+  run: async function() {
+    while (!isDone) {
+      PerfTestRunner.addRunTestStartMarker();
+      const test_result = await runSingleTest();
+      PerfTestRunner.measureValueAsync(test_result);
+      PerfTestRunner.addRunTestEndMarker();
+    }
+  },
+  done: () => {isDone = true;},
+  warmUpCount: 2,
+  iterationCount: 30,
+});
+
+</script>

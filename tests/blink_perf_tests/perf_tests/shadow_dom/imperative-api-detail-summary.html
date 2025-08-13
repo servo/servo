@@ -1,0 +1,31 @@
+<!doctype html>
+<script src="../resources/runner.js"></script>
+<details id="details">
+  <summary id="summary">summary</summary>
+</details>
+<summary id="summary1">added-summary1</summary>
+<summary id="summary2">added-summary2</summary>
+<script>
+  const host = document.querySelector("#details");
+  const sum = document.querySelector("#summary");
+  const sum1 = document.querySelector("#summary1");
+  const sum2 = document.querySelector("#summary2");
+  window.onload = function() {
+    PerfTestRunner.measureTime({
+      description: "Measure performance of built-in detail element when summary element is inserted.",
+      run: function() {
+        const start = PerfTestRunner.now();
+        for (let i = 0; i < 100; i++) {
+          host.appendChild(sum1);
+          host.insertBefore(sum2, sum);
+          PerfTestRunner.forceLayout();
+          sum1.remove();
+          sum2.remove();
+          PerfTestRunner.forceLayout();
+        }
+
+        return PerfTestRunner.now() - start;
+      }
+    });
+  }
+</script>

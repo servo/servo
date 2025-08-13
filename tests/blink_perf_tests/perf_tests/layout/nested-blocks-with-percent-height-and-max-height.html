@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<style>
+html, body {
+    height: 100%;
+}
+div {
+    height: 50%;
+    max-height: 50%;
+}
+</style>
+<div id="target" style="display: none;">
+    <div>
+        <div>
+            <div>
+                <div>
+                    <div>
+                        <div>
+                            <div>
+                                <div>
+                                    <div>
+                                        <div>
+                                            <div>
+                                                <div>
+                                                    <div>
+                                                        <div>
+                                                            <div>
+                                                                <div>
+                                                                    <div>
+                                                                        <div>
+                                                                            <div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../resources/runner.js"></script>
+<script>
+        var target = document.getElementById("target");
+        var style = target.style;
+
+        function test() {
+            style.display = "block";
+            PerfTestRunner.forceLayout();
+            style.display = "none";
+            PerfTestRunner.forceLayout();
+        }
+
+        PerfTestRunner.measureRunsPerSecond({
+        description: "Measures performance of nested divs with percent values for height and max-height.",
+        run: test
+});
+</script>
+</html>

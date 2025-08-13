@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <div id="holder">
+  </div>
+<script src="../resources/runner.js"></script>
+</script>
+<script>
+var holderElement = document.getElementById("holder");
+
+PerfTestRunner.measureTime({
+    description: "Measures performance of layout when adding many child elements.",
+
+    setup: function() {
+      while (holderElement.firstChild) {
+        holderElement.removeChild(holderElement.firstChild);
+      }
+    },
+
+    run: function() {
+        for (var i = 0; i < 50; ++i) {
+            var element = document.createElement("div");
+            element.title = 'dummy';
+            element.innerText = "FOO";
+            holderElement.appendChild(element);
+            PerfTestRunner.forceLayout();
+        }
+    },
+    warmUpCount: 3,
+    iterationCount: 5,
+    tracingCategories: 'blink',
+    traceEventsToMeasure: ['LocalFrameView::layout', 'UpdateLayoutTree']
+});
+</script>
+</body>
+</html>

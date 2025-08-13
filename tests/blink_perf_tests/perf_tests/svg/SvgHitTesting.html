@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0px;
+      }
+      #container {
+        background-color: #eee;
+        width: 600px;
+        height: 400px;
+      }
+      #title {
+        position: absolute;
+        top: 400px;
+        left: 0px;
+        font-family: sans-serif;
+        font-size: 30px;
+        text-align: right;
+        width: 600px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="title">SVG Hit Testing</div>
+      <div id="container">
+        <svg id="svg" width="600" height="400" xmlns="http://www.w3.org/2000/svg" version="1.0">
+          <g id="shapes1" transform="translate(-60, -20)">
+            <circle cx="100" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="all"/>
+            <circle cx="300" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleFill" />
+            <circle cx="500" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleStroke" />
+            <ellipse cx="100" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="all" />
+            <ellipse cx="300" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleFill" />
+            <ellipse cx="500" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleStroke" />
+            <rect x="50" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="all" />
+            <rect x="250" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleFill" />
+            <rect x="450" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleStroke" />
+            <path d="M50,300 C75,200 75,200 100,300 S125,400 150,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="all" />
+            <path d="M250,300 C275,200 275,200 300,300 S325,400 350,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleFill" />
+            <path d="M450,300 C475,200 475,200 500,300 S525,400 550,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleStroke" />
+          </g>
+          <g id="shapes2" transform="translate(-30, -10)">
+            <circle cx="100" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="all"/>
+            <circle cx="300" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleFill" />
+            <circle cx="500" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleStroke" />
+            <ellipse cx="100" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="all" />
+            <ellipse cx="300" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleFill" />
+            <ellipse cx="500" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleStroke" />
+            <rect x="50" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="all" />
+            <rect x="250" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleFill" />
+            <rect x="450" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleStroke" />
+            <path d="M50,300 C75,200 75,200 100,300 S125,400 150,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="all" />
+            <path d="M250,300 C275,200 275,200 300,300 S325,400 350,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleFill" />
+            <path d="M450,300 C475,200 475,200 500,300 S525,400 550,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleStroke" />
+          </g>
+          <g id="shapes3" transform="translate(0, 0)">
+            <circle cx="100" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="all"/>
+            <circle cx="300" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleFill" />
+            <circle cx="500" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleStroke" />
+            <ellipse cx="100" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="all" />
+            <ellipse cx="300" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleFill" />
+            <ellipse cx="500" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleStroke" />
+            <rect x="50" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="all" />
+            <rect x="250" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleFill" />
+            <rect x="450" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleStroke" />
+            <path d="M50,300 C75,200 75,200 100,300 S125,400 150,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="all" />
+            <path d="M250,300 C275,200 275,200 300,300 S325,400 350,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleFill" />
+            <path d="M450,300 C475,200 475,200 500,300 S525,400 550,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleStroke" />
+          </g>
+          <g id="shapes4" transform="translate(30, 10)">
+            <circle cx="100" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="all"/>
+            <circle cx="300" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleFill" />
+            <circle cx="500" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleStroke" />
+            <ellipse cx="100" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="all" />
+            <ellipse cx="300" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleFill" />
+            <ellipse cx="500" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleStroke" />
+            <rect x="50" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="all" />
+            <rect x="250" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleFill" />
+            <rect x="450" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleStroke" />
+            <path d="M50,300 C75,200 75,200 100,300 S125,400 150,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="all" />
+            <path d="M250,300 C275,200 275,200 300,300 S325,400 350,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleFill" />
+            <path d="M450,300 C475,200 475,200 500,300 S525,400 550,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleStroke" />
+          </g>
+          <g id="shapes5" transform="translate(60, 20)">
+            <circle cx="100" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="all"/>
+            <circle cx="300" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleFill" />
+            <circle cx="500" cy="75" r="40" fill="#feae00" stroke="#f31900" stroke-width="15" pointer-events="visibleStroke" />
+            <ellipse cx="100" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="all" />
+            <ellipse cx="300" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleFill" />
+            <ellipse cx="500" cy="150" rx="50" ry="40" fill="#d4ecfb" stroke="#3364c2" stroke-width="15" pointer-events="visibleStroke" />
+            <rect x="50" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="all" />
+            <rect x="250" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleFill" />
+            <rect x="450" y="175" width="100" height="100" fill="#f7d72b" stroke="#db8409" stroke-width="15" pointer-events="visibleStroke" />
+            <path d="M50,300 C75,200 75,200 100,300 S125,400 150,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="all" />
+            <path d="M250,300 C275,200 275,200 300,300 S325,400 350,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleFill" />
+            <path d="M450,300 C475,200 475,200 500,300 S525,400 550,300" fill="#e0fb00" stroke="#44c400" stroke-width="15" pointer-events="visibleStroke" />
+          </g>
+        </svg>
+      </div>
+    </div>
+    <script src="../resources/runner.js"></script>
+    <script>
+      PerfTestRunner.measureTime({run: function() {
+        for (var i = 0; i < 6000; i++) {
+          var x = 600 * Math.random();
+          var y = 400 * Math.random();
+          var el = document.elementFromPoint(x, y);
+        }
+      }, done:function() {
+        var wrapper = document.getElementById('wrapper');
+        if (wrapper)
+          wrapper.parentNode.removeChild(wrapper);
+      }});
+    </script>
+  </body>
+</html>

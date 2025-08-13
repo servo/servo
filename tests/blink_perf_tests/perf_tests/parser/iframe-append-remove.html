@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark tests adding/removing an iframe from the DOM",
+    run: function() {
+        var iframe = document.createElement("iframe");
+        document.body.appendChild(iframe);
+        document.body.removeChild(iframe);
+    }});
+</script>
+</body>
+</html>

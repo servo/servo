@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+PerfTestRunner.measureTime({
+    description: "Measures performance of creating a half million divs that contain spans without retaining references, then running the garbage collector.",
+    run: function() {
+      (function() {
+          for (var i = 0; i < 500000; i++)
+              document.createElement("div").appendChild(document.createElement("span"));
+      })();
+      PerfTestRunner.gc();
+  }
+});
+</script>
+</body>

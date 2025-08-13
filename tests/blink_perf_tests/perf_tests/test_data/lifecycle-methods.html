@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+  function assertEquals(a, b, msg) {
+      if (a != b)
+          throw new Error(msg + ": " + a + " != " + b);
+  }
+  let setups = 0;
+  let runs = 0;
+  let teardowns = 0;
+  const warmUpCount = 3;
+  const iterationCount = 5;
+  PerfTestRunner.measureTime({
+      setup: function() {
+          setups++;
+          assertEquals(runs, setups - 1);
+          assertEquals(teardowns, setups - 1);
+      },
+      run: function() {
+          runs++;
+          assertEquals(runs, setups);
+          assertEquals(teardowns, setups - 1);
+      },
+      teardown: function() {
+          teardowns++;
+          assertEquals(runs, setups);
+          assertEquals(teardowns, setups);
+      },
+      "warmUpCount": warmUpCount,
+      "iterationCount": iterationCount,
+  });
+</script>
+</body>
