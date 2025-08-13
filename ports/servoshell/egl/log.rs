@@ -4,7 +4,7 @@
 
 //! Helper Module to redirect stdout/stderr to the logging sink
 
-use std::os::fd::{AsRawFd, IntoRawFd, RawFd};
+use std::os::fd::{IntoRawFd, RawFd};
 use std::thread;
 
 use log::{debug, error, info, warn};
@@ -34,12 +34,19 @@ pub(crate) fn redirect_stdout_and_stderr() -> Result<(), LogRedirectError> {
     // The first step is to redirect stdout and stderr to the logs.
     // We redirect stdout and stderr to a custom descriptor.
     let (readerfd, writerfd) = nix::unistd::pipe().map_err(LogRedirectError::CreatePipeFailed)?;
-    // Leaks the writer fd. We want to log for the whole program lifetime.
-    let raw_writerfd = writerfd.into_raw_fd();
-    let _fd = nix::unistd::dup2(raw_writerfd, RawFd::from(1))
-        .map_err(LogRedirectError::RedirectToPipeFailed)?;
-    let _fd = nix::unistd::dup2(raw_writerfd, RawFd::from(2))
-        .map_err(LogRedirectError::RedirectToPipeFailed)?;
+    // SAFETY: `writerfd`, `fd1` and `fd2` are all `OwnedFd`s for the same file.
+    // We take care to leak all 3 of them to ensure the writerfd is not closed, and thus
+    // naturally also prevent double closes.
+    unsafe {
+        let fd1 = nix::unistd::dup2_raw(&writerfd, RawFd::from(1))
+            .map_err(LogRedirectError::RedirectToPipeFailed)?;
+        let fd2 = nix::unistd::dup2_raw(&writerfd, RawFd::from(2))
+            .map_err(LogRedirectError::RedirectToPipeFailed)?;
+        // Leaks the writer fds. We want to log for the whole program lifetime.
+        let _ = writerfd.into_raw_fd();
+        let _ = fd1.into_raw_fd();
+        let _ = fd2.into_raw_fd();
+    }
 
     // Then we spawn a thread whose only job is to read from the other side of the
     // pipe and redirect to the logs.
@@ -52,7 +59,7 @@ pub(crate) fn redirect_stdout_and_stderr() -> Result<(), LogRedirectError> {
         loop {
             let result = {
                 let read_into = &mut buf[cursor..];
-                nix::unistd::read(readerfd.as_raw_fd(), read_into)
+                nix::unistd::read(&readerfd, read_into)
             };
 
             let end = match result {
