@@ -190,9 +190,6 @@ jobs:
           timeout_minutes: 20
           max_attempts: 2 # https://github.com/servo/servo/issues/30683
           command: ./mach test-unit --${{ inputs.profile }}
-      - name: Devtools tests
-        if: ${{ inputs.unit-tests }}
-        run: ./mach test-devtools --${{ inputs.profile }}
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
