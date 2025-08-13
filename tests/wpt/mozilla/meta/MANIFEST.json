@@ -10,6 +10,13 @@
      ]
     ],
     "canvas": {
+     "text-metrics-for-unpaintable-crash.html": [
+      "5acecfd691acec60a155c1ec1ab571e0a8efb471",
+      [
+       null,
+       {}
+      ]
+     ],
      "toblob-then-change-size-crash.html": [
       "355474b4832dde985a73baad925702bbb0cbc73f",
       [
