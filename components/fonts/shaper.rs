@@ -264,13 +264,19 @@ impl Shaper {
                 })
             }
 
-            for (tag, value) in &options.variation_settings {
-                let variations = &[hb_variation_t {
-                    tag: *tag,
-                    value: value.0,
-                }];
+            if servo_config::pref!(layout_variable_fonts_enabled) {
+                for (tag, value) in &options.variation_settings {
+                    let variations = &[hb_variation_t {
+                        tag: *tag,
+                        value: value.0,
+                    }];
 
-                hb_font_set_variations(self.hb_font, variations.as_ptr(), variations.len() as u32);
+                    hb_font_set_variations(
+                        self.hb_font,
+                        variations.as_ptr(),
+                        variations.len() as u32,
+                    );
+                }
             }
 
             hb_shape(

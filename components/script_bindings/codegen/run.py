@@ -122,6 +122,7 @@ def add_css_properties_attributes(css_properties_json: str, parser: Parser) -> N
             ["layout.css.transition-behavior.enabled", "layout_css_transition_behavior_enabled"],
             ["layout.writing-mode.enabled", "layout_writing_mode_enabled"],
             ["layout.container-queries.enabled", "layout_container_queries_enabled"],
+            ["layout.variable_fonts.enabled", "layout_variable_fonts_enabled"]
         ]
         for mapping in MAPPING:
             if mapping[0] == preference_name:

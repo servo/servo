@@ -410,3 +410,59 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
         Ok(())
     }
 }
+
+/// Applies to provided variations to the font face.
+///
+/// ## SAFETY:
+/// * `face` must point to a valid `FT_FaceRec` structure.
+unsafe fn set_variations_for_font(
+    face: FT_Face,
+    variations: &[(u32, VariationValue)],
+    library: &FreeTypeLibraryHandle,
+) -> Result<(), &'static str> {
+    if !FT_HAS_MULTIPLE_MASTERS(face) ||
+        variations.is_empty() ||
+        !servo_config::pref!(layout_variable_fonts_enabled)
+    {
+        // Nothing to do
+        return Ok(());
+    }
+
+    // Query variation axis of font
+    let mut mm_var: *mut FT_MM_Var = ptr::null_mut();
+    let result = unsafe { FT_Get_MM_Var(face, &mut mm_var as *mut _) };
+    if !result.succeeded() {
+        return Err("Failed to query font variations");
+    }
+
+    // Prepare values for each axis. These are either the provided values (if any) or the default
+    // ones for the axis.
+    let num_axis = unsafe { (*mm_var).num_axis } as usize;
+
+    let mut coords = vec![0; num_axis];
+    for (index, coord) in coords.iter_mut().enumerate() {
+        let axis_data = unsafe { (*mm_var).axis.add(index) };
+        *coord = variations
+            .iter()
+            .find(|(tag, _)| *tag == unsafe { (*axis_data).tag as u32 })
+            .map(|(_, value)| {
+                // Freetype expects the value to be in a 16.16 fixed point format
+                (value.0 * 16.0_f32.exp2()) as i64
+            })
+            .unwrap_or(unsafe { (*axis_data).def });
+    }
+
+    // Free the MM_Var structure
+    unsafe {
+        FT_Done_MM_Var(library.freetype_library, mm_var);
+    }
+
+    // Set the values for each variation axis
+    let result =
+        unsafe { FT_Set_Var_Design_Coordinates(face, coords.len() as u32, coords.as_ptr()) };
+    if !result.succeeded() {
+        return Err("Could not set variations for font face");
+    }
+
+    Ok(())
+}
