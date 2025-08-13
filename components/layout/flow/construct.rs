@@ -171,11 +171,10 @@ impl BlockContainer {
             if let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info) {
                 match marker_info.style.clone_list_style_position() {
                     ListStylePosition::Inside => {
-                        builder.handle_list_item_marker_inside(&marker_info, info, marker_contents)
+                        builder.handle_list_item_marker_inside(&marker_info, marker_contents)
                     },
                     ListStylePosition::Outside => builder.handle_list_item_marker_outside(
                         &marker_info,
-                        info,
                         marker_contents,
                         info.style.clone(),
                     ),
@@ -299,9 +298,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
                 self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
             }
 
-            let box_slot = table_info
-                .node
-                .pseudo_element_box_slot(PseudoElement::ServoAnonymousTable);
+            let box_slot = table_info.node.box_slot();
             self.block_level_boxes.push(BlockLevelJob {
                 info: table_info,
                 box_slot,
@@ -408,19 +405,9 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
     fn handle_list_item_marker_inside(
         &mut self,
         marker_info: &NodeAndStyleInfo<'dom>,
-        container_info: &NodeAndStyleInfo<'dom>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
     ) {
-        // TODO: We do not currently support saving box slots for ::marker pseudo-elements
-        // that are part nested in ::before and ::after pseudo elements. For now, just
-        // forget about them once they are built.
-        let box_slot = match container_info.pseudo_element() {
-            Some(_) => BoxSlot::dummy(),
-            None => marker_info
-                .node
-                .pseudo_element_box_slot(PseudoElement::Marker),
-        };
-
+        let box_slot = marker_info.node.box_slot();
         self.handle_inline_level_element(
             marker_info,
             DisplayInside::Flow {
@@ -434,20 +421,10 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
     fn handle_list_item_marker_outside(
         &mut self,
         marker_info: &NodeAndStyleInfo<'dom>,
-        container_info: &NodeAndStyleInfo<'dom>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
         list_item_style: Arc<ComputedValues>,
     ) {
-        // TODO: We do not currently support saving box slots for ::marker pseudo-elements
-        // that are part nested in ::before and ::after pseudo elements. For now, just
-        // forget about them once they are built.
-        let box_slot = match container_info.pseudo_element() {
-            Some(_) => BoxSlot::dummy(),
-            None => marker_info
-                .node
-                .pseudo_element_box_slot(PseudoElement::Marker),
-        };
-
+        let box_slot = marker_info.node.box_slot();
         self.block_level_boxes.push(BlockLevelJob {
             info: marker_info.clone(),
             box_slot,
@@ -511,7 +488,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 // Ignore `list-style-position` here:
                 // “If the list item is an inline box: this value is equivalent to `inside`.”
                 // https://drafts.csswg.org/css-lists/#list-style-position-outside
-                self.handle_list_item_marker_inside(&marker_info, info, marker_contents)
+                self.handle_list_item_marker_inside(&marker_info, marker_contents)
             }
         }
 
@@ -682,7 +659,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         inline_formatting_context: InlineFormattingContext,
     ) {
         let layout_context = self.context;
-        let info = self
+        let anonymous_info = self
             .anonymous_box_info
             .get_or_insert_with(|| {
                 self.info
@@ -691,12 +668,9 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             })
             .clone();
 
-        let box_slot = self
-            .info
-            .node
-            .pseudo_element_box_slot(PseudoElement::ServoAnonymousBox);
+        let box_slot = anonymous_info.node.box_slot();
         self.block_level_boxes.push(BlockLevelJob {
-            info,
+            info: anonymous_info,
             box_slot,
             kind: BlockLevelCreator::SameFormattingContextBlock(
                 IntermediateBlockContainer::InlineFormattingContext(

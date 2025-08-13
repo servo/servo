@@ -71,8 +71,15 @@ impl FragmentTree {
 
         fragment_tree.find(|fragment, _level, containing_block| {
             if let Some(tag) = fragment.tag() {
-                invalid_animating_nodes.remove(&AnimationSetKey::new(tag.node, tag.pseudo));
-                invalid_image_animating_nodes.remove(&AnimationSetKey::new(tag.node, tag.pseudo));
+                // TODO: Support animations on nested pseudo-elements.
+                invalid_animating_nodes.remove(&AnimationSetKey::new(
+                    tag.node,
+                    tag.pseudo_element_chain.primary,
+                ));
+                invalid_image_animating_nodes.remove(&AnimationSetKey::new(
+                    tag.node,
+                    tag.pseudo_element_chain.primary,
+                ));
             }
 
             fragment.set_containing_block(containing_block);

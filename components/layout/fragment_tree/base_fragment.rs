@@ -4,10 +4,10 @@
 
 use bitflags::bitflags;
 use layout_api::combine_id_with_fragment_type;
+use layout_api::wrapper_traits::PseudoElementChain;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use style::dom::OpaqueNode;
-use style::selector_parser::PseudoElement;
 
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
@@ -114,23 +114,29 @@ malloc_size_of_is_0!(FragmentFlags);
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
 pub(crate) struct Tag {
     pub(crate) node: OpaqueNode,
-    pub(crate) pseudo: Option<PseudoElement>,
+    pub(crate) pseudo_element_chain: PseudoElementChain,
 }
 
 impl Tag {
     /// Create a new Tag for a non-pseudo element. This is mainly used for
     /// matching existing tags, since it does not accept an `info` argument.
     pub(crate) fn new(node: OpaqueNode) -> Self {
-        Tag { node, pseudo: None }
+        Tag {
+            node,
+            pseudo_element_chain: Default::default(),
+        }
     }
 
     /// Create a new Tag for a pseudo element. This is mainly used for
     /// matching existing tags, since it does not accept an `info` argument.
-    pub(crate) fn new_pseudo(node: OpaqueNode, pseudo: Option<PseudoElement>) -> Self {
-        Tag { node, pseudo }
+    pub(crate) fn new_pseudo(node: OpaqueNode, pseudo_element_chain: PseudoElementChain) -> Self {
+        Tag {
+            node,
+            pseudo_element_chain,
+        }
     }
 
     pub(crate) fn to_display_list_fragment_id(self) -> u64 {
-        combine_id_with_fragment_type(self.node.id(), self.pseudo.into())
+        combine_id_with_fragment_type(self.node.id(), self.pseudo_element_chain.primary.into())
     }
 }

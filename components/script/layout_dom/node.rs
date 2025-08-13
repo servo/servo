@@ -11,7 +11,7 @@ use std::iter::FusedIterator;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use layout_api::wrapper_traits::{
-    LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+    LayoutDataTrait, LayoutNode, PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
@@ -218,18 +218,20 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
 /// never access any other node apart from its parent.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ServoThreadSafeLayoutNode<'dom> {
-    /// The wrapped `ServoLayoutNode`.
+    /// The wrapped [`ServoLayoutNode`].
     pub(super) node: ServoLayoutNode<'dom>,
 
-    /// The pseudo-element type for this node, or `None` if it is the non-pseudo
-    /// version of the element.
-    pub(super) pseudo: Option<PseudoElement>,
+    /// The possibly nested [`PseudoElementChain`] for this node.
+    pub(super) pseudo_element_chain: PseudoElementChain,
 }
 
 impl<'dom> ServoThreadSafeLayoutNode<'dom> {
     /// Creates a new `ServoThreadSafeLayoutNode` from the given `ServoLayoutNode`.
     pub fn new(node: ServoLayoutNode<'dom>) -> Self {
-        ServoThreadSafeLayoutNode { node, pseudo: None }
+        ServoThreadSafeLayoutNode {
+            node,
+            pseudo_element_chain: Default::default(),
+        }
     }
 
     /// Returns the interior of this node as a `LayoutDom`. This is highly unsafe for layout to
@@ -267,7 +269,8 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
     //                      rendering it as a bare html element.
     pub fn is_single_line_text_input(&self) -> bool {
         self.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement)) ||
-            (self.pseudo.is_none() && self.node.node.is_text_container_of_single_line_input())
+            (self.pseudo_element_chain.is_empty() &&
+                self.node.node.is_text_container_of_single_line_input())
     }
 
     pub fn is_text_input(&self) -> bool {
@@ -316,12 +319,12 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         unsafe { self.get_jsmanaged().opaque() }
     }
 
-    fn pseudo_element(&self) -> Option<PseudoElement> {
-        self.pseudo
+    fn pseudo_element_chain(&self) -> PseudoElementChain {
+        self.pseudo_element_chain
     }
 
     fn type_id(&self) -> Option<LayoutNodeType> {
-        if self.pseudo.is_none() {
+        if self.pseudo_element_chain.is_empty() {
             Some(self.node.type_id())
         } else {
             None
@@ -356,7 +359,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
             .as_element()
             .map(|el| ServoThreadSafeLayoutElement {
                 element: el,
-                pseudo: self.pseudo,
+                pseudo_element_chain: self.pseudo_element_chain,
             })
     }
 
@@ -458,6 +461,13 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 .downcast::<Element>()
                 .unwrap()
                 .get_rowspan()
+        }
+    }
+
+    fn with_pseudo_element_chain(&self, pseudo_element_chain: PseudoElementChain) -> Self {
+        Self {
+            node: self.node,
+            pseudo_element_chain,
         }
     }
 }

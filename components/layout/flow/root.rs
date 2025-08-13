@@ -190,7 +190,7 @@ fn construct_for_root_element(
 
     let root_box = ArcRefCell::new(root_box);
     root_element
-        .element_box_slot()
+        .box_slot()
         .set(LayoutBox::BlockLevel(root_box.clone()));
     vec![root_box]
 }
@@ -301,7 +301,7 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
             return None;
         }
 
-        let layout_data = NodeExt::layout_data(&potential_thread_safe_dirty_root_node)?;
+        let layout_data = NodeExt::inner_layout_data(&potential_thread_safe_dirty_root_node)?;
         if !layout_data.pseudo_boxes.is_empty() {
             return None;
         }
