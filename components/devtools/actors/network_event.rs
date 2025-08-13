@@ -7,6 +7,8 @@
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use base64::engine::Engine;
+use base64::engine::general_purpose::STANDARD;
 use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentLength, ContentType, Cookie, HeaderMapExt};
@@ -20,6 +22,7 @@ use servo_url::ServoUrl;
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actors::long_string::LongStringActor;
 use crate::network_handler::Cause;
 use crate::protocol::ClientRequest;
 
@@ -186,12 +189,14 @@ pub struct ResponseCookieObj {
 #[serde(rename_all = "camelCase")]
 struct ResponseContentObj {
     mime_type: String,
-    text: LongStringObj,
+    text: Value,
     body_size: usize,
     decoded_body_size: usize,
     size: usize,
     headers_size: usize,
     transferred_size: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    encoding: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -248,7 +253,7 @@ impl Actor for NetworkEventActor {
     fn handle_message(
         &self,
         request: ClientRequest,
-        _registry: &ActorRegistry,
+        registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
         _id: StreamId,
@@ -359,19 +364,45 @@ impl Actor for NetworkEventActor {
                     let body_size = body.len();
                     let decoded_body_size = body.len();
                     let size = body.len();
-                    ResponseContentObj {
-                        mime_type,
-                        text: LongStringObj {
-                            type_: "longString".to_string(),
-                            actor: self.name(),
-                            length: body.len(),
-                            initial: String::from_utf8_lossy(body).to_string(),
-                        },
-                        body_size,
-                        decoded_body_size,
-                        size,
-                        headers_size,
-                        transferred_size,
+
+                    if Self::is_text_mime(&mime_type) {
+                        let full_str = String::from_utf8_lossy(body).to_string();
+                        let initial: String = full_str.chars().take(1000).collect();
+                        // Queue a LongStringActor for this body
+                        let long_string_actor_name = format!("longStringActor{}", self.resource_id);
+                        let long_string_actor = LongStringActor {
+                            name: long_string_actor_name.clone(),
+                            full_string: full_str.clone(),
+                        };
+                        registry.register_later(Box::new(long_string_actor));
+                        ResponseContentObj {
+                            mime_type,
+                            text: serde_json::to_value(LongStringObj {
+                                type_: "longString".to_string(),
+                                actor: long_string_actor_name,
+                                length: full_str.chars().count(),
+                                initial,
+                            })
+                            .unwrap(),
+                            body_size,
+                            decoded_body_size,
+                            size,
+                            headers_size,
+                            transferred_size,
+                            encoding: None,
+                        }
+                    } else {
+                        let b64 = STANDARD.encode(body);
+                        ResponseContentObj {
+                            mime_type,
+                            text: serde_json::to_value(b64).unwrap(),
+                            body_size,
+                            decoded_body_size,
+                            size,
+                            headers_size,
+                            transferred_size,
+                            encoding: Some("base64".to_string()),
+                        }
                     }
                 });
                 let msg = GetResponseContentReply {
@@ -625,6 +656,16 @@ impl NetworkEventActor {
             wait: 0,
             receive: 0,
         }
+    }
+
+    pub fn is_text_mime(mime: &str) -> bool {
+        let lower = mime.to_ascii_lowercase();
+        lower.starts_with("text/") ||
+            lower.contains("json") ||
+            lower.contains("javascript") ||
+            lower.contains("xml") ||
+            lower.contains("csv") ||
+            lower.contains("html")
     }
 
     fn insert_serialized_map<T: Serialize>(map: &mut Map<String, Value>, obj: &Option<T>) {

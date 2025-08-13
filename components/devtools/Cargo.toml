@@ -29,6 +29,7 @@ servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 net = { path = "../net" }
 uuid = { workspace = true }
+base64 = "0.22.1"
 
 [build-dependencies]
 chrono = { workspace = true }
