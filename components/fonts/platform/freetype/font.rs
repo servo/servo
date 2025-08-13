@@ -579,7 +579,10 @@ unsafe fn set_variations_for_font(
     variations: &[(u32, VariationValue)],
     library: &FreeTypeLibraryHandle,
 ) -> Result<(), &'static str> {
-    if !FT_HAS_MULTIPLE_MASTERS(face) || variations.is_empty() {
+    if !FT_HAS_MULTIPLE_MASTERS(face) ||
+        variations.is_empty() ||
+        !servo_config::pref!(layout_variable_fonts_enabled)
+    {
         // Nothing to do
         return Ok(());
     }
