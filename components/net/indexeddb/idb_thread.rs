@@ -194,13 +194,13 @@ impl IndexedDBManager {
     fn new(port: IpcReceiver<IndexedDBThreadMsg>, idb_base_dir: PathBuf) -> IndexedDBManager {
         debug!("New indexedDBManager");
 
-        // Uses an estimate of the system cpus to decode images
+        // Uses an estimate of the system cpus to process IndexedDB transactions
         // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
         // If no information can be obtained about the system, uses 4 threads as a default
         let thread_count = thread::available_parallelism()
             .map(|i| i.get())
             .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-            .min(pref!(threadpools_image_cache_workers_max).max(1) as usize);
+            .min(pref!(threadpools_indexeddb_workers_max).max(1) as usize);
 
         IndexedDBManager {
             port,
@@ -208,7 +208,7 @@ impl IndexedDBManager {
             databases: HashMap::new(),
             thread_pool: Arc::new(CoreResourceThreadPool::new(
                 thread_count,
-                "ImageCache".to_string(),
+                "IndexedDB".to_string(),
             )),
         }
     }
@@ -307,7 +307,7 @@ impl IndexedDBManager {
                             &idb_description,
                             version.unwrap_or(0),
                             self.thread_pool.clone(),
-                        ));
+                        ).expect("Failed to create sqlite engine"));
                         let _ = sender.send(db.version().unwrap_or(version.unwrap_or(0)));
                         e.insert(db);
                     },

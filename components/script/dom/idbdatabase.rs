@@ -252,7 +252,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         let key_paths = key_path.map(|p| match p {
             StringOrStringSequence::String(s) => KeyPath::String(s.to_string()),
             StringOrStringSequence::StringSequence(s) => {
-                KeyPath::Sequence(s.clone().into_iter().map(|s| s.to_string()).collect())
+                KeyPath::Sequence(s.iter().map(|s| s.to_string()).collect())
             },
         });
         let operation = SyncOperation::CreateObjectStore(

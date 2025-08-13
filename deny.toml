@@ -190,7 +190,7 @@ skip = [
     # duplicated by zbus-xml
     "quick-xml",
 
-    # duplicated by sea-orm
+    # duplicated by sea-query
     "heck",
 
     # duplicated by bindgen as build dependency
