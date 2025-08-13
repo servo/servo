@@ -38,7 +38,7 @@ def set_if_none(args: dict, key: str, value: bool | int | str) -> None:
         args[key] = value
 
 
-def run_tests(default_binary_path: str, **kwargs: Any) -> int:  # noqa
+def run_tests(default_binary_path: str, **kwargs: Any) -> int:
     print(f"Running WPT tests with {default_binary_path}")
 
     # By default, Rayon selects the number of worker threads based on the
