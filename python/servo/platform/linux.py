@@ -211,9 +211,6 @@ class Linux(Base):
             print("  $ nix-shell")
             return False
 
-        if self.distro.lower() == "ubuntu" and self.version > "22.04":
-            print(f"WARNING: unsupported version of {self.distro}: {self.version}")
-
         # FIXME: Better version checking for these distributions.
         if self.distro.lower() not in [
             "arch linux",
