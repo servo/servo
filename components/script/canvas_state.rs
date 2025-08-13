@@ -1427,13 +1427,21 @@ impl CanvasState {
             self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into());
         }
 
-        let (sender, receiver) = ipc::channel::<CanvasTextMetrics>().unwrap();
-        self.send_canvas_2d_msg(Canvas2dMsg::MeasureText(
-            text.into(),
-            sender,
-            self.state.borrow().text_options(),
-        ));
-        let metrics = receiver.recv().unwrap();
+        let metrics = {
+            if !self.is_paintable() {
+                CanvasTextMetrics::default()
+            } else {
+                let (sender, receiver) = ipc::channel::<CanvasTextMetrics>().unwrap();
+                self.send_canvas_2d_msg(Canvas2dMsg::MeasureText(
+                    text.into(),
+                    sender,
+                    self.state.borrow().text_options(),
+                ));
+                receiver
+                    .recv()
+                    .expect("Failed to receive response from canvas paint thread")
+            }
+        };
 
         TextMetrics::new(
             global,
