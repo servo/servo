@@ -41,6 +41,7 @@ pub mod root;
 pub mod script_runtime;
 pub mod settings_stack;
 pub mod str;
+pub mod structuredclone;
 pub mod trace;
 pub mod utils;
 pub mod weakref;
