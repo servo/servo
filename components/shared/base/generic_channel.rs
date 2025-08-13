@@ -7,6 +7,7 @@
 use std::fmt;
 
 use ipc_channel::router::ROUTER;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 static GENERIC_CHANNEL_USAGE_ERROR_PANIC_MSG: &str = "May not send a crossbeam channel over an IPC channel. \
@@ -62,6 +63,12 @@ impl<T: Serialize> GenericSender<T> {
             GenericSender::Ipc(ref sender) => sender.send(msg).map_err(|_| SendError),
             GenericSender::Crossbeam(ref sender) => sender.send(msg).map_err(|_| SendError),
         }
+    }
+}
+
+impl<T: Serialize> MallocSizeOf for GenericSender<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
     }
 }
 
