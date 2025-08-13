@@ -77,7 +77,6 @@ mod from_compositor {
                 Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
                 Self::CreateMemoryReport(..) => target!("CreateMemoryReport"),
                 Self::SendImageKeysForPipeline(..) => target!("SendImageKeysForPipeline"),
-                Self::SetWebDriverResponseSender(..) => target!("SetWebDriverResponseSender"),
             }
         }
     }

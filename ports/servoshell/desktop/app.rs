@@ -12,7 +12,6 @@ use std::time::Instant;
 use std::{env, fs};
 
 use ::servo::ServoBuilder;
-use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
@@ -165,22 +164,12 @@ impl App {
             &self.preferences,
         ));
 
-        let servo = servo_builder.build();
-        servo.setup_logging();
-
         // Initialize WebDriver server here before `servo` is moved.
-        let webdriver_receiver = self.servoshell_preferences.webdriver_port.map(|port| {
-            let (embedder_sender, embedder_receiver) = unbounded();
+        let (webdriver_response_sender, webdriver_receiver) = if let Some(port) =
+            self.servoshell_preferences.webdriver_port
+        {
+            let (embedder_sender, webdriver_receiver) = unbounded();
             let (webdriver_response_sender, webdriver_response_receiver) = ipc::channel().unwrap();
-
-            // Set the WebDriver response sender to constellation.
-            // TODO: consider using Servo API to notify embedder about input events completions
-            servo
-                .constellation_sender()
-                .send(EmbedderToConstellationMessage::SetWebDriverResponseSender(
-                    webdriver_response_sender,
-                ))
-                .expect("Failed to set WebDriver response sender in constellation when initing");
 
             webdriver_server::start_server(
                 port,
@@ -189,8 +178,13 @@ impl App {
                 webdriver_response_receiver,
             );
 
-            embedder_receiver
-        });
+            (Some(webdriver_response_sender), Some(webdriver_receiver))
+        } else {
+            (None, None)
+        };
+
+        let servo = servo_builder.build(webdriver_response_sender);
+        servo.setup_logging();
 
         let running_state = Rc::new(RunningAppState::new(
             servo,

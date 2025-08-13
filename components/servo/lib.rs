@@ -251,7 +251,10 @@ impl webrender_api::RenderNotifier for RenderNotifier {
 
 impl Servo {
     #[servo_tracing::instrument(skip(builder))]
-    fn new(builder: ServoBuilder) -> Self {
+    fn new(
+        builder: ServoBuilder,
+        webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
+    ) -> Self {
         // Global configuration options, parsed from the command line.
         let opts = builder.opts.map(|opts| *opts);
         opts::set_options(opts.unwrap_or_default());
@@ -461,6 +464,7 @@ impl Servo {
             wgpu_image_map,
             protocols,
             builder.user_content_manager,
+            webdriver_input_command_reponse_sender,
         );
 
         // The compositor coordinates with the client window to create the final
@@ -1134,6 +1138,7 @@ fn create_constellation(
     #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
     user_content_manager: UserContentManager,
+    webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
 ) -> Sender<EmbedderToConstellationMessage> {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -1184,6 +1189,7 @@ fn create_constellation(
         wgpu_image_map,
         user_content_manager,
         async_runtime,
+        webdriver_input_command_reponse_sender,
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());
@@ -1362,8 +1368,11 @@ impl ServoBuilder {
         }
     }
 
-    pub fn build(self) -> Servo {
-        Servo::new(self)
+    pub fn build(
+        self,
+        webdriver_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
+    ) -> Servo {
+        Servo::new(self, webdriver_response_sender)
     }
 
     pub fn opts(mut self, opts: Opts) -> Self {
