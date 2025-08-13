@@ -16,10 +16,14 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::types::{DOMException, GlobalScope};
 
+/// <https://webidl.spec.whatwg.org/#quotaexceedederror>
 #[dom_struct]
 pub(crate) struct QuotaExceededError {
+    /// <https://webidl.spec.whatwg.org/#idl-DOMException>
     dom_exception: DOMException,
+    /// <https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quota>
     quota: Option<Finite<f64>>,
+    /// <https://webidl.spec.whatwg.org/#dom-quotaexceedederror-requested>
     requested: Option<Finite<f64>>,
 }
 
@@ -55,7 +59,7 @@ impl QuotaExceededError {
 }
 
 impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
-    // https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quotaexceedederror
+    /// <https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quotaexceedederror>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -100,13 +104,15 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
         ))
     }
 
-    // https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quota
+    /// <https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quota>
     fn GetQuota(&self) -> Option<Finite<f64>> {
+        // The quota getter steps are to return this’s quota.
         self.quota
     }
 
-    // https://webidl.spec.whatwg.org/#dom-quotaexceedederror-requested
+    /// <https://webidl.spec.whatwg.org/#dom-quotaexceedederror-requested>
     fn GetRequested(&self) -> Option<Finite<f64>> {
+        // The requested getter steps are to return this’s requested.
         self.requested
     }
 }
