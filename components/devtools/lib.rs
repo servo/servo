@@ -62,6 +62,7 @@ mod actors {
     pub mod inspector;
     pub mod memory;
     pub mod network_event;
+    pub mod long_string;
     pub mod object;
     pub mod performance;
     pub mod preference;
