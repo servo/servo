@@ -11,10 +11,20 @@ pub use crate::pref_util::PrefValue;
 
 static PREFERENCES: RwLock<Preferences> = RwLock::new(Preferences::const_default());
 
+pub trait Observer: Send + Sync {
+    fn prefs_changed(&self, _changes: Vec<(&'static str, PrefValue)>) {}
+}
+
+static OBSERVER: RwLock<Option<Box<dyn Observer>>> = RwLock::new(None);
+
 #[inline]
 /// Get the current set of global preferences for Servo.
 pub fn get() -> RwLockReadGuard<'static, Preferences> {
     PREFERENCES.read().unwrap()
+}
+
+pub fn set_observer(observer: Box<dyn Observer>) {
+    *OBSERVER.write().unwrap() = Some(observer);
 }
 
 pub fn set(preferences: Preferences) {
@@ -39,7 +49,13 @@ pub fn set(preferences: Preferences) {
         preferences.layout_container_queries_enabled,
     );
 
+    let changed = preferences.diff(&PREFERENCES.read().unwrap());
+
     *PREFERENCES.write().unwrap() = preferences;
+
+    if let Some(observer) = OBSERVER.read().unwrap().as_deref() {
+        observer.prefs_changed(changed);
+    }
 }
 
 /// A convenience macro for accessing a preference value using its static path.
