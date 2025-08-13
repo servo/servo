@@ -191,7 +191,6 @@ class Linux(Base):
             print("  $ nix-shell")
             return False
 
-        # FIXME: Better version checking for these distributions.
         if self.distro.lower() not in [
             "arch linux",
             "arch",
