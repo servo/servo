@@ -106,7 +106,7 @@ mime = "0.3.13"
 mime_guess = "2.0.5"
 mozangle = "0.5.3"
 net_traits = { path = "components/shared/net" }
-nix = "0.29"
+nix = "0.30"
 nom = "8.0.0"
 num-traits = "0.2"
 num_cpus = "1.17.0"
