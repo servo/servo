@@ -123,7 +123,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::{
-    Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
+    Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument,
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
@@ -1039,16 +1039,6 @@ impl ScriptThread {
         debug!("Stopped script thread.");
     }
 
-    /// Process a compositor mouse move event.
-    fn process_mouse_move_event(
-        &self,
-        document: &Document,
-        input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
-    ) {
-        unsafe { document.handle_mouse_move_event(input_event, can_gc) }
-    }
-
     /// Process compositor events as part of a "update the rendering task".
     fn process_pending_input_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
@@ -1062,95 +1052,8 @@ impl ScriptThread {
         }
         ScriptThread::set_user_interacting(true);
 
-        let window = document.window();
-        let _realm = enter_realm(document.window());
-        for event in document.take_pending_input_events().into_iter() {
-            document.update_active_keyboard_modifiers(event.active_keyboard_modifiers);
-
-            match event.event.clone() {
-                InputEvent::MouseButton(mouse_button_event) => {
-                    document.handle_mouse_button_event(mouse_button_event, &event, can_gc);
-                },
-                InputEvent::MouseMove(_) => {
-                    self.process_mouse_move_event(&document, &event, can_gc);
-                },
-                InputEvent::MouseLeave(mouse_leave_event) => {
-                    document.handle_mouse_leave_event(&event, &mouse_leave_event, can_gc);
-                },
-                InputEvent::Touch(touch_event) => {
-                    let touch_result = document.handle_touch_event(touch_event, &event, can_gc);
-                    if let (TouchEventResult::Processed(handled), true) =
-                        (touch_result, touch_event.is_cancelable())
-                    {
-                        let sequence_id = touch_event.expect_sequence_id();
-                        let result = if handled {
-                            embedder_traits::TouchEventResult::DefaultAllowed(
-                                sequence_id,
-                                touch_event.event_type,
-                            )
-                        } else {
-                            embedder_traits::TouchEventResult::DefaultPrevented(
-                                sequence_id,
-                                touch_event.event_type,
-                            )
-                        };
-                        let message = ScriptToConstellationMessage::TouchEventProcessed(result);
-                        self.senders
-                            .pipeline_to_constellation_sender
-                            .send((pipeline_id, message))
-                            .unwrap();
-                    }
-                },
-                InputEvent::Wheel(wheel_event) => {
-                    document.handle_wheel_event(wheel_event, &event, can_gc);
-                },
-                InputEvent::Keyboard(keyboard_event) => {
-                    document.dispatch_key_event(keyboard_event, can_gc);
-                },
-                InputEvent::Ime(ime_event) => {
-                    document.dispatch_ime_event(ime_event, can_gc);
-                },
-                InputEvent::Gamepad(gamepad_event) => {
-                    window.handle_gamepad_event(gamepad_event);
-                },
-                InputEvent::EditingAction(editing_action_event) => {
-                    document.handle_editing_action(editing_action_event, can_gc);
-                },
-                InputEvent::Scroll(scroll_event) => {
-                    document.handle_embedder_scroll_event(scroll_event);
-                },
-            }
-
-            self.notify_webdriver_input_event_completed(pipeline_id, event.event, &document);
-        }
+        document.event_handler().handle_pending_input_events(can_gc);
         ScriptThread::set_user_interacting(false);
-    }
-
-    fn notify_webdriver_input_event_completed(
-        &self,
-        pipeline_id: PipelineId,
-        event: InputEvent,
-        document: &Document,
-    ) {
-        let Some(id) = event.webdriver_message_id() else {
-            return;
-        };
-
-        let sender = self.senders.pipeline_to_constellation_sender.clone();
-
-        // Webdriver should be notified once all current dom events have been processed.
-        document
-            .owner_global()
-            .task_manager()
-            .dom_manipulation_task_source()
-            .queue(task!(notify_webdriver_input_event_completed: move || {
-                if let Err(error) = sender.send((
-                    pipeline_id,
-                    ScriptToConstellationMessage::WebDriverInputComplete(id),
-                )) {
-                    warn!("ScriptThread failed to send WebDriverInputComplete {id:?}: {error:?}",);
-                }
-            }));
     }
 
     fn cancel_scheduled_update_the_rendering(&self) {
@@ -3629,23 +3532,27 @@ impl ScriptThread {
                             (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
                         if pixel_dist < 10.0 * document.window().device_pixel_ratio().get() {
                             // Pass webdriver_id to the newly generated click event
-                            document.note_pending_input_event(ConstellationInputEvent {
-                                hit_test_result: event.hit_test_result.clone(),
-                                pressed_mouse_buttons: event.pressed_mouse_buttons,
-                                active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                event: event.event.clone().with_webdriver_message_id(None),
-                            });
-                            document.note_pending_input_event(ConstellationInputEvent {
-                                hit_test_result: event.hit_test_result,
-                                pressed_mouse_buttons: event.pressed_mouse_buttons,
-                                active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                event: InputEvent::MouseButton(MouseButtonEvent::new(
-                                    MouseButtonAction::Click,
-                                    mouse_button_event.button,
-                                    mouse_button_event.point,
-                                ))
-                                .with_webdriver_message_id(event.event.webdriver_message_id()),
-                            });
+                            document.event_handler().note_pending_input_event(
+                                ConstellationInputEvent {
+                                    hit_test_result: event.hit_test_result.clone(),
+                                    pressed_mouse_buttons: event.pressed_mouse_buttons,
+                                    active_keyboard_modifiers: event.active_keyboard_modifiers,
+                                    event: event.event.clone().with_webdriver_message_id(None),
+                                },
+                            );
+                            document.event_handler().note_pending_input_event(
+                                ConstellationInputEvent {
+                                    hit_test_result: event.hit_test_result,
+                                    pressed_mouse_buttons: event.pressed_mouse_buttons,
+                                    active_keyboard_modifiers: event.active_keyboard_modifiers,
+                                    event: InputEvent::MouseButton(MouseButtonEvent::new(
+                                        MouseButtonAction::Click,
+                                        mouse_button_event.button,
+                                        mouse_button_event.point,
+                                    ))
+                                    .with_webdriver_message_id(event.event.webdriver_message_id()),
+                                },
+                            );
                             return;
                         }
                     },
@@ -3657,7 +3564,7 @@ impl ScriptThread {
             }
         }
 
-        document.note_pending_input_event(event);
+        document.event_handler().note_pending_input_event(event);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.
