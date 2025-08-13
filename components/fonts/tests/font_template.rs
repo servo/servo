@@ -36,7 +36,7 @@ fn test_font_template_descriptor() {
             .unwrap();
         let data = FontData::from_bytes(&bytes);
 
-        let handle = PlatformFont::new_from_data(identifier, &data, None, vec![]).unwrap();
+        let handle = PlatformFont::new_from_data(identifier, &data, None, &[]).unwrap();
         handle.descriptor()
     }
 

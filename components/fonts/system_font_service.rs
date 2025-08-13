@@ -95,7 +95,6 @@ pub struct SystemFontService {
     local_families: FontStore,
     compositor_api: CrossProcessCompositorApi,
     webrender_fonts: HashMap<FontIdentifier, FontKey>,
-    #[ignore_malloc_size_of = "can't measure font variations"]
     font_instances: HashMap<(FontKey, Au, Vec<FontVariation>), FontInstanceKey>,
     generic_fonts: ResolvedGenericFontFamilies,
 

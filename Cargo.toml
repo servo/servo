@@ -238,13 +238,13 @@ codegen-units = 1
 #
 [patch."https://github.com/servo/stylo"]
 selectors = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars" }
-servo_arc = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars"  }
-stylo = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars"  }
-stylo_atoms = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars"  }
-stylo_config = {git = "https://github.com/simonwuelker/stylo", branch = "font-vars"  }
-stylo_dom = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars"  }
-stylo_malloc_size_of = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars"  }
-stylo_traits = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars"  }
+servo_arc = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars" }
+stylo = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars" }
+stylo_atoms = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars" }
+stylo_config = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars" }
+stylo_dom = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars" }
+stylo_malloc_size_of = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars" }
+stylo_traits = { git = "https://github.com/simonwuelker/stylo", branch = "font-vars" }
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
 # stylo = { path = "../stylo/style" }

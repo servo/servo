@@ -9,7 +9,6 @@ use app_units::Au;
 use base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
-    VariationValue,
 };
 use fonts_traits::ByteIndex;
 use log::warn;
@@ -24,6 +23,7 @@ use style::str::char_is_whitespace;
 use style::values::computed::OverflowWrap;
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
+use webrender_api::FontVariation;
 use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
@@ -400,7 +400,10 @@ impl TextRun {
             .clone_font_variation_settings()
             .0
             .iter()
-            .map(|setting| (setting.tag.0, VariationValue(setting.value)))
+            .map(|setting| FontVariation {
+                tag: setting.tag.0,
+                value: setting.value,
+            })
             .collect();
 
         let segments = self

@@ -44,14 +44,14 @@ macro_rules! ot_tag {
     };
 }
 
-pub type Tag = u32;
-pub const GPOS: Tag = ot_tag!('G', 'P', 'O', 'S');
-pub const GSUB: Tag = ot_tag!('G', 'S', 'U', 'B');
-pub const KERN: Tag = ot_tag!('k', 'e', 'r', 'n');
-pub const SBIX: Tag = ot_tag!('s', 'b', 'i', 'x');
-pub const CBDT: Tag = ot_tag!('C', 'B', 'D', 'T');
-pub const COLR: Tag = ot_tag!('C', 'O', 'L', 'R');
-pub const BASE: Tag = ot_tag!('B', 'A', 'S', 'E');
+pub type OpenTypeTableTag = u32;
+pub const GPOS: OpenTypeTableTag = ot_tag!('G', 'P', 'O', 'S');
+pub const GSUB: OpenTypeTableTag = ot_tag!('G', 'S', 'U', 'B');
+pub const KERN: OpenTypeTableTag = ot_tag!('k', 'e', 'r', 'n');
+pub const SBIX: OpenTypeTableTag = ot_tag!('s', 'b', 'i', 'x');
+pub const CBDT: OpenTypeTableTag = ot_tag!('C', 'B', 'D', 'T');
+pub const COLR: OpenTypeTableTag = ot_tag!('C', 'O', 'L', 'R');
+pub const BASE: OpenTypeTableTag = ot_tag!('B', 'A', 'S', 'E');
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -68,7 +68,7 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
-        variations: Vec<(Tag, VariationValue)>,
+        variations: &[FontVariation],
         data: &Option<FontData>,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
@@ -91,14 +91,14 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
-        variations: Vec<(Tag, VariationValue)>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str>;
 
     fn new_from_data(
         font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
-        variations: Vec<(Tag, VariationValue)>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str>;
 
     /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
@@ -198,7 +198,6 @@ pub struct FontDescriptor {
     pub style: FontStyle,
     pub variant: font_variant_caps::T,
     pub pt_size: Au,
-    #[ignore_malloc_size_of = "can't measure font variations"]
     pub variation_settings: Vec<FontVariation>,
 }
 
@@ -298,20 +297,10 @@ impl Font {
         data: Option<FontData>,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
-        let variations = descriptor
-            .variation_settings
-            .iter()
-            .map(|variation_setting| {
-                (
-                    variation_setting.tag,
-                    VariationValue(variation_setting.value),
-                )
-            })
-            .collect();
         let handle = PlatformFont::new_from_template(
             template.clone(),
             Some(descriptor.pt_size),
-            variations,
+            &descriptor.variation_settings,
             &data,
         )?;
         let metrics = handle.metrics();
@@ -399,27 +388,9 @@ pub struct ShapingOptions {
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// Set of variations provided by the `font-variation-settings` property.
-    pub variation_settings: Vec<(Tag, VariationValue)>,
+    pub variation_settings: Vec<FontVariation>,
     /// Various flags.
     pub flags: ShapingFlags,
-}
-
-/// Wrapper around f32 to provide `Hash` and `Eq` impls.
-///
-/// `f32` doesn't implement these traits because floating point precision would
-/// make them unreliable. In our case, we know two things:
-/// * There are likely no calculations done on the value (except for `calc` in `font-variation-settings`)
-/// * The trait impls are only used as an index into the shaping cache, so imprecisions will only cause cache misses.
-///
-/// We also need to use a `f32` because both stylo and harfbuzz use a floating point value.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct VariationValue(pub f32);
-
-impl Eq for VariationValue {}
-impl Hash for VariationValue {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write_u32(self.0.to_bits());
-    }
 }
 
 /// An entry in the shape cache.

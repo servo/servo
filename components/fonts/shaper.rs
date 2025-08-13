@@ -32,13 +32,14 @@ use crate::font::advance_for_shaped_glyph;
 use crate::platform::font::FontTable;
 use crate::{
     BASE, ByteIndex, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphData, GlyphId,
-    GlyphStore, KERN, ShapingFlags, ShapingOptions, Tag, fixed_to_float, float_to_fixed, ot_tag,
+    GlyphStore, KERN, OpenTypeTableTag, ShapingFlags, ShapingOptions, fixed_to_float,
+    float_to_fixed, ot_tag,
 };
 
 const NO_GLYPH: i32 = -1;
-const LIGA: Tag = ot_tag!('l', 'i', 'g', 'a');
-const HB_OT_TAG_DEFAULT_SCRIPT: Tag = ot_tag!('D', 'F', 'L', 'T');
-const HB_OT_TAG_DEFAULT_LANGUAGE: Tag = ot_tag!('d', 'f', 'l', 't');
+const LIGA: OpenTypeTableTag = ot_tag!('l', 'i', 'g', 'a');
+const HB_OT_TAG_DEFAULT_SCRIPT: OpenTypeTableTag = ot_tag!('D', 'F', 'L', 'T');
+const HB_OT_TAG_DEFAULT_LANGUAGE: OpenTypeTableTag = ot_tag!('d', 'f', 'l', 't');
 
 pub struct ShapedGlyphData {
     count: usize,
@@ -265,10 +266,10 @@ impl Shaper {
             }
 
             if servo_config::pref!(layout_variable_fonts_enabled) {
-                for (tag, value) in &options.variation_settings {
+                for variation in &options.variation_settings {
                     let variations = &[hb_variation_t {
-                        tag: *tag,
-                        value: value.0,
+                        tag: variation.tag,
+                        value: variation.value,
                     }];
 
                     hb_font_set_variations(

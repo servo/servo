@@ -25,7 +25,7 @@ compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
-font-kit = { version = "0.14.3", optional = true }
+font-kit = { version = "0.14", optional = true }
 fonts = { path = "../fonts" }
 ipc-channel = { workspace = true }
 kurbo = { workspace = true }

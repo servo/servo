@@ -190,7 +190,7 @@ mod font_context {
             let handle = PlatformFont::new_from_local_font_identifier(
                 local_font_identifier.clone(),
                 None,
-                vec![],
+                &[],
             )
             .expect("Could not load test font");
 

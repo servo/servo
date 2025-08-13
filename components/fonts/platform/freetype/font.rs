@@ -23,7 +23,7 @@ use style::Zero;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
-use webrender_api::FontInstanceFlags;
+use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::LocalFontIdentifier;
 use super::library_handle::FreeTypeLibraryHandle;
@@ -73,11 +73,15 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         font_data: &FontData,
         requested_size: Option<Au>,
-        variations: Vec<(Tag, VariationValue)>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
         let face = FreeTypeFace::new_from_memory(&library, data)?;
+
+        unsafe {
+            set_variations_for_font(face, variations, &library)?;
+        }
 
         let (requested_face_size, actual_face_size) = match requested_size {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
@@ -95,12 +99,16 @@ impl PlatformFontMethods for PlatformFont {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
-        variations: Vec<(Tag, VariationValue)>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
 
         let face = FreeTypeFace::new_from_file(&library, &filename, font_identifier.index())?;
+
+        unsafe {
+            set_variations_for_font(face, variations, &library)?;
+        }
 
         let (requested_face_size, actual_face_size) = match requested_size {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
@@ -417,7 +425,7 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
 /// * `face` must point to a valid `FT_FaceRec` structure.
 unsafe fn set_variations_for_font(
     face: FT_Face,
-    variations: &[(u32, VariationValue)],
+    variations: &[FontVariation],
     library: &FreeTypeLibraryHandle,
 ) -> Result<(), &'static str> {
     if !FT_HAS_MULTIPLE_MASTERS(face) ||
@@ -444,10 +452,10 @@ unsafe fn set_variations_for_font(
         let axis_data = unsafe { (*mm_var).axis.add(index) };
         *coord = variations
             .iter()
-            .find(|(tag, _)| *tag == unsafe { (*axis_data).tag as u32 })
-            .map(|(_, value)| {
+            .find(|variation| variation.tag == unsafe { (*axis_data).tag as u32 })
+            .map(|variation| {
                 // Freetype expects the value to be in a 16.16 fixed point format
-                (value.0 * 16.0_f32.exp2()) as i64
+                (variation.value * 16.0_f32.exp2()) as i64
             })
             .unwrap_or(unsafe { (*axis_data).def });
     }
