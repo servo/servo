@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -5,9 +8,20 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 
+#[derive(Clone)]
 pub struct LongStringActor {
     pub name: String,
     pub full_string: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongStringObj {
+    #[serde(rename = "type")]
+    type_: String,
+    actor: String,
+    length: usize,
+    initial: String,
 }
 
 #[derive(Serialize)]
@@ -52,5 +66,21 @@ impl Actor for LongStringActor {
             _ => return Err(ActorError::UnrecognizedPacketType),
         }
         Ok(())
+    }
+}
+
+impl LongStringActor {
+    pub fn new(registry: &crate::actor::ActorRegistry, full_string: String) -> Self {
+        let name = registry.new_name("longStringActor");
+        LongStringActor { name, full_string }
+    }
+
+    pub fn long_string_obj(actor: String, length: usize, initial: String) -> LongStringObj {
+        LongStringObj {
+            type_: "longString".to_string(),
+            actor,
+            length,
+            initial,
+        }
     }
 }

@@ -199,16 +199,6 @@ struct ResponseContentObj {
     encoding: Option<String>,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct LongStringObj {
-    #[serde(rename = "type")]
-    type_: String,
-    actor: String,
-    length: usize,
-    initial: String,
-}
-
 #[derive(Clone, Serialize)]
 pub struct RequestCookieObj {
     pub name: String,
@@ -367,23 +357,20 @@ impl Actor for NetworkEventActor {
 
                     if Self::is_text_mime(&mime_type) {
                         let full_str = String::from_utf8_lossy(body).to_string();
-                        let initial: String = full_str.chars().collect();
+                        let initial: String = full_str.chars().take(1000).collect();
+
                         // Queue a LongStringActor for this body
-                        let long_string_actor_name = format!("longStringActor{}", self.resource_id);
-                        let long_string_actor = LongStringActor {
-                            name: long_string_actor_name.clone(),
-                            full_string: full_str.clone(),
-                        };
-                        registry.register_later(Box::new(long_string_actor));
+                        let long_string_actor = LongStringActor::new(registry, full_str.clone());
+                        registry.register_later(Box::new(long_string_actor.clone()));
+
+                        let long_string_obj = LongStringActor::long_string_obj(
+                            long_string_actor.name(),
+                            full_str.chars().count(),
+                            initial,
+                        );
                         ResponseContentObj {
                             mime_type,
-                            text: serde_json::to_value(LongStringObj {
-                                type_: "longString".to_string(),
-                                actor: long_string_actor_name,
-                                length: full_str.chars().count(),
-                                initial,
-                            })
-                            .unwrap(),
+                            text: serde_json::to_value(long_string_obj).unwrap(),
                             body_size,
                             decoded_body_size,
                             size,
