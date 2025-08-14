@@ -5,7 +5,7 @@
 // https://drafts.fxtf.org/geometry/#domrect
 
 [Exposed=(Window,Worker),
- Serializable,
+ /*Serializable,*/
  LegacyWindowAlias=SVGRect]
 interface DOMRect : DOMRectReadOnly {
     [Throws] constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,

@@ -9,7 +9,7 @@
 
 import logging
 import os
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 import unittest
 
 from . import tidy
@@ -117,15 +117,8 @@ class CheckTidiness(unittest.TestCase):
 
     def test_rust(self):
         errors = tidy.collect_errors_for_files(iterFile("rust_tidy.rs"), [], [tidy.check_rust], print_text=False)
-        self.assertEqual("found an empty line following a {", next(errors)[2])
-        self.assertEqual("use &[T] instead of &Vec<T>", next(errors)[2])
-        self.assertEqual("use &str instead of &String", next(errors)[2])
         self.assertEqual("use &T instead of &Root<T>", next(errors)[2])
         self.assertEqual("use &T instead of &DomRoot<T>", next(errors)[2])
-        self.assertEqual("encountered function signature with -> ()", next(errors)[2])
-        self.assertEqual("operators should go at the end of the first line", next(errors)[2])
-        self.assertEqual("unwrap() or panic!() found in code which should not panic.", next(errors)[2])
-        self.assertEqual("unwrap() or panic!() found in code which should not panic.", next(errors)[2])
         self.assertNoMoreErrors(errors)
 
         feature_errors = tidy.collect_errors_for_files(iterFile("lib.rs"), [], [tidy.check_rust], print_text=False)
@@ -187,7 +180,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_raw_url_in_rustdoc(self):
-        def assert_has_a_single_rustdoc_error(errors: Iterable[Tuple[int, str]]):
+        def assert_has_a_single_rustdoc_error(errors: Iterable[tuple[int, str]]):
             self.assertEqual(tidy.ERROR_RAW_URL_IN_RUSTDOC, next(errors)[1])
             self.assertNoMoreErrors(errors)
 

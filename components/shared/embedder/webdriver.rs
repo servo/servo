@@ -23,7 +23,7 @@ use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
-use crate::{MouseButton, MouseButtonAction};
+use crate::{FocusId, MouseButton, MouseButtonAction, TraversalId};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
@@ -151,7 +151,7 @@ pub enum WebDriverCommandMsg {
     /// associated with the new webview, and sets a "load status sender" if provided.
     NewWebView(IpcSender<WebViewId>, Option<IpcSender<WebDriverLoadStatus>>),
     /// Close the webview associated with the provided id.
-    CloseWebView(WebViewId),
+    CloseWebView(WebViewId, IpcSender<()>),
     /// Focus the webview associated with the provided id.
     /// Sends back a bool indicating whether the focus was successfully set.
     FocusWebView(WebViewId, IpcSender<bool>),
@@ -210,6 +210,8 @@ pub enum WebDriverScriptCommand {
     FindShadowElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     GetElementShadowRoot(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
+    GetKnownElement(String, IpcSender<Result<(), ErrorStatus>>),
+    GetKnownShadowRoot(String, IpcSender<Result<(), ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetCookie(
@@ -300,4 +302,14 @@ pub enum WebDriverLoadStatus {
     Timeout,
     // Navigation is blocked by a user prompt
     Blocked,
+}
+
+/// A collection of [`IpcSender`]s that are used to asynchronously communicate
+/// to a WebDriver server with information about application state.
+#[derive(Clone, Default)]
+pub struct WebDriverSenders {
+    pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
+    pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
+    pub pending_traversals: HashMap<TraversalId, IpcSender<WebDriverLoadStatus>>,
+    pub pending_focus: HashMap<FocusId, IpcSender<bool>>,
 }

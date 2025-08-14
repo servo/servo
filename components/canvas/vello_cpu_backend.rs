@@ -126,8 +126,8 @@ impl VelloCPUDrawTarget {
         Size2D::new(self.ctx.width(), self.ctx.height()).cast()
     }
 
-    fn is_viewport_cleared(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) -> bool {
-        let transformed_rect = transform.outer_transformed_rect(rect);
+    fn is_viewport_cleared(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) -> bool {
+        let transformed_rect = transform.outer_transformed_rect(&rect.cast());
         if transformed_rect.is_empty() {
             return false;
         }
@@ -156,7 +156,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         }
     }
 
-    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f32>) {
+    fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {
         // vello_cpu RenderingContext only ever grows,
         // so we need to use every opportunity to shrink it
         if self.is_viewport_cleared(rect, transform) {
@@ -217,7 +217,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         source: Rect<f64>,
         filter: Filter,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         let scale_up = dest.size.width > source.size.width || dest.size.height > source.size.height;
@@ -272,7 +272,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         fill_rule: FillRule,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         self.with_composition(composition_options.composition_operation, |self_| {
@@ -290,7 +290,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         start: Point2D<f32>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         self.ctx.set_paint(paint(style, composition_options.alpha));
@@ -348,7 +348,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         rect: &Rect<f32>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         self.with_composition(composition_options.composition_operation, |self_| {
@@ -368,7 +368,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         }
     }
 
-    fn push_clip(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f32>) {
+    fn push_clip(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f64>) {
         self.ctx.set_transform(transform.cast().into());
         let mut path = path.clone();
         path.transform(transform.cast());
@@ -396,7 +396,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         style: FillOrStrokeStyle,
         line_options: LineOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         self.with_composition(composition_options.composition_operation, |self_| {
@@ -413,7 +413,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         style: FillOrStrokeStyle,
         line_options: LineOptions,
         composition_options: CompositionOptions,
-        transform: Transform2D<f32>,
+        transform: Transform2D<f64>,
     ) {
         self.ensure_drawing();
         self.with_composition(composition_options.composition_operation, |self_| {

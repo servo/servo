@@ -272,7 +272,7 @@ impl DisplayListBuilder<'_> {
                         info.origin,
                         *parent_spatial_node_id,
                         info.transform_style,
-                        PropertyBinding::Value(info.transform),
+                        PropertyBinding::Value(*info.transform.to_transform()),
                         info.kind,
                         spatial_tree_item_key,
                     );

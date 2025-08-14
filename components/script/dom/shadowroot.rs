@@ -27,6 +27,9 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
+use crate::dom::bindings::codegen::UnionTypes::{
+    TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString,
+};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -46,6 +49,7 @@ use crate::dom::node::{
     VecPreOrderInsertionHelper,
 };
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
+use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
@@ -459,18 +463,24 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
-    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
+    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         // ShadowRoot's innerHTML getter steps are to return the result of running fragment serializing
         // algorithm steps with this and true.
         self.upcast::<Node>()
             .fragment_serialization_algorithm(true, can_gc)
+            .map(TrustedHTMLOrNullIsEmptyString::NullIsEmptyString)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
-    fn SetInnerHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        // TODO Step 1. Let compliantString be the result of invoking the Get Trusted Type compliant string algorithm
+    fn SetInnerHTML(&self, value: TrustedHTMLOrNullIsEmptyString, can_gc: CanGc) -> ErrorResult {
+        // Step 1. Let compliantString be the result of invoking the Get Trusted Type compliant string algorithm
         // with TrustedHTML, this's relevant global object, the given value, "ShadowRoot innerHTML", and "script".
-        let compliant_string = value;
+        let value = TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value.convert(),
+            "ShadowRoot innerHTML",
+            can_gc,
+        )?;
 
         // Step 2. Let context be this's host.
         let context = self.Host();
@@ -480,7 +490,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         //
         // NOTE: The spec doesn't strictly tell us to bail out here, but
         // we can't continue if parsing failed
-        let frag = context.parse_fragment(compliant_string, can_gc)?;
+        let frag = context.parse_fragment(value, can_gc)?;
 
         // Step 4. Replace all with fragment within this.
         Node::replace_all(Some(frag.upcast()), self.upcast(), can_gc);
@@ -493,12 +503,22 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-sethtmlunsafe>
-    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+    fn SetHTMLUnsafe(&self, value: TrustedHTMLOrString, can_gc: CanGc) -> ErrorResult {
+        // Step 1. Let compliantHTML be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, html, "ShadowRoot setHTMLUnsafe", and "script".
+        let value = TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value,
+            "ShadowRoot setHTMLUnsafe",
+            can_gc,
+        )?;
         // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
         let target = self.upcast::<Node>();
         let context_element = self.Host();
 
-        Node::unsafely_set_html(target, &context_element, html, can_gc);
+        Node::unsafely_set_html(target, &context_element, value, can_gc);
+        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange

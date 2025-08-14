@@ -137,7 +137,10 @@ impl DocumentLoader {
         request: RequestBuilder,
         callback: BoxedFetchCallback,
     ) {
-        self.cancellers.push(FetchCanceller::new(request.id));
+        self.cancellers.push(FetchCanceller::new(
+            request.id,
+            self.resource_threads.core_thread.clone(),
+        ));
         fetch_async(&self.resource_threads.core_thread, request, None, callback);
     }
 

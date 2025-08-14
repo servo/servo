@@ -28,6 +28,7 @@ use harfbuzz_sys::{
 use log::debug;
 use num_traits::Zero;
 
+use crate::font::advance_for_shaped_glyph;
 use crate::platform::font::FontTable;
 use crate::{
     BASE, ByteIndex, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphData, GlyphId,
@@ -561,8 +562,7 @@ impl Shaper {
                         )
                     } else {
                         let shape = glyph_data.entry_for_glyph(glyph_span.start, &mut y_pos);
-                        let advance =
-                            self.advance_for_shaped_glyph(shape.advance, character, options);
+                        let advance = advance_for_shaped_glyph(shape.advance, character, options);
                         (shape.codepoint, advance, shape.offset)
                     };
 
@@ -595,28 +595,6 @@ impl Shaper {
         // this must be called after adding all glyph data; it sorts the
         // lookup table for finding detailed glyphs by associated char index.
         glyphs.finalize_changes();
-    }
-
-    fn advance_for_shaped_glyph(
-        &self,
-        mut advance: Au,
-        character: char,
-        options: &ShapingOptions,
-    ) -> Au {
-        if let Some(letter_spacing) = options.letter_spacing {
-            advance += letter_spacing;
-        };
-
-        // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
-        // space (U+00A0) left in the text after the white space processing rules have been
-        // applied. The effect of the property on other word-separator characters is undefined."
-        // We elect to only space the two required code points.
-        if character == ' ' || character == '\u{a0}' {
-            // https://drafts.csswg.org/css-text-3/#word-spacing-property
-            advance += options.word_spacing;
-        }
-
-        advance
     }
 
     pub fn baseline(&self) -> Option<FontBaseline> {
@@ -692,14 +670,12 @@ extern "C" fn glyph_func(
     let font: *const Font = font_data as *const Font;
     assert!(!font.is_null());
 
-    unsafe {
-        match (*font).glyph_index(char::from_u32(unicode).unwrap()) {
-            Some(g) => {
-                *glyph = g as hb_codepoint_t;
-                true as hb_bool_t
-            },
-            None => false as hb_bool_t,
-        }
+    match unsafe { (*font).glyph_index(char::from_u32(unicode).unwrap()) } {
+        Some(g) => {
+            unsafe { *glyph = g as hb_codepoint_t };
+            true as hb_bool_t
+        },
+        None => false as hb_bool_t,
     }
 }
 
@@ -712,47 +688,44 @@ extern "C" fn glyph_h_advance_func(
     let font: *mut Font = font_data as *mut Font;
     assert!(!font.is_null());
 
-    unsafe {
-        let advance = (*font).glyph_h_advance(glyph as GlyphId);
-        Shaper::float_to_fixed(advance)
-    }
+    let advance = unsafe { (*font).glyph_h_advance(glyph as GlyphId) };
+    Shaper::float_to_fixed(advance)
 }
 
-// Callback to get a font table out of a font.
+/// Callback to get a font table out of a font.
 extern "C" fn font_table_func(
     _: *mut hb_face_t,
     tag: hb_tag_t,
     user_data: *mut c_void,
 ) -> *mut hb_blob_t {
-    unsafe {
-        // NB: These asserts have security implications.
-        let font = user_data as *const Font;
-        assert!(!font.is_null());
+    // NB: These asserts have security implications.
+    let font = user_data as *const Font;
+    assert!(!font.is_null());
 
-        // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
-        match (*font).table_for_tag(tag as FontTableTag) {
-            None => ptr::null_mut(),
-            Some(font_table) => {
-                // `Box::into_raw` intentionally leaks the FontTable so we don't destroy the buffer
-                // while HarfBuzz is using it.  When HarfBuzz is done with the buffer, it will pass
-                // this raw pointer back to `destroy_blob_func` which will deallocate the Box.
-                let font_table_ptr = Box::into_raw(Box::new(font_table));
+    // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
+    let Some(font_table) = (unsafe { (*font).table_for_tag(tag as FontTableTag) }) else {
+        return ptr::null_mut();
+    };
 
-                let buf = (*font_table_ptr).buffer();
-                // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
-                let blob = hb_blob_create(
-                    buf.as_ptr() as *const c_char,
-                    buf.len() as c_uint,
-                    HB_MEMORY_MODE_READONLY,
-                    font_table_ptr as *mut c_void,
-                    Some(destroy_blob_func),
-                );
+    // `Box::into_raw` intentionally leaks the FontTable so we don't destroy the buffer
+    // while HarfBuzz is using it.  When HarfBuzz is done with the buffer, it will pass
+    // this raw pointer back to `destroy_blob_func` which will deallocate the Box.
+    let font_table_ptr = Box::into_raw(Box::new(font_table));
 
-                assert!(!blob.is_null());
-                blob
-            },
-        }
-    }
+    let buf = unsafe { (*font_table_ptr).buffer() };
+    // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
+    let blob = unsafe {
+        hb_blob_create(
+            buf.as_ptr() as *const c_char,
+            buf.len() as c_uint,
+            HB_MEMORY_MODE_READONLY,
+            font_table_ptr as *mut c_void,
+            Some(destroy_blob_func),
+        )
+    };
+
+    assert!(!blob.is_null());
+    blob
 }
 
 extern "C" fn destroy_blob_func(font_table_ptr: *mut c_void) {

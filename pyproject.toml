@@ -30,7 +30,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"!python/servo/**.py" = ["ANN"]
+"!python/**/**.py" = ["ANN"]
 "**/test.py" = ["ANN"]
 "**/*_tests.py" = ["ANN"]
 "**/tests/**/*.py" = ["ANN"]

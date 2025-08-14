@@ -329,24 +329,23 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_point_input_event(&self, mut event: InputEvent) -> bool {
-        // Events that do not need to do hit testing are sent directly to the
-        // constellation to filter down.
-        let Some(point) = event.point() else {
-            return false;
-        };
-
-        // If we can't find a pipeline to send this event to, we cannot continue.
-        let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let Some(result) = self
-            .global
-            .borrow()
-            .hit_test_at_point(point, get_pipeline_details)
-            .into_iter()
-            .nth(0)
-        else {
-            warn!("Empty hit test result for input event, ignoring.");
-            return false;
+    pub(crate) fn dispatch_input_event_with_hit_testing(&self, mut event: InputEvent) -> bool {
+        let event_point = event.point();
+        let hit_test_result = match event_point {
+            Some(point) => {
+                let hit_test_result = self
+                    .global
+                    .borrow()
+                    .hit_test_at_point(point)
+                    .into_iter()
+                    .nth(0);
+                if hit_test_result.is_none() {
+                    warn!("Empty hit test result for input event, ignoring.");
+                    return false;
+                }
+                hit_test_result
+            },
+            None => None,
         };
 
         match event {
@@ -354,7 +353,7 @@ impl WebViewRenderer {
                 touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
             },
             InputEvent::MouseMove(_) => {
-                self.global.borrow_mut().last_mouse_move_position = Some(point);
+                self.global.borrow_mut().last_mouse_move_position = event_point;
             },
             InputEvent::MouseLeave(_) => {
                 self.global.borrow_mut().last_mouse_move_position = None;
@@ -364,7 +363,7 @@ impl WebViewRenderer {
         }
 
         if let Err(error) = self.global.borrow().constellation_sender.send(
-            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
+            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, hit_test_result),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
             false
@@ -439,11 +438,11 @@ impl WebViewRenderer {
             }
         }
 
-        self.dispatch_point_input_event(event);
+        self.dispatch_input_event_with_hit_testing(event);
     }
 
     fn send_touch_event(&mut self, event: TouchEvent) -> bool {
-        self.dispatch_point_input_event(InputEvent::Touch(event))
+        self.dispatch_input_event_with_hit_testing(InputEvent::Touch(event))
     }
 
     pub(crate) fn on_touch_event(&mut self, event: TouchEvent) {
@@ -707,13 +706,15 @@ impl WebViewRenderer {
     /// <http://w3c.github.io/touch-events/#mouse-events>
     fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
-        self.dispatch_point_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        self.dispatch_input_event_with_hit_testing(InputEvent::MouseMove(MouseMoveEvent::new(
+            point,
+        )));
+        self.dispatch_input_event_with_hit_testing(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Down,
             button,
             point,
         )));
-        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        self.dispatch_input_event_with_hit_testing(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Up,
             button,
             point,
@@ -852,12 +853,10 @@ impl WebViewRenderer {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let hit_test_results = self.global.borrow().hit_test_at_point_with_flags(
-            cursor,
-            HitTestFlags::FIND_ALL,
-            get_pipeline_details,
-        );
+        let hit_test_results = self
+            .global
+            .borrow()
+            .hit_test_at_point_with_flags(cursor, HitTestFlags::FIND_ALL);
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to

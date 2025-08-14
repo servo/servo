@@ -456,14 +456,11 @@ impl Font {
                 None => continue,
             };
 
-            let mut advance = Au::from_f64_px(self.glyph_h_advance(glyph_id));
-            if character == ' ' {
-                // https://drafts.csswg.org/css-text-3/#word-spacing-property
-                advance += options.word_spacing;
-            }
-            if let Some(letter_spacing) = options.letter_spacing {
-                advance += letter_spacing;
-            }
+            let mut advance = advance_for_shaped_glyph(
+                Au::from_f64_px(self.glyph_h_advance(glyph_id)),
+                character,
+                options,
+            );
             let offset = prev_glyph_id.map(|prev| {
                 let h_kerning = Au::from_f64_px(self.glyph_h_kerning(prev, glyph_id));
                 advance += h_kerning;
@@ -934,4 +931,26 @@ pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value:
     }
 
     mapping[mapping.len() - 1].1
+}
+
+/// Computes the total advance for a glyph, taking `letter-spacing` and `word-spacing` into account.
+pub(super) fn advance_for_shaped_glyph(
+    mut advance: Au,
+    character: char,
+    options: &ShapingOptions,
+) -> Au {
+    if let Some(letter_spacing) = options.letter_spacing {
+        advance += letter_spacing;
+    };
+
+    // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
+    // space (U+00A0) left in the text after the white space processing rules have been
+    // applied. The effect of the property on other word-separator characters is undefined."
+    // We elect to only space the two required code points.
+    if character == ' ' || character == '\u{a0}' {
+        // https://drafts.csswg.org/css-text-3/#word-spacing-property
+        advance += options.word_spacing;
+    }
+
+    advance
 }

@@ -116,6 +116,14 @@ impl<T: MallocSizeOf> MallocSizeOf for [T] {
     }
 }
 
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for [T] {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.iter()
+            .map(|element| element.conditional_size_of(ops))
+            .sum()
+    }
+}
+
 /// For use on types where size_of() returns 0.
 #[macro_export]
 macro_rules! malloc_size_of_is_0(
@@ -349,6 +357,23 @@ where
             n += elem.size_of(ops);
         }
         n
+    }
+}
+
+impl<A: MallocConditionalSizeOf> MallocConditionalSizeOf for smallvec::SmallVec<A>
+where
+    A: smallvec::Array,
+    A::Item: MallocConditionalSizeOf,
+{
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if !self.spilled() {
+            return 0;
+        }
+
+        self.shallow_size_of(ops) +
+            self.iter()
+                .map(|element| element.conditional_size_of(ops))
+                .sum::<usize>()
     }
 }
 

@@ -974,6 +974,20 @@ pub struct ServoThreadSafeLayoutElement<'dom> {
     pub(super) pseudo: Option<PseudoElement>,
 }
 
+impl<'dom> ServoThreadSafeLayoutElement<'dom> {
+    /// The shadow root this element is a host of.
+    pub fn shadow_root(&self) -> Option<ServoShadowRoot<'dom>> {
+        self.element
+            .element
+            .get_shadow_root_for_layout()
+            .map(ServoShadowRoot::from_layout_js)
+    }
+
+    pub fn slotted_nodes(&self) -> &[ServoLayoutNode<'dom>] {
+        self.element.slotted_nodes()
+    }
+}
+
 impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> {
     type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'dom>;
     type ConcreteElement = ServoLayoutElement<'dom>;

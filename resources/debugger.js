@@ -5,6 +5,7 @@ if ("dbg" in this) {
 const dbg = new Debugger;
 const debuggeesToPipelineIds = new Map;
 const debuggeesToWorkerIds = new Map;
+const sourceIdsToScripts = new Map;
 
 dbg.uncaughtExceptionHook = function(error) {
     console.error(`[debugger] Uncaught exception at ${error.fileName}:${error.lineNumber}:${error.columnNumber}: ${error.name}: ${error.message}`);
@@ -12,6 +13,7 @@ dbg.uncaughtExceptionHook = function(error) {
 
 dbg.onNewScript = function(script, /* undefined; seems to be `script.global` now */ global) {
     // TODO: handle wasm (`script.source.introductionType == wasm`)
+    sourceIdsToScripts.set(script.source.id, script);
     notifyNewSource({
         pipelineId: debuggeesToPipelineIds.get(script.global),
         workerId: debuggeesToWorkerIds.get(script.global),
@@ -32,4 +34,9 @@ addEventListener("addDebuggee", event => {
         index,
     });
     debuggeesToWorkerIds.set(debuggerObject, workerId);
+});
+
+addEventListener("getPossibleBreakpoints", event => {
+    const {spidermonkeyId} = event;
+    getPossibleBreakpointsResult(event, sourceIdsToScripts.get(spidermonkeyId).getPossibleBreakpoints(/* TODO: `query` */));
 });

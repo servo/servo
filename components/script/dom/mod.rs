@@ -290,6 +290,7 @@ pub(crate) mod datatransfer;
 pub(crate) mod datatransferitem;
 pub(crate) mod datatransferitemlist;
 pub(crate) mod debuggeradddebuggeeevent;
+pub(crate) mod debuggergetpossiblebreakpointsevent;
 pub(crate) mod debuggerglobalscope;
 pub(crate) mod dedicatedworkerglobalscope;
 pub(crate) mod defaultteereadrequest;
@@ -298,6 +299,7 @@ pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;
 #[allow(dead_code)]
 pub(crate) mod document;
+pub(crate) mod document_event_handler;
 pub(crate) mod documentfragment;
 pub(crate) mod documentorshadowroot;
 pub(crate) mod documenttype;

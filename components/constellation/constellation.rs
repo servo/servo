@@ -733,7 +733,7 @@ where
         // Start a fetch thread.
         // In single-process mode this will be the global fetch thread;
         // in multi-process mode this will be used only by the canvas paint thread.
-        let join_handle = start_fetch_thread(&self.public_resource_threads.core_thread);
+        let join_handle = start_fetch_thread();
 
         while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
@@ -2939,34 +2939,8 @@ where
             }
         }
 
-        let pipeline_id = match &hit_test_result {
-            Some(hit_test) => hit_test.pipeline_id,
-            None => {
-                // If there's no hit test, send to the focused browsing context of the given webview.
-                let Some(browsing_context_id) = self
-                    .webviews
-                    .get(webview_id)
-                    .map(|webview| webview.focused_browsing_context_id)
-                else {
-                    warn!("Handling InputEvent for an unknown webview: {webview_id}");
-                    return;
-                };
-
-                let Some(pipeline_id) = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .map(|context| context.pipeline_id)
-                else {
-                    warn!("{browsing_context_id}: Got InputEvent for nonexistent browsing context");
-                    return;
-                };
-
-                pipeline_id
-            },
-        };
-
-        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-            debug!("Got event for pipeline ({pipeline_id}) after closure");
+        let Some(webview) = self.webviews.get_mut(webview_id) else {
+            warn!("Got input event for unknown WebViewId: {webview_id:?}");
             return;
         };
 
@@ -2976,13 +2950,7 @@ where
             active_keyboard_modifiers,
             event,
         };
-
-        if let Err(error) = pipeline
-            .event_loop
-            .send(ScriptThreadMessage::SendInputEvent(pipeline_id, event))
-        {
-            self.handle_send_error(pipeline_id, error);
-        }
+        webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts);
     }
 
     #[servo_tracing::instrument(skip_all)]

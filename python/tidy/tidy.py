@@ -18,7 +18,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, TypedDict, LiteralString
+from typing import Any, TypedDict, LiteralString
 from collections.abc import Iterator, Callable
 import types
 
@@ -174,7 +174,7 @@ def progress_wrapper(iterator: Iterator[str]) -> Iterator[str]:
         yield thing
 
 
-def git_changes_since_last_merge(path):
+def git_changes_since_last_merge(path: str) -> list[str] | str:
     args = ["git", "log", "-n1", "--committer", "noreply@github.com", "--format=%H"]
     last_merge = subprocess.check_output(args, universal_newlines=True).strip()
     if not last_merge:
@@ -191,7 +191,9 @@ class FileList(object):
     excluded: list[str]
     generator: Iterator[str]
 
-    def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True) -> None:
+    def __init__(
+        self, directory: str, only_changed_files: bool = False, exclude_dirs: list[str] = [], progress: bool = True
+    ) -> None:
         self.directory = directory
         self.excluded = exclude_dirs
         self.generator = self._filter_excluded() if exclude_dirs else self._default_walk()
@@ -314,7 +316,7 @@ def contains_url(line: bytes) -> bool:
     return bool(URL_REGEX.search(line))
 
 
-def is_unsplittable(file_name: str, line: bytes):
+def is_unsplittable(file_name: str, line: bytes) -> bool:
     return contains_url(line) or file_name.endswith(".rs") and line.startswith(b"use ") and b"{" not in line
 
 
@@ -432,7 +434,7 @@ def run_python_type_checker() -> Iterator[tuple[str, int, str]]:
             yield relative_path(diagnostic.path), diagnostic.line, diagnostic.concise_description
 
 
-def run_cargo_deny_lints():
+def run_cargo_deny_lints() -> Iterator[tuple[str, int, str]]:
     print("\r ➤  Running `cargo-deny` checks...")
     result = subprocess.run(
         ["cargo-deny", "--format=json", "--all-features", "check"], encoding="utf-8", capture_output=True
@@ -552,129 +554,23 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     ):
         return
 
-    comment_depth = 0
-    merged_lines = ""
-    import_block = False
-    whitespace = False
-
-    PANIC_NOT_ALLOWED_PATHS = [
-        os.path.join("*", "components", "compositing", "compositor.rs"),
-        os.path.join("*", "components", "constellation", "*"),
-        os.path.join("*", "ports", "servoshell", "headed_window.rs"),
-        os.path.join("*", "ports", "servoshell", "headless_window.rs"),
-        os.path.join("*", "ports", "servoshell", "embedder.rs"),
-        os.path.join("*", "rust_tidy.rs"),  # This is for the tests.
-    ]
-    is_panic_not_allowed_rs_file = any([fnmatch.fnmatch(file_name, path) for path in PANIC_NOT_ALLOWED_PATHS])
-
-    prev_open_brace = False
-    multi_line_string = False
-
-    panic_message = "unwrap() or panic!() found in code which should not panic."
-
-    for idx, original_line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
-        # simplify the analysis
-        line = original_line.strip()
-
-        is_attribute = re.search(r"#\[.*\]", line)
-        is_comment = re.search(r"^//|^/\*|^\*", line)
-
-        # Simple heuristic to avoid common case of no comments.
-        if "/" in line:
-            comment_depth += line.count("/*")
-            comment_depth -= line.count("*/")
-
-        if line.endswith("\\"):
-            merged_lines += line[:-1]
-            continue
-        if comment_depth:
-            merged_lines += line
-            continue
-        if merged_lines:
-            line = merged_lines + line
-            merged_lines = ""
-
-        if multi_line_string:
-            line, count = re.subn(r'^(\\.|[^"\\])*?"', "", line, count=1)
-            if count == 1:
-                multi_line_string = False
-            else:
-                continue
-
-        # Ignore attributes, comments, and imports
-        # Keep track of whitespace to enable checking for a merged import block
-        if import_block:
-            if not (is_comment or is_attribute or line.startswith("use ")):
-                whitespace = line == ""
-
-                if not whitespace:
-                    import_block = False
-
-        # get rid of strings and chars because cases like regex expression, keep attributes
-        if not is_attribute and not is_comment:
-            line = re.sub(r'"(\\.|[^\\"])*?"', '""', line)
-            line = re.sub(r"'(\\.|[^\\']|(\\x[0-9a-fA-F]{2})|(\\u{[0-9a-fA-F]{1,6}}))'", "''", line)
-            # If, after parsing all single-line strings, we still have
-            # an odd number of double quotes, this line starts a
-            # multiline string
-            if line.count('"') % 2 == 1:
-                line = re.sub(r'"(\\.|[^\\"])*?$', '""', line)
-                multi_line_string = True
-
-        # get rid of comments
+    for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         line = re.sub(r"//.*?$|/\*.*?$|^\*.*?$", "//", line)
-
-        # get rid of attributes that do not contain =
-        line = re.sub(r"^#[A-Za-z0-9\(\)\[\]_]*?$", "#[]", line)
-
-        # flag this line if it matches one of the following regular expressions
-        # tuple format: (pattern, format_message, filter_function(match, line))
-        def no_filter(match, line) -> bool:
-            return True
-
-        regex_rules = [
-            # There should not be any extra pointer dereferencing
-            (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
-            # No benefit over using &str
-            (r": &String", "use &str instead of &String", no_filter),
+        rules = [
             # There should be any use of banned types:
             # Cell<JSVal>, Cell<Dom<T>>, DomRefCell<Dom<T>>, DomRefCell<HEAP<T>>
-            (r"(\s|:)+Cell<JSVal>", "Banned type Cell<JSVal> detected. Use MutDom<JSVal> instead", no_filter),
-            (r"(\s|:)+Cell<Dom<.+>>", "Banned type Cell<Dom<T>> detected. Use MutDom<T> instead", no_filter),
-            (r"DomRefCell<Dom<.+>>", "Banned type DomRefCell<Dom<T>> detected. Use MutDom<T> instead", no_filter),
-            (r"DomRefCell<Heap<.+>>", "Banned type DomRefCell<Heap<T>> detected. Use MutDom<T> instead", no_filter),
+            (r"(\s|:)+Cell<JSVal>", "Banned type Cell<JSVal> detected. Use MutDom<JSVal> instead"),
+            (r"(\s|:)+Cell<Dom<.+>>", "Banned type Cell<Dom<T>> detected. Use MutDom<T> instead"),
+            (r"DomRefCell<Dom<.+>>", "Banned type DomRefCell<Dom<T>> detected. Use MutDom<T> instead"),
+            (r"DomRefCell<Heap<.+>>", "Banned type DomRefCell<Heap<T>> detected. Use MutDom<T> instead"),
             # No benefit to using &Root<T>
-            (r": &Root<", "use &T instead of &Root<T>", no_filter),
-            (r": &DomRoot<", "use &T instead of &DomRoot<T>", no_filter),
-            (r"^&&", "operators should go at the end of the first line", no_filter),
-            # -> () is unnecessary
-            (r"-> \(\)", "encountered function signature with -> ()", no_filter),
+            (r": &Root<", "use &T instead of &Root<T>"),
+            (r": &DomRoot<", "use &T instead of &DomRoot<T>"),
         ]
 
-        for pattern, message, filter_func in regex_rules:
+        for pattern, message in rules:
             for match in re.finditer(pattern, line):
-                if filter_func(match, line):
-                    yield (idx + 1, message.format(*match.groups(), **match.groupdict()))
-
-        if prev_open_brace and not line:
-            yield (idx + 1, "found an empty line following a {")
-        prev_open_brace = line.endswith("{")
-
-        if is_panic_not_allowed_rs_file:
-            match = re.search(r"unwrap\(|panic!\(", line)
-            if match:
-                yield (idx + 1, panic_message)
-
-
-# Avoid flagging <Item=Foo> constructs
-def is_associated_type(match, line):
-    if match.group(1) != "=":
-        return False
-    open_angle = line[0 : match.end()].rfind("<")
-    close_angle = line[open_angle:].find(">") if open_angle != -1 else -1
-    generic_open = open_angle != -1 and open_angle < match.start()
-    generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
-    return generic_open and generic_close
+                yield (idx + 1, message.format(*match.groups(), **match.groupdict()))
 
 
 def check_webidl_spec(file_name: str, contents: bytes) -> Iterator[tuple[int, str]]:
@@ -739,10 +635,10 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
 
     # Override the logging function so that we can collect errors from
     # the lint script, which doesn't allow configuration of the output.
-    messages: List[str] = []
+    messages: list[str] = []
     assert lint.logger is not None
 
-    def collect_messages(_, message):
+    def collect_messages(_: None, message: str) -> None:
         messages.append(message)
 
     lint.logger.error = types.MethodType(collect_messages, lint.logger)
@@ -981,7 +877,7 @@ def collect_errors_for_files(
                     yield (filename,) + error
 
 
-def scan(only_changed_files=False, progress=False, github_annotations=False) -> int:
+def scan(only_changed_files: bool = False, progress: bool = False, github_annotations: bool = False) -> int:
     github_annotation_manager = GitHubAnnotationManager("test-tidy")
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
@@ -1028,7 +924,7 @@ def scan(only_changed_files=False, progress=False, github_annotations=False) -> 
 
 
 class CargoDenyKrate:
-    def __init__(self, data: Dict[Any, Any]) -> None:
+    def __init__(self, data: dict[Any, Any]) -> None:
         crate = data["Krate"]
         self.name = crate["name"]
         self.version = crate["version"]

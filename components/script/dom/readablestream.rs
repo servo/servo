@@ -154,7 +154,7 @@ pub(crate) struct PipeTo {
     /// The error potentially passed to shutdown,
     /// stored here because we must keep it across a microtask.
     #[ignore_malloc_size_of = "mozjs"]
-    shutdown_error: Rc<RefCell<Option<RootedTraceableBox<Heap<JSVal>>>>>,
+    shutdown_error: Rc<RefCell<Option<Heap<JSVal>>>>,
 
     /// The promise returned by a shutdown action.
     /// We keep it to only continue when it is not pending anymore.
@@ -360,7 +360,7 @@ impl PipeTo {
     /// Setting shutdown error in a way that ensures it isn't
     /// moved after it has been set.
     fn set_shutdown_error(&self, error: SafeHandleValue) {
-        *self.shutdown_error.borrow_mut() = Some(RootedTraceableBox::new(Heap::default()));
+        *self.shutdown_error.borrow_mut() = Some(Heap::default());
         let Some(ref heap) = *self.shutdown_error.borrow() else {
             unreachable!("Option set to Some(heap) above.");
         };

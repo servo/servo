@@ -167,39 +167,7 @@ class Linux(Base):
     def __init__(self, *args: str, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.is_linux = True
-        (self.distro, self.version) = Linux.get_distro_and_version()
-
-    @staticmethod
-    def get_distro_and_version() -> tuple[str, str]:
-        distrib = distro.name()
-        version = distro.version()
-
-        if distrib in ["LinuxMint", "Linux Mint", "KDE neon", "Pop!_OS", "TUXEDO OS"]:
-            if "." in version:
-                major, _ = version.split(".", 1)
-            else:
-                major = version
-
-            distrib = "Ubuntu"
-            if major == "22":
-                version = "22.04"
-            elif major == "21":
-                version = "21.04"
-            elif major == "20":
-                version = "20.04"
-            elif major == "19":
-                version = "18.04"
-            elif major == "18":
-                version = "16.04"
-
-        if distrib.lower() == "elementary":
-            distrib = "Ubuntu"
-            if version == "5.0":
-                version = "18.04"
-            elif version[0:3] == "0.4":
-                version = "16.04"
-
-        return (distrib, version)
+        self.distro = distro.name()
 
     def _platform_bootstrap(self, force: bool) -> bool:
         if self.distro.lower() == "nixos":
@@ -211,10 +179,6 @@ class Linux(Base):
             print("  $ nix-shell")
             return False
 
-        if self.distro.lower() == "ubuntu" and self.version > "22.04":
-            print(f"WARNING: unsupported version of {self.distro}: {self.version}")
-
-        # FIXME: Better version checking for these distributions.
         if self.distro.lower() not in [
             "arch linux",
             "arch",
@@ -228,6 +192,12 @@ class Linux(Base):
             "fedora",
             "nixos",
             "ubuntu",
+            "linuxmint",
+            "linux mint",
+            "kde neon",
+            "pop!_os",
+            "tuxedo os",
+            "elementary",
             "void",
             "fedora linux asahi remix",
         ]:

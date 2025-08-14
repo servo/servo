@@ -4,7 +4,7 @@
 
 // https://streams.spec.whatwg.org/#readablestream
 
-[Exposed=*] // [Transferable] - See Bug 1562065
+[Exposed=*, Transferable]
 interface _ReadableStream {
   [Throws]
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});

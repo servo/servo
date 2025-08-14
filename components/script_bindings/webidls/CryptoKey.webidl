@@ -8,7 +8,7 @@ enum KeyType { "public", "private", "secret" };
 
 enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits", "wrapKey", "unwrapKey" };
 
-[SecureContext, Exposed=(Window,Worker), Serializable, Pref="dom_crypto_subtle_enabled"]
+[SecureContext, Exposed=(Window,Worker), /*Serializable,*/ Pref="dom_crypto_subtle_enabled"]
 interface CryptoKey {
   readonly attribute KeyType type;
   readonly attribute boolean extractable;

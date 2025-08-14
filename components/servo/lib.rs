@@ -254,7 +254,7 @@ impl Servo {
     fn new(builder: ServoBuilder) -> Self {
         // Global configuration options, parsed from the command line.
         let opts = builder.opts.map(|opts| *opts);
-        opts::set_options(opts.unwrap_or_default());
+        opts::initialize_options(opts.unwrap_or_default());
         let opts = opts::get();
 
         // Set the preferences globally.
@@ -1244,7 +1244,7 @@ pub fn run_content_process(token: String) {
         .unwrap();
 
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
-    opts::set_options(unprivileged_content.opts());
+    opts::initialize_options(unprivileged_content.opts());
     prefs::set(unprivileged_content.prefs().clone());
 
     // Enter the sandbox if necessary.
@@ -1259,7 +1259,7 @@ pub fn run_content_process(token: String) {
             media_platform::init();
 
             // Start the fetch thread for this content process.
-            let fetch_thread_join_handle = start_fetch_thread(content.core_resource_thread());
+            let fetch_thread_join_handle = start_fetch_thread();
 
             set_logger(content.script_to_constellation_chan().clone());
 

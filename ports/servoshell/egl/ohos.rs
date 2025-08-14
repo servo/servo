@@ -15,10 +15,10 @@ use std::time::Duration;
 
 use keyboard_types::{Key, NamedKey};
 use log::{LevelFilter, debug, error, info, trace, warn};
-use napi_derive_ohos::{module_exports, napi};
-use napi_ohos::bindgen_prelude::Function;
+use napi_derive_ohos::napi;
+use napi_ohos::bindgen_prelude::{Function, JsObjectValue, Object};
 use napi_ohos::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use napi_ohos::{Env, JsObject, JsString, NapiRaw};
+use napi_ohos::{Env, JsString, JsValue};
 use ohos_ime::{
     AttachOptions, CreateImeProxyError, CreateTextEditorProxyError, Ime, ImeProxy,
     RawTextEditorProxy,
@@ -124,12 +124,13 @@ const PROMPT_QUEUE_SIZE: usize = 4;
 // Todo: Need to check if OnceLock is suitable, or if the TS function can be destroyed, e.g.
 // if the activity gets suspended.
 static SET_URL_BAR_CB: OnceLock<
-    ThreadsafeFunction<String, (), String, false, false, UPDATE_URL_QUEUE_SIZE>,
+    ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>,
 > = OnceLock::new();
-static TERMINATE_CALLBACK: OnceLock<ThreadsafeFunction<(), (), (), false, false, 1>> =
-    OnceLock::new();
+static TERMINATE_CALLBACK: OnceLock<
+    ThreadsafeFunction<(), (), (), napi_ohos::Status, false, false, 1>,
+> = OnceLock::new();
 static PROMPT_TOAST: OnceLock<
-    ThreadsafeFunction<String, (), String, false, false, PROMPT_QUEUE_SIZE>,
+    ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, PROMPT_QUEUE_SIZE>,
 > = OnceLock::new();
 
 /// Storing webview related items
@@ -345,6 +346,8 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             while let Ok(action) = rx.recv() {
                 trace!("Wakeup message received!");
                 action.do_action(&servo);
+                // Also handle any pending WebDriver messages
+                servo.handle_webdriver_messages();
             }
 
             info!("Sender disconnected - Terminating main surface thread");
@@ -592,9 +595,9 @@ pub fn set_log_filter(filter: Option<&str>) {
     (*LOGGER).set_filter(filter);
 }
 
-fn register_xcomponent_callbacks(env: &Env, xcomponent: &JsObject) -> napi_ohos::Result<()> {
+fn register_xcomponent_callbacks(env: &Env, xcomponent: &Object) -> napi_ohos::Result<()> {
     info!("napi_get_named_property call successfull");
-    let raw = unsafe { xcomponent.raw() };
+    let raw = xcomponent.raw();
     let raw_env = env.raw();
     let mut nativeXComponent: *mut OH_NativeXComponent = core::ptr::null_mut();
     unsafe {
@@ -632,7 +635,7 @@ fn register_xcomponent_callbacks(env: &Env, xcomponent: &JsObject) -> napi_ohos:
 }
 
 #[allow(unused)]
-fn debug_jsobject(obj: &JsObject, obj_name: &str) -> napi_ohos::Result<()> {
+fn debug_jsobject(obj: &Object, obj_name: &str) -> napi_ohos::Result<()> {
     let names = obj.get_property_names()?;
     error!("Getting property names of object {obj_name}");
     let len = names.get_array_length()?;
@@ -645,11 +648,11 @@ fn debug_jsobject(obj: &JsObject, obj_name: &str) -> napi_ohos::Result<()> {
     Ok(())
 }
 
-#[module_exports]
-fn init(exports: JsObject, env: Env) -> napi_ohos::Result<()> {
+#[napi(module_exports)]
+fn init(exports: Object, env: Env) -> napi_ohos::Result<()> {
     initialize_logging_once();
     info!("simpleservo init function called");
-    if let Ok(xcomponent) = exports.get_named_property::<JsObject>("__NATIVE_XCOMPONENT_OBJ__") {
+    if let Ok(xcomponent) = exports.get_named_property::<Object>("__NATIVE_XCOMPONENT_OBJ__") {
         register_xcomponent_callbacks(&env, &xcomponent)?;
     }
 

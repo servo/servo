@@ -31,6 +31,9 @@ impl Actor for BreakpointListActor {
         _stream_id: crate::StreamId,
     ) -> Result<(), ActorError> {
         match msg_type {
+            // Client wants to set a breakpoint.
+            // Seems to be infallible, unlike the thread actor’s `setBreakpoint`.
+            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#breakpoints>
             "setBreakpoint" => {
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
@@ -48,5 +51,9 @@ impl Actor for BreakpointListActor {
 impl BreakpointListActor {
     pub fn new(name: String) -> Self {
         Self { name }
+    }
+
+    pub fn encodable(&self) -> BreakpointListActorMsg {
+        BreakpointListActorMsg { actor: self.name() }
     }
 }

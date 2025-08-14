@@ -11,7 +11,7 @@ use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use app_units::Au;
@@ -33,9 +33,9 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
-    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, UntrustedNodeAddress, ViewportDetails,
-    WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus,
+    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
+    UntrustedNodeAddress, ViewportDetails, WebDriverJSError, WebDriverJSResult,
+    WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -69,8 +69,6 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
-use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
 use script_bindings::root::Root;
@@ -94,6 +92,7 @@ use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint}
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
+use super::types::SVGSVGElement;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -132,8 +131,6 @@ use crate::dom::document::{AnimationFrameCallback, Document};
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::gamepad::{Gamepad, contains_user_gesture};
-use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
@@ -711,126 +708,6 @@ impl Window {
 
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
         &self.font_context
-    }
-
-    pub(crate) fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
-        match gamepad_event {
-            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
-                self.handle_gamepad_connect(
-                    index.0,
-                    name,
-                    bounds.axis_bounds,
-                    bounds.button_bounds,
-                    supported_haptic_effects,
-                );
-            },
-            GamepadEvent::Disconnected(index) => {
-                self.handle_gamepad_disconnect(index.0);
-            },
-            GamepadEvent::Updated(index, update_type) => {
-                self.receive_new_gamepad_button_or_axis(index.0, update_type);
-            },
-        };
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
-    fn handle_gamepad_connect(
-        &self,
-        // As the spec actually defines how to set the gamepad index, the GilRs index
-        // is currently unused, though in practice it will almost always be the same.
-        // More infra is currently needed to track gamepads across windows.
-        _index: usize,
-        name: String,
-        axis_bounds: (f64, f64),
-        button_bounds: (f64, f64),
-        supported_haptic_effects: GamepadSupportedHapticEffects,
-    ) {
-        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
-        //          then abort these steps.
-        let this = Trusted::new(self);
-        self.upcast::<GlobalScope>()
-            .task_manager()
-            .gamepad_task_source()
-            .queue(task!(gamepad_connected: move || {
-                let window = this.root();
-
-                let navigator = window.Navigator();
-                let selected_index = navigator.select_gamepad_index();
-                let gamepad = Gamepad::new(
-                    &window,
-                    selected_index,
-                    name,
-                    "standard".into(),
-                    axis_bounds,
-                    button_bounds,
-                    supported_haptic_effects,
-                    false,
-                    CanGc::note(),
-                );
-                navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
-            }));
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
-    fn handle_gamepad_disconnect(&self, index: usize) {
-        let this = Trusted::new(self);
-        self.upcast::<GlobalScope>()
-            .task_manager()
-            .gamepad_task_source()
-            .queue(task!(gamepad_disconnected: move || {
-                let window = this.root();
-                let navigator = window.Navigator();
-                if let Some(gamepad) = navigator.get_gamepad(index) {
-                    if window.Document().is_fully_active() {
-                        gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
-                        navigator.remove_gamepad(index);
-                    }
-                }
-            }));
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
-    fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
-        let this = Trusted::new(self);
-
-        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
-        self.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
-                task!(update_gamepad_state: move || {
-                    let window = this.root();
-                    let navigator = window.Navigator();
-                    if let Some(gamepad) = navigator.get_gamepad(index) {
-                        let current_time = window.Performance().Now();
-                        gamepad.update_timestamp(*current_time);
-                        match update_type {
-                            GamepadUpdateType::Axis(index, value) => {
-                                gamepad.map_and_normalize_axes(index, value);
-                            },
-                            GamepadUpdateType::Button(index, value) => {
-                                gamepad.map_and_normalize_buttons(index, value);
-                            }
-                        };
-                        if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
-                            navigator.set_has_gamepad_gesture(true);
-                            navigator.GetGamepads()
-                                .iter()
-                                .filter_map(|g| g.as_ref())
-                                .for_each(|gamepad| {
-                                    gamepad.set_exposed(true);
-                                    gamepad.update_timestamp(*current_time);
-                                    let new_gamepad = Trusted::new(&**gamepad);
-                                    if window.Document().is_fully_active() {
-                                        window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
-                                            task!(update_gamepad_connect: move || {
-                                                let gamepad = new_gamepad.root();
-                                                gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
-                                            })
-                                        );
-                                    }
-                                });
-                        }
-                    }
-                })
-            );
     }
 }
 
@@ -1523,9 +1400,22 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .map(Root::upcast::<Element>)
     }
 
-    fn WebdriverWindow(&self, _id: DOMString) -> Option<DomRoot<Window>> {
-        warn!("Window references are not supported in webdriver yet");
-        None
+    fn WebdriverWindow(&self, id: DOMString) -> Option<DomRoot<WindowProxy>> {
+        let window_proxy = self.window_proxy.get()?;
+
+        // Window must be top level browsing context.
+        if window_proxy.browsing_context_id() != window_proxy.webview_id() {
+            return None;
+        }
+
+        let pipeline_id = window_proxy.currently_active()?;
+        let document = ScriptThread::find_document(pipeline_id)?;
+
+        if document.upcast::<Node>().unique_id(pipeline_id) == id.str() {
+            Some(DomRoot::from_ref(&window_proxy))
+        } else {
+            None
+        }
     }
 
     fn WebdriverShadowRoot(&self, id: DOMString) -> Option<DomRoot<ShadowRoot>> {
@@ -2269,6 +2159,7 @@ impl Window {
         self.handle_pending_images_post_reflow(
             reflow_result.pending_images,
             reflow_result.pending_rasterization_images,
+            reflow_result.pending_svg_elements_for_serialization,
         );
 
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
@@ -2597,19 +2488,27 @@ impl Window {
         self.layout().query_elements_from_point(point, flags)
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn hit_test_from_input_event(
         &self,
         input_event: &ConstellationInputEvent,
     ) -> Option<HitTestResult> {
-        let compositor_hit_test_result = input_event.hit_test_result.as_ref()?;
+        self.hit_test_from_point_in_viewport(
+            input_event.hit_test_result.as_ref()?.point_in_viewport,
+        )
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn hit_test_from_point_in_viewport(
+        &self,
+        point_in_frame: Point2D<f32, CSSPixel>,
+    ) -> Option<HitTestResult> {
         let result = self
-            .elements_from_point_query(
-                compositor_hit_test_result.point_in_viewport.cast_unit(),
-                ElementsFromPointFlags::empty(),
-            )
+            .elements_from_point_query(point_in_frame.cast_unit(), ElementsFromPointFlags::empty())
             .into_iter()
             .nth(0)?;
+
+        let point_relative_to_initial_containing_block =
+            point_in_frame + self.scroll_offset().cast_unit();
 
         // SAFETY: This is safe because `Window::query_elements_from_point` has ensured that
         // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
@@ -2618,9 +2517,8 @@ impl Window {
             node: unsafe { from_untrusted_node_address(address) },
             cursor: result.cursor,
             point_in_node: result.point_in_target,
-            point_in_frame: compositor_hit_test_result.point_in_viewport,
-            point_relative_to_initial_containing_block: compositor_hit_test_result
-                .point_relative_to_initial_containing_block,
+            point_in_frame,
+            point_relative_to_initial_containing_block,
         })
     }
 
@@ -3037,6 +2935,7 @@ impl Window {
         &self,
         pending_images: Vec<PendingImage>,
         pending_rasterization_images: Vec<PendingRasterizationImage>,
+        pending_svg_element_for_serialization: Vec<UntrustedNodeAddress>,
     ) {
         let pipeline_id = self.pipeline_id();
         for image in pending_images {
@@ -3085,6 +2984,13 @@ impl Window {
                 nodes.push(Dom::from_ref(&*node));
             }
         }
+
+        for node in pending_svg_element_for_serialization.into_iter() {
+            let node = unsafe { from_untrusted_node_address(node) };
+            let svg = node.downcast::<SVGSVGElement>().unwrap();
+            svg.serialize_and_cache_subtree();
+            node.dirty(NodeDamage::Other);
+        }
     }
 
     pub fn handle_refresh_cursor(&self, cursor_position: Point2D<f32, CSSPixel>) {
@@ -3098,7 +3004,9 @@ impl Window {
             return;
         };
 
-        self.Document().set_cursor(hit_test_result.cursor);
+        self.Document()
+            .event_handler()
+            .set_cursor(hit_test_result.cursor);
     }
 }
 
@@ -3142,7 +3050,7 @@ impl Window {
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
-            script_chan: Arc::new(Mutex::new(control_chan)),
+            script_chan: control_chan,
         };
 
         let initial_viewport = f32_rect_to_au_rect(UntypedRect::new(
@@ -3365,14 +3273,10 @@ impl Window {
     }
 }
 
-#[derive(Clone, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub(crate) struct CSSErrorReporter {
     pub(crate) pipelineid: PipelineId,
-    // Arc+Mutex combo is necessary to make this struct Sync,
-    // which is necessary to fulfill the bounds required by the
-    // uses of the ParseErrorReporter trait.
-    #[ignore_malloc_size_of = "Arc is defined in libstd"]
-    pub(crate) script_chan: Arc<Mutex<IpcSender<ScriptThreadMessage>>>,
+    pub(crate) script_chan: IpcSender<ScriptThreadMessage>,
 }
 unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 
@@ -3394,17 +3298,13 @@ impl ParseErrorReporter for CSSErrorReporter {
         }
 
         //TODO: report a real filename
-        let _ = self
-            .script_chan
-            .lock()
-            .unwrap()
-            .send(ScriptThreadMessage::ReportCSSError(
-                self.pipelineid,
-                url.0.to_string(),
-                location.line,
-                location.column,
-                error.to_string(),
-            ));
+        let _ = self.script_chan.send(ScriptThreadMessage::ReportCSSError(
+            self.pipelineid,
+            url.0.to_string(),
+            location.line,
+            location.column,
+            error.to_string(),
+        ));
     }
 }
 

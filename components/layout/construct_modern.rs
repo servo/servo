@@ -228,7 +228,7 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
 
         let anonymous_info = LazyLock::new(|| {
             self.info
-                .pseudo(self.context, PseudoElement::ServoAnonymousBox)
+                .with_pseudo_element(self.context, PseudoElement::ServoAnonymousBox)
                 .expect("Should always be able to construct info for anonymous boxes.")
         });
 

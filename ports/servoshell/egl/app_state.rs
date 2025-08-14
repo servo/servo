@@ -5,7 +5,9 @@ use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use crossbeam_channel::Receiver;
 use dpi::PhysicalSize;
+use embedder_traits::webdriver::WebDriverSenders;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
@@ -19,8 +21,8 @@ use servo::{
     InputEvent, InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NamedKey,
     NavigationRequest, PermissionRequest, RenderingContext, ScreenGeometry, Servo, ServoDelegate,
-    ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewBuilder,
-    WebViewDelegate, WindowRenderingContext,
+    ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, WebDriverCommandMsg, WebView,
+    WebViewBuilder, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -73,6 +75,10 @@ pub struct RunningAppState {
     inner: RefCell<RunningAppStateInner>,
     /// servoshell specific preferences created during startup of the application.
     servoshell_preferences: ServoShellPreferences,
+    /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
+    /// was enabled.
+    webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+    webdriver_senders: RefCell<WebDriverSenders>,
 }
 
 struct RunningAppStateInner {
@@ -307,6 +313,7 @@ impl RunningAppState {
         servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
         servoshell_preferences: ServoShellPreferences,
+        webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     ) -> Rc<Self> {
         let initial_url = initial_url.and_then(|string| Url::parse(&string).ok());
         let initial_url = initial_url
@@ -324,6 +331,8 @@ impl RunningAppState {
             servo,
             callbacks,
             servoshell_preferences,
+            webdriver_receiver,
+            webdriver_senders: RefCell::default(),
             inner: RefCell::new(RunningAppStateInner {
                 need_present: false,
                 context_menu_sender: None,
@@ -482,6 +491,35 @@ impl RunningAppState {
         self.active_webview()
             .notify_scroll_event(scroll_location, Point2D::new(x, y));
         self.perform_updates();
+    }
+
+    /// WebDriver message handling methods
+    pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
+        self.webdriver_receiver.as_ref()
+    }
+
+    pub fn handle_webdriver_messages(self: &Rc<Self>) {
+        if let Some(webdriver_receiver) = &self.webdriver_receiver {
+            while let Ok(msg) = webdriver_receiver.try_recv() {
+                match msg {
+                    WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
+                        info!(
+                            "(Not Implemented) Loading URL in webview {}: {}",
+                            webview_id, url
+                        );
+                    },
+                    WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
+                        info!("(Not Implemented) Creating new webview");
+                    },
+                    WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
+                        info!("(Not Implemented) Focusing webview {}", webview_id);
+                    },
+                    _ => {
+                        info!("(Not Implemented) Received WebDriver command: {:?}", msg);
+                    },
+                }
+            }
+        }
     }
 
     /// Touch event: press down

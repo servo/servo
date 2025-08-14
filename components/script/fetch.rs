@@ -48,21 +48,27 @@ struct FetchContext {
     resource_timing: ResourceFetchTiming,
 }
 
-/// RAII fetch canceller object. By default initialized to not having a canceller
-/// in it, however you can ask it for a cancellation receiver to send to Fetch
-/// in which case it will store the sender. You can manually cancel it
-/// or let it cancel on Drop in that case.
+/// RAII fetch canceller object.
+/// By default initialized to having a
+/// request associated with it, which can be manually cancelled with `cancel`,
+/// or automatically cancelled on drop.
+/// Calling `ignore` will sever the relationship with the request,
+/// meaning it cannot be cancelled through this canceller from that point on.
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct FetchCanceller {
     #[no_trace]
     request_id: Option<RequestId>,
+    #[no_trace]
+    core_resource_thread: Option<CoreResourceThread>,
 }
 
 impl FetchCanceller {
-    /// Create an empty FetchCanceller
-    pub(crate) fn new(request_id: RequestId) -> Self {
+    /// Create a FetchCanceller associated with a request,
+    // and a particular(public vs private) resource thread.
+    pub(crate) fn new(request_id: RequestId, core_resource_thread: CoreResourceThread) -> Self {
         Self {
             request_id: Some(request_id),
+            core_resource_thread: Some(core_resource_thread),
         }
     }
 
@@ -72,9 +78,11 @@ impl FetchCanceller {
             // stop trying to make fetch happen
             // it's not going to happen
 
-            // No error handling here. Cancellation is a courtesy call,
-            // we don't actually care if the other side heard.
-            cancel_async_fetch(vec![request_id]);
+            if let Some(ref core_resource_thread) = self.core_resource_thread {
+                // No error handling here. Cancellation is a courtesy call,
+                // we don't actually care if the other side heard.
+                cancel_async_fetch(vec![request_id], core_resource_thread);
+            }
         }
     }
 

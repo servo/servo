@@ -49,15 +49,14 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    EmbedderMsg, FocusSequenceNumber, InputEvent, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionActionType, MouseButton, MouseButtonAction,
-    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    FocusSequenceNumber, InputEvent, JavaScriptEvaluationError, JavaScriptEvaluationId,
+    MediaSessionActionType, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
-use html5ever::{local_name, ns};
 use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
@@ -115,9 +114,7 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{
-    Dom, DomRoot, MutNullableDom, RootCollection, ThreadLocalStackRoots,
-};
+use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
@@ -126,15 +123,14 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::{
-    Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
+    Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument,
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::node::NodeTraits;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
@@ -252,9 +248,6 @@ pub struct ScriptThread {
 
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
-
-    /// The topmost element over the mouse.
-    topmost_mouse_over_target: MutNullableDom<Element>,
 
     /// List of pipelines that have been owned and closed by this script thread.
     #[no_trace]
@@ -952,6 +945,7 @@ impl ScriptThread {
             &js_runtime.clone(),
             PipelineId::new(),
             senders.devtools_server_sender.clone(),
+            senders.devtools_client_to_script_thread_sender.clone(),
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
             script_to_constellation_chan,
@@ -978,7 +972,6 @@ impl ScriptThread {
             timer_scheduler: Default::default(),
             microtask_queue,
             js_runtime,
-            topmost_mouse_over_target: MutNullableDom::new(Default::default()),
             closed_pipelines: DomRefCell::new(HashSet::new()),
             mutation_observer_microtask_queued: Default::default(),
             mutation_observers: Default::default(),
@@ -1046,68 +1039,6 @@ impl ScriptThread {
         debug!("Stopped script thread.");
     }
 
-    /// Process a compositor mouse move event.
-    fn process_mouse_move_event(
-        &self,
-        document: &Document,
-        input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
-    ) {
-        // Get the previous target temporarily
-        let prev_mouse_over_target = self.topmost_mouse_over_target.get();
-
-        unsafe {
-            document.handle_mouse_move_event(input_event, &self.topmost_mouse_over_target, can_gc)
-        }
-
-        // Short-circuit if nothing changed
-        if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
-            return;
-        }
-
-        let mut state_already_changed = false;
-
-        // Notify Constellation about the topmost anchor mouse over target.
-        let window = document.window();
-        if let Some(target) = self.topmost_mouse_over_target.get() {
-            if let Some(anchor) = target
-                .upcast::<Node>()
-                .inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                .next()
-            {
-                let status = anchor
-                    .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("href"))
-                    .and_then(|href| {
-                        let value = href.value();
-                        let url = document.url();
-                        url.join(&value).map(|url| url.to_string()).ok()
-                    });
-                let event = EmbedderMsg::Status(document.webview_id(), status);
-                window.send_to_embedder(event);
-
-                state_already_changed = true;
-            }
-        }
-
-        // We might have to reset the anchor state
-        if !state_already_changed {
-            if let Some(target) = prev_mouse_over_target {
-                if target
-                    .upcast::<Node>()
-                    .inclusive_ancestors(ShadowIncluding::No)
-                    .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                    .next()
-                    .is_some()
-                {
-                    let event = EmbedderMsg::Status(window.webview_id(), None);
-                    window.send_to_embedder(event);
-                }
-            }
-        }
-    }
-
     /// Process compositor events as part of a "update the rendering task".
     fn process_pending_input_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
@@ -1121,97 +1052,8 @@ impl ScriptThread {
         }
         ScriptThread::set_user_interacting(true);
 
-        let window = document.window();
-        let _realm = enter_realm(document.window());
-        for event in document.take_pending_input_events().into_iter() {
-            document.update_active_keyboard_modifiers(event.active_keyboard_modifiers);
-
-            match event.event.clone() {
-                InputEvent::MouseButton(mouse_button_event) => {
-                    document.handle_mouse_button_event(mouse_button_event, &event, can_gc);
-                },
-                InputEvent::MouseMove(_) => {
-                    // The event itself is unecessary here, because the point in the viewport is in the hit test.
-                    self.process_mouse_move_event(&document, &event, can_gc);
-                },
-                InputEvent::MouseLeave(_) => {
-                    self.topmost_mouse_over_target.take();
-                    document.handle_mouse_leave_event(&event, can_gc);
-                },
-                InputEvent::Touch(touch_event) => {
-                    let touch_result = document.handle_touch_event(touch_event, &event, can_gc);
-                    if let (TouchEventResult::Processed(handled), true) =
-                        (touch_result, touch_event.is_cancelable())
-                    {
-                        let sequence_id = touch_event.expect_sequence_id();
-                        let result = if handled {
-                            embedder_traits::TouchEventResult::DefaultAllowed(
-                                sequence_id,
-                                touch_event.event_type,
-                            )
-                        } else {
-                            embedder_traits::TouchEventResult::DefaultPrevented(
-                                sequence_id,
-                                touch_event.event_type,
-                            )
-                        };
-                        let message = ScriptToConstellationMessage::TouchEventProcessed(result);
-                        self.senders
-                            .pipeline_to_constellation_sender
-                            .send((pipeline_id, message))
-                            .unwrap();
-                    }
-                },
-                InputEvent::Wheel(wheel_event) => {
-                    document.handle_wheel_event(wheel_event, &event, can_gc);
-                },
-                InputEvent::Keyboard(keyboard_event) => {
-                    document.dispatch_key_event(keyboard_event, can_gc);
-                },
-                InputEvent::Ime(ime_event) => {
-                    document.dispatch_ime_event(ime_event, can_gc);
-                },
-                InputEvent::Gamepad(gamepad_event) => {
-                    window.handle_gamepad_event(gamepad_event);
-                },
-                InputEvent::EditingAction(editing_action_event) => {
-                    document.handle_editing_action(editing_action_event, can_gc);
-                },
-                InputEvent::Scroll(scroll_event) => {
-                    document.handle_embedder_scroll_event(scroll_event);
-                },
-            }
-
-            self.notify_webdriver_input_event_completed(pipeline_id, event.event, &document);
-        }
+        document.event_handler().handle_pending_input_events(can_gc);
         ScriptThread::set_user_interacting(false);
-    }
-
-    fn notify_webdriver_input_event_completed(
-        &self,
-        pipeline_id: PipelineId,
-        event: InputEvent,
-        document: &Document,
-    ) {
-        let Some(id) = event.webdriver_message_id() else {
-            return;
-        };
-
-        let sender = self.senders.pipeline_to_constellation_sender.clone();
-
-        // Webdriver should be notified once all current dom events have been processed.
-        document
-            .owner_global()
-            .task_manager()
-            .dom_manipulation_task_source()
-            .queue(task!(notify_webdriver_input_event_completed: move || {
-                if let Err(error) = sender.send((
-                    pipeline_id,
-                    ScriptToConstellationMessage::WebDriverInputComplete(id),
-                )) {
-                    warn!("ScriptThread failed to send WebDriverInputComplete {id:?}: {error:?}",);
-                }
-            }));
     }
 
     fn cancel_scheduled_update_the_rendering(&self) {
@@ -2242,6 +2084,13 @@ impl ScriptThread {
             DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => {
                 devtools::handle_highlight_dom_node(&documents, id, node_id)
             },
+            DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
+                self.debugger_global.fire_get_possible_breakpoints(
+                    can_gc,
+                    spidermonkey_id,
+                    result_sender,
+                );
+            },
         }
     }
 
@@ -2448,6 +2297,22 @@ impl ScriptThread {
                     element_id,
                     reply,
                     can_gc,
+                )
+            },
+            WebDriverScriptCommand::GetKnownElement(element_id, reply) => {
+                webdriver_handlers::handle_get_known_element(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::GetKnownShadowRoot(element_id, reply) => {
+                webdriver_handlers::handle_get_known_shadow_root(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
                 )
             },
             WebDriverScriptCommand::GetActiveElement(reply) => {
@@ -3062,13 +2927,6 @@ impl ScriptThread {
             debug!("{id}: Clearing animations");
             document.animations().clear();
 
-            // We don't want to dispatch `mouseout` event pointing to non-existing element
-            if let Some(target) = self.topmost_mouse_over_target.get() {
-                if target.upcast::<Node>().owner_doc() == document {
-                    self.topmost_mouse_over_target.set(None);
-                }
-            }
-
             // We discard the browsing context after requesting layout shut down,
             // to avoid running layout on detached iframes.
             let window = document.window();
@@ -3674,23 +3532,27 @@ impl ScriptThread {
                             (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
                         if pixel_dist < 10.0 * document.window().device_pixel_ratio().get() {
                             // Pass webdriver_id to the newly generated click event
-                            document.note_pending_input_event(ConstellationInputEvent {
-                                hit_test_result: event.hit_test_result.clone(),
-                                pressed_mouse_buttons: event.pressed_mouse_buttons,
-                                active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                event: event.event.clone().with_webdriver_message_id(None),
-                            });
-                            document.note_pending_input_event(ConstellationInputEvent {
-                                hit_test_result: event.hit_test_result,
-                                pressed_mouse_buttons: event.pressed_mouse_buttons,
-                                active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                event: InputEvent::MouseButton(MouseButtonEvent::new(
-                                    MouseButtonAction::Click,
-                                    mouse_button_event.button,
-                                    mouse_button_event.point,
-                                ))
-                                .with_webdriver_message_id(event.event.webdriver_message_id()),
-                            });
+                            document.event_handler().note_pending_input_event(
+                                ConstellationInputEvent {
+                                    hit_test_result: event.hit_test_result.clone(),
+                                    pressed_mouse_buttons: event.pressed_mouse_buttons,
+                                    active_keyboard_modifiers: event.active_keyboard_modifiers,
+                                    event: event.event.clone().with_webdriver_message_id(None),
+                                },
+                            );
+                            document.event_handler().note_pending_input_event(
+                                ConstellationInputEvent {
+                                    hit_test_result: event.hit_test_result,
+                                    pressed_mouse_buttons: event.pressed_mouse_buttons,
+                                    active_keyboard_modifiers: event.active_keyboard_modifiers,
+                                    event: InputEvent::MouseButton(MouseButtonEvent::new(
+                                        MouseButtonAction::Click,
+                                        mouse_button_event.button,
+                                        mouse_button_event.point,
+                                    ))
+                                    .with_webdriver_message_id(event.event.webdriver_message_id()),
+                                },
+                            );
                             return;
                         }
                     },
@@ -3702,7 +3564,7 @@ impl ScriptThread {
             }
         }
 
-        document.note_pending_input_event(event);
+        document.event_handler().note_pending_input_event(event);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.
@@ -3730,7 +3592,7 @@ impl ScriptThread {
         // Start with the scheme data of the parsed URL;
         // append question mark and query component, if any;
         // append number sign and fragment component if any.
-        let encoded = &load_data.url.clone()[Position::BeforePath..];
+        let encoded = &load_data.url[Position::AfterScheme..][1..];
 
         // Percent-decode (8.) and UTF-8 decode (9.)
         let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
@@ -3776,7 +3638,10 @@ impl ScriptThread {
             .push((incomplete.pipeline_id, context));
 
         let request_builder = incomplete.request_builder();
-        incomplete.canceller = FetchCanceller::new(request_builder.id);
+        incomplete.canceller = FetchCanceller::new(
+            request_builder.id,
+            self.resource_threads.core_thread.clone(),
+        );
         NavigationListener::new(request_builder, self.senders.self_sender.clone())
             .initiate_fetch(&self.resource_threads.core_thread, None);
         self.incomplete_loads.borrow_mut().push(incomplete);
@@ -3909,7 +3774,10 @@ impl ScriptThread {
                 .unwrap_or(200),
         });
 
-        incomplete_load.canceller = FetchCanceller::new(request_builder.id);
+        incomplete_load.canceller = FetchCanceller::new(
+            request_builder.id,
+            self.resource_threads.core_thread.clone(),
+        );
         NavigationListener::new(request_builder, self.senders.self_sender.clone())
             .initiate_fetch(&self.resource_threads.core_thread, response_init);
     }
@@ -4093,14 +3961,21 @@ impl ScriptThread {
         let context = window.get_cx();
 
         rooted!(in(*context) let mut return_value = UndefinedValue());
-        _ = global_scope.evaluate_js_on_global_with_result(
+        if let Err(err) = global_scope.evaluate_js_on_global_with_result(
             &script,
             return_value.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
             can_gc,
             None, // No known `introductionType` for JS code from embedder
-        );
+        ) {
+            _ = self.senders.pipeline_to_constellation_sender.send((
+                pipeline_id,
+                ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, Err(err)),
+            ));
+            return;
+        };
+
         let result = match jsval_to_webdriver(
             context,
             global_scope,

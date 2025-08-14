@@ -3,17 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::iter::FusedIterator;
 
 use fonts::ByteIndex;
 use html5ever::{LocalName, local_name};
-use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use layout_api::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{LayoutDamage, LayoutElementType, LayoutNodeType};
 use range::Range;
-use script::layout_dom::ServoLayoutNode;
+use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element as SelectorsElement;
 use servo_arc::Arc as ServoArc;
-use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
+use style::dom::NodeInfo;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::generics::counters::{Content, ContentItem};
@@ -31,82 +30,51 @@ use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOuts
 /// avoid having to repeat the same arguments in argument lists.
 #[derive(Clone)]
 pub(crate) struct NodeAndStyleInfo<'dom> {
-    pub node: ServoLayoutNode<'dom>,
-    pub pseudo_element_type: Option<PseudoElement>,
+    pub node: ServoThreadSafeLayoutNode<'dom>,
     pub style: ServoArc<ComputedValues>,
     pub damage: LayoutDamage,
 }
 
 impl<'dom> NodeAndStyleInfo<'dom> {
     pub(crate) fn new(
-        node: ServoLayoutNode<'dom>,
+        node: ServoThreadSafeLayoutNode<'dom>,
         style: ServoArc<ComputedValues>,
         damage: LayoutDamage,
     ) -> Self {
         Self {
             node,
-            pseudo_element_type: None,
             style,
             damage,
         }
     }
 
-    /// Whether this is a container for the text within a single-line text input. This
-    /// is used to solve the special case of line height for a text entry widget.
-    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
-    // TODO(stevennovaryo): Remove the addition of HTMLInputElement here once all of the
-    //                      input element is implemented with UA shadow DOM. This is temporary
-    //                      workaround for past version of input element where we are
-    //                      rendering it as a bare html element.
-    pub(crate) fn is_single_line_text_input(&self) -> bool {
-        self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) ||
-            self.node.is_text_container_of_single_line_input()
+    pub(crate) fn pseudo_element(&self) -> Option<PseudoElement> {
+        self.node.pseudo_element()
     }
 
-    pub(crate) fn pseudo(
+    pub(crate) fn with_pseudo_element(
         &self,
         context: &LayoutContext,
         pseudo_element_type: PseudoElement,
     ) -> Option<Self> {
-        let style = self
-            .node
-            .to_threadsafe()
-            .as_element()?
-            .with_pseudo(pseudo_element_type)?
-            .style(&context.style_context);
+        let element = self.node.as_element()?.with_pseudo(pseudo_element_type)?;
+        let style = element.style(&context.style_context);
         Some(NodeAndStyleInfo {
-            node: self.node,
-            pseudo_element_type: Some(pseudo_element_type),
+            node: element.as_node(),
             style,
             damage: self.damage,
         })
     }
 
-    pub(crate) fn get_selected_style(&self) -> ServoArc<ComputedValues> {
-        // This is a workaround for handling the `::selection` pseudos where it would not
-        // propagate to the children and Shadow DOM elements. For this case, UA widget
-        // inner elements should follow the originating element in terms of selection.
-        if self.node.is_in_ua_widget() {
-            self.node
-                .containing_shadow_host()
-                .expect("Ua widget inner editor is not contained")
-                .to_threadsafe()
-                .selected_style()
-        } else {
-            self.node.to_threadsafe().selected_style()
-        }
-    }
-
     pub(crate) fn get_selection_range(&self) -> Option<Range<ByteIndex>> {
-        self.node.to_threadsafe().selection()
+        self.node.selection()
     }
 }
 
 impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
     fn from(info: &NodeAndStyleInfo<'dom>) -> Self {
-        let node = info.node;
-        let pseudo = info.pseudo_element_type;
-        let threadsafe_node = node.to_threadsafe();
+        let threadsafe_node = info.node;
+        let pseudo = info.node.pseudo_element();
         let mut flags = FragmentFlags::empty();
 
         // Anonymous boxes should not have a tag, because they should not take part in hit testing.
@@ -218,21 +186,21 @@ fn traverse_children_of<'dom>(
     //                      special case after the implementation of UA Shadow DOM for
     //                      all affected input elements.
     if parent_element_info.node.is_text_input() {
-        let node_text_content = parent_element_info.node.to_threadsafe().node_text_content();
+        let node_text_content = parent_element_info.node.node_text_content();
         if node_text_content.is_empty() {
             handler.handle_text(parent_element_info, "\u{200B}".into());
         } else {
             handler.handle_text(parent_element_info, node_text_content);
         }
     } else {
-        for child in iter_child_nodes(parent_element_info.node) {
+        for child in parent_element_info.node.children() {
             if child.is_text_node() {
                 let info = NodeAndStyleInfo::new(
                     child,
                     child.style(&context.style_context),
                     child.take_restyle_damage(),
                 );
-                handler.handle_text(&info, child.to_threadsafe().node_text_content());
+                handler.handle_text(&info, child.node_text_content());
             } else if child.is_element() {
                 traverse_element(child, context, handler);
             }
@@ -243,7 +211,7 @@ fn traverse_children_of<'dom>(
 }
 
 fn traverse_element<'dom>(
-    element: ServoLayoutNode<'dom>,
+    element: ServoThreadSafeLayoutNode<'dom>,
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom>,
 ) {
@@ -277,9 +245,9 @@ fn traverse_element<'dom>(
                 Contents::Replaced(replaced)
             } else if matches!(
                 element.type_id(),
-                LayoutNodeType::Element(
+                Some(LayoutNodeType::Element(
                     LayoutElementType::HTMLInputElement | LayoutElementType::HTMLTextAreaElement
-                )
+                ))
             ) {
                 NonReplacedContents::OfTextControl.into()
             } else {
@@ -302,7 +270,8 @@ fn traverse_eager_pseudo_element<'dom>(
 
     // If this node doesn't have this eager pseudo-element, exit early. This depends on
     // the style applied to the element.
-    let Some(pseudo_element_info) = node_info.pseudo(context, pseudo_element_type) else {
+    let Some(pseudo_element_info) = node_info.with_pseudo_element(context, pseudo_element_type)
+    else {
         return;
     };
     if pseudo_element_info.style.ineffective_content_property() {
@@ -346,7 +315,7 @@ fn traverse_pseudo_element_contents<'dom>(
             PseudoElementContentItem::Text(text) => handler.handle_text(info, text.into()),
             PseudoElementContentItem::Replaced(contents) => {
                 let anonymous_info = anonymous_info.get_or_insert_with(|| {
-                    info.pseudo(context, PseudoElement::ServoAnonymousBox)
+                    info.with_pseudo_element(context, PseudoElement::ServoAnonymousBox)
                         .unwrap_or_else(|| info.clone())
                 });
                 let display_inline = DisplayGeneratingBox::OutsideInside {
@@ -430,7 +399,6 @@ fn generate_pseudo_element_content(
                     ContentItem::Attr(attr) => {
                         let element = pseudo_element_info
                             .node
-                            .to_threadsafe()
                             .as_element()
                             .expect("Expected an element");
 
@@ -501,44 +469,3 @@ fn generate_pseudo_element_content(
         Content::Normal | Content::None => unreachable!(),
     }
 }
-
-pub enum ChildNodeIterator<'dom> {
-    /// Iterating over the children of a node
-    Node(Option<ServoLayoutNode<'dom>>),
-    /// Iterating over the assigned nodes of a `HTMLSlotElement`
-    Slottables(<Vec<ServoLayoutNode<'dom>> as IntoIterator>::IntoIter),
-}
-
-pub(crate) fn iter_child_nodes(parent: ServoLayoutNode<'_>) -> ChildNodeIterator<'_> {
-    if let Some(element) = parent.as_element() {
-        if let Some(shadow) = element.shadow_root() {
-            return iter_child_nodes(shadow.as_node());
-        };
-
-        let slotted_nodes = element.slotted_nodes();
-        if !slotted_nodes.is_empty() {
-            #[allow(clippy::unnecessary_to_owned)] // Clippy is wrong.
-            return ChildNodeIterator::Slottables(slotted_nodes.to_owned().into_iter());
-        }
-    }
-
-    let first = parent.first_child();
-    ChildNodeIterator::Node(first)
-}
-
-impl<'dom> Iterator for ChildNodeIterator<'dom> {
-    type Item = ServoLayoutNode<'dom>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Self::Node(node) => {
-                let old = *node;
-                *node = old?.next_sibling();
-                old
-            },
-            Self::Slottables(slots) => slots.next(),
-        }
-    }
-}
-
-impl FusedIterator for ChildNodeIterator<'_> {}

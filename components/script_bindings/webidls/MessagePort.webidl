@@ -6,7 +6,7 @@
  * https://html.spec.whatwg.org/multipage/#messageport
  */
 
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker), Transferable]
 interface MessagePort : EventTarget {
   [Throws] undefined postMessage(any message, sequence<object> transfer);
   [Throws] undefined postMessage(any message, optional StructuredSerializeOptions options = {});

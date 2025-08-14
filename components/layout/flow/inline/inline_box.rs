@@ -6,9 +6,8 @@ use std::vec::IntoIter;
 
 use app_units::Au;
 use fonts::FontMetrics;
-use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::ServoLayoutNode;
+use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
 
@@ -73,12 +72,12 @@ impl InlineBox {
 
     pub(crate) fn repair_style(
         &mut self,
-        node: &ServoLayoutNode,
+        node: &ServoThreadSafeLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         self.base.repair_style(new_style);
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
-        *self.shared_inline_styles.selected.borrow_mut() = node.to_threadsafe().selected_style();
+        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
     }
 }
 

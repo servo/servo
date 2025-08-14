@@ -8,6 +8,8 @@ use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
+use constellation_traits::EmbedderToConstellationMessage;
+use crossbeam_channel::unbounded;
 use dpi::PhysicalSize;
 use log::{debug, info, warn};
 use ohos_abilitykit_sys::runtime::application_context;
@@ -16,6 +18,7 @@ use raw_window_handle::{
     DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
     WindowHandle,
 };
+use servo::ipc_channel::ipc;
 use servo::{self, EventLoopWaker, ServoBuilder, WindowRenderingContext, resources};
 use xcomponent_sys::OH_NativeXComponent;
 
@@ -191,8 +194,32 @@ pub fn init(
     let servo = ServoBuilder::new(rendering_context.clone())
         .opts(opts)
         .preferences(preferences)
-        .event_loop_waker(waker)
+        .event_loop_waker(waker.clone())
         .build();
+
+    // Initialize WebDriver server if port is specified
+    let webdriver_receiver = servoshell_preferences.webdriver_port.map(|port| {
+        let (embedder_sender, embedder_receiver) = unbounded();
+        let (webdriver_response_sender, webdriver_response_receiver) = ipc::channel().unwrap();
+
+        // Set the WebDriver response sender to constellation
+        servo
+            .constellation_sender()
+            .send(EmbedderToConstellationMessage::SetWebDriverResponseSender(
+                webdriver_response_sender,
+            ))
+            .expect("Failed to set WebDriver response sender in constellation when init Servo");
+
+        webdriver_server::start_server(
+            port,
+            embedder_sender,
+            waker.clone(),
+            webdriver_response_receiver,
+        );
+
+        info!("WebDriver server started on port {}", port);
+        embedder_receiver
+    });
 
     let app_state = RunningAppState::new(
         Some(options.url),
@@ -201,6 +228,7 @@ pub fn init(
         servo,
         window_callbacks,
         servoshell_preferences,
+        webdriver_receiver,
     );
 
     Ok(app_state)

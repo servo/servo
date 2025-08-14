@@ -26,7 +26,7 @@ use style::stylist::RuleInclusion;
 
 use crate::{
     FragmentType, GenericLayoutData, GenericLayoutDataTrait, HTMLCanvasData, HTMLMediaData,
-    LayoutNodeType, SVGSVGData, StyleData,
+    LayoutNodeType, SVGElementData, StyleData,
 };
 
 pub trait LayoutDataTrait: GenericLayoutDataTrait + Default + Send + Sync + 'static {}
@@ -51,15 +51,6 @@ pub trait LayoutNode<'dom>: Copy + Debug + TNode + Send + Sync {
     /// layout. Callers should ensure that no other layout thread is
     /// attempting to read or modify the opaque layout data of this node.
     unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self);
-
-    /// Initialize this node with empty opaque layout data.
-    ///
-    /// # Safety
-    ///
-    /// This method is unsafe because it modifies the given node during
-    /// layout. Callers should ensure that no other layout thread is
-    /// attempting to read or modify the opaque layout data of this node.
-    fn initialize_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self);
 
     /// Get the [`StyleData`] for this node. Returns None if the node is unstyled.
     fn style_data(&self) -> Option<&'dom StyleData>;
@@ -157,6 +148,15 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     /// the parent until all the children have been processed.
     fn parent_style(&self) -> Arc<ComputedValues>;
 
+    /// Initialize this node with empty opaque layout data.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe because it modifies the given node during
+    /// layout. Callers should ensure that no other layout thread is
+    /// attempting to read or modify the opaque layout data of this node.
+    fn initialize_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self);
+
     fn debug_id(self) -> usize;
 
     /// Returns an iterator over this node's children.
@@ -182,16 +182,6 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
             // Text nodes are not styled during traversal,instead we simply
             // return parent style here and do cascading during layout.
             debug_assert!(self.is_text_node());
-            self.parent_style()
-        }
-    }
-
-    fn selected_style(&self) -> Arc<ComputedValues> {
-        if let Some(el) = self.as_element() {
-            el.selected_style()
-        } else {
-            debug_assert!(self.is_text_node());
-            // TODO(stshine): What should the selected style be for text?
             self.parent_style()
         }
     }
@@ -226,7 +216,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
-    fn svg_data(&self) -> Option<SVGSVGData>;
+    fn svg_data(&self) -> Option<SVGElementData>;
 
     fn media_data(&self) -> Option<HTMLMediaData>;
 
@@ -351,16 +341,6 @@ pub trait ThreadSafeLayoutElement<'dom>:
                 }
             },
         }
-    }
-
-    #[inline]
-    fn selected_style(&self) -> Arc<ComputedValues> {
-        let data = self.style_data();
-        data.styles
-            .pseudos
-            .get(&PseudoElement::Selection)
-            .unwrap_or(data.styles.primary())
-            .clone()
     }
 
     fn is_shadow_host(&self) -> bool;

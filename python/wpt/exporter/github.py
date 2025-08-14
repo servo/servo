@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 import urllib.parse
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Any
 
 import requests
 
@@ -29,7 +29,7 @@ USER_AGENT = "Servo web-platform-test sync service"
 TIMEOUT = 30  # 30 seconds
 
 
-def authenticated(sync: WPTSync, method: str, url: str, json=None) -> requests.Response:
+def authenticated(sync: WPTSync, method: str, url: str, json: dict[str, Any] | None = None) -> requests.Response:
     logging.info("  → Request: %s %s", method, url)
     if json:
         logging.info("  → Request JSON: %s", json)
@@ -138,7 +138,7 @@ class PullRequest:
     def __str__(self) -> str:
         return f"{self.repo}#{self.number}"
 
-    def api(self, *args, **kwargs) -> requests.Response:
+    def api(self, *args: Any, **kwargs: dict[str, Any]) -> requests.Response:
         return authenticated(self.context, *args, **kwargs)
 
     def leave_comment(self, comment: str) -> requests.Response:
@@ -163,7 +163,8 @@ class PullRequest:
         self.api("DELETE", f"{self.base_issues_url}/labels/{label}")
 
     def add_labels(self, labels: list[str]) -> None:
-        self.api("POST", f"{self.base_issues_url}/labels", json=labels)
+        data = {"labels": labels}
+        self.api("POST", f"{self.base_issues_url}/labels", json=data)
 
     def merge(self) -> None:
         self.api("PUT", f"{self.base_url}/merge", json={"merge_method": "rebase"})

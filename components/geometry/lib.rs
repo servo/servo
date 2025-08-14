@@ -8,9 +8,10 @@ use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Box2D, Length, Point2D, Scale, SideOffsets2D, Size2D, Vector2D};
 use malloc_size_of_derive::MallocSizeOf;
+use webrender::FastTransform;
 use webrender_api::units::{
-    DeviceIntRect, DeviceIntSize, DevicePixel, FramebufferPixel, LayoutPoint, LayoutRect,
-    LayoutSize,
+    DeviceIntRect, DeviceIntSize, DevicePixel, FramebufferPixel, LayoutPixel, LayoutPoint,
+    LayoutRect, LayoutSize,
 };
 
 // Units for use with euclid::length and euclid::scale_factor.
@@ -45,6 +46,8 @@ pub type DeviceIndependentBox2D = Box2D<f32, DeviceIndependentPixel>;
 pub type DeviceIndependentPoint = Point2D<f32, DeviceIndependentPixel>;
 pub type DeviceIndependentVector2D = Vector2D<f32, DeviceIndependentPixel>;
 pub type DeviceIndependentSize = Size2D<f32, DeviceIndependentPixel>;
+
+pub type FastLayoutTransform = FastTransform<LayoutPixel, LayoutPixel>;
 
 // An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
 // originally proposed in 2002 as a standard unit of measure in Gecko.

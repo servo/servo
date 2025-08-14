@@ -13,6 +13,11 @@ authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2024"
 publish = false
+# We have yet to decide on a policy for updating the minimum supported rust version.
+# Before increasing this, please open a discussion on zulip explaining the reason
+# why we should consider increasing our minimum supported rust version.
+# Please also note, that the **default** rust version in rust-toolchain.toml may be
+# bumped freely.
 rust-version = "1.85.0"
 
 [workspace.dependencies]
@@ -101,7 +106,7 @@ mime = "0.3.13"
 mime_guess = "2.0.5"
 mozangle = "0.5.3"
 net_traits = { path = "components/shared/net" }
-nix = "0.29"
+nix = "0.30"
 nom = "8.0.0"
 num-traits = "0.2"
 num_cpus = "1.17.0"
@@ -167,7 +172,7 @@ unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
-uuid = { version = "1.12.1", features = ["v4"] }
+uuid = { version = "1.18.0", features = ["v4"] }
 vello = { git = "https://github.com/linebender/vello", rev = "b0e2e598ac62c7b3d04d8660e7b1b7659b596970" }
 vello_cpu = { git = "https://github.com/linebender/vello", rev = "b0e2e598ac62c7b3d04d8660e7b1b7659b596970" }
 webdriver = "0.53.0"

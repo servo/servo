@@ -306,9 +306,9 @@ jobs:
         if: github.event_name == 'pull_request_target'
         run: |
           echo "RUN_BENCHER_OPTIONS=--branch ${{ github.event.number }}/PR \
-          --branch-start-point ${{ github.base_ref }} \
-          --branch-start-point-hash ${{ github.event.pull_request.base.sha }} \
-          --branch-reset \
+          --start-point ${{ github.base_ref }} \
+          --start-point-hash ${{ github.event.pull_request.base.sha }} \
+          --start-point-reset \
           --start-point-clone-thresholds"  >> "$GITHUB_ENV"
       - name: Set bencher opts for main
         if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
@@ -321,10 +321,10 @@ jobs:
           git fetch upstream main
           echo "RUN_BENCHER_OPTIONS=--branch try \
           --hash $(git rev-parse HEAD~1) \
-          --branch-start-point main \
-          --branch-start-point-hash $(git merge-base upstream/main HEAD) \
+          --start-point main \
+          --start-point-hash $(git merge-base upstream/main HEAD) \
           --start-point-clone-thresholds \
-          --branch-reset" >> "$GITHUB_ENV"
+          --start-point-reset" >> "$GITHUB_ENV"
       - name: Uploading to bencher.dev
         # Note: That e.g. `--start-point` is ignored if it is an empty string,
         # which should be the case on e.g. normal push workflows on main.

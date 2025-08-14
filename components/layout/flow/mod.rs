@@ -7,9 +7,10 @@
 
 use app_units::{Au, MAX_AU};
 use inline::InlineFormattingContext;
+use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use script::layout_dom::ServoLayoutNode;
+use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::clear::T as StyleClear;
@@ -23,7 +24,6 @@ use style::values::specified::{Display, TextAlignKeyword};
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::NodeExt;
 use crate::flow::float::{
     Clear, ContainingBlockPositionInfo, FloatBox, FloatSide, PlacementAmongFloats,
     SequentialLayoutState,
@@ -76,7 +76,11 @@ impl BlockContainer {
         }
     }
 
-    pub(crate) fn repair_style(&mut self, node: &ServoLayoutNode, new_style: &Arc<ComputedValues>) {
+    pub(crate) fn repair_style(
+        &mut self,
+        node: &ServoThreadSafeLayoutNode,
+        new_style: &Arc<ComputedValues>,
+    ) {
         match self {
             BlockContainer::BlockLevelBoxes(..) => {},
             BlockContainer::InlineFormattingContext(inline_formatting_context) => {
@@ -103,7 +107,7 @@ impl BlockLevelBox {
     pub(crate) fn repair_style(
         &mut self,
         context: &SharedStyleContext,
-        node: &ServoLayoutNode,
+        node: &ServoThreadSafeLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         self.with_base_mut(|base| {
@@ -412,7 +416,7 @@ impl OutsideMarker {
     fn repair_style(
         &mut self,
         context: &SharedStyleContext,
-        node: &ServoLayoutNode,
+        node: &ServoThreadSafeLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         self.list_item_style = node.style(context);
@@ -477,7 +481,11 @@ impl BlockFormattingContext {
         LayoutStyle::Default(&base.style)
     }
 
-    pub(crate) fn repair_style(&mut self, node: &ServoLayoutNode, new_style: &Arc<ComputedValues>) {
+    pub(crate) fn repair_style(
+        &mut self,
+        node: &ServoThreadSafeLayoutNode,
+        new_style: &Arc<ComputedValues>,
+    ) {
         self.contents.repair_style(node, new_style);
     }
 }

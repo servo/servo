@@ -6,7 +6,7 @@
  * https://streams.spec.whatwg.org/#ts-class-definition
  */
 
-[Exposed=*] // [Transferable] - See Bug 1562065
+[Exposed=*, Transferable]
 interface TransformStream {
   [Throws]
   constructor(optional object transformer,

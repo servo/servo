@@ -228,7 +228,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
         self.inline_formatting_context_builder.take()?.finish(
             self.context,
             !self.have_already_seen_first_line_for_text_indent,
-            self.info.is_single_line_text_input(),
+            self.info.node.is_single_line_text_input(),
             self.info.style.to_bidi_level(),
         )
     }
@@ -414,7 +414,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         // TODO: We do not currently support saving box slots for ::marker pseudo-elements
         // that are part nested in ::before and ::after pseudo elements. For now, just
         // forget about them once they are built.
-        let box_slot = match container_info.pseudo_element_type {
+        let box_slot = match container_info.pseudo_element() {
             Some(_) => BoxSlot::dummy(),
             None => marker_info
                 .node
@@ -441,7 +441,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         // TODO: We do not currently support saving box slots for ::marker pseudo-elements
         // that are part nested in ::before and ::after pseudo elements. For now, just
         // forget about them once they are built.
-        let box_slot = match container_info.pseudo_element_type {
+        let box_slot = match container_info.pseudo_element() {
             Some(_) => BoxSlot::dummy(),
             None => marker_info
                 .node
@@ -686,7 +686,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             .anonymous_box_info
             .get_or_insert_with(|| {
                 self.info
-                    .pseudo(layout_context, PseudoElement::ServoAnonymousBox)
+                    .with_pseudo_element(layout_context, PseudoElement::ServoAnonymousBox)
                     .expect("Should never fail to create anonymous box")
             })
             .clone();

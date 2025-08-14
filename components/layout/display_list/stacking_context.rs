@@ -234,7 +234,7 @@ impl StackingContextTree {
                 origin,
                 frame_origin_for_query,
                 transform_style,
-                transform,
+                transform: transform.into(),
                 kind,
             }),
         )

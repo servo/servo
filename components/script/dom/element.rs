@@ -3787,8 +3787,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let html = TrustedHTML::get_trusted_script_compliant_string(
             &self.owner_global(),
             html,
-            "Element",
-            "setHTMLUnsafe",
+            "Element setHTMLUnsafe",
             can_gc,
         )?;
         // Step 2. Let target be this's template contents if this is a template element; otherwise this.
@@ -3844,8 +3843,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let value = TrustedHTML::get_trusted_script_compliant_string(
             &self.owner_global(),
             value.convert(),
-            "Element",
-            "innerHTML",
+            "Element innerHTML",
             can_gc,
         )?;
         // https://github.com/w3c/DOM-Parsing/issues/1
@@ -3902,8 +3900,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let value = TrustedHTML::get_trusted_script_compliant_string(
             &self.owner_global(),
             value.convert(),
-            "Element",
-            "outerHTML",
+            "Element outerHTML",
             can_gc,
         )?;
         let context_document = self.owner_document();
@@ -4118,8 +4115,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let text = TrustedHTML::get_trusted_script_compliant_string(
             &self.owner_global(),
             text,
-            "Element",
-            "insertAdjacentHTML",
+            "Element insertAdjacentHTML",
             can_gc,
         )?;
         let position = position.parse::<AdjacentPosition>()?;
@@ -5425,8 +5421,8 @@ impl Element {
     }
 
     pub(crate) fn set_focus_state(&self, value: bool) {
-        self.set_state(ElementState::FOCUS, value);
         self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.set_state(ElementState::FOCUS, value);
     }
 
     pub(crate) fn hover_state(&self) -> bool {

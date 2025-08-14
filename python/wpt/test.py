@@ -32,7 +32,7 @@ import time
 import unittest
 
 from functools import partial
-from typing import Any, Optional, Tuple, Type
+from typing import Any, Optional, Type
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 import flask
@@ -221,7 +221,7 @@ class TestApplyCommitsToWPT(unittest.TestCase):
         pull_request = SYNC.servo.get_pull_request(pr_number)
         step = CreateOrUpdateBranchForPRStep({"number": pr_number}, pull_request)
 
-        def get_applied_commits(num_commits: int, applied_commits: list[Tuple[str, str]]) -> None:
+        def get_applied_commits(num_commits: int, applied_commits: list[tuple[str, str]]) -> None:
             assert SYNC is not None
             repo = SYNC.local_wpt_repo
             log = ["log", "--oneline", f"-{num_commits}"]

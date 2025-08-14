@@ -25,6 +25,7 @@ use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
+use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
     IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, OffsetParentResponse, QueryMsg,
     ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult,
@@ -272,7 +273,7 @@ impl Layout for LayoutThread {
         let stacking_context_tree = stacking_context_tree
             .as_ref()
             .expect("Should always have a StackingContextTree for content box queries");
-        process_content_box_request(stacking_context_tree, node)
+        process_content_box_request(stacking_context_tree, node.to_threadsafe())
     }
 
     /// Get a `Vec` of bounding boxes of this node's `Fragement`s in the coordinate space of the
@@ -292,13 +293,13 @@ impl Layout for LayoutThread {
         let stacking_context_tree = stacking_context_tree
             .as_ref()
             .expect("Should always have a StackingContextTree for content box queries");
-        process_content_boxes_request(stacking_context_tree, node)
+        process_content_boxes_request(stacking_context_tree, node.to_threadsafe())
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn query_client_rect(&self, node: TrustedNodeAddress) -> UntypedRect<i32> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_client_rect_request(node)
+        process_client_rect_request(node.to_threadsafe())
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -376,7 +377,7 @@ impl Layout for LayoutThread {
 
     #[servo_tracing::instrument(skip_all)]
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> UntypedRect<i32> {
-        let node = node.map(|node| unsafe { ServoLayoutNode::new(&node) });
+        let node = node.map(|node| unsafe { ServoLayoutNode::new(&node).to_threadsafe() });
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
     }
 
@@ -704,6 +705,7 @@ impl LayoutThread {
             resolved_images_cache: self.resolved_images_cache.clone(),
             pending_images: Mutex::default(),
             pending_rasterization_images: Mutex::default(),
+            pending_svg_elements_for_serialization: Mutex::default(),
             node_to_animating_image_map: reflow_request.node_to_animating_image_map.clone(),
             animation_timeline_value: reflow_request.animation_timeline_value,
         });
@@ -730,11 +732,14 @@ impl LayoutThread {
         let pending_images = std::mem::take(&mut *image_resolver.pending_images.lock());
         let pending_rasterization_images =
             std::mem::take(&mut *image_resolver.pending_rasterization_images.lock());
+        let pending_svg_elements_for_serialization =
+            std::mem::take(&mut *image_resolver.pending_svg_elements_for_serialization.lock());
 
         Some(ReflowResult {
             reflow_phases_run,
             pending_images,
             pending_rasterization_images,
+            pending_svg_elements_for_serialization,
             iframe_sizes: Some(iframe_sizes),
         })
     }
@@ -903,7 +908,7 @@ impl LayoutThread {
             .unwrap_or_default();
         let damage = compute_damage_and_repair_style(
             &layout_context.style_context,
-            root_node,
+            root_node.to_threadsafe(),
             damage_from_environment,
         );
 

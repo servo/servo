@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
 use layout_api::IFrameSize;
+use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::{Image, ImageOrMetadataAvailable, UsePlaceholder};
-use script::layout_dom::ServoLayoutNode;
+use net_traits::image_cache::{Image, ImageOrMetadataAvailable, UsePlaceholder, VectorImage};
+use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::object_fit::T as ObjectFit;
-use style::dom::TNode;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
@@ -86,6 +86,16 @@ impl NaturalSizes {
         }
     }
 
+    pub(crate) fn from_natural_size_in_dots(natural_size_in_dots: PhysicalSize<f64>) -> Self {
+        // FIXME: should 'image-resolution' (when implemented) be used *instead* of
+        // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
+        // https://drafts.csswg.org/css-images-4/#the-image-resolution
+        let dppx = 1.0;
+        let width = natural_size_in_dots.width as f32 / dppx;
+        let height = natural_size_in_dots.height as f32 / dppx;
+        Self::from_width_and_height(width, height)
+    }
+
     pub(crate) fn empty() -> Self {
         Self {
             width: None,
@@ -117,10 +127,14 @@ pub(crate) enum ReplacedContentKind {
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(Option<VideoInfo>),
+    SVGElement(Option<VectorImage>),
 }
 
 impl ReplacedContents {
-    pub fn for_element(element: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
+    pub fn for_element(
+        element: ServoThreadSafeLayoutNode<'_>,
+        context: &LayoutContext,
+    ) -> Option<Self> {
         if let Some(ref data_attribute_string) = element.as_typeless_object_with_data_attribute() {
             if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
                 return Self::from_image_url(
@@ -131,16 +145,16 @@ impl ReplacedContents {
             }
         }
 
-        let (kind, natural_size_in_dots) = {
+        let (kind, natural_size) = {
             if let Some((image, natural_size_in_dots)) = element.as_image() {
                 (
                     ReplacedContentKind::Image(image),
-                    Some(natural_size_in_dots),
+                    NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
             } else if let Some((canvas_info, natural_size_in_dots)) = element.as_canvas() {
                 (
                     ReplacedContentKind::Canvas(canvas_info),
-                    Some(natural_size_in_dots),
+                    NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
             } else if let Some((pipeline_id, browsing_context_id)) = element.as_iframe() {
                 (
@@ -148,13 +162,46 @@ impl ReplacedContents {
                         pipeline_id,
                         browsing_context_id,
                     }),
-                    None,
+                    NaturalSizes::empty(),
                 )
             } else if let Some((image_key, natural_size_in_dots)) = element.as_video() {
                 (
                     ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
-                    natural_size_in_dots,
+                    natural_size_in_dots
+                        .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
+            } else if let Some(svg_data) = element.as_svg() {
+                let svg_source = match svg_data.source {
+                    None => {
+                        // The SVGSVGElement is not yet serialized, so we add it to a list
+                        // and hand it over to script to peform the serialization.
+                        context
+                            .image_resolver
+                            .queue_svg_element_for_serialization(element);
+                        return None;
+                    },
+                    Some(Err(_)) => {
+                        // Don't attempt to serialize if previous attempt had errored.
+                        return None;
+                    },
+                    Some(Ok(svg_source)) => svg_source,
+                };
+
+                let result = context
+                    .image_resolver
+                    .get_cached_image_for_url(element.opaque(), svg_source, UsePlaceholder::No)
+                    .ok();
+
+                let vector_image = result.map(|result| match result {
+                    Image::Vector(vector_image) => vector_image,
+                    _ => unreachable!("SVG element can't contain a raster image."),
+                });
+                let natural_size = NaturalSizes {
+                    width: svg_data.width.map(Au::from_px),
+                    height: svg_data.height.map(Au::from_px),
+                    ratio: svg_data.ratio,
+                };
+                (ReplacedContentKind::SVGElement(vector_image), natural_size)
             } else {
                 return None;
             }
@@ -166,18 +213,6 @@ impl ReplacedContents {
                 .handle_animated_image(element.opaque(), image.clone());
         }
 
-        let natural_size = if let Some(naturalc_size_in_dots) = natural_size_in_dots {
-            // FIXME: should 'image-resolution' (when implemented) be used *instead* of
-            // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
-            // https://drafts.csswg.org/css-images-4/#the-image-resolution
-            let dppx = 1.0;
-            let width = (naturalc_size_in_dots.width as CSSFloat) / dppx;
-            let height = (naturalc_size_in_dots.height as CSSFloat) / dppx;
-            NaturalSizes::from_width_and_height(width, height)
-        } else {
-            NaturalSizes::empty()
-        };
-
         let base_fragment_info = BaseFragmentInfo::new_for_node(element.opaque());
         Some(Self {
             kind,
@@ -187,7 +222,7 @@ impl ReplacedContents {
     }
 
     pub fn from_image_url(
-        element: ServoLayoutNode<'_>,
+        element: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
         image_url: &ComputedUrl,
     ) -> Option<Self> {
@@ -223,7 +258,7 @@ impl ReplacedContents {
     }
 
     pub fn from_image(
-        element: ServoLayoutNode<'_>,
+        element: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
         image: &ComputedImage,
     ) -> Option<Self> {
@@ -391,6 +426,46 @@ impl ReplacedContents {
                     clip,
                     image_key: Some(image_key),
                 }))]
+            },
+            ReplacedContentKind::SVGElement(vector_image) => {
+                let Some(vector_image) = vector_image else {
+                    return vec![];
+                };
+                let scale = layout_context.style_context.device_pixel_ratio();
+                // TODO: This is incorrect if the SVG has a viewBox.
+                let size = PhysicalSize::new(
+                    vector_image
+                        .metadata
+                        .width
+                        .try_into()
+                        .map_or(MAX_AU, Au::from_px),
+                    vector_image
+                        .metadata
+                        .height
+                        .try_into()
+                        .map_or(MAX_AU, Au::from_px),
+                );
+                let rect = PhysicalRect::from_size(size);
+                let raster_size = Size2D::new(
+                    size.width.scale_by(scale.0).to_px(),
+                    size.height.scale_by(scale.0).to_px(),
+                );
+                let tag = self.base_fragment_info.tag.unwrap();
+                layout_context
+                    .image_resolver
+                    .rasterize_vector_image(vector_image.id, raster_size, tag.node)
+                    .and_then(|image| image.id)
+                    .map(|image_key| {
+                        Fragment::Image(ArcRefCell::new(ImageFragment {
+                            base: self.base_fragment_info.into(),
+                            style: style.clone(),
+                            rect,
+                            clip,
+                            image_key: Some(image_key),
+                        }))
+                    })
+                    .into_iter()
+                    .collect()
             },
         }
     }

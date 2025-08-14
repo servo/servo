@@ -122,6 +122,18 @@ fn is_disabled(element: &Element) -> bool {
     element.is_actually_disabled()
 }
 
+pub(crate) fn handle_get_known_shadow_root(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    shadow_root_id: String,
+    reply: IpcSender<Result<(), ErrorStatus>>,
+) {
+    let result = get_known_shadow_root(documents, pipeline, shadow_root_id).map(|_| ());
+    if reply.send(result).is_err() {
+        error!("Webdriver get known shadow root reply failed");
+    }
+}
+
 /// <https://w3c.github.io/webdriver/#dfn-get-a-known-shadow-root>
 fn get_known_shadow_root(
     documents: &DocumentCollection,
@@ -168,6 +180,18 @@ fn get_known_shadow_root(
     }
     // Step 5. Return success with data node.
     Ok(shadow_root)
+}
+
+pub(crate) fn handle_get_known_element(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    element_id: String,
+    reply: IpcSender<Result<(), ErrorStatus>>,
+) {
+    let result = get_known_element(documents, pipeline, element_id).map(|_| ());
+    if reply.send(result).is_err() {
+        error!("Webdriver get known element reply failed");
+    }
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-get-a-known-element>

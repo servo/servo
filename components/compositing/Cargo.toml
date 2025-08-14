@@ -16,6 +16,10 @@ default = []
 tracing = ["dep:tracing"]
 webxr = ["dep:webxr"]
 
+[lints.clippy]
+unwrap_used = "deny"
+panic = "deny"
+
 [dependencies]
 base = { workspace = true }
 bincode = { workspace = true }

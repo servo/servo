@@ -6,14 +6,16 @@
 
 use std::borrow::Cow;
 use std::fmt;
+use std::iter::FusedIterator;
 
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
-use html5ever::{local_name, ns};
-use layout_api::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
+use layout_api::wrapper_traits::{
+    LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use layout_api::{
-    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleData,
-    TrustedNodeAddress,
+    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
+    SVGElementData, StyleData, TrustedNodeAddress,
 };
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
@@ -97,22 +99,6 @@ impl<'dom> ServoLayoutNode<'dom> {
             .as_ref()
             .map(LayoutDom::upcast)
             .map(ServoLayoutElement::from_layout_js)
-    }
-
-    pub fn is_text_input(&self) -> bool {
-        self.node.is_text_input()
-    }
-
-    pub fn is_text_container_of_single_line_input(&self) -> bool {
-        self.node.is_text_container_of_single_line_input()
-    }
-
-    pub fn is_in_ua_widget(&self) -> bool {
-        self.node.is_in_ua_widget()
-    }
-
-    pub fn containing_shadow_host(&self) -> Option<ServoLayoutNode> {
-        Some(self.as_element()?.containing_shadow_host()?.as_node())
     }
 }
 
@@ -214,15 +200,6 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         }
     }
 
-    fn initialize_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
-        let inner = self.get_jsmanaged();
-        if inner.layout_data().is_none() {
-            unsafe {
-                inner.initialize_layout_data(Box::<RequestedLayoutDataType>::default());
-            }
-        }
-    }
-
     fn is_connected(&self) -> bool {
         unsafe { self.node.get_flag(NodeFlags::IS_CONNECTED) }
     }
@@ -280,6 +257,43 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
             .map(ServoLayoutNode::from_layout_js)
             .map(Self::new)
     }
+
+    /// Whether this is a container for the text within a single-line text input. This
+    /// is used to solve the special case of line height for a text entry widget.
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+    // TODO(stevennovaryo): Remove the addition of HTMLInputElement here once all of the
+    //                      input element is implemented with UA shadow DOM. This is temporary
+    //                      workaround for past version of input element where we are
+    //                      rendering it as a bare html element.
+    pub fn is_single_line_text_input(&self) -> bool {
+        self.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement)) ||
+            (self.pseudo.is_none() && self.node.node.is_text_container_of_single_line_input())
+    }
+
+    pub fn is_text_input(&self) -> bool {
+        self.node.node.is_text_input()
+    }
+
+    pub fn selected_style(&self) -> Arc<ComputedValues> {
+        let Some(element) = self.as_element() else {
+            // TODO(stshine): What should the selected style be for text?
+            debug_assert!(self.is_text_node());
+            return self.parent_style();
+        };
+
+        let style_data = &element.style_data().styles;
+        let get_selected_style = || {
+            // This is a workaround for handling the `::selection` pseudos where it would not
+            // propagate to the children and Shadow DOM elements. For this case, UA widget
+            // inner elements should follow the originating element in terms of selection.
+            if self.node.node.is_in_ua_widget() {
+                return Some(element.containing_shadow_host()?.as_node().selected_style());
+            }
+            style_data.pseudos.get(&PseudoElement::Selection).cloned()
+        };
+
+        get_selected_style().unwrap_or_else(|| style_data.primary().clone())
+    }
 }
 
 impl style::dom::NodeInfo for ServoThreadSafeLayoutNode<'_> {
@@ -320,16 +334,20 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         parent_data.styles.primary().clone()
     }
 
+    fn initialize_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
+        let inner = self.node.get_jsmanaged();
+        if inner.layout_data().is_none() {
+            unsafe {
+                inner.initialize_layout_data(Box::<RequestedLayoutDataType>::default());
+            }
+        }
+    }
+
     fn debug_id(self) -> usize {
         self.node.debug_id()
     }
 
     fn children(&self) -> style::dom::LayoutIterator<Self::ChildrenIterator> {
-        if let Some(shadow) = self.node.as_element().and_then(|e| e.shadow_root()) {
-            return style::dom::LayoutIterator(ServoThreadSafeLayoutNodeChildrenIterator::new(
-                shadow.as_node().to_threadsafe(),
-            ));
-        }
         style::dom::LayoutIterator(ServoThreadSafeLayoutNodeChildrenIterator::new(*self))
     }
 
@@ -399,7 +417,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         this.media_data()
     }
 
-    fn svg_data(&self) -> Option<SVGSVGData> {
+    fn svg_data(&self) -> Option<SVGElementData> {
         let this = unsafe { self.get_jsmanaged() };
         this.svg_data()
     }
@@ -444,98 +462,46 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
     }
 }
 
-pub struct ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
-    current_node: Option<ServoThreadSafeLayoutNode<'dom>>,
-    parent_node: ServoThreadSafeLayoutNode<'dom>,
+pub enum ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
+    /// Iterating over the children of a node
+    Node(Option<ServoThreadSafeLayoutNode<'dom>>),
+    /// Iterating over the assigned nodes of a `HTMLSlotElement`
+    Slottables(<Vec<ServoLayoutNode<'dom>> as IntoIterator>::IntoIter),
 }
 
 impl<'dom> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
-    pub fn new(parent: ServoThreadSafeLayoutNode<'dom>) -> Self {
-        let first_child = match parent.pseudo_element() {
-            None => parent
-                .with_pseudo(PseudoElement::Before)
-                .or_else(|| parent.with_pseudo(PseudoElement::DetailsSummary))
-                .or_else(|| unsafe { parent.dangerous_first_child() }),
-            Some(PseudoElement::DetailsContent) | Some(PseudoElement::DetailsSummary) => unsafe {
-                parent.dangerous_first_child()
-            },
-            _ => None,
-        };
-        ServoThreadSafeLayoutNodeChildrenIterator {
-            current_node: first_child,
-            parent_node: parent,
+    #[allow(unsafe_code)]
+    fn new(
+        parent: ServoThreadSafeLayoutNode<'dom>,
+    ) -> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
+        if let Some(element) = parent.as_element() {
+            if let Some(shadow) = element.shadow_root() {
+                return Self::new(shadow.as_node().to_threadsafe());
+            };
+
+            let slotted_nodes = element.slotted_nodes();
+            if !slotted_nodes.is_empty() {
+                #[allow(clippy::unnecessary_to_owned)] // Clippy is wrong.
+                return Self::Slottables(slotted_nodes.to_owned().into_iter());
+            }
         }
+
+        Self::Node(unsafe { parent.dangerous_first_child() })
     }
 }
 
 impl<'dom> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
     type Item = ServoThreadSafeLayoutNode<'dom>;
-    fn next(&mut self) -> Option<ServoThreadSafeLayoutNode<'dom>> {
-        use selectors::Element;
-        match self.parent_node.pseudo_element() {
-            Some(PseudoElement::Before) | Some(PseudoElement::After) => None,
 
-            Some(PseudoElement::DetailsSummary) => {
-                let mut current_node = self.current_node;
-                loop {
-                    let next_node = if let Some(ref node) = current_node {
-                        if let Some(element) = node.as_element() {
-                            if element.has_local_name(&local_name!("summary")) &&
-                                element.has_namespace(&ns!(html))
-                            {
-                                self.current_node = None;
-                                return Some(*node);
-                            }
-                        }
-                        unsafe { node.dangerous_next_sibling() }
-                    } else {
-                        self.current_node = None;
-                        return None;
-                    };
-                    current_node = next_node;
-                }
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Node(node) => {
+                let next_sibling = unsafe { (*node)?.dangerous_next_sibling() };
+                std::mem::replace(node, next_sibling)
             },
-
-            Some(PseudoElement::DetailsContent) => {
-                let node = self.current_node;
-                let node = node.and_then(|node| {
-                    if node.is_element() &&
-                        node.as_element()
-                            .unwrap()
-                            .has_local_name(&local_name!("summary")) &&
-                        node.as_element().unwrap().has_namespace(&ns!(html))
-                    {
-                        unsafe { node.dangerous_next_sibling() }
-                    } else {
-                        Some(node)
-                    }
-                });
-                self.current_node = node.and_then(|node| unsafe { node.dangerous_next_sibling() });
-                node
-            },
-
-            None | Some(_) => {
-                let node = self.current_node;
-                if let Some(ref node) = node {
-                    self.current_node = match node.pseudo_element() {
-                        Some(PseudoElement::Before) => self
-                            .parent_node
-                            .with_pseudo(PseudoElement::DetailsSummary)
-                            .or_else(|| unsafe { self.parent_node.dangerous_first_child() })
-                            .or_else(|| self.parent_node.with_pseudo(PseudoElement::After)),
-                        Some(PseudoElement::DetailsSummary) => {
-                            self.parent_node.with_pseudo(PseudoElement::DetailsContent)
-                        },
-                        Some(PseudoElement::DetailsContent) => {
-                            self.parent_node.with_pseudo(PseudoElement::After)
-                        },
-                        Some(PseudoElement::After) => None,
-                        None | Some(_) => unsafe { node.dangerous_next_sibling() }
-                            .or_else(|| self.parent_node.with_pseudo(PseudoElement::After)),
-                    };
-                }
-                node
-            },
+            Self::Slottables(slots) => slots.next().map(|node| node.to_threadsafe()),
         }
     }
 }
+
+impl FusedIterator for ServoThreadSafeLayoutNodeChildrenIterator<'_> {}

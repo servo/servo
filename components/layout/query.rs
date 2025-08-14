@@ -12,9 +12,9 @@ use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
-use script::layout_dom::ServoLayoutNode;
+use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
-use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect};
+use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
 use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
@@ -39,7 +39,6 @@ use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
 use style::values::specified::text::TextTransformCase;
 use style_traits::{ParsingMode, ToCss};
-use webrender_api::units::LayoutTransform;
 
 use crate::ArcRefCell;
 use crate::display_list::StackingContextTree;
@@ -54,8 +53,8 @@ use crate::taffy::SpecificTaffyGridInfo;
 /// calculate its cumlative transform from its root scroll node to the scroll node.
 fn root_transform_for_layout_node(
     scroll_tree: &ScrollTree,
-    node: ServoLayoutNode<'_>,
-) -> Option<LayoutTransform> {
+    node: ServoThreadSafeLayoutNode<'_>,
+) -> Option<FastLayoutTransform> {
     let fragments = node.fragments_for_pseudo(None);
     let box_fragment = fragments
         .first()
@@ -70,7 +69,7 @@ fn root_transform_for_layout_node(
 
 pub(crate) fn process_content_box_request(
     stacking_context_tree: &StackingContextTree,
-    node: ServoLayoutNode<'_>,
+    node: ServoThreadSafeLayoutNode<'_>,
 ) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
@@ -90,12 +89,12 @@ pub(crate) fn process_content_box_request(
         return Some(rect_union);
     };
 
-    Some(transform_au_rectangle(rect_union, transform))
+    transform_au_rectangle(rect_union, transform)
 }
 
 pub(crate) fn process_content_boxes_request(
     stacking_context_tree: &StackingContextTree,
-    node: ServoLayoutNode<'_>,
+    node: ServoThreadSafeLayoutNode<'_>,
 ) -> Vec<Rect<Au>> {
     let fragments = node.fragments_for_pseudo(None);
     let content_boxes = fragments
@@ -110,11 +109,11 @@ pub(crate) fn process_content_boxes_request(
     };
 
     content_boxes
-        .map(|rect| transform_au_rectangle(rect, transform))
+        .filter_map(|rect| transform_au_rectangle(rect, transform))
         .collect()
 }
 
-pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32> {
+pub fn process_client_rect_request(node: ServoThreadSafeLayoutNode<'_>) -> Rect<i32> {
     node.fragments_for_pseudo(None)
         .first()
         .map(Fragment::client_rect)
@@ -123,7 +122,7 @@ pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32> {
 
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
 pub fn process_node_scroll_area_request(
-    requested_node: Option<ServoLayoutNode<'_>>,
+    requested_node: Option<ServoThreadSafeLayoutNode<'_>>,
     fragment_tree: Option<Rc<FragmentTree>>,
 ) -> Rect<i32> {
     let Some(tree) = fragment_tree else {
@@ -312,7 +311,8 @@ pub fn process_resolved_style_request(
         .to_css_string()
     };
 
-    node.fragments_for_pseudo(*pseudo)
+    node.to_threadsafe()
+        .fragments_for_pseudo(*pseudo)
         .first()
         .map(resolve_for_fragment)
         .unwrap_or_else(|| computed_style(None))
@@ -485,7 +485,11 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
     //  * The element is the root element.
     //  * The element is the HTML body element.
     //  * The element’s computed value of the position property is fixed.
-    let fragment = node.fragments_for_pseudo(None).first().cloned()?;
+    let fragment = node
+        .to_threadsafe()
+        .fragments_for_pseudo(None)
+        .first()
+        .cloned()?;
     let flags = fragment.base()?.flags;
     if flags.intersects(
         FragmentFlags::IS_ROOT_ELEMENT | FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT,
@@ -508,14 +512,22 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
     while let Some(parent_node) = maybe_parent_node {
         maybe_parent_node = parent_node.parent_node();
 
-        if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
+        if let Some(parent_fragment) = parent_node
+            .to_threadsafe()
+            .fragments_for_pseudo(None)
+            .first()
+        {
             let parent_fragment = match parent_fragment {
                 Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
                 _ => continue,
             };
 
-            let grandparent_fragment =
-                maybe_parent_node.and_then(|node| node.fragments_for_pseudo(None).first().cloned());
+            let grandparent_fragment = maybe_parent_node.and_then(|node| {
+                node.to_threadsafe()
+                    .fragments_for_pseudo(None)
+                    .first()
+                    .cloned()
+            });
 
             if parent_fragment.borrow().style.get_box().position != Position::Static {
                 return Some(OffsetParentFragments {
@@ -558,7 +570,11 @@ pub fn process_offset_parent_query(node: ServoLayoutNode<'_>) -> Option<OffsetPa
     // [1]: https://github.com/w3c/csswg-drafts/issues/4541
     // > 1. If the element is the HTML body element or does not have any associated CSS
     //      layout box return zero and terminate this algorithm.
-    let fragment = node.fragments_for_pseudo(None).first().cloned()?;
+    let fragment = node
+        .to_threadsafe()
+        .fragments_for_pseudo(None)
+        .first()
+        .cloned()?;
     let mut border_box = fragment.cumulative_border_box_rect()?;
 
     // 2.  If the offsetParent of the element is null return the x-coordinate of the left
@@ -1150,9 +1166,17 @@ where
     Some(computed_values.clone_font())
 }
 
-fn transform_au_rectangle(rect_to_transform: Rect<Au>, transform: LayoutTransform) -> Rect<Au> {
-    transform
-        .outer_transformed_rect(&au_rect_to_f32_rect(rect_to_transform).cast_unit())
+fn transform_au_rectangle(
+    rect_to_transform: Rect<Au>,
+    transform: FastLayoutTransform,
+) -> Option<Rect<Au>> {
+    let rect_to_transform = &au_rect_to_f32_rect(rect_to_transform).cast_unit();
+    let outer_transformed_rect = match transform {
+        FastLayoutTransform::Offset(offset) => Some(rect_to_transform.translate(offset)),
+        FastLayoutTransform::Transform { transform, .. } => {
+            transform.outer_transformed_rect(rect_to_transform)
+        },
+    };
+    outer_transformed_rect
         .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()))
-        .unwrap_or(rect_to_transform)
 }

@@ -11,7 +11,7 @@
 pub mod input_events;
 pub mod resources;
 pub mod user_content_manager;
-mod webdriver;
+pub mod webdriver;
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -883,10 +883,6 @@ pub struct CompositorHitTestResult {
 
     /// The hit test point in the item's viewport.
     pub point_in_viewport: Point2D<f32, CSSPixel>,
-
-    /// The hit test point relative to the root scroll node content origin / initial
-    /// containing block.
-    pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,
 
     /// The [`ExternalScrollId`] of the scroll tree node associated with this hit test item.
     pub external_scroll_id: ExternalScrollId,
