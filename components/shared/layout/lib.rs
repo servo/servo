@@ -54,7 +54,7 @@ use style::media_queries::Device;
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
-use style::stylesheets::Stylesheet;
+use style::stylesheets::{Stylesheet, UrlExtraData};
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
@@ -206,6 +206,24 @@ pub struct LayoutConfig {
     pub theme: Theme,
 }
 
+pub struct PropertyRegistration {
+    pub name: String,
+    pub syntax: String,
+    pub initial_value: Option<String>,
+    pub inherits: bool,
+    pub url_data: UrlExtraData,
+}
+
+#[derive(Debug)]
+pub enum RegisterPropertyError {
+    InvalidName,
+    AlreadyRegistered,
+    InvalidSyntax,
+    InvalidInitialValue,
+    InitialValueNotComputationallyIndependent,
+    NoInitialValue,
+}
+
 pub trait LayoutFactory: Send + Sync {
     fn create(&self, config: LayoutConfig) -> Box<dyn Layout>;
 }
@@ -299,6 +317,10 @@ pub trait Layout {
         point: LayoutPoint,
         flags: ElementsFromPointFlags,
     ) -> Vec<ElementsFromPointResult>;
+    fn register_custom_property(
+        &mut self,
+        property_registration: PropertyRegistration,
+    ) -> Result<(), RegisterPropertyError>;
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`

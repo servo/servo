@@ -22,6 +22,7 @@ atomic_refcell = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
 compositing_traits = { workspace = true }
+cssparser = { workspace = true }
 data-url = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }

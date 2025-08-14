@@ -24,13 +24,13 @@ partial namespace CSS {
 };
 
 // https://drafts.css-houdini.org/css-properties-values-api/#the-registerproperty-function
-// dictionary PropertyDefinition {
-//   required DOMString name;
-//            DOMString syntax       = "*";
-//   required boolean   inherits;
-//            DOMString initialValue;
-// };
+dictionary PropertyDefinition {
+  required DOMString name;
+           DOMString syntax       = "*";
+  required boolean   inherits;
+           DOMString initialValue;
+};
 
-// partial namespace CSS {
-//   undefined registerProperty(PropertyDefinition definition);
-// };
+partial namespace CSS {
+  [Throws] undefined registerProperty(PropertyDefinition definition);
+};

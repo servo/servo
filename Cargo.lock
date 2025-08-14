@@ -4736,6 +4736,7 @@ dependencies = [
  "base",
  "bitflags 2.9.1",
  "compositing_traits",
+ "cssparser",
  "data-url",
  "embedder_traits",
  "euclid",
