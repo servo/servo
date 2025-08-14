@@ -4,9 +4,9 @@
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
-use crate::StreamId;
 
 #[derive(Clone)]
 pub struct LongStringActor {
