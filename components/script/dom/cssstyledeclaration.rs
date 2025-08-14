@@ -615,15 +615,3 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-_camel_cased_attribute
     style::css_properties_accessors!(css_properties);
 }
-
-impl From<PropertyId> for PotentiallyParsedPropertyId {
-    fn from(value: PropertyId) -> Self {
-        Self::Parsed(value)
-    }
-}
-
-impl From<DOMString> for PotentiallyParsedPropertyId {
-    fn from(value: DOMString) -> Self {
-        Self::NotParsed(value)
-    }
-}
