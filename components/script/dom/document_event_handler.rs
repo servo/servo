@@ -589,8 +589,7 @@ impl DocumentEventHandler {
 
                 // Step 9. If mbutton is the secondary mouse button, then
                 // Maybe show context menu with native, target.
-                if let (MouseButtonAction::Down, MouseButton::Right) = (event.action, event.button)
-                {
+                if let MouseButton::Right = event.button {
                     self.maybe_show_context_menu(
                         node.upcast(),
                         &hit_test_result,
@@ -610,12 +609,6 @@ impl DocumentEventHandler {
                 // Step 7. dispatch event at target.
                 dom_event.dispatch(node.upcast(), false, can_gc);
             },
-        }
-
-        // When the contextmenu event is triggered by right mouse button
-        // the contextmenu event MUST be dispatched after the mousedown event.
-        if let (MouseButtonAction::Down, MouseButton::Right) = (event.action, event.button) {
-            self.maybe_show_context_menu(node.upcast(), &hit_test_result, input_event, can_gc);
         }
     }
 
