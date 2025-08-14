@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 use std::num::{NonZero, NonZeroU16};
-use std::ptr;
+use std::ptr::{self, NonNull};
 
 use dom_struct::dom_struct;
 use js::conversions::latin1_to_string;
@@ -244,7 +244,8 @@ pub(crate) fn encode_and_enqueue_a_chunk(
 
     let input = unsafe {
         if JS_DeprecatedStringHasLatin1Chars(*jsstr) {
-            ConvertedInput::String(latin1_to_string(*cx, *jsstr))
+            let s = NonNull::new(*jsstr).expect("jsstr cannot be null");
+            ConvertedInput::String(latin1_to_string(*cx, s))
         } else {
             let mut len = 0;
             let data = JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), *jsstr, &mut len);
