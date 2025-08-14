@@ -4,7 +4,10 @@
 
 // https://heycam.github.io/webidl/#quotaexceedederror
 
-[Exposed=(Window,Worker,Worklet,DissimilarOriginWindow), Serializable]
+[
+  Exposed=(Window,Worker,Worklet,DissimilarOriginWindow),
+  // Serializable
+]
 interface QuotaExceededError : DOMException {
   [Throws] constructor(optional DOMString message = "", optional QuotaExceededErrorOptions options = {});
 
