@@ -49,7 +49,7 @@ use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageport::MessagePort;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::types::{DOMException, TransformStream};
+use crate::dom::types::{DOMException, QuotaExceededError, TransformStream};
 use crate::dom::writablestream::WritableStream;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -73,6 +73,7 @@ pub(super) enum StructuredCloneTags {
     TransformStream = 0xFFFF8009,
     ImageBitmap = 0xFFFF800A,
     OffscreenCanvas = 0xFFFF800B,
+    QuotaExceededError = 0xFFFF800C,
     Max = 0xFFFFFFFF,
 }
 
@@ -84,6 +85,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
             SerializableInterface::DomPoint => StructuredCloneTags::DomPoint,
             SerializableInterface::DomException => StructuredCloneTags::DomException,
             SerializableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
+            SerializableInterface::QuotaExceededError => StructuredCloneTags::QuotaExceededError,
         }
     }
 }
@@ -115,6 +117,7 @@ fn reader_for_type(
         SerializableInterface::DomPoint => read_object::<DOMPoint>,
         SerializableInterface::DomException => read_object::<DOMException>,
         SerializableInterface::ImageBitmap => read_object::<ImageBitmap>,
+        SerializableInterface::QuotaExceededError => read_object::<QuotaExceededError>,
     }
 }
 
@@ -259,6 +262,7 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::DomPoint => try_serialize::<DOMPoint>,
         SerializableInterface::DomException => try_serialize::<DOMException>,
         SerializableInterface::ImageBitmap => try_serialize::<ImageBitmap>,
+        SerializableInterface::QuotaExceededError => try_serialize::<QuotaExceededError>,
     }
 }
 

@@ -50,6 +50,8 @@ pub enum Serializable {
     DomException,
     /// The `ImageBitmap` interface.
     ImageBitmap,
+    /// The `QuotaExceededError` interface.
+    QuotaExceededError,
 }
 
 impl Serializable {
@@ -68,6 +70,9 @@ impl Serializable {
             Serializable::ImageBitmap => {
                 StructuredSerializedData::clone_all_of_type::<SerializableImageBitmap>
             },
+            Serializable::QuotaExceededError => {
+                StructuredSerializedData::clone_all_of_type::<SerializableQuotaExceededError>
+            }
         }
     }
 }
@@ -324,6 +329,23 @@ pub struct SerializableQuotaExceededError {
     pub dom_exception: DomException,
     pub quota: Option<f64>,
     pub requested: Option<f64>,
+}
+
+impl BroadcastClone for SerializableQuotaExceededError {
+    // FIXME: see if we need a separate id than domexception
+    type Id = DomExceptionId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>> {
+        todo!()
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<HashMap<Self::Id, Self>> {
+        todo!()
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        todo!()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
