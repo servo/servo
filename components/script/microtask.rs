@@ -115,13 +115,13 @@ impl MicrotaskQueue {
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
-                            let was_interacting = ScriptThread::is_user_interacting();
-                            ScriptThread::set_user_interacting(job.is_user_interacting);
-                            let _realm = enter_realm(&*target);
-                            let _ = job
-                                .callback
-                                .Call_(&*target, ExceptionHandling::Report, can_gc);
-                            ScriptThread::set_user_interacting(was_interacting);
+                            crate::script_thread::with_script_thread(|script_thread| {
+                                let _ = script_thread.get_user_interacting_guard();
+                                let _realm = enter_realm(&*target);
+                                let _ =
+                                    job.callback
+                                        .Call_(&*target, ExceptionHandling::Report, can_gc);
+                            })
                         }
                     },
                     Microtask::User(ref job) => {

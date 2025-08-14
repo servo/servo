@@ -92,31 +92,36 @@ impl MutationObserver {
     }
 
     /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
-    pub(crate) fn queue_mutation_observer_microtask() {
+    pub(crate) fn queue_mutation_observer_microtask(script_thread: &ScriptThread) {
         // Step 1. If the surrounding agent’s mutation observer microtask queued is true, then return.
-        if ScriptThread::is_mutation_observer_microtask_queued() {
+        if script_thread.is_mutation_observer_microtask_queued() {
             return;
         }
 
         // Step 2. Set the surrounding agent’s mutation observer microtask queued to true.
-        ScriptThread::set_mutation_observer_microtask_queued(true);
+        script_thread.set_mutation_observer_microtask_queued(true);
 
         // Step 3. Queue a microtask to notify mutation observers.
-        ScriptThread::enqueue_microtask(Microtask::NotifyMutationObservers);
+        script_thread.enqueue_microtask(Microtask::NotifyMutationObservers);
     }
 
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
     pub(crate) fn notify_mutation_observers(can_gc: CanGc) {
         // Step 1. Set the surrounding agent’s mutation observer microtask queued to false.
-        ScriptThread::set_mutation_observer_microtask_queued(false);
 
-        // Step 2. Let notifySet be a clone of the surrounding agent’s pending mutation observers.
-        // TODO Step 3. Empty the surrounding agent’s pending mutation observers.
-        let notify_list = ScriptThread::get_mutation_observers();
+        let (notify_list, signal_set) = crate::script_thread::with_script_thread(|script_thread| {
+            script_thread.set_mutation_observer_microtask_queued(false);
 
-        // Step 4. Let signalSet be a clone of the surrounding agent’s signal slots.
-        // Step 5. Empty the surrounding agent’s signal slots.
-        let signal_set = ScriptThread::take_signal_slots();
+            // Step 2. Let notifySet be a clone of the surrounding agent’s pending mutation observers.
+            // TODO Step 3. Empty the surrounding agent’s pending mutation observers.
+            let notify_list = script_thread.get_mutation_observers();
+
+            // Step 4. Let signalSet be a clone of the surrounding agent’s signal slots.
+            // Step 5. Empty the surrounding agent’s signal slots.
+            let signal_set = script_thread.take_signal_slots();
+
+            (notify_list, signal_set)
+        });
 
         // Step 6. For each mo of notifySet:
         for mo in &notify_list {
@@ -286,7 +291,9 @@ impl MutationObserver {
         }
 
         // Step 5
-        MutationObserver::queue_mutation_observer_microtask();
+        crate::script_thread::with_script_thread(|script_thread| {
+            MutationObserver::queue_mutation_observer_microtask(script_thread)
+        });
     }
 }
 
@@ -300,7 +307,9 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
     ) -> Fallible<DomRoot<MutationObserver>> {
         global.set_exists_mut_observer();
         let observer = MutationObserver::new_with_proto(global, proto, callback, can_gc);
-        ScriptThread::add_mutation_observer(&observer);
+        crate::script_thread::with_script_thread(|script_thread| {
+            script_thread.add_mutation_observer(&observer);
+        });
         Ok(observer)
     }
 

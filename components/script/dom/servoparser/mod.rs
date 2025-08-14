@@ -1158,10 +1158,10 @@ fn insert(
                 parsing_algorithm != ParsingAlgorithm::Fragment && n.is::<Element>();
             if element_in_non_fragment {
                 ScriptThread::push_new_element_queue();
-            }
-            parent.InsertBefore(&n, reference_child, can_gc).unwrap();
-            if element_in_non_fragment {
+                parent.InsertBefore(&n, reference_child, can_gc).unwrap();
                 ScriptThread::pop_current_element_queue(can_gc);
+            } else {
+                parent.InsertBefore(&n, reference_child, can_gc).unwrap();
             }
         },
         NodeOrText::AppendText(t) => {

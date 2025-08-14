@@ -1425,7 +1425,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
 
         let pipeline_id = window_proxy.currently_active()?;
-        let document = ScriptThread::find_document(pipeline_id)?;
+        let document = ScriptThread::find_document_on_current_script(pipeline_id)?;
 
         if document.upcast::<Node>().unique_id(pipeline_id) == id.str() {
             Some(DomRoot::from_ref(&window_proxy))

@@ -288,56 +288,64 @@ impl WindowProxy {
         name: DOMString,
         noopener: bool,
     ) -> Option<DomRoot<WindowProxy>> {
-        let (response_sender, response_receiver) = ipc::channel().unwrap();
-        let window = self
-            .currently_active
-            .get()
-            .and_then(ScriptThread::find_document)
-            .map(|doc| DomRoot::from_ref(doc.window()))
-            .unwrap();
+        let (document, window, new_window_proxy, response) =
+            crate::script_thread::with_script_thread(|script_thread| {
+                let (response_sender, response_receiver) = ipc::channel().unwrap();
+                let window = self
+                    .currently_active
+                    .get()
+                    .and_then(|doc| script_thread.find_document(doc))
+                    .map(|doc| DomRoot::from_ref(doc.window()))
+                    .unwrap();
 
-        let document = self
-            .currently_active
-            .get()
-            .and_then(ScriptThread::find_document)
-            .expect("A WindowProxy creating an auxiliary to have an active document");
-        let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
-        let load_data = LoadData::new(
-            LoadOrigin::Script(document.origin().immutable().clone()),
-            blank_url,
-            None,
-            document.global().get_referrer(),
-            document.get_referrer_policy(),
-            None, // Doesn't inherit secure context
-            None,
-            false,
-        );
-        let load_info = AuxiliaryWebViewCreationRequest {
-            load_data: load_data.clone(),
-            opener_webview_id: window.webview_id(),
-            opener_pipeline_id: self.currently_active.get().unwrap(),
-            response_sender,
-        };
-        let constellation_msg = ScriptToConstellationMessage::CreateAuxiliaryWebView(load_info);
-        window.send_to_constellation(constellation_msg);
+                let document = self
+                    .currently_active
+                    .get()
+                    .and_then(|doc| script_thread.find_document(doc))
+                    .expect("A WindowProxy creating an auxiliary to have an active document");
 
-        let response = response_receiver.recv().unwrap()?;
-        let new_browsing_context_id = BrowsingContextId::from(response.new_webview_id);
-        let new_layout_info = NewLayoutInfo {
-            parent_info: None,
-            new_pipeline_id: response.new_pipeline_id,
-            browsing_context_id: new_browsing_context_id,
-            webview_id: response.new_webview_id,
-            opener: Some(self.browsing_context_id),
-            load_data,
-            viewport_details: window.viewport_details(),
-            // Use the current `WebView`'s theme initially, but the embedder may
-            // change this later.
-            theme: window.theme(),
-        };
-        ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
-        let new_window_proxy = ScriptThread::find_document(response.new_pipeline_id)
-            .and_then(|doc| doc.browsing_context())?;
+                let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
+                let load_data = LoadData::new(
+                    LoadOrigin::Script(document.origin().immutable().clone()),
+                    blank_url,
+                    None,
+                    document.global().get_referrer(),
+                    document.get_referrer_policy(),
+                    None, // Doesn't inherit secure context
+                    None,
+                    false,
+                );
+                let load_info = AuxiliaryWebViewCreationRequest {
+                    load_data: load_data.clone(),
+                    opener_webview_id: window.webview_id(),
+                    opener_pipeline_id: self.currently_active.get().unwrap(),
+                    response_sender,
+                };
+                let constellation_msg =
+                    ScriptToConstellationMessage::CreateAuxiliaryWebView(load_info);
+                window.send_to_constellation(constellation_msg);
+
+                let response = response_receiver.recv().unwrap()?;
+                let new_browsing_context_id = BrowsingContextId::from(response.new_webview_id);
+                let new_layout_info = NewLayoutInfo {
+                    parent_info: None,
+                    new_pipeline_id: response.new_pipeline_id,
+                    browsing_context_id: new_browsing_context_id,
+                    webview_id: response.new_webview_id,
+                    opener: Some(self.browsing_context_id),
+                    load_data,
+                    viewport_details: window.viewport_details(),
+                    // Use the current `WebView`'s theme initially, but the embedder may
+                    // change this later.
+                    theme: window.theme(),
+                };
+                ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+                let new_window_proxy = script_thread
+                    .find_document(response.new_pipeline_id)
+                    .and_then(|doc| doc.browsing_context())?;
+
+                Some((document, window, new_window_proxy, response))
+            })?;
         if name.to_lowercase() != "_blank" {
             new_window_proxy.set_name(name);
         }
@@ -536,7 +544,7 @@ impl WindowProxy {
             let existing_document = self
                 .currently_active
                 .get()
-                .and_then(ScriptThread::find_document)
+                .and_then(ScriptThread::find_document_on_current_script)
                 .unwrap();
             let url = match existing_document.url().join(&url) {
                 Ok(url) => url,
@@ -641,7 +649,7 @@ impl WindowProxy {
     pub(crate) fn document(&self) -> Option<DomRoot<Document>> {
         self.currently_active
             .get()
-            .and_then(ScriptThread::find_document)
+            .and_then(ScriptThread::find_document_on_current_script)
     }
 
     pub(crate) fn parent(&self) -> Option<&WindowProxy> {
