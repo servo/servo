@@ -2648,6 +2648,7 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "servo_url",
+ "skrifa",
  "smallvec",
  "stylo",
  "stylo_atoms",
