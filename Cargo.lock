@@ -728,7 +728,6 @@ dependencies = [
  "parking_lot",
  "serde",
  "servo_malloc_size_of",
- "static_assertions",
  "time",
  "webrender_api",
  "windows-sys 0.59.0",
