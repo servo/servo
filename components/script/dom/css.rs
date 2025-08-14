@@ -4,6 +4,8 @@
 
 use cssparser::{Parser, ParserInput, serialize_identifier};
 use dom_struct::dom_struct;
+use layout_api::{PropertyRegistration, RegisterPropertyError};
+use script_bindings::codegen::GenericBindings::CSSBinding::PropertyDefinition;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
@@ -12,7 +14,7 @@ use style_traits::ParsingMode;
 
 use crate::dom::bindings::codegen::Bindings::CSSBinding::CSSMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -80,5 +82,33 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
     fn PaintWorklet(win: &Window) -> DomRoot<Worklet> {
         win.paint_worklet()
+    }
+
+    /// <https://drafts.css-houdini.org/css-properties-values-api/#the-registerproperty-function>
+    fn RegisterProperty(window: &Window, property_definition: &PropertyDefinition) -> Fallible<()> {
+        let property_registration = PropertyRegistration {
+            name: property_definition.name.str().to_owned(),
+            inherits: property_definition.inherits,
+            url_data: UrlExtraData(window.get_url().get_arc()),
+            initial_value: property_definition
+                .initialValue
+                .as_ref()
+                .map(|value| value.str().to_owned()),
+            syntax: property_definition.syntax.str().to_owned(),
+        };
+
+        window
+            .layout_mut()
+            .register_custom_property(property_registration)
+            .map_err(|error| match error {
+                RegisterPropertyError::InvalidName |
+                RegisterPropertyError::InvalidSyntax |
+                RegisterPropertyError::InvalidInitialValue |
+                RegisterPropertyError::NoInitialValue |
+                RegisterPropertyError::InitialValueNotComputationallyIndependent => Error::Syntax,
+                RegisterPropertyError::AlreadyRegistered => Error::InvalidModification,
+            })?;
+
+        Ok(())
     }
 }
