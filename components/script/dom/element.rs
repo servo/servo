@@ -51,7 +51,7 @@ use style::selector_parser::{
     NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser,
     extended_filtering,
 };
-use style::shared_lock::{Locked, SharedRwLock};
+use style::shared_lock::Locked;
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, Origin as CssOrigin, UrlExtraData};
 use style::values::computed::Overflow;
@@ -1368,32 +1368,19 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     where
         V: Push<ApplicableDeclarationBlock>,
     {
-        // FIXME(emilio): Just a single PDB should be enough.
-        #[inline]
-        fn from_declaration(
-            shared_lock: &SharedRwLock,
-            declaration: PropertyDeclaration,
-        ) -> ApplicableDeclarationBlock {
-            ApplicableDeclarationBlock::from_declarations(
-                Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
-                    declaration,
-                    Importance::Normal,
-                ))),
-                CascadeLevel::PresHints,
-                LayerOrder::root(),
-            )
-        }
-
-        let document = self.upcast::<Node>().owner_doc_for_layout();
-        let shared_lock = document.style_shared_lock();
+        let mut property_declaration_block = None;
+        let mut push = |declaration| {
+            property_declaration_block
+                .get_or_insert_with(PropertyDeclarationBlock::default)
+                .push(declaration, Importance::Normal);
+        };
 
         // TODO(xiaochengh): This is probably not enough. When the root element doesn't have a `lang`,
         // we should check the browser settings and system locale.
         if let Some(lang) = self.get_lang_attr_val_for_layout() {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::XLang(specified::XLang(Atom::from(lang.to_owned()))),
-            ));
+            push(PropertyDeclaration::XLang(specified::XLang(Atom::from(
+                lang.to_owned(),
+            ))));
         }
 
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
@@ -1411,24 +1398,19 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = bgcolor {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BackgroundColor(specified::Color::from_absolute_color(color)),
+            push(PropertyDeclaration::BackgroundColor(
+                specified::Color::from_absolute_color(color),
             ));
         }
 
-        let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
-            this.get_background()
-        } else {
-            None
-        };
-
+        let background = self
+            .downcast::<HTMLBodyElement>()
+            .and_then(HTMLBodyElementLayoutHelpers::get_background);
         if let Some(url) = background {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(
+            push(PropertyDeclaration::BackgroundImage(
+                background_image::SpecifiedValue(
                     vec![specified::Image::for_cascade(url.get_arc())].into(),
-                )),
+                ),
             ));
         }
 
@@ -1445,61 +1427,41 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = color {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::Color(longhands::color::SpecifiedValue(
-                    specified::Color::from_absolute_color(color),
-                )),
+            push(PropertyDeclaration::Color(
+                longhands::color::SpecifiedValue(specified::Color::from_absolute_color(color)),
             ));
         }
 
-        let font_face = if let Some(this) = self.downcast::<HTMLFontElement>() {
-            this.get_face()
-        } else {
-            None
-        };
-
+        let font_face = self
+            .downcast::<HTMLFontElement>()
+            .and_then(HTMLFontElementLayoutHelpers::get_face);
         if let Some(font_face) = font_face {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
-                    computed::font::FontFamilyList {
-                        list: ArcSlice::from_iter(
-                            HTMLFontElement::parse_face_attribute(font_face).into_iter(),
-                        ),
-                    },
-                )),
+            push(PropertyDeclaration::FontFamily(
+                font_family::SpecifiedValue::Values(computed::font::FontFamilyList {
+                    list: ArcSlice::from_iter(
+                        HTMLFontElement::parse_face_attribute(font_face).into_iter(),
+                    ),
+                }),
             ));
         }
 
         let font_size = self
             .downcast::<HTMLFontElement>()
-            .and_then(|this| this.get_size());
-
+            .and_then(HTMLFontElementLayoutHelpers::get_size);
         if let Some(font_size) = font_size {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::FontSize(font_size::SpecifiedValue::from_html_size(
-                    font_size as u8,
-                )),
-            ))
+            push(PropertyDeclaration::FontSize(
+                font_size::SpecifiedValue::from_html_size(font_size as u8),
+            ));
         }
 
-        let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
-            this.get_cellspacing()
-        } else {
-            None
-        };
-
+        let cellspacing = self
+            .downcast::<HTMLTableElement>()
+            .and_then(HTMLTableElementLayoutHelpers::get_cellspacing);
         if let Some(cellspacing) = cellspacing {
             let width_value = specified::Length::from_px(cellspacing as f32);
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderSpacing(Box::new(border_spacing::SpecifiedValue::new(
-                    width_value.clone().into(),
-                    width_value.into(),
-                ))),
-            ));
+            push(PropertyDeclaration::BorderSpacing(Box::new(
+                border_spacing::SpecifiedValue::new(width_value.clone().into(), width_value.into()),
+            )));
         }
 
         // Textual input, specifically text entry and domain specific input has
@@ -1507,30 +1469,29 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         //
         // <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
         // <https://html.spec.whatwg.org/multipage/#the-input-element-as-domain-specific-widgets>
-        let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
-            // FIXME(pcwalton): More use of atoms, please!
-            match self.get_attr_val_for_layout(&ns!(), &local_name!("type")) {
-                Some("hidden") | Some("range") | Some("color") | Some("checkbox") |
-                Some("radio") | Some("file") | Some("submit") | Some("image") | Some("reset") |
-                Some("button") => None,
-                // Others
-                _ => match this.size_for_layout() {
-                    0 => None,
-                    s => Some(s as i32),
-                },
-            }
-        } else {
-            None
-        };
+        let size = self
+            .downcast::<HTMLInputElement>()
+            .and_then(|input_element| {
+                // FIXME(pcwalton): More use of atoms, please!
+                match self.get_attr_val_for_layout(&ns!(), &local_name!("type")) {
+                    Some("hidden") | Some("range") | Some("color") | Some("checkbox") |
+                    Some("radio") | Some("file") | Some("submit") | Some("image") |
+                    Some("reset") | Some("button") => None,
+                    // Others
+                    _ => match input_element.size_for_layout() {
+                        0 => None,
+                        s => Some(s as i32),
+                    },
+                }
+            });
 
         if let Some(size) = size {
             let value =
                 specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
+            push(PropertyDeclaration::Width(
+                specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Length(value),
-                ))),
+                )),
             ));
         }
 
@@ -1560,10 +1521,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 let width_value = specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
                 ));
-                hints.push(from_declaration(
-                    shared_lock,
-                    PropertyDeclaration::Width(width_value),
-                ));
+                push(PropertyDeclaration::Width(width_value));
             },
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::Size::LengthPercentage(NonNegative(
@@ -1571,10 +1529,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                         specified::AbsoluteLength::Px(length.to_f32_px()),
                     )),
                 ));
-                hints.push(from_declaration(
-                    shared_lock,
-                    PropertyDeclaration::Width(width_value),
-                ));
+                push(PropertyDeclaration::Width(width_value));
             },
         }
 
@@ -1602,10 +1557,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 let height_value = specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
                 ));
-                hints.push(from_declaration(
-                    shared_lock,
-                    PropertyDeclaration::Height(height_value),
-                ));
+                push(PropertyDeclaration::Height(height_value));
             },
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::Size::LengthPercentage(NonNegative(
@@ -1613,10 +1565,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                         specified::AbsoluteLength::Px(length.to_f32_px()),
                     )),
                 ));
-                hints.push(from_declaration(
-                    shared_lock,
-                    PropertyDeclaration::Height(height_value),
-                ));
+                push(PropertyDeclaration::Height(height_value));
             },
         }
 
@@ -1633,87 +1582,61 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                         auto: true,
                         ratio: PreferredRatio::Ratio(Ratio(width_value, height_value)),
                     };
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::AspectRatio(aspect_ratio),
-                    ));
+                    push(PropertyDeclaration::AspectRatio(aspect_ratio));
                 }
             }
         }
 
-        let cols = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
-            match this.get_cols() {
-                0 => None,
-                c => Some(c as i32),
-            }
-        } else {
-            None
-        };
-
+        let cols = self
+            .downcast::<HTMLTextAreaElement>()
+            .map(LayoutHTMLTextAreaElementHelpers::get_cols);
         if let Some(cols) = cols {
-            // TODO(mttr) ServoCharacterWidth uses the size math for <input type="text">, but
-            // the math for <textarea> is a little different since we need to take
-            // scrollbar size into consideration (but we don't have a scrollbar yet!)
-            //
-            // https://html.spec.whatwg.org/multipage/#textarea-effective-width
-            let value =
-                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(value),
-                ))),
-            ));
-        }
-
-        let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
-            match this.get_rows() {
-                0 => None,
-                r => Some(r as i32),
+            let cols = cols as i32;
+            if cols > 0 {
+                // TODO(mttr) ServoCharacterWidth uses the size math for <input type="text">, but
+                // the math for <textarea> is a little different since we need to take
+                // scrollbar size into consideration (but we don't have a scrollbar yet!)
+                //
+                // https://html.spec.whatwg.org/multipage/#textarea-effective-width
+                let value =
+                    specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
+                push(PropertyDeclaration::Width(
+                    specified::Size::LengthPercentage(NonNegative(
+                        specified::LengthPercentage::Length(value),
+                    )),
+                ));
             }
-        } else {
-            None
-        };
-
-        if let Some(rows) = rows {
-            // TODO(mttr) This should take scrollbar size into consideration.
-            //
-            // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-            let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(
-                rows as CSSFloat,
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::Height(specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(value),
-                ))),
-            ));
         }
 
-        let border = if let Some(this) = self.downcast::<HTMLTableElement>() {
-            this.get_border()
-        } else {
-            None
-        };
+        let rows = self
+            .downcast::<HTMLTextAreaElement>()
+            .map(LayoutHTMLTextAreaElementHelpers::get_rows);
+        if let Some(rows) = rows {
+            let rows = rows as i32;
+            if rows > 0 {
+                // TODO(mttr) This should take scrollbar size into consideration.
+                //
+                // https://html.spec.whatwg.org/multipage/#textarea-effective-height
+                let value = specified::NoCalcLength::FontRelative(
+                    specified::FontRelativeLength::Em(rows as CSSFloat),
+                );
+                push(PropertyDeclaration::Height(
+                    specified::Size::LengthPercentage(NonNegative(
+                        specified::LengthPercentage::Length(value),
+                    )),
+                ));
+            }
+        }
 
+        let border = self
+            .downcast::<HTMLTableElement>()
+            .and_then(|table| table.get_border());
         if let Some(border) = border {
             let width_value = specified::BorderSideWidth::from_px(border as f32);
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderTopWidth(width_value.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderLeftWidth(width_value.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderBottomWidth(width_value.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderRightWidth(width_value),
-            ));
+            push(PropertyDeclaration::BorderTopWidth(width_value.clone()));
+            push(PropertyDeclaration::BorderLeftWidth(width_value.clone()));
+            push(PropertyDeclaration::BorderBottomWidth(width_value.clone()));
+            push(PropertyDeclaration::BorderRightWidth(width_value));
         }
 
         if let Some(cellpadding) = self
@@ -1724,22 +1647,10 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             let cellpadding = NonNegative(specified::LengthPercentage::Length(
                 specified::NoCalcLength::from_px(cellpadding as f32),
             ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::PaddingTop(cellpadding.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::PaddingLeft(cellpadding.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::PaddingBottom(cellpadding.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::PaddingRight(cellpadding),
-            ));
+            push(PropertyDeclaration::PaddingTop(cellpadding.clone()));
+            push(PropertyDeclaration::PaddingLeft(cellpadding.clone()));
+            push(PropertyDeclaration::PaddingBottom(cellpadding.clone()));
+            push(PropertyDeclaration::PaddingRight(cellpadding));
         }
 
         // https://html.spec.whatwg.org/multipage/#the-hr-element-2
@@ -1749,39 +1660,33 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         {
             match size_info {
                 SizePresentationalHint::SetHeightTo(height) => {
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::Height(height),
-                    ));
+                    push(PropertyDeclaration::Height(height));
                 },
                 SizePresentationalHint::SetAllBorderWidthValuesTo(border_width) => {
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderLeftWidth(border_width.clone()),
-                    ));
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderRightWidth(border_width.clone()),
-                    ));
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderTopWidth(border_width.clone()),
-                    ));
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderBottomWidth(border_width),
-                    ));
+                    push(PropertyDeclaration::BorderLeftWidth(border_width.clone()));
+                    push(PropertyDeclaration::BorderRightWidth(border_width.clone()));
+                    push(PropertyDeclaration::BorderTopWidth(border_width.clone()));
+                    push(PropertyDeclaration::BorderBottomWidth(border_width));
                 },
                 SizePresentationalHint::SetBottomBorderWidthToZero => {
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderBottomWidth(
-                            specified::border::BorderSideWidth::from_px(0.),
-                        ),
+                    push(PropertyDeclaration::BorderBottomWidth(
+                        specified::border::BorderSideWidth::from_px(0.),
                     ));
                 },
             }
         }
+
+        let Some(property_declaration_block) = property_declaration_block else {
+            return;
+        };
+
+        let document = self.upcast::<Node>().owner_doc_for_layout();
+        let shared_lock = document.style_shared_lock();
+        hints.push(ApplicableDeclarationBlock::from_declarations(
+            Arc::new(shared_lock.wrap(property_declaration_block)),
+            CascadeLevel::PresHints,
+            LayerOrder::root(),
+        ));
     }
 
     fn get_span(self) -> Option<u32> {
