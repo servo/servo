@@ -113,6 +113,7 @@ impl HTMLStyleElement {
                 self.upcast(),
                 InlineCheckType::Style,
                 &node.child_text_content(),
+                doc.get_current_parser_line(),
             )
         {
             return;

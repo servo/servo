@@ -708,6 +708,7 @@ impl HTMLScriptElement {
                     element,
                     InlineCheckType::Script,
                     &text,
+                    self.line_number as u32,
                 )
         {
             warn!("Blocking inline script due to CSP");
