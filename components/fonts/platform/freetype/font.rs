@@ -19,6 +19,7 @@ use freetype_sys::{
 use log::debug;
 use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
+use read_fonts::font_types::tag::Tag;
 use read_fonts::tables::os2::SelectionFlags;
 use read_fonts::{FontRef, ReadError, TableProvider};
 use skrifa::MetadataProvider as _;
@@ -388,22 +389,11 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
-        let face = self.face.lock();
-        let tag = tag as FT_ULong;
-
-        unsafe {
-            // Get the length
-            let mut len = 0;
-            if 0 != FT_Load_Sfnt_Table(*face, tag, 0, ptr::null_mut(), &mut len) {
-                return None;
-            }
-            // Get the bytes
-            let mut buf = vec![0u8; len as usize];
-            if 0 != FT_Load_Sfnt_Table(*face, tag, 0, buf.as_mut_ptr(), &mut len) {
-                return None;
-            }
-            Some(FontTable { buffer: buf })
-        }
+        let tag = Tag::from_u32(tag);
+        let font_ref = self.table_provider_data.font_ref().ok()?;
+        let table_data = font_ref.table_data(tag)?;
+        let buffer = table_data.as_bytes().to_vec();
+        Some(FontTable { buffer })
     }
 
     fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
