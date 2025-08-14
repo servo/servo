@@ -98,7 +98,7 @@ class Base:
             return False
 
         print(" * Installing cargo-deny...")
-        if subprocess.call(["cargo", "install", "cargo-deny", "--locked"]) != 0:
+        if subprocess.call(["cargo", "install", "cargo-deny@0.18.3", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-deny failed.")
         return True
 
