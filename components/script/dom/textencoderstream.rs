@@ -9,8 +9,8 @@ use std::ptr;
 use dom_struct::dom_struct;
 use js::conversions::latin1_to_string;
 use js::jsapi::{
-    JS_DeprecatedStringHasLatin1Chars, JS_GetTwoByteStringCharsAndLength, JSObject, JSType,
-    ToPrimitive,
+    JS_DeprecatedStringHasLatin1Chars, JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending,
+    JSObject, JSType, ToPrimitive,
 };
 use js::jsval::UndefinedValue;
 use js::rust::{
@@ -22,7 +22,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -50,8 +50,10 @@ enum ConvertedInput<'a> {
 #[allow(unsafe_code)]
 fn jsval_to_primitive(
     cx: SafeJSContext,
+    global: &GlobalScope,
     chunk: SafeHandleValue,
     mut rval: SafeMutableHandleValue,
+    can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. If argument is a String, return argument.
     // Step 2. If argument is a Symbol, throw a TypeError exception.
@@ -74,7 +76,18 @@ fn jsval_to_primitive(
     rooted!(in(*cx) let obj = chunk.to_object());
     let is_success =
         unsafe { ToPrimitive(*cx, obj.handle().into(), JSType::JSTYPE_STRING, rval.into()) };
+    log::debug!("ToPrimitive is_success={:?}", is_success);
     if !is_success {
+        unsafe {
+            if !JS_IsExceptionPending(*cx) {
+                throw_dom_exception(
+                    cx,
+                    global,
+                    Error::Type("Cannot convert JSObject to primitive".to_owned()),
+                    can_gc,
+                );
+            }
+        }
         return Err(Error::JSFailed);
     }
 
@@ -210,14 +223,26 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     // Step 1. Let input be the result of converting chunk to a DOMString.
     // Step 2. Convert input to an I/O queue of code units.
     rooted!(in(*cx) let mut rval = UndefinedValue());
-    jsval_to_primitive(cx, chunk, rval.handle_mut())?;
-    let input = unsafe {
-        assert!(!rval.is_object());
-        rooted!(in(*cx) let jsstr = ToString(*cx, rval.handle()));
-        if jsstr.is_null() {
-            return Err(Error::JSFailed);
+    jsval_to_primitive(cx, global, chunk, rval.handle_mut(), can_gc)?;
+
+    assert!(!rval.is_object());
+    rooted!(in(*cx) let jsstr = unsafe { ToString(*cx, rval.handle()) });
+    if jsstr.is_null() {
+        unsafe {
+            if !JS_IsExceptionPending(*cx) {
+                throw_dom_exception(
+                    cx,
+                    global,
+                    Error::Type("Cannot convert JS primitive to string".to_owned()),
+                    can_gc,
+                );
+            }
         }
 
+        return Err(Error::JSFailed);
+    }
+
+    let input = unsafe {
         if JS_DeprecatedStringHasLatin1Chars(*jsstr) {
             ConvertedInput::String(latin1_to_string(*cx, *jsstr))
         } else {
