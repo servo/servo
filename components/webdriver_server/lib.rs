@@ -1327,7 +1327,7 @@ impl Handler {
         } else {
             Err(WebDriverError::new(
                 ErrorStatus::NoSuchWindow,
-                "No such window hahaha",
+                "No such window",
             ))
         }
     }
