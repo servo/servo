@@ -5,6 +5,7 @@
 use std::ops::Range;
 
 use icu_segmenter::LineSegmenter;
+use icu_segmenter::options::LineBreakOptions;
 
 pub(crate) struct LineBreaker {
     linebreaks: Vec<usize>,
@@ -13,7 +14,7 @@ pub(crate) struct LineBreaker {
 
 impl LineBreaker {
     pub(crate) fn new(string: &str) -> Self {
-        let line_segmenter = LineSegmenter::new_auto();
+        let line_segmenter = LineSegmenter::new_auto(LineBreakOptions::default());
         Self {
             // From https://docs.rs/icu_segmenter/1.5.0/icu_segmenter/struct.LineSegmenter.html
             // > For consistency with the grapheme, word, and sentence segmenters, there is always a
