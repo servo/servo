@@ -720,9 +720,9 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
         });
         self.push_table_row(table_row.clone());
 
-        self.info
+        anonymous_info
             .node
-            .pseudo_element_box_slot(PseudoElement::ServoAnonymousTableRow)
+            .box_slot()
             .set(LayoutBox::TableLevelBox(TableLevelBox::Track(table_row)))
     }
 
@@ -989,9 +989,9 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
             .builder
             .add_cell(new_table_cell.clone());
 
-        self.info
+        anonymous_info
             .node
-            .pseudo_element_box_slot(PseudoElement::ServoAnonymousTableCell)
+            .box_slot()
             .set(LayoutBox::TableLevelBox(TableLevelBox::Cell(
                 new_table_cell,
             )));
@@ -1027,7 +1027,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                     let cell = old_cell.unwrap_or_else(|| {
                         // This value will already have filtered out rowspan=0
                         // in quirks mode, so we don't have to worry about that.
-                        let (rowspan, colspan) = if info.pseudo_element().is_none() {
+                        let (rowspan, colspan) = if info.pseudo_element_chain().is_empty() {
                             let rowspan = info.node.get_rowspan().unwrap_or(1) as usize;
                             let colspan = info.node.get_colspan().unwrap_or(1) as usize;
 
@@ -1148,7 +1148,7 @@ fn add_column(
     is_anonymous: bool,
     old_column: Option<ArcRefCell<TableTrack>>,
 ) -> ArcRefCell<TableTrack> {
-    let span = if column_info.pseudo_element().is_none() {
+    let span = if column_info.pseudo_element_chain().is_empty() {
         column_info.node.get_span().unwrap_or(1)
     } else {
         1

@@ -10,7 +10,9 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use embedder_traits::UntrustedNodeAddress;
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
-use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use layout_api::wrapper_traits::{
+    LayoutNode, PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use layout_api::{LayoutDamage, LayoutNodeType, StyleData};
 use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
@@ -967,11 +969,11 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
 /// ever access safe properties and cannot race on elements.
 #[derive(Clone, Copy, Debug)]
 pub struct ServoThreadSafeLayoutElement<'dom> {
+    /// The wrapped [`ServoLayoutNode`].
     pub(super) element: ServoLayoutElement<'dom>,
 
-    /// The pseudo-element type for this element, or `None` if it is the non-pseudo
-    /// version of the element.
-    pub(super) pseudo: Option<PseudoElement>,
+    /// The possibly nested [`PseudoElementChain`] for this node.
+    pub(super) pseudo_element_chain: PseudoElementChain,
 }
 
 impl<'dom> ServoThreadSafeLayoutElement<'dom> {
@@ -995,32 +997,32 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
     fn as_node(&self) -> ServoThreadSafeLayoutNode<'dom> {
         ServoThreadSafeLayoutNode {
             node: self.element.as_node(),
-            pseudo: self.pseudo,
+            pseudo_element_chain: self.pseudo_element_chain,
         }
     }
 
-    fn pseudo_element(&self) -> Option<PseudoElement> {
-        self.pseudo
+    fn pseudo_element_chain(&self) -> PseudoElementChain {
+        self.pseudo_element_chain
     }
 
-    fn with_pseudo(&self, pseudo_element_type: PseudoElement) -> Option<Self> {
-        if pseudo_element_type.is_eager() &&
+    fn with_pseudo(&self, pseudo_element: PseudoElement) -> Option<Self> {
+        if pseudo_element.is_eager() &&
             self.style_data()
                 .styles
                 .pseudos
-                .get(&pseudo_element_type)
+                .get(&pseudo_element)
                 .is_none()
         {
             return None;
         }
 
-        if pseudo_element_type == PseudoElement::DetailsSummary &&
+        if pseudo_element == PseudoElement::DetailsSummary &&
             (!self.has_local_name(&local_name!("details")) || !self.has_namespace(&ns!(html)))
         {
             return None;
         }
 
-        if pseudo_element_type == PseudoElement::DetailsContent &&
+        if pseudo_element == PseudoElement::DetailsContent &&
             (!self.has_local_name(&local_name!("details")) ||
                 !self.has_namespace(&ns!(html)) ||
                 self.get_attr(&ns!(), &local_name!("open")).is_none())
@@ -1028,9 +1030,16 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
             return None;
         }
 
+        // These pseudo-element type cannot be nested.
+        if !self.pseudo_element_chain.is_empty() {
+            assert!(!pseudo_element.is_eager());
+            assert!(pseudo_element != PseudoElement::DetailsSummary);
+            assert!(pseudo_element != PseudoElement::DetailsContent);
+        }
+
         Some(ServoThreadSafeLayoutElement {
             element: self.element,
-            pseudo: Some(pseudo_element_type),
+            pseudo_element_chain: self.pseudo_element_chain.with_pseudo(pseudo_element),
         })
     }
 

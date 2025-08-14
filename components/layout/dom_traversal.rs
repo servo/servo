@@ -6,7 +6,9 @@ use std::borrow::Cow;
 
 use fonts::ByteIndex;
 use html5ever::{LocalName, local_name};
-use layout_api::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use layout_api::wrapper_traits::{
+    PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use layout_api::{LayoutDamage, LayoutElementType, LayoutNodeType};
 use range::Range;
 use script::layout_dom::ServoThreadSafeLayoutNode;
@@ -48,8 +50,8 @@ impl<'dom> NodeAndStyleInfo<'dom> {
         }
     }
 
-    pub(crate) fn pseudo_element(&self) -> Option<PseudoElement> {
-        self.node.pseudo_element()
+    pub(crate) fn pseudo_element_chain(&self) -> PseudoElementChain {
+        self.node.pseudo_element_chain()
     }
 
     pub(crate) fn with_pseudo_element(
@@ -74,7 +76,7 @@ impl<'dom> NodeAndStyleInfo<'dom> {
 impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
     fn from(info: &NodeAndStyleInfo<'dom>) -> Self {
         let threadsafe_node = info.node;
-        let pseudo = info.node.pseudo_element();
+        let pseudo_element_chain = info.node.pseudo_element_chain();
         let mut flags = FragmentFlags::empty();
 
         // Anonymous boxes should not have a tag, because they should not take part in hit testing.
@@ -83,7 +85,7 @@ impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
         // cases, but currently this means that the order of hit test results isn't as expected for
         // some WPT tests. This needs more investigation.
         if matches!(
-            pseudo,
+            pseudo_element_chain.innermost(),
             Some(PseudoElement::ServoAnonymousBox) |
                 Some(PseudoElement::ServoAnonymousTable) |
                 Some(PseudoElement::ServoAnonymousTableCell) |
@@ -122,7 +124,10 @@ impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
         };
 
         Self {
-            tag: Some(Tag::new_pseudo(threadsafe_node.opaque(), pseudo)),
+            tag: Some(Tag::new_pseudo(
+                threadsafe_node.opaque(),
+                pseudo_element_chain,
+            )),
             flags,
         }
     }
@@ -232,7 +237,7 @@ fn traverse_element<'dom>(
             } else {
                 let shared_inline_styles: SharedInlineStyles = (&info).into();
                 element
-                    .element_box_slot()
+                    .box_slot()
                     .set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
                 handler.enter_display_contents(shared_inline_styles);
@@ -254,7 +259,7 @@ fn traverse_element<'dom>(
                 NonReplacedContents::OfElement.into()
             };
             let display = display.used_value_for_contents(&contents);
-            let box_slot = element.element_box_slot();
+            let box_slot = element.box_slot();
             handler.handle_element(&info, display, contents, box_slot);
         },
     }
@@ -282,9 +287,7 @@ fn traverse_eager_pseudo_element<'dom>(
         Display::None => {},
         Display::Contents => {
             let items = generate_pseudo_element_content(&pseudo_element_info, context);
-            let box_slot = pseudo_element_info
-                .node
-                .pseudo_element_box_slot(pseudo_element_type);
+            let box_slot = pseudo_element_info.node.box_slot();
             let shared_inline_styles: SharedInlineStyles = (&pseudo_element_info).into();
             box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
@@ -294,9 +297,7 @@ fn traverse_eager_pseudo_element<'dom>(
         },
         Display::GeneratingBox(display) => {
             let items = generate_pseudo_element_content(&pseudo_element_info, context);
-            let box_slot = pseudo_element_info
-                .node
-                .pseudo_element_box_slot(pseudo_element_type);
+            let box_slot = pseudo_element_info.node.box_slot();
             let contents = NonReplacedContents::OfPseudoElement(items).into();
             handler.handle_element(&pseudo_element_info, display, contents, box_slot);
         },
@@ -333,8 +334,7 @@ fn traverse_pseudo_element_contents<'dom>(
                     anonymous_info,
                     display_inline,
                     Contents::Replaced(contents),
-                    info.node
-                        .pseudo_element_box_slot(PseudoElement::ServoAnonymousBox),
+                    anonymous_info.node.box_slot(),
                 )
             },
         }

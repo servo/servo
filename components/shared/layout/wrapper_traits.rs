@@ -11,6 +11,7 @@ use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use range::Range;
@@ -25,8 +26,8 @@ use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorIm
 use style::stylist::RuleInclusion;
 
 use crate::{
-    FragmentType, GenericLayoutData, GenericLayoutDataTrait, HTMLCanvasData, HTMLMediaData,
-    LayoutNodeType, SVGElementData, StyleData,
+    GenericLayoutData, GenericLayoutDataTrait, HTMLCanvasData, HTMLMediaData, LayoutNodeType,
+    SVGElementData, StyleData,
 };
 
 pub trait LayoutDataTrait: GenericLayoutDataTrait + Default + Send + Sync + 'static {}
@@ -232,11 +233,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     fn get_colspan(&self) -> Option<u32>;
     fn get_rowspan(&self) -> Option<u32>;
 
-    fn pseudo_element(&self) -> Option<PseudoElement>;
-
-    fn fragment_type(&self) -> FragmentType {
-        self.pseudo_element().into()
-    }
+    fn pseudo_element_chain(&self) -> PseudoElementChain;
 
     fn with_pseudo(&self, pseudo_element_type: PseudoElement) -> Option<Self> {
         self.as_element()
@@ -244,6 +241,8 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
             .as_ref()
             .map(ThreadSafeLayoutElement::as_node)
     }
+
+    fn with_pseudo_element_chain(&self, pseudo_element_chain: PseudoElementChain) -> Self;
 }
 
 pub trait ThreadSafeLayoutElement<'dom>:
@@ -294,7 +293,7 @@ pub trait ThreadSafeLayoutElement<'dom>:
 
     fn style_data(&self) -> AtomicRef<ElementData>;
 
-    fn pseudo_element(&self) -> Option<PseudoElement>;
+    fn pseudo_element_chain(&self) -> PseudoElementChain;
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
@@ -302,27 +301,25 @@ pub trait ThreadSafeLayoutElement<'dom>:
     /// Unlike the version on TNode, this handles pseudo-elements.
     #[inline]
     fn style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
-        let data = self.style_data();
-        match self.pseudo_element() {
-            None => data.styles.primary().clone(),
-            Some(style_pseudo) => {
+        let get_style_for_pseudo_element =
+            |base_style: &Arc<ComputedValues>, pseudo_element: PseudoElement| {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
                 // cached before.
-                match style_pseudo.cascade_type() {
+                match pseudo_element.cascade_type() {
                     // Already computed during the cascade.
                     PseudoElementCascadeType::Eager => self
                         .style_data()
                         .styles
                         .pseudos
-                        .get(&style_pseudo)
+                        .get(&pseudo_element)
                         .unwrap()
                         .clone(),
                     PseudoElementCascadeType::Precomputed => context
                         .stylist
                         .precomputed_values_for_pseudo::<Self::ConcreteElement>(
                             &context.guards,
-                            &style_pseudo,
-                            Some(data.styles.primary()),
+                            &pseudo_element,
+                            Some(base_style),
                         ),
                     PseudoElementCascadeType::Lazy => {
                         context
@@ -330,16 +327,30 @@ pub trait ThreadSafeLayoutElement<'dom>:
                             .lazily_compute_pseudo_element_style(
                                 &context.guards,
                                 self.unsafe_get(),
-                                &style_pseudo,
+                                &pseudo_element,
                                 RuleInclusion::All,
-                                data.styles.primary(),
+                                base_style,
                                 /* is_probe = */ false,
                                 /* matching_func = */ None,
                             )
                             .unwrap()
                     },
                 }
+            };
+
+        let data = self.style_data();
+        let element_style = data.styles.primary();
+        let pseudo_element_chain = self.pseudo_element_chain();
+
+        let primary_pseudo_style = match pseudo_element_chain.primary {
+            Some(pseudo_element) => get_style_for_pseudo_element(element_style, pseudo_element),
+            None => return element_style.clone(),
+        };
+        match pseudo_element_chain.secondary {
+            Some(pseudo_element) => {
+                get_style_for_pseudo_element(&primary_pseudo_style, pseudo_element)
             },
+            None => primary_pseudo_style,
         }
     }
 
@@ -360,4 +371,50 @@ pub trait ThreadSafeLayoutElement<'dom>:
     /// Note that, like `Self::is_body_element_of_html_element_root`, this accesses the parent.
     /// As in that case, since this is an immutable borrow, we do not violate thread safety.
     fn is_root(&self) -> bool;
+}
+
+/// A chain of pseudo-elements up to two levels deep. This is used to represent cases
+/// where a pseudo-element has its own child pseudo element (for instance
+/// `.div::after::marker`). If both [`Self::primary`] and [`Self::secondary`] are `None`,
+/// then this chain represents the element itself. Not all combinations of pseudo-elements
+/// are possible and we may not be able to calculate a style for all
+/// [`PseudoElementChain`]s.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, MallocSizeOf, PartialEq)]
+pub struct PseudoElementChain {
+    pub primary: Option<PseudoElement>,
+    pub secondary: Option<PseudoElement>,
+}
+
+impl PseudoElementChain {
+    pub fn unnested(pseudo_element: PseudoElement) -> Self {
+        Self {
+            primary: Some(pseudo_element),
+            secondary: None,
+        }
+    }
+
+    pub fn innermost(&self) -> Option<PseudoElement> {
+        self.secondary.or(self.primary)
+    }
+
+    /// Return a possibly nested [`PseudoElementChain`]. Currently only `::before` and
+    /// `::after` only support nesting. If the primary [`PseudoElement`] on the chain is
+    /// not `::before` or `::after` a single element chain is returned for the given
+    /// [`PseudoElement`].
+    pub fn with_pseudo(&self, pseudo_element: PseudoElement) -> Self {
+        match self.primary {
+            Some(primary) if primary.is_before_or_after() => Self {
+                primary: self.primary,
+                secondary: Some(pseudo_element),
+            },
+            _ => {
+                assert!(self.secondary.is_none());
+                Self::unnested(pseudo_element)
+            },
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.primary.is_none()
+    }
 }
