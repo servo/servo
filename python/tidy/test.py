@@ -9,7 +9,7 @@
 
 import logging
 import os
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 import unittest
 
 from . import tidy
@@ -180,7 +180,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_raw_url_in_rustdoc(self):
-        def assert_has_a_single_rustdoc_error(errors: Iterable[Tuple[int, str]]):
+        def assert_has_a_single_rustdoc_error(errors: Iterable[tuple[int, str]]):
             self.assertEqual(tidy.ERROR_RAW_URL_IN_RUSTDOC, next(errors)[1])
             self.assertNoMoreErrors(errors)
 

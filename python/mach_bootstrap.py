@@ -4,9 +4,11 @@
 
 import hashlib
 import os
+from os import PathLike
 import subprocess
 import sys
 import runpy
+from typing import TYPE_CHECKING
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 TOP_DIR = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
@@ -80,7 +82,11 @@ CATEGORIES = {
 }
 
 
-def _process_exec(args: list[str], cwd) -> None:
+if TYPE_CHECKING:
+    from mach.main import Mach
+
+
+def _process_exec(args: list[str], cwd: PathLike[bytes] | PathLike[str] | bytes | str) -> None:
     try:
         subprocess.check_output(args, stderr=subprocess.STDOUT, cwd=cwd)
     except subprocess.CalledProcessError as exception:
@@ -188,7 +194,7 @@ def bootstrap_command_only(topdir: str) -> int:
     return 0
 
 
-def bootstrap(topdir: str):
+def bootstrap(topdir: str) -> "Mach":
     _ensure_case_insensitive_if_windows()
 
     topdir = os.path.abspath(topdir)
@@ -202,7 +208,7 @@ def bootstrap(topdir: str):
 
     _activate_virtualenv(topdir)
 
-    def populate_context(context, key=None):
+    def populate_context(context: None, key: None | str = None) -> str | None:
         if key is None:
             return
         if key == "topdir":

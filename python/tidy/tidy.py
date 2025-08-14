@@ -18,7 +18,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, TypedDict, LiteralString
+from typing import Any, TypedDict, LiteralString
 from collections.abc import Iterator, Callable
 import types
 
@@ -174,7 +174,7 @@ def progress_wrapper(iterator: Iterator[str]) -> Iterator[str]:
         yield thing
 
 
-def git_changes_since_last_merge(path):
+def git_changes_since_last_merge(path: str) -> list[str] | str:
     args = ["git", "log", "-n1", "--committer", "noreply@github.com", "--format=%H"]
     last_merge = subprocess.check_output(args, universal_newlines=True).strip()
     if not last_merge:
@@ -191,7 +191,9 @@ class FileList(object):
     excluded: list[str]
     generator: Iterator[str]
 
-    def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True) -> None:
+    def __init__(
+        self, directory: str, only_changed_files: bool = False, exclude_dirs: list[str] = [], progress: bool = True
+    ) -> None:
         self.directory = directory
         self.excluded = exclude_dirs
         self.generator = self._filter_excluded() if exclude_dirs else self._default_walk()
@@ -314,7 +316,7 @@ def contains_url(line: bytes) -> bool:
     return bool(URL_REGEX.search(line))
 
 
-def is_unsplittable(file_name: str, line: bytes):
+def is_unsplittable(file_name: str, line: bytes) -> bool:
     return contains_url(line) or file_name.endswith(".rs") and line.startswith(b"use ") and b"{" not in line
 
 
@@ -432,7 +434,7 @@ def run_python_type_checker() -> Iterator[tuple[str, int, str]]:
             yield relative_path(diagnostic.path), diagnostic.line, diagnostic.concise_description
 
 
-def run_cargo_deny_lints():
+def run_cargo_deny_lints() -> Iterator[tuple[str, int, str]]:
     print("\r ➤  Running `cargo-deny` checks...")
     result = subprocess.run(
         ["cargo-deny", "--format=json", "--all-features", "check"], encoding="utf-8", capture_output=True
@@ -633,10 +635,10 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
 
     # Override the logging function so that we can collect errors from
     # the lint script, which doesn't allow configuration of the output.
-    messages: List[str] = []
+    messages: list[str] = []
     assert lint.logger is not None
 
-    def collect_messages(_, message):
+    def collect_messages(_: None, message: str) -> None:
         messages.append(message)
 
     lint.logger.error = types.MethodType(collect_messages, lint.logger)
@@ -875,7 +877,7 @@ def collect_errors_for_files(
                     yield (filename,) + error
 
 
-def scan(only_changed_files=False, progress=False, github_annotations=False) -> int:
+def scan(only_changed_files: bool = False, progress: bool = False, github_annotations: bool = False) -> int:
     github_annotation_manager = GitHubAnnotationManager("test-tidy")
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
@@ -922,7 +924,7 @@ def scan(only_changed_files=False, progress=False, github_annotations=False) -> 
 
 
 class CargoDenyKrate:
-    def __init__(self, data: Dict[Any, Any]) -> None:
+    def __init__(self, data: dict[Any, Any]) -> None:
         crate = data["Krate"]
         self.name = crate["name"]
         self.version = crate["version"]

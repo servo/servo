@@ -19,7 +19,7 @@ import logging
 import os
 import textwrap
 
-from typing import TYPE_CHECKING, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Generic, Optional, TypeVar, Callable, Any
 
 from .common import COULD_NOT_APPLY_CHANGES_DOWNSTREAM_COMMENT
 from .common import COULD_NOT_APPLY_CHANGES_UPSTREAM_COMMENT
@@ -36,7 +36,7 @@ PATCH_FILE_NAME = "tmp.patch"
 
 
 class Step:
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
 
     def provides(self) -> Optional[AsyncValue]:
@@ -91,7 +91,9 @@ class CreateOrUpdateBranchForPRStep(Step):
             if run.upstream_pr.has_value():
                 run.add_step(CommentStep(run.upstream_pr.value(), COULD_NOT_APPLY_CHANGES_UPSTREAM_COMMENT))
 
-    def _get_upstreamable_commits_from_local_servo_repo(self, sync: WPTSync):
+    def _get_upstreamable_commits_from_local_servo_repo(
+        self, sync: WPTSync
+    ) -> list[dict[str, bytes | str] | dict[str, str]]:
         local_servo_repo = sync.local_servo_repo
         number_of_commits = self.pull_data["commits"]
         pr_head = self.pull_data["head"]["sha"]
@@ -143,7 +145,9 @@ class CreateOrUpdateBranchForPRStep(Step):
         run.sync.local_wpt_repo.run("add", "--all")
         run.sync.local_wpt_repo.run("commit", "--message", commit["message"], "--author", commit["author"])
 
-    def _create_or_update_branch_for_pr(self, run: SyncRun, commits: list[dict], pre_commit_callback=None) -> str:
+    def _create_or_update_branch_for_pr(
+        self, run: SyncRun, commits: list[dict], pre_commit_callback: Callable[[], None] | None = None
+    ) -> str:
         branch_name = wpt_branch_name_from_servo_pr_number(self.pull_data["number"])
         try:
             # Create a new branch with a unique name that is consistent between
@@ -180,7 +184,7 @@ class CreateOrUpdateBranchForPRStep(Step):
 
 
 class RemoveBranchForPRStep(Step):
-    def __init__(self, pull_request) -> None:
+    def __init__(self, pull_request: dict[str, Any]) -> None:
         Step.__init__(self, "RemoveBranchForPRStep")
         self.branch_name = wpt_branch_name_from_servo_pr_number(pull_request["number"])
 

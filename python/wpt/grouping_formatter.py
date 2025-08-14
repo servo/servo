@@ -13,7 +13,7 @@ import mozlog.formatters.base
 import mozlog.reader
 
 from dataclasses import dataclass, field
-from typing import DefaultDict, Dict, Optional, NotRequired, Union, TypedDict, Literal
+from typing import DefaultDict, Optional, NotRequired, Union, TypedDict, Literal
 from six import itervalues
 
 DEFAULT_MOVE_UP_CODE = "\x1b[A"
@@ -44,12 +44,12 @@ class UnexpectedResult:
     issues: list[str] = field(default_factory=list)
     flaky: bool = False
 
-    def __str__(self):
+    def __str__(self) -> str:
         output = UnexpectedResult.to_lines(self)
 
         if self.unexpected_subtest_results:
 
-            def make_subtests_failure(subtest_results):
+            def make_subtests_failure(subtest_results: list[UnexpectedSubtestResult]) -> list[str]:
                 # Test names sometimes contain control characters, which we want
                 # to be printed in their raw form, and not their interpreted form.
                 lines = []
@@ -74,7 +74,7 @@ class UnexpectedResult:
         return UnexpectedResult.wrap_and_indent_lines(output, "  ")
 
     @staticmethod
-    def wrap_and_indent_lines(lines, indent: str):
+    def wrap_and_indent_lines(lines: list[str], indent: str) -> str:
         if not lines:
             return ""
 
@@ -86,7 +86,7 @@ class UnexpectedResult:
         return output
 
     @staticmethod
-    def to_lines(result: Union[UnexpectedSubtestResult, UnexpectedResult], print_stack=True) -> list[str]:
+    def to_lines(result: Union[UnexpectedSubtestResult, UnexpectedResult], print_stack: bool = True) -> list[str]:
         first_line = result.actual
         if result.expected != result.actual:
             first_line += f" [expected {result.expected}]"
@@ -120,12 +120,15 @@ class GlobalTestData(TypedDict):
 Status = Literal["PASS", "FAIL", "PRECONDITION_FAILED", "TIMEOUT", "CRASH", "ASSERT", "SKIP", "OK", "ERROR"]
 
 
+LogLevel = Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
+
+
 class SuiteStartData(GlobalTestData):
-    tests: Dict
+    tests: dict
     name: NotRequired[str]
-    run_info: NotRequired[Dict]
-    version_info: NotRequired[Dict]
-    device_info: NotRequired[Dict]
+    run_info: NotRequired[dict]
+    version_info: NotRequired[dict]
+    device_info: NotRequired[dict]
 
 
 class TestStartData(GlobalTestData):
@@ -152,6 +155,19 @@ class TestStatusData(TestEndData):
     subtest: str
 
 
+class ProcessOutputData(GlobalTestData):
+    process: int
+    data: str
+    command: NotRequired[str]
+    test: NotRequired[str]
+    subsuite: NotRequired[str]
+
+
+class LogData(GlobalTestData):
+    level: LogLevel
+    message: NotRequired[str]
+
+
 class ServoHandler(mozlog.reader.LogHandler):
     """LogHandler designed to collect unexpected results for use by
     script or by the ServoFormatter output formatter."""
@@ -159,16 +175,16 @@ class ServoHandler(mozlog.reader.LogHandler):
     number_of_tests: int
     completed_tests: int
     need_to_erase_last_line: int
-    running_tests: Dict[str, str]
+    running_tests: dict[str, str]
     test_output: DefaultDict[str, str]
     subtest_failures: DefaultDict[str, list]
     tests_with_failing_subtests: list
     unexpected_results: list
-    expected: Dict[str, int]
-    unexpected_tests: Dict[str, list]
+    expected: dict[str, int]
+    unexpected_tests: dict[str, list]
     suite_start_time: int
 
-    def __init__(self, detect_flakes=False) -> None:
+    def __init__(self, detect_flakes: bool = False) -> None:
         """
         Flake detection assumes first suite is actual run
         and rest of the suites are retry-unexpected for flakes detection.
@@ -225,14 +241,14 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.suite_start_time = data["time"]
 
-    def suite_end(self, data) -> Optional[str]:
+    def suite_end(self, data: GlobalTestData) -> Optional[str]:
         pass
 
     def test_start(self, data: TestStartData) -> Optional[str]:
         self.running_tests[data["thread"]] = data["test"]
 
     @staticmethod
-    def data_was_for_expected_result(data):
+    def data_was_for_expected_result(data: TestEndData) -> bool:
         if "expected" not in data:
             return True
         return "known_intermittent" in data and data["status"] in data["known_intermittent"]
@@ -319,11 +335,11 @@ class ServoHandler(mozlog.reader.LogHandler):
             )
         )
 
-    def process_output(self, data) -> None:
+    def process_output(self, data: ProcessOutputData) -> None:
         if "test" in data:
             self.test_output[data["test"]] += data["data"] + "\n"
 
-    def log(self, data) -> str | None:
+    def log(self, data: LogData) -> str | None:
         pass
 
 
@@ -362,7 +378,7 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
             return ""
         return (self.move_up + self.clear_eol) * self.current_display.count("\n")
 
-    def generate_output(self, text=None, new_display=None) -> str | None:
+    def generate_output(self, text: str | None = None, new_display: str | None = None) -> str | None:
         if not self.interactive:
             return text
 
@@ -392,7 +408,7 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         else:
             return new_display + "No tests running.\n"
 
-    def suite_start(self, data) -> str:
+    def suite_start(self, data: SuiteStartData) -> str:
         ServoHandler.suite_start(self, data)
         maybe_flakes_msg = " to detect flaky tests" if self.currently_detecting_flakes else ""
         if self.number_of_tests == 0:
@@ -400,12 +416,12 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         else:
             return f"Running {self.number_of_tests} tests in {data['source']}{maybe_flakes_msg}\n\n"
 
-    def test_start(self, data) -> str | None:
+    def test_start(self, data: TestStartData) -> str | None:
         ServoHandler.test_start(self, data)
         if self.interactive:
             return self.generate_output(new_display=self.build_status_line())
 
-    def test_end(self, data) -> str | None:
+    def test_end(self, data: TestEndData) -> str | None:
         unexpected_result = ServoHandler.test_end(self, data)
         if unexpected_result:
             # Surround test output by newlines so that it is easier to read.
@@ -424,10 +440,10 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         else:
             return self.generate_output(text="%s%s\n" % (self.test_counter(), data["test"]))
 
-    def test_status(self, data) -> None:
+    def test_status(self, data: TestStatusData) -> None:
         ServoHandler.test_status(self, data)
 
-    def suite_end(self, data) -> str | None:
+    def suite_end(self, data: GlobalTestData) -> str | None:
         ServoHandler.suite_end(self, data)
         if not self.interactive:
             output = "\n"
@@ -472,10 +488,10 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
         return self.generate_output(text=output, new_display="")
 
-    def process_output(self, data) -> None:
+    def process_output(self, data: ProcessOutputData) -> None:
         ServoHandler.process_output(self, data)
 
-    def log(self, data) -> str | None:
+    def log(self, data: LogData) -> str | None:
         ServoHandler.log(self, data)
 
         # We are logging messages that begin with STDERR, because that is how exceptions
