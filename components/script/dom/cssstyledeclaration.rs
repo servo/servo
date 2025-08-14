@@ -305,6 +305,7 @@ impl CSSStyleDeclaration {
         DOMString::from(string)
     }
 
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty>
     fn set_property(
         &self,
         id: PropertyId,
@@ -312,24 +313,57 @@ impl CSSStyleDeclaration {
         priority: DOMString,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // Step 1
+        self.set_property_inner(
+            PotentiallyParsedPropertyId::Parsed(id),
+            value,
+            priority,
+            can_gc,
+        )
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty>
+    ///
+    /// This function receives a `PotentiallyParsedPropertyId` instead of a `DOMString` in case
+    /// the caller already has a parsed property ID.
+    fn set_property_inner(
+        &self,
+        id: PotentiallyParsedPropertyId,
+        value: DOMString,
+        priority: DOMString,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
             return Err(Error::NoModificationAllowed);
         }
 
-        if !id.enabled_for_all_content() {
-            return Ok(());
-        }
+        let id = match id {
+            PotentiallyParsedPropertyId::Parsed(id) => {
+                if !id.enabled_for_all_content() {
+                    return Ok(());
+                }
+
+                id
+            },
+            PotentiallyParsedPropertyId::NotParsed(unparsed) => {
+                match PropertyId::parse_enabled_for_all_content(&unparsed) {
+                    Ok(id) => id,
+                    Err(..) => return Ok(()),
+                }
+            },
+        };
 
         self.owner.mutate_associated_block(
             |pdb, changed| {
+                // Step 3. If value is the empty string, invoke removeProperty()
+                // with property as argument and return.
                 if value.is_empty() {
-                    // Step 3
                     *changed = remove_property(pdb, &id);
                     return Ok(());
                 }
 
-                // Step 4
+                // Step 4. If priority is not the empty string and is not an ASCII case-insensitive
+                // match for the string "important", then return.
                 let importance = match &*priority {
                     "" => Importance::Normal,
                     p if p.eq_ignore_ascii_case("important") => Importance::Important,
@@ -410,6 +444,11 @@ pub(crate) static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyL
     enabled_longhands
 });
 
+enum PotentiallyParsedPropertyId {
+    Parsed(PropertyId),
+    NotParsed(DOMString),
+}
+
 impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
@@ -460,7 +499,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         })
     }
 
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
+    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty>
     fn SetProperty(
         &self,
         property: DOMString,
@@ -468,12 +507,12 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         priority: DOMString,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // Step 3
-        let id = match PropertyId::parse_enabled_for_all_content(&property) {
-            Ok(id) => id,
-            Err(..) => return Ok(()),
-        };
-        self.set_property(id, value, priority, can_gc)
+        self.set_property_inner(
+            PotentiallyParsedPropertyId::NotParsed(property),
+            value,
+            priority,
+            can_gc,
+        )
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
@@ -501,12 +540,12 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         Ok(DOMString::from(string))
     }
 
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
     fn CssFloat(&self) -> DOMString {
         self.get_property_value(PropertyId::NonCustom(LonghandId::Float.into()))
     }
 
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
     fn SetCssFloat(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         self.set_property(
             PropertyId::NonCustom(LonghandId::Float.into()),
