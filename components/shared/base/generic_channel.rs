@@ -9,6 +9,10 @@ use std::fmt;
 use ipc_channel::router::ROUTER;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+static GENERIC_CHANNEL_USAGE_ERROR_PANIC_MSG: &str = "May not send a crossbeam channel over an IPC channel. \
+     Please also convert the ipc-channel you want to send this GenericReceiver over \
+     into a GenericChannel.";
+
 pub enum GenericSender<T: Serialize> {
     Ipc(ipc_channel::ipc::IpcSender<T>),
     Crossbeam(crossbeam_channel::Sender<T>),
@@ -18,7 +22,7 @@ impl<T: Serialize> Serialize for GenericSender<T> {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         match self {
             GenericSender::Ipc(i) => i.serialize(s),
-            GenericSender::Crossbeam(_) => unreachable!(),
+            GenericSender::Crossbeam(_) => panic!("{GENERIC_CHANNEL_USAGE_ERROR_PANIC_MSG}"),
         }
     }
 }
@@ -119,8 +123,8 @@ where
 {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         match self {
-            GenericReceiver::Ipc(i) => i.serialize(s),
-            GenericReceiver::Crossbeam(_) => unreachable!(),
+            GenericReceiver::Ipc(receiver) => receiver.serialize(s),
+            GenericReceiver::Crossbeam(_) => panic!("{GENERIC_CHANNEL_USAGE_ERROR_PANIC_MSG}"),
         }
     }
 }
@@ -134,7 +138,8 @@ where
         D: Deserializer<'a>,
     {
         // Only ipc_channel will encounter deserialize scenario.
-        ipc_channel::ipc::IpcReceiver::<T>::deserialize(d).map(|r| GenericReceiver::Ipc(r))
+        ipc_channel::ipc::IpcReceiver::<T>::deserialize(d)
+            .map(|receiver| GenericReceiver::Ipc(receiver))
     }
 }
 
