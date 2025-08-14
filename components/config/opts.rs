@@ -7,7 +7,7 @@
 
 use std::default::Default;
 use std::path::PathBuf;
-use std::sync::{LazyLock, RwLock, RwLockReadGuard};
+use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
@@ -209,13 +209,27 @@ impl Default for Opts {
 // Make Opts available globally. This saves having to clone and pass
 // opts everywhere it is used, which gets particularly cumbersome
 // when passing through the DOM structures.
-static OPTIONS: LazyLock<RwLock<Opts>> = LazyLock::new(|| RwLock::new(Opts::default()));
+static OPTIONS: OnceLock<Opts> = OnceLock::new();
 
-pub fn set_options(opts: Opts) {
-    *OPTIONS.write().unwrap() = opts;
+/// Initialize options.
+///
+/// Should only be called once at process startup.
+/// Must be called before the first call to [get].
+pub fn initialize_options(opts: Opts) {
+    OPTIONS.set(opts).expect("Already initialized");
 }
 
+/// Get the servo options
+///
+/// If the servo options have not been initialized by calling [initialize_options], then the
+/// options will be initialized to default values. Outside of tests the options should
+/// be explicitly initialized.
 #[inline]
-pub fn get() -> RwLockReadGuard<'static, Opts> {
-    OPTIONS.read().unwrap()
+pub fn get() -> &'static Opts {
+    // In unit-tests using default options reduces boilerplate.
+    // We can't use `cfg(test)` since that only is enabled when this crate
+    // is compiled in test mode.
+    // We rely on the `expect` in `initialize_options` to inform us if refactoring
+    // causes a `get` call to move before `initialize_options`.
+    OPTIONS.get_or_init(Default::default)
 }
