@@ -530,12 +530,12 @@ impl DocumentEventHandler {
 
         let node = el.upcast::<Node>();
         debug!("{:?} on {:?}", event.action, node.debug_str());
-        // Prevent click event if form control element is disabled.
-        if let MouseButtonAction::Click = event.action {
-            // The click event is filtered by the disabled state.
-            if el.is_actually_disabled() {
-                return;
-            }
+
+        // https://w3c.github.io/uievents/#hit-test
+        // Prevent mouse event if element is disabled.
+        // TODO: also inert.
+        if el.is_actually_disabled() {
+            return;
         }
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
