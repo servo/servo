@@ -323,7 +323,7 @@ jobs:
           --hash $(git rev-parse HEAD~1) \
           --start-point main \
           --start-point-hash $(git merge-base upstream/main HEAD) \
-          --point-clone-thresholds \
+          --start-point-clone-thresholds \
           --start-point-reset" >> "$GITHUB_ENV"
       - name: Uploading to bencher.dev
         # Note: That e.g. `--start-point` is ignored if it is an empty string,
