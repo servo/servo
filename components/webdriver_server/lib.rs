@@ -2142,7 +2142,7 @@ impl Handler {
                     if let Err(e) =
                         self.dispatch_actions(actions_by_tick, self.browsing_context_id()?)
                     {
-                        log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
+                        log::error!("handle_element_send_keys: dispatch_actions failed: {:?}", e);
                     }
                 },
                 DispatchStringEvent::Composition(event) => {
