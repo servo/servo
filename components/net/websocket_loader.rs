@@ -53,15 +53,29 @@ use crate::http_loader::HttpState;
 /// and `Cookie` headers as appropriate.
 /// Returns an error if any header values are invalid or tungstenite cannot create
 /// the desired request.
-fn create_request(
-    resource_url: &ServoUrl,
-    origin: &str,
+pub fn create_request(
+    request: &net_traits::request::Request,
     protocols: &[String],
     http_state: &HttpState,
 ) -> WebSocketResult<Request> {
+    let origin = match request.origin {
+        Origin::Client => unreachable!(),
+        Origin::Origin(ref origin) => origin,
+    };
+
+    let mut resource_url = request.url();
+    if resource_url.scheme() == "https" {
+        resource_url.as_mut_url().set_scheme("wss").unwrap();
+    } else {
+        resource_url.as_mut_url().set_scheme("ws").unwrap();
+    };
+
     let mut builder = Request::get(resource_url.as_str());
     let headers = builder.headers_mut().unwrap();
-    headers.insert("Origin", HeaderValue::from_str(origin)?);
+    headers.insert(
+        "Origin",
+        HeaderValue::from_str(&origin.ascii_serialization())?,
+    );
 
     let origin = resource_url.origin();
     let host = format!(
@@ -84,8 +98,8 @@ fn create_request(
     }
 
     let mut cookie_jar = http_state.cookie_jar.write().unwrap();
-    cookie_jar.remove_expired_cookies_for_url(resource_url);
-    if let Some(cookie_list) = cookie_jar.cookies_for_url(resource_url, CookieSource::HTTP) {
+    cookie_jar.remove_expired_cookies_for_url(&resource_url);
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(&resource_url, CookieSource::HTTP) {
         headers.insert("Cookie", HeaderValue::from_str(&cookie_list)?);
     }
 
@@ -292,7 +306,7 @@ async fn run_ws_loop(
 /// Initiate a new async WS connection. Returns an error if the connection fails
 /// for any reason, or if the response isn't valid. Otherwise, the endless WS
 /// listening loop will be started.
-async fn start_websocket(
+pub async fn start_websocket(
     http_state: Arc<HttpState>,
     url: ServoUrl,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
@@ -300,7 +314,7 @@ async fn start_websocket(
     client: Request,
     tls_config: TlsConfig,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
-) -> Result<(), Error> {
+) -> Result<Response, Error> {
     trace!("starting WS connection to {}", url);
 
     let initiated_close = Arc::new(AtomicBool::new(false));
@@ -338,18 +352,20 @@ async fn start_websocket(
             .send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use })
             .is_err()
         {
-            return Ok(());
+            return Ok(response);
         }
 
         trace!("about to start ws loop for {}", url);
-        run_ws_loop(dom_receiver, resource_event_sender, stream).await;
+        spawn_task(run_ws_loop(dom_receiver, resource_event_sender, stream));
     } else {
         trace!("client closed connection for {}, not running loop", url);
     }
-    Ok(())
+    Ok(response)
 }
 
 /// Create a new websocket connection for the given request.
+// NOTE(pylbrecht): we will repurpose this function in upcoming commits
+#[allow(dead_code)]
 fn connect(
     mut req_builder: RequestBuilder,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
@@ -377,10 +393,6 @@ fn connect(
     let request = req_builder.build();
 
     let req_url = request.url();
-    let req_origin = match request.origin {
-        Origin::Client => unreachable!(),
-        Origin::Origin(ref origin) => origin,
-    };
 
     if should_request_be_blocked_due_to_a_bad_port(&req_url) {
         return Err("Port blocked".to_string());
@@ -405,12 +417,7 @@ fn connect(
         }
     }
 
-    let client = match create_request(
-        &req_url,
-        &req_origin.ascii_serialization(),
-        &protocols,
-        &http_state,
-    ) {
+    let client = match create_request(&request, &protocols, &http_state) {
         Ok(c) => c,
         Err(e) => return Err(e.to_string()),
     };
@@ -439,27 +446,4 @@ fn connect(
         }),
     );
     Ok(())
-}
-
-/// Create a new websocket connection for the given request.
-pub fn init(
-    req_builder: RequestBuilder,
-    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
-    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
-    http_state: Arc<HttpState>,
-    ca_certificates: CACertificates,
-    ignore_certificate_errors: bool,
-) {
-    let resource_event_sender2 = resource_event_sender.clone();
-    if let Err(e) = connect(
-        req_builder,
-        resource_event_sender,
-        dom_action_receiver,
-        http_state,
-        ca_certificates,
-        ignore_certificate_errors,
-    ) {
-        warn!("Error starting websocket: {}", e);
-        let _ = resource_event_sender2.send(WebSocketNetworkEvent::Fail);
-    }
 }

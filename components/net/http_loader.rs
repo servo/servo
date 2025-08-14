@@ -39,7 +39,7 @@ use hyper_serde::Serde;
 use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
-use log::{debug, error, info, log_enabled, warn};
+use log::{debug, error, info, log_enabled, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
@@ -55,6 +55,7 @@ use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    WebSocketNetworkEvent,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -67,7 +68,7 @@ use tokio::sync::mpsc::{
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::spawn_task;
-use crate::connector::{CertificateErrorOverrideManager, Connector};
+use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -78,6 +79,7 @@ use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch}
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
+use crate::websocket_loader::{create_request, start_websocket};
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1966,30 +1968,84 @@ async fn http_network_fetch(
 
     let browsing_context_id = request.target_webview_id.map(|id| id.0);
 
-    let response_future = obtain_response(
-        &context.state.client,
-        &url,
-        &request.method,
-        &mut request.headers,
-        body,
-        request
-            .body
-            .as_ref()
-            .map(|body| body.source_is_null())
-            .unwrap_or(false),
-        &request.pipeline_id,
-        Some(&request_id),
-        request.destination,
-        is_xhr,
-        context,
-        fetch_terminated_sender,
-        browsing_context_id,
-    );
+    let (res, msg) = match &request.mode {
+        RequestMode::WebSocket { protocols } => {
+            // https://fetch.spec.whatwg.org/#websocket-opening-handshake
 
-    // This will only get the headers, the body is read later
-    let (res, msg) = match response_future.await {
-        Ok(wrapped_response) => wrapped_response,
-        Err(error) => return Response::network_error(error),
+            let (resource_event_sender, dom_action_receiver) = {
+                let mut websocket_chan = context.websocket_chan.as_ref().unwrap().lock().unwrap();
+                (websocket_chan.0.clone(), websocket_chan.1.take().unwrap())
+            };
+
+            let Ok(client) = create_request(request, &protocols, &context.state) else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("cannot create request");
+            };
+
+            trace!("starting WS connection to {}", url);
+
+            let mut tls_config = create_tls_config(
+                context.ca_certificates.clone(),
+                context.ignore_certificate_errors,
+                context.state.override_manager.clone(),
+            );
+            tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
+
+            let response = match start_websocket(
+                context.state.clone(),
+                url.clone(), // FIXME(pylbrecht): remove clone()
+                resource_event_sender,
+                protocols.clone(), // FIXME(pylbrecht): remove clone()
+                client,
+                tls_config,
+                dom_action_receiver,
+            )
+            .await
+            {
+                Ok(response) => response,
+                Err(e) => {
+                    return Response::network_internal_error(e.to_string());
+                },
+            };
+
+            let response = response.map(|r| match r {
+                Some(body) => Full::from(body).map_err(|_| unreachable!()).boxed(),
+                None => http_body_util::Empty::new()
+                    .map_err(|_| unreachable!())
+                    .boxed(),
+            });
+            (Decoder::detect(response, url.is_secure_scheme()), None)
+        },
+        _ => {
+            let response_future = obtain_response(
+                &context.state.client,
+                &url,
+                &request.method,
+                &mut request.headers,
+                body,
+                request
+                    .body
+                    .as_ref()
+                    .map(|body| body.source_is_null())
+                    .unwrap_or(false),
+                &request.pipeline_id,
+                Some(&request_id),
+                request.destination,
+                is_xhr,
+                context,
+                fetch_terminated_sender,
+                browsing_context_id,
+            );
+
+            // This will only get the headers, the body is read later
+            let (res, msg) = match response_future.await {
+                Ok(wrapped_response) => wrapped_response,
+                Err(error) => return Response::network_error(error),
+            };
+            (res, msg)
+        },
     };
 
     if log_enabled!(log::Level::Info) {
