@@ -98,6 +98,7 @@ test_interfaces([
   "Permissions",
   "ProgressEvent",
   "PromiseRejectionEvent",
+  "QuotaExceededError",
   "ReadableStream",
   "ReadableStreamDefaultReader",
   "ReadableStreamDefaultController",

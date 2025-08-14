@@ -18,6 +18,7 @@ use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use libc::c_uint;
 use script_bindings::conversions::SafeToJSValConvertible;
 pub(crate) use script_bindings::error::*;
+use script_bindings::str::DOMString;
 
 #[cfg(feature = "js_backtrace")]
 use crate::dom::bindings::cell::DomRefCell;
@@ -27,6 +28,7 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::types::QuotaExceededError;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -92,7 +94,15 @@ pub(crate) fn throw_dom_exception(
         Error::ReadOnly => DOMErrorName::ReadOnlyError,
         Error::Version => DOMErrorName::VersionError,
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
-        Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
+        Error::QuotaExceeded { quota, requested } => unsafe {
+            assert!(!JS_IsExceptionPending(*cx));
+            let exception =
+                QuotaExceededError::new(global, DOMString::new(), quota, requested, can_gc);
+            rooted!(in(*cx) let mut thrown = UndefinedValue());
+            exception.safe_to_jsval(cx, thrown.handle_mut());
+            JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
+            return;
+        },
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
         Error::InvalidModification => DOMErrorName::InvalidModificationError,
         Error::NotReadable => DOMErrorName::NotReadableError,
