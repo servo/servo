@@ -82,9 +82,6 @@ use crate::links::{LinkRelations, get_element_target};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub(crate) struct GenerationId(u32);
-
 #[dom_struct]
 pub(crate) struct HTMLFormElement {
     htmlelement: HTMLElement,
@@ -92,7 +89,6 @@ pub(crate) struct HTMLFormElement {
     /// <https://html.spec.whatwg.org/multipage/#constructing-entry-list>
     constructing_entry_list: Cell<bool>,
     elements: DomOnceCell<HTMLFormControlsCollection>,
-    generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
 
     #[allow(clippy::type_complexity)]
@@ -124,7 +120,6 @@ impl HTMLFormElement {
             marked_for_reset: Cell::new(false),
             constructing_entry_list: Cell::new(false),
             elements: Default::default(),
-            generation_id: Cell::new(GenerationId(0)),
             controls: DomRefCell::new(Vec::new()),
             past_names_map: DomRefCell::new(HashMapTracedValues::new()),
             current_name_generation: Cell::new(0),
@@ -1008,8 +1003,18 @@ impl HTMLFormElement {
         // Each planned navigation task is tagged with a generation ID, and
         // before the task is handled, it first checks whether the HTMLFormElement's
         // generation ID is the same as its own generation ID.
-        let generation_id = GenerationId(self.generation_id.get().0 + 1);
-        self.generation_id.set(generation_id);
+        //
+        // Note: we tie the above into in the beginnings of an `ongoing_navigation` concept,
+        // to cancel planned navigations as part of
+        // <https://html.spec.whatwg.org/multipage/#nav-stop>
+        //
+        // Note: tying the form navigation with the current ongoing navigation
+        // means we'll cancel the navigation even if the below task has not run yet.
+        // This is not how the spec is written, which seems to imply that
+        // a `window.stop` should only cancel the navigation that have already started
+        // (here the task is queued, but the nav starts only in the task).
+        // See https://github.com/whatwg/html/issues/11562
+        let ongoing_navigation = target.set_ongoing_navigation();
 
         // Step 2
         let elem = self.upcast::<Element>();
@@ -1026,10 +1031,9 @@ impl HTMLFormElement {
         load_data.referrer_policy = referrer_policy;
 
         // Step 4.
-        let this = Trusted::new(self);
         let window = Trusted::new(target);
         let task = task!(navigate_to_form_planned_navigation: move || {
-            if generation_id != this.root().generation_id.get() {
+            if ongoing_navigation != window.root().ongoing_navigation() {
                 return;
             }
             window

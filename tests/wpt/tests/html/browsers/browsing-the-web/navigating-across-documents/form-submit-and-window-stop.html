@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The planned navigation of a form should be cancelled by a window stop 
+  in the same task as the form submission</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/3730">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+"use strict";
+async_test(t => {
+  let unloaded = false;
+  window.onload = t.step_func(() => {
+    form.submit();
+    window.stop();
+  });
+  window.onunload = () => {
+    unloaded = true;
+  };
+  t.step_timeout(() => {
+    // The document should not have unloaded.
+    assert_equals(unloaded, false);
+    t.done();
+  }, 100);
+});
+</script>
+<form id="form">
