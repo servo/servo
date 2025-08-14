@@ -527,6 +527,7 @@ pub trait WebViewTrait {
     fn id(&self) -> WebViewId;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
     fn set_animating(&self, new_value: bool);
+    fn notify_webdriver_input_event_failed(&self);
 }
 
 /// What entity is reporting that a `Pipeline` has exited. Only when all have

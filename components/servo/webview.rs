@@ -603,6 +603,12 @@ impl WebViewTrait for ServoRendererWebView {
             webview.set_animating(new_value);
         }
     }
+
+    fn notify_webdriver_input_event_failed(&self) {
+        if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
+            webview.delegate().notify_webdriver_input_event_failed();
+        }
+    }
 }
 
 pub struct WebViewBuilder<'servo> {

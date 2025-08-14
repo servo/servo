@@ -102,8 +102,6 @@ pub enum EmbedderToConstellationMessage {
     SendImageKeysForPipeline(PipelineId, Vec<ImageKey>),
     /// Set WebDriver input event handled sender.
     SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
-    /// Notify to webdriver server that hit test failed when dispatching pointer related actions.
-    WebDriverHitTestFailed,
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the

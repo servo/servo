@@ -164,7 +164,6 @@ use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
-use webdriver::error::ErrorStatus;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
@@ -1507,19 +1506,6 @@ where
             EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
                 self.webdriver_input_command_reponse_sender = Some(sender);
             },
-            EmbedderToConstellationMessage::WebDriverHitTestFailed => {
-                if let Some(ref reply_sender) = self.webdriver_input_command_reponse_sender {
-                    reply_sender
-                        .send(WebDriverCommandResponse {
-                            id: Err(ErrorStatus::UnknownError),
-                        })
-                        .unwrap_or_else(|_| {
-                            warn!("Failed to send WebDriverHitTestFailed");
-                        });
-                } else {
-                    warn!("No webdriver_input_command_reponse_sender");
-                }
-            },
         }
     }
 
@@ -1921,7 +1907,7 @@ where
             ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
                 if let Some(ref reply_sender) = self.webdriver_input_command_reponse_sender {
                     reply_sender
-                        .send(WebDriverCommandResponse { id: Ok(msg_id) })
+                        .send(WebDriverCommandResponse::DispatchSucceed(msg_id))
                         .unwrap_or_else(|_| {
                             warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
                         });
