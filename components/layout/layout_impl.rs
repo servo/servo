@@ -26,7 +26,7 @@ use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
-use layout_api::wrapper_traits::LayoutNode;
+use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use layout_api::{
     IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, OffsetParentResponse,
     PropertyRegistration, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
@@ -41,7 +41,9 @@ use profile_traits::time::{
     self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::{path, time_profile};
-use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
+use script::layout_dom::{
+    ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode, ServoThreadSafeLayoutNode,
+};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::{self, DebugOptions};
@@ -941,7 +943,13 @@ impl LayoutThread {
             &snapshot_map,
         );
 
-        if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
+        let highlighted_dom_node =
+            reflow_request
+                .highlighted_dom_node
+                .map(|highlighted_dom_node| unsafe {
+                    ServoLayoutNode::new(&highlighted_dom_node).opaque()
+                });
+        if self.previously_highlighted_dom_node.get() != highlighted_dom_node {
             // Need to manually force layout to build a new display list regardless of whether the box tree
             // changed or not.
             self.need_new_display_list.set(true);
@@ -1199,12 +1207,20 @@ impl LayoutThread {
         self.epoch.set(epoch);
         stacking_context_tree.compositor_info.epoch = epoch.into();
 
+        let highlighted_dom_node =
+            reflow_request
+                .highlighted_dom_node
+                .map(|highlighted_dom_node| unsafe {
+                    ServoLayoutNode::new(&highlighted_dom_node).to_threadsafe()
+                });
+        let highlighted_dom_node_tag = highlighted_dom_node.map(Into::into);
+
         let built_display_list = DisplayListBuilder::build(
-            reflow_request,
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
             self.device().device_pixel_ratio(),
+            highlighted_dom_node_tag,
             &self.debug,
         );
         self.compositor_api.send_display_list(
@@ -1221,8 +1237,11 @@ impl LayoutThread {
 
         self.have_ever_generated_display_list.set(true);
         self.need_new_display_list.set(false);
-        self.previously_highlighted_dom_node
-            .set(reflow_request.highlighted_dom_node);
+        self.previously_highlighted_dom_node.set(
+            highlighted_dom_node
+                .as_ref()
+                .map(ServoThreadSafeLayoutNode::opaque),
+        );
         true
     }
 

@@ -482,7 +482,7 @@ pub struct ReflowRequest {
     /// The theme for the window
     pub theme: Theme,
     /// The node highlighted by the devtools, if any
-    pub highlighted_dom_node: Option<OpaqueNode>,
+    pub highlighted_dom_node: Option<TrustedNodeAddress>,
 }
 
 impl ReflowRequest {
