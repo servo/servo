@@ -319,6 +319,13 @@ impl BroadcastClone for DomException {
     }
 }
 
+/// A serializable version of the QuotaExceededError interface.
+pub struct SerializableQuotaExceededError {
+    pub dom_exception: DomException,
+    pub quota: Option<f64>,
+    pub requested: Option<f64>,
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// A serializable version of the ImageBitmap interface.
 pub struct SerializableImageBitmap {

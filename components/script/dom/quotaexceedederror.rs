@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::DomExceptionIndex;
+use std::collections::HashMap;
+
+use base::id::{DomExceptionId, DomExceptionIndex};
+use constellation_traits::SerializableQuotaExceededError;
 use dom_struct::dom_struct;
 use js::gc::HandleObject;
 use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
@@ -16,6 +19,7 @@ use script_bindings::str::DOMString;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::serializable::Serializable;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::types::{DOMException, GlobalScope};
 
 /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
@@ -122,11 +126,17 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
 impl Serializable for QuotaExceededError {
     // FIXME: see if QuotaExceededError needs its own exception index since it inherits from DOMException
     type Index = DomExceptionIndex;
-    type Data = QuotaExceededError;
+    type Data = SerializableQuotaExceededError;
 
     /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
-    fn serialize(&self) -> Result<(base::id::NamespaceIndex<Self::Index>, Self::Data), ()> {
-        todo!()
+    fn serialize(&self) -> Result<(DomExceptionId, Self::Data), ()> {
+        let (id, dom_exception) = self.dom_exception.serialize()?;
+        let serialized = SerializableQuotaExceededError {
+            dom_exception,
+            quota: self.quota.as_deref().copied(),
+            requested: self.requested.as_deref().copied(),
+        };
+        Ok((id, serialized))
     }
 
     /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
@@ -138,14 +148,25 @@ impl Serializable for QuotaExceededError {
     where
         Self: Sized,
     {
-        todo!()
+        Ok(Self::new(
+            owner,
+            DOMString::from(serialized.dom_exception.message),
+            serialized
+                .quota
+                .map(|val| Finite::new(val).ok_or(()))
+                .transpose()?,
+            serialized
+                .requested
+                .map(|val| Finite::new(val).ok_or(()))
+                .transpose()?,
+            can_gc,
+        ))
     }
 
     /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
     fn serialized_storage<'a>(
-        data: super::bindings::structuredclone::StructuredData<'a, '_>,
-    ) -> &'a mut Option<std::collections::HashMap<base::id::NamespaceIndex<Self::Index>, Self::Data>>
-    {
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<DomExceptionId, Self::Data>> {
         todo!()
     }
 }
