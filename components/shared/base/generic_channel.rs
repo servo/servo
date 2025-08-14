@@ -33,7 +33,7 @@ impl<'a, T: Serialize> Deserialize<'a> for GenericSender<T> {
         D: Deserializer<'a>,
     {
         // Only ipc_channel will encounter deserialize scenario.
-        ipc_channel::ipc::IpcSender::<T>::deserialize(d).map(|s| GenericSender::Ipc(s))
+        ipc_channel::ipc::IpcSender::<T>::deserialize(d).map(GenericSender::Ipc)
     }
 }
 
@@ -138,8 +138,7 @@ where
         D: Deserializer<'a>,
     {
         // Only ipc_channel will encounter deserialize scenario.
-        ipc_channel::ipc::IpcReceiver::<T>::deserialize(d)
-            .map(|receiver| GenericReceiver::Ipc(receiver))
+        ipc_channel::ipc::IpcReceiver::<T>::deserialize(d).map(GenericReceiver::Ipc)
     }
 }
 
