@@ -297,13 +297,52 @@ progress #-servo-progress-bar {
   background-color: #7a3;
 }
 
+/* Mostly matches https://searchfox.org/mozilla-central/rev/a1f4cb9fc03d81be41ca2ba81294592df784364d/layout/style/res/forms.css#217-243 */
 select {
   background-color: lightgrey;
   border-radius: 5px;
   border: 1px solid gray;
   padding: 0 0.25em;
-  /* Don't show a text cursor when hovering selected option */
-  cursor: default;
+  cursor: default; /* Don't change cursor when hovering */
+  margin: 0;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  box-sizing: border-box;
+  user-select: none;
+  overflow: clip;
+  /* No text-decoration reaching inside, by default */
+  display: inline-block;
+  page-break-inside: avoid;
+  overflow-clip-box: padding-box !important;
+  padding-block: 1px;
+  font-family: sans-serif;
+
+  /* These styles are specific to single-select elements */
+  padding-inline: 4px;
+  color: black;
+  vertical-align: baseline;
+  appearance: auto;
+}
+
+/* Matches https://searchfox.org/mozilla-central/rev/a1f4cb9fc03d81be41ca2ba81294592df784364d/layout/style/res/forms.css#120-132 */
+input,
+textarea,
+select,
+button {
+  text-align: initial;
+  text-indent: initial;
+  text-shadow: initial;
+  text-transform: initial;
+  word-spacing: initial;
+  letter-spacing: initial;
+  /* Note that line-height is also reset for all these, via the font shorthand */
+}
+
+input[type="reset" i],
+input[type="button" i],
+input[type="submit" i],
+button {
+  text-align: center;
 }
 
 slot {
