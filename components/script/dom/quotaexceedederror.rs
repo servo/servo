@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::DomExceptionIndex;
 use dom_struct::dom_struct;
 use js::gc::HandleObject;
 use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
@@ -14,6 +15,7 @@ use script_bindings::str::DOMString;
 
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
+use crate::dom::bindings::serializable::Serializable;
 use crate::dom::types::{DOMException, GlobalScope};
 
 /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
@@ -114,5 +116,36 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
     fn GetRequested(&self) -> Option<Finite<f64>> {
         // The requested getter steps are to return this’s requested.
         self.requested
+    }
+}
+
+impl Serializable for QuotaExceededError {
+    // FIXME: see if QuotaExceededError needs its own exception index since it inherits from DOMException
+    type Index = DomExceptionIndex;
+    type Data = QuotaExceededError;
+
+    /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
+    fn serialize(&self) -> Result<(base::id::NamespaceIndex<Self::Index>, Self::Data), ()> {
+        todo!()
+    }
+
+    /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+
+    /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
+    fn serialized_storage<'a>(
+        data: super::bindings::structuredclone::StructuredData<'a, '_>,
+    ) -> &'a mut Option<std::collections::HashMap<base::id::NamespaceIndex<Self::Index>, Self::Data>>
+    {
+        todo!()
     }
 }
