@@ -22,7 +22,6 @@ use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
 /// Asserts the size of a type at compile time.
 macro_rules! size_of_test {
     ($t: ty, $expected_size: expr) => {
-        #[cfg(target_pointer_width = "64")]
         ::static_assertions::const_assert_eq!(std::mem::size_of::<$t>(), $expected_size);
     };
 }
