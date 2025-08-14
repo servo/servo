@@ -126,7 +126,7 @@ impl Encoder {
                     // Step 1. If encoder’s leading surrogate is non-null:
                     // Step 1.1 Let leadingSurrogate be encoder’s leading surrogate.
                     // Step 1.2 Set encoder’s leading surrogate to null.
-                    if let Some(_leading_surrogate) = self.leading_surrogate.take() {
+                    if self.leading_surrogate.take().is_some() {
                         // Step 1.5 Return U+FFFD (�).
                         output.push('\u{FFFD}');
                     }
@@ -353,7 +353,7 @@ impl TextEncoderStreamMethods<DomTypeHolder> for TextEncoderStream {
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>
-    fn Readable(&self) -> DomRoot<<DomTypeHolder as script_bindings::DomTypes>::ReadableStream> {
+    fn Readable(&self) -> DomRoot<<DomTypeHolder as DomTypes>::ReadableStream> {
         self.transform.get_readable()
     }
 
