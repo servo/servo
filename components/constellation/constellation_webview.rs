@@ -87,15 +87,15 @@ impl ConstellationWebView {
         event: ConstellationInputEvent,
         pipelines: &HashMap<PipelineId, Pipeline>,
         browsing_contexts: &HashMap<BrowsingContextId, BrowsingContext>,
-    ) {
+    ) -> bool {
         let Some(pipeline_id) = self.target_pipeline_id_for_input_event(&event, browsing_contexts)
         else {
             warn!("Unknown pipeline for input event. Ignoring.");
-            return;
+            return false;
         };
         let Some(pipeline) = pipelines.get(&pipeline_id) else {
             warn!("Unknown pipeline id {pipeline_id:?} for input event. Ignoring.");
-            return;
+            return false;
         };
 
         let mut update_hovered_browsing_context = |newly_hovered_browsing_context_id| {
@@ -131,7 +131,7 @@ impl ConstellationWebView {
 
         if let InputEvent::MouseLeave(_) = &event.event {
             update_hovered_browsing_context(None);
-            return;
+            return true;
         }
 
         if let InputEvent::MouseMove(_) = &event.event {
@@ -146,5 +146,7 @@ impl ConstellationWebView {
         let _ = pipeline
             .event_loop
             .send(ScriptThreadMessage::SendInputEvent(pipeline.id, event));
+
+        true
     }
 }
