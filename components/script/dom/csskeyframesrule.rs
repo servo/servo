@@ -114,6 +114,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
                 .keyframes
                 .push(rule);
             self.rulelist(can_gc).append_lazy_dom_rule();
+            self.cssrule.parent_stylesheet().notify_invalidations();
         }
     }
 
@@ -145,6 +146,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         let name = KeyframesName::from_ident(&value);
         let mut guard = self.cssrule.shared_lock().write();
         self.keyframesrule.write_with(&mut guard).name = name;
+        self.cssrule.parent_stylesheet().notify_invalidations();
         Ok(())
     }
 }

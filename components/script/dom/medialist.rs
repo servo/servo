@@ -126,6 +126,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
         let mut guard = self.shared_lock().write();
         let media_queries = self.media_queries.write_with(&mut guard);
         *media_queries = Self::parse_media_list(&value, global.as_window());
+        self.parent_stylesheet.notify_invalidations();
     }
 
     // https://drafts.csswg.org/cssom/#dom-medialist-length
@@ -171,6 +172,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
         }
         // Step 4
         mq.media_queries.push(m.unwrap());
+        self.parent_stylesheet.notify_invalidations();
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-deletemedium>
@@ -192,5 +194,6 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             .filter(|q| m_serialized != q.to_css_string())
             .collect();
         media_list.media_queries = new_vec;
+        self.parent_stylesheet.notify_invalidations();
     }
 }

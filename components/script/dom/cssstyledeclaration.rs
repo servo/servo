@@ -125,8 +125,6 @@ impl CSSStyleOwner {
                     f(&mut *pdb.write_with(&mut guard), &mut changed)
                 };
                 if changed {
-                    // If this is changed, see also
-                    // CSSStyleRule::SetSelectorText, which does the same thing.
                     rule.parent_stylesheet().notify_invalidations();
                 }
                 result
