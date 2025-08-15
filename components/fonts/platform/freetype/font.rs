@@ -11,9 +11,10 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use freetype_sys::{
     FT_Done_Face, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE,
-    FT_Face, FT_Get_Kerning, FT_GlyphSlot, FT_Int32, FT_KERNING_DEFAULT, FT_LOAD_COLOR,
-    FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long, FT_New_Face, FT_New_Memory_Face,
-    FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Size_Metrics, FT_SizeRec, FT_UInt, FT_Vector,
+    FT_Face, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_Int32, FT_KERNING_DEFAULT,
+    FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long, FT_New_Face,
+    FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Size_Metrics, FT_SizeRec,
+    FT_UInt, FT_ULong, FT_Vector,
 };
 use log::debug;
 use memmap2::Mmap;
@@ -22,7 +23,6 @@ use read_fonts::tables::os2::SelectionFlags;
 use read_fonts::types::Tag;
 use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
-use skrifa::MetadataProvider as _;
 use style::Zero;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
@@ -209,15 +209,21 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
-        let font_ref = self.table_provider_data.font_ref().ok()?;
-        let glyph_id = font_ref.charmap().map(codepoint);
-        if glyph_id.is_none() {
-            debug!(
-                "Invalid codepoint: U+{:04X} ('{}')",
-                codepoint as u32, codepoint
-            );
+        let face = self.face.lock();
+        assert!(!face.is_null());
+
+        unsafe {
+            let idx = FT_Get_Char_Index(*face, codepoint as FT_ULong);
+            if idx != 0 as FT_UInt {
+                Some(idx as GlyphId)
+            } else {
+                debug!(
+                    "Invalid codepoint: U+{:04X} ('{}')",
+                    codepoint as u32, codepoint
+                );
+                None
+            }
         }
-        glyph_id.map(|id| id.to_u32())
     }
 
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
