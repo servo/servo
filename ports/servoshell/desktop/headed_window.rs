@@ -287,6 +287,10 @@ impl Window {
         };
 
         let point = self.webview_relative_mouse_point.get();
+        // `point` can be outside viewport, such as at toolbar with negative y-coordinate.
+        if !webview.rect().contains(point) {
+            return;
+        }
         let action = match action {
             ElementState::Pressed => MouseButtonAction::Down,
             ElementState::Released => MouseButtonAction::Up,
