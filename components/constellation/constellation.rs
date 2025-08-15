@@ -1905,18 +1905,18 @@ where
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
             ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
-                self.notify_input_status_to_webdriver(WebDriverCommandResponse::DispatchSucceed(msg_id));
+                self.notify_input_status_to_webdriver(WebDriverCommandResponse::DispatchSucceed(
+                    msg_id,
+                ));
             },
         }
     }
 
     fn notify_input_status_to_webdriver(&self, response: WebDriverCommandResponse) {
         if let Some(ref reply_sender) = self.webdriver_input_command_reponse_sender {
-            reply_sender
-                .send(response)
-                .unwrap_or_else(|_| {
-                    warn!("Failed to send WebDriverCommandResponse");
-                });
+            reply_sender.send(response).unwrap_or_else(|_| {
+                warn!("Failed to send WebDriverCommandResponse");
+            });
         } else {
             warn!("No webdriver_input_command_reponse_sender");
         }
@@ -2955,7 +2955,8 @@ where
             active_keyboard_modifiers,
             event,
         };
-        let event_sent = webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts);
+        let event_sent =
+            webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts);
 
         if !event_sent && event_has_webdriver_id {
             self.notify_input_status_to_webdriver(WebDriverCommandResponse::DispatchFailed);
