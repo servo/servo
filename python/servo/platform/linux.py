@@ -11,7 +11,7 @@ import distro
 import os
 import subprocess
 import shutil
-from typing import Optional
+from typing import Optional, Any
 
 from .base import Base
 from .build_target import BuildTarget
@@ -164,7 +164,7 @@ GSTREAMER_URL = (
 
 
 class Linux(Base):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: str, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.is_linux = True
         self.distro = distro.name()

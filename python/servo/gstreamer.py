@@ -11,7 +11,7 @@ import os.path
 import shutil
 import subprocess
 import sys
-from typing import Set
+from collections.abc import Set
 
 # This file is called as a script from components/servo/build.rs, so
 # we need to explicitly modify the search path here.
