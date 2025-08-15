@@ -288,11 +288,20 @@ fn font_weight_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontWe
     }
 
     let mapping = [
-        (0., 0.),
-        (FC_WEIGHT_REGULAR as f64, 400_f64),
-        (FC_WEIGHT_BOLD as f64, 700_f64),
-        (FC_WEIGHT_EXTRABLACK as f64, 1000_f64),
+        (FC_WEIGHT_THIN as f64, 100.0),
+        (FC_WEIGHT_EXTRALIGHT as f64, 200.0),
+        (FC_WEIGHT_LIGHT as f64, 300.0),
+        (FC_WEIGHT_DEMILIGHT as f64, 350.0),
+        (FC_WEIGHT_BOOK as f64, 380.0),
+        (FC_WEIGHT_REGULAR as f64, 400.0),
+        (FC_WEIGHT_MEDIUM as f64, 500.0),
+        (FC_WEIGHT_DEMIBOLD as f64, 600.0),
+        (FC_WEIGHT_BOLD as f64, 700.0),
+        (FC_WEIGHT_EXTRABOLD as f64, 800.0),
+        (FC_WEIGHT_BLACK as f64, 900.0),
+        (FC_WEIGHT_EXTRABLACK as f64, 1000.0),
     ];
+
 
     let mapped_weight = map_platform_values_to_style_values(&mapping, weight as f64);
     Some(FontWeight::from_float(mapped_weight as f32))
