@@ -11,7 +11,7 @@ mod font_template;
 mod glyph;
 #[allow(unsafe_code)]
 pub mod platform;
-mod shaper;
+mod shapers;
 mod system_font_service;
 
 use std::sync::Arc;
@@ -23,7 +23,7 @@ pub use font_template::*;
 pub use glyph::*;
 use ipc_channel::ipc::IpcSharedMemory;
 pub use platform::LocalFontIdentifier;
-pub use shaper::*;
+pub use shapers::*;
 pub use system_font_service::*;
 use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
 

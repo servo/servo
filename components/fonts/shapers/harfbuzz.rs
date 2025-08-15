@@ -28,6 +28,7 @@ use harfbuzz_sys::{
 use log::debug;
 use num_traits::Zero;
 
+use super::unicode_to_hb_script;
 use crate::font::advance_for_shaped_glyph;
 use crate::platform::font::FontTable;
 use crate::{
@@ -199,18 +200,6 @@ impl Shaper {
     fn fixed_to_float(i: hb_position_t) -> f64 {
         fixed_to_float(16, i)
     }
-}
-
-pub fn unicode_to_hb_script(script: unicode_script::Script) -> harfbuzz_sys::hb_script_t {
-    let bytes: [u8; 4] = match script {
-        unicode_script::Script::Unknown => *b"Zzzz",
-        _ => {
-            let short_name = script.short_name();
-            short_name.as_bytes().try_into().unwrap()
-        },
-    };
-
-    u32::from_be_bytes(bytes) as core::ffi::c_uint
 }
 
 impl Shaper {
