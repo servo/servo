@@ -35,7 +35,7 @@ impl From<accesskit_winit::Event> for AppEvent {
 #[allow(dead_code)]
 enum EventLoop {
     /// A real Winit windowing event loop.
-    Winit(winit::event_loop::EventLoop<AppEvent>),
+    Winit(Box<winit::event_loop::EventLoop<AppEvent>>),
     /// A fake event loop which contains a signalling flag used to ensure
     /// that pending events get processed in a timely fashion, and a condition
     /// variable to allow waiting on that flag changing state.
@@ -49,16 +49,16 @@ impl EventsLoop {
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     pub fn new(_headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
-        Ok(EventsLoop(EventLoop::Winit(
+        Ok(EventsLoop(EventLoop::Winit(Box::new(
             WinitEventLoop::with_user_event().build()?,
-        )))
+        ))))
     }
     #[cfg(any(target_os = "linux", target_os = "windows"))]
     pub fn new(headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            EventLoop::Winit(WinitEventLoop::with_user_event().build()?)
+            EventLoop::Winit(Box::new(WinitEventLoop::with_user_event().build()?))
         }))
     }
     #[cfg(target_os = "macos")]
@@ -72,7 +72,7 @@ impl EventsLoop {
                 // when generating an output file.
                 event_loop_builder.with_activation_policy(ActivationPolicy::Prohibited);
             }
-            EventLoop::Winit(event_loop_builder.build()?)
+            Box::new(EventLoop::Winit(event_loop_builder.build()?))
         }))
     }
 }

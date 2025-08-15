@@ -925,7 +925,7 @@ impl GlobalScope {
         let dom_port = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let dom_port = if let Some(managed_port) = message_ports.get_mut(&port_id) {
+            if let Some(managed_port) = message_ports.get_mut(&port_id) {
                 if managed_port.pending {
                     unreachable!("CompleteDisentanglement msg received for a pending port.");
                 }
@@ -940,8 +940,7 @@ impl GlobalScope {
                 // can happen if the port has already been transferred out of this global,
                 // in which case the disentanglement will complete along with the transfer.
                 return;
-            };
-            dom_port
+            }
         } else {
             return;
         };
@@ -1261,17 +1260,17 @@ impl GlobalScope {
             // Step 7, a few preliminary steps.
 
             // - Check the worker is not closing.
-            if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-                if worker.is_closing() {
-                    return;
-                }
+            if let Some(worker) = self.downcast::<WorkerGlobalScope>() &&
+                worker.is_closing()
+            {
+                return;
             }
 
             // - Check the associated document is fully-active.
-            if let Some(window) = self.downcast::<Window>() {
-                if !window.Document().is_fully_active() {
-                    return;
-                }
+            if let Some(window) = self.downcast::<Window>() &&
+                !window.Document().is_fully_active()
+            {
+                return;
             }
 
             // - Check for a case-sensitive match for the name of the channel.
@@ -2683,30 +2682,30 @@ impl GlobalScope {
             // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.forward_error_to_worker_object(error_info);
-            } else if self.is::<Window>() {
-                if let Some(ref chan) = self.devtools_chan {
-                    let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
-                        self.pipeline_id,
-                        PageError {
-                            type_: "PageError".to_string(),
-                            error_message: error_info.message.clone(),
-                            source_name: error_info.filename.clone(),
-                            line_text: "".to_string(), //TODO
-                            line_number: error_info.lineno,
-                            column_number: error_info.column,
-                            category: "script".to_string(),
-                            time_stamp: SystemTime::now()
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap_or_default()
-                                .as_millis() as u64,
-                            error: true,
-                            warning: false,
-                            exception: true,
-                            strict: false,
-                            private: false,
-                        },
-                    ));
-                }
+            } else if self.is::<Window>() &&
+                let Some(ref chan) = self.devtools_chan
+            {
+                let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
+                    self.pipeline_id,
+                    PageError {
+                        type_: "PageError".to_string(),
+                        error_message: error_info.message.clone(),
+                        source_name: error_info.filename.clone(),
+                        line_text: "".to_string(), //TODO
+                        line_number: error_info.lineno,
+                        column_number: error_info.column,
+                        category: "script".to_string(),
+                        time_stamp: SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_millis() as u64,
+                        error: true,
+                        warning: false,
+                        exception: true,
+                        strict: false,
+                        private: false,
+                    },
+                ));
             }
         }
     }

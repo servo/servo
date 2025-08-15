@@ -187,7 +187,7 @@ impl WebViewRenderer {
 
     pub(crate) fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         let pipeline_id = frame_tree.pipeline.id;
-        let old_pipeline_id = std::mem::replace(&mut self.root_pipeline_id, Some(pipeline_id));
+        let old_pipeline_id = self.root_pipeline_id.replace(pipeline_id);
 
         if old_pipeline_id != self.root_pipeline_id {
             debug!(
@@ -647,14 +647,14 @@ impl WebViewRenderer {
                         }
                         self.touch_handler
                             .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
-                        if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
-                            if info.prevent_move == TouchMoveAllowed::Pending {
-                                info.prevent_move = TouchMoveAllowed::Allowed;
-                                if let TouchSequenceState::PendingFling { velocity, cursor } =
-                                    info.state
-                                {
-                                    info.state = TouchSequenceState::Flinging { velocity, cursor }
-                                }
+                        if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) &&
+                            info.prevent_move == TouchMoveAllowed::Pending
+                        {
+                            info.prevent_move = TouchMoveAllowed::Allowed;
+                            if let TouchSequenceState::PendingFling { velocity, cursor } =
+                                info.state
+                            {
+                                info.state = TouchSequenceState::Flinging { velocity, cursor }
                             }
                         }
                     },

@@ -367,10 +367,10 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             // Step 6.2. If the amount of data that can be queued to be sent by keepalive enabled requests
             // is exceeded by the size of transmittedData (as defined in HTTP-network-or-cache fetch),
             // set the return value to false and terminate these steps.
-            if let Some(total_bytes) = extracted_body.total_bytes {
-                if total_bytes > 64 * 1024 {
-                    return Ok(false);
-                }
+            if let Some(total_bytes) = extracted_body.total_bytes &&
+                total_bytes > 64 * 1024
+            {
+                return Ok(false);
             }
             // Step 6.3. If contentType is not null:
             if let Some(content_type) = extracted_body.content_type.as_ref() {

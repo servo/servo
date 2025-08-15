@@ -201,10 +201,10 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         let key_path = options.keyPath.as_ref();
 
         // Step 5
-        if let Some(path) = key_path {
-            if !is_valid_key_path(path) {
-                return Err(Error::Syntax);
-            }
+        if let Some(path) = key_path &&
+            !is_valid_key_path(path)
+        {
+            return Err(Error::Syntax);
         }
 
         // Step 6
@@ -224,7 +224,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         if auto_increment {
             match key_path {
                 Some(StringOrStringSequence::String(path)) => {
-                    if path == "" {
+                    if path.is_empty() {
                         return Err(Error::InvalidAccess);
                     }
                 },

@@ -1703,17 +1703,18 @@ impl ScriptThread {
         };
         let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
-            if let Some(pipeline_id) = pipeline_id {
-                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
-                    if self.print_pwm {
-                        println!(
-                            "Task took longer than max allowed ({:?}) {:?}",
-                            category,
-                            task_duration.as_nanos()
-                        );
-                    }
-                    doc.start_tti();
+            if let Some(pipeline_id) = pipeline_id &&
+                pipeline_id == doc_id &&
+                task_duration.as_nanos() > MAX_TASK_NS
+            {
+                if self.print_pwm {
+                    println!(
+                        "Task took longer than max allowed ({:?}) {:?}",
+                        category,
+                        task_duration.as_nanos()
+                    );
                 }
+                doc.start_tti();
             }
             doc.record_tti_if_necessary();
         }
@@ -3525,45 +3526,45 @@ impl ScriptThread {
         // the pointer, when the user presses down and releases the primary pointer button"
 
         // Servo-specific: Trigger if within 10px of the down point
-        if let InputEvent::MouseButton(mouse_button_event) = &event.event {
-            if let MouseButton::Left = mouse_button_event.button {
-                match mouse_button_event.action {
-                    MouseButtonAction::Up => {
-                        let pixel_dist =
-                            self.relative_mouse_down_point.get() - mouse_button_event.point;
-                        let pixel_dist =
-                            (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
-                        if pixel_dist < 10.0 * document.window().device_pixel_ratio().get() {
-                            // Pass webdriver_id to the newly generated click event
-                            document.event_handler().note_pending_input_event(
-                                ConstellationInputEvent {
-                                    hit_test_result: event.hit_test_result.clone(),
-                                    pressed_mouse_buttons: event.pressed_mouse_buttons,
-                                    active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                    event: event.event.clone().with_webdriver_message_id(None),
-                                },
-                            );
-                            document.event_handler().note_pending_input_event(
-                                ConstellationInputEvent {
-                                    hit_test_result: event.hit_test_result,
-                                    pressed_mouse_buttons: event.pressed_mouse_buttons,
-                                    active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                    event: InputEvent::MouseButton(MouseButtonEvent::new(
-                                        MouseButtonAction::Click,
-                                        mouse_button_event.button,
-                                        mouse_button_event.point,
-                                    ))
-                                    .with_webdriver_message_id(event.event.webdriver_message_id()),
-                                },
-                            );
-                            return;
-                        }
-                    },
-                    MouseButtonAction::Down => {
-                        self.relative_mouse_down_point.set(mouse_button_event.point)
-                    },
-                    MouseButtonAction::Click => {},
-                }
+        if let InputEvent::MouseButton(mouse_button_event) = &event.event &&
+            let MouseButton::Left = mouse_button_event.button
+        {
+            match mouse_button_event.action {
+                MouseButtonAction::Up => {
+                    let pixel_dist =
+                        self.relative_mouse_down_point.get() - mouse_button_event.point;
+                    let pixel_dist =
+                        (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
+                    if pixel_dist < 10.0 * document.window().device_pixel_ratio().get() {
+                        // Pass webdriver_id to the newly generated click event
+                        document.event_handler().note_pending_input_event(
+                            ConstellationInputEvent {
+                                hit_test_result: event.hit_test_result.clone(),
+                                pressed_mouse_buttons: event.pressed_mouse_buttons,
+                                active_keyboard_modifiers: event.active_keyboard_modifiers,
+                                event: event.event.clone().with_webdriver_message_id(None),
+                            },
+                        );
+                        document.event_handler().note_pending_input_event(
+                            ConstellationInputEvent {
+                                hit_test_result: event.hit_test_result,
+                                pressed_mouse_buttons: event.pressed_mouse_buttons,
+                                active_keyboard_modifiers: event.active_keyboard_modifiers,
+                                event: InputEvent::MouseButton(MouseButtonEvent::new(
+                                    MouseButtonAction::Click,
+                                    mouse_button_event.button,
+                                    mouse_button_event.point,
+                                ))
+                                .with_webdriver_message_id(event.event.webdriver_message_id()),
+                            },
+                        );
+                        return;
+                    }
+                },
+                MouseButtonAction::Down => {
+                    self.relative_mouse_down_point.set(mouse_button_event.point)
+                },
+                MouseButtonAction::Click => {},
             }
         }
 
@@ -3861,17 +3862,17 @@ impl ScriptThread {
             None => return,
         };
 
-        if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
-            if global.live_devtools_updates() {
-                let css_error = CSSError {
-                    filename,
-                    line,
-                    column,
-                    msg,
-                };
-                let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
-                sender.send(message).unwrap();
-            }
+        if let Some(global) = self.documents.borrow().find_global(pipeline_id) &&
+            global.live_devtools_updates()
+        {
+            let css_error = CSSError {
+                filename,
+                line,
+                column,
+                msg,
+            };
+            let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
+            sender.send(message).unwrap();
         }
     }
 

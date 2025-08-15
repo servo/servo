@@ -790,10 +790,10 @@ impl RangeRequestBounds {
     pub fn get_final(&self, len: Option<u64>) -> Result<RelativePos, &'static str> {
         match self {
             RangeRequestBounds::Final(pos) => {
-                if let Some(len) = len {
-                    if pos.start <= len as i64 {
-                        return Ok(*pos);
-                    }
+                if let Some(len) = len &&
+                    pos.start <= len as i64
+                {
+                    return Ok(*pos);
                 }
                 Err("Tried to process RangeRequestBounds::Final without len")
             },
@@ -832,7 +832,7 @@ fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Respon
 
 /// Handle a request from the user interface to ignore validation errors for a certificate.
 fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io::Result<()> {
-    let error = |string| Err(io::Error::new(io::ErrorKind::Other, string));
+    let error = |string| Err(io::Error::other(string));
 
     let body = match request.body.as_mut() {
         Some(body) => body,

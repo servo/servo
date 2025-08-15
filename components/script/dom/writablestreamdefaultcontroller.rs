@@ -564,8 +564,7 @@ impl WritableStreamDefaultController {
                         }
                     };
                     if is_promise {
-                        let promise = Promise::new_with_js_promise(result_object.handle(), cx);
-                        promise
+                        Promise::new_with_js_promise(result_object.handle(), cx)
                     } else {
                         Promise::new_resolved(global, cx, result.get(), can_gc)
                     }

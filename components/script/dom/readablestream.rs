@@ -1579,11 +1579,11 @@ impl ReadableStream {
         self.close(can_gc);
 
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
-        if let Some(ReaderType::BYOB(reader)) = self.reader.borrow().as_ref() {
-            if let Some(reader) = reader.get() {
-                // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
-                reader.cancel(can_gc);
-            }
+        if let Some(ReaderType::BYOB(reader)) = self.reader.borrow().as_ref() &&
+            let Some(reader) = reader.get()
+        {
+            // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
+            reader.cancel(can_gc);
         }
 
         // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).

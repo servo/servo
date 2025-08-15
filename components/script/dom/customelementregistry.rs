@@ -593,14 +593,13 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Steps 3, 4, 5
         let existing_promise = self.when_defined.borrow().get(&name).cloned();
-        let promise = existing_promise.unwrap_or_else(|| {
+
+        // Step 6
+        existing_promise.unwrap_or_else(|| {
             let promise = Promise::new_in_current_realm(comp, can_gc);
             self.when_defined.borrow_mut().insert(name, promise.clone());
             promise
-        });
-
-        // Step 6
-        promise
+        })
     }
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade>
     fn Upgrade(&self, node: &Node) {
@@ -860,40 +859,40 @@ pub(crate) fn upgrade_element(
     }
 
     // Step 9: handle with form-associated custom element
-    if let Some(html_element) = element.downcast::<HTMLElement>() {
-        if html_element.is_form_associated_custom_element() {
-            // We know this element is is form-associated, so we can use the implementation of
-            // `FormControl` for HTMLElement, which makes that assumption.
-            // Step 9.1: Reset the form owner of element
-            html_element.reset_form_owner(can_gc);
-            if let Some(form) = html_element.form_owner() {
-                // Even though the tree hasn't structurally mutated,
-                // HTMLCollections need to be invalidated.
-                form.upcast::<Node>().rev_version();
-                // The spec tells us specifically to enqueue a formAssociated reaction
-                // here, but it also says to do that for resetting form owner in general,
-                // and we don't need two reactions.
-            }
+    if let Some(html_element) = element.downcast::<HTMLElement>() &&
+        html_element.is_form_associated_custom_element()
+    {
+        // We know this element is is form-associated, so we can use the implementation of
+        // `FormControl` for HTMLElement, which makes that assumption.
+        // Step 9.1: Reset the form owner of element
+        html_element.reset_form_owner(can_gc);
+        if let Some(form) = html_element.form_owner() {
+            // Even though the tree hasn't structurally mutated,
+            // HTMLCollections need to be invalidated.
+            form.upcast::<Node>().rev_version();
+            // The spec tells us specifically to enqueue a formAssociated reaction
+            // here, but it also says to do that for resetting form owner in general,
+            // and we don't need two reactions.
+        }
 
-            // Either enabled_state or disabled_state needs to be set,
-            // and the possibility of a disabled fieldset ancestor needs
-            // to be accounted for. (In the spec, being disabled is
-            // a fact that's true or false about a node at a given time,
-            // not a flag that belongs to the node and is updated,
-            // so it doesn't describe this check as an action.)
-            element.check_disabled_attribute();
-            element.check_ancestors_disabled_state_for_form_control();
-            element.update_read_write_state_from_readonly_attribute();
+        // Either enabled_state or disabled_state needs to be set,
+        // and the possibility of a disabled fieldset ancestor needs
+        // to be accounted for. (In the spec, being disabled is
+        // a fact that's true or false about a node at a given time,
+        // not a flag that belongs to the node and is updated,
+        // so it doesn't describe this check as an action.)
+        element.check_disabled_attribute();
+        element.check_ancestors_disabled_state_for_form_control();
+        element.update_read_write_state_from_readonly_attribute();
 
-            // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
-            // with element.
-            if element.disabled_state() {
-                ScriptThread::enqueue_callback_reaction(
-                    element,
-                    CallbackReaction::FormDisabled(true),
-                    Some(definition.clone()),
-                )
-            }
+        // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
+        // with element.
+        if element.disabled_state() {
+            ScriptThread::enqueue_callback_reaction(
+                element,
+                CallbackReaction::FormDisabled(true),
+                Some(definition.clone()),
+            )
         }
     }
 

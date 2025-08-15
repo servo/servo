@@ -926,10 +926,10 @@ impl LayoutThread {
         };
 
         let viewport_changed = self.viewport_did_change(reflow_request.viewport_details);
-        if self.update_device_if_necessary(reflow_request, viewport_changed, &guards) {
-            if let Some(mut data) = root_element.mutate_data() {
-                data.hint.insert(RestyleHint::recascade_subtree());
-            }
+        if self.update_device_if_necessary(reflow_request, viewport_changed, &guards) &&
+            let Some(mut data) = root_element.mutate_data()
+        {
+            data.hint.insert(RestyleHint::recascade_subtree());
         }
 
         self.prepare_stylist_for_reflow(
@@ -997,9 +997,11 @@ impl LayoutThread {
         }
 
         let root_node = root_element.as_node();
-        let damage_from_environment = viewport_changed
-            .then_some(RestyleDamage::RELAYOUT)
-            .unwrap_or_default();
+        let damage_from_environment = if viewport_changed {
+            RestyleDamage::RELAYOUT
+        } else {
+            Default::default()
+        };
         let damage = compute_damage_and_repair_style(
             &layout_context.style_context,
             root_node.to_threadsafe(),

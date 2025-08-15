@@ -260,8 +260,7 @@ impl UnderlyingSourceContainer {
                         }
                     };
                     let promise = if is_promise {
-                        let promise = Promise::new_with_js_promise(result_object.handle(), cx);
-                        promise
+                        Promise::new_with_js_promise(result_object.handle(), cx)
                     } else {
                         let promise = Promise::new(&self.global(), can_gc);
                         promise.resolve_native(&result.get(), can_gc);

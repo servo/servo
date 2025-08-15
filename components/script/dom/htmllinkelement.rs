@@ -314,10 +314,10 @@ impl VirtualMethods for HTMLLinkElement {
                 // https://html.spec.whatwg.org/multipage/#link-type-preload
                 // When the as attribute of the link element of an external resource link
                 // that is already browsing-context connected is changed.
-                if self.relations.get().contains(LinkRelations::PRELOAD) {
-                    if let AttributeMutation::Set(Some(_)) = mutation {
-                        self.handle_preload_url();
-                    }
+                if self.relations.get().contains(LinkRelations::PRELOAD) &&
+                    let AttributeMutation::Set(Some(_)) = mutation
+                {
+                    self.handle_preload_url();
                 }
             },
             local_name!("type") => {
@@ -582,10 +582,10 @@ impl HTMLLinkElement {
         if !disabled {
             self.is_explicitly_enabled.set(true);
         }
-        if let Some(stylesheet) = self.get_stylesheet() {
-            if stylesheet.set_disabled(disabled) {
-                self.stylesheet_list_owner().invalidate_stylesheets();
-            }
+        if let Some(stylesheet) = self.get_stylesheet() &&
+            stylesheet.set_disabled(disabled)
+        {
+            self.stylesheet_list_owner().invalidate_stylesheets();
         }
     }
 

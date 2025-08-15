@@ -453,23 +453,23 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         };
 
         // Step 35
-        if let Some(init_body_option) = init.body.as_ref() {
-            if init_body_option.is_some() || input_body.is_some() {
-                let req = r.request.borrow();
-                let req_method = &req.method;
-                match *req_method {
-                    HttpMethod::GET => {
-                        return Err(Error::Type(
-                            "Init's body is non-null, and request method is GET".to_string(),
-                        ));
-                    },
-                    HttpMethod::HEAD => {
-                        return Err(Error::Type(
-                            "Init's body is non-null, and request method is HEAD".to_string(),
-                        ));
-                    },
-                    _ => {},
-                }
+        if let Some(init_body_option) = init.body.as_ref() &&
+            (init_body_option.is_some() || input_body.is_some())
+        {
+            let req = r.request.borrow();
+            let req_method = &req.method;
+            match *req_method {
+                HttpMethod::GET => {
+                    return Err(Error::Type(
+                        "Init's body is non-null, and request method is GET".to_string(),
+                    ));
+                },
+                HttpMethod::HEAD => {
+                    return Err(Error::Type(
+                        "Init's body is non-null, and request method is HEAD".to_string(),
+                    ));
+                },
+                _ => {},
             }
         }
 

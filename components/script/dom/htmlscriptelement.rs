@@ -1211,7 +1211,8 @@ impl HTMLScriptElement {
         let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
         let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
 
-        let script_type = match (
+        // https://github.com/rust-lang/rust/issues/21114
+        match (
             type_attr.as_ref().map(|t| t.value()),
             language_attr.as_ref().map(|l| l.value()),
         ) {
@@ -1256,10 +1257,7 @@ impl HTMLScriptElement {
                     None
                 }
             },
-        };
-
-        // https://github.com/rust-lang/rust/issues/21114
-        script_type
+        }
     }
 
     pub(crate) fn set_parser_inserted(&self, parser_inserted: bool) {
@@ -1309,12 +1307,12 @@ impl VirtualMethods for HTMLScriptElement {
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
-        if *attr.local_name() == local_name!("src") {
-            if let AttributeMutation::Set(_) = mutation {
-                if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                    self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
-                }
-            }
+        if *attr.local_name() == local_name!("src") &&
+            let AttributeMutation::Set(_) = mutation &&
+            !self.parser_inserted.get() &&
+            self.upcast::<Node>().is_connected()
+        {
+            self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
         }
     }
 

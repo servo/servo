@@ -268,24 +268,24 @@ impl VirtualMethods for HTMLStyleElement {
         }
 
         if attr.name() == "type" {
-            if let AttributeMutation::Set(Some(old_value)) = mutation {
-                if **old_value == **attr.value() {
-                    return;
-                }
+            if let AttributeMutation::Set(Some(old_value)) = mutation &&
+                **old_value == **attr.value()
+            {
+                return;
             }
             self.remove_stylesheet();
             self.parse_own_css();
-        } else if attr.name() == "media" {
-            if let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
-                let shared_lock = node.owner_doc().style_shared_lock().clone();
-                let mut guard = shared_lock.write();
-                let media = stylesheet.media.write_with(&mut guard);
-                match mutation {
-                    AttributeMutation::Set(_) => *media = self.create_media_list(&attr.value()),
-                    AttributeMutation::Removed => *media = StyleMediaList::empty(),
-                };
-                self.owner_document().invalidate_stylesheets();
-            }
+        } else if attr.name() == "media" &&
+            let Some(ref stylesheet) = *self.stylesheet.borrow_mut()
+        {
+            let shared_lock = node.owner_doc().style_shared_lock().clone();
+            let mut guard = shared_lock.write();
+            let media = stylesheet.media.write_with(&mut guard);
+            match mutation {
+                AttributeMutation::Set(_) => *media = self.create_media_list(&attr.value()),
+                AttributeMutation::Removed => *media = StyleMediaList::empty(),
+            };
+            self.owner_document().invalidate_stylesheets();
         }
     }
 }

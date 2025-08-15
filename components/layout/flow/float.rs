@@ -828,22 +828,21 @@ impl FloatBandLink {
     ///     A   B          B   R
     /// ```
     fn skew(&self) -> FloatBandLink {
-        if let Some(ref this) = self.0 {
-            if let Some(ref left) = this.left.0 {
-                if this.level == left.level {
-                    return FloatBandLink(Some(Arc::new(FloatBandNode {
-                        level: this.level,
-                        left: left.left.clone(),
-                        band: left.band,
-                        right: FloatBandLink(Some(Arc::new(FloatBandNode {
-                            level: this.level,
-                            left: left.right.clone(),
-                            band: this.band,
-                            right: this.right.clone(),
-                        }))),
-                    })));
-                }
-            }
+        if let Some(ref this) = self.0 &&
+            let Some(ref left) = this.left.0 &&
+            this.level == left.level
+        {
+            return FloatBandLink(Some(Arc::new(FloatBandNode {
+                level: this.level,
+                left: left.left.clone(),
+                band: left.band,
+                right: FloatBandLink(Some(Arc::new(FloatBandNode {
+                    level: this.level,
+                    left: left.right.clone(),
+                    band: this.band,
+                    right: this.right.clone(),
+                }))),
+            })));
         }
 
         (*self).clone()
@@ -858,24 +857,22 @@ impl FloatBandLink {
     ///         B   X    A   B
     /// ```
     fn split(&self) -> FloatBandLink {
-        if let Some(ref this) = self.0 {
-            if let Some(ref right) = this.right.0 {
-                if let Some(ref right_right) = right.right.0 {
-                    if this.level == right_right.level {
-                        return FloatBandLink(Some(Arc::new(FloatBandNode {
-                            level: this.level + 1,
-                            left: FloatBandLink(Some(Arc::new(FloatBandNode {
-                                level: this.level,
-                                left: this.left.clone(),
-                                band: this.band,
-                                right: right.left.clone(),
-                            }))),
-                            band: right.band,
-                            right: right.right.clone(),
-                        })));
-                    }
-                }
-            }
+        if let Some(ref this) = self.0 &&
+            let Some(ref right) = this.right.0 &&
+            let Some(ref right_right) = right.right.0 &&
+            this.level == right_right.level
+        {
+            return FloatBandLink(Some(Arc::new(FloatBandNode {
+                level: this.level + 1,
+                left: FloatBandLink(Some(Arc::new(FloatBandNode {
+                    level: this.level,
+                    left: this.left.clone(),
+                    band: this.band,
+                    right: right.left.clone(),
+                }))),
+                band: right.band,
+                right: right.right.clone(),
+            })));
         }
 
         (*self).clone()

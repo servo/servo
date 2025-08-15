@@ -1004,15 +1004,16 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
                 "We should know whether we are collapsing the block start margin with the parent \
                 when laying out sequentially",
             ).0 && clear == Clear::None;
-            if !collapsible_with_parent_start_margin && start_margin_can_collapse_with_children {
-                if let BlockContainer::BlockLevelBoxes(child_boxes) = contents {
-                    BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
-                        layout_context,
-                        child_boxes,
-                        &mut block_start_margin,
-                        &containing_block_for_children,
-                    );
-                }
+            if !collapsible_with_parent_start_margin &&
+                start_margin_can_collapse_with_children &&
+                let BlockContainer::BlockLevelBoxes(child_boxes) = contents
+            {
+                BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
+                    layout_context,
+                    child_boxes,
+                    &mut block_start_margin,
+                    &containing_block_for_children,
+                );
             }
 
             // Introduce clearance if necessary.

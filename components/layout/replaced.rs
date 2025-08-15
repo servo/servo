@@ -135,14 +135,10 @@ impl ReplacedContents {
         element: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
     ) -> Option<Self> {
-        if let Some(ref data_attribute_string) = element.as_typeless_object_with_data_attribute() {
-            if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
-                return Self::from_image_url(
-                    element,
-                    context,
-                    &ComputedUrl::Valid(ServoArc::new(url)),
-                );
-            }
+        if let Some(ref data_attribute_string) = element.as_typeless_object_with_data_attribute() &&
+            let Some(url) = try_to_parse_image_data_url(data_attribute_string)
+        {
+            return Self::from_image_url(element, context, &ComputedUrl::Valid(ServoArc::new(url)));
         }
 
         let (kind, natural_size) = {

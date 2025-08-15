@@ -1845,10 +1845,10 @@ impl Handler {
         if let Some(ref path) = params.path {
             cookie_builder = cookie_builder.path(path.clone());
         }
-        if let Some(ref expiry) = params.expiry {
-            if let Ok(datetime) = OffsetDateTime::from_unix_timestamp(expiry.0 as i64) {
-                cookie_builder = cookie_builder.expires(datetime);
-            }
+        if let Some(ref expiry) = params.expiry &&
+            let Ok(datetime) = OffsetDateTime::from_unix_timestamp(expiry.0 as i64)
+        {
+            cookie_builder = cookie_builder.expires(datetime);
         }
         if let Some(ref same_site) = params.sameSite {
             cookie_builder = match same_site.as_str() {

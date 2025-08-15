@@ -19,7 +19,7 @@ use servo::{
 
 pub enum Dialog {
     File {
-        dialog: EguiFileDialog,
+        dialog: Box<EguiFileDialog>,
         multiple: bool,
         response_sender: IpcSender<Option<Vec<PathBuf>>>,
     },
@@ -74,7 +74,7 @@ impl Dialog {
         }
 
         Dialog::File {
-            dialog,
+            dialog: Box::new(dialog),
             multiple,
             response_sender,
         }

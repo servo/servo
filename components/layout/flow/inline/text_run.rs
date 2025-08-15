@@ -489,16 +489,16 @@ impl TextRun {
             };
 
             // If the existing segment is compatible with the character, keep going.
-            if let Some(current) = current.as_mut() {
-                if current.0.update_if_compatible(
+            if let Some(current) = current.as_mut() &&
+                current.0.update_if_compatible(
                     &font,
                     script,
                     bidi_level,
                     font_cache,
                     font_context,
-                ) {
-                    continue;
-                }
+                )
+            {
+                continue;
             }
 
             let font_index = add_or_get_font(&font, font_cache, font_context);

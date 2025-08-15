@@ -291,14 +291,12 @@ impl KvsEngine for HeedEngine {
     }
 
     fn has_key_generator(&self, store_name: SanitizedName) -> bool {
-        let has_generator = self
-            .open_stores
+        self.open_stores
             .read()
             .expect("Could not acquire read lock on stores")
             .get(&store_name)
             .expect("Store not found")
             .key_generator
-            .is_some();
-        has_generator
+            .is_some()
     }
 }

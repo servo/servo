@@ -119,10 +119,10 @@ impl HTMLTableElement {
     where
         P: FnMut(&DomRoot<Element>) -> bool,
     {
-        if let Some(e) = section {
-            if e.upcast::<Element>().local_name() != atom {
-                return Err(Error::HierarchyRequest);
-            }
+        if let Some(e) = section &&
+            e.upcast::<Element>().local_name() != atom
+        {
+            return Err(Error::HierarchyRequest);
         }
 
         self.delete_first_section_of_type(atom, can_gc);

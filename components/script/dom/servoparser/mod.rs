@@ -591,12 +591,12 @@ impl ServoParser {
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
 
-        if self.last_chunk_received.get() {
-            if let Some(decoder) = self.network_decoder.borrow_mut().take() {
-                let chunk = decoder.finish();
-                if !chunk.is_empty() {
-                    self.network_input.push_back(chunk);
-                }
+        if self.last_chunk_received.get() &&
+            let Some(decoder) = self.network_decoder.borrow_mut().take()
+        {
+            let chunk = decoder.finish();
+            if !chunk.is_empty() {
+                self.network_input.push_back(chunk);
             }
         }
 

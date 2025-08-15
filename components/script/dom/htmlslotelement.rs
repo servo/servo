@@ -396,10 +396,10 @@ impl Slottable {
                 .upcast::<Node>()
                 .traverse_preorder(ShadowIncluding::No)
             {
-                if let Some(slot) = node.downcast::<HTMLSlotElement>() {
-                    if slot.manually_assigned_nodes.borrow().contains(self) {
-                        return Some(DomRoot::from_ref(slot));
-                    }
+                if let Some(slot) = node.downcast::<HTMLSlotElement>() &&
+                    slot.manually_assigned_nodes.borrow().contains(self)
+                {
+                    return Some(DomRoot::from_ref(slot));
                 }
             }
             return None;

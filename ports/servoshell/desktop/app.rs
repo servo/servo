@@ -239,10 +239,10 @@ impl App {
                 };
 
                 // If in headed mode, request a winit redraw event, so we can paint the minibrowser.
-                if updated || need_window_redraw {
-                    if let Some(window) = window.winit_window() {
-                        window.request_redraw();
-                    }
+                if (updated || need_window_redraw) &&
+                    let Some(window) = window.winit_window()
+                {
+                    window.request_redraw();
                 }
             },
         }

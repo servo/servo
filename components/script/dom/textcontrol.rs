@@ -70,10 +70,10 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         let mut end = self.end();
 
         // Step 3
-        if let Some(s) = start {
-            if end < s {
-                end = s;
-            }
+        if let Some(s) = start &&
+            end < s
+        {
+            end = s;
         }
 
         // Step 4

@@ -976,11 +976,11 @@ pub async fn http_fetch(
             });
 
         // Substep 4.
-        if let Some(Ok(ref mut location)) = location {
-            if location.fragment().is_none() {
-                let current_url = request.current_url();
-                location.set_fragment(current_url.fragment());
-            }
+        if let Some(Ok(ref mut location)) = location &&
+            location.fragment().is_none()
+        {
+            let current_url = request.current_url();
+            location.set_fragment(current_url.fragment());
         }
         response.actual_response_mut().location_url = location;
 
@@ -1356,10 +1356,10 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
     // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
-    if http_request.initiator == Initiator::Prefetch {
-        if let Ok(value) = HeaderValue::from_str("prefetch") {
-            http_request.headers.insert("Sec-Purpose", value);
-        }
+    if http_request.initiator == Initiator::Prefetch &&
+        let Ok(value) = HeaderValue::from_str("prefetch")
+    {
+        http_request.headers.insert("Sec-Purpose", value);
     }
 
     // Step 8.15: If httpRequest’s header list does not contain `User-Agent`, then user agents
@@ -1416,10 +1416,10 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.19: If httpRequest’s header list contains `Range`, then append (`Accept-Encoding`,
     // `identity`) to httpRequest’s header list.
-    if http_request.headers.contains_key(header::RANGE) {
-        if let Ok(value) = HeaderValue::from_str("identity") {
-            http_request.headers.insert("Accept-Encoding", value);
-        }
+    if http_request.headers.contains_key(header::RANGE) &&
+        let Ok(value) = HeaderValue::from_str("identity")
+    {
+        http_request.headers.insert("Accept-Encoding", value);
     }
 
     // Step 8.20: Modify httpRequest’s header list per HTTP. Do not append a given header if
@@ -1448,10 +1448,10 @@ async fn http_network_or_cache_fetch(
             let mut authorization_value = None;
 
             // Substep 4
-            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) {
-                if !http_request.use_url_credentials || !has_credentials(&current_url) {
-                    authorization_value = Some(basic);
-                }
+            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) &&
+                (!http_request.use_url_credentials || !has_credentials(&current_url))
+            {
+                authorization_value = Some(basic);
             }
 
             // Substep 5
@@ -1655,10 +1655,11 @@ async fn http_network_or_cache_fetch(
         // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
         // inclusive, invalidate appropriate stored responses in httpCache, as per the
         // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
-        if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
-            if let Ok(mut http_cache) = context.state.http_cache.write() {
-                http_cache.invalidate(http_request, &forward_response);
-            }
+        if forward_response.status.in_range(200..=399) &&
+            !http_request.method.is_safe() &&
+            let Ok(mut http_cache) = context.state.http_cache.write()
+        {
+            http_cache.invalidate(http_request, &forward_response);
         }
 
         // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
@@ -2017,7 +2018,7 @@ async fn http_network_fetch(
         .iter()
         .map(|header_value| header_value.to_str().unwrap_or(""))
         .collect();
-    let wildcard_present = header_strings.iter().any(|header_str| *header_str == "*");
+    let wildcard_present = header_strings.contains(&"*");
     // The spec: https://www.w3.org/TR/resource-timing-2/#sec-timing-allow-origin
     // says that a header string is either an origin or a wildcard so we can just do a straight
     // check against the document origin
@@ -2543,10 +2544,11 @@ fn append_a_request_origin_header(request: &mut Request) {
                 ReferrerPolicy::StrictOriginWhenCrossOrigin => {
                     // If request’s origin is a tuple origin, its scheme is "https", and
                     // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
-                    if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
-                        if scheme == "https" && request.current_url().scheme() != "https" {
-                            serialized_origin = headers::Origin::NULL;
-                        }
+                    if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin &&
+                        scheme == "https" &&
+                        request.current_url().scheme() != "https"
+                    {
+                        serialized_origin = headers::Origin::NULL;
                     }
                 },
                 ReferrerPolicy::SameOrigin => {

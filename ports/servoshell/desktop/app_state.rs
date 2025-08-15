@@ -379,10 +379,10 @@ impl RunningAppState {
     }
 
     pub(crate) fn set_alert_text_of_newest_dialog(&self, webview_id: WebViewId, text: String) {
-        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
-            if let Some(dialog) = dialogs.last_mut() {
-                dialog.set_message(text);
-            }
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) &&
+            let Some(dialog) = dialogs.last_mut()
+        {
+            dialog.set_message(text);
         }
     }
 
@@ -430,7 +430,7 @@ impl RunningAppState {
                 webview.notify_scroll_event(ScrollLocation::End, origin);
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowUp), || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, -1.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, -LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowDown), || {
@@ -673,15 +673,14 @@ impl WebViewDelegate for RunningAppState {
     fn notify_load_status_changed(&self, webview: servo::WebView, status: LoadStatus) {
         self.inner_mut().need_update = true;
 
-        if status == LoadStatus::Complete {
-            if let Some(sender) = self
+        if status == LoadStatus::Complete &&
+            let Some(sender) = self
                 .webdriver_senders
                 .borrow_mut()
                 .load_status_senders
                 .remove(&webview.id())
-            {
-                let _ = sender.send(WebDriverLoadStatus::Complete);
-            }
+        {
+            let _ = sender.send(WebDriverLoadStatus::Complete);
         }
     }
 

@@ -651,11 +651,11 @@ impl NetworkEventActor {
     }
 
     fn insert_serialized_map<T: Serialize>(map: &mut Map<String, Value>, obj: &Option<T>) {
-        if let Some(value) = obj {
-            if let Ok(Value::Object(serialized)) = serde_json::to_value(value) {
-                for (key, val) in serialized {
-                    map.insert(key, val);
-                }
+        if let Some(value) = obj &&
+            let Ok(Value::Object(serialized)) = serde_json::to_value(value)
+        {
+            for (key, val) in serialized {
+                map.insert(key, val);
             }
         }
     }

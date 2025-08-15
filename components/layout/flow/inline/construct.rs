@@ -411,11 +411,11 @@ impl InlineFormattingContextBuilder {
         self.current_text_offset = new_range.end;
         self.text_segments.push(new_text);
 
-        if let Some(inline_item) = self.inline_items.last() {
-            if let InlineItem::TextRun(text_run) = &mut *inline_item.borrow_mut() {
-                text_run.borrow_mut().text_range.end = new_range.end;
-                return;
-            }
+        if let Some(inline_item) = self.inline_items.last() &&
+            let InlineItem::TextRun(text_run) = &mut *inline_item.borrow_mut()
+        {
+            text_run.borrow_mut().text_range.end = new_range.end;
+            return;
         }
 
         self.inline_items
@@ -792,14 +792,14 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
         let current_byte_index = byte_index;
         byte_index += character.len_utf8();
 
-        if let Some(next_index) = bounds.peek() {
-            if *next_index == current_byte_index {
-                bounds.next();
+        if let Some(next_index) = bounds.peek() &&
+            *next_index == current_byte_index
+        {
+            bounds.next();
 
-                if current_byte_index != 0 || allow_word_at_start {
-                    output_string.extend(character.to_uppercase());
-                    continue;
-                }
+            if current_byte_index != 0 || allow_word_at_start {
+                output_string.extend(character.to_uppercase());
+                continue;
             }
         }
 

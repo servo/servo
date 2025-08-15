@@ -322,7 +322,7 @@ impl FontContext {
                 font_key
             });
 
-        let key = *self
+        *self
             .webrender_font_instance_keys
             .write()
             .entry((font_key, pt_size))
@@ -335,8 +335,7 @@ impl FontContext {
                     flags,
                 );
                 font_instance_key
-            });
-        key
+            })
     }
 
     fn invalidate_font_groups_after_web_font_load(&self) {

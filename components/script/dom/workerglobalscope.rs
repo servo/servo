@@ -81,7 +81,7 @@ pub(crate) fn prepare_workerscope_init(
     devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     worker_id: Option<WorkerId>,
 ) -> WorkerGlobalScopeInit {
-    let init = WorkerGlobalScopeInit {
+    WorkerGlobalScopeInit {
         resource_threads: global.resource_threads().clone(),
         mem_profiler_chan: global.mem_profiler_chan().clone(),
         to_devtools_sender: global.devtools_chan().cloned(),
@@ -93,9 +93,7 @@ pub(crate) fn prepare_workerscope_init(
         origin: global.origin().immutable().clone(),
         creation_url: global.creation_url().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
-    };
-
-    init
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
@@ -545,17 +543,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = ImageBitmap::create_image_bitmap(
-            self.upcast(),
-            image,
-            0,
-            0,
-            None,
-            None,
-            options,
-            can_gc,
-        );
-        p
+        ImageBitmap::create_image_bitmap(self.upcast(), image, 0, 0, None, None, options, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -569,7 +557,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = ImageBitmap::create_image_bitmap(
+        ImageBitmap::create_image_bitmap(
             self.upcast(),
             image,
             sx,
@@ -578,8 +566,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             Some(sh),
             options,
             can_gc,
-        );
-        p
+        )
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
