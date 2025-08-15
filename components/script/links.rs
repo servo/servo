@@ -383,7 +383,10 @@ pub(crate) fn follow_hyperlink(
     //         choosing a navigable given targetAttributeValue, subject's node navigable, and
     //         noopener.
     let window = document.window();
-    let source = document.browsing_context().unwrap();
+    let Some(source) = document.browsing_context() else {
+        // TODO(37920): Figure out why we have a discarded browsing context here
+        return;
+    };
     let (maybe_chosen, history_handling) = match target_attribute_value {
         Some(name) => {
             let (maybe_chosen, new) = source.choose_browsing_context(name, noopener);

@@ -11,7 +11,8 @@ pub use content_security_policy::InlineCheckType;
 pub use content_security_policy::Violation;
 use content_security_policy::{
     CheckResult, CspList, Destination, Element as CspElement, Initiator, NavigationCheckType,
-    Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, ViolationResource,
+    Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, TrustedTypesUrlProcessor,
+    ViolationResource,
 };
 use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
@@ -19,13 +20,16 @@ use js::rust::describe_scripted_caller;
 use log::warn;
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::csppolicyviolationreport::CSPViolationReportBuilder;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::trustedscript::TrustedScript;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::security_manager::CSPViolationReportTask;
 
 pub(crate) trait CspReporting {
@@ -34,8 +38,9 @@ pub(crate) trait CspReporting {
     fn should_navigation_request_be_blocked(
         &self,
         global: &GlobalScope,
-        load_data: &LoadData,
+        load_data: &mut LoadData,
         element: Option<&Element>,
+        can_gc: CanGc,
     ) -> bool;
     fn should_elements_inline_type_behavior_be_blocked(
         &self,
@@ -63,6 +68,27 @@ pub(crate) trait CspReporting {
         source: &str,
     ) -> bool;
     fn concatenate(self, new_csp_list: Option<CspList>) -> Option<CspList>;
+}
+
+struct TrustedTypesProcessor {
+    global: Trusted<GlobalScope>,
+    can_gc: CanGc,
+}
+
+/// <https://www.w3.org/TR/trusted-types/#require-trusted-types-for-pre-navigation-check>
+impl TrustedTypesUrlProcessor for TrustedTypesProcessor {
+    fn process_javascript_url(&self, script_source: &str) -> Option<String> {
+        // Step 4. Let convertedScriptSource be the result of executing
+        // Process value with a default policy algorithm, with the following arguments:
+        TrustedScript::get_trusted_script_compliant_string(
+            &self.global.root(),
+            TrustedScriptOrString::String(script_source.into()),
+            "Location href",
+            self.can_gc,
+        )
+        .ok()
+        .map(|s| s.into())
+    }
 }
 
 impl CspReporting for Option<CspList> {
@@ -96,13 +122,14 @@ impl CspReporting for Option<CspList> {
     fn should_navigation_request_be_blocked(
         &self,
         global: &GlobalScope,
-        load_data: &LoadData,
+        load_data: &mut LoadData,
         element: Option<&Element>,
+        can_gc: CanGc,
     ) -> bool {
         let Some(csp_list) = self else {
             return false;
         };
-        let request = Request {
+        let mut request = Request {
             url: load_data.url.clone().into_url(),
             origin: match &load_data.load_origin {
                 LoadOrigin::Script(immutable_origin) => immutable_origin.clone().into_url_origin(),
@@ -117,8 +144,17 @@ impl CspReporting for Option<CspList> {
             parser_metadata: ParserMetadata::None,
         };
         // TODO: set correct navigation check type for form submission if applicable
-        let (result, violations) =
-            csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
+        let (result, violations) = csp_list.should_navigation_request_be_blocked(
+            &mut request,
+            NavigationCheckType::Other,
+            &TrustedTypesProcessor {
+                global: Trusted::new(global),
+                can_gc,
+            },
+        );
+
+        // In case trusted types processing has changed the Javascript contents
+        load_data.url = request.url.into();
 
         global.report_csp_violations(violations, element, None);
 
