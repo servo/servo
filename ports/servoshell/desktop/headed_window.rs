@@ -25,7 +25,7 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, Modifiers,
-    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeaveEvent,
+    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
     MouseMoveEvent, NamedKey, OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme,
     TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent,
     WheelMode, WindowRenderingContext,
@@ -628,7 +628,9 @@ impl WindowPortsMethods for Window {
                 if webview.rect().contains(point) {
                     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
                 } else if webview.rect().contains(previous_point) {
-                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::default()));
+                    webview.notify_input_event(InputEvent::MouseLeftViewport(
+                        MouseLeftViewportEvent::default(),
+                    ));
                 }
 
                 self.webview_relative_mouse_point.set(point);
@@ -638,7 +640,9 @@ impl WindowPortsMethods for Window {
                     .rect()
                     .contains(self.webview_relative_mouse_point.get())
                 {
-                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::default()));
+                    webview.notify_input_event(InputEvent::MouseLeftViewport(
+                        MouseLeftViewportEvent::default(),
+                    ));
                 }
             },
             WindowEvent::MouseWheel { delta, .. } => {
