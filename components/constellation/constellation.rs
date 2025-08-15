@@ -523,6 +523,9 @@ pub struct InitialConstellationState {
 
     /// The async runtime.
     pub async_runtime: Box<dyn AsyncRuntime>,
+
+    /// An [`IpcSender`] to forward responses from the `ScriptThread` to the WebDriver server.
+    pub webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
 }
 
 /// When we are running reftests, we save an image to compare against a reference.
@@ -693,7 +696,8 @@ where
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
                     webdriver_load_status_sender: None,
-                    webdriver_input_command_reponse_sender: None,
+                    webdriver_input_command_reponse_sender: state
+                        .webdriver_input_command_reponse_sender,
                     document_states: HashMap::new(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
@@ -1502,9 +1506,6 @@ where
                         pipeline_id
                     )
                 }
-            },
-            EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
-                self.webdriver_input_command_reponse_sender = Some(sender);
             },
         }
     }

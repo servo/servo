@@ -97,7 +97,7 @@ impl ApplicationHandler<WakerEvent> for App {
 
             let servo = ServoBuilder::new(rendering_context.clone())
                 .event_loop_waker(Box::new(waker.clone()))
-                .build();
+                .build(None);
             servo.setup_logging();
 
             let app_state = Rc::new(AppState {
