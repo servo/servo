@@ -8,10 +8,11 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 
-#[derive(Clone)]
+const INITIAL_LENGTH: usize = 500;
+
 pub struct LongStringActor {
-    pub name: String,
-    pub full_string: String,
+    name: String,
+    full_string: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -70,17 +71,17 @@ impl Actor for LongStringActor {
 }
 
 impl LongStringActor {
-    pub fn new(registry: &crate::actor::ActorRegistry, full_string: String) -> Self {
+    pub fn new(registry: &ActorRegistry, full_string: String) -> Self {
         let name = registry.new_name("longStringActor");
         LongStringActor { name, full_string }
     }
 
-    pub fn long_string_obj(actor: String, length: usize, initial: String) -> LongStringObj {
+    pub fn long_string_obj(&self) -> LongStringObj {
         LongStringObj {
             type_: "longString".to_string(),
-            actor,
-            length,
-            initial,
+            actor: self.name.clone(),
+            length: self.full_string.len(),
+            initial: self.full_string.chars().take(INITIAL_LENGTH).collect(),
         }
     }
 }
