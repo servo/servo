@@ -14,7 +14,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedtypepolicy::TrustedType;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypepolicyfactory::{DEFAULT_SCRIPT_SINK_GROUP, TrustedTypePolicyFactory};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -52,7 +52,7 @@ impl TrustedScriptURL {
                     global,
                     value.as_ref().into(),
                     &sink,
-                    "'script'",
+                    DEFAULT_SCRIPT_SINK_GROUP,
                     can_gc,
                 )
             },
@@ -60,6 +60,10 @@ impl TrustedScriptURL {
                 Ok(trusted_script_url.data.clone())
             },
         }
+    }
+
+    pub(crate) fn data(&self) -> DOMString {
+        self.data.clone()
     }
 }
 

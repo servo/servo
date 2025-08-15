@@ -87,7 +87,9 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     BooleanOrScrollIntoViewOptions, NodeOrString, TrustedHTMLOrNullIsEmptyString,
-    TrustedHTMLOrString, TrustedScriptURLOrUSVString,
+    TrustedHTMLOrString,
+    TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString,
+    TrustedScriptURLOrUSVString,
 };
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::domname::{
@@ -161,6 +163,7 @@ use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -752,7 +755,7 @@ impl Element {
 
     // https://html.spec.whatwg.org/multipage/#translation-mode
     pub(crate) fn is_translate_enabled(&self) -> bool {
-        let name = &html5ever::local_name!("translate");
+        let name = &local_name!("translate");
         if self.has_attribute(name) {
             match_ignore_ascii_case! { &*self.get_string_attribute(name),
                 "yes" | "" => return true,
@@ -3250,17 +3253,39 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-setattribute>
-    fn SetAttribute(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        // Step 1. If qualifiedName is not a valid attribute local name,
-        //      then throw an "InvalidCharacterError" DOMException.
+    fn SetAttribute(
+        &self,
+        name: DOMString,
+        value: TrustedTypeOrString,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Step 1. If qualifiedName does not match the Name production in XML,
+        // then throw an "InvalidCharacterError" DOMException.
         if !is_valid_attribute_local_name(&name) {
             return Err(Error::InvalidCharacter);
         }
 
-        // Step 2.
+        // Step 2. If this is in the HTML namespace and its node document is an HTML document,
+        // then set qualifiedName to qualifiedName in ASCII lowercase.
         let name = self.parsed_name(name);
 
-        // Step 3-5.
+        // Step 3. Let verifiedValue be the result of calling get
+        // Trusted Types-compliant attribute value with qualifiedName, null,
+        // this, and value. [TRUSTED-TYPES]
+        let value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
+            self.namespace(),
+            self.local_name(),
+            &name,
+            None,
+            value,
+            &self.owner_global(),
+            can_gc,
+        )?;
+
+        // Step 4. Let attribute be the first attribute in this’s attribute list whose qualified name is qualifiedName, and null otherwise.
+        // Step 5. If attribute is null, create an attribute whose local name is qualifiedName, value is verifiedValue, and node document
+        // is this’s node document, then append this attribute to this, and then return.
+        // Step 6. Change attribute to verifiedValue.
         let value = self.parse_attribute(&ns!(), &name, value);
         self.set_first_matching_attribute(
             name.clone(),
@@ -3279,20 +3304,29 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         &self,
         namespace: Option<DOMString>,
         qualified_name: DOMString,
-        value: DOMString,
+        value: TrustedTypeOrString,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // Step 1. Let (namespace, prefix, localName) be the result of validating and
-        //      extracting namespace and qualifiedName given "element".
-        let context = domname::Context::Element;
+        // Step 1. Let namespace, prefix, and localName be the result of passing namespace and qualifiedName to validate and extract.
         let (namespace, prefix, local_name) =
-            domname::validate_and_extract(namespace, &qualified_name, context)?;
-        let qualified_name = LocalName::from(qualified_name);
+            domname::validate_and_extract(namespace, &qualified_name, domname::Context::Element)?;
+        // Step 2. Let verifiedValue be the result of calling get
+        // Trusted Types-compliant attribute value with localName, namespace, element, and value. [TRUSTED-TYPES]
+        let value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
+            self.namespace(),
+            self.local_name(),
+            &local_name,
+            Some(&namespace),
+            value,
+            &self.owner_global(),
+            can_gc,
+        )?;
+        // Step 3. Set an attribute value for this using localName, verifiedValue, and also prefix and namespace.
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.set_first_matching_attribute(
             local_name.clone(),
             value,
-            qualified_name,
+            LocalName::from(qualified_name),
             namespace.clone(),
             prefix,
             |attr| *attr.local_name() == local_name && *attr.namespace() == namespace,

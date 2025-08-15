@@ -16,7 +16,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedtypepolicy::TrustedType;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypepolicyfactory::{DEFAULT_SCRIPT_SINK_GROUP, TrustedTypePolicyFactory};
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
@@ -52,7 +52,7 @@ impl TrustedScript {
                     global,
                     value,
                     sink,
-                    "'script'",
+                    DEFAULT_SCRIPT_SINK_GROUP,
                     can_gc,
                 )
             },

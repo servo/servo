@@ -5,8 +5,8 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
+use style::attr::AttrValue;
 
-use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLAudioElementBinding::HTMLAudioElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
@@ -75,15 +75,17 @@ impl HTMLAudioElementMethods<crate::DomTypeHolder> for HTMLAudioElement {
 
         let audio = DomRoot::downcast::<HTMLAudioElement>(element).unwrap();
 
-        audio
-            .upcast::<Element>()
-            .SetAttribute(DOMString::from("preload"), DOMString::from("auto"), can_gc)
-            .expect("should be infallible");
+        audio.upcast::<Element>().set_attribute(
+            &local_name!("preload"),
+            AttrValue::String("auto".to_owned()),
+            can_gc,
+        );
         if let Some(s) = src {
-            audio
-                .upcast::<Element>()
-                .SetAttribute(DOMString::from("src"), s, can_gc)
-                .expect("should be infallible");
+            audio.upcast::<Element>().set_attribute(
+                &local_name!("src"),
+                AttrValue::String(s.into()),
+                can_gc,
+            );
         }
 
         Ok(audio)
