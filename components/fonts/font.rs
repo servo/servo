@@ -32,7 +32,7 @@ pub use crate::platform::font_list::fallback_font_families;
 use crate::{
     ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontIdentifier, FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods, GlyphData,
-    GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
+    GlyphId, GlyphStore, LocalFontIdentifier, Shaper, TShaper as _,
 };
 
 #[macro_export]
