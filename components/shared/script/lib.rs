@@ -260,6 +260,8 @@ pub enum ScriptThreadMessage {
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
     /// Preferences were updated in the parent process.
     PreferencesUpdated(Vec<(String, PrefValue)>),
+    /// TODO
+    DisplayListDone(PipelineId),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

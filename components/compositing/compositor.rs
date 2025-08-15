@@ -797,6 +797,9 @@ impl IOCompositor {
         let old_scale = webview_renderer.device_pixels_per_page_pixel();
 
         let pipeline_id = display_list_info.pipeline_id;
+        let _ = self.global.borrow().constellation_sender.send(
+            EmbedderToConstellationMessage::DisplayListDone(pipeline_id.into()),
+        );
         let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
         details.install_new_scroll_tree(display_list_info.scroll_tree);
         details.viewport_scale = Some(display_list_info.viewport_details.hidpi_scale_factor);
