@@ -241,8 +241,7 @@ impl Pipeline {
             },
             None => {
                 let (script_chan, script_port) =
-                    base::generic_channel::channel(opts::get().multiprocess)
-                        .expect("Pipeline script chan");
+                    base::generic_channel::channel().expect("Pipeline script chan");
 
                 // Route messages coming from content to devtools as appropriate.
                 let script_to_devtools_ipc_sender =
