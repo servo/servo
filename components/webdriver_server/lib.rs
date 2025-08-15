@@ -14,7 +14,7 @@ mod timeout;
 mod user_prompt;
 
 use std::borrow::ToOwned;
-use std::cell::{Cell, LazyCell, RefCell};
+use std::cell::{Cell, LazyCell};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
@@ -71,10 +71,8 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{ActionItem, InputSourceState, PointerInputState};
-use crate::session::PageLoadStrategy;
-use crate::timeout::TimeoutsConfiguration;
-use crate::user_prompt::UserPromptHandler;
+use crate::actions::{InputSourceState, PointerInputState};
+use crate::session::{PageLoadStrategy, WebDriverSession};
 
 #[derive(Default)]
 pub struct WebDriverMessageIdGenerator {
@@ -160,56 +158,6 @@ pub fn start_server(
             }
         })
         .expect("Thread spawning failed");
-}
-
-/// Represents the current WebDriver session and holds relevant session state.
-/// Currently, only 1 webview is supported per session.
-/// So only there is only 1 InputState.
-pub struct WebDriverSession {
-    /// <https://www.w3.org/TR/webdriver2/#dfn-session-id>
-    id: Uuid,
-
-    /// <https://www.w3.org/TR/webdriver2/#dfn-current-top-level-browsing-context>
-    webview_id: WebViewId,
-
-    /// <https://www.w3.org/TR/webdriver2/#dfn-current-browsing-context>
-    browsing_context_id: BrowsingContextId,
-
-    /// <https://www.w3.org/TR/webdriver2/#dfn-window-handles>
-    /// The spec said each browsing context has an associated window handle.
-    /// Actually, each webview has a unique window handle.
-    window_handles: HashMap<WebViewId, String>,
-
-    timeouts: TimeoutsConfiguration,
-
-    page_loading_strategy: PageLoadStrategy,
-
-    strict_file_interactability: bool,
-
-    user_prompt_handler: UserPromptHandler,
-
-    /// <https://w3c.github.io/webdriver/#dfn-input-state-map>
-    input_state_table: RefCell<HashMap<String, InputSourceState>>,
-
-    /// <https://w3c.github.io/webdriver/#dfn-input-cancel-list>
-    input_cancel_list: RefCell<Vec<(String, ActionItem)>>,
-}
-
-impl WebDriverSession {
-    pub fn new(browsing_context_id: BrowsingContextId, webview_id: WebViewId) -> WebDriverSession {
-        WebDriverSession {
-            id: Uuid::new_v4(),
-            webview_id,
-            browsing_context_id,
-            window_handles: HashMap::new(),
-            timeouts: TimeoutsConfiguration::default(),
-            page_loading_strategy: PageLoadStrategy::Normal,
-            strict_file_interactability: false,
-            user_prompt_handler: UserPromptHandler::new(),
-            input_state_table: RefCell::new(HashMap::new()),
-            input_cancel_list: RefCell::new(Vec::new()),
-        }
-    }
 }
 
 struct Handler {
@@ -482,6 +430,20 @@ impl Handler {
         }
     }
 
+    pub fn browsing_context_id(&self) -> WebDriverResult<BrowsingContextId> {
+        self.session()?
+            .current_browsing_context_id()
+            .ok_or_else(|| {
+                WebDriverError::new(ErrorStatus::UnknownError, "No browsing context available")
+            })
+    }
+
+    pub fn webview_id(&self) -> WebDriverResult<WebViewId> {
+        self.session()?
+            .current_webview_id()
+            .ok_or_else(|| WebDriverError::new(ErrorStatus::UnknownError, "No webview available"))
+    }
+
     fn increment_num_pending_actions(&self) {
         // Increase the num_pending_actions by one every time we dispatch non null actions.
         self.num_pending_actions
@@ -501,9 +463,9 @@ impl Handler {
 
     fn add_load_status_sender(&self) -> WebDriverResult<()> {
         self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
-            self.session()?.browsing_context_id,
+            self.browsing_context_id()?,
             WebDriverScriptCommand::AddLoadStatusSender(
-                self.session()?.webview_id,
+                self.webview_id()?,
                 self.load_status_sender.clone(),
             ),
         ))
@@ -511,14 +473,14 @@ impl Handler {
 
     fn clear_load_status_sender(&self) -> WebDriverResult<()> {
         self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
-            self.session()?.browsing_context_id,
-            WebDriverScriptCommand::RemoveLoadStatusSender(self.session()?.webview_id),
+            self.browsing_context_id()?,
+            WebDriverScriptCommand::RemoveLoadStatusSender(self.webview_id()?),
         ))
     }
 
     // This function is called only if session and webview are verified.
     fn verified_webview_id(&self) -> WebViewId {
-        self.session().unwrap().webview_id
+        self.session().unwrap().current_webview_id().unwrap()
     }
 
     fn focused_webview_id(&self) -> WebDriverResult<Option<WebViewId>> {
@@ -590,6 +552,11 @@ impl Handler {
         };
 
         // Step 6. Create a session
+        let session_id = self.create_session(&mut capabilities, &servo_capabilities)?;
+
+        // Step 7. Let response be a JSON Object initialized with session's session ID and capabilities
+        let response = NewSessionResponse::new(session_id.to_string(), Value::Object(capabilities));
+
         // Step 8. Set session' current top-level browsing context
         let webview_id = match self.focused_webview_id()? {
             Some(webview_id) => webview_id,
@@ -605,19 +572,13 @@ impl Handler {
                 webview_id
             },
         };
-        let browsing_context_id = BrowsingContextId::from(webview_id);
+        self.session_mut()?.set_webview_id(Some(webview_id));
+        self.session_mut()?
+            .set_browsing_context_id(Some(BrowsingContextId::from(webview_id)));
 
-        // Create and append session to the handler
-        let session_id = self.create_session(
-            &mut capabilities,
-            &servo_capabilities,
-            webview_id,
-            browsing_context_id,
-        )?;
-        self.session_mut()?.window_handles = self.get_window_handles()?;
-
-        // Step 7. Let response be a JSON Object initialized with session's session ID and capabilities
-        let response = NewSessionResponse::new(session_id.to_string(), Value::Object(capabilities));
+        // Append associated window handles for session
+        let new_window_handles = self.get_window_handles()?;
+        self.session_mut()?.set_window_handles(new_window_handles);
 
         // Step 9. Set the request queue to a new queue.
         // Skip here because the requests are handled in the external crate.
@@ -654,7 +615,7 @@ impl Handler {
         cmd_msg: WebDriverScriptCommand,
         verify: VerifyBrowsingContextIsOpen,
     ) -> WebDriverResult<()> {
-        let browsing_context_id = self.session()?.browsing_context_id;
+        let browsing_context_id = self.browsing_context_id()?;
         if let VerifyBrowsingContextIsOpen::Yes = verify {
             self.verify_browsing_context_is_open(browsing_context_id)?;
         }
@@ -673,7 +634,7 @@ impl Handler {
         cmd_msg: WebDriverScriptCommand,
         verify: VerifyBrowsingContextIsOpen,
     ) -> WebDriverResult<()> {
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         if let VerifyBrowsingContextIsOpen::Yes = verify {
             self.verify_top_level_browsing_context_is_open(webview_id)?;
         }
@@ -687,7 +648,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#navigate-to>
     fn handle_get(&mut self, parameters: &GetParameters) -> WebDriverResult<WebDriverResponse> {
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         // Step 2. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
@@ -714,7 +675,8 @@ impl Handler {
         self.wait_for_document_ready_state()?;
 
         // Step 8.3. Set current browsing context with session and current top browsing context
-        self.session_mut()?.browsing_context_id = BrowsingContextId::from(webview_id);
+        self.session_mut()?
+            .set_browsing_context_id(Some(BrowsingContextId::from(webview_id)));
 
         Ok(WebDriverResponse::Void)
     }
@@ -726,21 +688,21 @@ impl Handler {
 
         // Step 1. If session's page loading strategy is "none",
         // return success with data null.
-        if session.page_loading_strategy == PageLoadStrategy::None {
+        if session.page_loading_strategy() == PageLoadStrategy::None {
             return Ok(WebDriverResponse::Void);
         }
 
         // Step 2. If session's current browsing context is no longer open,
         // return success with data null.
         if self
-            .verify_browsing_context_is_open(session.browsing_context_id)
+            .verify_browsing_context_is_open(self.browsing_context_id()?)
             .is_err()
         {
             return Ok(WebDriverResponse::Void);
         }
 
         // Step 3. let timeout be the session's page load timeout.
-        let timeout = self.session()?.timeouts.page_load;
+        let timeout = self.session()?.session_timeouts().page_load;
 
         // TODO: Step 4. Implement timer parameter
 
@@ -809,11 +771,14 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-get-current-url>
     fn handle_current_url(&self) -> WebDriverResult<WebDriverResponse> {
+        let webview_id = self.webview_id()?;
+
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(webview_id)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
         self.top_level_script_command(
@@ -834,7 +799,7 @@ impl Handler {
         verify: VerifyBrowsingContextIsOpen,
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         if let VerifyBrowsingContextIsOpen::Yes = verify {
@@ -868,7 +833,7 @@ impl Handler {
         // the implmentation is expected to continue with the remaining steps.
         // DO NOT return "unsupported operation".
 
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         // Step 12. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
@@ -926,13 +891,13 @@ impl Handler {
         // Step 1. If the remote end does not support the Maximize Window command for session's
         // current top-level browsing context for any reason,
         // return error with error code unsupported operation.
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         // Step 2. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
         // Step 3. Try to handle any user prompts with session.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         // Step 4. (TODO) Fully exit fullscreen.
 
@@ -956,11 +921,11 @@ impl Handler {
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        let browsing_context = self.session()?.browsing_context_id;
+        let browsing_context = self.browsing_context_id()?;
         self.verify_browsing_context_is_open(browsing_context)?;
 
         // Step 2. Try to handle any user prompts with session.
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         self.handle_any_user_prompts(webview_id)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
@@ -980,11 +945,11 @@ impl Handler {
     fn handle_is_selected(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        let browsing_context = self.session()?.browsing_context_id;
+        let browsing_context = self.browsing_context_id()?;
         self.verify_browsing_context_is_open(browsing_context)?;
 
         // Step 2. Try to handle any user prompts with session.
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         self.handle_any_user_prompts(webview_id)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
@@ -1003,7 +968,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#back>
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
@@ -1020,7 +985,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#forward>
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
@@ -1037,7 +1002,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#refresh>
     fn handle_refresh(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
@@ -1052,18 +1017,21 @@ impl Handler {
         self.wait_for_document_ready_state()?;
 
         // Step 5. Set current browsing context with session and current top browsing context.
-        self.session_mut()?.browsing_context_id = BrowsingContextId::from(webview_id);
+        self.session_mut()?
+            .set_browsing_context_id(Some(BrowsingContextId::from(webview_id)));
 
         Ok(WebDriverResponse::Void)
     }
 
     /// <https://w3c.github.io/webdriver/#get-title>
     fn handle_title(&self) -> WebDriverResult<WebDriverResponse> {
+        let webview_id = self.webview_id()?;
+
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(webview_id)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -1082,34 +1050,25 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#get-window-handle>
     fn handle_window_handle(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let webview_id = self.session()?.webview_id;
-        let browsing_context_id = self.session()?.browsing_context_id;
+        let webview_id = self.webview_id()?;
 
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
-        let handle = self.get_window_handle(browsing_context_id)?;
-        self.session_mut()?
-            .window_handles
-            .insert(webview_id, handle);
 
-        match self.session()?.window_handles.get(&webview_id) {
-            Some(handle) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(handle)?,
-            ))),
-            None => Ok(WebDriverResponse::Void),
-        }
+        // Step 2. Return success with the window handle.
+        let handle = self
+            .get_window_handle(webview_id)
+            .expect("Failed to get window handle of an existing webview");
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(handle)?,
+        )))
     }
 
     /// <https://w3c.github.io/webdriver/#get-window-handles>
     fn handle_window_handles(&mut self) -> WebDriverResult<WebDriverResponse> {
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
-
-        self.session_mut()?.window_handles = self.get_window_handles()?;
-
         let handles = self
-            .session()?
-            .window_handles
+            .get_window_handles()?
             .values()
             .map(serde_json::to_value)
             .collect::<Result<Vec<_>, _>>()?;
@@ -1119,7 +1078,33 @@ impl Handler {
         )))
     }
 
-    fn get_window_handles(&self) -> WebDriverResult<HashMap<WebViewId, String>> {
+    // Get all window handles for each webview
+    fn get_window_handles(&mut self) -> WebDriverResult<HashMap<WebViewId, String>> {
+        if !self.session()?.window_handles_data_valid {
+            self.update_window_handles()?;
+            self.session_mut()?.window_handles_data_valid = true;
+        }
+
+        Ok(self.session()?.window_handles().clone())
+    }
+
+    fn get_window_handle(&mut self, webview_id: WebViewId) -> WebDriverResult<String> {
+        self.update_window_handles()?;
+        self.session_mut()?.window_handles_data_valid = true;
+
+        self.session()?
+            .window_handles()
+            .get(&webview_id)
+            .cloned()
+            .ok_or_else(|| {
+                WebDriverError::new(
+                    ErrorStatus::UnknownError,
+                    "No such window while getting window handle",
+                )
+            })
+    }
+
+    fn update_window_handles(&mut self) -> WebDriverResult<()> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViews(sender))?;
 
@@ -1133,26 +1118,28 @@ impl Handler {
             },
         };
 
-        let mut res = HashMap::new();
+        let mut new_window_handles = HashMap::new();
         for id in webviews.iter() {
-            let handle = self.get_window_handle(BrowsingContextId::from(*id))?;
-            res.insert(*id, handle);
+            let (sender, receiver) = ipc::channel().unwrap();
+            self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+                BrowsingContextId::from(*id),
+                WebDriverScriptCommand::GetWindowHandle(sender),
+            ))?;
+
+            let handle = match wait_for_ipc_response(receiver)? {
+                Ok(handle) => handle,
+                Err(_) => {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        "Failed to get window handle",
+                    ));
+                },
+            };
+            new_window_handles.insert(*id, handle);
         }
+        self.session_mut()?.set_window_handles(new_window_handles);
 
-        Ok(res)
-    }
-
-    fn get_window_handle(&self, browsing_context_id: BrowsingContextId) -> WebDriverResult<String> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
-            browsing_context_id,
-            WebDriverScriptCommand::GetWindowHandle(sender),
-        ))?;
-
-        match wait_for_ipc_response(receiver)? {
-            Ok(handle) => Ok(handle),
-            Err(err) => Err(WebDriverError::new(err, "Failed to get window handle")),
-        }
+        Ok(())
     }
 
     /// <https://w3c.github.io/webdriver/#find-element>
@@ -1169,7 +1156,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#close-window>
     fn handle_close_window(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
@@ -1184,11 +1171,10 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)?;
 
         wait_for_ipc_response(receiver)?;
-        self.session_mut()?.window_handles.remove(&webview_id);
+        self.session_mut()?.window_handles_data_valid = false;
 
         // Step 4. If there are no more open top-level browsing contexts, try to close the session.
-        let window_handles: Vec<String> =
-            self.session()?.window_handles.values().cloned().collect();
+        let window_handles: Vec<String> = self.get_window_handles()?.values().cloned().collect();
 
         if window_handles.is_empty() {
             self.session = None;
@@ -1207,14 +1193,14 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let session = self.session()?;
+        let webview_id = self.webview_id()?;
 
         // Step 2. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_top_level_browsing_context_is_open(session.webview_id)?;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
 
         // Step 3. Handle any user prompt.
-        self.handle_any_user_prompts(session.webview_id)?;
+        self.handle_any_user_prompts(webview_id)?;
 
         let cmd_msg =
             WebDriverCommandMsg::NewWebView(sender, Some(self.load_status_sender.clone()));
@@ -1224,10 +1210,9 @@ impl Handler {
 
         if let Ok(webview_id) = receiver.recv() {
             let _ = self.wait_for_document_ready_state();
-            let handle = self.get_window_handle(BrowsingContextId::from(webview_id))?;
-            self.session_mut()?
-                .window_handles
-                .insert(webview_id, handle.clone());
+            self.session_mut()?.window_handles_data_valid = false;
+            let handle = self.get_window_handle(webview_id)?;
+
             Ok(WebDriverResponse::NewWindow(NewWindowResponse {
                 handle,
                 typ: "tab".to_string(),
@@ -1249,7 +1234,7 @@ impl Handler {
         let frame_id = match parameters.id {
             // id is null
             FrameId::Top => {
-                let webview_id = self.session()?.webview_id;
+                let webview_id = self.webview_id()?;
                 // Step 1. If session's current top-level browsing context is no longer open,
                 // return error with error code no such window.
                 self.verify_top_level_browsing_context_is_open(webview_id)?;
@@ -1257,7 +1242,8 @@ impl Handler {
                 self.handle_any_user_prompts(webview_id)?;
                 // Step 3. Set the current browsing context with session and
                 // session's current top-level browsing context.
-                self.session_mut()?.browsing_context_id = BrowsingContextId::from(webview_id);
+                self.session_mut()?
+                    .set_browsing_context_id(Some(BrowsingContextId::from(webview_id)));
                 return Ok(WebDriverResponse::Void);
             },
             // id is a Number object
@@ -1275,8 +1261,9 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#switch-to-parent-frame>
     fn handle_switch_to_parent_frame(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let webview_id = self.session()?.webview_id;
-        let browsing_context = self.session()?.browsing_context_id;
+        let webview_id = self.webview_id()?;
+        let browsing_context = self.browsing_context_id()?;
+
         // Step 1. If session's current browsing context is already the top-level browsing context:
         if browsing_context == webview_id {
             // Step 1.1. If session's current browsing context is no longer open,
@@ -1299,7 +1286,8 @@ impl Handler {
         // set the current browsing context with session and current parent browsing context.
         match wait_for_ipc_response(receiver)? {
             Ok(browsing_context_id) => {
-                self.session_mut()?.browsing_context_id = browsing_context_id;
+                self.session_mut()?
+                    .set_browsing_context_id(Some(browsing_context_id));
                 Ok(WebDriverResponse::Void)
             },
             Err(error) => Err(WebDriverError::new(error, "")),
@@ -1311,26 +1299,28 @@ impl Handler {
         &mut self,
         parameters: &SwitchToWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let session = self.session_mut()?;
-        if session.id.to_string() == parameters.handle {
+        if self.session()?.id().to_string() == parameters.handle {
             // There's only one main window, so there's nothing to do here.
-            Ok(WebDriverResponse::Void)
-        } else if let Some((webview_id, _)) = session
-            .window_handles
+            return Ok(WebDriverResponse::Void);
+        }
+
+        self.session_mut()?.window_handles_data_valid = false;
+        let window_handles = self.get_window_handles()?;
+        let Some(webview_id) = window_handles
             .iter()
             .find(|(_k, v)| **v == parameters.handle)
-        {
-            let webview_id = *webview_id;
-            session.webview_id = webview_id;
-            session.browsing_context_id = BrowsingContextId::from(webview_id);
-            self.focus_webview(webview_id)?;
-            Ok(WebDriverResponse::Void)
-        } else {
-            Err(WebDriverError::new(
+            .map(|(k, _v)| k)
+        else {
+            return Err(WebDriverError::new(
                 ErrorStatus::NoSuchWindow,
-                "No such window",
-            ))
-        }
+                "No such window while switching to window",
+            ));
+        };
+
+        let session = self.session_mut()?;
+        session.set_webview_id(Some(*webview_id));
+        session.set_browsing_context_id(Some(BrowsingContextId::from(*webview_id)));
+        Ok(WebDriverResponse::Void)
     }
 
     fn switch_to_frame(
@@ -1340,11 +1330,12 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetBrowsingContextId(frame_id, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         match wait_for_ipc_response(receiver)? {
             Ok(browsing_context_id) => {
-                self.session_mut()?.browsing_context_id = browsing_context_id;
+                self.session_mut()?
+                    .set_browsing_context_id(Some(browsing_context_id));
                 Ok(WebDriverResponse::Void)
             },
             Err(error) => Err(WebDriverError::new(error, "")),
@@ -1362,10 +1353,10 @@ impl Handler {
         }
         // Step 5. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
 
         // Step 6. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
         match parameters.using {
@@ -1434,10 +1425,10 @@ impl Handler {
         }
         // Step 5. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
 
         // Step 6. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -1504,10 +1495,10 @@ impl Handler {
 
         // Step 5. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
 
         // Step 6. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -1578,9 +1569,9 @@ impl Handler {
     fn handle_get_shadow_root(&self, element: WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementShadowRoot(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1601,9 +1592,9 @@ impl Handler {
     fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementRect(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1625,9 +1616,9 @@ impl Handler {
     fn handle_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementText(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1643,9 +1634,9 @@ impl Handler {
     fn handle_active_element(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetActiveElement(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1670,9 +1661,9 @@ impl Handler {
     fn handle_computed_role(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetComputedRole(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1688,9 +1679,9 @@ impl Handler {
     fn handle_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementTagName(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1710,9 +1701,9 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementAttribute(
             element.to_string(),
@@ -1736,9 +1727,9 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
 
         let cmd = WebDriverScriptCommand::GetElementProperty(
@@ -1764,9 +1755,9 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd =
             WebDriverScriptCommand::GetElementCSS(element.to_string(), name.to_owned(), sender);
@@ -1783,9 +1774,9 @@ impl Handler {
     fn handle_get_cookies(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookies(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1804,9 +1795,9 @@ impl Handler {
     fn handle_get_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1831,9 +1822,9 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
 
         let mut cookie_builder =
@@ -1875,9 +1866,9 @@ impl Handler {
     fn handle_delete_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookie(name, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1891,9 +1882,9 @@ impl Handler {
     fn handle_delete_cookies(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
@@ -1904,12 +1895,12 @@ impl Handler {
     }
 
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let session = self.session()?;
+        let timeouts = self.session()?.session_timeouts();
 
         let timeouts = TimeoutsResponse {
-            script: session.timeouts.script,
-            page_load: session.timeouts.page_load,
-            implicit: session.timeouts.implicit_wait,
+            script: timeouts.script,
+            page_load: timeouts.page_load,
+            implicit: timeouts.implicit_wait,
         };
 
         Ok(WebDriverResponse::Timeouts(timeouts))
@@ -1919,19 +1910,16 @@ impl Handler {
         &mut self,
         parameters: &TimeoutsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let session = self
-            .session
-            .as_mut()
-            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
+        let session = self.session()?;
 
         if let Some(timeout) = parameters.script {
-            session.timeouts.script = timeout;
+            session.session_timeouts().script = timeout;
         }
         if let Some(timeout) = parameters.page_load {
-            session.timeouts.page_load = timeout
+            session.session_timeouts().page_load = timeout
         }
         if let Some(timeout) = parameters.implicit {
-            session.timeouts.implicit_wait = timeout
+            session.session_timeouts().implicit_wait = timeout
         }
 
         Ok(WebDriverResponse::Void)
@@ -1941,9 +1929,9 @@ impl Handler {
     fn handle_get_page_source(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = ipc::channel().unwrap();
 
         let cmd = WebDriverScriptCommand::GetPageSource(sender);
@@ -1962,13 +1950,13 @@ impl Handler {
         &mut self,
         parameters: ActionsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let browsing_context = self.session()?.browsing_context_id;
+        let browsing_context = self.browsing_context_id()?;
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
         self.verify_browsing_context_is_open(browsing_context)?;
 
         // Step 2. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         // Step 5. Let actions by tick be the result of trying to extract an action sequence
         let actions_by_tick = self.extract_an_action_sequence(parameters);
@@ -1983,13 +1971,14 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-release-actions>
     fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
         let session = self.session()?;
+        let browsing_context_id = self.browsing_context_id()?;
 
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(session.browsing_context_id)?;
+        self.verify_browsing_context_is_open(browsing_context_id)?;
 
         // Step 2. User prompts. No user prompt implemented yet.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         // Skip: Step 3. We don't support "browsing context input state map" yet.
 
@@ -2001,19 +1990,18 @@ impl Handler {
         // Step 6. Let undo actions be input cancel list in reverse order.
 
         let undo_actions = session
-            .input_cancel_list
-            .borrow_mut()
+            .input_cancel_list()
             .drain(..)
             .rev()
             .map(|(id, action_item)| Vec::from([(id, action_item)]))
             .collect();
         // Step 7. Dispatch undo actions with current browsing context.
-        if let Err(err) = self.dispatch_actions(undo_actions, session.browsing_context_id) {
+        if let Err(err) = self.dispatch_actions(undo_actions, browsing_context_id) {
             return Err(WebDriverError::new(err, "Failed to dispatch undo actions"));
         }
 
         // Step 8. Reset the input state of session's current top-level browsing context.
-        session.input_state_table.borrow_mut().clear();
+        session.input_state_table().clear();
 
         Ok(WebDriverResponse::Void)
     }
@@ -2038,10 +2026,10 @@ impl Handler {
 
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
 
         // Step 3. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::ExecuteScript(script, sender);
@@ -2059,7 +2047,8 @@ impl Handler {
         let (func_body, mut args_string) = self.extract_script_arguments(parameters)?;
         args_string.push("resolve".to_string());
 
-        let timeout_script = if let Some(script_timeout) = self.session()?.timeouts.script {
+        let timeout_script = if let Some(script_timeout) = self.session()?.session_timeouts().script
+        {
             format!("setTimeout(webdriverTimeout, {});", script_timeout)
         } else {
             "".into()
@@ -2084,10 +2073,10 @@ impl Handler {
 
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
 
         // Step 3. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
@@ -2138,15 +2127,15 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 3. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 4. Handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::WillSendKeys(
             element.to_string(),
             keys.text.to_string(),
-            self.session()?.strict_file_interactability,
+            self.session()?.strict_file_interactability(),
             sender,
         );
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -2164,7 +2153,7 @@ impl Handler {
         // send keys command being two separate messages,
         // so the constellation may have changed state between them.
         // TODO: We should use `dispatch_action` to send the keys.
-        let cmd_msg = WebDriverCommandMsg::SendKeys(self.session()?.webview_id, input_events);
+        let cmd_msg = WebDriverCommandMsg::SendKeys(self.webview_id()?, input_events);
         self.send_message_to_embedder(cmd_msg)?;
 
         Ok(WebDriverResponse::Void)
@@ -2174,10 +2163,10 @@ impl Handler {
     fn handle_element_clear(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return ErrorStatus::NoSuchWindow.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
 
         // Step 2. Try to handle any user prompt.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         // Step 3-11 handled in script thread.
         let (sender, receiver) = ipc::channel().unwrap();
@@ -2194,11 +2183,11 @@ impl Handler {
     fn handle_element_click(&mut self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        let browsing_context_id = self.session()?.browsing_context_id;
+        let browsing_context_id = self.browsing_context_id()?;
         self.verify_browsing_context_is_open(browsing_context_id)?;
 
         // Step 2. Handle any user prompts.
-        self.handle_any_user_prompts(self.session()?.webview_id)?;
+        self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -2236,7 +2225,7 @@ impl Handler {
         let id = Uuid::new_v4().to_string();
 
         // Step 8.1
-        self.session_mut()?.input_state_table.borrow_mut().insert(
+        self.session_mut()?.input_state_table().insert(
             id.clone(),
             InputSourceState::Pointer(PointerInputState::new(PointerType::Mouse)),
         );
@@ -2283,22 +2272,18 @@ impl Handler {
 
         // Step 8.16. Dispatch a list of actions with session's current browsing context
         let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
-        if let Err(e) = self.dispatch_actions(actions_by_tick, self.session()?.browsing_context_id)
-        {
+        if let Err(e) = self.dispatch_actions(actions_by_tick, self.browsing_context_id()?) {
             log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
         }
 
         // Step 8.17 Remove an input source with input state and input id.
-        self.session_mut()?
-            .input_state_table
-            .borrow_mut()
-            .remove(&id);
+        self.session_mut()?.input_state_table().remove(&id);
 
         Ok(WebDriverResponse::Void)
     }
 
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         let mut img = None;
 
         let interval = 1000;
@@ -2353,7 +2338,7 @@ impl Handler {
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
         self.handle_any_user_prompts(webview_id)?;
@@ -2374,7 +2359,7 @@ impl Handler {
 
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
-        let webview_id = self.session()?.webview_id;
+        let webview_id = self.webview_id()?;
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
         // Step 2. Try to handle any user prompts with session.

@@ -2,19 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Ref, RefCell, RefMut};
+use std::collections::HashMap;
+
 use base::id::{BrowsingContextId, WebViewId};
 use serde_json::{Map, Value, json};
 use uuid::Uuid;
 use webdriver::error::WebDriverResult;
 
+use crate::Handler;
+use crate::actions::{ActionItem, InputSourceState};
 use crate::capabilities::ServoCapabilities;
-use crate::timeout::{deserialize_as_timeouts_configuration, serialize_timeouts_configuration};
-use crate::user_prompt::{
-    default_unhandled_prompt_behavior, deserialize_unhandled_prompt_behaviour,
+use crate::timeout::{
+    TimeoutsConfiguration, deserialize_as_timeouts_configuration, serialize_timeouts_configuration,
 };
-use crate::{Handler, WebDriverSession};
+use crate::user_prompt::{
+    UserPromptHandler, default_unhandled_prompt_behavior, deserialize_unhandled_prompt_behaviour,
+};
 
-#[derive(Debug, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub enum PageLoadStrategy {
     None,
     Eager,
@@ -33,17 +39,124 @@ impl ToString for PageLoadStrategy {
     }
 }
 
+/// Represents the current WebDriver session and holds relevant session state.
+/// Currently, only 1 webview is supported per session.
+/// So only there is only 1 InputState.
+pub struct WebDriverSession {
+    /// <https://www.w3.org/TR/webdriver2/#dfn-session-id>
+    id: Uuid,
+
+    /// <https://www.w3.org/TR/webdriver2/#dfn-current-top-level-browsing-context>
+    /// The id of the current top-level browsing context
+    webview_id: Option<WebViewId>,
+
+    /// <https://www.w3.org/TR/webdriver2/#dfn-current-browsing-context>
+    /// The id of the current browsing context
+    browsing_context_id: Option<BrowsingContextId>,
+
+    /// <https://www.w3.org/TR/webdriver2/#dfn-window-handles>
+    /// The spec said each browsing context has an associated window handle.
+    /// Actually, each webview has a unique window handle.
+    window_handles: RefCell<HashMap<WebViewId, String>>,
+
+    timeouts: RefCell<TimeoutsConfiguration>,
+
+    page_loading_strategy: PageLoadStrategy,
+
+    strict_file_interactability: bool,
+
+    user_prompt_handler: UserPromptHandler,
+
+    /// <https://w3c.github.io/webdriver/#dfn-input-state-map>
+    input_state_table: RefCell<HashMap<String, InputSourceState>>,
+
+    /// <https://w3c.github.io/webdriver/#dfn-input-cancel-list>
+    input_cancel_list: RefCell<Vec<(String, ActionItem)>>,
+
+    pub window_handles_data_valid: bool,
+}
+
+impl WebDriverSession {
+    pub fn new() -> WebDriverSession {
+        WebDriverSession {
+            id: Uuid::new_v4(),
+            webview_id: None,
+            browsing_context_id: None,
+            window_handles: RefCell::new(HashMap::new()),
+            timeouts: RefCell::new(TimeoutsConfiguration::default()),
+            page_loading_strategy: PageLoadStrategy::Normal,
+            strict_file_interactability: false,
+            user_prompt_handler: UserPromptHandler::new(),
+            input_state_table: RefCell::new(HashMap::new()),
+            input_cancel_list: RefCell::new(Vec::new()),
+            window_handles_data_valid: false,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn set_webview_id(&mut self, webview_id: Option<WebViewId>) {
+        self.webview_id = webview_id;
+    }
+
+    pub fn set_browsing_context_id(&mut self, browsing_context_id: Option<BrowsingContextId>) {
+        self.browsing_context_id = browsing_context_id;
+    }
+
+    pub fn current_webview_id(&self) -> Option<WebViewId> {
+        self.webview_id
+    }
+
+    pub fn current_browsing_context_id(&self) -> Option<BrowsingContextId> {
+        self.browsing_context_id
+    }
+
+    pub fn session_timeouts(&self) -> RefMut<TimeoutsConfiguration> {
+        self.timeouts.borrow_mut()
+    }
+
+    pub fn page_loading_strategy(&self) -> PageLoadStrategy {
+        self.page_loading_strategy.clone()
+    }
+
+    pub fn strict_file_interactability(&self) -> bool {
+        self.strict_file_interactability
+    }
+
+    pub fn user_prompt_handler(&self) -> &UserPromptHandler {
+        &self.user_prompt_handler
+    }
+
+    // Webdriver handle should use `get_window_handles` instead of
+    // using this method directly
+    pub fn window_handles(&self) -> Ref<HashMap<WebViewId, String>> {
+        self.window_handles.borrow()
+    }
+
+    pub fn set_window_handles(&self, handles: HashMap<WebViewId, String>) {
+        self.window_handles.replace(handles);
+    }
+
+    pub fn input_state_table(&self) -> RefMut<HashMap<String, InputSourceState>> {
+        self.input_state_table.borrow_mut()
+    }
+
+    pub fn input_cancel_list(&self) -> RefMut<Vec<(String, ActionItem)>> {
+        self.input_cancel_list.borrow_mut()
+    }
+}
+
 impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-create-a-session>
     pub(crate) fn create_session(
         &mut self,
         capabilities: &mut Map<String, Value>,
         servo_capabilities: &ServoCapabilities,
-        webview_id: WebViewId,
-        browsing_context_id: BrowsingContextId,
     ) -> WebDriverResult<Uuid> {
         // Step 2. Let session be a new session
-        let mut session = WebDriverSession::new(browsing_context_id, webview_id);
+        let mut session = WebDriverSession::new();
 
         // Step 3. Let proxy be the result of getting property "proxy" from capabilities
         match capabilities.get("proxy") {
@@ -126,14 +239,16 @@ impl Handler {
         // Step 9.3. Let timeouts be the result of getting a property "timeouts" from capabilities.
         // If timeouts is not undefined, set session's session timeouts to timeouts.
         if let Some(timeouts) = capabilities.get("timeouts") {
-            session.timeouts = deserialize_as_timeouts_configuration(timeouts)?;
+            session
+                .timeouts
+                .replace(deserialize_as_timeouts_configuration(timeouts)?);
         }
 
         // Step 9.4 Set a property on capabilities with name "timeouts"
         // and value serialize the timeouts configuration with session's session timeouts.
         capabilities.insert(
             "timeouts".to_string(),
-            json!(serialize_timeouts_configuration(&session.timeouts)),
+            json!(serialize_timeouts_configuration(&session.timeouts.borrow())),
         );
 
         // Step 10. Process any extension capabilities in capabilities in an implementation-defined manner

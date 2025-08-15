@@ -216,6 +216,8 @@ impl Handler {
         tick_actions: &TickActions,
         tick_duration: u64,
     ) -> Result<(), ErrorStatus> {
+        let session = self.session().unwrap();
+
         // Step 1. For each action object in tick actions:
         // Step 1.1. Let input_id be the value of the id property of action object.
         for (input_id, action) in tick_actions.iter() {
@@ -233,16 +235,12 @@ impl Handler {
                     // Step 9. If subtype is "keyDown", append a copy of action
                     // object with the subtype property changed to "keyUp" to
                     // input state's input cancel list.
-                    self.session()
-                        .unwrap()
-                        .input_cancel_list
-                        .borrow_mut()
-                        .push((
-                            input_id.clone(),
-                            ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction {
-                                value: keydown_action.value.clone(),
-                            }))),
-                        ));
+                    session.input_cancel_list().push((
+                        input_id.clone(),
+                        ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction {
+                            value: keydown_action.value.clone(),
+                        }))),
+                    ));
                 },
                 ActionItem::Key(KeyActionItem::Key(KeyAction::Up(keyup_action))) => {
                     self.dispatch_keyup_action(input_id, keyup_action);
@@ -257,19 +255,15 @@ impl Handler {
                     // Step 10. If subtype is "pointerDown", append a copy of action
                     // object with the subtype property changed to "pointerUp" to
                     // input state's input cancel list.
-                    self.session()
-                        .unwrap()
-                        .input_cancel_list
-                        .borrow_mut()
-                        .push((
-                            input_id.clone(),
-                            ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
-                                PointerUpAction {
-                                    button: pointer_down_action.button,
-                                    ..Default::default()
-                                },
-                            ))),
-                        ));
+                    session.input_cancel_list().push((
+                        input_id.clone(),
+                        ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
+                            PointerUpAction {
+                                button: pointer_down_action.button,
+                                ..Default::default()
+                            },
+                        ))),
+                    ));
                 },
                 ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Move(
                     pointer_move_action,
@@ -298,8 +292,7 @@ impl Handler {
     fn dispatch_general_action(&self, source_id: &str) {
         self.session()
             .unwrap()
-            .input_state_table
-            .borrow_mut()
+            .input_state_table()
             .entry(source_id.to_string())
             .or_insert(InputSourceState::Null);
     }
@@ -307,9 +300,9 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
     fn dispatch_keydown_action(&self, source_id: &str, action: &KeyDownAction) {
         let session = self.session().unwrap();
+        let mut input_state_table = session.input_state_table();
 
         let raw_key = action.value.chars().next().unwrap();
-        let mut input_state_table = session.input_state_table.borrow_mut();
         let key_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
@@ -321,7 +314,7 @@ impl Handler {
         self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
         let cmd_msg =
-            WebDriverCommandMsg::KeyboardAction(session.webview_id, keyboard_event, msg_id);
+            WebDriverCommandMsg::KeyboardAction(self.verified_webview_id(), keyboard_event, msg_id);
         let _ = self.send_message_to_embedder(cmd_msg);
     }
 
@@ -333,7 +326,7 @@ impl Handler {
         // See https://github.com/w3c/webdriver/issues/1905 &&
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
         {
-            let mut input_cancel_list = session.input_cancel_list.borrow_mut();
+            let mut input_cancel_list = session.input_cancel_list();
             if let Some(pos) = input_cancel_list.iter().rposition(|(id, item)| {
                 id == source_id &&
                     matches!(item,
@@ -346,7 +339,7 @@ impl Handler {
         }
 
         let raw_key = action.value.chars().next().unwrap();
-        let mut input_state_table = session.input_state_table.borrow_mut();
+        let mut input_state_table = session.input_state_table();
         let key_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
@@ -356,8 +349,11 @@ impl Handler {
             // Step 12
             self.increment_num_pending_actions();
             let msg_id = self.current_action_id.get();
-            let cmd_msg =
-                WebDriverCommandMsg::KeyboardAction(session.webview_id, keyboard_event, msg_id);
+            let cmd_msg = WebDriverCommandMsg::KeyboardAction(
+                self.verified_webview_id(),
+                keyboard_event,
+                msg_id,
+            );
             let _ = self.send_message_to_embedder(cmd_msg);
         }
     }
@@ -366,7 +362,7 @@ impl Handler {
     pub(crate) fn dispatch_pointerdown_action(&self, source_id: &str, action: &PointerDownAction) {
         let session = self.session().unwrap();
 
-        let mut input_state_table = session.input_state_table.borrow_mut();
+        let mut input_state_table = session.input_state_table();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
@@ -380,7 +376,7 @@ impl Handler {
         self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.webview_id,
+            self.verified_webview_id(),
             MouseButtonAction::Down,
             action.button.into(),
             pointer_input_state.x as f32,
@@ -394,7 +390,7 @@ impl Handler {
     pub(crate) fn dispatch_pointerup_action(&self, source_id: &str, action: &PointerUpAction) {
         let session = self.session().unwrap();
 
-        let mut input_state_table = session.input_state_table.borrow_mut();
+        let mut input_state_table = session.input_state_table();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
@@ -409,7 +405,7 @@ impl Handler {
         // See https://github.com/w3c/webdriver/issues/1905 &&
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
         {
-            let mut input_cancel_list = session.input_cancel_list.borrow_mut();
+            let mut input_cancel_list = session.input_cancel_list();
             if let Some(pos) = input_cancel_list.iter().position(|(id, item)| {
                 id == source_id &&
                     matches!(item, ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
@@ -426,7 +422,7 @@ impl Handler {
         self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.webview_id,
+            self.verified_webview_id(),
             MouseButtonAction::Up,
             action.button.into(),
             pointer_input_state.x as f32,
@@ -452,8 +448,7 @@ impl Handler {
                 let (start_x, start_y) = match self
                     .session()
                     .unwrap()
-                    .input_state_table
-                    .borrow()
+                    .input_state_table()
                     .get(source_id)
                     .unwrap()
                 {
@@ -517,8 +512,7 @@ impl Handler {
         let (start_x, start_y) = match self
             .session()
             .unwrap()
-            .input_state_table
-            .borrow()
+            .input_state_table()
             .get(source_id)
             .unwrap()
         {
@@ -548,7 +542,7 @@ impl Handler {
         tick_start: Instant,
     ) {
         let session = self.session().unwrap();
-        let mut input_state_table = session.input_state_table.borrow_mut();
+        let mut input_state_table = session.input_state_table();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
@@ -594,7 +588,7 @@ impl Handler {
                     None
                 };
                 let cmd_msg = WebDriverCommandMsg::MouseMoveAction(
-                    session.webview_id,
+                    self.verified_webview_id(),
                     x as f32,
                     y as f32,
                     msg_id,
@@ -710,8 +704,6 @@ impl Handler {
         mut curr_delta_y: f64,
         tick_start: Instant,
     ) {
-        let session = self.session().unwrap();
-
         // Step 1. Let time delta be the time since the beginning of the current tick,
         // measured in milliseconds on a monotonic clock.
         let time_delta = tick_start.elapsed().as_millis();
@@ -751,7 +743,7 @@ impl Handler {
                 None
             };
             let cmd_msg = WebDriverCommandMsg::WheelScrollAction(
-                session.webview_id,
+                self.verified_webview_id(),
                 x,
                 y,
                 delta_x,
@@ -795,8 +787,7 @@ impl Handler {
             return Err(ErrorStatus::MoveTargetOutOfBounds);
         }
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd_msg =
-            WebDriverCommandMsg::GetViewportSize(self.session.as_ref().unwrap().webview_id, sender);
+        let cmd_msg = WebDriverCommandMsg::GetViewportSize(self.verified_webview_id(), sender);
         self.send_message_to_embedder(cmd_msg)
             .map_err(|_| ErrorStatus::UnknownError)?;
 
@@ -878,7 +869,7 @@ impl Handler {
         // Step 2. Let id be the value of the id property of action sequence.
         let id = action_sequence.id.clone();
 
-        let mut input_state_table = self.session().unwrap().input_state_table.borrow_mut();
+        let mut input_state_table = self.session().unwrap().input_state_table();
 
         match action_sequence.actions {
             ActionsType::Null {
