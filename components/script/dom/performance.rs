@@ -306,7 +306,7 @@ impl Performance {
         }
 
         // Step 4.
-        //add the new entry to the buffer.
+        // add the new entry to the buffer.
         self.buffer
             .borrow_mut()
             .entries

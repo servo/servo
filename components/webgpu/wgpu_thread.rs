@@ -1026,7 +1026,7 @@ impl WGPU {
                     } => {
                         let global = &self.global;
                         let _guard = self.poller.lock();
-                        //TODO: Report result to content process
+                        // TODO: Report result to content process
                         let result = global.queue_write_texture(
                             queue_id,
                             &texture_cv,

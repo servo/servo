@@ -1274,7 +1274,7 @@ impl DocumentEventHandler {
                 _ => (),
             }
         }
-        //Step 5
+        // Step 5
         true
     }
 

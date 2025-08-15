@@ -285,7 +285,7 @@ impl CompiledEventListener {
                         ) {
                             let value = rooted_return_value.handle();
 
-                            //Step 5
+                            // Step 5
                             let should_cancel = value.is_boolean() && !value.to_boolean();
 
                             if should_cancel {

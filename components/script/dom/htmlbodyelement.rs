@@ -197,7 +197,7 @@ impl VirtualMethods for HTMLBodyElement {
                     &local_name!("onunload") => {
                         let source = &**attr.value();
                         let evtarget = window.upcast::<EventTarget>(); // forwarded event
-                        let source_line = 1; //TODO(#9604) obtain current JS execution line
+                        let source_line = 1; // TODO(#9604) obtain current JS execution line
                         evtarget.set_event_handler_uncompiled(
                             window.get_url(),
                             source_line,

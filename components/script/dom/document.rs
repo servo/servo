@@ -1868,7 +1868,7 @@ impl Document {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
-        //Step 3-5.
+        // Step 3-5.
         let beforeunload_event = BeforeUnloadEvent::new(
             &self.window,
             atom!("beforeunload"),
@@ -3267,7 +3267,7 @@ impl Document {
                     LazyLock::new(StyleSharedRwLock::new);
 
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
-                //StyleSharedRwLock::new()
+                // StyleSharedRwLock::new()
             },
             stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),

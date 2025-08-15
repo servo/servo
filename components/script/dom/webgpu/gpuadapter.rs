@@ -178,7 +178,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-isfallbackadapter>
     fn IsFallbackAdapter(&self) -> bool {
-        //TODO
+        // TODO
         false
     }
 

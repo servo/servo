@@ -86,7 +86,7 @@ impl Poller {
                             while more_work || work.load(Ordering::Acquire) != 0 {
                                 poll_all_devices(&global, &mut more_work, true, &lock);
                             }
-                            std::thread::park(); //TODO: should we use timeout here
+                            std::thread::park(); // TODO: should we use timeout here
                         }
                     })
                     .expect("Spawning thread should not fail"),

@@ -252,7 +252,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-response-type>
     fn Type(&self) -> DOMResponseType {
-        *self.response_type.borrow() //into()
+        *self.response_type.borrow() // into()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-url>

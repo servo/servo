@@ -504,9 +504,9 @@ unsafe extern "C" fn content_security_policy_allows(
     runtime_code: RuntimeCode,
     code_string: HandleString,
     compilation_type: CompilationType,
-    parameter_strings: u8, //FIXME in bindings generation
+    parameter_strings: u8, // FIXME in bindings generation
     body_string: HandleString,
-    parameter_args: u8, //FIXME in bindings generation
+    parameter_args: u8, // FIXME in bindings generation
     body_arg: RawHandleValue,
     can_compile_strings: *mut bool,
 ) -> bool {
@@ -1177,14 +1177,14 @@ unsafe extern "C" fn consume_stream(
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
 
-    //Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
+    // Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
     if let Ok(unwrapped_source) =
         root_from_handleobject::<Response>(RustHandleObject::from_raw(obj), *cx)
     {
-        //Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
+        // Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
         let mimetype = unwrapped_source.Headers(CanGc::note()).extract_mime_type();
 
-        //Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
+        // Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
         if !&mimetype[..].eq_ignore_ascii_case(b"application/wasm") {
             throw_dom_exception(
                 cx,
@@ -1195,7 +1195,7 @@ unsafe extern "C" fn consume_stream(
             return false;
         }
 
-        //Step 2.4 If response is not CORS-same-origin, return with a TypeError and abort these substeps.
+        // Step 2.4 If response is not CORS-same-origin, return with a TypeError and abort these substeps.
         match unwrapped_source.Type() {
             DOMResponseType::Basic | DOMResponseType::Cors | DOMResponseType::Default => {},
             _ => {
@@ -1209,7 +1209,7 @@ unsafe extern "C" fn consume_stream(
             },
         }
 
-        //Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
+        // Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
         if !unwrapped_source.Ok() {
             throw_dom_exception(
                 cx,
@@ -1243,7 +1243,7 @@ unsafe extern "C" fn consume_stream(
         }
         unwrapped_source.set_stream_consumer(Some(StreamConsumer(_consumer)));
     } else {
-        //Step 3 Upon rejection of source, return with reason.
+        // Step 3 Upon rejection of source, return with reason.
         throw_dom_exception(
             cx,
             &global,

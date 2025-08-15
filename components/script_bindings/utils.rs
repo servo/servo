@@ -503,7 +503,7 @@ pub(crate) unsafe extern "C" fn generic_static_promise_method(
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
     assert!(!info.is_null());
     // TODO: we need safe wrappers for this in mozjs!
-    //assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
+    // assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
     let static_fn = (*info).__bindgen_anon_1.staticMethod.unwrap();
     if static_fn(cx, argc, vp) {
         return true;

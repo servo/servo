@@ -352,7 +352,7 @@ fn test_request_and_response_data_with_network_messages() {
     let devhttprequests = expect_devtools_http_request(&devtools_port);
     let devhttpresponse = devtools_response_with_body(&devtools_port);
 
-    //Creating default headers for request
+    // Creating default headers for request
     let mut headers = HeaderMap::new();
 
     headers.insert(

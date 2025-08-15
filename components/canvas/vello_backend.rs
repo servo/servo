@@ -358,7 +358,7 @@ impl GenericDrawTarget for VelloDrawTarget {
         In vello we do not need new draw target (we will use layers) and we need to pass whole rect.
         offsets will be applied to rect directly. shadow blur will be passed directly to let backend do transforms.
         */
-        //self_.scene.draw_blurred_rounded_rect(self_.transform, rect, color, 0.0, sigma);
+        // self_.scene.draw_blurred_rounded_rect(self_.transform, rect, color, 0.0, sigma);
     }
 
     fn fill(

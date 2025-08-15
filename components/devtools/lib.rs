@@ -527,7 +527,7 @@ impl DevtoolsInstance {
         let mut actors = self.actors.lock().unwrap();
         match self.actor_requests.entry(request_id) {
             Occupied(name) => {
-                //TODO: Delete from map like Firefox does?
+                // TODO: Delete from map like Firefox does?
                 name.into_mut().clone()
             },
             Vacant(entry) => {
