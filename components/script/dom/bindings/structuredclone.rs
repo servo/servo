@@ -11,7 +11,7 @@ use std::ptr;
 
 use base::id::{
     BlobId, DomExceptionId, DomPointId, ImageBitmapId, Index, MessagePortId, NamespaceIndex,
-    OffscreenCanvasId, PipelineNamespaceId,
+    OffscreenCanvasId, PipelineNamespaceId, QuotaExceededErrorId,
 };
 use constellation_traits::{
     BlobImpl, DomException, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
@@ -576,7 +576,7 @@ pub(crate) struct StructuredDataReader<'a> {
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// A map of serialized quota exceeded errors.
     pub(crate) quota_exceeded_errors:
-        Option<HashMap<DomExceptionId, SerializableQuotaExceededError>>,
+        Option<HashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
     // A map of serialized image bitmaps.
     pub(crate) image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
     /// A map of transferred image bitmaps.
@@ -601,7 +601,7 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// Serialized quota exceeded errors.
     pub(crate) quota_exceeded_errors:
-        Option<HashMap<DomExceptionId, SerializableQuotaExceededError>>,
+        Option<HashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
     /// Serialized blobs.
     pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
     /// Serialized image bitmaps.

@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use base::id::{DomExceptionId, DomExceptionIndex};
+use base::id::{QuotaExceededErrorId, QuotaExceededErrorIndex};
 use constellation_traits::SerializableQuotaExceededError;
 use dom_struct::dom_struct;
 use js::gc::HandleObject;
@@ -124,19 +124,18 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
 }
 
 impl Serializable for QuotaExceededError {
-    // FIXME: see if QuotaExceededError needs its own exception index since it inherits from DOMException
-    type Index = DomExceptionIndex;
+    type Index = QuotaExceededErrorIndex;
     type Data = SerializableQuotaExceededError;
 
     /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
-    fn serialize(&self) -> Result<(DomExceptionId, Self::Data), ()> {
-        let (id, dom_exception) = self.dom_exception.serialize()?;
+    fn serialize(&self) -> Result<(QuotaExceededErrorId, Self::Data), ()> {
+        let (_, dom_exception) = self.dom_exception.serialize()?;
         let serialized = SerializableQuotaExceededError {
             dom_exception,
             quota: self.quota.as_deref().copied(),
             requested: self.requested.as_deref().copied(),
         };
-        Ok((id, serialized))
+        Ok((QuotaExceededErrorId::new(), serialized))
     }
 
     /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
@@ -166,7 +165,7 @@ impl Serializable for QuotaExceededError {
     /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<DomExceptionId, Self::Data>> {
+    ) -> &'a mut Option<HashMap<QuotaExceededErrorId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.quota_exceeded_errors,
             StructuredData::Writer(writer) => &mut writer.quota_exceeded_errors,

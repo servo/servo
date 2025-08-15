@@ -11,7 +11,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use base::id::{BlobId, DomExceptionId, DomPointId, ImageBitmapId};
+use base::id::{BlobId, DomExceptionId, DomPointId, ImageBitmapId, QuotaExceededErrorId};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use pixels::Snapshot;
@@ -333,8 +333,7 @@ pub struct SerializableQuotaExceededError {
 }
 
 impl BroadcastClone for SerializableQuotaExceededError {
-    // FIXME: see if we need a separate id than domexception
-    type Id = DomExceptionId;
+    type Id = QuotaExceededErrorId;
 
     fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>> {
         &data.quota_exceeded_errors
