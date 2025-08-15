@@ -174,8 +174,8 @@ impl HTMLStyleElement {
                     &self.owner_window(),
                     Some(self.upcast::<Element>()),
                     "text/css".into(),
-                    None, // todo handle location
-                    None, // todo handle title
+                    None,
+                    None,
                     sheet,
                     None, // constructor_document
                     CanGc::note(),
