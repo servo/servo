@@ -60,6 +60,7 @@ mod actors {
     pub mod device;
     pub mod framerate;
     pub mod inspector;
+    pub mod long_string;
     pub mod memory;
     pub mod network_event;
     pub mod object;
