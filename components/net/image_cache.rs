@@ -1018,7 +1018,7 @@ impl ImageCache for ImageCacheImpl {
                 let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                 pending_load.bytes.extend_from_slice(&data);
 
-                //jmr0 TODO: possibly move to another task?
+                // jmr0 TODO: possibly move to another task?
                 if pending_load.metadata.is_none() {
                     let mut reader = std::io::Cursor::new(pending_load.bytes.as_slice());
                     if let Ok(info) = imsz_from_reader(&mut reader) {

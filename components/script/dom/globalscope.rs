@@ -2691,7 +2691,7 @@ impl GlobalScope {
                             type_: "PageError".to_string(),
                             error_message: error_info.message.clone(),
                             source_name: error_info.filename.clone(),
-                            line_text: "".to_string(), //TODO
+                            line_text: "".to_string(), // TODO
                             line_number: error_info.lineno,
                             column_number: error_info.column,
                             category: "script".to_string(),

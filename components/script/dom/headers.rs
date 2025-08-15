@@ -527,7 +527,7 @@ fn is_legal_header_value(value: &[u8]) -> bool {
     // If accepting non-UTF8 header values causes breakage,
     // removing the above "true" and uncommenting the below code
     // would ameliorate it while still accepting most reasonable headers:
-    //match str::from_utf8(value) {
+    // match str::from_utf8(value) {
     //    Ok(_) => true,
     //    Err(_) => {
     //        warn!(

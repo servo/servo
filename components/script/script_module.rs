@@ -1440,7 +1440,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
     let promise = Promise::new_with_js_promise(Handle::from_raw(promise), cx);
 
-    //Step 5 & 6.
+    // Step 5 & 6.
     if let Err(e) = fetch_an_import_module_script_graph(
         &global_scope,
         specifier,

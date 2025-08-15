@@ -192,7 +192,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         self.ignore_clips(|self_| {
             // Clipped blending does not work correctly:
             // https://github.com/linebender/vello/issues/1119
-            //self_.push_layer(Some(rect.to_path(0.1)), Some(peniko::Compose::Copy.into()), None, None);
+            // self_.push_layer(Some(rect.to_path(0.1)), Some(peniko::Compose::Copy.into()), None, None);
 
             self_.ctx.set_paint(vello_cpu::Image {
                 source: vello_cpu::ImageSource::Pixmap(surface),
@@ -202,7 +202,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
             });
             self_.ctx.fill_rect(&rect);
 
-            //self_.ctx.pop_layer();
+            // self_.ctx.pop_layer();
         });
     }
 
@@ -263,7 +263,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         In vello we do not need new draw target (we will use layers) and we need to pass whole rect.
         offsets will be applied to rect directly. shadow blur will be passed directly to let backend do transforms.
         */
-        //self_.scene.draw_blurred_rounded_rect(self_.transform, rect, color, 0.0, sigma);
+        // self_.scene.draw_blurred_rounded_rect(self_.transform, rect, color, 0.0, sigma);
     }
 
     fn fill(

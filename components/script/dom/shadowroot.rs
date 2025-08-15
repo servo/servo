@@ -186,7 +186,7 @@ impl ShadowRoot {
     }
 
     pub(crate) fn get_focused_element(&self) -> Option<DomRoot<Element>> {
-        //XXX get retargeted focused element
+        // XXX get retargeted focused element
         None
     }
 

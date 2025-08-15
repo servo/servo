@@ -303,7 +303,7 @@ fn test_set_dcl() {
     let dcl = metrics.dom_content_loaded();
     assert!(dcl.is_some());
 
-    //try to overwrite
+    // try to overwrite
     metrics.maybe_set_tti(InteractiveFlag::DOMContentLoaded);
     assert_eq!(metrics.dom_content_loaded(), dcl);
     assert_eq!(metrics.get_tti(), None);
@@ -318,7 +318,7 @@ fn test_set_mta() {
     assert!(main_thread_available_time.is_some());
     assert_eq!(main_thread_available_time, Some(now));
 
-    //try to overwrite
+    // try to overwrite
     metrics.maybe_set_tti(InteractiveFlag::TimeToInteractive(
         CrossProcessInstant::now(),
     ));

@@ -123,7 +123,7 @@ fn apply_algorithm_to_response<S: ArrayLength<u8>, D: Digest<OutputSize = S>>(
 ) -> String {
     if let ResponseBody::Done(ref vec) = *body {
         hasher.update(vec);
-        let response_digest = hasher.finalize(); //Now hash
+        let response_digest = hasher.finalize(); // Now hash
         base64::engine::general_purpose::STANDARD.encode(&response_digest)
     } else {
         unreachable!("Tried to calculate digest of incomplete response body")

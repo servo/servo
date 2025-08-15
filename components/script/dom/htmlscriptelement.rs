@@ -424,7 +424,7 @@ impl FetchResponseListener for ClassicContext {
 
         let elem = self.elem.root();
         let global = elem.global();
-        //let cx = GlobalScope::get_cx();
+        // let cx = GlobalScope::get_cx();
         let _ar = enter_realm(&*global);
 
         /*
@@ -471,7 +471,7 @@ impl FetchResponseListener for ClassicContext {
             Ok(load),
             CanGc::note(),
         );
-        //}
+        // }
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {

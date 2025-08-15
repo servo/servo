@@ -117,8 +117,11 @@ class CheckTidiness(unittest.TestCase):
 
     def test_rust(self):
         errors = tidy.collect_errors_for_files(iterFile("rust_tidy.rs"), [], [tidy.check_rust], print_text=False)
+        self.assertEqual("Comments starting with `//` should also include a space", next(errors)[2])
         self.assertEqual("use &T instead of &Root<T>", next(errors)[2])
         self.assertEqual("use &T instead of &DomRoot<T>", next(errors)[2])
+        self.assertEqual("Comments starting with `//` should also include a space", next(errors)[2])
+        self.assertEqual("Comments starting with `//` should also include a space", next(errors)[2])
         self.assertNoMoreErrors(errors)
 
         feature_errors = tidy.collect_errors_for_files(iterFile("lib.rs"), [], [tidy.check_rust], print_text=False)

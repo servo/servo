@@ -23,7 +23,7 @@ use crate::dom::range::WeakRangeVec;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::LayoutValue;
 
-//XXX(ferjm) Ideally merge NodeRareData and ElementRareData so they share
+// XXX(ferjm) Ideally merge NodeRareData and ElementRareData so they share
 //           storage.
 
 #[derive(Default, JSTraceable, MallocSizeOf)]

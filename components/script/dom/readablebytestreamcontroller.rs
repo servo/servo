@@ -1180,7 +1180,7 @@ impl ReadableByteStreamController {
         // Assert: bytesFilled ≤ pullIntoDescriptor’s byte length.
         assert!(bytes_filled <= pull_into_descriptor.byte_length);
 
-        //Assert: the remainder after dividing bytesFilled by elementSize is 0.
+        // Assert: the remainder after dividing bytesFilled by elementSize is 0.
         assert!(bytes_filled % element_size == 0);
 
         // Let buffer be ! TransferArrayBuffer(pullIntoDescriptor’s buffer).

@@ -72,9 +72,9 @@ impl TrustedScript {
         global: &GlobalScope,
         code_string: DOMString,
         compilation_type: CompilationType,
-        _parameter_strings: u8, //FIXME in bindings generation
+        _parameter_strings: u8, // FIXME in bindings generation
         body_string: DOMString,
-        _parameter_args: u8, //FIXME in bindings generation
+        _parameter_args: u8, // FIXME in bindings generation
         body_arg: HandleValue,
         can_gc: CanGc,
     ) -> bool {

@@ -354,7 +354,7 @@ impl Activatable for HTMLButtonElement {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        //https://html.spec.whatwg.org/multipage/#the-button-element
+        // https://html.spec.whatwg.org/multipage/#the-button-element
         !self.upcast::<Element>().disabled_state()
     }
 
@@ -362,7 +362,7 @@ impl Activatable for HTMLButtonElement {
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
         let ty = self.button_type.get();
         match ty {
-            //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
+            // https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
             ButtonType::Submit => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {

@@ -810,7 +810,7 @@ impl HTMLInputElement {
         if (value - step_base) % allowed_value_step != 0.0 {
             value = match dir {
                 StepDirection::Down =>
-                //step down a fractional step to be on a step multiple
+                // step down a fractional step to be on a step multiple
                 {
                     let intervals_from_base = ((value - step_base) / allowed_value_step).floor();
                     intervals_from_base * allowed_value_step + step_base
@@ -3065,7 +3065,7 @@ impl VirtualMethods for HTMLInputElement {
             // WHATWG-specified activation behaviors are handled elsewhere;
             // this is for all the other things a UI click might do
 
-            //TODO(#10083): set the editing position for text inputs
+            // TODO(#10083): set the editing position for text inputs
 
             if self.input_type().is_textual_or_password() &&
                 // Check if we display a placeholder. Layout doesn't know about this.

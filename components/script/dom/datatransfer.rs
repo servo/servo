@@ -205,7 +205,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
             // Step 9 If convert-to-URL is true, then parse result as appropriate for text/uri-list data,
             // and then set result to the first URL from the list, if any, or the empty string otherwise.
             if convert_to_url {
-                //TODO parse uri-list as [RFC2483]
+                // TODO parse uri-list as [RFC2483]
             }
 
             // Step 10 Return result.

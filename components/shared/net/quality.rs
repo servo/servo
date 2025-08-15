@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//TODO(eijebong): Remove this once typed headers figure out quality
+// TODO(eijebong): Remove this once typed headers figure out quality
 // This is copy pasted from the old hyper headers to avoid hardcoding everything
 // (I would probably also make some silly mistakes while migrating...)
 
