@@ -32,6 +32,8 @@ pub struct StructuredSerializedData {
     pub points: Option<HashMap<DomPointId, DomPoint>>,
     /// Serialized exception objects.
     pub exceptions: Option<HashMap<DomExceptionId, DomException>>,
+    /// Serialized quota exceeded errors.
+    pub quota_exceeded_errors: Option<HashMap<DomExceptionId, SerializableQuotaExceededError>>,
     /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
     /// Transform streams transferred objects.

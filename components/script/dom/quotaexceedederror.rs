@@ -167,6 +167,9 @@ impl Serializable for QuotaExceededError {
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
     ) -> &'a mut Option<HashMap<DomExceptionId, Self::Data>> {
-        todo!()
+        match data {
+            StructuredData::Reader(reader) => &mut reader.quota_exceeded_errors,
+            StructuredData::Writer(writer) => &mut writer.quota_exceeded_errors,
+        }
     }
 }

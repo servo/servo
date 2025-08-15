@@ -72,7 +72,7 @@ impl Serializable {
             },
             Serializable::QuotaExceededError => {
                 StructuredSerializedData::clone_all_of_type::<SerializableQuotaExceededError>
-            }
+            },
         }
     }
 }
@@ -324,6 +324,7 @@ impl BroadcastClone for DomException {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// A serializable version of the QuotaExceededError interface.
 pub struct SerializableQuotaExceededError {
     pub dom_exception: DomException,
@@ -336,15 +337,15 @@ impl BroadcastClone for SerializableQuotaExceededError {
     type Id = DomExceptionId;
 
     fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>> {
-        todo!()
+        &data.quota_exceeded_errors
     }
 
     fn destination(data: &mut StructuredSerializedData) -> &mut Option<HashMap<Self::Id, Self>> {
-        todo!()
+        &mut data.quota_exceeded_errors
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {
-        todo!()
+        Some(self.clone())
     }
 }
 

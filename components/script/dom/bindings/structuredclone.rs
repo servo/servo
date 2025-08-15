@@ -15,8 +15,8 @@ use base::id::{
 };
 use constellation_traits::{
     BlobImpl, DomException, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
-    SerializableImageBitmap, StructuredSerializedData, TransferableOffscreenCanvas,
-    Transferrable as TransferrableInterface, TransformStreamData,
+    SerializableImageBitmap, SerializableQuotaExceededError, StructuredSerializedData,
+    TransferableOffscreenCanvas, Transferrable as TransferrableInterface, TransformStreamData,
 };
 use js::gc::RootedVec;
 use js::glue::{
@@ -574,6 +574,9 @@ pub(crate) struct StructuredDataReader<'a> {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// A map of serialized exceptions.
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
+    /// A map of serialized quota exceeded errors.
+    pub(crate) quota_exceeded_errors:
+        Option<HashMap<DomExceptionId, SerializableQuotaExceededError>>,
     // A map of serialized image bitmaps.
     pub(crate) image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
     /// A map of transferred image bitmaps.
@@ -596,6 +599,9 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// Serialized exceptions.
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
+    /// Serialized quota exceeded errors.
+    pub(crate) quota_exceeded_errors:
+        Option<HashMap<DomExceptionId, SerializableQuotaExceededError>>,
     /// Serialized blobs.
     pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
     /// Serialized image bitmaps.
@@ -660,6 +666,7 @@ pub(crate) fn write(
             transform_streams: sc_writer.transform_streams_port.take(),
             points: sc_writer.points.take(),
             exceptions: sc_writer.exceptions.take(),
+            quota_exceeded_errors: sc_writer.quota_exceeded_errors.take(),
             blobs: sc_writer.blobs.take(),
             image_bitmaps: sc_writer.image_bitmaps.take(),
             transferred_image_bitmaps: sc_writer.transferred_image_bitmaps.take(),
@@ -688,6 +695,7 @@ pub(crate) fn read(
         blob_impls: data.blobs.take(),
         points: data.points.take(),
         exceptions: data.exceptions.take(),
+        quota_exceeded_errors: data.quota_exceeded_errors.take(),
         image_bitmaps: data.image_bitmaps.take(),
         transferred_image_bitmaps: data.transferred_image_bitmaps.take(),
         offscreen_canvases: data.offscreen_canvases.take(),
