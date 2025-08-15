@@ -1910,6 +1910,7 @@ name = "devtools"
 version = "0.0.1"
 dependencies = [
  "base",
+ "base64 0.22.1",
  "chrono",
  "crossbeam-channel",
  "devtools_traits",
@@ -2647,6 +2648,7 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "servo_url",
+ "skrifa",
  "smallvec",
  "stylo",
  "stylo_atoms",

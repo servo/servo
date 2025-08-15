@@ -10,17 +10,19 @@ use std::{mem, ptr};
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use freetype_sys::{
-    FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
-    FT_FACE_FLAG_SCALABLE, FT_Face, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_Int32,
-    FT_KERNING_DEFAULT, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long,
-    FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Size_Metrics,
-    FT_SizeRec, FT_UInt, FT_ULong, FT_Vector,
+    FT_Done_Face, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE,
+    FT_Face, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_Int32, FT_KERNING_DEFAULT,
+    FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long, FT_New_Face,
+    FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Size_Metrics, FT_SizeRec,
+    FT_UInt, FT_ULong, FT_Vector,
 };
 use log::debug;
 use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
 use read_fonts::tables::os2::SelectionFlags;
+use read_fonts::types::Tag;
 use read_fonts::{FontRef, ReadError, TableProvider};
+use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
@@ -49,12 +51,17 @@ fn fixed_26_dot_6_to_float(fixed: FT_F26Dot6) -> f64 {
 
 #[derive(Debug)]
 pub struct FontTable {
-    buffer: Vec<u8>,
+    data: FreeTypeFaceTableProviderData,
+    tag: Tag,
 }
 
 impl FontTableMethods for FontTable {
     fn buffer(&self) -> &[u8] {
-        &self.buffer
+        let font_ref = self.data.font_ref().expect("Font checked before creating");
+        let table_data = font_ref
+            .table_data(self.tag)
+            .expect("Table existence checked before creating");
+        table_data.as_bytes()
     }
 }
 
@@ -164,7 +171,7 @@ impl PlatformFontMethods for PlatformFont {
             requested_face_size,
             actual_face_size,
             table_provider_data: FreeTypeFaceTableProviderData::Local(
-                memory_mapped_font_data,
+                Arc::new(memory_mapped_font_data),
                 font_identifier.index(),
             ),
         })
@@ -393,22 +400,13 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
-        let face = self.face.lock();
-        let tag = tag as FT_ULong;
-
-        unsafe {
-            // Get the length
-            let mut len = 0;
-            if 0 != FT_Load_Sfnt_Table(*face, tag, 0, ptr::null_mut(), &mut len) {
-                return None;
-            }
-            // Get the bytes
-            let mut buf = vec![0u8; len as usize];
-            if 0 != FT_Load_Sfnt_Table(*face, tag, 0, buf.as_mut_ptr(), &mut len) {
-                return None;
-            }
-            Some(FontTable { buffer: buf })
-        }
+        let tag = Tag::from_u32(tag);
+        let font_ref = self.table_provider_data.font_ref().ok()?;
+        let _table_data = font_ref.table_data(tag)?;
+        Some(FontTable {
+            data: self.table_provider_data.clone(),
+            tag,
+        })
     }
 
     fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
@@ -529,19 +527,10 @@ impl FreeTypeFaceHelpers for FT_Face {
     }
 }
 
-unsafe extern "C" {
-    fn FT_Load_Sfnt_Table(
-        face: FT_Face,
-        tag: FT_ULong,
-        offset: FT_Long,
-        buffer: *mut FT_Byte,
-        length: *mut FT_ULong,
-    ) -> FT_Error;
-}
-
+#[derive(Clone)]
 enum FreeTypeFaceTableProviderData {
     Web(FontData),
-    Local(Mmap, u32),
+    Local(Arc<Mmap>, u32),
 }
 
 impl FreeTypeFaceTableProviderData {

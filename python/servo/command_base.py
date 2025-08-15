@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+from tarfile import TarInfo
 import urllib
 import zipfile
 import urllib.error
@@ -28,7 +29,8 @@ from enum import Enum
 from glob import glob
 from os import path
 from subprocess import PIPE, CompletedProcess
-from typing import Any, Dict, List, Optional, Union, LiteralString, cast
+from typing import Any, Optional, Union, LiteralString, cast
+from collections.abc import Generator, Callable
 from xml.etree.ElementTree import XML
 
 import toml
@@ -93,7 +95,7 @@ class BuildType:
 
 
 @contextlib.contextmanager
-def cd(new_path: str):
+def cd(new_path: str) -> Generator:
     """Context manager for changing the current working directory"""
     previous_path = os.getcwd()
     try:
@@ -104,7 +106,7 @@ def cd(new_path: str):
 
 
 @contextlib.contextmanager
-def setlocale(name: str):
+def setlocale(name: str) -> Generator:
     """Context manager for changing the current locale"""
     saved_locale = locale.setlocale(locale.LC_ALL)
     try:
@@ -113,7 +115,7 @@ def setlocale(name: str):
         locale.setlocale(locale.LC_ALL, saved_locale)
 
 
-def find_dep_path_newest(package, bin_path):
+def find_dep_path_newest(package: str, bin_path: str) -> str | None:
     deps_path = path.join(path.split(bin_path)[0], "build")
     candidates = []
     with cd(deps_path):
@@ -126,12 +128,12 @@ def find_dep_path_newest(package, bin_path):
     return None
 
 
-def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None) -> None:
+def archive_deterministically(dir_to_archive: str, dest_archive: str, prepend_path: str | None = None) -> None:
     """Create a .tar.gz archive in a deterministic (reproducible) manner.
 
     See https://reproducible-builds.org/docs/archives/ for more details."""
 
-    def reset(tarinfo):
+    def reset(tarinfo: TarInfo) -> TarInfo:
         """Helper to reset owner/group and modification time for tar entries"""
         tarinfo.uid = tarinfo.gid = 0
         tarinfo.uname = tarinfo.gname = "root"
@@ -177,7 +179,7 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None) -
         os.rename(temp_file, dest_archive)
 
 
-def call(*args, **kwargs) -> int:
+def call(*args: Any, **kwargs: Any) -> int:
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop("verbose", False)
     if verbose:
@@ -188,7 +190,7 @@ def call(*args, **kwargs) -> int:
     return subprocess.call(*args, **kwargs)
 
 
-def check_output(*args, **kwargs) -> Union[str, bytes]:
+def check_output(*args: Any, **kwargs: Any) -> Union[str, bytes]:
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop("verbose", False)
     if verbose:
@@ -199,7 +201,7 @@ def check_output(*args, **kwargs) -> Union[str, bytes]:
     return subprocess.check_output(*args, **kwargs)
 
 
-def check_call(*args, **kwargs) -> None:
+def check_call(*args: Any, **kwargs: Any) -> None:
     """Wrap `subprocess.check_call`, printing the command if verbose=True.
 
     Also fix any unicode-containing `env`, for subprocess"""
@@ -239,10 +241,10 @@ def is_linux() -> bool:
 
 
 class BuildNotFound(Exception):
-    def __init__(self, message) -> None:
+    def __init__(self, message: str) -> None:
         self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.message
 
 
@@ -253,7 +255,7 @@ class CommandBase(object):
 
     target: BuildTarget
 
-    def __init__(self, context) -> None:
+    def __init__(self, context: Any) -> None:
         self.context = context
         self.enable_media = False
         self.features = []
@@ -321,7 +323,7 @@ class CommandBase(object):
 
     _rust_toolchain = None
 
-    def rust_toolchain(self):
+    def rust_toolchain(self) -> str:
         if self._rust_toolchain:
             return self._rust_toolchain
 
@@ -329,7 +331,7 @@ class CommandBase(object):
         self._rust_toolchain = toml.load(toolchain_file)["toolchain"]["channel"]
         return self._rust_toolchain
 
-    def get_top_dir(self):
+    def get_top_dir(self) -> str:
         return self.context.topdir
 
     def get_binary_path(self, build_type: BuildType, sanitizer: SanitizerKind = SanitizerKind.NONE) -> str:
@@ -356,7 +358,7 @@ class CommandBase(object):
         if os.path.exists(mounted_volume):
             self.detach_volume(mounted_volume)
 
-    def mount_dmg(self, dmg_path) -> None:
+    def mount_dmg(self, dmg_path: str) -> None:
         print("Mounting dmg {}".format(dmg_path))
         try:
             subprocess.check_call(["hdiutil", "attach", dmg_path])
@@ -394,7 +396,7 @@ class CommandBase(object):
             return path.join(destination_folder, "servo", "servo")
         return path.join(destination_folder, "servo")
 
-    def get_nightly_binary_path(self, nightly_date) -> str | None:
+    def get_nightly_binary_path(self, nightly_date: str | None) -> str | None:
         if nightly_date is None:
             return
         if not nightly_date:
@@ -462,7 +464,7 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def msvc_package_dir(self, package) -> str:
+    def msvc_package_dir(self, package: str) -> str:
         return servo.platform.windows.get_dependency_dir(package)
 
     def build_env(self) -> dict[str, str]:
@@ -531,8 +533,11 @@ class CommandBase(object):
 
     @staticmethod
     def common_command_arguments(
-        build_configuration=False, build_type=False, binary_selection=False, package_configuration=False
-    ):
+        build_configuration: bool = False,
+        build_type: bool = False,
+        binary_selection: bool = False,
+        package_configuration: bool = False,
+    ) -> Callable:
         decorators = []
         if build_type or binary_selection:
             decorators += [
@@ -654,8 +659,8 @@ class CommandBase(object):
                 CommandArgument("--nightly", "-n", default=None, help="Specify a YYYY-MM-DD nightly build to run"),
             ]
 
-        def decorator_function(original_function):
-            def configuration_decorator(self, *args, **kwargs):
+        def decorator_function(original_function: Callable) -> Callable:
+            def configuration_decorator(self: CommandBase, *args: Any, **kwargs: Any) -> Callable:
                 if build_type or binary_selection:
                     # If `build_type` already exists in kwargs we are doing a recursive dispatch.
                     if "build_type" not in kwargs:
@@ -680,7 +685,10 @@ class CommandBase(object):
                         kwargs["servo_binary"] = (
                             kwargs.get("bin")
                             or self.get_nightly_binary_path(kwargs.get("nightly"))
-                            or self.get_binary_path(kwargs.get("build_type"), sanitizer=kwargs.get("sanitizer"))
+                            or self.get_binary_path(
+                                cast(BuildType, kwargs.get("build_type")),
+                                sanitizer=cast(SanitizerKind, kwargs.get("sanitizer")),
+                            )
                         )
                     kwargs.pop("bin")
                     kwargs.pop("nightly")
@@ -699,8 +707,8 @@ class CommandBase(object):
         return decorator_function
 
     @staticmethod
-    def allow_target_configuration(original_function):
-        def target_configuration_decorator(self, *args, **kwargs):
+    def allow_target_configuration(original_function: Callable) -> Callable:
+        def target_configuration_decorator(self: CommandBase, *args: Any, **kwargs: Any) -> Callable:
             self.configure_build_target(kwargs, suppress_log=True)
             kwargs.pop("target", False)
             kwargs.pop("android", False)
@@ -741,7 +749,7 @@ class CommandBase(object):
         else:
             return BuildType.custom(profile)
 
-    def configure_build_target(self, kwargs: Dict[str, Any], suppress_log: bool = False) -> None:
+    def configure_build_target(self, kwargs: dict[str, Any], suppress_log: bool = False) -> None:
         if hasattr(self.context, "target"):
             # This call is for a dispatched command and we've already configured
             # the target, so just use it.
@@ -778,7 +786,7 @@ class CommandBase(object):
         if self.target.is_cross_build() and not suppress_log:
             print(f"Targeting '{self.target.triple()}' for cross-compilation")
 
-    def is_media_enabled(self, media_stack: Optional[str]):
+    def is_media_enabled(self, media_stack: Optional[str]) -> bool:
         """Determine whether media is enabled based on the value of the build target
         platform and the value of the '--media-stack' command-line argument.
         Returns true if media is enabled."""
@@ -803,16 +811,16 @@ class CommandBase(object):
     def run_cargo_build_like_command(
         self,
         command: str,
-        cargo_args: List[str],
-        env=None,
-        verbose=False,
-        debug_mozjs=False,
-        with_debug_assertions=False,
-        with_frame_pointer=False,
-        use_crown=False,
-        capture_output=False,
+        cargo_args: list[str],
+        env: dict[str, Any] | None = None,
+        verbose: bool = False,
+        debug_mozjs: bool = False,
+        with_debug_assertions: bool = False,
+        with_frame_pointer: bool = False,
+        use_crown: bool = False,
+        capture_output: bool = False,
         target_override: Optional[str] = None,
-        **_kwargs,
+        **_kwargs: Any,
     ) -> CompletedProcess[bytes] | int:
         env = cast(dict[str, str], env or self.build_env())
 
@@ -888,14 +896,14 @@ class CommandBase(object):
 
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
-    def android_adb_path(self, env) -> LiteralString:
+    def android_adb_path(self, env: dict[str, Any]) -> LiteralString:
         if "ANDROID_SDK_ROOT" in env:
             sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "platform-tools", "adb")
             if path.exists(sdk_adb):
                 return sdk_adb
         return "adb"
 
-    def android_emulator_path(self, env) -> LiteralString:
+    def android_emulator_path(self, env: dict[str, Any]) -> LiteralString:
         if "ANDROID_SDK_ROOT" in env:
             sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "emulator", "emulator")
             if path.exists(sdk_adb):
@@ -919,7 +927,7 @@ class CommandBase(object):
         if self.target.triple() not in installed_targets:
             check_call(["rustup", "target", "add", self.target.triple()], cwd=self.context.topdir)
 
-    def ensure_clobbered(self, target_dir=None) -> None:
+    def ensure_clobbered(self, target_dir: str | None = None) -> None:
         if target_dir is None:
             target_dir = util.get_target_dir()
         auto = True if os.environ.get("AUTOCLOBBER", False) else False

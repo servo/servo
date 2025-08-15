@@ -47,7 +47,7 @@ def host_triple() -> str:
     return f"{cpu_type}-{os_type}"
 
 
-def get():
+def get():  # noqa
     # pylint: disable=global-statement
     global __platform__
     if __platform__:

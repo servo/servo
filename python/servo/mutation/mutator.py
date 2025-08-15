@@ -11,14 +11,14 @@ import fileinput
 import re
 from re import Match
 import random
-from typing import Iterator
+from collections.abc import Iterator
 
 
 def is_comment(line: str) -> Match[str] | None:
     return re.search(r"\/\/.*", line)
 
 
-def init_variables(if_blocks):
+def init_variables(if_blocks: list[int]) -> tuple[int, int, int, int, int]:
     random_index = random.randint(0, len(if_blocks) - 1)
     start_counter = 0
     end_counter = 0
@@ -27,7 +27,7 @@ def init_variables(if_blocks):
     return random_index, start_counter, end_counter, lines_to_delete, line_to_mutate
 
 
-def deleteStatements(file_name, line_numbers) -> None:
+def deleteStatements(file_name: str, line_numbers: list[int]) -> None:
     for line in fileinput.input(file_name, inplace=True):
         if fileinput.lineno() not in line_numbers:
             print(line.rstrip())
@@ -38,7 +38,7 @@ class Strategy:
         self._strategy_name = ""
         self._replace_strategy = {}
 
-    def mutate(self, file_name):
+    def mutate(self, file_name: str) -> int:
         line_numbers = []
         for line in fileinput.input(file_name):
             if not is_comment(line) and re.search(self._replace_strategy["regex"], line):
@@ -140,7 +140,7 @@ class DeleteIfBlock(Strategy):
         self.if_block = r"^\s+if\s(.+)\s\{"
         self.else_block = r"\selse(.+)\{"
 
-    def mutate(self, file_name):
+    def mutate(self, file_name: str) -> int:
         code_lines = []
         if_blocks = []
         for line in fileinput.input(file_name):
@@ -192,8 +192,8 @@ def get_strategies() -> Iterator[Strategy]:
 
 
 class Mutator:
-    def __init__(self, strategy) -> None:
+    def __init__(self, strategy: Strategy) -> None:
         self._strategy = strategy
 
-    def mutate(self, file_name):
+    def mutate(self, file_name: str) -> int:
         return self._strategy.mutate(file_name)

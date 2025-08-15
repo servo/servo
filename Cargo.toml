@@ -138,6 +138,7 @@ servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-08-01" }
+skrifa = "0.31.3"
 smallbitvec = "2.6.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 string_cache = "0.8"

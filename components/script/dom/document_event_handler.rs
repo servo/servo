@@ -14,7 +14,7 @@ use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
     GamepadSupportedHapticEffects, GamepadUpdateType, ImeEvent, InputEvent,
     KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeaveEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId,
+    MouseLeftViewportEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId,
     UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 use euclid::Point2D;
@@ -160,13 +160,13 @@ impl DocumentEventHandler {
 
             match event.event.clone() {
                 InputEvent::MouseButton(mouse_button_event) => {
-                    self.handle_mouse_button_event(mouse_button_event, &event, can_gc);
+                    self.handle_native_mouse_button_event(mouse_button_event, &event, can_gc);
                 },
                 InputEvent::MouseMove(_) => {
-                    self.handle_mouse_move_event(&event, can_gc);
+                    self.handle_native_mouse_move_event(&event, can_gc);
                 },
-                InputEvent::MouseLeave(mouse_leave_event) => {
-                    self.handle_mouse_leave_event(&event, &mouse_leave_event, can_gc);
+                InputEvent::MouseLeftViewport(mouse_leave_event) => {
+                    self.handle_mouse_left_viewport_event(&event, &mouse_leave_event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
                     self.handle_touch_event(touch_event, &event, can_gc);
@@ -221,10 +221,10 @@ impl DocumentEventHandler {
             .send_to_embedder(EmbedderMsg::SetCursor(self.window.webview_id(), cursor));
     }
 
-    fn handle_mouse_leave_event(
+    fn handle_mouse_left_viewport_event(
         &self,
         input_event: &ConstellationInputEvent,
-        mouse_leave_event: &MouseLeaveEvent,
+        mouse_leave_event: &MouseLeftViewportEvent,
         can_gc: CanGc,
     ) {
         if let Some(current_hover_target) = self.current_hover_target.get() {
@@ -328,7 +328,8 @@ impl DocumentEventHandler {
         }
     }
 
-    fn handle_mouse_move_event(&self, input_event: &ConstellationInputEvent, can_gc: CanGc) {
+    /// <https://w3c.github.io/uievents/#handle-native-mouse-move>
+    fn handle_native_mouse_move_event(&self, input_event: &ConstellationInputEvent, can_gc: CanGc) {
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
@@ -349,8 +350,7 @@ impl DocumentEventHandler {
         let target_has_changed = self
             .current_hover_target
             .get()
-            .as_ref()
-            .is_none_or(|old_target| old_target != &new_target);
+            .is_none_or(|old_target| old_target != new_target);
 
         // Here we know the target has changed, so we must update the state,
         // dispatch mouseout to the previous one, mouseover to the new one.
@@ -503,7 +503,8 @@ impl DocumentEventHandler {
     }
 
     /// <https://w3c.github.io/uievents/#mouseevent-algorithms>
-    fn handle_mouse_button_event(
+    /// Handles native mouse down, mouse up, mouse click.
+    fn handle_native_mouse_button_event(
         &self,
         event: MouseButtonEvent,
         input_event: &ConstellationInputEvent,

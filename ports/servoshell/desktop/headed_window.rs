@@ -25,7 +25,7 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, Modifiers,
-    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeaveEvent,
+    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
     MouseMoveEvent, NamedKey, OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme,
     TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent,
     WheelMode, WindowRenderingContext,
@@ -287,6 +287,10 @@ impl Window {
         };
 
         let point = self.webview_relative_mouse_point.get();
+        // `point` can be outside viewport, such as at toolbar with negative y-coordinate.
+        if !webview.rect().contains(point) {
+            return;
+        }
         let action = match action {
             ElementState::Pressed => MouseButtonAction::Down,
             ElementState::Released => MouseButtonAction::Up,
@@ -624,7 +628,9 @@ impl WindowPortsMethods for Window {
                 if webview.rect().contains(point) {
                     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
                 } else if webview.rect().contains(previous_point) {
-                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::default()));
+                    webview.notify_input_event(InputEvent::MouseLeftViewport(
+                        MouseLeftViewportEvent::default(),
+                    ));
                 }
 
                 self.webview_relative_mouse_point.set(point);
@@ -634,7 +640,9 @@ impl WindowPortsMethods for Window {
                     .rect()
                     .contains(self.webview_relative_mouse_point.get())
                 {
-                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::default()));
+                    webview.notify_input_event(InputEvent::MouseLeftViewport(
+                        MouseLeftViewportEvent::default(),
+                    ));
                 }
             },
             WindowEvent::MouseWheel { delta, .. } => {

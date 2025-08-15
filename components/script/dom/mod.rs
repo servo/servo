@@ -599,6 +599,7 @@ pub(crate) mod textdecoder;
 pub(crate) mod textdecodercommon;
 pub(crate) mod textdecoderstream;
 pub(crate) mod textencoder;
+pub(crate) mod textencoderstream;
 pub(crate) mod textmetrics;
 pub(crate) mod texttrack;
 pub(crate) mod texttrackcue;

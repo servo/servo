@@ -32,7 +32,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "etc/**" = ["ANN"]
-"python/servo/**.py" = ["ANN"]
 "components/script_bindings/codegen/codegen.py" = ["ANN"]
 "**/test.py" = ["ANN"]
 "**/*_tests.py" = ["ANN"]
