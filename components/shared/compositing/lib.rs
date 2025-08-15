@@ -30,12 +30,13 @@ use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
+pub use webrender_api::ExternalImageSource;
 use webrender_api::units::{LayoutVector2D, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
-    ExternalImageHandler, ExternalImageId, ExternalImageSource, ExternalScrollId,
-    FontInstanceFlags, FontInstanceKey, FontKey, ImageData, ImageDescriptor, ImageKey,
-    NativeFontHandle, PipelineId as WebRenderPipelineId,
+    ExternalImageHandler, ExternalImageId, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
+    FontKey, ImageData, ImageDescriptor, ImageKey, NativeFontHandle,
+    PipelineId as WebRenderPipelineId,
 };
 
 use crate::viewport_description::ViewportDescription;
@@ -341,13 +342,8 @@ impl CrossProcessCompositorApi {
 /// This trait is used to notify lock/unlock messages and get the
 /// required info that WR needs.
 pub trait WebrenderExternalImageApi {
-    fn lock(&mut self, id: u64) -> (WebrenderImageSource, UntypedSize2D<i32>);
+    fn lock(&mut self, id: u64) -> (ExternalImageSource, UntypedSize2D<i32>);
     fn unlock(&mut self, id: u64);
-}
-
-pub enum WebrenderImageSource<'a> {
-    TextureHandle(u32),
-    Raw(&'a [u8]),
 }
 
 /// Type of Webrender External Image Handler.
@@ -438,7 +434,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
             WebrenderImageHandlerType::WebGL => {
                 let (source, size) = self.webgl_handler.as_mut().unwrap().lock(key.0);
                 let texture_id = match source {
-                    WebrenderImageSource::TextureHandle(b) => b,
+                    ExternalImageSource::NativeTexture(b) => b,
                     _ => panic!("Wrong type"),
                 };
                 ExternalImage {
@@ -449,7 +445,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
             WebrenderImageHandlerType::Media => {
                 let (source, size) = self.media_handler.as_mut().unwrap().lock(key.0);
                 let texture_id = match source {
-                    WebrenderImageSource::TextureHandle(b) => b,
+                    ExternalImageSource::NativeTexture(b) => b,
                     _ => panic!("Wrong type"),
                 };
                 ExternalImage {
@@ -460,7 +456,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
             WebrenderImageHandlerType::WebGPU => {
                 let (source, size) = self.webgpu_handler.as_mut().unwrap().lock(key.0);
                 let buffer = match source {
-                    WebrenderImageSource::Raw(b) => b,
+                    ExternalImageSource::RawData(b) => b,
                     _ => panic!("Wrong type"),
                 };
                 ExternalImage {

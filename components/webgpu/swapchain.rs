@@ -9,8 +9,8 @@ use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use compositing_traits::{
-    CrossProcessCompositorApi, SerializableImageData, WebrenderExternalImageApi,
-    WebrenderImageSource,
+    CrossProcessCompositorApi, ExternalImageSource, SerializableImageData,
+    WebrenderExternalImageApi,
 };
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
@@ -83,7 +83,7 @@ pub struct WGPUExternalImages {
 }
 
 impl WebrenderExternalImageApi for WGPUExternalImages {
-    fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>) {
+    fn lock(&mut self, id: u64) -> (ExternalImageSource, Size2D<i32>) {
         let id = WebGPUContextId(id);
         let webgpu_contexts = self.images.lock().unwrap();
         let context_data = webgpu_contexts.get(&id).unwrap();
@@ -99,7 +99,7 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
         };
         self.locked_ids.insert(id, data);
         (
-            WebrenderImageSource::Raw(self.locked_ids.get(&id).unwrap().as_slice()),
+            ExternalImageSource::RawData(self.locked_ids.get(&id).unwrap().as_slice()),
             size,
         )
     }
