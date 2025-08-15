@@ -355,7 +355,7 @@ impl WebViewRenderer {
             InputEvent::MouseMove(_) => {
                 self.global.borrow_mut().last_mouse_move_position = event_point;
             },
-            InputEvent::MouseLeave(_) => {
+            InputEvent::CursorLeft(_) => {
                 self.global.borrow_mut().last_mouse_move_position = None;
             },
             InputEvent::MouseButton(_) | InputEvent::Wheel(_) => {},

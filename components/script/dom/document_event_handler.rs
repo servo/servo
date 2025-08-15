@@ -11,11 +11,11 @@ use std::time::{Duration, Instant};
 
 use constellation_traits::ScriptToConstellationMessage;
 use embedder_traits::{
-    Cursor, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
+    Cursor, CursorLeftEvent, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
     GamepadSupportedHapticEffects, GamepadUpdateType, ImeEvent, InputEvent,
     KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeaveEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId,
-    UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    ScrollEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId, UntrustedNodeAddress,
+    WheelEvent as EmbedderWheelEvent,
 };
 use euclid::Point2D;
 use ipc_channel::ipc;
@@ -165,8 +165,8 @@ impl DocumentEventHandler {
                 InputEvent::MouseMove(_) => {
                     self.handle_native_mouse_move_event(&event, can_gc);
                 },
-                InputEvent::MouseLeave(mouse_leave_event) => {
-                    self.handle_mouse_leave_event(&event, &mouse_leave_event, can_gc);
+                InputEvent::CursorLeft(mouse_leave_event) => {
+                    self.handle_cursor_left_event(&event, &mouse_leave_event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
                     self.handle_touch_event(touch_event, &event, can_gc);
@@ -221,10 +221,10 @@ impl DocumentEventHandler {
             .send_to_embedder(EmbedderMsg::SetCursor(self.window.webview_id(), cursor));
     }
 
-    fn handle_mouse_leave_event(
+    fn handle_cursor_left_event(
         &self,
         input_event: &ConstellationInputEvent,
-        mouse_leave_event: &MouseLeaveEvent,
+        mouse_leave_event: &CursorLeftEvent,
         can_gc: CanGc,
     ) {
         if let Some(current_hover_target) = self.current_hover_target.get() {
