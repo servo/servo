@@ -23,6 +23,7 @@ use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::computed_values::text_decoration_style::{
     T as ComputedTextDecorationStyle, T as TextDecorationStyle,
 };
+use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::style_structs::Border;
@@ -141,8 +142,15 @@ struct HighlightTraversalState {
 }
 
 impl InspectorHighlight {
-    fn new(tag: Tag) -> Self {
-        Self { tag, state: None }
+    fn for_node(node: OpaqueNode) -> Self {
+        Self {
+            tag: Tag {
+                node,
+                // TODO: Support highlighting pseudo-elements.
+                pseudo_element_chain: Default::default(),
+            },
+            state: None,
+        }
     }
 }
 
@@ -152,7 +160,7 @@ impl DisplayListBuilder<'_> {
         fragment_tree: &FragmentTree,
         image_resolver: Arc<ImageResolver>,
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
-        highlighted_dom_node_tag: Option<Tag>,
+        highlighted_dom_node: Option<OpaqueNode>,
         debug: &DebugOptions,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
@@ -179,7 +187,7 @@ impl DisplayListBuilder<'_> {
             current_clip_id: ClipId::INVALID,
             webrender_display_list_builder: &mut webrender_display_list_builder,
             compositor_info,
-            inspector_highlight: highlighted_dom_node_tag.map(InspectorHighlight::new),
+            inspector_highlight: highlighted_dom_node.map(InspectorHighlight::for_node),
             paint_body_background: true,
             clip_map: Default::default(),
             image_resolver,
