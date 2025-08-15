@@ -10,8 +10,8 @@ mod media_thread;
 use std::sync::{Arc, Mutex};
 
 use compositing_traits::{
-    WebrenderExternalImageApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
-    WebrenderImageHandlerType, WebrenderImageSource,
+    ExternalImageSource, WebrenderExternalImageApi, WebrenderExternalImageHandlers,
+    WebrenderExternalImageRegistry, WebrenderImageHandlerType,
 };
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
@@ -214,7 +214,7 @@ impl GLPlayerExternalImages {
 }
 
 impl WebrenderExternalImageApi for GLPlayerExternalImages {
-    fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>) {
+    fn lock(&mut self, id: u64) -> (ExternalImageSource, Size2D<i32>) {
         // The GLPlayerMsgForward::Lock message inserts a fence in the
         // GLPlayer command queue.
         self.glplayer_channel
@@ -228,7 +228,7 @@ impl WebrenderExternalImageApi for GLPlayerExternalImages {
         // internal OpenGL subsystem.
         //self.webrender_gl
         //    .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
-        (WebrenderImageSource::TextureHandle(image_id), size)
+        (ExternalImageSource::NativeTexture(image_id), size)
     }
 
     fn unlock(&mut self, id: u64) {
