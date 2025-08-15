@@ -166,7 +166,7 @@ impl DocumentEventHandler {
                     self.handle_native_mouse_move_event(&event, can_gc);
                 },
                 InputEvent::MouseLeftViewport(mouse_leave_event) => {
-                    self.handle_cursor_left_event(&event, &mouse_leave_event, can_gc);
+                    self.handle_mouse_left_viewport_event(&event, &mouse_leave_event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
                     self.handle_touch_event(touch_event, &event, can_gc);
@@ -221,7 +221,7 @@ impl DocumentEventHandler {
             .send_to_embedder(EmbedderMsg::SetCursor(self.window.webview_id(), cursor));
     }
 
-    fn handle_cursor_left_event(
+    fn handle_mouse_left_viewport_event(
         &self,
         input_event: &ConstellationInputEvent,
         mouse_leave_event: &MouseLeftViewportEvent,
