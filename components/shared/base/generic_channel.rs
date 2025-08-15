@@ -152,11 +152,11 @@ where
 /// Creates a Servo channel that can select different channel implementations based on multiprocess
 /// mode or not. If the scenario doesn't require message to pass process boundary, a simple
 /// crossbeam channel is preferred.
-pub fn channel<T>(multiprocess: bool) -> Option<(GenericSender<T>, GenericReceiver<T>)>
+pub fn channel<T>() -> Option<(GenericSender<T>, GenericReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    if multiprocess {
+    if servo_config::opts::get().multiprocess {
         ipc_channel::ipc::channel()
             .map(|(tx, rx)| (GenericSender::Ipc(tx), GenericReceiver::Ipc(rx)))
             .ok()

@@ -727,6 +727,7 @@ dependencies = [
  "malloc_size_of_derive",
  "parking_lot",
  "serde",
+ "servo_config",
  "servo_malloc_size_of",
  "time",
  "webrender_api",
