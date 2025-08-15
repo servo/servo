@@ -624,7 +624,7 @@ impl WindowPortsMethods for Window {
                 if webview.rect().contains(point) {
                     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
                 } else if webview.rect().contains(previous_point) {
-                    webview.notify_input_event(InputEvent::CursorLeft(CursorLeftEvent::default()));
+                    webview.notify_input_event(InputEvent::MouseLeftViewport(CursorLeftEvent::default()));
                 }
 
                 self.webview_relative_mouse_point.set(point);
@@ -634,7 +634,7 @@ impl WindowPortsMethods for Window {
                     .rect()
                     .contains(self.webview_relative_mouse_point.get())
                 {
-                    webview.notify_input_event(InputEvent::CursorLeft(CursorLeftEvent::default()));
+                    webview.notify_input_event(InputEvent::MouseLeftViewport(CursorLeftEvent::default()));
                 }
             },
             WindowEvent::MouseWheel { delta, .. } => {

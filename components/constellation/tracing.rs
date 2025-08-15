@@ -96,7 +96,7 @@ mod from_compositor {
                 InputEvent::Keyboard(..) => target_variant!("Keyboard"),
                 InputEvent::MouseButton(..) => target_variant!("MouseButton"),
                 InputEvent::MouseMove(..) => target_variant!("MouseMove"),
-                InputEvent::CursorLeft(..) => target_variant!("CursorLeft"),
+                InputEvent::MouseLeftViewport(..) => target_variant!("MouseLeftViewport"),
                 InputEvent::Touch(..) => target_variant!("Touch"),
                 InputEvent::Wheel(..) => target_variant!("Wheel"),
                 InputEvent::Scroll(..) => target_variant!("Scroll"),

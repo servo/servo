@@ -165,7 +165,7 @@ impl DocumentEventHandler {
                 InputEvent::MouseMove(_) => {
                     self.handle_native_mouse_move_event(&event, can_gc);
                 },
-                InputEvent::CursorLeft(mouse_leave_event) => {
+                InputEvent::MouseLeftViewport(mouse_leave_event) => {
                     self.handle_cursor_left_event(&event, &mouse_leave_event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
