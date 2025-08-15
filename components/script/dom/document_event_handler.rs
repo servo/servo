@@ -11,11 +11,11 @@ use std::time::{Duration, Instant};
 
 use constellation_traits::ScriptToConstellationMessage;
 use embedder_traits::{
-    Cursor, CursorLeftEvent, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
+    Cursor, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
     GamepadSupportedHapticEffects, GamepadUpdateType, ImeEvent, InputEvent,
     KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
-    ScrollEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId, UntrustedNodeAddress,
-    WheelEvent as EmbedderWheelEvent,
+    MouseLeftViewportEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId,
+    UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 use euclid::Point2D;
 use ipc_channel::ipc;
@@ -224,7 +224,7 @@ impl DocumentEventHandler {
     fn handle_cursor_left_event(
         &self,
         input_event: &ConstellationInputEvent,
-        mouse_leave_event: &CursorLeftEvent,
+        mouse_leave_event: &MouseLeftViewportEvent,
         can_gc: CanGc,
     ) {
         if let Some(current_hover_target) = self.current_hover_target.get() {

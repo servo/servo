@@ -20,7 +20,7 @@ pub enum InputEvent {
     Keyboard(KeyboardEvent),
     MouseButton(MouseButtonEvent),
     MouseMove(MouseMoveEvent),
-    MouseLeftViewport(CursorLeftEvent),
+    MouseLeftViewport(MouseLeftViewportEvent),
     Touch(TouchEvent),
     Wheel(WheelEvent),
     Scroll(ScrollEvent),
@@ -219,7 +219,7 @@ impl MouseMoveEvent {
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
-pub struct CursorLeftEvent {
+pub struct MouseLeftViewportEvent {
     pub focus_moving_to_another_iframe: bool,
 }
 

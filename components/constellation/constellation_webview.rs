@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use base::id::{BrowsingContextId, PipelineId};
-use embedder_traits::{CursorLeftEvent, InputEvent, Theme};
+use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
 use log::warn;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
@@ -117,9 +117,10 @@ impl ConstellationWebView {
             };
 
             let mut synthetic_mouse_leave_event = event.clone();
-            synthetic_mouse_leave_event.event = InputEvent::MouseLeftViewport(CursorLeftEvent {
-                focus_moving_to_another_iframe: true,
-            });
+            synthetic_mouse_leave_event.event =
+                InputEvent::MouseLeftViewport(MouseLeftViewportEvent {
+                    focus_moving_to_another_iframe: true,
+                });
 
             let _ = pipeline
                 .event_loop
