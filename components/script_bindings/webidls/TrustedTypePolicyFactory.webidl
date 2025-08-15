@@ -36,3 +36,5 @@ dictionary TrustedTypePolicyOptions {
 callback CreateHTMLCallback = DOMString? (DOMString input, any... arguments);
 callback CreateScriptCallback = DOMString? (DOMString input, any... arguments);
 callback CreateScriptURLCallback = USVString? (DOMString input, any... arguments);
+
+typedef (TrustedHTML or TrustedScript or TrustedScriptURL) TrustedType;
