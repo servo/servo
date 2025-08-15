@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+
+<head data-expected-height="8" data-expected-scroll-height="8">
+    <meta charset="utf-8">
+    <title>CSS Test: Basic cases of body with no element</title>
+    <link rel="author" title="Shubham Gupta" href="mailto:shubham13297@gmail.com">
+    <link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#the-height-property">
+    <meta name="assert" content="Checks the layout of body with no elements">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/check-layout-th.js"></script>
+</head>
+
+<body onload="checkLayout('body')" data-expected-height="0" data-expected-scroll-height="0">
+</body>
+
+</html>
