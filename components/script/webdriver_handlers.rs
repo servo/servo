@@ -2086,3 +2086,16 @@ pub(crate) fn handle_remove_load_status_sender(
         window.set_webdriver_load_status_sender(None);
     }
 }
+
+pub(crate) fn handle_get_window_handle(
+    pipeline_id: PipelineId,
+    reply: IpcSender<Result<String, ErrorStatus>>,
+) {
+    if let Some(res) = ScriptThread::find_document(pipeline_id)
+        .map(|document| document.upcast::<Node>().unique_id(pipeline_id))
+    {
+        reply.send(Ok(res)).ok();
+    } else {
+        reply.send(Err(ErrorStatus::NoSuchWindow)).ok();
+    }
+}

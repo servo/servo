@@ -4467,11 +4467,13 @@ where
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
-                let pipeline_id = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .expect("ScriptCommand: Browsing context must exist at this point")
-                    .pipeline_id;
+                let pipeline_id = if let Some(browsing_context) =
+                    self.browsing_contexts.get(&browsing_context_id)
+                {
+                    browsing_context.pipeline_id
+                } else {
+                    return warn!("{}: Browsing context is not ready", browsing_context_id);
+                };
 
                 match &cmd {
                     WebDriverScriptCommand::AddLoadStatusSender(_, sender) => {
