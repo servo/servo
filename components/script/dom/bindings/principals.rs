@@ -95,7 +95,7 @@ unsafe extern "C" fn principals_is_system_or_addon_principal(_: *mut JSPrincipal
     false
 }
 
-//TODO is same_origin_domain equivalent to subsumes for our purposes
+// TODO is same_origin_domain equivalent to subsumes for our purposes
 pub(crate) unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) -> bool {
     match (NonNull::new(obj), NonNull::new(other)) {
         (Some(obj), Some(other)) => {

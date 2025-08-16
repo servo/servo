@@ -194,7 +194,7 @@ impl PlayerGLContext for WindowGLContext {
 struct GLPlayerExternalImages {
     // @FIXME(victor): this should be added when GstGLSyncMeta is
     // added
-    //webrender_gl: Rc<dyn gl::Gl>,
+    // webrender_gl: Rc<dyn gl::Gl>,
     glplayer_channel: IpcSender<GLPlayerMsg>,
     // Used to avoid creating a new channel on each received WebRender
     // request.
@@ -226,7 +226,7 @@ impl WebrenderExternalImageApi for GLPlayerExternalImages {
         // order to avoid WR using a semi-ready GLPlayer texture.
         // glWaitSync doesn't block WR thread, it affects only
         // internal OpenGL subsystem.
-        //self.webrender_gl
+        // self.webrender_gl
         //    .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
         (ExternalImageSource::NativeTexture(image_id), size)
     }

@@ -2940,8 +2940,8 @@ impl Element {
                 HTMLElementTypeId::HTMLAnchorElement,
             )) => element.has_attribute(&local_name!("href")),
 
-            //TODO focusable if editing host
-            //TODO focusable if "sorting interface th elements"
+            // TODO focusable if editing host
+            // TODO focusable if "sorting interface th elements"
             _ => {
                 // Draggable elements are focusable.
                 element.get_string_attribute(&local_name!("draggable")) == "true"

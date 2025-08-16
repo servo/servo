@@ -126,7 +126,7 @@ impl Serialize for HighResolutionStamp {
     }
 }
 
-static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u64 = 200; //ms
+static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u64 = 200; // ms
 
 impl TimelineActor {
     pub fn new(
@@ -209,7 +209,7 @@ impl Actor for TimelineActor {
                     ))
                     .unwrap();
 
-                //TODO: support multiple connections by using root actor's streams instead.
+                // TODO: support multiple connections by using root actor's streams instead.
                 *self.stream.borrow_mut() = request.try_clone_stream().ok();
 
                 // init memory actor
@@ -268,7 +268,7 @@ impl Actor for TimelineActor {
                     ))
                     .unwrap();
 
-                //TODO: move this to the cleanup method.
+                // TODO: move this to the cleanup method.
                 if let Some(ref actor_name) = *self.framerate_actor.borrow() {
                     registry.drop_actor_later(actor_name.clone());
                 }

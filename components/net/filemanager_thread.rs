@@ -34,7 +34,7 @@ use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use crate::protocols::get_range_request_bounds;
 use crate::resource_thread::CoreResourceThreadPool;
 
-pub const FILE_CHUNK_SIZE: usize = 32768; //32 KB
+pub const FILE_CHUNK_SIZE: usize = 32768; // 32 KB
 
 /// FileManagerStore's entry
 struct FileStoreEntry {

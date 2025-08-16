@@ -1299,7 +1299,7 @@ fn test_fetch_with_devtools() {
     let devhttprequests = expect_devtools_http_request(&devtools_port);
     let mut devhttpresponse = devtools_response_with_body(&devtools_port);
 
-    //Creating default headers for request
+    // Creating default headers for request
     let mut headers = HeaderMap::new();
 
     headers.insert(header::ACCEPT, HeaderValue::from_static("*/*"));

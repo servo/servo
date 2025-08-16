@@ -564,7 +564,7 @@ impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
             sender,
             can_gc,
         );
-        //Note: Step 3 - 4. in response function, Step 5. in handle_response function.
+        // Note: Step 3 - 4. in response function, Step 5. in handle_response function.
         p
     }
 

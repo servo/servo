@@ -265,10 +265,10 @@ impl CanvasContext for RenderingContext {
 pub(crate) enum OffscreenRenderingContext {
     Context2d(Dom<OffscreenCanvasRenderingContext2D>),
     BitmapRenderer(Dom<ImageBitmapRenderingContext>),
-    //WebGL(Dom<WebGLRenderingContext>),
-    //WebGL2(Dom<WebGL2RenderingContext>),
-    //#[cfg(feature = "webgpu")]
-    //WebGPU(Dom<GPUCanvasContext>),
+    // WebGL(Dom<WebGLRenderingContext>),
+    // WebGL2(Dom<WebGL2RenderingContext>),
+    // #[cfg(feature = "webgpu")]
+    // WebGPU(Dom<GPUCanvasContext>),
     Detached,
 }
 
