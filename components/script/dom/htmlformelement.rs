@@ -100,6 +100,9 @@ pub(crate) struct HTMLFormElement {
     firing_submission_events: Cell<bool>,
     rel_list: MutNullableDom<DOMTokenList>,
 
+    /// <https://html.spec.whatwg.org/multipage/#planned-navigation>
+    planned_navigation: Cell<usize>,
+
     #[no_trace]
     relations: Cell<LinkRelations>,
 }
@@ -125,6 +128,7 @@ impl HTMLFormElement {
             current_name_generation: Cell::new(0),
             firing_submission_events: Cell::new(false),
             rel_list: Default::default(),
+            planned_navigation: Default::default(),
             relations: Cell::new(LinkRelations::empty()),
         }
     }
@@ -999,24 +1003,10 @@ impl HTMLFormElement {
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
     fn plan_to_navigate(&self, mut load_data: LoadData, target: &Window) {
-        // Step 1
-        // Each planned navigation task is tagged with a generation ID, and
-        // before the task is handled, it first checks whether the HTMLFormElement's
-        // generation ID is the same as its own generation ID.
-        //
-        // Note: we tie the above into in the beginnings of an `ongoing_navigation` concept,
-        // to cancel planned navigations as part of
-        // <https://html.spec.whatwg.org/multipage/#nav-stop>
-        //
-        // Note: tying the form navigation with the current ongoing navigation
-        // means we'll cancel the navigation even if the below task has not run yet.
-        // This is not how the spec is written, which seems to imply that
-        // a `window.stop` should only cancel the navigation that have already started
-        // (here the task is queued, but the nav starts only in the task).
-        // See https://github.com/whatwg/html/issues/11562
-        let ongoing_navigation = target.set_ongoing_navigation();
-
-        // Step 2
+        // Let referrerPolicy be the empty string.
+        // If the form element's link types include the noreferrer keyword,
+        // then set referrerPolicy to "no-referrer".
+        // Note: both steps done below.
         let elem = self.upcast::<Element>();
         let referrer = match elem.get_attribute(&ns!(), &local_name!("rel")) {
             Some(ref link_types) if link_types.Value().contains("noreferrer") => {
@@ -1025,17 +1015,54 @@ impl HTMLFormElement {
             _ => target.as_global_scope().get_referrer(),
         };
 
+        // If the form has a non-null planned navigation, remove it from its task queue.
+        // Note: done by incrementing `planned_navigation`.
+        self.planned_navigation
+            .set(self.planned_navigation.get().wrapping_add(1));
+        let planned_navigation = self.planned_navigation.get();
+
+        // Note: we start to use
+        // the beginnings of an `ongoing_navigation` concept,
+        // to cancel planned navigations as part of
+        // <https://html.spec.whatwg.org/multipage/#nav-stop>
+        //
+        // The concept of ongoing navigation must be separated from the form's
+        // planned navigation conceopt, because each planned navigation cancels the previous one
+        // for a given form,
+        // whereas an ongoing navigation is a per navigable(read: window for now) concept.
+        //
+        // Setting the ongoing navigation now
+        // means the navigation could be cancelled even if the below task has not run yet.
+        // This is not how the spec is written: it seems instead to imply that
+        // a `window.stop` should only cancel the navigation that has already started
+        // (here the task is queued, but the nav starts only in the task).
+        // See https://github.com/whatwg/html/issues/11562
+        let ongoing_navigation = target.set_ongoing_navigation();
+
         let referrer_policy = target.Document().get_referrer_policy();
         load_data.creator_pipeline_id = Some(target.pipeline_id());
         load_data.referrer = referrer;
         load_data.referrer_policy = referrer_policy;
 
-        // Step 4.
+        // Queue an element task on the DOM manipulation task source
+        // given the form element and the following steps:
+        let form = Trusted::new(self);
         let window = Trusted::new(target);
         let task = task!(navigate_to_form_planned_navigation: move || {
+            // Set the form's planned navigation to null.
+            // Note: we implement the equivalent by incrementing the counter above,
+            // and checking it here.
+            if planned_navigation != form.root().planned_navigation.get() {
+                return;
+            }
+
+            // Note: we also check if the navigation has been cancelled,
+            // see https://github.com/whatwg/html/issues/11562
             if ongoing_navigation != window.root().ongoing_navigation() {
                 return;
             }
+
+            // Navigate targetNavigable to url
             window
                 .root()
                 .load_url(
@@ -1046,7 +1073,7 @@ impl HTMLFormElement {
                 );
         });
 
-        // Step 3.
+        // Note: task queued here.
         target
             .global()
             .task_manager()
