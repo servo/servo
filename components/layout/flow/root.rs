@@ -81,6 +81,9 @@ impl BoxTree {
                 if !style.get_box().display.is_none() {
                     viewport_overflow_x = style.clone_overflow_x();
                     viewport_overflow_y = style.clone_overflow_y();
+                    child.as_element().as_mut().inspect(|e| {
+                        e.set_element_overflow_value_propagated();
+                    });
 
                     break;
                 }

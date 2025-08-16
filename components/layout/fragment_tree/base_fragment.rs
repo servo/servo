@@ -104,6 +104,9 @@ bitflags! {
         const SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM = 1 << 8;
         /// Whether or not the node that created this fragment is the root element.
         const IS_ROOT_ELEMENT = 1 << 9;
+        /// If element has propagated the overflow value to viewport.
+        const IS_ELEMENT_OVERFLOW_VALUE_PROPAGATED = 1 << 10;
+
     }
 }
 

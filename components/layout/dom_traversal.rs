@@ -97,6 +97,9 @@ impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
         if let Some(element) = threadsafe_node.as_html_element() {
             if element.is_body_element_of_html_element_root() {
                 flags.insert(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
+                if element.is_element_overflow_value_propagated() {
+                    flags.insert(FragmentFlags::IS_ELEMENT_OVERFLOW_VALUE_PROPAGATED);
+                }
             }
 
             match element.get_local_name() {
