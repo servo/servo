@@ -130,7 +130,6 @@ impl THarfShaper for Shaper {
             .shaper(&hr_font)
             // Set the instance
             // .instance(Some(&instance_data))
-            .point_size(Some(self.ppem as f32))
             .build();
         let glyph_buffer = shaper.shape(buffer, &features);
         let scale = self.ppem / shaper.units_per_em() as f64;
