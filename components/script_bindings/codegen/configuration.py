@@ -2,6 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+# fmt: off
+
+from __future__ import annotations
+
 import functools
 import os
 from typing import Any
@@ -30,7 +34,7 @@ class Configuration:
     enumConfig: dict[str, Any]
     dictConfig: dict[str, Any]
     unionConfig: dict[str, Any]
-    descriptors: list["Descriptor"]
+    descriptors: list[Descriptor]
     interfaces: dict[str, IDLInterface]
 
     def __init__(self, filename: str, parseData: list[IDLInterface]) -> None:
@@ -86,46 +90,46 @@ class Configuration:
                           c.isCallback() and not c.isInterface()]
 
         # Keep the descriptor list sorted for determinism.
-        def cmp(x, y):
+        def cmp(x: str, y: str) -> int:
             return (x > y) - (x < y)
         self.descriptors.sort(key=functools.cmp_to_key(lambda x, y: cmp(x.name, y.name)))
 
     def getInterface(self, ifname: str) -> IDLInterface:
         return self.interfaces[ifname]
 
-    def getDescriptors(self, **filters) -> list["Descriptor"]:
+    def getDescriptors(self, **filters: IDLInterface) -> list[Descriptor]:
         """Gets the descriptors that match the given filters."""
         curr = self.descriptors
         for key, val in filters.items():
             if key == 'webIDLFile':
-                def getter(x: Descriptor):
+                def getter(x: Descriptor) -> str:
                     return x.interface.location.filename
             elif key == 'hasInterfaceObject':
-                def getter(x):
+                def getter(x: Descriptor) -> bool:
                     return x.interface.hasInterfaceObject()
             elif key == 'isCallback':
-                def getter(x):
+                def getter(x: Descriptor) -> bool:
                     return x.interface.isCallback()
             elif key == 'isNamespace':
-                def getter(x):
+                def getter(x: Descriptor) -> bool:
                     return x.interface.isNamespace()
             elif key == 'isJSImplemented':
-                def getter(x):
+                def getter(x: Descriptor) -> bool:
                     return x.interface.isJSImplemented()
             elif key == 'isGlobal':
-                def getter(x):
+                def getter(x: Descriptor) -> bool:
                     return x.isGlobal()
             elif key == 'isInline':
-                def getter(x) -> bool:
+                def getter(x: Descriptor) -> bool:
                     return x.interface.getExtendedAttribute('Inline') is not None
             elif key == 'isExposedConditionally':
-                def getter(x):
+                def getter(x: Descriptor) -> bool:
                     return x.interface.isExposedConditionally()
             elif key == 'isIteratorInterface':
-                def getter(x):
+                def getter(x: Descriptor) -> bool:
                     return x.interface.isIteratorInterface()
             else:
-                def getter(x):
+                def getter(x: Descriptor) -> Any:
                     return getattr(x, key)
             curr = [x for x in curr if getter(x) == val]
         return curr
@@ -159,7 +163,7 @@ class Configuration:
     def getCallbacks(self, webIDLFile: str = "") -> list[IDLInterface]:
         return self._filterForFile(self.callbacks, webIDLFile=webIDLFile)
 
-    def getDescriptor(self, interfaceName: str) -> "Descriptor":
+    def getDescriptor(self, interfaceName: str) -> Descriptor:
         """
         Gets the appropriate descriptor for the given interface name.
         """
@@ -172,7 +176,7 @@ class Configuration:
                                         + str(len(descriptors)) + " matches")
         return descriptors[0]
 
-    def getDescriptorProvider(self) -> "DescriptorProvider":
+    def getDescriptorProvider(self) -> DescriptorProvider:
         """
         Gets a descriptor provider that can provide descriptors as needed.
         """
@@ -180,7 +184,7 @@ class Configuration:
 
 
 class NoSuchDescriptorError(TypeError):
-    def __init__(self, str) -> None:
+    def __init__(self, str: str) -> None:
         TypeError.__init__(self, str)
 
 
@@ -188,10 +192,10 @@ class DescriptorProvider:
     """
     A way of getting descriptors for interface names
     """
-    def __init__(self, config) -> None:
+    def __init__(self, config: Configuration) -> None:
         self.config = config
 
-    def getDescriptor(self, interfaceName: str) -> "Descriptor":
+    def getDescriptor(self, interfaceName: str) -> Descriptor:
         """
         Gets the appropriate descriptor for the given interface name given the
         context of the current descriptor.
@@ -199,7 +203,7 @@ class DescriptorProvider:
         return self.config.getDescriptor(interfaceName)
 
 
-def MemberIsLegacyUnforgeable(member: IDLAttribute | IDLMethod, descriptor: "Descriptor") -> bool:
+def MemberIsLegacyUnforgeable(member: IDLAttribute | IDLMethod, descriptor: Descriptor) -> bool:
     return ((member.isAttr() or member.isMethod())
             and not member.isStatic()
             and (member.isLegacyUnforgeable()
@@ -213,7 +217,7 @@ class Descriptor(DescriptorProvider):
     interface: IDLInterface
     uniqueImplementation: bool
 
-    def __init__(self, config, interface: IDLInterface, desc: dict[str, Any]) -> None:
+    def __init__(self, config: Configuration, interface: IDLInterface, desc: dict[str, Any]) -> None:
         DescriptorProvider.__init__(self, config)
         self.interface = interface
 
@@ -289,7 +293,7 @@ class Descriptor(DescriptorProvider):
                                             and any(MemberIsLegacyUnforgeable(m, self) for m in
                                                     self.interface.members))
 
-        self.operations = {
+        self.operations: dict[str, IDLMethod | None] = {
             'IndexedGetter': None,
             'IndexedSetter': None,
             'IndexedDeleter': None,
@@ -301,7 +305,7 @@ class Descriptor(DescriptorProvider):
 
         self.hasDefaultToJSON = False
 
-        def addOperation(operation: str, m) -> None:
+        def addOperation(operation: str, m: IDLMethod) -> None:
             if not self.operations[operation]:
                 self.operations[operation] = m
 
@@ -320,7 +324,7 @@ class Descriptor(DescriptorProvider):
                     if not m.isMethod():
                         continue
 
-                    def addIndexedOrNamedOperation(operation: str, m) -> None:
+                    def addIndexedOrNamedOperation(operation: str, m: IDLMethod) -> None:
                         if not self.isGlobal():
                             self.proxy = True
                         if m.isIndexed():
@@ -357,8 +361,8 @@ class Descriptor(DescriptorProvider):
         # array of extended attributes.
         self.extendedAttributes = {'all': {}, 'getterOnly': {}, 'setterOnly': {}}
 
-        def addExtendedAttribute(attribute, config) -> None:
-            def add(key: str, members, attribute) -> None:
+        def addExtendedAttribute(attribute: dict[str, Any], config: Configuration) -> None:
+            def add(key: str, members: list[str], attribute: dict[str, Any]) -> None:
                 for member in members:
                     self.extendedAttributes[key].setdefault(member, []).append(attribute)
 
@@ -405,7 +409,7 @@ class Descriptor(DescriptorProvider):
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
 
-    def maybeGetSuperModule(self):
+    def maybeGetSuperModule(self) -> str | None:
         """
         Returns name of super module if self is part of it
         """
@@ -416,10 +420,10 @@ class Descriptor(DescriptorProvider):
             return filename
         return None
 
-    def binaryNameFor(self, name: str, isStatic: bool):
+    def binaryNameFor(self, name: str, isStatic: bool) -> str:
         return self._binaryNames.get((name, isStatic), name)
 
-    def internalNameFor(self, name: str):
+    def internalNameFor(self, name: str) -> str:
         return self._internalNames.get(name, name)
 
     def hasNamedPropertiesObject(self) -> bool:
@@ -431,8 +435,8 @@ class Descriptor(DescriptorProvider):
     def supportsNamedProperties(self) -> bool:
         return self.operations['NamedGetter'] is not None
 
-    def getExtendedAttributes(self, member, getter=False, setter=False):
-        def maybeAppendInfallibleToAttrs(attrs, throws) -> None:
+    def getExtendedAttributes(self, member: IDLMethod, getter: bool = False, setter: bool = False) -> list[str]:
+        def maybeAppendInfallibleToAttrs(attrs: list[str], throws: bool | None) -> None:
             if throws is None:
                 attrs.append("infallible")
             elif throws is True:
@@ -458,7 +462,7 @@ class Descriptor(DescriptorProvider):
         maybeAppendInfallibleToAttrs(attrs, throws)
         return attrs
 
-    def getParentName(self):
+    def getParentName(self) -> str | None:
         parent = self.interface.parent
         while parent:
             if not parent.getExtendedAttribute("Inline"):
@@ -469,30 +473,30 @@ class Descriptor(DescriptorProvider):
     def supportsIndexedProperties(self) -> bool:
         return self.operations['IndexedGetter'] is not None
 
-    def isMaybeCrossOriginObject(self):
+    def isMaybeCrossOriginObject(self) -> bool:
         # If we're isGlobal and have cross-origin members, we're a Window, and
         # that's not a cross-origin object.  The WindowProxy is.
         return self.concrete and self.interface.hasCrossOriginMembers and not self.isGlobal()
 
-    def hasDescendants(self):
+    def hasDescendants(self) -> bool:
         return (self.interface.getUserData("hasConcreteDescendant", False)
-                or self.interface.getUserData("hasProxyDescendant", False))
+                or self.interface.getUserData("hasProxyDescendant", False) or False)
 
-    def hasHTMLConstructor(self):
+    def hasHTMLConstructor(self) -> bool:
         ctor = self.interface.ctor()
-        return ctor and ctor.isHTMLConstructor()
+        return (ctor and ctor.isHTMLConstructor()) or False
 
-    def shouldHaveGetConstructorObjectMethod(self):
+    def shouldHaveGetConstructorObjectMethod(self) -> bool:
         assert self.interface.hasInterfaceObject()
         if self.interface.getExtendedAttribute("Inline"):
             return False
         return (self.interface.isCallback() or self.interface.isNamespace()
-                or self.hasDescendants() or self.hasHTMLConstructor())
+                or self.hasDescendants() or self.hasHTMLConstructor() or False)
 
-    def shouldCacheConstructor(self):
-        return self.hasDescendants() or self.hasHTMLConstructor()
+    def shouldCacheConstructor(self) -> bool:
+        return self.hasDescendants() or self.hasHTMLConstructor() or False
 
-    def isExposedConditionally(self):
+    def isExposedConditionally(self) -> bool:
         return self.interface.isExposedConditionally()
 
     def isGlobal(self) -> bool:
@@ -507,19 +511,19 @@ class Descriptor(DescriptorProvider):
 # Some utility methods
 
 
-def MakeNativeName(name):
+def MakeNativeName(name: str) -> str:
     return name[0].upper() + name[1:]
 
 
-def getIdlFileName(object: IDLObject):
+def getIdlFileName(object: IDLObject) -> str:
     return os.path.basename(object.location.filename).split('.webidl')[0]
 
 
-def getModuleFromObject(object: IDLObject):
+def getModuleFromObject(object: IDLObject) -> str:
     return ('crate::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
 
 
-def getTypesFromDescriptor(descriptor: Descriptor):
+def getTypesFromDescriptor(descriptor: Descriptor) -> list:
     """
     Get all argument and return types for all members of the descriptor
     """
@@ -570,7 +574,7 @@ def getUnwrappedType(type: IDLType) -> IDLType:
     return type
 
 
-def iteratorNativeType(descriptor: Descriptor, infer: bool = False):
+def iteratorNativeType(descriptor: Descriptor, infer: bool = False) -> str:
     assert descriptor.interface.maplikeOrSetlikeOrIterable is not None
     iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
     assert (iterableDecl.isIterable() and iterableDecl.isPairIterator()) \
