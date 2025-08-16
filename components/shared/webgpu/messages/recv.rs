@@ -151,21 +151,18 @@ pub enum WebGPURequest {
         size: DeviceIntSize,
         sender: IpcSender<(WebGPUContextId, ImageKey)>,
     },
-    /// Recreates swapchain (if needed)
-    UpdateContext {
-        context_id: WebGPUContextId,
-        size: DeviceIntSize,
-        configuration: Option<ContextConfiguration>,
-    },
-    /// Reads texture to swapchains buffer and maps it
-    SwapChainPresent {
+    /// Present texture to WebRender
+    Present {
         context_id: WebGPUContextId,
         texture_id: TextureId,
         encoder_id: CommandEncoderId,
+        configuration: ContextConfiguration,
+        done: IpcSender<()>,
     },
-    /// Obtains image from latest presentation buffer (same as wr update)
+    /// Snapshot last present or provided pending texture and send it's snapshot
     GetImage {
         context_id: WebGPUContextId,
+        pending_texture: Option<(TextureId, CommandEncoderId, ContextConfiguration)>,
         sender: IpcSender<IpcSnapshot>,
     },
     ValidateTextureDescriptor {
