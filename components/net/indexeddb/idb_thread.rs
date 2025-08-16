@@ -300,19 +300,24 @@ impl IndexedDBManager {
 
                 let idb_base_dir = self.idb_base_dir.as_path();
 
+                let version = version.unwrap_or(0);
+
                 match self.databases.entry(idb_description.clone()) {
                     Entry::Vacant(e) => {
-                        let db = IndexedDBEnvironment::new(SqliteEngine::new(
-                            idb_base_dir,
-                            &idb_description,
-                            version.unwrap_or(0),
-                            self.thread_pool.clone(),
-                        ).expect("Failed to create sqlite engine"));
-                        let _ = sender.send(db.version().unwrap_or(version.unwrap_or(0)));
+                        let db = IndexedDBEnvironment::new(
+                            SqliteEngine::new(
+                                idb_base_dir,
+                                &idb_description,
+                                version,
+                                self.thread_pool.clone(),
+                            )
+                            .expect("Failed to create sqlite engine"),
+                        );
+                        let _ = sender.send(db.version().unwrap_or(version));
                         e.insert(db);
                     },
                     Entry::Occupied(db) => {
-                        let _ = sender.send(db.get().version().unwrap_or(version.unwrap_or(0)));
+                        let _ = sender.send(db.get().version().unwrap_or(version));
                     },
                 }
             },

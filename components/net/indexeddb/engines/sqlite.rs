@@ -3,9 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+
 use ipc_channel::ipc::IpcSender;
 use log::{error, info};
-use net_traits::indexeddb_thread::{AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult, CreateObjectResult, IndexedDBKeyRange, IndexedDBTxnMode, KeyPath, PutItemResult};
+use net_traits::indexeddb_thread::{
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
+    CreateObjectResult, IndexedDBKeyRange, IndexedDBTxnMode, KeyPath, PutItemResult,
+};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use serde::Serialize;
@@ -310,7 +314,13 @@ impl KvsEngine for SqliteEngine {
                         })
                         .optional()
                     });
-                fn process_object_store<T>(object_store: Result<Option<object_store_model::Model>, Error>, sender: &IpcSender<BackendResult<T>>) -> Result<object_store_model::Model, ()> where T: Serialize {
+                fn process_object_store<T>(
+                    object_store: Result<Option<object_store_model::Model>, Error>,
+                    sender: &IpcSender<BackendResult<T>>,
+                ) -> Result<object_store_model::Model, ()>
+                where
+                    T: Serialize,
+                {
                     match object_store {
                         Ok(Some(store)) => Ok(store),
                         Ok(None) => {
@@ -331,7 +341,9 @@ impl KvsEngine for SqliteEngine {
                         value,
                         should_overwrite,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else { continue; };
+                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                            continue;
+                        };
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         let _ = sender.send(
                             Self::put_item(
@@ -348,7 +360,9 @@ impl KvsEngine for SqliteEngine {
                         sender,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else { continue; };
+                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                            continue;
+                        };
                         let _ = sender.send(
                             Self::get_item(&connection, object_store, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -358,7 +372,9 @@ impl KvsEngine for SqliteEngine {
                         sender,
                         key,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else { continue; };
+                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                            continue;
+                        };
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         let _ = sender.send(
                             Self::delete_item(&connection, object_store, serialized_key)
@@ -369,7 +385,9 @@ impl KvsEngine for SqliteEngine {
                         sender,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else { continue; };
+                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                            continue;
+                        };
                         let _ = sender.send(
                             Self::count(&connection, object_store, key_range)
                                 .map(|r| r as u64)
@@ -377,7 +395,9 @@ impl KvsEngine for SqliteEngine {
                         );
                     },
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(sender)) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else { continue; };
+                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                            continue;
+                        };
                         let _ = sender.send(
                             Self::clear(&connection, object_store)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -387,7 +407,9 @@ impl KvsEngine for SqliteEngine {
                         sender,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else { continue; };
+                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                            continue;
+                        };
                         let _ = sender.send(
                             Self::get_key(&connection, object_store, key_range)
                                 .map(|key| key.map(|k| bincode::deserialize(&k).unwrap()))
@@ -550,7 +572,8 @@ mod tests {
             },
             1,
             thread_pool.clone(),
-        ).unwrap();
+        )
+        .unwrap();
         // Test open
         let db = super::SqliteEngine::new(
             base_dir.path(),
@@ -560,7 +583,8 @@ mod tests {
             },
             1,
             thread_pool.clone(),
-        ).unwrap();
+        )
+        .unwrap();
         let version = db.version().expect("Failed to get version");
         assert_eq!(version, 1);
         db.set_version(5).unwrap();
@@ -581,7 +605,8 @@ mod tests {
             },
             1,
             thread_pool,
-        ).unwrap();
+        )
+        .unwrap();
         let store_name = SanitizedName::new("test_store".to_string());
         let result = db.create_store(store_name.clone(), None, true);
         assert!(result.is_ok());
@@ -608,7 +633,8 @@ mod tests {
             },
             1,
             thread_pool,
-        ).unwrap();
+        )
+        .unwrap();
         let store_name = SanitizedName::new("test_store".to_string());
         let result = db.create_store(
             store_name.clone(),
@@ -634,7 +660,8 @@ mod tests {
             },
             1,
             thread_pool,
-        ).unwrap();
+        )
+        .unwrap();
         db.create_store(SanitizedName::new("test_store".to_string()), None, false)
             .expect("Failed to create store");
         // Delete the store
@@ -661,7 +688,8 @@ mod tests {
             },
             1,
             thread_pool,
-        ).unwrap();
+        )
+        .unwrap();
         let store_name = SanitizedName::new("test_store".to_string());
         db.create_store(store_name.clone(), None, false)
             .expect("Failed to create store");
