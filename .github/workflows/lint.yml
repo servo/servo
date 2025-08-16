@@ -92,7 +92,7 @@ jobs:
         run: | 
           ls /.dockerenv
           ls -l /data/servo
-          ls -l /root/.rustup/toolchains
+          ls -l /data/.rustup/toolchains
       - run: rustup toolchain list
         working-directory: /data/servo/servo
       - run: rustup set profile minimal
