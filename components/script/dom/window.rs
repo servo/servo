@@ -226,7 +226,7 @@ impl LayoutBlocker {
 /// An id used to cancel navigations; for now only used for planned form navigations.
 /// Loosely based on
 /// <https://html.spec.whatwg.org/multipage/#ongoing-navigation>
-#[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct OngoingNavigation(u32);
 
 type PendingImageRasterizationKey = (PendingImageId, DeviceIntSize);
