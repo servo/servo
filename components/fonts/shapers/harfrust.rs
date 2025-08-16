@@ -8,6 +8,7 @@ use harfrust::{
     Feature, FontRef as HarfRustFontRef, GlyphBuffer, Script, ShaperData, Tag, UnicodeBuffer,
 };
 use num_traits::Zero as _;
+use read_fonts::TableProvider;
 use smallvec::SmallVec;
 
 use super::{ShapedGlyphEntry, THarfShapedGlyphData, THarfShaper, unicode_to_hb_script};
@@ -61,7 +62,8 @@ pub struct Shaper {
     /// The index of a font in it's collection (.ttc)
     /// If the font file is not a collection then this is 0
     font_index: u32,
-    // points-per-em. Used for scaling HarfRust's output
+    // Used for scaling HarfRust's output
+    scale: f64,
     ppem: f64,
 }
 
@@ -77,10 +79,17 @@ impl Shaper {
         let font_index = font.identifier().index();
         // Set points-per-em. if zero, performs no hinting in that direction
         let ppem = font.descriptor.pt_size.to_f64_px();
+        let units_per_em = read_fonts::FontRef::from_index(font_data.as_ref(), font_index)
+            .unwrap()
+            .head()
+            .unwrap()
+            .units_per_em();
+        let scale = ppem / (units_per_em as f64);
         Self {
             font: font as *const Font,
             font_data,
             font_index,
+            scale,
             ppem,
         }
     }
@@ -136,11 +145,10 @@ impl THarfShaper for Shaper {
             // .instance(Some(&instance_data))
             .build();
         let glyph_buffer = shaper.shape(buffer, &features);
-        let scale = self.ppem / shaper.units_per_em() as f64;
 
         ShapedGlyphData {
             data: glyph_buffer,
-            scale,
+            scale: self.scale,
         }
     }
 
