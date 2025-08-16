@@ -9,6 +9,7 @@ use base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use memmap2::Mmap;
+use read_fonts::FileRef;
 use serde::{Deserialize, Serialize};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
@@ -43,7 +44,7 @@ impl LocalFontIdentifier {
         0
     }
 
-    pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
+    pub(crate) fn read_data_from_file(&self) -> Option<(Vec<u8>, u32)> {
         // TODO: This is incorrect, if the font file is a TTC (collection) with more than
         // one font. In that case we either need to reconstruct the pertinent tables into
         // a bundle of font data (expensive) or make sure that the value returned by
@@ -52,7 +53,48 @@ impl LocalFontIdentifier {
         // listed in the font.
         let file = File::open(Path::new(&*self.path)).ok()?;
         let mmap = unsafe { Mmap::map(&file).ok()? };
-        Some(mmap[..].to_vec())
+
+        // Determine index
+        let file_ref = FileRef::new(mmap.as_ref()).ok()?;
+        let index = ttc_index_from_postscript_name(file_ref, &self.postscript_name);
+
+        Some((mmap[..].to_vec(), index))
+    }
+}
+
+/// CoreText font enumaration gives us a postscript name rather than an index.
+/// This functions maps from postscript name to index
+fn ttc_index_from_postscript_name(font_file: FileRef<'_>, postscript_name: &str) -> u32 {
+    use read_fonts::types::NameId;
+    use read_fonts::{FileRef, TableProvider as _};
+
+    match font_file {
+        FileRef::Font(_) => 0,
+        FileRef::Collection(collection) => 'idx: {
+            for i in 0..collection.len() {
+                let font = collection.get(i).unwrap();
+                let name_table = font.name().unwrap();
+                if name_table
+                    .name_record()
+                    .iter()
+                    .filter(|record| record.name_id() == NameId::POSTSCRIPT_NAME)
+                    .any(|record| {
+                        record
+                            .string(name_table.string_data())
+                            .unwrap()
+                            .chars()
+                            .eq(postscript_name.chars())
+                    })
+                {
+                    break 'idx i;
+                }
+            }
+
+            panic!(
+                "Font with postscript_name {} not found in collection",
+                postscript_name
+            );
+        },
     }
 }
 

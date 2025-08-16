@@ -248,6 +248,15 @@ impl malloc_size_of::MallocSizeOf for CachedShapeData {
     }
 }
 
+/// Raw data and index for a font
+#[derive(Clone)]
+pub struct RawFont {
+    /// The raw font file data (.ttf, .otf, .ttc, etc)
+    pub data: FontData,
+    /// The index of the font within the file (0 if the file is not a ttc)
+    pub index: u32,
+}
+
 pub struct Font {
     pub handle: PlatformFont,
     pub template: FontTemplateRef,
@@ -255,7 +264,7 @@ pub struct Font {
     pub descriptor: FontDescriptor,
 
     /// The data for this font. This might be uninitialized for system fonts.
-    data: OnceLock<FontData>,
+    raw: OnceLock<RawFont>,
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
@@ -313,7 +322,9 @@ impl Font {
             template,
             metrics,
             descriptor,
-            data: data.map(OnceLock::from).unwrap_or_default(),
+            raw: data
+                .map(|data| OnceLock::from(RawFont { data, index: 0 }))
+                .unwrap_or_default(),
             shaper: OnceLock::new(),
             cached_shape_data: Default::default(),
             font_instance_key: Default::default(),
@@ -348,16 +359,18 @@ impl Font {
 
     /// Return the data for this `Font`. Note that this is currently highly inefficient for system
     /// fonts and should not be used except in legacy canvas code.
-    pub fn data(&self) -> &FontData {
-        self.data.get_or_init(|| {
+    pub fn raw_font(&self) -> &RawFont {
+        self.raw.get_or_init(|| {
             let FontIdentifier::Local(local_font_identifier) = self.identifier() else {
                 unreachable!("All web fonts should already have initialized data");
             };
-            FontData::from_bytes(
-                &local_font_identifier
-                    .read_data_from_file()
-                    .unwrap_or_default(),
-            )
+            let Some((bytes, index)) = local_font_identifier.read_data_from_file() else {
+                panic!("Failed to load raw font data");
+            };
+
+            let data = FontData::from_bytes(&bytes);
+
+            RawFont { data, index }
         })
     }
 
