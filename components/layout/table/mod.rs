@@ -82,7 +82,6 @@ use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font;
 use style::selector_parser::PseudoElement;
-use style_traits::dom::OpaqueNode;
 
 use super::flow::BlockFormattingContext;
 use crate::SharedStyle;
@@ -232,7 +231,7 @@ impl TableSlotCell {
     pub fn mock_for_testing(id: usize, colspan: usize, rowspan: usize) -> Self {
         Self {
             base: LayoutBoxBase::new(
-                BaseFragmentInfo::new_for_node(OpaqueNode(id)),
+                BaseFragmentInfo::new_for_testing(id),
                 ComputedValues::initial_values_with_font_override(Font::initial_values()).to_arc(),
             ),
             contents: BlockFormattingContext {

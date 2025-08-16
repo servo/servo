@@ -132,13 +132,13 @@ pub(crate) enum ReplacedContentKind {
 
 impl ReplacedContents {
     pub fn for_element(
-        element: ServoThreadSafeLayoutNode<'_>,
+        node: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
     ) -> Option<Self> {
-        if let Some(ref data_attribute_string) = element.as_typeless_object_with_data_attribute() {
+        if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() {
             if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
                 return Self::from_image_url(
-                    element,
+                    node,
                     context,
                     &ComputedUrl::Valid(ServoArc::new(url)),
                 );
@@ -146,17 +146,17 @@ impl ReplacedContents {
         }
 
         let (kind, natural_size) = {
-            if let Some((image, natural_size_in_dots)) = element.as_image() {
+            if let Some((image, natural_size_in_dots)) = node.as_image() {
                 (
                     ReplacedContentKind::Image(image),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
-            } else if let Some((canvas_info, natural_size_in_dots)) = element.as_canvas() {
+            } else if let Some((canvas_info, natural_size_in_dots)) = node.as_canvas() {
                 (
                     ReplacedContentKind::Canvas(canvas_info),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
-            } else if let Some((pipeline_id, browsing_context_id)) = element.as_iframe() {
+            } else if let Some((pipeline_id, browsing_context_id)) = node.as_iframe() {
                 (
                     ReplacedContentKind::IFrame(IFrameInfo {
                         pipeline_id,
@@ -164,20 +164,20 @@ impl ReplacedContents {
                     }),
                     NaturalSizes::empty(),
                 )
-            } else if let Some((image_key, natural_size_in_dots)) = element.as_video() {
+            } else if let Some((image_key, natural_size_in_dots)) = node.as_video() {
                 (
                     ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
                     natural_size_in_dots
                         .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
-            } else if let Some(svg_data) = element.as_svg() {
+            } else if let Some(svg_data) = node.as_svg() {
                 let svg_source = match svg_data.source {
                     None => {
                         // The SVGSVGElement is not yet serialized, so we add it to a list
                         // and hand it over to script to peform the serialization.
                         context
                             .image_resolver
-                            .queue_svg_element_for_serialization(element);
+                            .queue_svg_element_for_serialization(node);
                         return None;
                     },
                     Some(Err(_)) => {
@@ -189,7 +189,7 @@ impl ReplacedContents {
 
                 let result = context
                     .image_resolver
-                    .get_cached_image_for_url(element.opaque(), svg_source, UsePlaceholder::No)
+                    .get_cached_image_for_url(node.opaque(), svg_source, UsePlaceholder::No)
                     .ok();
 
                 let vector_image = result.map(|result| match result {
@@ -210,25 +210,24 @@ impl ReplacedContents {
         if let ReplacedContentKind::Image(Some(Image::Raster(ref image))) = kind {
             context
                 .image_resolver
-                .handle_animated_image(element.opaque(), image.clone());
+                .handle_animated_image(node.opaque(), image.clone());
         }
 
-        let base_fragment_info = BaseFragmentInfo::new_for_node(element.opaque());
         Some(Self {
             kind,
             natural_size,
-            base_fragment_info,
+            base_fragment_info: node.into(),
         })
     }
 
     pub fn from_image_url(
-        element: ServoThreadSafeLayoutNode<'_>,
+        node: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
         image_url: &ComputedUrl,
     ) -> Option<Self> {
         if let ComputedUrl::Valid(image_url) = image_url {
             let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
-                element.opaque(),
+                node.opaque(),
                 image_url.clone().into(),
                 UsePlaceholder::No,
             ) {
@@ -251,7 +250,7 @@ impl ReplacedContents {
             return Some(Self {
                 kind: ReplacedContentKind::Image(image),
                 natural_size: NaturalSizes::from_width_and_height(width, height),
-                base_fragment_info: BaseFragmentInfo::new_for_node(element.opaque()),
+                base_fragment_info: node.into(),
             });
         }
         None

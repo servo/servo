@@ -1200,11 +1200,11 @@ impl LayoutThread {
         stacking_context_tree.compositor_info.epoch = epoch.into();
 
         let built_display_list = DisplayListBuilder::build(
-            reflow_request,
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
             self.device().device_pixel_ratio(),
+            reflow_request.highlighted_dom_node,
             &self.debug,
         );
         self.compositor_api.send_display_list(
