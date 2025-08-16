@@ -86,4 +86,4 @@ jobs:
         # if we re-use the image.
         working-directory: /data/servo/servo
         run: |
-          cargo +${{ env.MINIMUM_SUPPORTED_RUST_VERSION }} check -p libservo --locked --target-dir /data/servo/target
+          CARGO_INCREMENTAL=1 cargo +${{ env.MINIMUM_SUPPORTED_RUST_VERSION }} check -p libservo --locked --target-dir /data/servo/target
