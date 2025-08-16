@@ -7,14 +7,11 @@ use num_traits::Zero as _;
 use smallvec::SmallVec;
 
 use super::{ShapedGlyphEntry, THarfShapedGlyphData, THarfShaper, unicode_to_hb_script};
-use crate::{Font, FontData, ShapingFlags, fixed_to_float};
-
-fn au_from_fixed_glyph_info(i: i32) -> Au {
-    Au::from_f64_px(fixed_to_float(16, i))
-}
+use crate::{Font, FontData, ShapingFlags};
 
 pub struct ShapedGlyphData {
     data: GlyphBuffer,
+    scale: f64,
 }
 
 impl THarfShapedGlyphData for ShapedGlyphData {
@@ -29,10 +26,10 @@ impl THarfShapedGlyphData for ShapedGlyphData {
     fn entry_for_glyph(&self, i: usize, y_pos: &mut app_units::Au) -> super::ShapedGlyphEntry {
         let glyph_info_i = self.data.glyph_infos()[i];
         let pos_info_i = self.data.glyph_positions()[i];
-        let x_offset = au_from_fixed_glyph_info(pos_info_i.x_offset);
-        let y_offset = au_from_fixed_glyph_info(pos_info_i.y_offset);
-        let x_advance = au_from_fixed_glyph_info(pos_info_i.x_advance);
-        let y_advance = au_from_fixed_glyph_info(pos_info_i.y_advance);
+        let x_offset = Au::from_f64_px(pos_info_i.x_offset as f64 * self.scale);
+        let y_offset = Au::from_f64_px(pos_info_i.y_offset as f64 * self.scale);
+        let x_advance = Au::from_f64_px(pos_info_i.x_advance as f64 * self.scale);
+        let y_advance = Au::from_f64_px(pos_info_i.y_advance as f64 * self.scale);
 
         let offset = if x_offset.is_zero() && y_offset.is_zero() && y_advance.is_zero() {
             None
@@ -60,6 +57,8 @@ pub struct Shaper {
     /// The index of a font in it's collection (.ttc)
     /// If the font file is not a collection then this is 0
     font_index: u32,
+    // points-per-em. Used for scaling HarfRust's output
+    ppem: f64,
 }
 
 // `Font` and `FontData` are both threadsafe, so we can make the data structures here as thread-safe as well.
@@ -70,16 +69,15 @@ unsafe impl Send for Shaper {}
 
 impl Shaper {
     pub(crate) fn new(font: &Font) -> Self {
-        // TODO: handle scaling
-        // Set points-per-em. if zero, performs no hinting in that directi
-        // let pt_size = (*font).descriptor.pt_size.to_f64_px();
-
         let font_data = font.data().clone();
         let font_index = font.identifier().index();
+        // Set points-per-em. if zero, performs no hinting in that direction
+        let ppem = font.descriptor.pt_size.to_f64_px();
         Self {
             font: font as *const Font,
             font_data,
             font_index,
+            ppem,
         }
     }
 }
@@ -132,10 +130,15 @@ impl THarfShaper for Shaper {
             .shaper(&hr_font)
             // Set the instance
             // .instance(Some(&instance_data))
+            .point_size(Some(self.ppem as f32))
             .build();
         let glyph_buffer = shaper.shape(buffer, &features);
+        let scale = self.ppem / shaper.units_per_em() as f64;
 
-        ShapedGlyphData { data: glyph_buffer }
+        ShapedGlyphData {
+            data: glyph_buffer,
+            scale,
+        }
     }
 
     #[allow(unsafe_code)]
@@ -146,6 +149,10 @@ impl THarfShaper for Shaper {
 
     fn baseline(&self) -> Option<crate::FontBaseline> {
         // TODO: Implement baseline extraction
-        None
+        Some(crate::FontBaseline {
+            ideographic_baseline: self.ppem as f32,
+            alphabetic_baseline: self.ppem as f32,
+            hanging_baseline: self.ppem as f32,
+        })
     }
 }
