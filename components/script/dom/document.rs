@@ -117,8 +117,6 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
-#[cfg(feature = "webgpu")]
-use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::cdatasection::CDATASection;
@@ -280,9 +278,6 @@ pub(crate) enum DeclarativeRefresh {
     },
     CreatedAfterLoad,
 }
-#[cfg(feature = "webgpu")]
-pub(crate) type WebGPUContextsMap =
-    Rc<RefCell<HashMapTracedValues<WebGPUContextId, WeakRef<GPUCanvasContext>>>>;
 
 /// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
@@ -485,10 +480,9 @@ pub(crate) struct Document {
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// Whether or not animated images need to have their contents updated.
     has_pending_animated_image_update: Cell<bool>,
-    /// List of all WebGPU contexts.
+    /// List of all WebGPU contexts that need flushing.
     #[cfg(feature = "webgpu")]
-    #[ignore_malloc_size_of = "Rc are hard"]
-    webgpu_contexts: WebGPUContextsMap,
+    dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
@@ -2648,8 +2642,14 @@ impl Document {
     }
 
     #[cfg(feature = "webgpu")]
-    pub(crate) fn webgpu_contexts(&self) -> WebGPUContextsMap {
-        self.webgpu_contexts.clone()
+    pub(crate) fn add_dirty_webgpu_context(&self, context: &GPUCanvasContext) {
+        let Ok(mut dirty_webgpu_contexts) = self.dirty_webgpu_contexts.try_borrow_mut() else {
+            // ignore already borrowed problem, that happens when updating the rendering
+            return;
+        };
+        dirty_webgpu_contexts
+            .entry(context.context_id())
+            .or_insert_with(|| Dom::from_ref(context));
     }
 
     /// Whether or not this [`Document`] needs a rendering update, due to changed
@@ -2706,12 +2706,11 @@ impl Document {
 
         #[cfg(feature = "webgpu")]
         image_keys.extend(
-            self.webgpu_contexts
+            self.dirty_webgpu_contexts
                 .borrow_mut()
-                .iter()
-                .filter_map(|(_, context)| context.root())
-                .filter(|context| context.update_rendering(canvas_epoch))
-                .map(|context| context.image_key()),
+                .drain()
+                .filter(|(_, context)| context.update_rendering(canvas_epoch))
+                .map(|(_, context)| context.image_key()),
         );
 
         image_keys.extend(
@@ -3426,7 +3425,7 @@ impl Document {
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             has_pending_animated_image_update: Cell::new(false),
             #[cfg(feature = "webgpu")]
-            webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
+            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout_animations_test_enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())

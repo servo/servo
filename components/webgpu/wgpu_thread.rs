@@ -36,8 +36,8 @@ use wgpu_types::MemoryHints;
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
+use crate::canvas_context::WGPUImageMap;
 use crate::poll_thread::Poller;
-use crate::swapchain::WGPUImageMap;
 
 #[derive(Eq, Hash, PartialEq)]
 pub(crate) struct DeviceScope {
@@ -509,32 +509,26 @@ impl WGPU {
                         };
                         self.create_context(context_id, image_key, size, buffer_ids);
                     },
-                    WebGPURequest::UpdateContext {
-                        context_id,
-                        size,
-                        configuration,
-                    } => {
-                        self.update_context(context_id, size, configuration);
-                    },
-                    WebGPURequest::SwapChainPresent {
+                    WebGPURequest::Present {
                         context_id,
                         texture_id,
                         encoder_id,
+                        configuration,
                         canvas_epoch,
                     } => {
-                        let result = self.swapchain_present(
+                        self.present(
                             context_id,
                             encoder_id,
                             texture_id,
+                            configuration,
                             canvas_epoch,
                         );
-                        if let Err(e) = result {
-                            log::error!("Error occured in SwapChainPresent: {e:?}");
-                        }
                     },
-                    WebGPURequest::GetImage { context_id, sender } => {
-                        sender.send(self.get_image(context_id)).unwrap()
-                    },
+                    WebGPURequest::GetImage {
+                        context_id,
+                        pending_texture,
+                        sender,
+                    } => self.get_image(context_id, pending_texture, sender),
                     WebGPURequest::ValidateTextureDescriptor {
                         device_id,
                         texture_id,
