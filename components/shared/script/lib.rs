@@ -42,6 +42,7 @@ use net_traits::storage_thread::StorageType;
 use pixels::PixelFormat;
 use profile_traits::mem;
 use serde::{Deserialize, Serialize};
+use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum_macros::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
@@ -256,6 +257,8 @@ pub enum ScriptThreadMessage {
     EvaluateJavaScript(PipelineId, JavaScriptEvaluationId, String),
     /// A new batch of keys for the image cache for the specific pipeline.
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
+    /// Preferences were updated in the parent process.
+    PreferencesUpdated(Vec<(String, PrefValue)>),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
