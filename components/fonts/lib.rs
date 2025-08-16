@@ -11,7 +11,7 @@ mod font_template;
 mod glyph;
 #[allow(unsafe_code)]
 pub mod platform;
-mod shaper;
+mod shapers;
 mod system_font_service;
 
 use std::sync::Arc;
@@ -23,7 +23,7 @@ pub use font_template::*;
 pub use glyph::*;
 use ipc_channel::ipc::IpcSharedMemory;
 pub use platform::LocalFontIdentifier;
-pub use shaper::*;
+pub use shapers::*;
 pub use system_font_service::*;
 use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
 
@@ -106,10 +106,12 @@ impl FallbackFontSelectionOptions {
     }
 }
 
+#[cfg(feature = "harfbuzz")]
 pub(crate) fn float_to_fixed(before: usize, f: f64) -> i32 {
     ((1i32 << before) as f64 * f) as i32
 }
 
+#[cfg(feature = "harfbuzz")]
 pub(crate) fn fixed_to_float(before: usize, f: i32) -> f64 {
     f as f64 * 1.0f64 / ((1i32 << before) as f64)
 }

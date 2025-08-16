@@ -32,7 +32,7 @@ pub use crate::platform::font_list::fallback_font_families;
 use crate::{
     ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontIdentifier, FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods, GlyphData,
-    GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
+    GlyphId, GlyphStore, LocalFontIdentifier, Shaper, TShaper as _,
 };
 
 #[macro_export]
@@ -49,6 +49,7 @@ pub const SBIX: u32 = ot_tag!('s', 'b', 'i', 'x');
 pub const CBDT: u32 = ot_tag!('C', 'B', 'D', 'T');
 pub const COLR: u32 = ot_tag!('C', 'O', 'L', 'R');
 pub const BASE: u32 = ot_tag!('B', 'A', 'S', 'E');
+pub const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -425,9 +426,8 @@ impl Font {
     }
 
     fn shape_text_harfbuzz(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
-        let this = self as *const Font;
         self.shaper
-            .get_or_init(|| Shaper::new(this))
+            .get_or_init(|| Shaper::new(self))
             .shape_text(text, options, glyphs);
     }
 
@@ -543,8 +543,7 @@ impl Font {
 
     /// Get the [`FontBaseline`] for this font.
     pub fn baseline(&self) -> Option<FontBaseline> {
-        let this = self as *const Font;
-        self.shaper.get_or_init(|| Shaper::new(this)).baseline()
+        self.shaper.get_or_init(|| Shaper::new(self)).baseline()
     }
 }
 
