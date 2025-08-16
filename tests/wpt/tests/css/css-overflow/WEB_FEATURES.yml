@@ -2,6 +2,9 @@ features:
 - name: scrollbar-gutter
   files:
   - scrollbar-gutter-*
+- name: overflow-overlay
+  files:
+  - overflow-overlay.html
 - name: overflow-shorthand
   files:
   - overflow-*

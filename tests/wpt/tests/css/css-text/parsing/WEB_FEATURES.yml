@@ -1,4 +1,7 @@
 features:
+- name: line-break
+  files:
+  - line-break-*
 - name: text-spacing-trim
   files:
   - text-spacing-trim-*

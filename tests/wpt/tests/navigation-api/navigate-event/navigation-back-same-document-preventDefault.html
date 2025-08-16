@@ -19,6 +19,7 @@ promise_test(async t => {
 
   navigation.onnavigate = e => e.preventDefault();
 
+  let navigateerror_called = false;
   navigation.onnavigateerror = t.step_func(e => {
     assert_equals(e.constructor, ErrorEvent);
     assert_equals(e.filename, location.href);

@@ -28,7 +28,7 @@
 
   promise_test(async (t) => {
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(altRoot);
+    await SetFirstPartyCookie(altRoot);
 
     const frame = await SetUpResponderFrame(t, altRootResponder);
     assert_true(await RequestStorageAccessInFrame(frame), "requestStorageAccess resolves without requiring a gesture.");
@@ -47,7 +47,7 @@
 
   promise_test(async (t) => {
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(altRoot);
+    await SetFirstPartyCookie(altRoot);
 
     const frame = await SetUpResponderFrame(t, altRootResponder);
     assert_false(await FrameHasStorageAccess(frame), "frame lacks storage access before request.");

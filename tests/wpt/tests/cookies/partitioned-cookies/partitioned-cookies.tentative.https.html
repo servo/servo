@@ -8,8 +8,6 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <script src="/cookies/partitioned-cookies/resources/test-helpers.js"></script>
-<script src="/resources/testdriver.js"></script>
-<script src="/resources/testdriver-vendor.js"></script>
 
 <body>
 <script>
@@ -69,7 +67,9 @@ document.body.onload = async () => {
   const popup = window.open(crossSiteUrl);
   await fetch_tests_from_window(popup);
 
-  await test_driver.delete_all_cookies();
+  for (const cookieName of cookieNames) {
+    erase_cookie_from_js(cookieName, "Secure; Path=/; SameSite=None; Partitioned");
+  }
 };
 
 </script>

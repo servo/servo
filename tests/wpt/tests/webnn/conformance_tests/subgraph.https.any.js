@@ -2345,7 +2345,7 @@ const subgraphTests = [
         },
         {
           'name': 'softmax',
-          'arguments': [{'input': 'convTranspose2dOutput'}, , {'axis': 1}],
+          'arguments': [{'input': 'convTranspose2dOutput'}, {'axis': 1}],
           'outputs': 'output'
         },
       ],
@@ -2394,7 +2394,7 @@ const subgraphTests = [
         },
         {
           'name': 'softmax',
-          'arguments': [{'input': 'convTranspose2dOutput'}, , {'axis': 1}],
+          'arguments': [{'input': 'convTranspose2dOutput'}, {'axis': 1}],
           'outputs': 'output'
         },
       ],

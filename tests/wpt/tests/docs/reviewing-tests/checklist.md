@@ -116,8 +116,11 @@ running the rest of the tests in the file if it isn't.
 <label><input type="checkbox">
 The test avoids patterns that make it less likely to be stable.
 In particular, tests should avoid setting internal timeouts, since the
-time taken to run it may vary on different devices; events should be used
-instead (if at all possible).
+time taken to run it may vary on different devices. Instead, tests should prefer
+event-based approaches (e.g., waiting for specific events) or using two
+`requestAnimationFrame` calls for rendering-related timing. Timeouts should
+only be used as a last resort (e.g., with `step_timeout()`), and only when
+event-based alternatives aren't feasible.
 </label>
 
 <label><input type="checkbox">

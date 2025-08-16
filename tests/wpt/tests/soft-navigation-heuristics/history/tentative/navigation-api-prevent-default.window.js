@@ -41,8 +41,6 @@ promise_test(async (t) => {
   }).then(() => {
     observer.disconnect();
   });
-  if (document.softNavigations) {
-    assert_equals(document.softNavigations, 0, 'Soft Navigation not detected');
-  }
+  assert_equals(performance.getEntriesByType('soft-navigation').length, 0, 'Soft Navigation not detected');
   assert_false(location.href.includes('foobar.html'), 'foobar.html not visited');
 }, 'Navigation API: Aborted navigate event is not a soft navigation');

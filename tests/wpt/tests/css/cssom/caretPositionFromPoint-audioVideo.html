@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>document.caretPositionFromPoint()</title>
+<link rel="author" title="Aditya Keerthi" href="https://github.com/pxlcoder">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-document-caretpositionfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+  test(() => {
+    container.setHTMLUnsafe(`<audio controls></audio>`);
+    const audio = document.querySelector("audio");
+    const caretPosition = document.caretPositionFromPoint(audio.offsetLeft + audio.offsetWidth / 2, audio.offsetTop + audio.offsetHeight / 2);
+    assert_equals(caretPosition.offsetNode, container);
+    assert_equals(caretPosition.offset, 0);
+  }, "document.caretPositionFromPoint() should return a CaretPosition over audio elements");
+
+  test(() => {
+    container.setHTMLUnsafe(`<video controls></video>`);
+    const video = document.querySelector("video");
+    const caretPosition = document.caretPositionFromPoint(video.offsetLeft + video.offsetWidth / 2, video.offsetTop + video.offsetHeight / 2);
+    assert_equals(caretPosition.offsetNode, container);
+    assert_equals(caretPosition.offset, 0);
+  }, "document.caretPositionFromPoint() should return a CaretPosition over video elements");
+</script>

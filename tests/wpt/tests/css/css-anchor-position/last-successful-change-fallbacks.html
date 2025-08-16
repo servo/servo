@@ -45,13 +45,13 @@
     anchor.style.top = "150px";
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_equals(anchored.offsetTop, 250);
+    assert_equals(anchored.offsetTop, 200);
   }, "No successful position, keep flip-block");
 
   promise_test(async () => {
     anchored.style.positionTryFallbacks = "flip-block, --foo";
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_equals(anchored.offsetTop, -50);
+    assert_equals(anchored.offsetTop, 0);
   }, "No successful position, last successful invalidated by position-try-fallbacks change");
 </script>

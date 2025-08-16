@@ -20,6 +20,8 @@
     width: 50px;
     height: 50px;
     background: skyblue;
+  }
+  #target.fallback {
     position-try-fallbacks: --200;
   }
   #target.anim {
@@ -44,7 +46,7 @@
     t.add_cleanup(cleanup);
     assert_equals(target.offsetLeft, 300);
     cb.classList.add('shrink');
-    target.classList.add('anim');
+    target.classList.add('fallback', 'anim');
     // Now we take the --200 fallback:
     assert_equals(target.offsetLeft, 250);
   }, 'Transition when @position-try is applied');
@@ -52,8 +54,10 @@
   test((t) => {
     t.add_cleanup(cleanup);
     cb.classList.add('shrink');
+    target.classList.add('fallback');
     assert_equals(target.offsetLeft, 200);
     cb.classList.remove('shrink');
+    target.classList.remove('fallback');
     target.classList.add('anim');
     assert_equals(target.offsetLeft, 250);
   }, 'Transition when @position-try is unapplied');

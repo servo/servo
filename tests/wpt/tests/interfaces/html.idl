@@ -951,7 +951,7 @@ interface HTMLInputElement : HTMLElement {
 
   // also has obsolete members
 };
-HTMLInputElement includes PopoverInvokerElement;
+HTMLInputElement includes ElementPopover;
 
 [Exposed=Window]
 interface HTMLButtonElement : HTMLElement {
@@ -979,7 +979,7 @@ interface HTMLButtonElement : HTMLElement {
 
   readonly attribute NodeList labels;
 };
-HTMLButtonElement includes PopoverInvokerElement;
+HTMLButtonElement includes ElementPopover;
 
 [Exposed=Window]
 interface HTMLSelectElement : HTMLElement {
@@ -1793,7 +1793,7 @@ dictionary DragEventInit : MouseEventInit {
   DataTransfer? dataTransfer = null;
 };
 
-interface mixin PopoverInvokerElement {
+interface mixin ElementPopover {
   [CEReactions] attribute Element? popoverTargetElement;
   [CEReactions] attribute DOMString popoverTargetAction;
 };

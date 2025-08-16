@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: -webkit-line-clamp with max-height</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-005-ref.html">
+<meta name="assert" content="If the -webkit-line-clamp property is set on an element where max-height is also specified, they will interact the same as for line-clamp: that is, the container will clamp after the line given by -webkit-line-clamp, or the last that fully fits in the height, whichever comes earlier.">
+<style>
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 0 4px;
+  background-color: yellow;
+  overflow: hidden;
+  max-height: 4.5lh;
+}
+</style>
+
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6
+Line 7</div>

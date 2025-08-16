@@ -3,9 +3,10 @@
 <link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
 <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12053">
 <meta name="assert" content="
     These <video>s have no natural size nor natural aspect ratio,
-    but fall back to default size of 300x150 and ratio of 300/150.
+    but fall back to default size of 300x150 (and no aspect ratio).
     Their intrinsic contributions should take these fallbacks into account.">
 <style>
 .wrapper {
@@ -21,13 +22,13 @@ video {
 <div class="wrapper" data-expected-client-width="300">
   <video></video>
 </div>
-<div class="wrapper" data-expected-client-width="200">
+<div class="wrapper" data-expected-client-width="300">
   <video style="height: 100px"></video>
 </div>
-<div class="wrapper" data-expected-client-width="100">
+<div class="wrapper" data-expected-client-width="300">
   <video style="max-height: 50px"></video>
 </div>
-<div class="wrapper" data-expected-client-width="400">
+<div class="wrapper" data-expected-client-width="300">
   <video style="min-height: 200px"></video>
 </div>
 
