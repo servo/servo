@@ -608,18 +608,18 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             return Ok(fragment);
         }
 
-        if end_node == start_node {
-            if let Some(cdata) = start_node.downcast::<CharacterData>() {
-                // Steps 4.1-2.
-                let data = cdata
-                    .SubstringData(start_offset, end_offset - start_offset)
-                    .unwrap();
-                let clone = cdata.clone_with_data(data, &start_node.owner_doc(), can_gc);
-                // Step 4.3.
-                fragment.upcast::<Node>().AppendChild(&clone, can_gc)?;
-                // Step 4.4
-                return Ok(fragment);
-            }
+        if end_node == start_node &&
+            let Some(cdata) = start_node.downcast::<CharacterData>()
+        {
+            // Steps 4.1-2.
+            let data = cdata
+                .SubstringData(start_offset, end_offset - start_offset)
+                .unwrap();
+            let clone = cdata.clone_with_data(data, &start_node.owner_doc(), can_gc);
+            // Step 4.3.
+            fragment.upcast::<Node>().AppendChild(&clone, can_gc)?;
+            // Step 4.4
+            return Ok(fragment);
         }
 
         // Steps 5-12.
@@ -714,23 +714,23 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             return Ok(fragment);
         }
 
-        if end_node == start_node {
-            if let Some(end_data) = end_node.downcast::<CharacterData>() {
-                // Step 4.1.
-                let clone = end_node.CloneNode(/* deep */ true, can_gc)?;
-                // Step 4.2.
-                let text = end_data.SubstringData(start_offset, end_offset - start_offset);
-                clone
-                    .downcast::<CharacterData>()
-                    .unwrap()
-                    .SetData(text.unwrap());
-                // Step 4.3.
-                fragment.upcast::<Node>().AppendChild(&clone, can_gc)?;
-                // Step 4.4.
-                end_data.ReplaceData(start_offset, end_offset - start_offset, DOMString::new())?;
-                // Step 4.5.
-                return Ok(fragment);
-            }
+        if end_node == start_node &&
+            let Some(end_data) = end_node.downcast::<CharacterData>()
+        {
+            // Step 4.1.
+            let clone = end_node.CloneNode(/* deep */ true, can_gc)?;
+            // Step 4.2.
+            let text = end_data.SubstringData(start_offset, end_offset - start_offset);
+            clone
+                .downcast::<CharacterData>()
+                .unwrap()
+                .SetData(text.unwrap());
+            // Step 4.3.
+            fragment.upcast::<Node>().AppendChild(&clone, can_gc)?;
+            // Step 4.4.
+            end_data.ReplaceData(start_offset, end_offset - start_offset, DOMString::new())?;
+            // Step 4.5.
+            return Ok(fragment);
         }
 
         // Steps 5-12.
@@ -944,13 +944,13 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let end_offset = self.end_offset();
 
         // Step 3.
-        if start_node == end_node {
-            if let Some(text) = start_node.downcast::<CharacterData>() {
-                if end_offset > start_offset {
-                    self.report_change();
-                }
-                return text.ReplaceData(start_offset, end_offset - start_offset, DOMString::new());
+        if start_node == end_node &&
+            let Some(text) = start_node.downcast::<CharacterData>()
+        {
+            if end_offset > start_offset {
+                self.report_change();
             }
+            return text.ReplaceData(start_offset, end_offset - start_offset, DOMString::new());
         }
 
         // Step 4.

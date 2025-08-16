@@ -396,14 +396,12 @@ impl Node {
             vtable_for(&node).unbind_from_tree(context, can_gc);
 
             // Step 12 & 14.2. Enqueue disconnected custom element reactions.
-            if is_parent_connected {
-                if let Some(element) = node.as_custom_element() {
-                    ScriptThread::enqueue_callback_reaction(
-                        &element,
-                        CallbackReaction::Disconnected,
-                        None,
-                    );
-                }
+            if is_parent_connected && let Some(element) = node.as_custom_element() {
+                ScriptThread::enqueue_callback_reaction(
+                    &element,
+                    CallbackReaction::Disconnected,
+                    None,
+                );
             }
         }
     }
@@ -580,14 +578,14 @@ impl Iterator for QuerySelectorIterator {
                     NeedsSelectorFlags::No,
                     MatchingForInvalidation::No,
                 );
-                if let Some(element) = DomRoot::downcast(node) {
-                    if matches_selector_list(
+                if let Some(element) = DomRoot::downcast(node) &&
+                    matches_selector_list(
                         selectors,
                         &SelectorWrapper::Borrowed(&element),
                         &mut ctx,
-                    ) {
-                        return Some(DomRoot::upcast(element));
-                    }
+                    )
+                {
+                    return Some(DomRoot::upcast(element));
                 }
                 None
             })
@@ -1191,10 +1189,10 @@ impl Node {
         SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             next_node: move |n| {
-                if shadow_including == ShadowIncluding::Yes {
-                    if let Some(shadow_root) = n.downcast::<ShadowRoot>() {
-                        return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
-                    }
+                if shadow_including == ShadowIncluding::Yes &&
+                    let Some(shadow_root) = n.downcast::<ShadowRoot>()
+                {
+                    return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
                 }
                 n.GetParentNode()
             },
@@ -1548,10 +1546,10 @@ impl Node {
         }
 
         let parent_or_none = self.GetParentNode();
-        if let Some(parent) = parent_or_none.as_deref() {
-            if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
-                return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
-            }
+        if let Some(parent) = parent_or_none.as_deref() &&
+            let Some(shadow_root) = parent.downcast::<ShadowRoot>()
+        {
+            return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
         }
 
         parent_or_none
@@ -1714,10 +1712,10 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         let parent = self.parent_node_ref();
-        if let Some(parent) = parent {
-            if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
-                return Some(shadow_root.get_host_for_layout().upcast());
-            }
+        if let Some(parent) = parent &&
+            let Some(shadow_root) = parent.downcast::<ShadowRoot>()
+        {
+            return Some(shadow_root.get_host_for_layout().upcast());
         }
         parent
     }
@@ -1917,11 +1915,10 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
                 .is_some_and(|parent| parent.is_single_line_text_inner_editor())
         {
             let shadow_root = self.containing_shadow_root_for_layout();
-            if let Some(containing_shadow_host) = shadow_root.map(|root| root.get_host_for_layout())
+            if let Some(containing_shadow_host) = shadow_root.map(|root| root.get_host_for_layout()) &&
+                let Some(input) = containing_shadow_host.downcast::<HTMLInputElement>()
             {
-                if let Some(input) = containing_shadow_host.downcast::<HTMLInputElement>() {
-                    return input.selection_for_layout();
-                }
+                return input.selection_for_layout();
             }
         }
 
@@ -2169,14 +2166,13 @@ impl Iterator for TreeIterator {
         let current = self.current.take()?;
 
         // Handle a potential shadow root on the element
-        if let Some(element) = current.downcast::<Element>() {
-            if let Some(shadow_root) = element.shadow_root() {
-                if self.shadow_including {
-                    self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
-                    self.depth += 1;
-                    return Some(current);
-                }
-            }
+        if let Some(element) = current.downcast::<Element>() &&
+            let Some(shadow_root) = element.shadow_root() &&
+            self.shadow_including
+        {
+            self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
+            self.depth += 1;
+            return Some(current);
         }
 
         if let Some(first_child) = current.GetFirstChild() {
@@ -2324,10 +2320,10 @@ impl Node {
         }
 
         // Step 3.
-        if let Some(child) = child {
-            if !parent.is_parent_of(child) {
-                return Err(Error::NotFound);
-            }
+        if let Some(child) = child &&
+            !parent.is_parent_of(child)
+        {
+            return Err(Error::NotFound);
         }
 
         // Step 4-5.
@@ -2365,13 +2361,12 @@ impl Node {
                             if parent.child_elements().next().is_some() {
                                 return Err(Error::HierarchyRequest);
                             }
-                            if let Some(child) = child {
-                                if child
+                            if let Some(child) = child &&
+                                child
                                     .inclusively_following_siblings()
                                     .any(|child| child.is_doctype())
-                                {
-                                    return Err(Error::HierarchyRequest);
-                                }
+                            {
+                                return Err(Error::HierarchyRequest);
                             }
                         },
                         // Step 6.1.1(a)
@@ -2383,13 +2378,12 @@ impl Node {
                     if parent.child_elements().next().is_some() {
                         return Err(Error::HierarchyRequest);
                     }
-                    if let Some(child) = child {
-                        if child
+                    if let Some(child) = child &&
+                        child
                             .inclusively_following_siblings()
                             .any(|child| child.is_doctype())
-                        {
-                            return Err(Error::HierarchyRequest);
-                        }
+                    {
+                        return Err(Error::HierarchyRequest);
                     }
                 },
                 // Step 6.3
@@ -2513,12 +2507,12 @@ impl Node {
         //        greater than child’s index, increase its start offset by count.
         //     2. For each live range whose end node is parent and end offset is
         //        greater than child’s index, increase its end offset by count.
-        if let Some(child) = child {
-            if !parent.ranges_is_empty() {
-                parent
-                    .ranges()
-                    .increase_above(parent, child.index(), count.try_into().unwrap());
-            }
+        if let Some(child) = child &&
+            !parent.ranges_is_empty()
+        {
+            parent
+                .ranges()
+                .increase_above(parent, child.index(), count.try_into().unwrap());
         }
 
         // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
@@ -2541,24 +2535,23 @@ impl Node {
 
             // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
             // and node is a slottable, then assign a slot for node.
-            if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
-                if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
-                    let cx = GlobalScope::get_cx();
-                    if node.is::<Element>() || node.is::<Text>() {
-                        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(node)));
-                        slottable.assign_a_slot();
-                    }
+            if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) &&
+                shadow_root.SlotAssignment() == SlotAssignmentMode::Named
+            {
+                let cx = GlobalScope::get_cx();
+                if node.is::<Element>() || node.is::<Text>() {
+                    rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(node)));
+                    slottable.assign_a_slot();
                 }
             }
 
             // Step 7.5 If parent’s root is a shadow root, and parent is a slot whose assigned nodes
             // is the empty list, then run signal a slot change for parent.
-            if parent.is_in_a_shadow_tree() {
-                if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
-                    if !slot_element.has_assigned_nodes() {
-                        slot_element.signal_a_slot_change();
-                    }
-                }
+            if parent.is_in_a_shadow_tree() &&
+                let Some(slot_element) = parent.downcast::<HTMLSlotElement>() &&
+                !slot_element.has_assigned_nodes()
+            {
+                slot_element.signal_a_slot_change();
             }
 
             // Step 7.6 Run assign slottables for a tree with node’s root.
@@ -2693,7 +2686,7 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
     pub(crate) fn string_replace_all(string: DOMString, parent: &Node, can_gc: CanGc) {
-        if string.len() == 0 {
+        if string.is_empty() {
             Node::replace_all(None, parent, can_gc);
         } else {
             let text = Text::new(string, &parent.owner_document(), can_gc);
@@ -2776,12 +2769,11 @@ impl Node {
 
         // Step 9. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
         // then run signal a slot change for parent.
-        if parent.is_in_a_shadow_tree() {
-            if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
-                if !slot_element.has_assigned_nodes() {
-                    slot_element.signal_a_slot_change();
-                }
-            }
+        if parent.is_in_a_shadow_tree() &&
+            let Some(slot_element) = parent.downcast::<HTMLSlotElement>() &&
+            !slot_element.has_assigned_nodes()
+        {
+            slot_element.signal_a_slot_change();
         }
 
         // Step 10. If node has an inclusive descendant that is a slot:
@@ -2827,16 +2819,16 @@ impl Node {
     /// 2. it also avoids the CSP checks when cloning (it shouldn't run any when cloning
     ///    existing valid attributes)
     fn compute_attribute_value_with_style_fast_path(attr: &Dom<Attr>, elem: &Element) -> AttrValue {
-        if *attr.local_name() == local_name!("style") {
-            if let Some(ref pdb) = *elem.style_attribute().borrow() {
-                let document = elem.owner_document();
-                let shared_lock = document.style_shared_lock();
-                let new_pdb = pdb.read_with(&shared_lock.read()).clone();
-                return AttrValue::Declaration(
-                    (**attr.value()).to_owned(),
-                    Arc::new(shared_lock.wrap(new_pdb)),
-                );
-            }
+        if *attr.local_name() == local_name!("style") &&
+            let Some(ref pdb) = *elem.style_attribute().borrow()
+        {
+            let document = elem.owner_document();
+            let shared_lock = document.style_shared_lock();
+            let new_pdb = pdb.read_with(&shared_lock.read()).clone();
+            return AttrValue::Declaration(
+                (**attr.value()).to_owned(),
+                Arc::new(shared_lock.wrap(new_pdb)),
+            );
         }
 
         attr.value().clone()
@@ -3265,10 +3257,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-getrootnode>
     fn GetRootNode(&self, options: &GetRootNodeOptions) -> DomRoot<Node> {
-        if !options.composed {
-            if let Some(shadow_root) = self.containing_shadow_root() {
-                return DomRoot::upcast(shadow_root);
-            }
+        if !options.composed &&
+            let Some(shadow_root) = self.containing_shadow_root()
+        {
+            return DomRoot::upcast(shadow_root);
         }
 
         if self.is_connected() {
@@ -3789,34 +3781,33 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         // This substep seems lacking in test coverage.
         // We hit this when comparing two attributes that have the
         // same owner element.
-        if let Some(node2) = node2 {
-            if Some(node2) == node1 {
-                if let (Some(a1), Some(a2)) = (attr1, attr2) {
-                    let attrs = node2.downcast::<Element>().unwrap().attrs();
-                    // go through the attrs in order to see if self
-                    // or other is first; spec is clear that we
-                    // want value-equality, not reference-equality
-                    for attr in attrs.iter() {
-                        if (*attr.namespace() == *a1.namespace()) &&
-                            (attr.local_name() == a1.local_name()) &&
-                            (**attr.value() == **a1.value())
-                        {
-                            return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
-                                NodeConstants::DOCUMENT_POSITION_PRECEDING;
-                        }
-                        if (*attr.namespace() == *a2.namespace()) &&
-                            (attr.local_name() == a2.local_name()) &&
-                            (**attr.value() == **a2.value())
-                        {
-                            return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
-                                NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-                        }
-                    }
-                    // both attrs have node2 as their owner element, so
-                    // we can't have left the loop without seeing them
-                    unreachable!();
+        if let Some(node2) = node2 &&
+            Some(node2) == node1 &&
+            let (Some(a1), Some(a2)) = (attr1, attr2)
+        {
+            let attrs = node2.downcast::<Element>().unwrap().attrs();
+            // go through the attrs in order to see if self
+            // or other is first; spec is clear that we
+            // want value-equality, not reference-equality
+            for attr in attrs.iter() {
+                if (*attr.namespace() == *a1.namespace()) &&
+                    (attr.local_name() == a1.local_name()) &&
+                    (**attr.value() == **a1.value())
+                {
+                    return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                        NodeConstants::DOCUMENT_POSITION_PRECEDING;
+                }
+                if (*attr.namespace() == *a2.namespace()) &&
+                    (attr.local_name() == a2.local_name()) &&
+                    (**attr.value() == **a2.value())
+                {
+                    return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                        NodeConstants::DOCUMENT_POSITION_FOLLOWING;
                 }
             }
+            // both attrs have node2 as their owner element, so
+            // we can't have left the loop without seeing them
+            unreachable!();
         }
 
         // Step 6
@@ -4014,10 +4005,10 @@ impl VirtualMethods for Node {
             s.children_changed(mutation);
         }
 
-        if let Some(data) = self.rare_data().as_ref() {
-            if let Some(list) = data.child_list.get() {
-                list.as_children_list().children_changed(mutation);
-            }
+        if let Some(data) = self.rare_data().as_ref() &&
+            let Some(list) = data.child_list.get()
+        {
+            list.as_children_list().children_changed(mutation);
         }
 
         self.owner_doc().content_and_heritage_changed(self);

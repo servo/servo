@@ -255,7 +255,7 @@ class MachCommands(CommandBase):
         # The actual flags will be appended below depending on the sanitizer kind.
         env.setdefault("TARGET_CFLAGS", "")
         env.setdefault("TARGET_CXXFLAGS", "")
-        env.setdefault("RUSTFLAGS", "")
+        env.setdefault("RUSTFLAGS", "-A mismatched_lifetime_syntaxes")
 
         if sanitizer.is_asan():
             if target_triple not in SUPPORTED_ASAN_TARGETS:

@@ -1093,20 +1093,6 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 // so they can be sent safely when running steps in parallel.
 
 #[derive(Clone, Debug)]
-pub(crate) struct SubtleAlgorithm {
-    #[allow(dead_code)]
-    pub(crate) name: String,
-}
-
-impl From<DOMString> for SubtleAlgorithm {
-    fn from(name: DOMString) -> Self {
-        SubtleAlgorithm {
-            name: name.to_string(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 pub(crate) struct SubtleAesCbcParams {
     #[allow(dead_code)]
     pub(crate) name: String,
@@ -3056,8 +3042,8 @@ fn parse_jwk(
 
     // If the key_ops field of jwk is present, and is invalid according to the requirements of JSON Web Key [JWK]
     // or does not contain all of the specified usages values, then throw a DataError.
-    if let Some(serde_json::Value::Array(key_ops)) = obj.get("key_ops") {
-        if key_ops.iter().any(|op| {
+    if let Some(serde_json::Value::Array(key_ops)) = obj.get("key_ops") &&
+        key_ops.iter().any(|op| {
             let op_string = match op {
                 serde_json::Value::String(op_string) => op_string,
                 _ => return true,
@@ -3069,9 +3055,9 @@ fn parse_jwk(
                 },
             };
             !key_usages.contains(&usage)
-        }) {
-            return Err(Error::Data);
-        }
+        })
+    {
+        return Err(Error::Data);
     }
 
     match import_alg {
@@ -3109,10 +3095,10 @@ fn parse_jwk(
                 return Err(Error::Data);
             }
 
-            if let Some(serde_json::Value::String(use_)) = obj.get("use") {
-                if use_ != "enc" {
-                    return Err(Error::Data);
-                }
+            if let Some(serde_json::Value::String(use_)) = obj.get("use") &&
+                use_ != "enc"
+            {
+                return Err(Error::Data);
             }
 
             Ok(data)
@@ -3135,10 +3121,10 @@ fn parse_jwk(
                 return Err(Error::Data);
             }
 
-            if let Some(serde_json::Value::String(use_)) = obj.get("use") {
-                if use_ != "sign" {
-                    return Err(Error::Data);
-                }
+            if let Some(serde_json::Value::String(use_)) = obj.get("use") &&
+                use_ != "sign"
+            {
+                return Err(Error::Data);
             }
 
             base64::engine::general_purpose::STANDARD_NO_PAD

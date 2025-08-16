@@ -215,7 +215,7 @@ class AndroidTarget(CrossBuildTarget):
                 capture_output=True,
                 encoding="utf8",
             ).stdout
-            env["RUSTFLAGS"] = env.get("RUSTFLAGS", "")
+            env["RUSTFLAGS"] = env.get("RUSTFLAGS", "-A mismatched_lifetime_syntaxes")
             env["RUSTFLAGS"] += f"-C link-arg={libclangrt_filename}"
 
         assert host_cc

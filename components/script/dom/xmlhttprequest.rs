@@ -337,10 +337,10 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         password: Option<USVString>,
     ) -> ErrorResult {
         // Step 1
-        if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
-            if !window.Document().is_fully_active() {
-                return Err(Error::InvalidState);
-            }
+        if let Some(window) = DomRoot::downcast::<Window>(self.global()) &&
+            !window.Document().is_fully_active()
+        {
+            return Err(Error::InvalidState);
         }
 
         // Step 5
@@ -727,33 +727,33 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
             if !content_type_set {
                 let ct = request.headers.typed_get::<ContentType>();
-                if let Some(ct) = ct {
-                    if let Some(encoding) = encoding {
-                        let mime: Mime = ct.to_string().parse().unwrap();
-                        for param in mime.parameters.iter() {
-                            if param.0 == CHARSET && !param.1.eq_ignore_ascii_case(encoding) {
-                                let params_iter = mime.parameters.iter();
-                                let new_params: Vec<(String, String)> = params_iter
-                                    .filter(|p| p.0 != CHARSET)
-                                    .map(|p| (p.0.clone(), p.1.clone()))
-                                    .collect();
+                if let Some(ct) = ct &&
+                    let Some(encoding) = encoding
+                {
+                    let mime: Mime = ct.to_string().parse().unwrap();
+                    for param in mime.parameters.iter() {
+                        if param.0 == CHARSET && !param.1.eq_ignore_ascii_case(encoding) {
+                            let params_iter = mime.parameters.iter();
+                            let new_params: Vec<(String, String)> = params_iter
+                                .filter(|p| p.0 != CHARSET)
+                                .map(|p| (p.0.clone(), p.1.clone()))
+                                .collect();
 
-                                let new_mime = format!(
-                                    "{}/{}; charset={}{}{}",
-                                    mime.type_,
-                                    mime.subtype,
-                                    encoding,
-                                    if new_params.is_empty() { "" } else { "; " },
-                                    new_params
-                                        .iter()
-                                        .map(|p| format!("{}={}", p.0, p.1))
-                                        .collect::<Vec<String>>()
-                                        .join("; ")
-                                );
-                                request
-                                    .headers
-                                    .typed_insert(ContentType::from_str(&new_mime).unwrap())
-                            }
+                            let new_mime = format!(
+                                "{}/{}; charset={}{}{}",
+                                mime.type_,
+                                mime.subtype,
+                                encoding,
+                                if new_params.is_empty() { "" } else { "; " },
+                                new_params
+                                    .iter()
+                                    .map(|p| format!("{}={}", p.0, p.1))
+                                    .collect::<Vec<String>>()
+                                    .join("; ")
+                            );
+                            request
+                                .headers
+                                .typed_insert(ContentType::from_str(&new_mime).unwrap())
                         }
                     }
                 }
@@ -1449,7 +1449,7 @@ impl XMLHttpRequest {
         // Step 2
         let bytes = self.response.borrow();
         // Step 3
-        if bytes.len() == 0 {
+        if bytes.is_empty() {
             return rval.set(NullValue());
         }
         // Step 4
@@ -1513,10 +1513,7 @@ impl XMLHttpRequest {
         let doc = win.Document();
         let docloader = DocumentLoader::new(&doc.loader());
         let base = wr.get_url();
-        let parsed_url = match base.join(&self.ResponseURL().0) {
-            Ok(parsed) => Some(parsed),
-            Err(_) => None, // Step 7
-        };
+        let parsed_url = base.join(&self.ResponseURL().0).ok(); // Step 7
         let content_type = Some(self.final_mime_type());
         Document::new(
             win,

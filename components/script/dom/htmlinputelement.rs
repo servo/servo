@@ -612,15 +612,12 @@ impl HTMLInputElement {
     fn allowed_value_step(&self) -> Option<f64> {
         if let Some(attr) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("step"))
+            .get_attribute(&ns!(), &local_name!("step")) &&
+            let Some(step) =
+                DOMString::from(attr.summarize().value).parse_floating_point_number() &&
+            step > 0.0
         {
-            if let Some(step) =
-                DOMString::from(attr.summarize().value).parse_floating_point_number()
-            {
-                if step > 0.0 {
-                    return Some(step * self.step_scale_factor());
-                }
-            }
+            return Some(step * self.step_scale_factor());
         }
         self.default_step()
             .map(|step| step * self.step_scale_factor())
@@ -630,13 +627,11 @@ impl HTMLInputElement {
     fn minimum(&self) -> Option<f64> {
         if let Some(attr) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("min"))
-        {
-            if let Some(min) =
+            .get_attribute(&ns!(), &local_name!("min")) &&
+            let Some(min) =
                 self.convert_string_to_number(&DOMString::from(attr.summarize().value))
-            {
-                return Some(min);
-            }
+        {
+            return Some(min);
         }
         self.default_minimum()
     }
@@ -645,13 +640,11 @@ impl HTMLInputElement {
     fn maximum(&self) -> Option<f64> {
         if let Some(attr) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("max"))
-        {
-            if let Some(max) =
+            .get_attribute(&ns!(), &local_name!("max")) &&
+            let Some(max) =
                 self.convert_string_to_number(&DOMString::from(attr.summarize().value))
-            {
-                return Some(max);
-            }
+        {
+            return Some(max);
         }
         self.default_maximum()
     }
@@ -754,13 +747,11 @@ impl HTMLInputElement {
         }
         if let Some(attr) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("value"))
-        {
-            if let Some(value) =
+            .get_attribute(&ns!(), &local_name!("value")) &&
+            let Some(value) =
                 self.convert_string_to_number(&DOMString::from(attr.summarize().value))
-            {
-                return value;
-            }
+        {
+            return value;
         }
         self.default_step_base().unwrap_or(0.0)
     }
@@ -794,10 +785,10 @@ impl HTMLInputElement {
                 return Ok(());
             }
             // Step 4
-            if let Some(smin) = self.stepped_minimum() {
-                if smin > max {
-                    return Ok(());
-                }
+            if let Some(smin) = self.stepped_minimum() &&
+                smin > max
+            {
+                return Ok(());
             }
         }
         // Step 5
@@ -830,17 +821,17 @@ impl HTMLInputElement {
         }
 
         // Step 8
-        if let Some(min) = minimum {
-            if value < min {
-                value = self.stepped_minimum().unwrap_or(value);
-            }
+        if let Some(min) = minimum &&
+            value < min
+        {
+            value = self.stepped_minimum().unwrap_or(value);
         }
 
         // Step 9
-        if let Some(max) = maximum {
-            if value > max {
-                value = self.stepped_maximum().unwrap_or(value);
-            }
+        if let Some(max) = maximum &&
+            value > max
+        {
+            value = self.stepped_maximum().unwrap_or(value);
         }
 
         // Step 10
@@ -1069,16 +1060,16 @@ impl HTMLInputElement {
             }
         } else {
             // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-underflow-2
-            if let Some(min_value) = min_value {
-                if value_as_number < min_value {
-                    failed_flags.insert(ValidationFlags::RANGE_UNDERFLOW);
-                }
+            if let Some(min_value) = min_value &&
+                value_as_number < min_value
+            {
+                failed_flags.insert(ValidationFlags::RANGE_UNDERFLOW);
             }
             // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-overflow-2
-            if let Some(max_value) = max_value {
-                if value_as_number > max_value {
-                    failed_flags.insert(ValidationFlags::RANGE_OVERFLOW);
-                }
+            if let Some(max_value) = max_value &&
+                value_as_number > max_value
+            {
+                failed_flags.insert(ValidationFlags::RANGE_OVERFLOW);
             }
         }
 
@@ -2436,15 +2427,15 @@ impl HTMLInputElement {
                     let mut fval = *fval;
                     // comparing max first, because if they contradict
                     // the spec wants min to be the one that applies
-                    if let Some(max) = self.maximum() {
-                        if fval > max {
-                            fval = max;
-                        }
+                    if let Some(max) = self.maximum() &&
+                        fval > max
+                    {
+                        fval = max;
                     }
-                    if let Some(min) = self.minimum() {
-                        if fval < min {
-                            fval = min;
-                        }
+                    if let Some(min) = self.minimum() &&
+                        fval < min
+                    {
+                        fval = min;
                     }
                     // https://html.spec.whatwg.org/multipage/#range-state-(type=range):suffering-from-a-step-mismatch
                     // Spec does not describe this in a way that lends itself to
@@ -2463,15 +2454,15 @@ impl HTMLInputElement {
                             // but if after snapping we're now outside min..max
                             // we have to adjust! (adjusting to min last because
                             // that "wins" over max in the spec)
-                            if let Some(stepped_maximum) = self.stepped_maximum() {
-                                if fval > stepped_maximum {
-                                    fval = stepped_maximum;
-                                }
+                            if let Some(stepped_maximum) = self.stepped_maximum() &&
+                                fval > stepped_maximum
+                            {
+                                fval = stepped_maximum;
                             }
-                            if let Some(stepped_minimum) = self.stepped_minimum() {
-                                if fval < stepped_minimum {
-                                    fval = stepped_minimum;
-                                }
+                            if let Some(stepped_minimum) = self.stepped_minimum() &&
+                                fval < stepped_minimum
+                            {
+                                fval = stepped_minimum;
                             }
                         }
                     }
@@ -3070,28 +3061,27 @@ impl VirtualMethods for HTMLInputElement {
             if self.input_type().is_textual_or_password() &&
                 // Check if we display a placeholder. Layout doesn't know about this.
                 !self.textinput.borrow().is_empty()
+                && let Some(mouse_event) = event.downcast::<MouseEvent>()
             {
-                if let Some(mouse_event) = event.downcast::<MouseEvent>() {
-                    // dispatch_key_event (document.rs) triggers a click event when releasing
-                    // the space key. There's no nice way to catch this so let's use this for
-                    // now.
-                    if let Some(point_in_target) = mouse_event.point_in_target() {
-                        let window = self.owner_window();
-                        let index = window
-                            .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped());
-                        // Position the caret at the click position or at the end of the current
-                        // value.
-                        let edit_point_index = match index {
-                            Some(i) => i,
-                            None => self.textinput.borrow().char_count(),
-                        };
-                        self.textinput
-                            .borrow_mut()
-                            .set_edit_point_index(edit_point_index);
-                        // trigger redraw
-                        self.upcast::<Node>().dirty(NodeDamage::Other);
-                        event.PreventDefault();
-                    }
+                // dispatch_key_event (document.rs) triggers a click event when releasing
+                // the space key. There's no nice way to catch this so let's use this for
+                // now.
+                if let Some(point_in_target) = mouse_event.point_in_target() {
+                    let window = self.owner_window();
+                    let index = window
+                        .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped());
+                    // Position the caret at the click position or at the end of the current
+                    // value.
+                    let edit_point_index = match index {
+                        Some(i) => i,
+                        None => self.textinput.borrow().char_count(),
+                    };
+                    self.textinput
+                        .borrow_mut()
+                        .set_edit_point_index(edit_point_index);
+                    // trigger redraw
+                    self.upcast::<Node>().dirty(NodeDamage::Other);
+                    event.PreventDefault();
                 }
             }
         } else if event.type_() == atom!("keydown") &&

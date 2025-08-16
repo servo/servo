@@ -426,11 +426,11 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 return Err(Error::InvalidAccess);
             }
         }
-        if let Some(ref reason) = reason {
-            if reason.0.len() > 123 {
-                //reason cannot be larger than 123 bytes
-                return Err(Error::Syntax);
-            }
+        if let Some(ref reason) = reason &&
+            reason.0.len() > 123
+        {
+            //reason cannot be larger than 123 bytes
+            return Err(Error::Syntax);
         }
 
         match self.ready_state.get() {

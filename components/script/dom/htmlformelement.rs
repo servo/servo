@@ -1066,11 +1066,9 @@ impl HTMLFormElement {
             if let Some(validatable) = elem.as_maybe_validatable() {
                 println!("Validation error: {}", validatable.validation_message());
             }
-            if first {
-                if let Some(html_elem) = elem.downcast::<HTMLElement>() {
-                    html_elem.Focus(can_gc);
-                    first = false;
-                }
+            if first && let Some(html_elem) = elem.downcast::<HTMLElement>() {
+                html_elem.Focus(can_gc);
+                first = false;
             }
         }
 
@@ -1574,16 +1572,16 @@ pub(crate) trait FormControl: DomObject {
                 new_owner.add_control(self, can_gc);
             }
             // https://html.spec.whatwg.org/multipage/#custom-element-reactions:reset-the-form-owner
-            if let Some(html_elem) = elem.downcast::<HTMLElement>() {
-                if html_elem.is_form_associated_custom_element() {
-                    ScriptThread::enqueue_callback_reaction(
-                        elem,
-                        CallbackReaction::FormAssociated(
-                            new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),
-                        ),
-                        None,
-                    )
-                }
+            if let Some(html_elem) = elem.downcast::<HTMLElement>() &&
+                html_elem.is_form_associated_custom_element()
+            {
+                ScriptThread::enqueue_callback_reaction(
+                    elem,
+                    CallbackReaction::FormAssociated(
+                        new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),
+                    ),
+                    None,
+                )
             }
             self.set_form_owner(new_owner.as_deref());
         }

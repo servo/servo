@@ -391,16 +391,13 @@ impl VirtualMethods for HTMLOptionElement {
         // if it does not have a label attribute
         if !self
             .upcast::<Element>()
-            .has_attribute(&local_name!("label"))
+            .has_attribute(&local_name!("label")) &&
+            let Some(owner_select) = self.owner_select_element() &&
+            owner_select
+                .selected_option()
+                .is_some_and(|selected_option| self == &*selected_option)
         {
-            if let Some(owner_select) = self.owner_select_element() {
-                if owner_select
-                    .selected_option()
-                    .is_some_and(|selected_option| self == &*selected_option)
-                {
-                    owner_select.update_shadow_tree(CanGc::note());
-                }
-            }
+            owner_select.update_shadow_tree(CanGc::note());
         }
     }
 }

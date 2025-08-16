@@ -36,13 +36,13 @@ impl ConstellationProxy {
     fn try_send(
         &self,
         msg: EmbedderToConstellationMessage,
-    ) -> Result<(), SendError<EmbedderToConstellationMessage>> {
+    ) -> Result<(), Box<SendError<EmbedderToConstellationMessage>>> {
         if self.disconnected() {
-            return Err(SendError(msg));
+            return Err(Box::new(SendError(msg)));
         }
         if let Err(error) = self.sender.send(msg) {
             self.disconnected.store(true, Ordering::SeqCst);
-            return Err(error);
+            return Err(Box::new(error));
         }
 
         Ok(())

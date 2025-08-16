@@ -115,7 +115,8 @@ impl TrustedPromise {
                 live_references as *const _ as *const libc::c_void
             );
             // Borrow-check error requires the redundant `let promise = ...; promise` here.
-            let promise = match live_references
+
+            match live_references
                 .promise_table
                 .borrow_mut()
                 .entry(self.dom_object)
@@ -133,8 +134,7 @@ impl TrustedPromise {
                     promise
                 },
                 Vacant(_) => unreachable!(),
-            };
-            promise
+            }
         })
     }
 

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(clippy::result_large_err)]
+
 //! The websocket handler has three main responsibilities:
 //! 1) initiate the initial HTTP connection and process the response
 //! 2) ensure any DOM requests for sending/closing are propagated to the network
@@ -130,12 +132,11 @@ fn process_ws_response(
     let mut jar = http_state.cookie_jar.write().unwrap();
     // TODO(eijebong): Replace thise once typed headers settled on a cookie impl
     for cookie in response.headers().get_all(header::SET_COOKIE) {
-        if let Ok(s) = std::str::from_utf8(cookie.as_bytes()) {
-            if let Some(cookie) =
+        if let Ok(s) = std::str::from_utf8(cookie.as_bytes()) &&
+            let Some(cookie) =
                 ServoCookie::from_cookie_string(s.into(), resource_url, CookieSource::HTTP)
-            {
-                jar.push(cookie, resource_url, CookieSource::HTTP);
-            }
+        {
+            jar.push(cookie, resource_url, CookieSource::HTTP);
         }
     }
 

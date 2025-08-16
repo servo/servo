@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::iter::repeat;
 use std::ptr;
 
 use js::conversions::jsstr_to_string;
@@ -41,7 +40,7 @@ pub fn key_type_to_jsval(
             result.set(UndefinedValue());
         },
         IndexedDBKeyType::Array(a) => {
-            rooted_vec!(let mut values <- repeat(UndefinedValue()).take(a.len()));
+            rooted_vec!(let mut values <- std::iter::repeat_n(UndefinedValue(), a.len()));
             for (key, value) in a.iter().zip(unsafe {
                 values
                     .iter_mut()

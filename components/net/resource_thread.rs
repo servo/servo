@@ -276,10 +276,10 @@ impl ResourceChannelManager {
                         assert_eq!(id, public_id);
                         &public_http_state
                     };
-                    if let Ok(msg) = data.to() {
-                        if !self.process_msg(msg, group, Arc::clone(&protocols)) {
-                            return;
-                        }
+                    if let Ok(msg) = data.to() &&
+                        !self.process_msg(msg, group, Arc::clone(&protocols))
+                    {
+                        return;
                     }
                 }
             }

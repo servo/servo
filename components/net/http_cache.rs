@@ -149,10 +149,10 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
             is_cacheable = true;
         }
     }
-    if let Some(pragma) = headers.typed_get::<Pragma>() {
-        if pragma.is_no_cache() {
-            return false;
-        }
+    if let Some(pragma) = headers.typed_get::<Pragma>() &&
+        pragma.is_no_cache()
+    {
+        return false;
     }
     is_cacheable
 }
@@ -229,10 +229,10 @@ fn get_response_expiry(response: &Response) -> Duration {
             return heuristic_freshness;
         }
         // Other status codes can only use heuristic freshness if the public cache directive is present.
-        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
-            if directives.public() {
-                return heuristic_freshness;
-            }
+        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() &&
+            directives.public()
+        {
+            return heuristic_freshness;
         }
     }
     // Requires validation upon first use as default.
@@ -671,52 +671,52 @@ impl HttpCache {
     ) -> Option<Response> {
         assert_eq!(response.status, StatusCode::NOT_MODIFIED);
         let entry_key = CacheKey::new(request);
-        if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
-            if let Some(cached_resource) = cached_resources.iter_mut().next() {
-                // done_chan will have been set to Some(..) by http_network_fetch.
-                // If the body is not receiving data, set the done_chan back to None.
-                // Otherwise, create a new dedicated channel to update the consumer.
-                // The response constructed here will replace the 304 one from the network.
-                let in_progress_channel = match *cached_resource.body.lock().unwrap() {
-                    ResponseBody::Receiving(..) => Some(unbounded()),
-                    ResponseBody::Empty | ResponseBody::Done(..) => None,
-                };
-                match in_progress_channel {
-                    Some((done_sender, done_receiver)) => {
-                        *done_chan = Some((done_sender.clone(), done_receiver));
-                        cached_resource
-                            .awaiting_body
-                            .lock()
-                            .unwrap()
-                            .push(done_sender);
-                    },
-                    None => *done_chan = None,
-                }
-                // Received a response with 304 status code, in response to a request that matches a cached resource.
-                // 1. update the headers of the cached resource.
-                // 2. return a response, constructed from the cached resource.
-                let resource_timing = ResourceFetchTiming::new(request.timing_type());
-                let mut constructed_response =
-                    Response::new(cached_resource.metadata.final_url.clone(), resource_timing);
-                constructed_response.body = cached_resource.body.clone();
-                constructed_response
-                    .status
-                    .clone_from(&cached_resource.status);
-                constructed_response.https_state = cached_resource.https_state;
-                constructed_response.referrer = request.referrer.to_url().cloned();
-                constructed_response.referrer_policy = request.referrer_policy;
-                constructed_response
-                    .status
-                    .clone_from(&cached_resource.status);
-                constructed_response
-                    .url_list
-                    .clone_from(&cached_resource.url_list);
-                cached_resource.expires = get_response_expiry(&constructed_response);
-                let mut stored_headers = cached_resource.metadata.headers.lock().unwrap();
-                stored_headers.extend(response.headers);
-                constructed_response.headers = stored_headers.clone();
-                return Some(constructed_response);
+        if let Some(cached_resources) = self.entries.get_mut(&entry_key) &&
+            let Some(cached_resource) = cached_resources.iter_mut().next()
+        {
+            // done_chan will have been set to Some(..) by http_network_fetch.
+            // If the body is not receiving data, set the done_chan back to None.
+            // Otherwise, create a new dedicated channel to update the consumer.
+            // The response constructed here will replace the 304 one from the network.
+            let in_progress_channel = match *cached_resource.body.lock().unwrap() {
+                ResponseBody::Receiving(..) => Some(unbounded()),
+                ResponseBody::Empty | ResponseBody::Done(..) => None,
+            };
+            match in_progress_channel {
+                Some((done_sender, done_receiver)) => {
+                    *done_chan = Some((done_sender.clone(), done_receiver));
+                    cached_resource
+                        .awaiting_body
+                        .lock()
+                        .unwrap()
+                        .push(done_sender);
+                },
+                None => *done_chan = None,
             }
+            // Received a response with 304 status code, in response to a request that matches a cached resource.
+            // 1. update the headers of the cached resource.
+            // 2. return a response, constructed from the cached resource.
+            let resource_timing = ResourceFetchTiming::new(request.timing_type());
+            let mut constructed_response =
+                Response::new(cached_resource.metadata.final_url.clone(), resource_timing);
+            constructed_response.body = cached_resource.body.clone();
+            constructed_response
+                .status
+                .clone_from(&cached_resource.status);
+            constructed_response.https_state = cached_resource.https_state;
+            constructed_response.referrer = request.referrer.to_url().cloned();
+            constructed_response.referrer_policy = request.referrer_policy;
+            constructed_response
+                .status
+                .clone_from(&cached_resource.status);
+            constructed_response
+                .url_list
+                .clone_from(&cached_resource.url_list);
+            cached_resource.expires = get_response_expiry(&constructed_response);
+            let mut stored_headers = cached_resource.metadata.headers.lock().unwrap();
+            stored_headers.extend(response.headers);
+            constructed_response.headers = stored_headers.clone();
+            return Some(constructed_response);
         }
         None
     }
@@ -737,20 +737,18 @@ impl HttpCache {
         if let Some(Ok(location)) = response
             .headers
             .get(header::LOCATION)
-            .map(HeaderValue::to_str)
+            .map(HeaderValue::to_str) &&
+            let Ok(url) = request.current_url().join(location)
         {
-            if let Ok(url) = request.current_url().join(location) {
-                self.invalidate_for_url(&url);
-            }
+            self.invalidate_for_url(&url);
         }
         if let Some(Ok(content_location)) = response
             .headers
             .get(header::CONTENT_LOCATION)
-            .map(HeaderValue::to_str)
+            .map(HeaderValue::to_str) &&
+            let Ok(url) = request.current_url().join(content_location)
         {
-            if let Ok(url) = request.current_url().join(content_location) {
-                self.invalidate_for_url(&url);
-            }
+            self.invalidate_for_url(&url);
         }
         self.invalidate_for_url(&request.url());
     }

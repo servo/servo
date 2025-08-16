@@ -217,10 +217,10 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
         }
 
         // If the duration is negative, throw a TypeError.
-        if let Some(state_duration) = state.duration {
-            if *state_duration < 0.0 {
-                return Err(Error::Type("duration is negative".to_owned()));
-            }
+        if let Some(state_duration) = state.duration &&
+            *state_duration < 0.0
+        {
+            return Err(Error::Type("duration is negative".to_owned()));
         }
 
         // If the position is negative or greater than duration, throw a TypeError.
@@ -228,18 +228,18 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
             if *state_position < 0.0 {
                 return Err(Error::Type("position is negative".to_owned()));
             }
-            if let Some(state_duration) = state.duration {
-                if *state_position > *state_duration {
-                    return Err(Error::Type("position is greater than duration".to_owned()));
-                }
+            if let Some(state_duration) = state.duration &&
+                *state_position > *state_duration
+            {
+                return Err(Error::Type("position is greater than duration".to_owned()));
             }
         }
 
         // If the playbackRate is zero throw a TypeError.
-        if let Some(state_playback_rate) = state.playbackRate {
-            if *state_playback_rate <= 0.0 {
-                return Err(Error::Type("playbackRate is zero".to_owned()));
-            }
+        if let Some(state_playback_rate) = state.playbackRate &&
+            *state_playback_rate <= 0.0
+        {
+            return Err(Error::Type("playbackRate is zero".to_owned()));
         }
 
         // Update the position state and last position updated time.

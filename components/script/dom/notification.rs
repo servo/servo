@@ -834,34 +834,34 @@ impl Notification {
     /// <https://notifications.spec.whatwg.org/#fetch-steps>
     fn fetch_resources_and_show_when_ready(&self) {
         let mut pending_requests: Vec<(RequestBuilder, ResourceType)> = vec![];
-        if let Some(image_url) = &self.image {
-            if let Ok(url) = ServoUrl::parse(image_url) {
-                let request = self.build_resource_request(&url);
-                self.pending_request_ids.borrow_mut().insert(request.id);
-                pending_requests.push((request, ResourceType::Image));
-            }
+        if let Some(image_url) = &self.image &&
+            let Ok(url) = ServoUrl::parse(image_url)
+        {
+            let request = self.build_resource_request(&url);
+            self.pending_request_ids.borrow_mut().insert(request.id);
+            pending_requests.push((request, ResourceType::Image));
         }
-        if let Some(icon_url) = &self.icon {
-            if let Ok(url) = ServoUrl::parse(icon_url) {
-                let request = self.build_resource_request(&url);
-                self.pending_request_ids.borrow_mut().insert(request.id);
-                pending_requests.push((request, ResourceType::Icon));
-            }
+        if let Some(icon_url) = &self.icon &&
+            let Ok(url) = ServoUrl::parse(icon_url)
+        {
+            let request = self.build_resource_request(&url);
+            self.pending_request_ids.borrow_mut().insert(request.id);
+            pending_requests.push((request, ResourceType::Icon));
         }
-        if let Some(badge_url) = &self.badge {
-            if let Ok(url) = ServoUrl::parse(badge_url) {
-                let request = self.build_resource_request(&url);
-                self.pending_request_ids.borrow_mut().insert(request.id);
-                pending_requests.push((request, ResourceType::Badge));
-            }
+        if let Some(badge_url) = &self.badge &&
+            let Ok(url) = ServoUrl::parse(badge_url)
+        {
+            let request = self.build_resource_request(&url);
+            self.pending_request_ids.borrow_mut().insert(request.id);
+            pending_requests.push((request, ResourceType::Badge));
         }
         for action in self.actions.iter() {
-            if let Some(icon_url) = &action.icon_url {
-                if let Ok(url) = ServoUrl::parse(icon_url) {
-                    let request = self.build_resource_request(&url);
-                    self.pending_request_ids.borrow_mut().insert(request.id);
-                    pending_requests.push((request, ResourceType::ActionIcon(action.id.clone())));
-                }
+            if let Some(icon_url) = &action.icon_url &&
+                let Ok(url) = ServoUrl::parse(icon_url)
+            {
+                let request = self.build_resource_request(&url);
+                self.pending_request_ids.borrow_mut().insert(request.id);
+                pending_requests.push((request, ResourceType::ActionIcon(action.id.clone())));
             }
         }
 

@@ -802,10 +802,10 @@ impl Document {
                 .parent()
                 .and_then(|parent| parent.document())
                 .map(|document| document.base_url());
-            if document_url.as_str() == "about:srcdoc" {
-                if let Some(base_url) = container_base_url {
-                    return base_url;
-                }
+            if document_url.as_str() == "about:srcdoc" &&
+                let Some(base_url) = container_base_url
+            {
+                return base_url;
             }
             // Step 2: If document's URL is about:blank, and document's browsing
             // context's creator base URL is non-null, then return that creator base URL.
@@ -844,10 +844,10 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        if let Some(root) = self.GetDocumentElement() {
-            if root.upcast::<Node>().has_dirty_descendants() {
-                condition.insert(RestyleReason::DOMChanged);
-            }
+        if let Some(root) = self.GetDocumentElement() &&
+            root.upcast::<Node>().has_dirty_descendants()
+        {
+            condition.insert(RestyleReason::DOMChanged);
         }
 
         if !self.pending_restyles.borrow().is_empty() {
@@ -1292,19 +1292,19 @@ impl Document {
         trace_focus_chain("Old", old_focused_filtered, old_focus_state);
         trace_focus_chain("New", new_focused_filtered, new_focus_state);
 
-        if old_focused_filtered != new_focused_filtered {
-            if let Some(elem) = &old_focused_filtered {
-                let node = elem.upcast::<Node>();
-                elem.set_focus_state(false);
-                // FIXME: pass appropriate relatedTarget
-                if node.is_connected() {
-                    self.fire_focus_event(FocusEventType::Blur, node.upcast(), None, can_gc);
-                }
+        if old_focused_filtered != new_focused_filtered &&
+            let Some(elem) = &old_focused_filtered
+        {
+            let node = elem.upcast::<Node>();
+            elem.set_focus_state(false);
+            // FIXME: pass appropriate relatedTarget
+            if node.is_connected() {
+                self.fire_focus_event(FocusEventType::Blur, node.upcast(), None, can_gc);
+            }
 
-                // Notify the embedder to hide the input method.
-                if elem.input_method_type().is_some() {
-                    self.send_to_embedder(EmbedderMsg::HideIME(self.webview_id()));
-                }
+            // Notify the embedder to hide the input method.
+            if elem.input_method_type().is_some() {
+                self.send_to_embedder(EmbedderMsg::HideIME(self.webview_id()));
             }
         }
 
@@ -1319,61 +1319,60 @@ impl Document {
             self.fire_focus_event(FocusEventType::Focus, self.global().upcast(), None, can_gc);
         }
 
-        if old_focused_filtered != new_focused_filtered {
-            if let Some(elem) = &new_focused_filtered {
-                elem.set_focus_state(true);
-                let node = elem.upcast::<Node>();
-                // FIXME: pass appropriate relatedTarget
-                self.fire_focus_event(FocusEventType::Focus, node.upcast(), None, can_gc);
+        if old_focused_filtered != new_focused_filtered &&
+            let Some(elem) = &new_focused_filtered
+        {
+            elem.set_focus_state(true);
+            let node = elem.upcast::<Node>();
+            // FIXME: pass appropriate relatedTarget
+            self.fire_focus_event(FocusEventType::Focus, node.upcast(), None, can_gc);
 
-                // Notify the embedder to display an input method.
-                if let Some(kind) = elem.input_method_type() {
-                    let rect = elem.upcast::<Node>().content_box().unwrap_or_default();
-                    let rect = Rect::new(
-                        Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-                        Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
-                    );
-                    let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>()
-                    {
-                        (
-                            Some((
-                                (input.Value()).to_string(),
-                                input.GetSelectionEnd().unwrap_or(0) as i32,
-                            )),
-                            false,
-                        )
-                    } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
-                        (
-                            Some((
-                                (textarea.Value()).to_string(),
-                                textarea.GetSelectionEnd().unwrap_or(0) as i32,
-                            )),
-                            true,
-                        )
-                    } else {
-                        (None, false)
-                    };
-                    self.send_to_embedder(EmbedderMsg::ShowIME(
-                        self.webview_id(),
-                        kind,
-                        text,
-                        multiline,
-                        DeviceIntRect::from_untyped(&rect.to_box2d()),
-                    ));
-                }
-                // Scroll operation to happen after element gets focus.
-                // This is needed to ensure that the focused element is visible.
-                elem.ScrollIntoView(BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
-                    ScrollIntoViewOptions {
-                        parent: ScrollOptions {
-                            behavior: ScrollBehavior::Smooth,
-                        },
-                        block: ScrollLogicalPosition::Center,
-                        inline: ScrollLogicalPosition::Center,
-                        container: ScrollIntoViewContainer::All,
-                    },
+            // Notify the embedder to display an input method.
+            if let Some(kind) = elem.input_method_type() {
+                let rect = elem.upcast::<Node>().content_box().unwrap_or_default();
+                let rect = Rect::new(
+                    Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+                    Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+                );
+                let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>() {
+                    (
+                        Some((
+                            (input.Value()).to_string(),
+                            input.GetSelectionEnd().unwrap_or(0) as i32,
+                        )),
+                        false,
+                    )
+                } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
+                    (
+                        Some((
+                            (textarea.Value()).to_string(),
+                            textarea.GetSelectionEnd().unwrap_or(0) as i32,
+                        )),
+                        true,
+                    )
+                } else {
+                    (None, false)
+                };
+                self.send_to_embedder(EmbedderMsg::ShowIME(
+                    self.webview_id(),
+                    kind,
+                    text,
+                    multiline,
+                    DeviceIntRect::from_untyped(&rect.to_box2d()),
                 ));
             }
+            // Scroll operation to happen after element gets focus.
+            // This is needed to ensure that the focused element is visible.
+            elem.ScrollIntoView(BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
+                ScrollIntoViewOptions {
+                    parent: ScrollOptions {
+                        behavior: ScrollBehavior::Smooth,
+                    },
+                    block: ScrollLogicalPosition::Center,
+                    inline: ScrollLogicalPosition::Center,
+                    container: ScrollIntoViewContainer::All,
+                },
+            ));
         }
 
         if focus_initiator != FocusInitiator::Local {

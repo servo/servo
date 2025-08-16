@@ -270,10 +270,11 @@ impl TouchHandler {
 
     // try to remove touch sequence, if touch sequence end and not has pending action.
     pub(crate) fn try_remove_touch_sequence(&mut self, sequence_id: TouchSequenceId) {
-        if let Some(sequence) = self.touch_sequence_map.get(&sequence_id) {
-            if sequence.pending_touch_move_action.is_none() && sequence.state == Finished {
-                self.touch_sequence_map.remove(&sequence_id);
-            }
+        if let Some(sequence) = self.touch_sequence_map.get(&sequence_id) &&
+            sequence.pending_touch_move_action.is_none() &&
+            sequence.state == Finished
+        {
+            self.touch_sequence_map.remove(&sequence_id);
         }
     }
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use rustc_hir::{self as hir, intravisit as visit, ExprKind};
+use rustc_hir::{self as hir, intravisit as visit, AmbigArg, ExprKind};
 use rustc_lint::{LateContext, LateLintPass, Lint, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
 use rustc_session::declare_tool_lint;
@@ -61,7 +61,7 @@ fn associated_type_has_attr<'tcx>(
 ) -> bool {
     let mut walker = ty.walk();
     while let Some(generic_arg) = walker.next() {
-        let t = match generic_arg.unpack() {
+        let t = match generic_arg.kind() {
             rustc_middle::ty::GenericArgKind::Type(t) => t,
             _ => {
                 walker.skip_current_subtree();
@@ -76,7 +76,7 @@ fn associated_type_has_attr<'tcx>(
                 );
             },
             ty::Alias(
-                ty::AliasTyKind::Projection | ty::AliasTyKind::Inherent | ty::AliasTyKind::Weak,
+                ty::AliasTyKind::Projection | ty::AliasTyKind::Inherent | ty::AliasTyKind::Free,
                 ty,
             ) => {
                 return cx.tcx.has_attrs_with_path(
@@ -100,7 +100,7 @@ fn is_unrooted_ty<'tcx>(
     let mut ret = false;
     let mut walker = ty.walk();
     while let Some(generic_arg) = walker.next() {
-        let t = match generic_arg.unpack() {
+        let t = match generic_arg.kind() {
             rustc_middle::ty::GenericArgKind::Type(t) => t,
             _ => {
                 walker.skip_current_subtree();
@@ -126,7 +126,7 @@ fn is_unrooted_ty<'tcx>(
                         ty::Alias(
                             ty::AliasTyKind::Projection |
                             ty::AliasTyKind::Inherent |
-                            ty::AliasTyKind::Weak,
+                            ty::AliasTyKind::Free,
                             ty,
                         ) => !has_attr(ty.def_id, sym.allow_unrooted_in_rc),
                         _ => true,
@@ -194,7 +194,7 @@ fn is_unrooted_ty<'tcx>(
             ty::Alias(
                 kind @ ty::AliasTyKind::Projection |
                 kind @ ty::AliasTyKind::Inherent |
-                kind @ ty::AliasTyKind::Weak,
+                kind @ ty::AliasTyKind::Free,
                 ty,
             ) => {
                 if has_attr(ty.def_id, sym.must_root) {
@@ -242,8 +242,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         if has_attr(sym.must_root) || has_attr(sym.allow_unrooted_interior) {
             return;
         }
-        if let hir::ItemKind::Struct(def, ..) = &item.kind {
-            for field in def.fields() {
+        if let hir::ItemKind::Struct(_, _, variant_data) = &item.kind {
+            for field in variant_data.fields() {
                 let field_type = cx.tcx.type_of(field.def_id);
                 if is_unrooted_ty(&self.symbols, cx, field_type.skip_binder(), false) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
@@ -261,8 +261,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// All enums containing #[crown::unrooted_must_root_lint::must_root] types
     /// must be #[crown::unrooted_must_root_lint::must_root] themselves
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
-        let map = &cx.tcx.hir();
-        let parent_item = map.expect_item(map.get_parent_item(var.hir_id).def_id);
+        let parent = cx.tcx.hir_get_parent_item(var.hir_id).def_id;
+        let parent_item = cx.tcx.hir_expect_item(parent);
         let sym = &self.symbols;
         if !cx.tcx.has_attrs_with_path(
             parent_item.hir_id().expect_owner(),
@@ -324,7 +324,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                 let type_impl = cx
                     .tcx
                     .associated_items(impl_def_id)
-                    .find_by_name_and_kind(cx.tcx, trait_item.ident, ty::AssocKind::Type, trait_id)
+                    .find_by_ident_and_kind(cx.tcx, trait_item.ident, ty::AssocTag::Type, trait_id)
                     .unwrap();
 
                 let mir_ty = cx.tcx.type_of(type_impl.def_id).skip_binder();
@@ -440,7 +440,14 @@ struct FnDefVisitor<'a, 'tcx: 'a> {
 }
 
 impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
-    type Map = rustc_middle::hir::map::Map<'tcx>;
+    // TODO: https://github.com/servo/servo/issues/37330
+    /*
+    type NestedFilter = rustc_middle::hir::nested_filter::OnlyBodies;
+
+    fn maybe_tcx(&mut self) -> Self::MaybeTyCtxt {
+        self.cx.tcx
+    }
+    */
 
     fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
         let cx = self.cx;
@@ -504,11 +511,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
         visit::walk_pat(self, pat);
     }
 
-    fn visit_ty(&mut self, _: &'tcx hir::Ty) {}
-
-    fn nested_visit_map(&mut self) -> Self::Map {
-        self.cx.tcx.hir()
-    }
+    fn visit_ty(&mut self, _: &'tcx rustc_hir::Ty<'tcx, AmbigArg>) {}
 }
 
 symbols! {

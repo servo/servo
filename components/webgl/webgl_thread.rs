@@ -867,11 +867,11 @@ impl WebGLThread {
     ) -> Option<&'a GLContextData> {
         let data = contexts.get(&context_id);
 
-        if let Some(data) = data {
-            if Some(context_id) != *bound_id {
-                device.make_context_current(&data.ctx).unwrap();
-                *bound_id = Some(context_id);
-            }
+        if let Some(data) = data &&
+            Some(context_id) != *bound_id
+        {
+            device.make_context_current(&data.ctx).unwrap();
+            *bound_id = Some(context_id);
         }
 
         data
@@ -886,11 +886,11 @@ impl WebGLThread {
     ) -> Option<&'a mut GLContextData> {
         let data = contexts.get_mut(&context_id);
 
-        if let Some(ref data) = data {
-            if Some(context_id) != *bound_id {
-                device.make_context_current(&data.ctx).unwrap();
-                *bound_id = Some(context_id);
-            }
+        if let Some(ref data) = data &&
+            Some(context_id) != *bound_id
+        {
+            device.make_context_current(&data.ctx).unwrap();
+            *bound_id = Some(context_id);
         }
 
         data

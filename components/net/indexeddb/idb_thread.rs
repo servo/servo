@@ -118,10 +118,10 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
         // We have a sender if the transaction is started manually, and they
         // probably want to know when it is finished
-        if let Some(sender) = sender {
-            if sender.send(Ok(())).is_err() {
-                warn!("IDBTransaction starter dropped its channel");
-            }
+        if let Some(sender) = sender &&
+            sender.send(Ok(())).is_err()
+        {
+            warn!("IDBTransaction starter dropped its channel");
         }
     }
 

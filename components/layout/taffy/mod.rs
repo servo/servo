@@ -46,7 +46,7 @@ impl TaffyContainer {
                 let box_ = match item.kind {
                     ModernItemKind::InFlow(independent_formatting_context) => {
                         ArcRefCell::new(TaffyItemBox::new(TaffyItemBoxInner::InFlowBox(
-                            independent_formatting_context,
+                            Box::new(independent_formatting_context),
                         )))
                     },
                     ModernItemKind::OutOfFlow(independent_formatting_context) => {
@@ -93,7 +93,7 @@ pub(crate) struct TaffyItemBox {
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum TaffyItemBoxInner {
-    InFlowBox(IndependentFormattingContext),
+    InFlowBox(Box<IndependentFormattingContext>),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
 }
 

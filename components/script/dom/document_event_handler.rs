@@ -464,25 +464,24 @@ impl DocumentEventHandler {
 
         // If the new hover target is an anchor with a status value, inform the embedder
         // of the new value.
-        if let Some(target) = self.current_hover_target.get() {
-            if let Some(anchor) = target
+        if let Some(target) = self.current_hover_target.get() &&
+            let Some(anchor) = target
                 .upcast::<Node>()
                 .inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
                 .next()
-            {
-                let status = anchor
-                    .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("href"))
-                    .and_then(|href| {
-                        let value = href.value();
-                        let url = self.window.get_url();
-                        url.join(&value).map(|url| url.to_string()).ok()
-                    });
-                self.window
-                    .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
-                return;
-            }
+        {
+            let status = anchor
+                .upcast::<Element>()
+                .get_attribute(&ns!(), &local_name!("href"))
+                .and_then(|href| {
+                    let value = href.value();
+                    let url = self.window.get_url();
+                    url.join(&value).map(|url| url.to_string()).ok()
+                });
+            self.window
+                .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
+            return;
         }
 
         // No state was set above, which means that the new value of the status in the embedder
@@ -967,12 +966,11 @@ impl DocumentEventHandler {
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
             if (keyboard_event.event.key == Key::Named(NamedKey::Enter) ||
                 keyboard_event.event.code == Code::Space) &&
-                keyboard_event.event.state == KeyState::Up
+                keyboard_event.event.state == KeyState::Up &&
+                let Some(elem) = target.downcast::<Element>()
             {
-                if let Some(elem) = target.downcast::<Element>() {
-                    elem.upcast::<Node>()
-                        .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
-                }
+                elem.upcast::<Node>()
+                    .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
             }
         }
     }
@@ -1152,12 +1150,11 @@ impl DocumentEventHandler {
             .queue(task!(gamepad_disconnected: move || {
                 let window = trusted_window.root();
                 let navigator = window.Navigator();
-                if let Some(gamepad) = navigator.get_gamepad(index) {
-                    if window.Document().is_fully_active() {
+                if let Some(gamepad) = navigator.get_gamepad(index)
+                    && window.Document().is_fully_active() {
                         gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
                         navigator.remove_gamepad(index);
                     }
-                }
             }));
     }
 

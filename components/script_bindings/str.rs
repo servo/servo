@@ -268,14 +268,14 @@ impl DOMString {
         // that actually matters. They are not
         // related to f64::round(), which is for rounding to integers.
         let input = &self.0;
-        if let Ok(val) = input.trim().parse::<f64>() {
-            if !(
+        if let Ok(val) = input.trim().parse::<f64>() &&
+            !(
                 // A valid number is the same as what rust considers to be valid,
                 // except for +1., NaN, and Infinity.
                 val.is_infinite() || val.is_nan() || input.ends_with('.') || input.starts_with('+')
-            ) {
-                return Some(val);
-            }
+            )
+        {
+            return Some(val);
         }
         None
     }

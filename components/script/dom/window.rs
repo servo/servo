@@ -738,7 +738,7 @@ pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
 pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
     fn is_html_space(c: char) -> bool {
-        HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
+        HTML_SPACE_CHARACTERS.contains(&c)
     }
     let without_spaces = input
         .chars()
@@ -1160,7 +1160,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = ImageBitmap::create_image_bitmap(
+        ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
             0,
@@ -1169,8 +1169,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             None,
             options,
             can_gc,
-        );
-        p
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1184,7 +1183,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = ImageBitmap::create_image_bitmap(
+        ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
             sx,
@@ -1193,8 +1192,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Some(sh),
             options,
             can_gc,
-        );
-        p
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window
@@ -1965,10 +1963,10 @@ impl Window {
         // nullify the window_proxy.
         if let Some(proxy) = self.window_proxy.get() {
             let pipeline_id = self.pipeline_id();
-            if let Some(currently_active) = proxy.currently_active() {
-                if currently_active == pipeline_id {
-                    self.window_proxy.set(None);
-                }
+            if let Some(currently_active) = proxy.currently_active() &&
+                currently_active == pipeline_id
+            {
+                self.window_proxy.set(None);
             }
         }
 
@@ -2603,10 +2601,11 @@ impl Window {
         // Step 4 and 5
         let pipeline_id = self.pipeline_id();
         let window_proxy = self.window_proxy();
-        if let Some(active) = window_proxy.currently_active() {
-            if pipeline_id == active && doc.is_prompting_or_unloading() {
-                return;
-            }
+        if let Some(active) = window_proxy.currently_active() &&
+            pipeline_id == active &&
+            doc.is_prompting_or_unloading()
+        {
+            return;
         }
 
         // Step 8
@@ -3234,11 +3233,10 @@ impl Window {
             let document = this.Document();
 
             // Step 7.1.
-            if let Some(ref target_origin) = target_origin {
-                if !target_origin.same_origin(document.origin()) {
+            if let Some(ref target_origin) = target_origin
+                && !target_origin.same_origin(document.origin()) {
                     return;
                 }
-            }
 
             // Steps 7.2.-7.5.
             let cx = this.get_cx();

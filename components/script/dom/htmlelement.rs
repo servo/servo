@@ -544,10 +544,10 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
         // Step 7: If next is non-null and next's previous sibling is a Text node, then merge with
         // the next text node given next's previous sibling.
-        if let Some(next_sibling) = next {
-            if let Some(node) = next_sibling.GetPreviousSibling() {
-                Self::merge_with_the_next_text_node(node, can_gc);
-            }
+        if let Some(next_sibling) = next &&
+            let Some(node) = next_sibling.GetPreviousSibling()
+        {
+            Self::merge_with_the_next_text_node(node, can_gc);
         }
 
         // Step 8: If previous is a Text node, then merge with the next text node given previous.
@@ -915,10 +915,10 @@ impl HTMLElement {
             return Some("rtl".to_owned());
         }
 
-        if let Some(input) = self.downcast::<HTMLInputElement>() {
-            if input.input_type() == InputType::Tel {
-                return Some("ltr".to_owned());
-            }
+        if let Some(input) = self.downcast::<HTMLInputElement>() &&
+            input.input_type() == InputType::Tel
+        {
+            return Some("ltr".to_owned());
         }
 
         if element_direction == "auto" {

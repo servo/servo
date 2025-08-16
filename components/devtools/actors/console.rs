@@ -259,16 +259,16 @@ impl ConsoleActor {
             .entry(id.clone())
             .or_default()
             .push(CachedConsoleMessage::PageError(page_error.clone()));
-        if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(bc) = &self.root {
-                registry.find::<BrowsingContextActor>(bc).resource_array(
-                    PageErrorWrapper { page_error },
-                    "error-message".into(),
-                    ResourceArrayType::Available,
-                    stream,
-                )
-            };
-        }
+        if id == self.current_unique_id(registry) &&
+            let Root::BrowsingContext(bc) = &self.root
+        {
+            registry.find::<BrowsingContextActor>(bc).resource_array(
+                PageErrorWrapper { page_error },
+                "error-message".into(),
+                ResourceArrayType::Available,
+                stream,
+            )
+        };
     }
 
     pub(crate) fn handle_console_api(
@@ -284,16 +284,16 @@ impl ConsoleActor {
             .entry(id.clone())
             .or_default()
             .push(CachedConsoleMessage::ConsoleLog(log_message.clone()));
-        if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(bc) = &self.root {
-                registry.find::<BrowsingContextActor>(bc).resource_array(
-                    log_message,
-                    "console-message".into(),
-                    ResourceArrayType::Available,
-                    stream,
-                )
-            };
-        }
+        if id == self.current_unique_id(registry) &&
+            let Root::BrowsingContext(bc) = &self.root
+        {
+            registry.find::<BrowsingContextActor>(bc).resource_array(
+                log_message,
+                "console-message".into(),
+                ResourceArrayType::Available,
+                stream,
+            )
+        };
     }
 }
 

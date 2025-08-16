@@ -497,7 +497,7 @@ class CommandBase(object):
         elif self.config["build"]["incremental"] is not None:
             env["CARGO_INCREMENTAL"] = "0"
 
-        env["RUSTFLAGS"] = env.get("RUSTFLAGS", "")
+        env["RUSTFLAGS"] = env.get("RUSTFLAGS", "-A mismatched_lifetime_syntaxes")
 
         if self.config["build"]["rustflags"]:
             env["RUSTFLAGS"] += " " + self.config["build"]["rustflags"]

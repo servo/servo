@@ -1238,10 +1238,10 @@ impl IOCompositor {
             webrender.update();
         }
 
-        if opts::get().wait_for_stable_image {
-            if let Err(result) = self.is_ready_to_paint_image_output() {
-                return Err(UnableToComposite::NotReadyToPaintImage(result));
-            }
+        if opts::get().wait_for_stable_image &&
+            let Err(result) = self.is_ready_to_paint_image_output()
+        {
+            return Err(UnableToComposite::NotReadyToPaintImage(result));
         }
 
         self.rendering_context.prepare_for_rendering();

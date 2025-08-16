@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::char;
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::{char, mem};
 
 use app_units::{AU_PER_PX, Au};
 use cssparser::{Parser, ParserInput};
@@ -266,12 +266,12 @@ impl FetchResponseListener for ImageContext {
         });
 
         // Step 14.5 of https://html.spec.whatwg.org/multipage/#img-environment-changes
-        if let Some(metadata) = metadata.as_ref() {
-            if let Some(ref content_type) = metadata.content_type {
-                let mime: Mime = content_type.clone().into_inner().into();
-                if mime.type_() == mime::MULTIPART && mime.subtype().as_str() == "x-mixed-replace" {
-                    self.aborted = true;
-                }
+        if let Some(metadata) = metadata.as_ref() &&
+            let Some(ref content_type) = metadata.content_type
+        {
+            let mime: Mime = content_type.clone().into_inner().into();
+            if mime.type_() == mime::MULTIPART && mime.subtype().as_str() == "x-mixed-replace" {
+                self.aborted = true;
             }
         }
 
@@ -714,10 +714,10 @@ impl HTMLImageElement {
             }
 
             // Step 4.6
-            if let Some(x) = element.get_attribute(&ns!(), &local_name!("media")) {
-                if !elem.matches_environment(&x.value()) {
-                    continue;
-                }
+            if let Some(x) = element.get_attribute(&ns!(), &local_name!("media")) &&
+                !elem.matches_environment(&x.value())
+            {
+                continue;
             }
 
             // Step 4.7
@@ -766,8 +766,8 @@ impl HTMLImageElement {
     ) -> Au {
         let document = self.owner_document();
         let quirks_mode = document.quirks_mode();
-        let result = source_size_list.evaluate(document.window().layout().device(), quirks_mode);
-        result
+
+        source_size_list.evaluate(document.window().layout().device(), quirks_mode)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#normalise-the-source-densities>
@@ -1031,53 +1031,53 @@ impl HTMLImageElement {
             .clone_from(&selected_source);
 
         // Step 6, check the list of available images
-        if let Some(src) = selected_source {
-            if let Ok(img_url) = base_url.join(&src) {
-                let image_cache = window.image_cache();
-                let response = image_cache.get_image(
-                    img_url.clone(),
-                    window.origin().immutable().clone(),
-                    cors_setting_for_element(self.upcast()),
+        if let Some(src) = selected_source &&
+            let Ok(img_url) = base_url.join(&src)
+        {
+            let image_cache = window.image_cache();
+            let response = image_cache.get_image(
+                img_url.clone(),
+                window.origin().immutable().clone(),
+                cors_setting_for_element(self.upcast()),
+            );
+
+            if let Some(image) = response {
+                // Cancel any outstanding tasks that were queued before the src was
+                // set on this element.
+                self.generation.set(self.generation.get() + 1);
+                // Step 6.3
+                let metadata = image.metadata();
+                // Step 6.3.2 abort requests
+                self.abort_request(
+                    State::CompletelyAvailable,
+                    ImageRequestPhase::Current,
+                    can_gc,
                 );
+                self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
+                let mut current_request = self.current_request.borrow_mut();
+                current_request.final_url = Some(img_url.clone());
+                current_request.image = Some(image);
+                current_request.metadata = Some(metadata);
+                // Step 6.3.6
+                current_request.current_pixel_density = pixel_density;
+                let this = Trusted::new(self);
+                let src = src.0;
 
-                if let Some(image) = response {
-                    // Cancel any outstanding tasks that were queued before the src was
-                    // set on this element.
-                    self.generation.set(self.generation.get() + 1);
-                    // Step 6.3
-                    let metadata = image.metadata();
-                    // Step 6.3.2 abort requests
-                    self.abort_request(
-                        State::CompletelyAvailable,
-                        ImageRequestPhase::Current,
-                        can_gc,
-                    );
-                    self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
-                    let mut current_request = self.current_request.borrow_mut();
-                    current_request.final_url = Some(img_url.clone());
-                    current_request.image = Some(image);
-                    current_request.metadata = Some(metadata);
-                    // Step 6.3.6
-                    current_request.current_pixel_density = pixel_density;
-                    let this = Trusted::new(self);
-                    let src = src.0;
-
-                    self.owner_global()
-                        .task_manager()
-                        .dom_manipulation_task_source()
-                        .queue(task!(image_load_event: move || {
-                            let this = this.root();
-                            {
-                                let mut current_request =
-                                    this.current_request.borrow_mut();
-                                current_request.parsed_url = Some(img_url);
-                                current_request.source_url = Some(USVString(src));
-                            }
-                            // TODO: restart animation, if set.
-                            this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
-                        }));
-                    return;
-                }
+                self.owner_global()
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task!(image_load_event: move || {
+                        let this = this.root();
+                        {
+                            let mut current_request =
+                                this.current_request.borrow_mut();
+                            current_request.parsed_url = Some(img_url);
+                            current_request.source_url = Some(USVString(src));
+                        }
+                        // TODO: restart animation, if set.
+                        this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
+                    }));
+                return;
             }
         }
         // step 7, await a stable state.
@@ -1308,7 +1308,10 @@ impl HTMLImageElement {
                     // Already a part of the list of available images due to Step 14
 
                     // Step 15.5
-                    mem::swap(&mut this.current_request.borrow_mut(), &mut pending_request);
+                    #[allow(unused_assignments)]
+                    {
+                        pending_request = this.current_request.borrow_mut();
+                    }
                 }
                 this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
 
@@ -1398,7 +1401,7 @@ impl HTMLImageElement {
 
         let value = usemap_attr.value();
 
-        if value.len() == 0 || !value.is_char_boundary(1) {
+        if value.is_empty() || !value.is_char_boundary(1) {
             return None;
         }
 
@@ -1568,7 +1571,7 @@ pub(crate) fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
 }
 
 fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
-    if token == "" {
+    if token.is_empty() {
         // Empty token is treated as the default referrer policy inside determine_policy_for_token,
         // so it should remain unchanged.
         DOMString::new()
@@ -1901,10 +1904,10 @@ impl VirtualMethods for HTMLImageElement {
 
         // The element is inserted into a picture parent element
         // https://html.spec.whatwg.org/multipage/#relevant-mutations
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if parent.is::<HTMLPictureElement>() {
-                self.update_the_image_data(can_gc);
-            }
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() &&
+            parent.is::<HTMLPictureElement>()
+        {
+            self.update_the_image_data(can_gc);
         }
     }
 

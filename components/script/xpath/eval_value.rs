@@ -62,7 +62,7 @@ impl PartialEq<Value> for Value {
             (&Value::Nodeset(ref nodes), &Value::Number(val)) |
             (&Value::Number(val), &Value::Nodeset(ref nodes)) => {
                 let numbers = num_vals(nodes);
-                numbers.iter().any(|n| *n == val)
+                numbers.contains(&val)
             },
             (&Value::Nodeset(ref nodes), &Value::String(ref val)) |
             (&Value::String(ref val), &Value::Nodeset(ref nodes)) => {

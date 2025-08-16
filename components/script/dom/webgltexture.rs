@@ -275,10 +275,10 @@ impl WebGLTexture {
     pub(crate) fn is_invalid(&self) -> bool {
         // https://immersive-web.github.io/layers/#xrwebglsubimagetype
         #[cfg(feature = "webxr")]
-        if let WebGLTextureOwner::WebXR(ref session) = self.owner {
-            if session.is_outside_raf() {
-                return true;
-            }
+        if let WebGLTextureOwner::WebXR(ref session) = self.owner &&
+            session.is_outside_raf()
+        {
+            return true;
         }
         self.is_deleted.get()
     }

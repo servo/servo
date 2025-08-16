@@ -589,15 +589,14 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.edit_point.line = target_line as usize;
         // NOTE: this adjusts to the nearest complete Unicode codepoint, rather than grapheme cluster
         self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
-        if let Some(origin) = self.selection_origin {
-            if ((self.selection_direction == SelectionDirection::None ||
+        if let Some(origin) = self.selection_origin &&
+            (((self.selection_direction == SelectionDirection::None ||
                 self.selection_direction == SelectionDirection::Forward) &&
                 self.edit_point <= origin) ||
                 (self.selection_direction == SelectionDirection::Backward &&
-                    origin <= self.edit_point)
-            {
-                self.selection_origin = Some(self.edit_point);
-            }
+                    origin <= self.edit_point))
+        {
+            self.selection_origin = Some(self.edit_point);
         }
         self.assert_ok_selection();
     }
