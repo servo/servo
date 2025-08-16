@@ -59,6 +59,7 @@ use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exc
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domrect::DOMRect;
@@ -345,6 +346,7 @@ pub(crate) fn jsval_to_webdriver(
     realm: InRealm,
     can_gc: CanGc,
 ) -> WebDriverJSResult {
+    let _aes = AutoEntryScript::new(global_scope);
     let mut seen = HashSet::new();
     let result = unsafe { jsval_to_webdriver_inner(*cx, global_scope, val, &mut seen) };
     if result.is_err() {
