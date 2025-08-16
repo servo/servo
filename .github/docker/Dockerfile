@@ -78,12 +78,13 @@ FROM servo_base AS servo_check_cook
 
 COPY --from=servo_fetcher /data/servo/servo /data/servo/servo
 WORKDIR /data/servo/servo
+ARG RUST_VERSION=1.85.0
+RUN cargo +${RUST_VERSION} fetch --target x86_64-unknown-linux-gnu
 # Run cargo check twice, so we can use incremental cargo check in CI.
 # Note: twice is necessary to avoid rebuilding due to generated files
 RUN mkdir -p /data/servo/target \
-    && rm -f rust-toolchain.toml \
-    && cargo check --locked -p libservo --target-dir /data/servo/target \
-    && cargo check --locked -p libservo --target-dir /data/servo/target
+    && cargo +${RUST_VERSION} check --locked -p libservo --target-dir /data/servo/target \
+    && cargo +${RUST_VERSION} check --locked -p libservo --target-dir /data/servo/target
 
 
 #FROM servo_base AS final

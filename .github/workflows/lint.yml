@@ -86,6 +86,4 @@ jobs:
         # if we re-use the image.
         working-directory: /data/servo/servo
         run: |
-          # We don't want to download useless components like rust-src
-          rm -f rust-toolchain.toml
-          cargo +${MINIMUM_SUPPORTED_RUST_VERSION} check -p libservo --locked --target-dir /data/servo/target
+          cargo +${{ env.MINIMUM_SUPPORTED_RUST_VERSION }} check -p libservo --locked --target-dir /data/servo/target
