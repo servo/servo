@@ -1,23 +1,31 @@
-mod harfbuzz;
 use std::cmp;
 
 use app_units::Au;
 use base::text::is_bidi_control;
 use euclid::default::Point2D;
 use fonts_traits::ByteIndex;
-pub use harfbuzz::{ShapedGlyphData, Shaper};
 use log::debug;
 use num_traits::Zero as _;
-
-const NO_GLYPH: i32 = -1;
 
 use crate::{
     Font, FontBaseline, GlyphData, GlyphId, GlyphStore, ShapingOptions, advance_for_shaped_glyph,
 };
 
+#[cfg(feature = "harfbuzz")]
+mod harfbuzz;
+#[cfg(feature = "harfbuzz")]
+pub use harfbuzz::{ShapedGlyphData, Shaper};
+
+#[cfg(feature = "harfrust")]
+mod harfrust;
+#[cfg(feature = "harfrust")]
+pub use harfrust::{ShapedGlyphData, Shaper};
+
+const NO_GLYPH: i32 = -1;
+
 /// Utility function to convert a `unicode_script::Script` enum into the corresponding `c_uint` tag that
 /// harfbuzz uses to represent unicode scipts.
-fn unicode_to_hb_script(script: unicode_script::Script) -> harfbuzz_sys::hb_script_t {
+fn unicode_to_hb_script(script: unicode_script::Script) -> core::ffi::c_uint {
     let bytes: [u8; 4] = match script {
         unicode_script::Script::Unknown => *b"Zzzz",
         _ => {

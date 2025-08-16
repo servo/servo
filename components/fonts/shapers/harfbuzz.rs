@@ -29,11 +29,10 @@ use num_traits::Zero;
 use super::{ShapedGlyphEntry, THarfShapedGlyphData, THarfShaper, unicode_to_hb_script};
 use crate::platform::font::FontTable;
 use crate::{
-    BASE, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphId, KERN, ShapingFlags,
+    BASE, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphId, KERN, LIGA, ShapingFlags,
     ShapingOptions, fixed_to_float, float_to_fixed, ot_tag,
 };
 
-const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');
 const HB_OT_TAG_DEFAULT_SCRIPT: u32 = ot_tag!('D', 'F', 'L', 'T');
 const HB_OT_TAG_DEFAULT_LANGUAGE: u32 = ot_tag!('d', 'f', 'l', 't');
 
@@ -156,7 +155,8 @@ impl Drop for Shaper {
 
 impl Shaper {
     #[allow(clippy::not_unsafe_ptr_arg_deref)] // Has an unsafe block inside
-    pub fn new(font: *const Font) -> Shaper {
+    pub fn new(font: &Font) -> Shaper {
+        let font = font as *const Font;
         unsafe {
             let hb_face: *mut hb_face_t = hb_face_create_for_tables(
                 Some(font_table_func),
