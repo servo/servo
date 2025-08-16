@@ -2639,6 +2639,7 @@ impl Element {
                             self,
                             InlineCheckType::StyleAttribute,
                             source,
+                            doc.get_current_parser_line(),
                         )
                     {
                         return;
