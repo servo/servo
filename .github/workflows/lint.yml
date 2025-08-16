@@ -78,6 +78,9 @@ jobs:
       - if: ${{ github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
         working-directory: /data/servo/servo
+      - name: Show diff
+        run: git diff FETCH_HEAD
+        working-directory: /data/servo/servo
       - run: |
           git switch --detach FETCH_HEAD
           git reset --hard FETCH_HEAD
