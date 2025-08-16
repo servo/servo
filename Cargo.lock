@@ -8569,6 +8569,7 @@ dependencies = [
  "fontsan",
  "freetype-sys",
  "harfbuzz-sys",
+ "harfrust",
  "icu_locale_core",
  "icu_properties",
  "itertools 0.15.0",
