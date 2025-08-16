@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::{GenericReceiver, GenericSender};
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -307,9 +308,9 @@ pub struct InitialScriptState {
     /// Loading into a Secure Context
     pub inherited_secure_context: Option<bool>,
     /// A channel with which messages can be sent to us (the script thread).
-    pub constellation_sender: IpcSender<ScriptThreadMessage>,
+    pub constellation_sender: GenericSender<ScriptThreadMessage>,
     /// A port on which messages sent by the constellation to script can be received.
-    pub constellation_receiver: IpcReceiver<ScriptThreadMessage>,
+    pub constellation_receiver: GenericReceiver<ScriptThreadMessage>,
     /// A channel on which messages can be sent to the constellation from script.
     pub pipeline_to_constellation_sender: ScriptToConstellationChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.

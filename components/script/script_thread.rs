@@ -871,9 +871,7 @@ impl ScriptThread {
             JS_AddInterruptCallback(cx, Some(interrupt_callback));
         }
 
-        // Ask the router to proxy IPC messages from the control port to us.
-        let constellation_receiver =
-            ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.constellation_receiver);
+        let constellation_receiver = state.constellation_receiver.into_inner();
 
         // Ask the router to proxy IPC messages from the devtools to us.
         let devtools_server_sender = state.devtools_server_sender;
