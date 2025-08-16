@@ -11,32 +11,12 @@
 
 mod common;
 
-use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use anyhow::ensure;
-use common::{ServoTest, run_api_tests};
-use servo::{
-    JSValue, JavaScriptEvaluationError, LoadStatus, Theme, WebView, WebViewBuilder, WebViewDelegate,
-};
+use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript, run_api_tests};
+use servo::{JSValue, JavaScriptEvaluationError, Theme, WebViewBuilder};
 use url::Url;
-
-#[derive(Default)]
-struct WebViewDelegateImpl {
-    url_changed: Cell<bool>,
-}
-
-impl WebViewDelegateImpl {
-    pub(crate) fn reset(&self) {
-        self.url_changed.set(false);
-    }
-}
-
-impl WebViewDelegate for WebViewDelegateImpl {
-    fn notify_url_changed(&self, _webview: servo::WebView, _url: url::Url) {
-        self.url_changed.set(true);
-    }
-}
 
 fn test_create_webview(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
     let delegate = Rc::new(WebViewDelegateImpl::default());
@@ -51,28 +31,6 @@ fn test_create_webview(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
     ensure!(url.unwrap().to_string() == "about:blank");
 
     Ok(())
-}
-
-fn evaluate_javascript(
-    servo_test: &ServoTest,
-    webview: WebView,
-    script: impl ToString,
-) -> Result<JSValue, JavaScriptEvaluationError> {
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
-
-    let saved_result = Rc::new(RefCell::new(None));
-    let callback_result = saved_result.clone();
-    webview.evaluate_javascript(script, move |result| {
-        *callback_result.borrow_mut() = Some(result)
-    });
-
-    let spin_result = saved_result.clone();
-    let _ = servo_test.spin(move || Ok(spin_result.borrow().is_none()));
-
-    (*saved_result.borrow())
-        .clone()
-        .expect("Should have waited until value available")
 }
 
 fn test_evaluate_javascript_basic(servo_test: &ServoTest) -> Result<(), anyhow::Error> {

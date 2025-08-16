@@ -149,3 +149,7 @@ harness = false
 [[test]]
 name = "servo"
 harness = false
+
+[[test]]
+name = "multiprocess"
+harness = false
