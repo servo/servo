@@ -20,6 +20,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::trustedscript::TrustedScript;
@@ -120,8 +121,18 @@ impl TrustedTypePolicyFactory {
         // Step 1: Let data be null.
         //
         // We return the if directly
-        // Step 2: If attributeNs is null, and attribute is the name of an event handler content attribute, then:
-        // TODO(36258): look up event handlers
+        // Step 2: If attributeNs is null, « HTML namespace, SVG namespace, MathML namespace » contains
+        // element’s namespace, and attribute is the name of an event handler content attribute:
+        if attribute_namespace.is_none() &&
+            matches!(*element_namespace, ns!(html) | ns!(svg) | ns!(mathml)) &&
+            EventTarget::is_content_event_handler(attribute)
+        {
+            // Step 2.1. Return (Element, null, attribute, TrustedScript, "Element " + attribute).
+            return Some((
+                TrustedType::TrustedScript,
+                "Element ".to_owned() + attribute,
+            ));
+        }
         // Step 3: Find the row in the following table, where element is in the first column,
         // attributeNs is in the second column, and attribute is in the third column.
         // If a matching row is found, set data to that row.
