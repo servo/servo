@@ -16,6 +16,9 @@ test = true
 doctest = false
 
 [features]
+default = ["harfrust", "harfbuzz"]
+harfbuzz = ["dep:harfbuzz-sys"]
+harfrust = ["dep:harfrust"]
 # Compile FreeType from source (freetype-sys/bundled) instead of searching
 # via pkg-config. If this feature is disabled, and pkg-config fails to find a
 # suitable freetype version, the build will fail!
@@ -31,7 +34,8 @@ euclid = { workspace = true }
 fonts_traits = { workspace = true }
 fontsan = { workspace = true }
 # FIXME (#34517): macOS only needs this when building servo without `--features media-gstreamer`
-harfbuzz-sys = { workspace = true, default-features = false, features = ["bundled"] }
+harfbuzz-sys = { workspace = true, optional = true, default-features = false, features = ["bundled"] }
+harfrust = { workspace = true, optional = true }
 icu_locid = { workspace = true }
 icu_properties = { workspace = true, features = ["compiled_data"] }
 itertools = { workspace = true }

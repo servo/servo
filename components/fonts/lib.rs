@@ -94,10 +94,12 @@ impl FallbackFontSelectionOptions {
     }
 }
 
+#[cfg(any(feature = "harfbuzz", feature = "harfrust"))]
 pub(crate) fn float_to_fixed(before: usize, f: f64) -> i32 {
     ((1i32 << before) as f64 * f) as i32
 }
 
+#[cfg(any(feature = "harfbuzz", feature = "harfrust"))]
 pub(crate) fn fixed_to_float(before: usize, f: i32) -> f64 {
     f as f64 * 1.0f64 / ((1i32 << before) as f64)
 }
