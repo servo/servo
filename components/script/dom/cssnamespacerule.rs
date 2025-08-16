@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
@@ -21,7 +23,7 @@ pub(crate) struct CSSNamespaceRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    namespacerule: Arc<NamespaceRule>,
+    namespacerule: RefCell<Arc<NamespaceRule>>,
 }
 
 impl CSSNamespaceRule {
@@ -31,7 +33,7 @@ impl CSSNamespaceRule {
     ) -> CSSNamespaceRule {
         CSSNamespaceRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            namespacerule,
+            namespacerule: RefCell::new(namespacerule),
         }
     }
 
@@ -51,12 +53,17 @@ impl CSSNamespaceRule {
             can_gc,
         )
     }
+
+    pub(crate) fn update_rule(&self, namespacerule: Arc<NamespaceRule>) {
+        *self.namespacerule.borrow_mut() = namespacerule;
+    }
 }
 
 impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
     // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix
     fn Prefix(&self) -> DOMString {
         self.namespacerule
+            .borrow()
             .prefix
             .as_ref()
             .map(|s| s.to_string().into())
@@ -65,7 +72,7 @@ impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
 
     // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri
     fn NamespaceURI(&self) -> DOMString {
-        (**self.namespacerule.url).into()
+        (**self.namespacerule.borrow().url).into()
     }
 }
 
@@ -76,6 +83,6 @@ impl SpecificCSSRule for CSSNamespaceRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.namespacerule.to_css_string(&guard).into()
+        self.namespacerule.borrow().to_css_string(&guard).into()
     }
 }

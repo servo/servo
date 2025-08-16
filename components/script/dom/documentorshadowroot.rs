@@ -397,7 +397,7 @@ impl DocumentOrShadowRoot {
             if stylesheet_remove_set.insert(sheet_to_remove) {
                 owner.remove_stylesheet(
                     StylesheetSource::Constructed(sheet_to_remove.clone()),
-                    sheet_to_remove.style_stylesheet_arc(),
+                    &sheet_to_remove.style_stylesheet(),
                 );
                 sheet_to_remove.remove_adopter(owner);
             }
@@ -416,7 +416,7 @@ impl DocumentOrShadowRoot {
                 // around.
                 owner.remove_stylesheet(
                     StylesheetSource::Constructed(sheet.clone()),
-                    sheet.style_stylesheet_arc(),
+                    &sheet.style_stylesheet(),
                 );
             } else {
                 sheet.add_adopter(owner.clone());

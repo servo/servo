@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
@@ -20,7 +22,7 @@ pub(crate) struct CSSFontFaceRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    fontfacerule: Arc<Locked<FontFaceRule>>,
+    fontfacerule: RefCell<Arc<Locked<FontFaceRule>>>,
 }
 
 impl CSSFontFaceRule {
@@ -30,7 +32,7 @@ impl CSSFontFaceRule {
     ) -> CSSFontFaceRule {
         CSSFontFaceRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            fontfacerule,
+            fontfacerule: RefCell::new(fontfacerule),
         }
     }
 
@@ -50,6 +52,10 @@ impl CSSFontFaceRule {
             can_gc,
         )
     }
+
+    pub(crate) fn update_rule(&self, fontfacerule: Arc<Locked<FontFaceRule>>) {
+        *self.fontfacerule.borrow_mut() = fontfacerule;
+    }
 }
 
 impl SpecificCSSRule for CSSFontFaceRule {
@@ -60,6 +66,7 @@ impl SpecificCSSRule for CSSFontFaceRule {
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
         self.fontfacerule
+            .borrow()
             .read_with(&guard)
             .to_css_string(&guard)
             .into()
