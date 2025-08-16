@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use base::Epoch;
+use base::generic_channel::{GenericSender, SendResult};
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
@@ -21,7 +22,6 @@ use embedder_traits::{
 };
 use euclid::default::Size2D as UntypedSize2D;
 use http::{HeaderMap, Method};
-use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
@@ -46,14 +46,14 @@ use crate::{
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScriptToConstellationChan {
     /// Sender for communicating with constellation thread.
-    pub sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
+    pub sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
     /// Used to identify the origin of the message.
     pub pipeline_id: PipelineId,
 }
 
 impl ScriptToConstellationChan {
     /// Send ScriptMsg and attach the pipeline_id to the message.
-    pub fn send(&self, msg: ScriptToConstellationMessage) -> Result<(), IpcError> {
+    pub fn send(&self, msg: ScriptToConstellationMessage) -> SendResult {
         self.sender.send((self.pipeline_id, msg))
     }
 }

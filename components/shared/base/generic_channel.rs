@@ -395,6 +395,18 @@ where
     }
 }
 
+/// A GenericChannel, which was routed via the Router.
+pub struct GenericRoutedChannel<T: Serialize + for<'de> Deserialize<'de>> {
+    /// A GenericSender of the channel, i.e. it may be sent to other processes in multiprocess mode.
+    /// Connected to `local_receiver` via the [ROUTER].
+    pub generic_sender: GenericSender<T>,
+    /// A sender that directly sends to the local_receiver. Can only be used in the same process
+    /// as the `local_receiver`.
+    pub local_sender: crossbeam_channel::Sender<Result<T, ipc_channel::Error>>,
+    /// The receiving end of the channel. Only usable in the current process.
+    pub local_receiver: RoutedReceiver<T>,
+}
+
 /// Private helper function to create a crossbeam based channel.
 ///
 /// Do NOT make this function public!
@@ -433,6 +445,34 @@ where
     } else {
         Some(new_generic_channel_crossbeam())
     }
+}
+
+/// Returns a [GenericRoutedChannel], where the receiver is usable in the current process,
+/// and sending is possible both in remote and local process, via the generic_sender and the
+/// local_sender.
+pub fn routed_channel_with_local_sender<T>() -> Option<GenericRoutedChannel<T>>
+where
+    T: for<'de> Deserialize<'de> + Serialize + Send + 'static,
+{
+    let (crossbeam_sender, crossbeam_receiver) = crossbeam_channel::unbounded();
+    let generic_sender = if opts::get().multiprocess || opts::get().force_ipc {
+        let (ipc_sender, ipc_receiver) = ipc_channel::ipc::channel().ok()?;
+        let crossbeam_sender_clone = crossbeam_sender.clone();
+        ROUTER.add_typed_route(
+            ipc_receiver,
+            Box::new(move |message| {
+                let _ = crossbeam_sender_clone.send(message);
+            }),
+        );
+        GenericSender(GenericSenderVariants::Ipc(ipc_sender))
+    } else {
+        GenericSender(GenericSenderVariants::Crossbeam(crossbeam_sender.clone()))
+    };
+    Some(GenericRoutedChannel {
+        generic_sender,
+        local_sender: crossbeam_sender,
+        local_receiver: crossbeam_receiver,
+    })
 }
 
 #[cfg(test)]
