@@ -12,6 +12,7 @@ use std::collections::HashMap;
 
 use base::id::{
     BlobId, DomExceptionId, DomPointId, ImageBitmapId, MessagePortId, OffscreenCanvasId,
+    QuotaExceededErrorId,
 };
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -32,6 +33,9 @@ pub struct StructuredSerializedData {
     pub points: Option<HashMap<DomPointId, DomPoint>>,
     /// Serialized exception objects.
     pub exceptions: Option<HashMap<DomExceptionId, DomException>>,
+    /// Serialized quota exceeded errors.
+    pub quota_exceeded_errors:
+        Option<HashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
     /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
     /// Transform streams transferred objects.

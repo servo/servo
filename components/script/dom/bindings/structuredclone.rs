@@ -11,12 +11,12 @@ use std::ptr;
 
 use base::id::{
     BlobId, DomExceptionId, DomPointId, ImageBitmapId, Index, MessagePortId, NamespaceIndex,
-    OffscreenCanvasId, PipelineNamespaceId,
+    OffscreenCanvasId, PipelineNamespaceId, QuotaExceededErrorId,
 };
 use constellation_traits::{
     BlobImpl, DomException, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
-    SerializableImageBitmap, StructuredSerializedData, TransferableOffscreenCanvas,
-    Transferrable as TransferrableInterface, TransformStreamData,
+    SerializableImageBitmap, SerializableQuotaExceededError, StructuredSerializedData,
+    TransferableOffscreenCanvas, Transferrable as TransferrableInterface, TransformStreamData,
 };
 use js::gc::RootedVec;
 use js::glue::{
@@ -49,7 +49,7 @@ use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageport::MessagePort;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::types::{DOMException, TransformStream};
+use crate::dom::types::{DOMException, QuotaExceededError, TransformStream};
 use crate::dom::writablestream::WritableStream;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -73,6 +73,7 @@ pub(super) enum StructuredCloneTags {
     TransformStream = 0xFFFF8009,
     ImageBitmap = 0xFFFF800A,
     OffscreenCanvas = 0xFFFF800B,
+    QuotaExceededError = 0xFFFF800C,
     Max = 0xFFFFFFFF,
 }
 
@@ -84,6 +85,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
             SerializableInterface::DomPoint => StructuredCloneTags::DomPoint,
             SerializableInterface::DomException => StructuredCloneTags::DomException,
             SerializableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
+            SerializableInterface::QuotaExceededError => StructuredCloneTags::QuotaExceededError,
         }
     }
 }
@@ -115,6 +117,7 @@ fn reader_for_type(
         SerializableInterface::DomPoint => read_object::<DOMPoint>,
         SerializableInterface::DomException => read_object::<DOMException>,
         SerializableInterface::ImageBitmap => read_object::<ImageBitmap>,
+        SerializableInterface::QuotaExceededError => read_object::<QuotaExceededError>,
     }
 }
 
@@ -259,6 +262,7 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::DomPoint => try_serialize::<DOMPoint>,
         SerializableInterface::DomException => try_serialize::<DOMException>,
         SerializableInterface::ImageBitmap => try_serialize::<ImageBitmap>,
+        SerializableInterface::QuotaExceededError => try_serialize::<QuotaExceededError>,
     }
 }
 
@@ -570,6 +574,9 @@ pub(crate) struct StructuredDataReader<'a> {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// A map of serialized exceptions.
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
+    /// A map of serialized quota exceeded errors.
+    pub(crate) quota_exceeded_errors:
+        Option<HashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
     // A map of serialized image bitmaps.
     pub(crate) image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
     /// A map of transferred image bitmaps.
@@ -592,6 +599,9 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// Serialized exceptions.
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
+    /// Serialized quota exceeded errors.
+    pub(crate) quota_exceeded_errors:
+        Option<HashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
     /// Serialized blobs.
     pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
     /// Serialized image bitmaps.
@@ -656,6 +666,7 @@ pub(crate) fn write(
             transform_streams: sc_writer.transform_streams_port.take(),
             points: sc_writer.points.take(),
             exceptions: sc_writer.exceptions.take(),
+            quota_exceeded_errors: sc_writer.quota_exceeded_errors.take(),
             blobs: sc_writer.blobs.take(),
             image_bitmaps: sc_writer.image_bitmaps.take(),
             transferred_image_bitmaps: sc_writer.transferred_image_bitmaps.take(),
@@ -684,6 +695,7 @@ pub(crate) fn read(
         blob_impls: data.blobs.take(),
         points: data.points.take(),
         exceptions: data.exceptions.take(),
+        quota_exceeded_errors: data.quota_exceeded_errors.take(),
         image_bitmaps: data.image_bitmaps.take(),
         transferred_image_bitmaps: data.transferred_image_bitmaps.take(),
         offscreen_canvases: data.offscreen_canvases.take(),
