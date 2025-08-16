@@ -11,7 +11,9 @@ use fontconfig_sys::constants::{
     FC_WEIGHT, FC_WEIGHT_BOLD, FC_WEIGHT_EXTRABLACK, FC_WEIGHT_REGULAR, FC_WIDTH,
     FC_WIDTH_CONDENSED, FC_WIDTH_EXPANDED, FC_WIDTH_EXTRACONDENSED, FC_WIDTH_EXTRAEXPANDED,
     FC_WIDTH_NORMAL, FC_WIDTH_SEMICONDENSED, FC_WIDTH_SEMIEXPANDED, FC_WIDTH_ULTRACONDENSED,
-    FC_WIDTH_ULTRAEXPANDED,
+    FC_WIDTH_ULTRAEXPANDED,FC_WEIGHT_THIN, FC_WEIGHT_EXTRALIGHT, FC_WEIGHT_LIGHT, FC_WEIGHT_DEMILIGHT,
+    FC_WEIGHT_BOOK, FC_WEIGHT_REGULAR, FC_WEIGHT_MEDIUM, FC_WEIGHT_DEMIBOLD,
+    FC_WEIGHT_BOLD, FC_WEIGHT_EXTRABOLD, FC_WEIGHT_BLACK, FC_WEIGHT_EXTRABLACK,
 };
 use fontconfig_sys::{
     FcChar8, FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute, FcDefaultSubstitute,
@@ -280,11 +282,20 @@ fn font_weight_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontWe
     }
 
     let mapping = [
-        (0., 0.),
-        (FC_WEIGHT_REGULAR as f64, 400_f64),
-        (FC_WEIGHT_BOLD as f64, 700_f64),
-        (FC_WEIGHT_EXTRABLACK as f64, 1000_f64),
+        (FC_WEIGHT_THIN as f64, 100.0),
+        (FC_WEIGHT_EXTRALIGHT as f64, 200.0),
+        (FC_WEIGHT_LIGHT as f64, 300.0),
+        (FC_WEIGHT_DEMILIGHT as f64, 350.0),
+        (FC_WEIGHT_BOOK as f64, 380.0),
+        (FC_WEIGHT_REGULAR as f64, 400.0),
+        (FC_WEIGHT_MEDIUM as f64, 500.0),
+        (FC_WEIGHT_DEMIBOLD as f64, 600.0),
+        (FC_WEIGHT_BOLD as f64, 700.0),
+        (FC_WEIGHT_EXTRABOLD as f64, 800.0),
+        (FC_WEIGHT_BLACK as f64, 900.0),
+        (FC_WEIGHT_EXTRABLACK as f64, 1000.0),
     ];
+
 
     let mapped_weight = map_platform_values_to_style_values(&mapping, weight as f64);
     Some(FontWeight::from_float(mapped_weight as f32))
