@@ -69,8 +69,8 @@ jobs:
     steps:
       - run: pwd && ls -l
         working-directory: /data/servo/servo
-      # support workflows in forks.
-      - run: git remote add ci-remote ${{ github.repositoryUrl }}
+      # temporarily hardcode. Supports ./mach try lint in fork.
+      - run: git remote add ci-remote https://github.com/jschwe/servo.git
         working-directory: /data/servo/servo
         if: ${{ github.event_name != 'pull_request_target' }}
       - run: git remote -v
