@@ -190,6 +190,9 @@ skip = [
     # duplicated by zbus-xml
     "quick-xml",
 
+    # duplicated by sea-query
+    "heck",
+
     # duplicated by bindgen as build dependency
     # Remove when cexpr updates its nom version
     # and bindgen updates the cexpr version

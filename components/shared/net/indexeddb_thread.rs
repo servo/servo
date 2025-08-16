@@ -2,15 +2,53 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cmp::{PartialEq, PartialOrd};
+use std::cmp::{Ordering, PartialEq, PartialOrd};
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
 
+// TODO Box<dyn Error> is not serializable, fix needs to be found
+pub type DbError = String;
+/// A DbResult wraps any part of a call that has to reach into the backend (in this case sqlite.rs)
+/// These errors could be anything, depending on the backend
+pub type DbResult<T> = Result<T, DbError>;
+
+/// Any error from the backend
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum BackendError {
+    DbNotFound,
+    StoreNotFound,
+    DbErr(DbError),
+}
+
+impl From<DbError> for BackendError {
+    fn from(value: DbError) -> Self {
+        BackendError::DbErr(value)
+    }
+}
+
+impl Display for BackendError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for BackendError {}
+
+pub type BackendResult<T> = Result<T, BackendError>;
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum KeyPath {
+    String(String),
+    Sequence(Vec<String>),
+}
+
 // https://www.w3.org/TR/IndexedDB-2/#enumdef-idbtransactionmode
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum IndexedDBTxnMode {
     Readonly,
     Readwrite,
@@ -30,7 +68,7 @@ pub enum IndexedDBKeyType {
 
 /// <https://www.w3.org/TR/IndexedDB-2/#compare-two-keys>
 impl PartialOrd for IndexedDBKeyType {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // 1. Let ta be the type of a.
         // 2. Let tb be the type of b.
 
@@ -42,7 +80,7 @@ impl PartialOrd for IndexedDBKeyType {
                 IndexedDBKeyType::Date(_) |
                 IndexedDBKeyType::Number(_) |
                 IndexedDBKeyType::String(_),
-            ) => Some(std::cmp::Ordering::Greater),
+            ) => Some(Ordering::Greater),
             // Step 4: If tb is array and ta is binary, string, date or number, return -1.
             (
                 IndexedDBKeyType::Binary(_) |
@@ -50,39 +88,35 @@ impl PartialOrd for IndexedDBKeyType {
                 IndexedDBKeyType::Number(_) |
                 IndexedDBKeyType::String(_),
                 IndexedDBKeyType::Array(_),
-            ) => Some(std::cmp::Ordering::Less),
+            ) => Some(Ordering::Less),
             // Step 5: If ta is binary and tb is string, date or number, return 1.
             (
                 IndexedDBKeyType::Binary(_),
                 IndexedDBKeyType::String(_) |
                 IndexedDBKeyType::Date(_) |
                 IndexedDBKeyType::Number(_),
-            ) => Some(std::cmp::Ordering::Greater),
+            ) => Some(Ordering::Greater),
             // Step 6: If tb is binary and ta is string, date or number, return -1.
             (
                 IndexedDBKeyType::String(_) |
                 IndexedDBKeyType::Date(_) |
                 IndexedDBKeyType::Number(_),
                 IndexedDBKeyType::Binary(_),
-            ) => Some(std::cmp::Ordering::Less),
+            ) => Some(Ordering::Less),
             // Step 7: If ta is string and tb is date or number, return 1.
             (
                 IndexedDBKeyType::String(_),
                 IndexedDBKeyType::Date(_) | IndexedDBKeyType::Number(_),
-            ) => Some(std::cmp::Ordering::Greater),
+            ) => Some(Ordering::Greater),
             // Step 8: If tb is string and ta is date or number, return -1.
             (
                 IndexedDBKeyType::Date(_) | IndexedDBKeyType::Number(_),
                 IndexedDBKeyType::String(_),
-            ) => Some(std::cmp::Ordering::Less),
+            ) => Some(Ordering::Less),
             // Step 9: If ta is date and tb is number, return 1.
-            (IndexedDBKeyType::Date(_), IndexedDBKeyType::Number(_)) => {
-                Some(std::cmp::Ordering::Greater)
-            },
+            (IndexedDBKeyType::Date(_), IndexedDBKeyType::Number(_)) => Some(Ordering::Greater),
             // Step 10: If tb is date and ta is number, return -1.
-            (IndexedDBKeyType::Number(_), IndexedDBKeyType::Date(_)) => {
-                Some(std::cmp::Ordering::Less)
-            },
+            (IndexedDBKeyType::Number(_), IndexedDBKeyType::Date(_)) => Some(Ordering::Less),
             // Step 11 skipped
             // TODO: Likely a tiny bit wrong (use js number comparison)
             (IndexedDBKeyType::Number(a), IndexedDBKeyType::Number(b)) => a.partial_cmp(b),
@@ -90,7 +124,6 @@ impl PartialOrd for IndexedDBKeyType {
             (IndexedDBKeyType::String(a), IndexedDBKeyType::String(b)) => a.partial_cmp(b),
             // TODO: Likely a little wrong (use js binary comparison)
             (IndexedDBKeyType::Binary(a), IndexedDBKeyType::Binary(b)) => a.partial_cmp(b),
-            // TODO: Very wrong (convert to Date and compare)
             (IndexedDBKeyType::Date(a), IndexedDBKeyType::Date(b)) => a.partial_cmp(b),
             // TODO: Probably also wrong (the items in a and b should be compared, double check against the spec)
             (IndexedDBKeyType::Array(a), IndexedDBKeyType::Array(b)) => a.partial_cmp(b),
@@ -103,8 +136,8 @@ impl PartialEq for IndexedDBKeyType {
     fn eq(&self, other: &Self) -> bool {
         let cmp = self.partial_cmp(other);
         match cmp {
-            Some(std::cmp::Ordering::Equal) => true,
-            Some(std::cmp::Ordering::Less) | Some(std::cmp::Ordering::Greater) => false,
+            Some(Ordering::Equal) => true,
+            Some(Ordering::Less) | Some(Ordering::Greater) => false,
             None => {
                 // If we can't compare the two keys, we assume they are not equal.
                 false
@@ -215,33 +248,47 @@ fn test_as_singleton() {
     assert!(full_range.as_singleton().is_none());
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum PutItemResult {
+    Success,
+    CannotOverwrite,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum AsyncReadOnlyOperation {
     /// Gets the value associated with the given key in the associated idb data
-    GetItem(
-        IndexedDBKeyType, // Key
-    ),
+    GetKey {
+        sender: IpcSender<BackendResult<Option<IndexedDBKeyType>>>,
+        key_range: IndexedDBKeyRange,
+    },
+    GetItem {
+        sender: IpcSender<BackendResult<Option<Vec<u8>>>>,
+        key_range: IndexedDBKeyRange,
+    },
 
-    Count(
-        IndexedDBKeyType, // Key
-    ),
+    Count {
+        sender: IpcSender<BackendResult<u64>>,
+        key_range: IndexedDBKeyRange,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum AsyncReadWriteOperation {
     /// Sets the value of the given key in the associated idb data
-    PutItem(
-        IndexedDBKeyType, // Key
-        Vec<u8>,          // Value
-        bool,             // Should overwrite
-    ),
+    PutItem {
+        sender: IpcSender<BackendResult<PutItemResult>>,
+        key: IndexedDBKeyType,
+        value: Vec<u8>,
+        should_overwrite: bool,
+    },
 
     /// Removes the key/value pair for the given key in the associated idb data
-    RemoveItem(
-        IndexedDBKeyType, // Key
-    ),
+    RemoveItem {
+        sender: IpcSender<BackendResult<()>>,
+        key: IndexedDBKeyType,
+    },
     /// Clears all key/value pairs in the associated idb data
-    Clear,
+    Clear(IpcSender<BackendResult<()>>),
 }
 
 /// Operations that are not executed instantly, but rather added to a
@@ -252,11 +299,17 @@ pub enum AsyncOperation {
     ReadWrite(AsyncReadWriteOperation),
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum CreateObjectResult {
+    Created,
+    AlreadyExists,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum SyncOperation {
     /// Upgrades the version of the database
     UpgradeVersion(
-        IpcSender<Result<u64, ()>>,
+        IpcSender<BackendResult<u64>>,
         ImmutableOrigin,
         String, // Database
         u64,    // Serial number for the transaction
@@ -264,7 +317,15 @@ pub enum SyncOperation {
     ),
     /// Checks if an object store has a key generator, used in e.g. Put
     HasKeyGenerator(
-        IpcSender<bool>,
+        IpcSender<BackendResult<bool>>,
+        ImmutableOrigin,
+        String, // Database
+        String, // Store
+    ),
+    /// Gets an object store's key path
+    KeyPath(
+        /// Object stores do not have to have key paths
+        IpcSender<BackendResult<Option<KeyPath>>>,
         ImmutableOrigin,
         String, // Database
         String, // Store
@@ -272,30 +333,51 @@ pub enum SyncOperation {
 
     /// Commits changes of a transaction to the database
     Commit(
-        IpcSender<Result<(), ()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
         u64,    // Transaction serial number
     ),
 
-    /// Creates a new store for the database
-    CreateObjectStore(
-        IpcSender<Result<(), ()>>,
+    /// Creates a new index for the database
+    CreateIndex(
+        IpcSender<BackendResult<CreateObjectResult>>,
+        ImmutableOrigin,
+        String,  // Database
+        String,  // Store
+        String,  // Index name
+        KeyPath, // key path
+        bool,    // unique flag
+        bool,    // multientry flag
+    ),
+    /// Delete an index
+    DeleteIndex(
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
         String, // Store
+        String, // Index name
+    ),
+
+    /// Creates a new store for the database
+    CreateObjectStore(
+        IpcSender<BackendResult<CreateObjectResult>>,
+        ImmutableOrigin,
+        String,          // Database
+        String,          // Store
+        Option<KeyPath>, // Key Path
         bool,
     ),
 
     DeleteObjectStore(
-        IpcSender<Result<(), ()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
         String, // Store
     ),
 
     CloseDatabase(
-        IpcSender<Result<(), ()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
     ),
@@ -309,7 +391,7 @@ pub enum SyncOperation {
 
     /// Deletes the database
     DeleteDatabase(
-        IpcSender<Result<(), ()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
     ),
@@ -325,7 +407,7 @@ pub enum SyncOperation {
     /// Starts executing the requests of a transaction
     /// <https://www.w3.org/TR/IndexedDB-2/#transaction-start>
     StartTransaction(
-        IpcSender<Result<(), ()>>,
+        IpcSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
         u64,    // The serial number of the mutating transaction
@@ -333,7 +415,7 @@ pub enum SyncOperation {
 
     /// Returns the version of the database
     Version(
-        IpcSender<u64>,
+        IpcSender<BackendResult<u64>>,
         ImmutableOrigin,
         String, // Database
     ),
@@ -342,20 +424,10 @@ pub enum SyncOperation {
     Exit(IpcSender<()>),
 }
 
-/// The set of all kinds of results that can be returned from async operations.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum IdbResult {
-    /// The key used to perform an async operation.
-    Key(IndexedDBKeyType),
-    /// A structured clone of a value retrieved from an object store.
-    Data(Vec<u8>),
-}
-
 #[derive(Debug, Deserialize, Serialize)]
 pub enum IndexedDBThreadMsg {
     Sync(SyncOperation),
     Async(
-        IpcSender<Result<Option<IdbResult>, ()>>, // Sender to send the result of the async operation
         ImmutableOrigin,
         String, // Database
         String, // ObjectStore

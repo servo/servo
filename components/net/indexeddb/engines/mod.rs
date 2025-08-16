@@ -4,15 +4,14 @@
 
 use std::collections::VecDeque;
 
-use ipc_channel::ipc::IpcSender;
-use net_traits::indexeddb_thread::{AsyncOperation, IdbResult, IndexedDBTxnMode};
+use net_traits::indexeddb_thread::{AsyncOperation, CreateObjectResult, IndexedDBTxnMode, KeyPath};
 use tokio::sync::oneshot;
 
-pub use self::heed::HeedEngine;
+pub use self::sqlite::SqliteEngine;
 
-mod heed;
+mod sqlite;
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub struct SanitizedName {
     name: String,
 }
@@ -46,29 +45,34 @@ impl std::fmt::Display for SanitizedName {
 }
 
 pub struct KvsOperation {
-    pub sender: IpcSender<Result<Option<IdbResult>, ()>>,
     pub store_name: SanitizedName,
     pub operation: AsyncOperation,
 }
 
 pub struct KvsTransaction {
+    // Mode could be used by a more optimal implementation of transactions
+    // that has different allocated threadpools for reading and writing
+    #[allow(unused)]
     pub mode: IndexedDBTxnMode,
     pub requests: VecDeque<KvsOperation>,
 }
 
 pub trait KvsEngine {
-    type Error;
+    type Error: std::error::Error;
 
     fn create_store(
         &self,
         store_name: SanitizedName,
+        key_path: Option<KeyPath>,
         auto_increment: bool,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<CreateObjectResult, Self::Error>;
 
     fn delete_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
 
     #[expect(dead_code)]
     fn close_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
+
+    fn delete_database(self) -> Result<(), Self::Error>;
 
     fn process_transaction(
         &self,
@@ -76,4 +80,22 @@ pub trait KvsEngine {
     ) -> oneshot::Receiver<Option<Vec<u8>>>;
 
     fn has_key_generator(&self, store_name: SanitizedName) -> bool;
+    fn key_path(&self, store_name: SanitizedName) -> Option<KeyPath>;
+
+    fn create_index(
+        &self,
+        store_name: SanitizedName,
+        index_name: String,
+        key_path: KeyPath,
+        unique: bool,
+        multi_entry: bool,
+    ) -> Result<CreateObjectResult, Self::Error>;
+    fn delete_index(
+        &self,
+        store_name: SanitizedName,
+        index_name: String,
+    ) -> Result<(), Self::Error>;
+
+    fn version(&self) -> Result<u64, Self::Error>;
+    fn set_version(&self, version: u64) -> Result<(), Self::Error>;
 }
