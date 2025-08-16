@@ -54,6 +54,7 @@ FROM base_with_cc AS rust_toolchain
 # Should match the Rust MSRV!
 ARG RUST_VERSION=1.85.0
 ENV CARGO_HOME=/data/.cargo
+ENV RUSTUP_HOME=/data/.rustup
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         | sh -s -- -y --default-toolchain ${RUST_VERSION} \
         --profile=default
@@ -68,8 +69,9 @@ RUN mkdir -p "$HOME/.local/bin" \
 
 FROM base AS servo_base
 COPY --from=rust_toolchain /data/.cargo /data/.cargo
-COPY --from=rust_toolchain /root/.rustup /root/.rustup
+COPY --from=rust_toolchain /data/.rustup /data/.rustup
 ENV CARGO_HOME=/data/.cargo
+ENV RUSTUP_HOME=/data/.rustup
 ENV PATH="/data/.cargo/bin:${PATH}"
 COPY --from=uv /root/.local/bin/uv /root/.local/bin/uvx /data/.cargo/bin/
 
