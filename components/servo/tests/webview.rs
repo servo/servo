@@ -134,6 +134,19 @@ fn test_evaluate_javascript_basic(servo_test: &ServoTest) -> Result<(), anyhow::
     Ok(())
 }
 
+fn test_evaluate_javascript_panic(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .build();
+
+    let input = "location";
+    let result = evaluate_javascript(servo_test, webview.clone(), input);
+    ensure!(matches!(result, Ok(JSValue::Object(..))));
+
+    Ok(())
+}
+
 fn test_create_webview_and_immediately_drop_webview_before_shutdown(
     servo_test: &ServoTest,
 ) -> Result<(), anyhow::Error> {
@@ -174,6 +187,7 @@ fn main() {
     run_api_tests!(
         test_create_webview,
         test_evaluate_javascript_basic,
+        test_evaluate_javascript_panic,
         test_theme_change,
         // This test needs to be last, as it tests creating and dropping
         // a WebView right before shutdown.
