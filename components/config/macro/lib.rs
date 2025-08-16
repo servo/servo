@@ -34,6 +34,12 @@ fn servo_preferences_derive(input: synstructure::Structure) -> TokenStream {
         set_match_cases.extend(quote!(stringify!(#name) => self.#name = value.try_into().unwrap(),))
     }
 
+    let mut comparisons = quote!();
+    for field in named_fields.named.iter() {
+        let name = field.ident.as_ref().unwrap();
+        comparisons.extend(quote!(if self.#name != other.#name { changes.push((stringify!(#name), self.#name.clone().into(),)) }))
+    }
+
     let structure_name = &ast.ident;
     quote! {
         impl #structure_name {
@@ -49,6 +55,12 @@ fn servo_preferences_derive(input: synstructure::Structure) -> TokenStream {
                     #set_match_cases
                     _ => { panic!("Unknown preference: {:?}", name); }
                 }
+            }
+
+            pub fn diff(&self, other: &Self) -> Vec<(&'static str, PrefValue)> {
+                let mut changes = vec![];
+                #comparisons
+                changes
             }
         }
     }
