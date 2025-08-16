@@ -42,6 +42,7 @@ default_base = [
     "default_web_features",
     "default_tooling",
     "jemalloc",
+    "harfrust",
     "max_log_level",
     "multiprocess",
     "js_jit",
@@ -62,6 +63,8 @@ crown = ["servo/crown"]
 debugmozjs = ["servo/debugmozjs"]
 devtools = ["servo/devtools"]
 gamepad = ["servo/gamepad"]
+harfrust = ["servo/harfrust"]
+harfbuzz = ["servo/harfbuzz"]
 jitspew = ["servo/jitspew"]
 js_backtrace = ["servo/js_backtrace"]
 js_jit = ["servo/js_jit"]
