@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Large scroll-margin-top</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/435221827">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="overflow:hidden; width:100px; height:100px; scroll-snap-type: y mandatory;">
+  <div style="height:100px; background:green;"></div>
+  <div style="scroll-snap-align: start end; height:12345674890px; scroll-margin-top:9223372036854775767px; background:red;"></div>
+</div>

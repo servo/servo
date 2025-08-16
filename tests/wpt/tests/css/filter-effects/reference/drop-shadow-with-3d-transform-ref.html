@@ -1,0 +1,60 @@
+<!doctype HTML>
+
+<style>
+body {
+  margin: 0;
+}
+
+#container {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  overflow: hidden;
+  border: 1px solid black;
+}
+
+#box1 {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: green;
+  left: -50px;
+  top: -50px;
+  transform: translateZ(0);
+}
+
+#box1-filter {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: lightgreen;
+  left: 50px;
+  top: 50px;
+}
+
+#box2 {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: blue;
+  left: 350px;
+  top: 350px;
+  transform: translateZ(0);
+}
+
+#box2-filter {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+  left: 250px;
+  top: 250px;
+}
+</style>
+
+<div id="container">
+  <div id="box1"></div>
+  <div id="box1-filter"></div>
+  <div id="box2"></div>
+  <div id="box2-filter"></div>
+</div>

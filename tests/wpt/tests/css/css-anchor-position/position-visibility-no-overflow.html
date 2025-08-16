@@ -4,11 +4,10 @@
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
 <link rel="match" href="position-visibility-no-overflow-ref.html">
 <style>
-  #scroll-container {
+  #container {
     position: relative;
-    overflow: hidden scroll;
     width: 400px;
-    height: 100px;
+    height: 150px;
   }
 
   .anchor {
@@ -30,7 +29,7 @@
   }
 </style>
 
-<div id="scroll-container">
+<div id="container">
   <!-- #target1 should not be visible because it overflows the containing block. -->
   <div class="anchor" style="anchor-name: --a1;">anchor1</div>
   <div id="target1" class="target" style="position-anchor: --a1;">target1</div>

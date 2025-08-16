@@ -5,6 +5,11 @@ features:
   files:
   - "dialog-cancel-events.html"
   - "dialog-canceling.html"
+- name: dialog-closedby
+  files:
+  - dialog-closedby.html
+  - dialog-closedby-*
+  - dialog-popover-closedby-*
 - name: requestclose
   files:
   - dialog-requestclose.html

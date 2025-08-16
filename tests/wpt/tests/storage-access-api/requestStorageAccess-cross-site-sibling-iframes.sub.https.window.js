@@ -14,7 +14,7 @@
 
   promise_test(async (t) => {
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(wwwAlt);
+    await SetFirstPartyCookie(wwwAlt);
     const responder_html = `${wwwAlt}${url_suffix}`;
     const [frame1, frame2] = await Promise.all([
       CreateFrame(responder_html),
@@ -55,6 +55,8 @@
       CreateFrame(`${www}${url_suffix}`),
       CreateFrame(`${wwwAlt}${url_suffix}`),
     ]);
+    await SetFirstPartyCookie(www, "initial-cookie=unpartitioned;Secure;SameSite=None;Path=/");
+    await SetFirstPartyCookie(wwwAlt, "initial-cookie=unpartitioned;Secure;SameSite=None;Path=/");
 
     t.add_cleanup(async () => {
       await test_driver.delete_all_cookies();

@@ -13,30 +13,28 @@
 <script>
 'use strict';
 
-function assert_is_zero_px(result) {
-  assert_style_value_equals(result, new CSSUnitValue(0, 'px'));
+function assert_is_keyword_width(result, expected) {
+  assert_style_value_equals(result, new CSSUnitValue(expected, 'px'));
 }
 
 for (const suffix of ['top', 'left', 'right', 'bottom']) {
   runPropertyTests('border-' + suffix + '-width', [
-    // Computed value is 0 when border-style is 'none'.
-    // FIXME: Add separate test where border-style is not 'none' or 'hidden'.
+    // Computed value is independent of border-style.
     {
       syntax: 'thin',
-      computed: (_, result) => assert_is_zero_px(result)
+      computed: (_, result) => assert_is_keyword_width(result, 1)
     },
     {
       syntax: 'medium',
-      computed: (_, result) => assert_is_zero_px(result)
+      computed: (_, result) => assert_is_keyword_width(result, 3)
     },
     {
       syntax: 'thick',
-      computed: (_, result) => assert_is_zero_px(result)
+      computed: (_, result) => assert_is_keyword_width(result, 5)
     },
     {
       syntax: '<length>',
       specified: assert_is_equal_with_range_handling,
-      computed: (_, result) => assert_is_zero_px(result)
     },
   ]);
 }

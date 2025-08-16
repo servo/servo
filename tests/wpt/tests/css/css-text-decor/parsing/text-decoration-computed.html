@@ -31,7 +31,8 @@ test_computed_value("text-decoration", "rgba(10, 20, 30, 0.4) dotted", "dotted r
 test_computed_value("text-decoration", "underline dashed rgb(0, 255, 0)");
 
 // Test backwards compatibility of blink.
-test_computed_value("text-decoration", "underline overline line-through blink red", ["underline overline line-through rgb(255, 0, 0)", "underline overline line-through blink rgb(255, 0, 0)"]);
+test_computed_value("text-decoration", "underline overline line-through blink");
+test_computed_value("text-decoration", "underline overline line-through blink red", "underline overline line-through blink rgb(255, 0, 0)");
 
 // Add text-decoration-thickness in [css-text-decor-4].
 test_computed_value("text-decoration", "auto", "none");

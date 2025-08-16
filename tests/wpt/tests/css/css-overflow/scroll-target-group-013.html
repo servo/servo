@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: scroll-target-group property invalidation of :target-current</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  #wrapper {
+    position: fixed;
+    left: 0;
+    top: 0;
+  }
+
+  .stg {
+    scroll-target-group: auto;
+  }
+
+  #scroller {
+    overflow: auto;
+    height: 130px;
+    width: 100px;
+  }
+
+  .item {
+    width: 100px;
+    height: 300px;
+    background-color: blue;
+    margin: 5px;
+  }
+
+  a {
+    color: red;
+  }
+
+  a:target-current {
+    color: green;
+  }
+</style>
+<div class="item" id="target1"></div>
+<div class="item" id="target2"></div>
+<div class="item" id="target3"></div>
+<div class="item" id="target4"></div>
+<div id="wrapper" class="stg">
+  <a id="link1" href="#target1">t1</a>
+  <a id="link2" href="#target2">t2</a>
+  <div id="subwrapper">
+    <a id="link3" href="#target3">t3</a>
+    <a id="link4" href="#target4">t4</a>
+  </div>
+</div>
+<script>
+  // Triggers recalculation of scroll target group relations.
+  link2.addEventListener("click", () => {
+    subwrapper.classList.add("stg");
+  });
+  promise_test(async t => {
+    const link2X = link2.getBoundingClientRect().left;
+    const link2Y = link2.getBoundingClientRect().top;
+    await new test_driver.Actions()
+      .pointerMove(link2X, link2Y)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(link1).color, "rgb(255, 0, 0)", "link1 shouldn't be :target-current after clicking link2");
+    assert_equals(getComputedStyle(link2).color, "rgb(0, 128, 0)", "link2 should be :target-current after clicking link2");
+  });
+</script>

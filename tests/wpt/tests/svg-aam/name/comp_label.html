@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Label</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<h1>SVG-AAM: Label Tests</h1>
+
+<p>Tests SVG-specific aria-label rules in <a href="https://w3c.github.io/svg-aam/#mapping_additional_nd">SVG-AAM §8.1 Name and Description</a>, but note the open issues in <a href="https://github.com/w3c/svg-aam/issues/31">SVG-AAM #31</a>.
+
+<h2>SVG a[aria-label]</h2>
+<svg viewbox="0 0 300 100">
+  <a href="#" aria-label="Athos" data-expectedlabel="Athos" xlink:title="circle link label" data-testname="[aria-labelledby] > circle" class="ex"><circle cx="26" cy="26" r="25"></circle></a>
+  <a href="#" aria-label="Porthos" data-expectedlabel="Porthos" xlink:title="rect link label" data-testname="[aria-labelledby] > rect" class="ex"><rect x="60" y="1" width="50" height="50"></rect></a>
+  <a href="#" aria-label="Aramis" data-expectedlabel="Aramis" xlink:title="polygon link label" data-testname="[aria-labelledby] > polygon" class="ex"><polygon points="100,100 150,25 150,75 200,0" fill="none" stroke="black"></polygon></a>
+</svg><br>
+<svg viewbox="0 0 200 90">
+  <a href="#" aria-label="D’Artagnan" data-expectedlabel="D’Artagnan" xlink:title="group link label" data-testname="[aria-labelledby] > g" class="ex">
+  <g fill="white" stroke="green" stroke-width="5">
+    <circle cx="40" cy="40" r="25" />
+    <circle cx="60" cy="60" r="25" />
+  </g>
+  </a>
+</svg>
+<br>
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

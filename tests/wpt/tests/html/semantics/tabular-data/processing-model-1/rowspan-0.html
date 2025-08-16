@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>rowspan=0</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<table>
+ <tr>
+  <td rowspan="0" id="test-cell">x
+  <td id="ref-cell">x
+ <tr>
+  <td>x
+</table>
+<script>
+const testCell = document.getElementById('test-cell');
+const refCell = document.getElementById('ref-cell');
+
+test(() => {
+  assert_greater_than(testCell.clientHeight, refCell.clientHeight);
+}, 'clientHeight');
+
+test(() => {
+  assert_equals(testCell.rowSpan, 0);
+}, 'rowSpan');
+</script>

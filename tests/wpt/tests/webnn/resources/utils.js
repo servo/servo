@@ -682,109 +682,142 @@ function assert(condition, message) {
 
 function validateContextSupportsGraph(context, graph) {
   const supportLimits = context.opSupportLimits();
+  const castOpSupportLimits = supportLimits.cast;
   const inputDataTypes = supportLimits.input.dataTypes;
   const constantDataTypes = supportLimits.constant.dataTypes;
   const outputDataTypes = supportLimits.output.dataTypes;
 
-  function validateInputOrConstantDataType(
+  function validateInputOrConstantDataTypeAndRank(
       inputName, operatorSupportLimits, operand) {
-    const inputDataType = graph.inputs[inputName].descriptor.dataType;
-    if (graph.inputs[inputName].constant) {
-      if (!constantDataTypes.includes(inputDataType)) {
+    const inputDescriptor = graph.inputs[inputName].descriptor;
+    const inputDataType = inputDescriptor.dataType;
+    if (inputDescriptor.constant) {
+      if (!constantDataTypes.includes(inputDataType) &&
+          !findCompatibleType(
+              inputDataType, constantDataTypes, castOpSupportLimits)) {
         throw new TypeError(
             `Unsupported data type, constant '${operand}' data type ${
                 inputDataType} must be one of [${constantDataTypes}].`);
       }
     } else {
-      if (!inputDataTypes.includes(inputDataType)) {
+      if (!inputDataTypes.includes(inputDataType) &&
+          !findCompatibleType(
+              inputDataType, inputDataTypes, castOpSupportLimits)) {
         throw new TypeError(
             `Unsupported data type, input '${operand}' data type ${
                 inputDataType} must be one of [${inputDataTypes}].`);
       }
     }
 
-    if (!operatorSupportLimits[operand].dataTypes.includes(inputDataType)) {
-      throw new TypeError(`Unsupported data type, input '${
-          operand}' data type ${inputDataType} must be one of [${
-          operatorSupportLimits[operand].dataTypes}].`);
+    const operandSupportLimits = operatorSupportLimits[operand];
+    const inputOperandDataTypes = operandSupportLimits.dataTypes;
+    if (!inputOperandDataTypes.includes(inputDataType) &&
+        !findCompatibleType(
+            inputDataType, inputDataTypes, castOpSupportLimits)) {
+      throw new TypeError(
+          `Unsupported data type, input '${operand}' data type ${
+              inputDataType} must be one of [${inputOperandDataTypes}].`);
+    }
+
+    const inputRank = inputDescriptor.shape.length;
+    const limitsRankRange = operandSupportLimits.rankRange;
+    if (inputRank < limitsRankRange.min) {
+      throw new TypeError(`Unsupported rank ${inputRank} for argument ${
+          operand} (must be at least ${limitsRankRange.min}).`);
+    }
+
+    if (inputRank > limitsRankRange.max) {
+      throw new TypeError(`Unsupported rank ${inputRank} for argument ${
+          operand} (must be at most ${limitsRankRange.max}).`);
     }
   }
 
   function validateOutputDataType(outputName, operatorSupportLimits, operand) {
     const outputDataType =
         graph.expectedOutputs[outputName].descriptor.dataType;
-    if (!outputDataTypes.includes(outputDataType)) {
+    if (!outputDataTypes.includes(outputDataType) &&
+        !findCompatibleType(
+            outputDataType, outputDataTypes, castOpSupportLimits)) {
       throw new TypeError(
           `Unsupported data type, output '${operand}' data type ${
               outputDataType} must be one of [${outputDataTypes}].`);
     }
 
-    if (!operatorSupportLimits[operand].dataTypes.includes(outputDataType)) {
-      throw new TypeError(`Unsupported data type, output '${
-          operand}' data type ${outputDataType} must be one of [${
-          operatorSupportLimits[operand].dataTypes}].`);
+    const outputOperandDataTypes = operatorSupportLimits[operand].dataTypes;
+    if (!outputOperandDataTypes.includes(outputDataType) &&
+        !findCompatibleType(
+            outputOperandDataTypes, outputDataTypes, castOpSupportLimits)) {
+      throw new TypeError(
+          `Unsupported data type, output '${operand}' data type ${
+              outputDataType} must be one of [${outputOperandDataTypes}].`);
     }
   }
 
-  for (let operator of graph.operators) {
-    const operatorName = operator.name;
-    const operatorSupportLimits = supportLimits[operatorName];
-    for (let operand of Object.keys(operatorSupportLimits)) {
-      if (operand === 'output') {
-        // single output operand
-        assert(
-            typeof operator.outputs === 'string',
-            `the outputs of ${operatorName} should be a string.`);
-        if (!graph.expectedOutputs[operator.outputs]) {
-          // intermediate output
-          continue;
-        }
-        validateOutputDataType(
-            operator.outputs, operatorSupportLimits, 'output');
-      } else if (operand === 'outputs') {
-        // multiples output operands
-        assert(
-            Array.isArray(operator.outputs),
-            `the outputs of ${operatorName} should be a string array.`);
-        for (const outputName of operator.outputs) {
+  try {
+    for (let operator of graph.operators) {
+      const operatorName = operator.name;
+      const operatorSupportLimits = supportLimits[operatorName];
+      for (let operand of Object.keys(operatorSupportLimits)) {
+        if (operand === 'output') {
+          // single output operand
           assert(
-              typeof outputName === 'string',
-              `the outputs' item of ${operatorName} should be a string.`);
-          if (!graph.expectedOutputs[outputName]) {
+              typeof operator.outputs === 'string',
+              `the outputs of ${operatorName} should be a string.`);
+          if (!graph.expectedOutputs[operator.outputs]) {
             // intermediate output
             continue;
           }
-          validateOutputDataType(outputName, operatorSupportLimits, 'outputs');
-        }
-      } else {
-        // input operand(s)
-        if (operatorName === 'concat') {
-          const inputNameArray = operator.arguments[0][operand];
+          validateOutputDataType(
+              operator.outputs, operatorSupportLimits, 'output');
+        } else if (operand === 'outputs') {
+          // multiples output operands
           assert(
-              Array.isArray(inputNameArray),
-              `the inputs of ${operatorName} should be a string array.`);
-          for (const inputName of inputNameArray) {
+              Array.isArray(operator.outputs),
+              `the outputs of ${operatorName} should be a string array.`);
+          for (const outputName of operator.outputs) {
             assert(
-                typeof inputName === 'string',
-                `the inputs' item of ${operatorName} should be a string.`);
-            if (!graph.inputs[inputName]) {
-              // intermediate input
+                typeof outputName === 'string',
+                `the outputs' item of ${operatorName} should be a string.`);
+            if (!graph.expectedOutputs[outputName]) {
+              // intermediate output
               continue;
             }
-            validateInputOrConstantDataType(
-                inputName, operatorSupportLimits, 'inputs');
+            validateOutputDataType(
+                outputName, operatorSupportLimits, 'outputs');
           }
         } else {
-          const inputName = getInputName(operator.arguments, operand);
-          if (inputName === null || !graph.inputs[inputName]) {
-            // default options argument or intermediate input
-            continue;
+          // input operand(s)
+          if (operatorName === 'concat') {
+            const inputNameArray = operator.arguments[0][operand];
+            assert(
+                Array.isArray(inputNameArray),
+                `the inputs of ${operatorName} should be a string array.`);
+            for (const inputName of inputNameArray) {
+              assert(
+                  typeof inputName === 'string',
+                  `the inputs' item of ${operatorName} should be a string.`);
+              if (!graph.inputs[inputName]) {
+                // intermediate input
+                continue;
+              }
+              validateInputOrConstantDataTypeAndRank(
+                  inputName, operatorSupportLimits, 'inputs');
+            }
+          } else {
+            const inputName = getInputName(operator.arguments, operand);
+            if (inputName === null || !graph.inputs[inputName]) {
+              // default options argument or intermediate input
+              continue;
+            }
+            validateInputOrConstantDataTypeAndRank(
+                inputName, operatorSupportLimits, operand);
           }
-          validateInputOrConstantDataType(
-              inputName, operatorSupportLimits, operand);
         }
       }
     }
+    return /*supported*/ true;
+  } catch (error) {
+    return /*not supported*/ false;
   }
 }
 
@@ -1212,27 +1245,157 @@ const getResample2dPrecisionTolerance =
       return {metricType: 'ULP', value: tolerance};
     };
 
-// `cast_to_supported_type` will check if the graph input/output is
-// supported by current context, if not, it will try to find a compatible
-// type that's supported and use that type, then cast back to original type.
+let minimumDataTypeSet;
+
+function checkMinimum(descriptor, operandMinimumLimits, isInput = true) {
+  const targetRank = descriptor.shape.length;
+  const targetDataType = descriptor.dataType;
+  let isMinimum = operandMinimumLimits.dataTypes.includes(targetDataType);
+
+  if (isMinimum && isInput) {
+    isMinimum = operandMinimumLimits.rankRange.min <= targetRank &&
+        targetRank <= operandMinimumLimits.rankRange.max;
+  }
+
+  return isMinimum;
+}
+
+function getOutputMinimumLimits(operatorsResources, outputOperandName) {
+  let operatorName;
+  let outputsName;
+  for (let operator of operatorsResources) {
+    if (typeof operator.outputs === 'string' &&
+        operator.outputs === outputOperandName) {
+      operatorName = operator.name;
+      outputsName = 'output';
+      break;
+    } else if (
+        Array.isArray(operator.outputs) &&
+        operator.outputs.includes(outputOperandName)) {
+      // Current gru, lstm, lstmCell and split operators have multiple outputs
+      operatorName = operator.name;
+      outputsName = 'outputs';
+      break;
+    }
+  }
+
+  return minimumDataTypeSet[operatorName][outputsName];
+}
+
+function getMinimumDataTypeSetJson() {
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', '../resources/minimum_datatype_set.json', false);
+
+  try {
+    xhr.send();
+
+    if (xhr.status !== 200) {
+      throw new Error(`HTTP error! Status: ${xhr.status}`);
+    }
+
+    const text = xhr.responseText;
+    const jsonText =
+        text.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '');  // Remove comments
+    const data = JSON.parse(jsonText);
+    return data;
+  } catch (error) {
+    throw new AssertionError(
+        `Error fetching and parsing JSON, ${error.message}`);
+  }
+}
+
+function isMinimumTest(test) {
+  let isMinimum = false;
+  if (minimumDataTypeSet === undefined) {
+    minimumDataTypeSet = getMinimumDataTypeSetJson();
+  }
+
+  const graphResources = test.graph;
+  const inputsResources = graphResources.inputs;
+
+  // check inputs
+  for (let operator of graphResources.operators) {
+    const minimumLimits = minimumDataTypeSet[operator.name];
+    for (let argument of operator.arguments) {
+      for (let [operandName, value] of Object.entries(argument)) {
+        if (operandName !== 'options') {
+          if (typeof value === 'string' &&
+              inputsResources.hasOwnProperty(value)) {
+            isMinimum = checkMinimum(
+                inputsResources[value].descriptor, minimumLimits[operandName]);
+            if (!isMinimum) {
+              return isMinimum;
+            }
+          } else if (Array.isArray(value)) {
+            for (let subValue of value) {
+              if (typeof subValue === 'string' &&
+                  inputsResources.hasOwnProperty(subValue)) {
+                isMinimum = checkMinimum(
+                    inputsResources[subValue].descriptor,
+                    minimumLimits[operandName]);
+                if (!isMinimum) {
+                  return isMinimum;
+                }
+              }
+            }
+          }
+        } else {
+          for (let [optionOperandName, optionValue] of Object.entries(
+                   argument['options'])) {
+            if (typeof value === 'string' &&
+                inputsResources.hasOwnProperty(optionValue)) {
+              isMinimum = checkMinimum(
+                  inputsResources[optionValue].descriptor,
+                  minimumLimits[optionOperandName]);
+              if (!isMinimum) {
+                return isMinimum;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // check outputs
+  const outputsResources = graphResources.expectedOutputs;
+  for (let [outputOperandName, value] of Object.entries(outputsResources)) {
+    const outputMinimumLimits =
+        getOutputMinimumLimits(graphResources.operators, outputOperandName)
+    isMinimum = checkMinimum(value.descriptor, outputMinimumLimits, false);
+    if (!isMinimum) {
+      return isMinimum;
+    }
+  }
+
+  return isMinimum;
+}
+
 const webnn_conformance_test =
-    (buildAndExecuteGraphFunc, toleranceFunc, testResources,
-     cast_to_supported_type = false) => {
-      promise_test(async () => {
-        let context;
-        try {
-          context = await navigator.ml.createContext(contextOptions);
-        } catch (e) {
-          throw new AssertionError(
-              `Unable to create context for ${variant} variant. ${e}`);
-        }
-        if (!cast_to_supported_type) {
-          validateContextSupportsGraph(context, testResources.graph);
-        }
-        const builder = new MLGraphBuilder(context);
-        const {result, intermediateOperands} = await buildAndExecuteGraphFunc(
-            context, builder, testResources.graph);
-        assertResultsEquals(
-            toleranceFunc, result, testResources.graph, intermediateOperands);
-      }, testResources.name);
+    (buildAndExecuteGraphFunc, toleranceFunc, testResources) => {
+      promise_test(
+          async () => {
+            let context;
+            try {
+              context = await navigator.ml.createContext(contextOptions);
+            } catch (e) {
+              throw new AssertionError(
+                  `Unable to create context for ${variant} variant. ${e}`);
+            }
+            if (!validateContextSupportsGraph(context, testResources.graph) &&
+                !isMinimumTest(testResources)) {
+              // Skip run the non-minimum test that isn't supported by the
+              // context
+              return;
+            }
+            const builder = new MLGraphBuilder(context);
+            const {result, intermediateOperands} =
+                await buildAndExecuteGraphFunc(
+                    context, builder, testResources.graph);
+            assertResultsEquals(
+                toleranceFunc, result, testResources.graph,
+                intermediateOperands);
+          },
+          `${isMinimumTest(testResources) ? '[required]' : '[optional]'} ${
+              testResources.name}`);
     };

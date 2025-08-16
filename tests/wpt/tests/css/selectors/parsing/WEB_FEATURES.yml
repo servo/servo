@@ -12,3 +12,6 @@ features:
 - name: has-slotted
   files:
   - parse-has-slotted.tentative.html
+- name: not
+  files:
+  - parse-not.html

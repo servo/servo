@@ -1,0 +1,39 @@
+<!doctype HTML>
+<meta charset="utf8">
+<title>Content Visibility: hidden image</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility hidden content returns uptodate geometry with sibling content requiring layout">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#hidden {
+  content-visibility: hidden;
+}
+
+#absolute {
+  top: 100px;
+  left: 100px;
+}
+</style>
+
+<div id=sibling></div>
+<div id=hidden><div id=absolute></div></div>
+
+<script>
+async_test((t) => {
+  function runTest() {
+    sibling.style.width = "10px";
+    absolute.style.position = "absolute";
+    sibling.getBoundingClientRect().top;
+
+    t.step(() => assert_equals(absolute.getBoundingClientRect().top, 108, "bounding client rect top"));
+    t.step(() => assert_equals(absolute.getBoundingClientRect().left, 108, "bounding client rect left"));
+    t.done();
+  }
+  onload = requestAnimationFrame(runTest);
+}, "content-visibility hidden content returns uptodate geometry with sibling content requiring layout");
+
+</script>
+</html>

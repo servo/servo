@@ -19,6 +19,8 @@ const canUseAutogrant = topLevelDocument ||
           testPrefix.includes('cross-origin') ||
           testPrefix.includes('ABA');
 
+const initialCookie = "initial-cookie=unpartitioned;Secure;SameSite=None;Path=/";
+
 if (!topLevelDocument) {
   // WPT synthesizes a top-level HTML test for this JS file, and in that case we
   // don't want to, or need to, call set_test_context.
@@ -32,6 +34,7 @@ promise_test(async () => {
 
 // Most tests need to start with the feature in "prompt" state.
 async function CommonSetup() {
+  await SetFirstPartyCookie(location.origin, initialCookie);
   if (!canUseAutogrant) {
     await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
   }
@@ -76,6 +79,10 @@ promise_test(
 if (!canUseAutogrant) {
   promise_test(
       async t => {
+        t.add_cleanup(async () => {
+          await test_driver.set_permission({name: 'storage-access'}, 'prompt');
+        });
+        await SetFirstPartyCookie(location.origin, initialCookie);
         await test_driver.set_permission(
             {name: 'storage-access'}, 'denied');
 
@@ -88,7 +95,11 @@ if (!canUseAutogrant) {
           '] document.requestStorageAccess() should be rejected with a NotAllowedError with denied permission');
 } else {
   promise_test(
-      async () => {
+      async t => {
+        t.add_cleanup(async () => {
+          await test_driver.set_permission({name: 'storage-access'}, 'prompt');
+        });
+        await SetFirstPartyCookie(location.origin, initialCookie);
         await document.requestStorageAccess();
 
         assert_true(await CanAccessCookiesViaHTTP(), 'After obtaining storage access, subresource requests from the frame should send and set cookies.');

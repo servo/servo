@@ -122,7 +122,7 @@ promise_test(async (t) => {
 promise_test(async (t) => {
     const key = '{{uuid()}}';
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(cross_site);
+    await SetFirstPartyCookie(cross_site);
     addCommonCleanupCallback(t);
 
     await grantStorageAccessForEmbedSite(t, cross_site);
@@ -147,7 +147,7 @@ promise_test(async (t) => {
 promise_test(async (t) => {
     const key = '{{uuid()}}';
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(cross_site);
+    await SetFirstPartyCookie(cross_site);
     addCommonCleanupCallback(t);
 
     await grantStorageAccessForEmbedSite(t, cross_site);
@@ -248,7 +248,7 @@ promise_test(async (t) => {
                                        non_retry_path,
                                        [['script', responder_script]]));
     t.add_cleanup(async () => {
-        SetPermissionInFrame(iframe,
+        await SetPermissionInFrame(iframe,
             [{ name: 'storage-access' }, 'prompt']);
     });
     await SetPermissionInFrame(iframe,
@@ -303,7 +303,7 @@ promise_test(async t => {
 promise_test(async t => {
     const key = '{{uuid()}}';
     await MaybeSetStorageAccess('*', '*', 'blocked');
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(https_origin);
+    await SetFirstPartyCookie(https_origin);
     addCommonCleanupCallback(t);
 
     const iframe_params = new URLSearchParams([['script',
@@ -337,7 +337,7 @@ promise_test(async t => {
 promise_test(async (t) => {
     const key = '{{uuid()}}';
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(cross_site);
+    await SetFirstPartyCookie(cross_site);
     addCommonCleanupCallback(t);
 
     await grantStorageAccessForEmbedSite(t, cross_site);
@@ -377,7 +377,7 @@ promise_test(async (t) => {
 promise_test(async (t) => {
     const key = '{{uuid()}}';
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(cross_site);
+    await SetFirstPartyCookie(cross_site);
     addCommonCleanupCallback(t);
 
     await grantStorageAccessForEmbedSite(t, cross_site);
@@ -416,7 +416,7 @@ promise_test(async (t) => {
 promise_test(async (t) => {
     const key = '{{uuid()}}';
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(cross_site);
+    await SetFirstPartyCookie(cross_site);
     addCommonCleanupCallback(t);
     await grantStorageAccessForEmbedSite(t, cross_site);
 
@@ -456,7 +456,7 @@ promise_test(async (t) => {
 promise_test(async (t) => {
     const key = '{{uuid()}}';
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await SetFirstPartyCookieAndUnsetStorageAccessPermission(cross_site);
+    await SetFirstPartyCookie(cross_site);
     addCommonCleanupCallback(t);
     await grantStorageAccessForEmbedSite(t, cross_site);
 

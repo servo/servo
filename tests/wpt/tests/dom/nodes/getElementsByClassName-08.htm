@@ -7,9 +7,10 @@
  </head>
  <body class="a">
   <div id="log"></div>
-  <script> test(function() {
-                  document.getElementsByClassName("a\fa"), [document.body]
-                })
+  <script>
+   test(function() {
+    assert_array_equals(document.getElementsByClassName("a\fa"), [document.body]);
+   });
   </script>
  </body>
 </html>

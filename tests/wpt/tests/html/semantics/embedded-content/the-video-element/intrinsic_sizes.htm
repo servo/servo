@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>video element - intrinsic sizes</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12053">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/media.js"></script>
@@ -24,14 +25,14 @@ test(function() {
 test(function() {
   var s = getComputedStyle(document.getElementById("v2"));
   assert_equals(s.width, "400px");
-  assert_equals(s.height, "200px");
-}, "default height is half the width");
+  assert_equals(s.height, "150px");
+}, "default height is still 150");
 
 test(function() {
   var s = getComputedStyle(document.getElementById("v3"));
-  assert_equals(s.width, "200px");
+  assert_equals(s.width, "300px");
   assert_equals(s.height, "100px");
-}, "default width is twice the height");
+}, "default width is still 300");
 
 async_test(function(t) {
   var v = document.getElementById("v4");

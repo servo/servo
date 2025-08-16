@@ -144,6 +144,28 @@ export function fedcm_test(test_func, test_name) {
       // Failure is not critical; it just might slow down tests.
     }
 
+    // Reset cooldown in case a previous test triggered it.
+    try {
+      await test_driver.reset_fedcm_cooldown();
+    } catch (e) {
+      // Failure is not critical.
+    }
+
+    t.add_cleanup(async () => {
+      // A fedcm_test may affect the connected account set from the IDPs, so invoke
+      // disconnect as a cleanup.
+      try {
+        await IdentityCredential.disconnect(disconnect_options(""));
+      } catch (ex) {
+        // Failure is not critical, test state is reset.
+      }
+      try {
+        await IdentityCredential.disconnect(alt_disconnect_options(""));
+      } catch (ex) {
+        // Failure is not critical, test state is reset.
+      }
+    });
+
     await mark_signed_in();
     await mark_signed_in(alt_manifest_origin);
     await set_fedcm_cookie();

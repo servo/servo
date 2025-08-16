@@ -73,7 +73,7 @@
               "almost_soft_nav_img",
               "Image based on the user interaction was painted.",
             );
-            assert_equals(document.softNavigations, 0, "No soft navigation detected.");
+            assert_equals(performance.getEntriesByType('soft-navigation').length, 0, "No soft navigation detected.");
           }
 
           // Now, click soft_nav_div, and observe the detected soft navigation.
@@ -89,7 +89,7 @@
             // Returns entries of type SoftNavigationEntry, see
             // https://github.com/WICG/soft-navigations/
             const entries = await soft_nav_promise;
-            assert_equals(document.softNavigations, 1, "Single soft navigation detected");
+            assert_equals(performance.getEntriesByType('soft-navigation').length, 1, "Single soft navigation detected");
             assert_equals(entries.length, 1, "Performance observer got an entry");
             assert_equals(entries[0].name, test_origin + "/foo.html");
           }
