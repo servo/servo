@@ -38,6 +38,9 @@ where
 }
 
 /// All the DOM interfaces that can be serialized.
+///
+/// NOTE: Variants which are derived from other serializable interfaces must come before their
+/// parents because serialization is attempted in order of the variants.
 #[derive(Clone, Copy, Debug, EnumIter)]
 pub enum Serializable {
     /// The `Blob` interface.
@@ -46,12 +49,12 @@ pub enum Serializable {
     DomPoint,
     /// The `DOMPointReadOnly` interface.
     DomPointReadOnly,
+    /// The `QuotaExceededError` interface.
+    QuotaExceededError,
     /// The `DOMException` interface.
     DomException,
     /// The `ImageBitmap` interface.
     ImageBitmap,
-    /// The `QuotaExceededError` interface.
-    QuotaExceededError,
 }
 
 impl Serializable {
