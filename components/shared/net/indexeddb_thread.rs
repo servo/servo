@@ -189,7 +189,7 @@ impl IndexedDBKeyRange {
     }
 
     pub fn is_singleton(&self) -> bool {
-        self.lower == self.upper && !self.lower_open && !self.upper_open
+        self.lower.is_some() && self.lower == self.upper && !self.lower_open && !self.upper_open
     }
 
     pub fn as_singleton(&self) -> Option<&IndexedDBKeyType> {
@@ -198,6 +198,21 @@ impl IndexedDBKeyRange {
         }
         None
     }
+}
+
+#[test]
+fn test_as_singleton() {
+    let key = IndexedDBKeyType::Number(1.0);
+    let key2 = IndexedDBKeyType::Number(2.0);
+    let range = IndexedDBKeyRange::only(key.clone());
+    assert!(range.is_singleton());
+    assert!(range.as_singleton().is_some());
+    let range = IndexedDBKeyRange::new(Some(key), Some(key2.clone()), false, false);
+    assert!(!range.is_singleton());
+    assert!(range.as_singleton().is_none());
+    let full_range = IndexedDBKeyRange::new(None, None, false, false);
+    assert!(!full_range.is_singleton());
+    assert!(full_range.as_singleton().is_none());
 }
 
 #[derive(Debug, Deserialize, Serialize)]
