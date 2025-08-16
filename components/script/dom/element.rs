@@ -208,6 +208,7 @@ pub struct Element {
     #[no_trace]
     selector_flags: Cell<ElementSelectorFlags>,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
+    is_element_overflow_value_propagated: Cell<bool>,
 }
 
 impl fmt::Debug for Element {
@@ -334,6 +335,7 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
             rare_data: Default::default(),
+            is_element_overflow_value_propagated: Cell::new(false),
         }
     }
 
@@ -1291,6 +1293,8 @@ pub(crate) fn get_attr_for_layout<'dom>(
 }
 
 pub(crate) trait LayoutElementHelpers<'dom> {
+    fn get_element_overflow_value_propagated(self) -> bool;
+    fn set_element_overflow_value_propagated(self);
     fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
     fn has_class_or_part_for_layout(
         self,
@@ -1819,6 +1823,18 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 }
             })
             .collect()
+    }
+
+    fn get_element_overflow_value_propagated(self) -> bool {
+        (self.unsafe_get())
+            .is_element_overflow_value_propagated
+            .get()
+    }
+
+    fn set_element_overflow_value_propagated(self) {
+        self.unsafe_get()
+            .is_element_overflow_value_propagated
+            .set(true);
     }
 }
 
