@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<style id=style>
+</style>
+<script>
+const DECLARATIONS = 200;
+const VALUE_LENGTH = 2000;
+
+function makeStyle() {
+  let declarations = [];
+
+  let value = [...Array(VALUE_LENGTH).keys()].map(() => 'X').join(' ');
+
+  for (let i = 0; i < DECLARATIONS; i++) {
+    declarations.push(`background: invalid-thing-${i}(${value});`);
+  }
+
+  return `
+    div {
+      ${declarations.join('\n')}
+    }
+  `
+}
+
+let globalCounter = 0;
+const stylesheetText = makeStyle();
+let stylesheet = new CSSStyleSheet();
+
+PerfTestRunner.measureTime({
+    description: 'Performance of parsing many invalid declarations',
+    run: () => {
+      // This is a parsing test: we don't care about style recalc.
+      // We append a rule based on globalCounter to prevent caching
+      // on the stylesheet string.
+      stylesheet.replaceSync(stylesheetText + `\n .b${globalCounter++} {}`);
+      style.textContent = stylesheetText;
+    }
+});
+
+</script>
+

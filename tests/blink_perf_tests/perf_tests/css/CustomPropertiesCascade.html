@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<body>
+    <header id=info>CSS Variables: <button id=button></button></header>
+</body>
+    <script>
+        const propCount = 1000;
+
+        // Add ?ref to URL to run a similar test without CSS Variables.
+        const ref = document.location.href.endsWith('?ref');
+
+        button.textContent = ref ? 'OFF' : 'ON';
+        button.addEventListener('click', function(){
+            let href = document.location.href;
+            if (ref) {
+                document.location.href = href.substr(0, href.length - 4);
+            } else {
+                document.location.href = href + '?ref';
+            }
+        });
+
+        function hexcolor(i) {
+            let hex = i.toString(16);
+            while (hex.length < 6)
+                hex = '0' + hex;
+            return '#' + hex;
+        }
+
+        // Create a rule which defines 'propCount' custom properties at :root.
+        function createRootRule() {
+            let lines = [':root {'];
+            for (let i = 0; i < propCount; i++) {
+                lines.push(`--prop-${i}: ${hexcolor(i)};`);
+            }
+            lines.push('}');
+            return lines.join('\n');
+        }
+
+        // Create 'propCount' rules, each refering to a custom property created
+        // by createRootRule.
+        //
+        // If 'ref' is true, then the colors that would have been resolved via
+        // the var()-references are inlined instead.
+        function createDivRules() {
+            let lines = [];
+            for (let i = 0; i < propCount; i++) {
+                if (ref) {
+                    lines.push(`div { background-color: ${hexcolor(i)}; }`);
+                } else {
+                    lines.push(`div { background-color: var(--prop-${i}); }`);
+                }
+            }
+            return lines.join('\n');
+        }
+
+        applyCSSRule(createRootRule());
+        applyCSSRule(createDivRules());
+        createRegularDOMTree();
+
+        PerfTestRunner.measureTime({
+            description: 'Measures the performance of applying many var()-references.',
+            run: function() {
+                document.body.style = 'display: none';
+                forceStyleRecalc(document.body);
+                document.body.style = 'display: block';
+                forceStyleRecalc(document.body);
+            }
+        });
+    </script>
+</html>

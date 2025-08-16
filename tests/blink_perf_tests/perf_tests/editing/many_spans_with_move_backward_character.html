@@ -1,0 +1,46 @@
+<!doctype html>
+<style>
+#sample {
+    font: 10px/14px monospace;
+    width: 80ch;
+    border: solid 3px green;
+    padding: 5px;
+    height: 300px;
+    overflow: scroll;
+}
+span {
+  background: rgba(250, 250, 250);
+}
+</style>
+<script src="../resources/runner.js"></script>
+<script src="../paint/resources/paint.js"></script>
+<div id="sample" contenteditable></div>
+<script>
+const NUMBER_OF_ELEMENTS = 1000 * 10;
+const MOVE_COUNT = NUMBER_OF_ELEMENTS / 10;
+const selection = window.getSelection();
+const sample = document.getElementById('sample');
+PerfTestRunner.measureTime({
+    description: 'Measures performance of Selection#collapse() with many spans.',
+
+    setup: function() {
+        sample.innerHTML = '';
+        for (let index = 0; index < NUMBER_OF_ELEMENTS; ++index) {
+            const span = document.createElement('span');
+            span.innerHTML = `${index} `;
+            span.setAttribute('id', `e${index}`);
+            sample.appendChild(span);
+            if (index % 100 === 99)
+              sample.appendChild(document.createElement('br'));
+        }
+    },
+
+    run: function() {
+        const start = document.getElementById(`e${NUMBER_OF_ELEMENTS - 1}`);
+        const end = document.getElementById(`e${NUMBER_OF_ELEMENTS -100}`);
+        selection.collapse(start.firstChild, 0);
+        for (let i = 0; i < MOVE_COUNT; ++i)
+            selection.modify('extend', 'backward', 'character');
+    },
+});
+</script>

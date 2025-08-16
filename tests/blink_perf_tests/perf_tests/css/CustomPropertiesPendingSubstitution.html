@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="resources/utils.js"></script>
+<link help="https://drafts.csswg.org/css-variables/#pending-substitution-value">
+<div id="container" style="height: 100px; overflow: hidden"></div>
+<script>
+    createDOMTree(container, 2, 3);
+    applyCSSRule(':root { --border: 4mm ridge rgba(170, 50, 220, .6); }');
+    applyCSSRule(':root { --margin: 1px 2px 3px 4px; }');
+    applyCSSRule(':root { --padding: 1px 2px 3px 4px; }');
+    applyCSSRule(':root { --background: content-box radial-gradient(crimson, skyblue); }');
+
+    const sequence_size = 2000;
+
+    function create_var_sequence() {
+        let chain = [];
+        for (let i = 0; i < sequence_size; ++i) {
+            chain.push(`var(--v${i}, )`);
+        }
+        return chain.join(' ');
+    }
+
+    applyCSSRule(`div { border: ${create_var_sequence()} var(--border); }`);
+    applyCSSRule(`div { margin: ${create_var_sequence()} var(--margin); }`);
+    applyCSSRule(`div { padding: ${create_var_sequence()} var(--padding); }`);
+    applyCSSRule(`div { background: ${create_var_sequence()} var(--bakground); }`);
+
+    PerfTestRunner.measureTime({
+        description: 'Measure impact of resolving pending-substitution-values',
+        run: function() {
+            container.style.setProperty('display', 'none');
+            forceStyleRecalc(container);
+            container.style.setProperty('display', 'block');
+            forceStyleRecalc(container);
+        }
+    });
+</script>

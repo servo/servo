@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Custom Highlights Painting</title>
+<style>
+::highlight(example) {
+  color: blue;
+  background: yellow;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<pre id="log"></pre>
+<script>
+  // Setting this to larger values can result in "Maximum call stack size exceeded" exceptions, see: https://crbug.com/978832.
+  const REPETITIONS = 1000;
+  const LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+
+  let indexesLetterA = [];
+  for (let i = 0; i < LOREM_IPSUM.length; i++) {
+    if (LOREM_IPSUM[i] == "a")
+      indexesLetterA.push(i);
+  }
+
+  let ranges = [];
+  function setupTest() {
+    for (let i = 0; i < REPETITIONS; i++) {
+      let p = document.createElement("p");
+      p.textContent = LOREM_IPSUM;
+      document.body.appendChild(p);
+
+      indexesLetterA.forEach(index => {
+        let range = new Range();
+        range.setStart(p.firstChild, index);
+        range.setEnd(p.firstChild, index + 1);
+        ranges.push(range);
+      });
+    }
+  }
+
+  setupTest();
+
+  measurePaint({
+    description: "Measure time for painting Custom Highlights (emulates searching 'a' in a large text)",
+    run: () => CSS.highlights.set("example", new Highlight(...ranges)),
+    setup: () => CSS.highlights.clear(),
+  });
+
+</script>

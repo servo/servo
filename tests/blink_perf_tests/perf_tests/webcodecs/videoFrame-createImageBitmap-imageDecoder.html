@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Test createImageBitmap() performance with VideoFrame from ImageDecoder</title>
+<script src="../resources/runner.js"></script>
+<script src="videoFrame-utils.js"></script>
+<script src="createImageBitmap-test.js"></script>
+<canvas id="canvas" width="1280" height="720"></canvas>
+
+<script>
+(function() {
+  const canvas = document.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  fourColorsFrame(ctx, canvas.width, canvas.height, 0x4C.toString(2));
+
+  const mime_type = "image/png";
+  canvas.toBlob(blob => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let decoder = new ImageDecoder({data: blob.stream(), type: mime_type});
+    decoder.decode().then(result => {
+    runCreateImageBitmapTest(
+        result.image,
+        "CPU time for createImageBitmap w/ VideoFrame from ImageDecoder");
+    }).catch(e => {
+      PerfTestRunner.logFatalError("Test error: " + e);
+    });
+  }, mime_type, 1);
+})();
+</script>

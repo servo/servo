@@ -14,6 +14,7 @@ files = [
     # Upstream code from Khronos/WebGL uses tabs for indentation
     "./tests/wpt/webgl/tests",
     # Vendored from upstream
+    "./tests/blink_perf_tests/perf_tests",
     "./tests/wpt/webgpu/tests",
     # Our import script is not currently respecting the lint.
     "./tests/wpt/webgl/tools/import-conformance-tests.py",

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<style>
+  span {
+    border: 1px solid blue;
+  }
+  .changeTransform {
+    position: absolute;
+    transform: rotate(0);
+  }
+</style>
+<script>
+// This test measures the lifecycle update performance of changing transforms
+// in large trees.
+
+function buildTree(parent, depth, arity, tagNameCallback, createElementCallback) {
+  for (var child = 0; child < arity; child++) {
+    var element = document.createElement(tagNameCallback(depth));
+    parent.appendChild(element);
+    createElementCallback(element, depth);
+    if (depth > 1)
+      buildTree(element, depth - 1, arity, tagNameCallback, createElementCallback);
+  }
+}
+
+// Build a tall tree that is skinny. A middle layer of
+// the tree should have the changeTransform class.
+buildTree(document.body, 13, 2,
+  function(depth) {
+    // Use divs at upper levels to avoid too much layout time.
+    return depth > 11 ? 'div' : 'span';
+  },
+  function(element, depth) {
+    element.style.borderColor = 'red';
+    if (depth == 5)
+      element.setAttribute('class', 'changeTransform');
+  }
+);
+
+// Build a short tree that is fat. A middle layer of
+// the tree should have the changeTransform class.
+buildTree(document.body, 6, 6,
+  function(depth) {
+    // Use divs at upper levels to avoid too much layout time.
+    return depth > 5 ? 'div' : 'span';
+  },
+  function(element, depth) {
+    element.style.borderColor = 'orange';
+    if (depth == 3)
+      element.setAttribute('class', 'changeTransform');
+  }
+);
+
+var runCount = 0;
+var elementsToChange = document.getElementsByClassName('changeTransform');
+measurePaint({
+  run: function() {
+    runCount += 10;
+    for (var index = 0; index < elementsToChange.length; index++)
+      elementsToChange[index].style.transform = 'rotate(' + runCount + 'deg)';
+  },
+});
+</script>
+</body>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<body>
+<style>
+textarea:valid {
+    background-color: lime;
+}
+textarea:invalid {
+    background-color: red;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<div id="container"></div>
+<script>
+var htmlText = "<textarea maxlength=2147483647>";
+for (var i = 0; i < 1000; ++i) {
+    htmlText += "A quick brown fox jumps over the lazy dog.\n" +
+        "A quick brown fox jumps over the lazy dog.\n" +
+        "<!-- comment -->\n";
+}
+htmlText += "</textarea>"
+
+var container = document.getElementById('container');
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of parsing within a <textarea> tag.",
+    run: function() {
+        container.innerHTML = htmlText;
+    }
+});
+</script>
+</body>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- Lock the page scale factor to prevent rescaling when the content width changes. -->
+<meta name="viewport" content="initial-scale=1.0 minimum-scale=1.0 maximum-scale=1.0">
+<script src="../../resources/runner.js"></script>
+<body style="overflow:scroll;"> <!-- don't want auto scrollbars to affect the number of layout passes. -->
+    <pre id="log"></pre>
+    <div id="target" style="position:absolute; top:0; left:0; display:none; columns:2; column-fill:auto; width:40em; height:100px;">
+        <div style="height:800000px;"></div>
+    </div>
+    <script>
+    var target = document.getElementById("target");
+    var style = target.style;
+
+    function test() {
+        style.display = "block";
+        PerfTestRunner.forceLayout();
+
+        // Do some hit-testing.
+        document.caretRangeFromPoint(10, 10);
+
+        style.display = "none";
+        PerfTestRunner.forceLayout();
+    }
+
+    PerfTestRunner.measureRunsPerSecond({
+        description: "Measures performance of multicol layout with many columns.",
+        run: test
+    });
+    </script>
+</body>

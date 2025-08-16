@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/worker-text-encoded-transferable-perf-test.js"></script>
+<script>
+WorkerTextEncodedTransferablePerfTestRunner.measureTimeAsync({
+  description: "Measures performance of encoding JSON data to send to worker thread as a transferable",
+  data: PerfTestRunner.loadFile("resources/data/blink-dev.json"),
+  measure: "toWorker",
+});
+</script>
+</body>

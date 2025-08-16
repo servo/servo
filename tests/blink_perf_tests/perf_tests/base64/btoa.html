@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var longStr = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+for (var i = 0; i < 15; i++)
+  longStr = longStr + longStr;
+var binary = atob(longStr);
+
+PerfTestRunner.measureRunsPerSecond({
+description: "This benchmark covers `btoa`.",
+  setup: function() {},
+  run: function() {
+    btoa(binary);
+  }
+});
+</script>
+</body>
+</html>
+

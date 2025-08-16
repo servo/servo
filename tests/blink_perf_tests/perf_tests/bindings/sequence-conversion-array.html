@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+let dataArray = [];
+for (let i = 0; i < 100000; i++) {
+  // We are interested in the conversion of JS arrays to C++ sequences, not in
+  // the JS string to C++ string conversion, so just push empty strings into
+  // the array.
+  dataArray.push('');
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "This benchmark measures the overhead of converting JavaScript objects into WebIDL sequences (fast path for arrays)",
+  run: function() {
+    new Blob(dataArray);
+  }});
+</script>
+</body>
+</html>

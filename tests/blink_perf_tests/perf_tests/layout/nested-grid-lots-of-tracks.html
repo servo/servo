@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<style>
+.grid {
+  display: grid;
+}
+.grid > div {
+  grid-area: 1 / 1 / -1 / -1;
+}
+.auto {
+  grid-template: repeat(100, auto) / repeat(100, auto);
+}
+.min-content {
+  grid-template: repeat(100, min-content) / repeat(100, min-content);
+}
+.max-content {
+  grid-template: repeat(100, max-content) / repeat(100, max-content);
+}
+.flex {
+  grid-template: repeat(100, 1fr) / repeat(100, 1fr);
+}
+.percent {
+  grid-template: repeat(100, 1%) / repeat(100, 1%);
+}
+.length {
+  grid-template: repeat(100, 1px) / repeat(100, 1px);
+}
+</style>
+<template id="template">
+  <div class="grid auto">
+    <div class="grid min-content">
+      <div class="grid max-content">
+        <div class="grid flex">
+          <div class="grid percent">
+            <div class="grid length">
+              <div class="grid auto">
+                <div class="grid min-content">
+                  <div class="grid max-content">
+                    <div class="grid flex">
+                      <div class="grid percent">
+                        <div class="grid length">
+                          <div>Inner content</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<script src="../resources/runner.js"></script>
+<script>
+'use strict';
+function startTest() {
+  let prototype = document.getElementById("template").content.firstElementChild;
+  let testcase;
+  PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of layout on a page using nested grids with lots of tracks.",
+    setup() {
+      testcase = prototype.cloneNode(true);
+      document.body.appendChild(testcase);
+    },
+    run() {
+      testcase.style.display = "none";
+      PerfTestRunner.forceLayout();
+      testcase.style.display = "";
+      PerfTestRunner.forceLayout();
+    },
+  });
+}
+</script>
+<body onload="startTest()"></body>

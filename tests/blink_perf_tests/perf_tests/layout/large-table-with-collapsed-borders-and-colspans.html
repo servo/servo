@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Table layout performance with collapsed borders and a cell with a colspan that can be accomodated by the width given by other rows in the table.</title>
+        <link rel="stylesheet" href="resources/large-table-with-collapsed-borders.css" TYPE="text/css"></link>
+        <script src="../resources/runner.js"></script>
+        <script src="resources/large-table-with-collapsed-borders.js"></script>
+    </head>
+    <body>
+        <pre id="log"></pre>
+        <script>
+            PerfTestRunner.measureTime({
+                description: "Table layout performance with collapsed borders and a cell with a colspan that can be accomodated by the width given by other rows in the table.",
+                run: createTableTestFunction(400, 100, 50)
+            });
+        </script>
+    </body>
+</html>

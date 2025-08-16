@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+// Taken from http://jsperf.com/parse-html-type
+// The major difference between this test and innerHTML-setter.html
+// is that innerHTML-setter creates a single root node
+// which avoids some of the costs in transplating nodes from the
+// intermediary DocumentFragment to its final parent.
+var tags = '<div></div><div></div><div></div><div></div><div></div>';
+var attr = '<div foo="bar" foo="bar" foo="bar" foo="bar sda"></div>';
+var nest = '<div><div><div><div><div></div></div></div></div></div>';
+
+var tags10 = tags + tags + tags + tags + tags + tags + tags + tags + tags + tags;
+var attr10 = attr + attr + attr + attr + attr + attr + attr + attr + attr + attr;
+var nest10 = nest + nest + nest + nest + nest + nest + nest + nest + nest + nest;
+
+var div = document.createElement('div');
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark tests innerHTML setter for a large DOM tree",
+    run: function() {
+        div.innerHTML = tags10;
+        div.innerHTML = attr10;
+        div.innerHTML = nest10;
+        div.innerHTML = "";
+    }});
+</script>
+</body>
+</html>

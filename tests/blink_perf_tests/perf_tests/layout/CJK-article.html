@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<style>
+body {
+  font-family: 'Meiryo', 'MS Gothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+}
+
+#main_content_wrapper {
+  display: none;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<!--
+  Testing CJK layout with modern Chinese and Japanese, which can mix up with western characters.
+-->
+<body onload="setupAndMeasure()" >
+<div id="main_content_wrapper">
+  <div lang="zh-Hans">
+    <div>
+    汉字和非Western text常同时出现，例如本文。
+    很多terminology不经过翻译而直接使用原文。
+    考虑到视觉设计，许多文章被要求在汉字与非汉字之间插入空格。但如果想在输入的时候插入非全角空格，就需要切换IME的mode。
+    因此，我们想要layout engine自动分离这两种字符。
+    在此之后的都是自动生成的无意义乱码。
+    </div>
+    <div>
+      辞叠言记巢俗不文ertilnitg。有通复。碍本喻惊hhixspbal家在得得以察所考长ihdpaobnk柔锋。衣作的薄义nthsat-tt慎趋何清高小正又清tuDhhlaii过达为怀以侯昭进容nttoaaenh有的后言记论，后房oaitilhnw李之又强见膻则改年tsaibageo·配怪别游。。查挺kesidesfe‘贤怪箠则小谤：吃sphetoest定既鹰头的来尹爱着tttfepioo都足古花辛莽者传宽lintmaats坚比云难胤曰鼓。会etwsrtiht生天分捷燕束身头好oriaetdme邪对殷喻展广狐人井yyleteIto。的痛於尊。子自于insliilge。他别天村齐经或乌ie-mpeTwt，若时付外怕身极契oxsoiteew不比人大其事烈见观inalrriii，思，见蔽绯此嫌庭sueiitaee。宋象和。临作俏。ottitstst逐神信，玉重耻地不itdasltee一一制或躬少长一喻sriooeteh获言原挤天喻虎痕点isDepstit之不出等郄亦拨或技tihtipspo？言形从记言之，戈thhtnsett续、治载物三死所。heepntell两、门龙，瓜门戴鸾ibenhditw传意为言负可转旋答tieineEie投光矜下人恋无远而ptErt-yio尘该而，时严时作，hixhiaeeo吾转策昂不留屈战不hwhroeepy。势题缝见标饰凫世dttetetnk，：·教曾沙乐子实Dwrtneeth物。的难。。人风不ipstdeese怀，孤样家犹的蒂信wtoealst-合倒引水比容，倨困thimmhbtl经恻采天人上顺丁出iesthmopi险如临样。发世之了nlleushmE变安舒贾柳轻也柔，feyopsyrt国。。。定一惧各事oeeabestf人超展晚的画而不容doatistae明容。够贪一箭无弓rcdoeyiot风喻凤。蚀目明笑势ebeplpoia亡见，又沽快无过牵gaxdotpiz奇人或辆钓花所欲称epetiedie叠，前：实揖东蝉比wntrtneoi可。尔鬼疑丽以。传setthibpo众而垂点的齿吞谓晋tailittne？。日天棘石。走’iagebtrDy。气粗兢原事搜奕事sstipensn言任卖浅而残谓拔巫aktlelrtt而婢造神不艳比所影fniaiybbi染之。氏梧如尖根，tdhtdidhs削更作有。品，人片nheeiebsw眼混望曰。。避哺，aeldmoeii。过不容教的离务，ioxeihrx-博一：逛不醒齐刮南sekptelbt形用卷上纳相对昏夺isonoaDta俱。炊复辗魏深亮不itilhat-d的秋上人。容恐出暴tnsinteth再不不容秋民也团花rgdgpipii禄而。篇…于闹平可syhagtbga群’思旦穷是灯臣鸟tgoeetela。喻。做乱朴代违师oosdoarbi之迅摘的皆。、：所nytltaatn嘴小争象忍要主萧业teelhoetg黄列雄处化矣点画去llttststi繁。无兴煽乏喻则大oswaeittd子得醖留语冯无还大smthbxtte诡故自表入手不后恐nronttnnn削也人同物人见精下umueleddn前诗瑞亮轻立其还，hmonsteel伏来谓辨也挠晒口色snoTphtoc苟构功委语官应矣狂inntimioo屈兵辉敢冠本踬鸡众bdgnedniy’登畋，语佛贯民信astletwps作子生间迷荒。虽号bvbteeine重於盛彩叠完於贱鞭esaeienIr国匈法的来较运死全dteanndot磨虎七俏：男。出喝rnitdntih。壮要小落显语门立oehealneo不文同下在加。其宠ltwoshtrt景如苦一各明饱作次eesihiios时也亦临望精头鳞兄iiseadeie仙念知仪罔域容容玄pmdxtihsh子刻相定多超见：如ieottoeti吉鼓，：佛女拾鲸心snifuxonl程高情人、云通合有oetresldt法亲·先筑灶容同，iniiDtnrt指纱接得大威是一力nknyplssd鼠。职风同谓不因有potiiiieI一、的仪鸦逐决心火tIptetise世量念峦江丝笑此孜etibeeint绿人话俭改尚从传紫ninnldtsh七哑汲。盐塞毫才：tsitoeved题程己的意，响寒何estnnpspe子传喻不鱼面古坚蒿nthdnoepl声其四亡瓘的以把。nntioiisp，出，复德馀。知用tnmdtrfs
+    </div>
+    <div>
+      燕父；开右蹑计肉，ectIirmdi富，喻来到苦备节不phsaoetai犯者或自壮行马存帝yytfiects蚌操祝户断净天衰抗Tssoeote-，焉零后形生铁子谓mnnotteha：青部。而蟠惊又龄dihtsttal多文弼里贤想意：难ottsaemke于用应谈·，或泛后k-eoetaiv帝的龙兵形活。以二eltsoitxd喻时。世鸣才的曲知talyroiem有喻军虽争李径八楞ltoeehaik熙体。形为：疾学别otaeniest远法时用拔没之，形esoiktnsb自抱于无宠绣薄当过dmnd-hnr-后摇锥至其任折七见eeealotlt能南所作蹶以谓妾喻na-ttinIi指：片益本穷虔连布wetnodeta：心误以钱吹负勃君tteatfiet顾孟子见风。难谓貂dfsniopsm比。春惊立如。英聚teeelbrun形喻：容象。达见闻fIIwuotef姿而性用叔之空鱼绘lhtittaDe互一鹯，语谓践努态pIanEhfel’典秀。。地好犹上uteenlfae欲不’。尽元走作属behvhhtbh能落斗说前在生民蔓otneIiric仆众成如神比谓。带postangts耳绕待顺国目消而，onktnpstr卷心阔啼容扬玄劲斗dleoiernn传民处经襛始舟逢又tetxEeoem语，三姬求棋，为或eygnecohy什悬：趋外示语川作hietftatz事集沫之供宋食以式mpgyotnop。其的高工门关文；nraewgeyf泛於体喻求新荀五贯elninitba尊则马东化行被知猛anohoieeh共孝昔。谓意变。螳ptyneustn赃面瑟百年谓毛资正utdeeneps为松荡人据已字道刻vtttetgos清俗古记意复谧非沽nrotkntir殚犹原也六时惩贵心rtbdmadee益懽家，水：是谓些antnnnsot负休可害因耳龙，指leesevefy冲不成民出树月茅以ohnialiet朝一子奔信伐过又心neTiiilxe着言蕴谓武食。发福eieitephw鸣，骖形安，兄孙出cktthDxir。金，一二种志心终iieroiisa五空言气者面，饕若ieleorsot不言一如径滋楼花环oTshosboe空，师豁经断喻一求eetnoexee祸。史促相默外王矣ouitiinas锵家绸以使：为出步altosrtna成贯手的足魄志年的idtetlslg定触者换人。匐行密esnpaoips若。双穷世形力马喻eotrtrtsb牧也帅非一可溃诚排ainsuetba锻全恬即清石原同说tnEEkohea也赵，欲计距卫以六pniotdaon：踪不后如发底策步odegDwltt犬。、恶大业醨上东teatsaboe有苦七形难为。之三sntnlTtnD忘，芳往言成各。马Isttmdede唐言气金表而丘左形sezntopes常椟自脣孤敌付有甚rhtacinso学、。锥。手息坊正giieshini无鬻贵意。少用卑众eelopnooi旦珠受。电寻饭移事etghiplht犹牙天借比藤，主聚aondstsgt谓，短祖腹灾称，，ena-psrss而多。比力雨定亮。isnetnios笔端脟亦亨和暇被百atxepissu察河圣，，灯出欲生topototiu观云以话说西置征曰sseietmsh，相虑者识沽经。公ypsnthede士话说，车勒气志事hpxttbash巨德往，因男荆后士khmodnryr，纸的为背相为。陈tpeentedn气靡刿尝不，崩指柱leachkeew不语高永白孝声，：dsiEdrtee。高道归。谓的镜亲eareToroh味辱园章。。一誉指speloeneo而谓异学长恼公，来pnntoohlp。兵早隐百公毫见翁tedsrriee卒鬼的至谓。之喻以eEnizobae疑蜃合下举的比而掉ndneaeeio常：世楚。比渔振附nvltintox法难而古今是容弥传selttftin谓改合百丁规。定。ipnorerit。的见。暗盛不从不itbneubui内生荒兴。名。谁远oiitttted的馀人军有燕出。因niozsteiy丢斗‘，同胆见事切ntdtTptip外则，一，雍家。生elsspdoei最之肉剑见物饮鸷后sxleIefhh言机大常战件得气容hhoyhtrti类行嘲事，，。夜、reatpeadf客。言久谓故门思匿rytilhhis乱次呴地女内裘传形hesbtshht睁移。宠没亦。如上mopitrsip
+    </div>
+    <div>
+      指行饮昂当等蜜。出tmstnmhti言衣管为能如记过喻siwotfgow上高法贯束按夫：律eetoontsh、容糊置，里，事诈ehIhnnrIi无土事时灵谓飘乱。opedosuoh此私闻景磨序都灵覆oxfeitota凶开短作。蹙：娇赭ntnkstuth要。刘二人，形任形mntfpetur未语。撰鬓风，外辰psengltdt示炉作千榫。顺学防dindbaTii彻仆同受兴川。人之riahatplt遗上所西掀士形罪上eoldenktv木。被谓承扬假其承txoitntnn可而篇求喻，就角又peuttgntn鼓肃无皆高泣不喻抬nltzrleld天，作把喻道悠。后odhaedeit烦抵，犹手能。以服itesul-ai生样与深翟晚。禁又hnloeieli行；缚的容、不的气enooztteT行运据也防离政何门teodnaxtt绝鬼同。二轻揖导鼻sloTtsiil，到精悼。·获惊女-ttoeoiyn之骇倒世雕赢误歧匿Dtnzeiret壮席打迫。子与乡转exeskeidt己成官仅隅风穿无事epnehhfin帘三粟贤勉马并后和inihsolnD毫树裁馀面论个生乐entnhetpd越始敬从色良起，做etoptetme价曲’如容受目位矣pcoosisik的浊旧唐：神多成于IttrkthsD中燕灵仇渐劣临啧容nessttdao：轩养又情五脸三石siantoioi赖踩不草研打叔卫穷hprheeulo·口：之汉胆歌才多ieoonorEs周·。下时麦史雨坤athepswxo书哲复准或墨俗迎齐rniidpzlt。道注不内排纷事小ttinliiln红不绝熟韩语情相直otlseetpi比躬盲解为君：作不ntinssael宝的。论其用姿后娥tsnmieshe朴者正同言容谓的不thosedtda不生劣互嵩作交他埋hzIriaipi通入鼻羁时然举殷心ptioedgbi命寝全品通难个嵇鹭uisoITnto泣窃同难能正及自遣ntfthtlus犹变一心自。真容曰hstietm-g经事典排为：指矩，eIpgctttt安音怀回男没装集不rteosddif时中衣消，马僻念青etodrhert将，销脂弱死马上清ednihrede骞推有南川吴喻目接zei-desox华。肝杂精乖阳。。fssnnstao大一象司德日不计一hstnewtoe喻形鼠人，牙切策以otttisteh谢招强、巢风同变。ziivsDetk远上看指三长售贴昧akzieanlr器一尚众敖大人说与hshdciiea能箫后律之形的木。olrinenet。移及。强去麟，视htucoitoo道食时和能淮行；誉sazogrinr深心制行声风成，。lntdhoidt人诵前饵难。锷至。tnehrines破濡兴解人喻气舞读aontsaett东悱行作。水说称出ibtlothol老作计君解语躁分胝oaiilbeht方众不浪湖形集。。oiagyltoi作。不过称读虫作山edtetdtto於木互上重。无家戌aIedeuths化请少也思带不兆快siloneins不予很。容在遇一后enoopseta建众底。战丑钻崩识eihdlsatr白：枕新）来门时。cgpnatith心的以注长。点柔砖sttmattne在痛别。说依饰，容lpetelmae易国所而·摴而颖腾eiohltiti的眼景门翻不读官。ocgIrigst类时懋礼。。拦传明nttoeedit穿，。共敢。，受理esltertnl王三意陋纵顺毫易夫nitotslel河威待法轮扬，之真itsDikipi记为轻厄文不。闻而ddotierho祖方势：的为何玉以tshbdoohh的无愈断叹不又。富splaeuein后朝饮得前：持不大dedghtnlg。偃语大金见裁缚负l-tsstaor兴：九更为谓食夺芳iwynntosp兮豁阐夸生兵听见赤nolwiEenx则。犹。风容保训衔wiuorssti吉上迫开识见疑喻水wkeTunapo超’手气流者路联，hatmpshit老要於白：兔赞法同nbittueDr骥智度人，男书狼不nghfsootl很封迹、形酒就内女eotttpltb断后邪祭声国学集饿owuertdps女。短家出自东知功peitoasnd馀不像仁本阮乱惟国hnmthetng。钟或没犹次不丘后eahtlnlas，诗箪博彼钝晏喻好tiltIipei出虎喻远君，字：。hliysIaee礼而偷虽之。形少韬inohontdm
+    </div>
+  </div>
+  <div lang="ja">
+  <div>
+    欧文混植する例は多い。
+    terminologyを翻訳せず、そのまま使用する。
+    以下，意味不明な内容が自動的に生成されます。
+  </div>
+  <div>
+    のこし文てあを大的ml-otsTri組面の有I，学をいiimoiolnnもっよ化。のの温のseteetttlるし見大宮のと0縦bitpsdttrとは「史ーす本な気xenbEeilt宇るは又をのっ親。edeoinoee見ジ数上都えに測末lteyonstp0たに本をし。のたelrrtkendよ制籍目年字目2高Idtleshsn5症，1」4尾でたetxeppiko用字発大2ペでは方npefmebin継れ性配に端と感トkrsuwnsse字地比ての対2面のmttbeetda適き向、位大たが長hpd-tpwiiま1文との，地だいahhurseti化い比親点制きみ組fimedeeiiちきくビい増暑た増ei-sceconき字、一7化延磨大hlomoiihg）く多2端ブ「学のhlssigiehの5なすだ栃数測すnipolnasl識字字化には，議人tpnslipsnの基の学ら尾議後方eidntgnns8，しげ版すさは、tsrhpeereし県ででととただ1ssDeaIs-r価とのい公話引観岡edetIoeth研じ場さ想さ降末5bnhiellnp終な版重4いも長、httsnhm-gの上たはいジ者栃内xteleirhi宮親字回校教か4的ndisotdgi案前長列が等」症ばiTaeeiseiり当識ノ段症日頭組beheitsteりたる1名い2びしtel-ibtpeいり卓、いはの版えgtgtitthk率が4文字し尾1）koniotldsりいををととが本5eieurleadい症版よきえイ月たeniithtieの訳1柱、が1宇がDtoinuttnとら大援文大し。け-dwrrehio東部組は暑，5た防laniteineの上続ルな柱化4るepiseoieeう文説月本続込か文iiopyiteo測ス字の規て選で人isrghoiee尽で見本の者のも0stswwhaeo省速県尾のにをかはensrnirfoの組5文し端もが疑osisilxnlル、しる学とるてでpsttieiesん宇うか対すけの。ustsiditt訳ま度で年ル、で査enrbkol-s識すにし右をりい暑lEetlstprの帯又だ字をせの年niepna-nmまンの，はの体去っolanhnaih磨字と裁岡なは及字oittspdis宇た卓ル字きのたもnnieidaii「暑配で宇感8べ字oefhveotoえを11年，候にはgesasEita国の感さ1て日見等ade-pnuinり患通やはを県の症ptbitpnleとは語文ら文2列中iblneitehをに字地小、たで本pneeiinliのれ対者左に症症、sIhletnat文えを定選が軽るばstihleeoiれ応るビ文きたってsielonIse文1組」ルの．になttioTlxta配はこ京の化ろたしeioineasgで書た人ででの横たtywnoiirh，強さっ、人都すをIiribknln大よ栃でた文量のでtoestiiaeか組も，岡定字重ペdbneshoeiかしになこ欲は5るttpdaodkt永気対大都ス画や感fkesferaaな版字配りJが4究tetilepitみかか変い案角はキerexheeniに発に都所者又の組m-sharlee字長出な選症者0さyhdeitttiの救1き別間にの改itltivtl-文き文説計せ覆暑読ieafrnews左端人るけSと」搬sDntbsith上変本　縦長日基1etaeepeti量認字も同後てに数eneEetgeoイ置、ブ5縦縦式親hnphetbbi推な消組量て終書のoitlxzwsnに想と親増各字わかettokiebh野指熱9内雑ものプewxgsshri5多十数文に一県けnnpeegahiに宇な、の史にすのslnrhtetiさ初対以ビあ全か中sdntitoheはのら，てるにド革Eitbseeheれ化比しす台とがでsneotphat行ん見の「に終審てshptedlst読れ光，も前の定会ttnpfoteo台いのイるかっ空とtporssehx2暖ののペ右に1字pihtivoyoえす長を磨，みず猛shnpfnvlp県は。文た大し回学elebatiio2」、一大野ん縦現elTaoeeys画増のらの防右面日anTmnsEiiし。す親京1ど山右rtiedepoa者野よた聞そ定置をpiuetrekrたな大科ーらメブ後rtaEeeehi人者湿過わ面の配のrfIltcsdt
+  </div>
+  <div>
+    が回，京り。増けスidthoatsx，天選の認の。月学iiTesrtsoかがば年長れ配目るepgirnedsコ高加れ県東人4しehdztennsは大会台次，はけもtiathtrhiたとで的症の、、4ootrshiknで対、ー暑、9柱りntrsaeoeTわ字化量，増選で，atnktekntすて要地5を変文面nniniwonnのすのし選す症字横ieoitepahとまた数しく8し岡sehoeetei4，5す応分ろっサiehhndori測革の目え発，右てgpsleetolかをのの化大強変よiaptossftもな文もきの象よ終ninosiItk比都度年8ては，継neaegltdT組プ、気県暑るあ最tsahmtazo大識多な必よイ、配htzsiTeii栃文の大議のわ1同aeeeotitfその左版るて審はなophottblc大量識要通に校9とtxheiosrrスなて面，置会寄規ehentoptn，こ熱ので向岡長がtaratewss昇猛。た大のー尾せltteessht山以長のの数感率「iennineih学6いりそ訳た大込peyihwsenか雑はSえまを会，oeghsnnei本者方本等長き条ルhehiigaxaり，ら高数人都にとpIenlttilそ書審ス見大延見5iwhniatieま各」、多，ルにとlhahaDtdlがへに列り史報校のtiiropnyoバ間ので話て、でりatsteeiuh気保どまだのト校熱tttseoodi、軽大7るび4的のesneedtsn空山字長は又奨間又yeieuesllででっ乗い「じんっsIoaysghoと、がれ性る募，ルhiaathnEnう、が大最正と東症lrnidbtxiで同公のし東5会，eoohsndot山列会ン月を方こ基tokbexipi応I温見そ識い縦0ifktpss-o磨子と症大末終と0todbtteihだし字るつ思右既れetlnibrosド版ペ英ノは1アもhotloaecn急た研暑に尾」の字ethiattns横ーと京力い，温をnlmhiindeたは上れ0て課変のirimadeilスキに場配急ン強すhsslisipd改るい取た3内．改etneineli人字対。の子右、角Eapisheom長ブは東案め書佐はe-tplpimpを部3基組年計ま条siszeddae多7．さ変会じ0相sptiteals0，は。ー公のま文lmaoitoeo通気字は，にの向とttzsiohitか定のる的す5読のehteintxt　け既重置述字向キtcmrwsinl量だれ者「象しの選clatmtanaのるのたも議宇人7stiwgseteンアまの変たく今宮lddiiieriし会か京組，いてたsIwlnitatがすし年ま組人北猛ateaeesel7も象位に大しらとpntnnhioe対空提規た継の指ーtTdshnsam線上れら面通なに内aeant-imyた最かも4た又あのtiIeootih頭」字組点1ろ観なttthtstsp長まくいをす、の日dtiufnnie2全す北後の上。こeianthhxa候のは東重ル字中。tatmofareけ空字日の後版ば文tlnoohteoてとにののスこしがwlhifeeaf組末しの年に温ンかterenanaoが階く等り猛にのいihertdopf8はに場3ルのさもstlrstkIe因一な，や置、はへsmdnsttigにリだ熱県，は、いfeiesanebと想以る述ブ，でろsesyaelnt議の数列天．等た組tsotxstri　列要すをま見宇コpgaoii-eo大とのい者りな際でtreIwsattいを字がとて症数年tpltrowho9た内で月寄さた合wrsottdslそ年う症話よ引と年ehssbists7が4列り月人、たtohsnnotpびと9月，た大ときrseIpgtapさを伺予文にる数なemsntpeif気、まは、組過てらheehibompがの、日。，寄覆部xanotanit新気4てす暑の摘てtstnefohmト字ル書防の横る患tlteddtih月い、び。は左としstatitsne会科革宮ド象同県」genuletIeっは年に者縦っ版象nliilefiaけ点後と位め栄はこtpteolxeiた縦向人4が学し字hTnaewestとで議長見面左文、henhsioooあ議面有ペ搬け長識ieesofiee名暑置と月と寄増もsoiIatdiw
+  </div>
+  <div>
+    月置募組急縦て2のrnlstieee観たは9とではに4tboyrriotトり条字じず配栃みeentatheo延2東史ま計ー学後hsalthiotまる「し3つと置トitnEetatiたがに象のとい大はnDlatortdけ者．多配な縦すだaiiietmsbも増でりで正な読感mptsitnbt日。5測しばは日支eitteoeid宇い見想字タ込るにthwtToiolル頭1者日一尽内十ifabtsedl1にあ査じき感左続s-eeihTtiにり温面組列患と末ttinetTIoのほく裁、ルーのすooglltzsgうるのっ暑継必いっtilrhetri．角込体東予ド取選rDrueIsahるプ方ら湿さ，会面ortooifidと宮だの中の織末しdetaithtxてた宮い、端宇究課saporaise岡めきりがの本度増onsatelInな日角まルを東が年Ttyeohoth組「見字用てばるにeapsEgthz2の前規。感た防者euexatigeをて頭と内対でき熱tfeerltts者しのにルえ親対はphhutEtirて。はかビ列「2佐tsaooitot長りたのと組ジ対及toaewt-biのメなるな字まだはaelrpciey者方9対、2患の続IinlTthth過にらが組欲、重いhtagnttnwにてくびけくた5気gebasnume．でノの東読りましlpthixpsw，栃え症たしを字4itlihhion右日っ当想意れ大とtgbrenoan分上降方前終と送と-thraallt観線多が人6れとるttTineedtをた先一多に字究はhtiyetliaには版末おっ間者対iiltamhnlのた気文既ややさでkehswdete県こ変」ら「日を画iuermyenk学なビ番る宮8日今toantpaoiにがてば栃，いいにoosnaomiy基日でのビ増数、中eskipfodr公プをれ多0頭当向batsaayieび化さ的内有ちた2entnsntixを度野縦し子に地てDptmipteeを増症台大できにっersinxesn4、合う者るのI、ardehteip版，者親急東7け続nekpnlpshどを合「ほ対。ブもaizneenne亡2を値上め分2患thotietEeき。大とい　見ト書nonnsbiIoく人をった猛柱0ジetsiinnetえ組で．強て又きりmohintnrh配っかで応のルで提blttaeeea列日線左ると科の識soeuluutnいず本2かた字す2tgnnlyaro症社はりス猛、か3phhottses疑配い究の究しれ者obthhisnt配は述測先ン。最上diipdtahi高県ののえのまいいltatssIet識のとンさみ大日階ityipriieで籍にだのけか内特igoshehee人字たを。う方んズwihctpgwi率援も述選月延意がybiterddt既，組県見面台，かtlthsteeeは評字5は1柱か，mtnzsoasw既史れと量新基文版sieIaaesw間全字推の日ピさ尾wothiseii「多なもてす文縦組ndtbtpesn，とが十日。症は栄ltoeiohgpの全日あもす「体すueoosteti文を推字と高さた重flooetete究Jでなかる発文大lbdieeiegすり大尾読基くなうih-ahntak象圧案栃は見大た0ashiiopnd症革制覆大感0のつedegrt-tpめ年，字籍制初トノe-isetcokみ文あ感ま正方14tEitlelsnはの後か6のなれ山tiolibptaも指化親面7し。左hlnnItdeE，え症熱史には年学retasnsll」段いは山のりな文fignxstt-もい8たるらて体のtyetnssrg子た説史き県社るたssegptslg教末をすすなで7象hetnerlnn省り。量んは及1症hhtneeoto猛と帯強力7ラれがganeruednン文、えま防の組去rtnsylith4又のかに行小引あitoszaats0象列のよは長上京wxxstetep「熱ケの延。ベにとnootEnlai大れの文日対面末置nTheepzetはて人り頭し．多がetsrnstte組と文会縦ら制認対eeoedeags角気き文でのな東をlbodiegorの．にに」重目しのnieftogoi版に多天東」基か内ieeoytptoくばそ（小中す字なtfsyeolds募ン急象ーとをとをrhemflaee
+  </div>
+
+  </div>
+</div>
+
+<script>
+const target = document.querySelector("#main_content_wrapper");
+
+// Make the content longer by duplicating, so that a run takes more than 100ms,
+// to reduce noises.
+const children = Array.from(target.childNodes);
+for (let i = 0; i < 20; ++i) {
+  for (const child of children) {
+    target.appendChild(child.cloneNode(true));
+  }
+}
+
+function setupAndMeasure() {
+  // Unblock onload event by scheduling with zero delay,
+  // in order to avoid perf bot flakiness where the bot checks
+  // for timeouts reaching onload event, see crbug.com/457194
+  window.setTimeout(() => {
+    PerfTestRunner.measureTime({
+      description: "Measures performance of processing CJK text with Western text",
+      run: runTest
+    });
+  }, 0);
+}
+
+let fontSize = 8;
+
+function runTest() {
+  // Change the font slightly between runs to force a re-layout and minimize the
+  // the effect of caching.
+  target.style.fontSize = fontSize + 'px';
+  fontSize += 0.25;
+
+  target.style.display = 'block';
+  target.style.width = '800px';
+  PerfTestRunner.forceLayout();
+  target.style.display = 'none';
+}
+</script>
+</body>

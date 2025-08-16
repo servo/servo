@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+</head>
+<body>
+<div id="test"></div>
+</body>
+<script>
+var div = document.getElementById("test");
+var properties = {
+'azimuth' : 'right',
+'backgroundColor' : 'green',
+'backgroundImage' : 'url(\'test.png\')',
+'backgroundPosition' : 'top',
+'backgroundRepeat' : 'repeat-x',
+'background' : '#ffffff url(\'img_tree.png\') no-repeat right top',
+'border' : '20px dotted red',
+'borderBottomStyle' : 'dotted',
+'borderCollapse' : 'separate',
+'borderColor' : 'blue',
+'borderSpacing' : '3px',
+'borderStyle' : 'solid',
+'borderTop' : 'green',
+'borderWidth' : '20em',
+'bottom' : '20%',
+'captionSide' : 'top',
+'clear' : 'both',
+'clip' : 'rect(5px, 40px, 45px, 5px)',
+'color' : 'red',
+'content' : 'normal',
+'direction' : 'rtl',
+'display' : 'block',
+'cssFloat' : 'right',
+'fontFamily' : '"Times New Roman",Georgia,Serif',
+'fontSize' : '13px',
+'fontVariant' : 'small-caps',
+'fontWeight' : '700',
+'font' : 'italic bold 12px/30px Georgia, serif',
+'height' : '200px',
+'left' : '20%',
+'letterSpacing' : '10px',
+'lineHeight' : '40px',
+'listStyleImage' : 'url(\'test.png\')',
+'listStylePosition' : 'outside',
+'listStyleType' : 'decimal',
+'listStyle' : 'circle inside',
+'marginRight' : '50px',
+'margin' : '10px 20px 30px 5em',
+'maxHeight' : '700px',
+'maxWidth' : '300px',
+'minHeight' : '100px',
+'minWidth' : '100px',
+'outlineColor' : 'gray',
+'outlineStyle' : 'dotted',
+'outlineWidth' : '5px',
+'paddingTop' : '30px',
+'padding' : '30px 20px 10px 50px',
+'pageBreakAfter' : 'always',
+'pageBreakInside' : 'auto',
+'pause' : '2s',
+'position' : 'static',
+'right' : '150px',
+'textAlign' : 'center',
+'textDecoration' : 'blink',
+'textTransform' : 'capitalize',
+'top' : '25%',
+'verticalAlign' : 'text-bottom',
+'visibility' : 'visible',
+'width' : '300px',
+'webkitTransform' : 'scale3d(0.5, 0.5, 0.5)',
+'wordSpacing' : '40px',
+};
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of the CSS style array index getter and setter (a = elem.style[b], elem.style[c] = d).",
+    run:function() {
+        for (key in properties) {
+            var value = div.style[key];
+            div.style[key] = "";
+            div.style[key] = properties[key];
+        }
+    }
+});
+</script>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="../resources/runner.js"></script>
+<textarea id="text" style="width:300px; height:300px" spellcheck="false"></textarea>
+<script>
+const kCount = 10;
+const kLines = 20000
+const kCharactersPerPage = 482;
+
+text.textContent = (() => {
+  const result = [];
+  for (let count = 0; count < kLines; ++count)
+    result.push(`${('00000' + count).slice(-5)} of brown foxes\n`);
+  return result.join('');
+})();
+text.focus();
+
+PerfTestRunner.measureRunsPerSecond({
+  description: 'Measures performance of move-page-down on many lines',
+  run: () => {
+    const cursorIndex = text.value.length - 1 - kCharactersPerPage * kCount;
+    text.setSelectionRange(cursorIndex, cursorIndex);
+    for (let counter = 0; counter < kCount; ++counter)
+      testRunner.execCommand("MovePageDown");
+    },
+});
+</script>

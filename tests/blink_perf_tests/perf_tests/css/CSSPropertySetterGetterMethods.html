@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+</head>
+<body>
+<div id="test"></div>
+</body>
+<script>
+var div = document.getElementById("test");
+var properties = {
+'azimuth' : 'right',
+'background-color' : 'green',
+'background-image' : 'url(\'test.png\')',
+'background-position' : 'top',
+'background-repeat' : 'repeat-x',
+'background' : '#ffffff url(\'img_tree.png\') no-repeat right top',
+'border' : '20px dotted red',
+'border-bottom-style' : 'dotted',
+'border-collapse' : 'separate',
+'border-color' : 'blue',
+'border-spacing' : '3px',
+'border-style' : 'solid',
+'border-top' : 'green',
+'border-width' : '20em',
+'bottom' : '20%',
+'caption-side' : 'top',
+'clear' : 'both',
+'clip' : 'rect(5px, 40px, 45px, 5px)',
+'color' : 'red',
+'content' : 'normal',
+'direction' : 'rtl',
+'display' : 'block',
+'css-float' : 'right',
+'font-family' : '"Times New Roman",Georgia,Serif',
+'font-size' : '13px',
+'font-variant' : 'small-caps',
+'font-weight' : '700',
+'font' : 'italic bold 12px/30px Georgia, serif',
+'height' : '200px',
+'left' : '20%',
+'letter-spacing' : '10px',
+'line-height' : '40px',
+'list-style-image' : 'url(\'test.png\')',
+'list-style-position' : 'outside',
+'list-style-type' : 'decimal',
+'list-style' : 'circle inside',
+'margin-right' : '50px',
+'margin' : '10px 20px 30px 5em',
+'max-height' : '700px',
+'max-width' : '300px',
+'min-height' : '100px',
+'min-width' : '100px',
+'outline-color' : 'gray',
+'outline-style' : 'dotted',
+'outline-width' : '5px',
+'padding-top' : '30px',
+'padding' : '30px 20px 10px 50px',
+'page-break-after' : 'always',
+'page-break-inside' : 'auto',
+'pause' : '2s',
+'position' : 'static',
+'right' : '150px',
+'text-align' : 'center',
+'text-decoration' : 'blink',
+'text-transform' : 'capitalize',
+'top' : '25%',
+'vertical-align' : 'text-bottom',
+'visibility' : 'visible',
+'width' : '300px',
+'webkit-transform' : 'scale3d(0.5, 0.5, 0.5)',
+'word-spacing' : '40px',
+};
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of the CSS style getter and setter methods (elem.style.(getPropertyValue|removeProperty|setProperty)).",
+    run:function() {
+        for (key in properties) {
+            var value = div.style.getPropertyValue(key);
+            div.style.removeProperty(key);
+            div.style.setProperty(key, properties[key]);
+        }
+    }
+});
+</script>
+</html>

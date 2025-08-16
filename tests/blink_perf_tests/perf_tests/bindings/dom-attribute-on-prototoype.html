@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var elements = [];
+elements.push(document.createElement("div"));
+elements.push(document.createElement("a"));
+elements.push(document.createElement("br"));
+elements.push(document.createElement("form"));
+elements.push(document.createElement("canvas"));
+elements.push(document.createElement("img"));
+elements.push(document.createElement("details"));
+elements.push(document.createElement("font"));
+elements.push(document.createElement("span"));
+elements.push(document.createElement("table"));
+elements.push(document.createElement("tbody"));
+elements.push(document.createElement("th"));
+elements.push(document.createElement("tr"));
+elements.push(document.createElement("td"));
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "A benchmark to test performance when accessing a DOM attribute on a prototype chain of multipe types of elements. See https://crbug.com/43394 for more background.",
+    run: function() {
+        var localElements = elements;
+        for (var i = 0; i < 10000; i++) {
+            for (var j = 0; j < 14; j++) {
+                elements[j].baseURI;
+            }
+        }
+}});
+</script>
+</body>
+</html>

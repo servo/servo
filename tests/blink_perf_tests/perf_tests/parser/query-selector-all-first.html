@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1 id="id" class="class"></h1>
+<script src="../resources/runner.js"></script>
+<script>
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark tests querySelectorAll() for an element that appears near the head of the document",
+    run: function() {
+        for (var i = 0; i < 1000; i++) {
+            document.querySelectorAll("h1");
+            document.querySelectorAll("#id");
+            document.querySelectorAll(".class");
+        }
+    }});
+</script>
+</body>
+</html>

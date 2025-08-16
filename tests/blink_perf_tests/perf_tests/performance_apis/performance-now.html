@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+let results = [];
+PerfTestRunner.measureTime({
+  description: "Measures performance of performance.now() calls.",
+
+  run: function() {
+    for (var i = 0; i < 500000; ++i) {
+      results.push(performance.now());
+    }
+  }
+});
+</script>
+</body>
+</html>

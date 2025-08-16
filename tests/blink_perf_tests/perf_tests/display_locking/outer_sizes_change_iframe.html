@@ -1,0 +1,118 @@
+<!doctype HTML>
+
+<!--
+This test appends 5,000 iframes to the page, locking all but the first one.
+It then changes the style of all the locked elements, causing self-layout
+for all of them.
+
+The test works with and without display locking. If display locking is not
+enabled, then none of the elements are locked and the performance should
+be noticeably worse.
+-->
+
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+.container {
+  contain: style layout;
+  width: 200px;
+  height: 400px;
+  display: block;
+}
+</style>
+</head>
+
+<body>
+<!-- node template from which to construct items -->
+<template id="node_template">
+<iframe class="container" srcdoc='
+  <style>
+  .box {
+    background: blue;
+    overflow: auto;
+    width: 100%;
+    height: 100px;
+  }
+  </style>
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+  <div class="box">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+    <div class="box">
+      <div class="box">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+      </div>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+      Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+    </div>
+  <div class="box">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+    <div class="box">
+      <div class="box">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+      </div>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+      Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+    </div>
+  </div>
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+</div>'></iframe>
+</template>
+</body>
+
+<script>
+function construct(n) {
+  const specimen = document.importNode(
+    document.getElementById("node_template").content, true).firstElementChild;
+  for (let i = 0; i < n; ++i) {
+    const clone = specimen.cloneNode(true);
+    if (i > 0)
+      clone.hidden = 'until-found';
+    document.body.appendChild(clone);
+  }
+}
+
+let sizes = ["200px", "250px"];
+let size_index = 0;
+function changeStyle() {
+  document.styleSheets[0].rules[0].style.width = sizes[size_index];
+  size_index = (size_index + 1) % sizes.length;
+}
+
+let testDone = false;
+let startTime;
+function runTest() {
+  if (startTime) {
+    PerfTestRunner.measureValueAsync(PerfTestRunner.now() - startTime);
+    PerfTestRunner.addRunTestEndMarker();
+  }
+  if (testDone)
+    return;
+
+  startTime = PerfTestRunner.now();
+  PerfTestRunner.addRunTestEndMarker();
+
+  changeStyle();
+  requestAnimationFrame(runTest);
+}
+
+construct(5000);
+
+window.onload = () => {
+  requestAnimationFrame(() => {
+    PerfTestRunner.startMeasureValuesAsync({
+      unit: 'ms',
+      done: () => { testDone = true; },
+      run: runTest,
+      warmUpCount: 10,
+      iterationCount: 5
+    });
+  });
+};
+
+</script>

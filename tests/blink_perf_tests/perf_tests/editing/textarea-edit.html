@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<body>
+<style>
+textarea:valid {
+    background-color: lime;
+}
+textarea:invalid {
+    background-color: red;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<textarea maxlength=2147483647 id="container"></textarea>
+<script>
+var container = document.getElementById('container');
+container.focus();
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of adding text to a textarea using document.execCommand, then clearing it.",
+    run: function() {
+        for (var i = 0; i < 500; ++i)
+            document.execCommand('insertText', false, 'A quick brown fox jumps over the lazy dog.\n');
+        container.value = '';
+    }
+});
+</script>
+</body>

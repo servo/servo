@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="custom-detail-summary.js"></script>
+<my-detail id="my-detail">
+  <my-summary id="my-summary">summary</my-summary>
+</my-detail>
+<my-summary id="my-summary1">added-summary1</my-summary>
+<my-summary id="my-summary2">added-summary2</my-summary>
+<script>
+  const host = document.querySelector("#my-detail");
+  const sum = document.querySelector("#my-summary");
+  const sum1 = document.querySelector("#my-summary1");
+  const sum2 = document.querySelector("#my-summary2");
+  window.onload = function() {
+    for (let i = 0; i < 100; i++) {
+      host.appendChild(document.createElement("my-summary"));
+    }
+    PerfTestRunner.measureTime({
+      description: "Measure performance of my-detail element in manual-slotting mode in shadow root when my-summary element is inserted when the child node is over 100.",
+      run: function() {
+        const start = PerfTestRunner.now();
+        for (let i = 0; i < 100; i++) {
+          host.appendChild(sum1);
+          host.insertBefore(sum2, sum);
+          PerfTestRunner.forceLayout();
+          sum1.remove();
+          sum2.remove();
+          PerfTestRunner.forceLayout();
+        }
+
+        return PerfTestRunner.now() - start;
+      }
+    });
+  }
+</script>

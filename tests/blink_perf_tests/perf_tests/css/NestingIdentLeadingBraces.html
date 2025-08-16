@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<script>
+const DECLARATIONS = 400;
+const TRAILING_TOKENS_PER_DECLARATION = 1000;
+
+// Makes many (invalid) width-declarations where {} appears at the start of
+// the the value, with lots of trailing tokens after.
+function makeStyle() {
+  let rules = [];
+
+  for (let i = 0; i < DECLARATIONS; i++) {
+    // Note: The '$$$' is there to ensure that we back out of selector
+    // parsing early. Without that, we'd parse a valid selector out of
+    // 'foo0 foo1 foo2 ... fooN' (consisting of 1000 compounds),
+    // and that is not the situation we're worried about the most.
+    // We primarily care about high performance in the far more likely
+    // scenario that we discover an invalid selector early on.
+    rules.push(`width: {} $$$
+      ${[...Array(TRAILING_TOKENS_PER_DECLARATION).keys()]
+          .map(x => `foo${x}`).join(' ')}
+    ;`);
+  }
+
+  return `
+    div {
+      ${rules.join('\n')}
+    }
+  `
+}
+
+let globalCounter = 0;
+const stylesheetText = makeStyle();
+let stylesheet = new CSSStyleSheet();
+
+PerfTestRunner.measureTime({
+    description: 'Many invalid width declarations with braces at the start',
+    run: () => {
+      // This is a parsing test: we don't care about style recalc.
+      // We append a rule based on globalCounter to prevent caching
+      // on the stylesheet string.
+      stylesheet.replaceSync(stylesheetText + `\n .b${globalCounter++} {}`);
+    }
+});
+
+</script>
+
