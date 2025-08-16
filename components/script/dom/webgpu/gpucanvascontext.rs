@@ -3,30 +3,27 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self};
 use pixels::Snapshot;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPUContextId, WebGPURequest,
-    WebGPUTexture,
 };
-use webrender_api::ImageKey;
-use webrender_api::units::DeviceIntSize;
+use webrender_api::{ImageFormat, ImageKey};
 use wgpu_core::id;
 
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
 use crate::canvas_context::{CanvasContext, CanvasHelpers};
-use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCanvasAlphaMode, GPUCanvasConfiguration, GPUDeviceMethods, GPUExtent3D, GPUExtent3DDict,
-    GPUObjectDescriptorBase, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
-    GPUTextureUsageConstants,
+    GPUObjectDescriptorBase, GPUTextureDescriptor, GPUTextureDimension, GPUTextureUsageConstants,
 };
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -49,18 +46,6 @@ fn supported_context_format(format: GPUTextureFormat) -> bool {
     )
 }
 
-#[derive(Clone, Debug, Default, JSTraceable, MallocSizeOf)]
-/// Helps observe changes on swapchain
-struct DrawingBuffer {
-    #[no_trace]
-    size: DeviceIntSize,
-    /// image is transparent black
-    cleared: bool,
-    #[ignore_malloc_size_of = "Defined in wgpu"]
-    #[no_trace]
-    config: Option<ContextConfiguration>,
-}
-
 #[dom_struct]
 pub(crate) struct GPUCanvasContext {
     reflector_: Reflector,
@@ -80,13 +65,12 @@ pub(crate) struct GPUCanvasContext {
     configuration: RefCell<Option<GPUCanvasConfiguration>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-texturedescriptor-slot>
     texture_descriptor: RefCell<Option<GPUTextureDescriptor>>,
-    /// Conceptually <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-drawingbuffer-slot>
-    drawing_buffer: RefCell<DrawingBuffer>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot>
     current_texture: MutNullableDom<GPUTexture>,
     /// This is used for clearing
     #[ignore_malloc_size_of = "Rc are hard"]
     webgpu_contexts: WebGPUContextsMap,
+    cleared: Cell<bool>,
 }
 
 impl GPUCanvasContext {
@@ -116,15 +100,11 @@ impl GPUCanvasContext {
             canvas,
             webrender_image,
             context_id: WebGPUContextId(external_id.0),
-            drawing_buffer: RefCell::new(DrawingBuffer {
-                size,
-                cleared: true,
-                ..Default::default()
-            }),
             configuration: RefCell::new(None),
             texture_descriptor: RefCell::new(None),
             current_texture: MutNullableDom::default(),
             webgpu_contexts,
+            cleared: Cell::new(true),
         }
     }
 
@@ -185,68 +165,45 @@ impl GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-expire-the-current-texture>
     fn expire_current_texture(&self) {
         if let Some(current_texture) = self.current_texture.take() {
-            // Make copy of texture content
-            self.send_swap_chain_present(current_texture.id());
             // Step 1
             current_texture.Destroy()
         }
+        self.mark_as_dirty();
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-replace-the-drawing-buffer>
     fn replace_drawing_buffer(&self) {
         // Step 1
         self.expire_current_texture();
-        // Step 2
-        let configuration = self.configuration.borrow();
-        // Step 3
-        let mut drawing_buffer = self.drawing_buffer.borrow_mut();
-        drawing_buffer.size = self.size().cast().cast_unit();
-        drawing_buffer.cleared = true;
-        if let Some(configuration) = configuration.as_ref() {
-            drawing_buffer.config = Some(ContextConfiguration {
-                device_id: configuration.device.id().0,
-                queue_id: configuration.device.queue_id().0,
-                format: configuration.format.convert(),
-                is_opaque: matches!(configuration.alphaMode, GPUCanvasAlphaMode::Opaque),
-            });
-        } else {
-            drawing_buffer.config.take();
-        };
-        // TODO: send less
-        self.channel
-            .0
-            .send(WebGPURequest::UpdateContext {
-                context_id: self.context_id,
-                size: drawing_buffer.size,
-                configuration: drawing_buffer.config,
-            })
-            .expect("Failed to update webgpu context");
+        // Step 2&3
+        self.cleared.set(true);
     }
 }
 
 // Internal helper methods
 impl GPUCanvasContext {
     fn layout_handle(&self) -> Option<ImageKey> {
-        if self.drawing_buffer.borrow().cleared {
+        if self.cleared.get() {
             None
         } else {
             Some(self.webrender_image)
         }
     }
 
-    fn send_swap_chain_present(&self, texture_id: WebGPUTexture) {
-        self.drawing_buffer.borrow_mut().cleared = false;
-        let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
-        if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
-            context_id: self.context_id,
-            texture_id: texture_id.0,
-            encoder_id,
-        }) {
-            warn!(
-                "Failed to send UpdateWebrenderData({:?}) ({})",
-                self.context_id, e
-            );
-        }
+    fn context_configuration(&self) -> Option<ContextConfiguration> {
+        let configuration = self.configuration.borrow();
+        let configuration = configuration.as_ref()?;
+        Some(ContextConfiguration {
+            device_id: configuration.device.id().0,
+            queue_id: configuration.device.queue_id().0,
+            format: match configuration.format {
+                GPUTextureFormat::Bgra8unorm => ImageFormat::BGRA8,
+                GPUTextureFormat::Rgba8unorm => ImageFormat::RGBA8,
+                _ => unreachable!("Not be reachable due to configure"),
+            },
+            is_opaque: matches!(configuration.alphaMode, GPUCanvasAlphaMode::Opaque),
+            size: self.size(),
+        })
     }
 }
 
@@ -259,6 +216,25 @@ impl CanvasContext for GPUCanvasContext {
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
     fn update_rendering(&self) {
+        if let Some(texture) = self.current_texture.get() {
+            let (sender, receiver) = ipc::channel().unwrap();
+            let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
+            if let Err(e) = self.channel.0.send(WebGPURequest::Present {
+                context_id: self.context_id,
+                texture_id: texture.id().0,
+                encoder_id,
+                configuration: self
+                    .context_configuration()
+                    .expect("Context should be configured if there is a texture."),
+                done: sender,
+            }) {
+                warn!(
+                    "Failed to send WebGPURequest::Present({:?}) ({})",
+                    self.context_id, e
+                );
+            }
+            let _ = receiver.recv();
+        }
         // Step 1
         self.expire_current_texture();
     }
@@ -283,7 +259,7 @@ impl CanvasContext for GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#ref-for-abstract-opdef-get-a-copy-of-the-image-contents-of-a-context%E2%91%A5>
     fn get_image_data(&self) -> Option<Snapshot> {
         // 1. Return a copy of the image contents of context.
-        Some(if self.drawing_buffer.borrow().cleared {
+        Some(if self.cleared.get() {
             Snapshot::cleared(self.size())
         } else {
             let (sender, receiver) = ipc::channel().unwrap();
@@ -291,10 +267,18 @@ impl CanvasContext for GPUCanvasContext {
                 .0
                 .send(WebGPURequest::GetImage {
                     context_id: self.context_id,
+                    pending_texture: self.current_texture.get().map(|texture| {
+                        (
+                            texture.id().0,
+                            self.global().wgpu_id_hub().create_command_encoder_id(),
+                            self.context_configuration()
+                                .expect("Context should be configured if there is a texture."),
+                        )
+                    }),
                     sender,
                 })
-                .unwrap();
-            receiver.recv().unwrap().to_owned()
+                .ok()?;
+            receiver.recv().ok()?.to_owned()
         })
     }
 
@@ -389,8 +373,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
             // Step 4.2
             let current_texture = configuration.device.CreateTexture(texture_descriptor)?;
             self.current_texture.set(Some(&current_texture));
-            // We only need to mark new texture
-            self.mark_as_dirty();
+            self.cleared.set(false);
             current_texture
         };
         // Step 6
