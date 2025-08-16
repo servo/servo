@@ -4021,7 +4021,7 @@ impl Document {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut *self.stylesheets.borrow_mut();
-        let sheet = cssom_stylesheet.style_stylesheet_arc().clone();
+        let sheet = cssom_stylesheet.style_stylesheet().clone();
 
         let insertion_point = stylesheets
             .iter()

@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{Locked, ToCssWithGuard};
+use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::CssRuleType;
 use style::stylesheets::keyframes_rule::Keyframe;
 
@@ -24,7 +26,7 @@ pub(crate) struct CSSKeyframeRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    keyframerule: Arc<Locked<Keyframe>>,
+    keyframerule: RefCell<Arc<Locked<Keyframe>>>,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
 }
 
@@ -35,7 +37,7 @@ impl CSSKeyframeRule {
     ) -> CSSKeyframeRule {
         CSSKeyframeRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            keyframerule,
+            keyframerule: RefCell::new(keyframerule),
             style_decl: Default::default(),
         }
     }
@@ -56,6 +58,17 @@ impl CSSKeyframeRule {
             can_gc,
         )
     }
+
+    pub(crate) fn update_rule(
+        &self,
+        keyframerule: Arc<Locked<Keyframe>>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        if let Some(ref style_decl) = self.style_decl.get() {
+            style_decl.update_property_declaration_block(&keyframerule.read_with(guard).block);
+        }
+        *self.keyframerule.borrow_mut() = keyframerule;
+    }
 }
 
 impl CSSKeyframeRuleMethods<crate::DomTypeHolder> for CSSKeyframeRule {
@@ -67,7 +80,7 @@ impl CSSKeyframeRuleMethods<crate::DomTypeHolder> for CSSKeyframeRule {
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
                     Dom::from_ref(self.upcast()),
-                    self.keyframerule.read_with(&guard).block.clone(),
+                    RefCell::new(self.keyframerule.borrow().read_with(&guard).block.clone()),
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
@@ -85,6 +98,7 @@ impl SpecificCSSRule for CSSKeyframeRule {
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
         self.keyframerule
+            .borrow()
             .read_with(&guard)
             .to_css_string(&guard)
             .into()
