@@ -69,9 +69,14 @@ jobs:
     steps:
       - run: pwd && ls -l
         working-directory: /data/servo/servo
+      # support workflows in forks.
+      - run: git remote add ci-remote ${{ env.GITHUB_SERVER_URL}}/${{env.GITHUB_REPOSITORY}}
+        if: ${{ github.event_name != 'pull_request_target' }}
+      - run: git remote -v
+      - run: echo "GITHUB_SHA $GITHUB_SHA, ref $GITHUB_REF"
       # Faster checkout for self-hosted runner that uses prebaked repo.
       - if: ${{ github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=1 origin $GITHUB_SHA
+        run: git fetch --depth=1 ci-remote $GITHUB_SHA
         working-directory: /data/servo/servo
       - if: ${{ github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
