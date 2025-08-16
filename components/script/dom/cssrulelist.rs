@@ -4,9 +4,13 @@
 
 #![allow(unsafe_code)]
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
+use itertools::izip;
+use script_bindings::inheritance::Castable;
 use servo_arc::Arc;
-use style::shared_lock::Locked;
+use style::shared_lock::{Locked, SharedRwLockReadGuard};
 use style::stylesheets::{
     AllowImportRules, CssRuleType, CssRuleTypes, CssRules, CssRulesHelpers, KeyframesRule,
     RulesMutateError, StylesheetLoader as StyleStylesheetLoader,
@@ -44,7 +48,7 @@ pub(crate) struct CSSRuleList {
     reflector_: Reflector,
     parent_stylesheet: Dom<CSSStyleSheet>,
     #[ignore_malloc_size_of = "Arc"]
-    rules: RulesSource,
+    rules: RefCell<RulesSource>,
     dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule>>>,
 }
 
@@ -78,7 +82,7 @@ impl CSSRuleList {
         CSSRuleList {
             reflector_: Reflector::new(),
             parent_stylesheet: Dom::from_ref(parent_stylesheet),
-            rules,
+            rules: RefCell::new(rules),
             dom_rules: DomRefCell::new(dom_rules),
         }
     }
@@ -107,8 +111,9 @@ impl CSSRuleList {
         parse_relative_rule_type: Option<CssRuleType>,
         can_gc: CanGc,
     ) -> Fallible<u32> {
-        let css_rules = if let RulesSource::Rules(ref rules) = self.rules {
-            rules
+        self.parent_stylesheet.will_modify();
+        let css_rules = if let RulesSource::Rules(rules) = &*self.rules.borrow() {
+            rules.clone()
         } else {
             panic!("Called insert_rule on non-CssRule-backed CSSRuleList");
         };
@@ -144,6 +149,7 @@ impl CSSRuleList {
             .map_err(Convert::convert)?;
 
         let parent_stylesheet = &*self.parent_stylesheet;
+        parent_stylesheet.will_modify();
         let dom_rule = CSSRule::new_specific(window, parent_stylesheet, new_rule, can_gc);
         self.dom_rules
             .borrow_mut()
@@ -154,10 +160,12 @@ impl CSSRuleList {
 
     /// In case of a keyframe rule, index must be valid.
     pub(crate) fn remove_rule(&self, index: u32) -> ErrorResult {
+        self.parent_stylesheet.will_modify();
+
         let index = index as usize;
         let mut guard = self.parent_stylesheet.shared_lock().write();
 
-        match self.rules {
+        match *self.rules.borrow() {
             RulesSource::Rules(ref css_rules) => {
                 css_rules
                     .write_with(&mut guard)
@@ -199,7 +207,7 @@ impl CSSRuleList {
             rule.or_init(|| {
                 let parent_stylesheet = &self.parent_stylesheet;
                 let lock = parent_stylesheet.shared_lock();
-                match self.rules {
+                match *self.rules.borrow() {
                     RulesSource::Rules(ref rules) => {
                         let rule = {
                             let guard = lock.read();
@@ -235,10 +243,47 @@ impl CSSRuleList {
     /// Should only be called for keyframes-backed rules, use insert_rule
     /// for CssRules-backed rules
     pub(crate) fn append_lazy_dom_rule(&self) {
-        if let RulesSource::Rules(..) = self.rules {
+        if let RulesSource::Rules(..) = &*self.rules.borrow() {
             panic!("Can only call append_lazy_rule with keyframes-backed CSSRules");
         }
         self.dom_rules.borrow_mut().push(MutNullableDom::new(None));
+    }
+
+    pub(super) fn update_rules(&self, rules: RulesSource, guard: &SharedRwLockReadGuard) {
+        let dom_rules = self.dom_rules.borrow();
+        match rules {
+            RulesSource::Rules(ref css_rules) => {
+                if let RulesSource::Keyframes(..) = &*self.rules.borrow() {
+                    panic!("Called update_rules on non-CssRule-backed CSSRuleList with CssRules");
+                }
+
+                let css_rules_iter = css_rules.read_with(guard).0.iter();
+                for (dom_rule, css_rule) in izip!(dom_rules.iter(), css_rules_iter) {
+                    let Some(dom_rule) = dom_rule.get() else {
+                        continue;
+                    };
+                    dom_rule.update_rule(css_rule, guard);
+                }
+            },
+            RulesSource::Keyframes(ref keyframesrule) => {
+                if let RulesSource::Rules(..) = &*self.rules.borrow() {
+                    panic!("Called update_rules on CssRule-backed CSSRuleList with non-CssRules");
+                }
+
+                let keyframerules_iter = keyframesrule.read_with(guard).keyframes.iter();
+                for (dom_rule, keyframerule) in izip!(dom_rules.iter(), keyframerules_iter) {
+                    let Some(dom_rule) = dom_rule.get() else {
+                        continue;
+                    };
+                    let Some(dom_rule) = dom_rule.downcast::<CSSKeyframeRule>() else {
+                        continue;
+                    };
+                    dom_rule.update_rule(keyframerule.clone(), guard);
+                }
+            },
+        }
+
+        *self.rules.borrow_mut() = rules;
     }
 }
 

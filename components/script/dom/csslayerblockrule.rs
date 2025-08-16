@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{Locked, ToCssWithGuard};
+use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, CssRules, LayerBlockRule};
 use style_traits::ToCss;
 
@@ -23,7 +25,7 @@ pub(crate) struct CSSLayerBlockRule {
     cssgroupingrule: CSSGroupingRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    layerblockrule: Arc<LayerBlockRule>,
+    layerblockrule: RefCell<Arc<LayerBlockRule>>,
 }
 
 impl CSSLayerBlockRule {
@@ -33,7 +35,7 @@ impl CSSLayerBlockRule {
     ) -> CSSLayerBlockRule {
         CSSLayerBlockRule {
             cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet),
-            layerblockrule,
+            layerblockrule: RefCell::new(layerblockrule),
         }
     }
 
@@ -55,7 +57,17 @@ impl CSSLayerBlockRule {
     }
 
     pub(crate) fn clone_rules(&self) -> Arc<Locked<CssRules>> {
-        self.layerblockrule.rules.clone()
+        self.layerblockrule.borrow().rules.clone()
+    }
+
+    pub(crate) fn update_rule(
+        &self,
+        layerblockrule: Arc<LayerBlockRule>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        self.cssgroupingrule
+            .update_rules(&layerblockrule.rules, guard);
+        *self.layerblockrule.borrow_mut() = layerblockrule;
     }
 }
 
@@ -66,14 +78,14 @@ impl SpecificCSSRule for CSSLayerBlockRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssgroupingrule.shared_lock().read();
-        self.layerblockrule.to_css_string(&guard).into()
+        self.layerblockrule.borrow().to_css_string(&guard).into()
     }
 }
 
 impl CSSLayerBlockRuleMethods<crate::DomTypeHolder> for CSSLayerBlockRule {
     /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerblockrule-name>
     fn Name(&self) -> DOMString {
-        if let Some(name) = &self.layerblockrule.name {
+        if let Some(name) = &self.layerblockrule.borrow().name {
             DOMString::from_string(name.to_css_string())
         } else {
             DOMString::new()

@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::inheritance::Castable;
 use script_bindings::realms::InRealm;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
-use style::shared_lock::SharedRwLock;
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{
     AllowImportRules, CssRuleTypes, Origin, Stylesheet as StyleStyleSheet, UrlExtraData,
 };
@@ -33,6 +34,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
 use crate::dom::stylesheet::StyleSheet;
@@ -55,7 +57,12 @@ pub(crate) struct CSSStyleSheet {
     /// The inner Stylo's [Stylesheet].
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    style_stylesheet: Arc<StyleStyleSheet>,
+    style_stylesheet: DomRefCell<Arc<StyleStyleSheet>>,
+
+    /// The inner Stylo's [SharedRwLock], stored at here to avoid referencing
+    /// temporary variables.
+    #[no_trace]
+    style_shared_lock: SharedRwLock,
 
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-origin-clean-flag>
     origin_clean: Cell<bool>,
@@ -86,7 +93,8 @@ impl CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
             owner_node: MutNullableDom::new(owner),
             rulelist: MutNullableDom::new(None),
-            style_stylesheet: stylesheet,
+            style_shared_lock: stylesheet.shared_lock.clone(),
+            style_stylesheet: DomRefCell::new(stylesheet),
             origin_clean: Cell::new(true),
             constructor_document: constructor_document.map(Dom::from_ref),
             adopters: Default::default(),
@@ -150,7 +158,7 @@ impl CSSStyleSheet {
 
     fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
-            let rules = self.style_stylesheet.contents.rules.clone();
+            let rules = self.style_stylesheet.borrow().contents.rules.clone();
             CSSRuleList::new(
                 self.global().as_window(),
                 self,
@@ -161,7 +169,7 @@ impl CSSStyleSheet {
     }
 
     pub(crate) fn disabled(&self) -> bool {
-        self.style_stylesheet.disabled()
+        self.style_stylesheet.borrow().disabled()
     }
 
     pub(crate) fn owner_node(&self) -> Option<DomRoot<Element>> {
@@ -169,7 +177,7 @@ impl CSSStyleSheet {
     }
 
     pub(crate) fn set_disabled(&self, disabled: bool) {
-        if self.style_stylesheet.set_disabled(disabled) {
+        if self.style_stylesheet.borrow().set_disabled(disabled) {
             self.notify_invalidations();
         }
     }
@@ -179,15 +187,11 @@ impl CSSStyleSheet {
     }
 
     pub(crate) fn shared_lock(&self) -> &SharedRwLock {
-        &self.style_stylesheet.shared_lock
+        &self.style_shared_lock
     }
 
-    pub(crate) fn style_stylesheet(&self) -> &StyleStyleSheet {
-        &self.style_stylesheet
-    }
-
-    pub(crate) fn style_stylesheet_arc(&self) -> &Arc<StyleStyleSheet> {
-        &self.style_stylesheet
+    pub(crate) fn style_stylesheet(&self) -> Ref<'_, Arc<StyleStyleSheet>> {
+        self.style_stylesheet.borrow()
     }
 
     pub(crate) fn set_origin_clean(&self, origin_clean: bool) {
@@ -228,6 +232,36 @@ impl CSSStyleSheet {
         let adopters = &mut *self.adopters.borrow_mut();
         if let Some(index) = adopters.iter().position(|o| o == owner) {
             adopters.swap_remove(index);
+        }
+    }
+
+    pub(crate) fn will_modify(&self) {
+        let Some(node) = self.owner_node.get() else {
+            return;
+        };
+
+        let Some(node) = node.downcast::<HTMLStyleElement>() else {
+            return;
+        };
+
+        node.will_modify_stylesheet();
+    }
+
+    pub(crate) fn update_style_stylesheet(
+        &self,
+        style_stylesheet: &Arc<StyleStyleSheet>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        // When the shared `StylesheetContents` is about to be modified,
+        // `CSSStyleSheet::owner_node` performs a copy-on-write to avoid
+        // affecting other sharers, see `CSSStyleSheet::will_modify`. And
+        // then updates the references to `CssRule` or `PropertyDeclarationBlock`
+        // stored in the CSSOMs to ensure that modifications are made only
+        // on the new copy.
+        *self.style_stylesheet.borrow_mut() = style_stylesheet.clone();
+        if let Some(rulelist) = self.rulelist.get() {
+            let rules = style_stylesheet.contents.rules.clone();
+            rulelist.update_rules(RulesSource::Rules(rules), guard);
         }
     }
 
@@ -402,8 +436,12 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
                 let global = sheet.global();
                 let window = global.as_window();
 
+                sheet.will_modify();
+
+                #[cfg(feature = "tracing")]
+                let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
                 StyleStyleSheet::update_from_str(
-                    &sheet.style_stylesheet,
+                    &sheet.style_stylesheet(),
                     &text,
                     UrlExtraData(window.get_url().get_arc()),
                     None,
@@ -441,8 +479,12 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         let global = self.global();
         let window = global.as_window();
 
+        self.will_modify();
+
+        #[cfg(feature = "tracing")]
+        let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
         StyleStyleSheet::update_from_str(
-            &self.style_stylesheet,
+            &self.style_stylesheet(),
             &text,
             UrlExtraData(window.get_url().get_arc()),
             None,

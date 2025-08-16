@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
@@ -23,7 +25,7 @@ pub(crate) struct CSSImportRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    import_rule: Arc<Locked<ImportRule>>,
+    import_rule: RefCell<Arc<Locked<ImportRule>>>,
 }
 
 impl CSSImportRule {
@@ -33,7 +35,7 @@ impl CSSImportRule {
     ) -> Self {
         CSSImportRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            import_rule,
+            import_rule: RefCell::new(import_rule),
         }
     }
 
@@ -50,6 +52,10 @@ impl CSSImportRule {
             can_gc,
         )
     }
+
+    pub(crate) fn update_rule(&self, import_rule: Arc<Locked<ImportRule>>) {
+        *self.import_rule.borrow_mut() = import_rule;
+    }
 }
 
 impl SpecificCSSRule for CSSImportRule {
@@ -60,6 +66,7 @@ impl SpecificCSSRule for CSSImportRule {
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
         self.import_rule
+            .borrow()
             .read_with(&guard)
             .to_css_string(&guard)
             .into()
@@ -70,7 +77,7 @@ impl CSSImportRuleMethods<crate::DomTypeHolder> for CSSImportRule {
     /// <https://drafts.csswg.org/cssom-1/#dom-cssimportrule-layername>
     fn GetLayerName(&self) -> Option<DOMString> {
         let guard = self.cssrule.shared_lock().read();
-        match &self.import_rule.read_with(&guard).layer {
+        match &self.import_rule.borrow().read_with(&guard).layer {
             ImportLayer::None => None,
             ImportLayer::Anonymous => Some(DOMString::new()),
             ImportLayer::Named(name) => Some(DOMString::from_string(name.to_css_string())),

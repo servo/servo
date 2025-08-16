@@ -242,7 +242,7 @@ impl ShadowRoot {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
-        let sheet = cssom_stylesheet.style_stylesheet_arc().clone();
+        let sheet = cssom_stylesheet.style_stylesheet().clone();
 
         let insertion_point = stylesheets.iter().last().cloned();
 
