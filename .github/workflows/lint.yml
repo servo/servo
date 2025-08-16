@@ -70,7 +70,7 @@ jobs:
       - run: pwd && ls -l
         working-directory: /data/servo/servo
       # support workflows in forks.
-      - run: git remote add ci-remote ${{ env.GITHUB_SERVER_URL}}/${{env.GITHUB_REPOSITORY}}
+      - run: git remote add ci-remote ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}
         if: ${{ github.event_name != 'pull_request_target' }}
       - run: git remote -v
       - run: echo "GITHUB_SHA $GITHUB_SHA, ref $GITHUB_REF"
@@ -97,4 +97,4 @@ jobs:
         # if we re-use the image.
         working-directory: /data/servo/servo
         run: |
-          CARGO_INCREMENTAL=1 cargo +${{ env.MINIMUM_SUPPORTED_RUST_VERSION }} check -p libservo --locked --target-dir /data/servo/target
+          cargo +${{ env.MINIMUM_SUPPORTED_RUST_VERSION }} check -p libservo --locked --target-dir /data/servo/target
