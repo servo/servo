@@ -38,7 +38,7 @@ crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-fonts = { path = "../fonts" }
+fonts = { path = "../fonts", default-features = false }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 layout_api = { workspace = true }

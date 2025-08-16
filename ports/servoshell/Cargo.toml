@@ -37,7 +37,7 @@ ProductName = "Servo"
 [features]
 crown = ["libservo/crown"]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "webgpu", "webxr"]
+default = ["max_log_level", "webgpu", "webxr", "libservo/default"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 max_log_level = ["log/release_max_level_info"]
@@ -54,6 +54,8 @@ webxr = ["libservo/webxr"]
 vello = ["libservo/vello"]
 vello_cpu = ["libservo/vello_cpu"]
 raqote = ["libservo/raqote"]
+harfbuzz = ["libservo/harfbuzz"]
+harfrust = ["libservo/harfrust"]
 
 [dependencies]
 cfg-if = { workspace = true }
@@ -68,7 +70,7 @@ image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"] }
+libservo = { path = "../../components/servo", default-features = false, features = ["background_hang_monitor", "bluetooth", "testbinding"] }
 log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
@@ -130,7 +132,7 @@ winit = { workspace = true }
 sig = "1.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-libservo = { path = "../../components/servo", features = ["no-wgl"] }
+libservo = { path = "../../components/servo", default-features = false, features = ["no-wgl"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]

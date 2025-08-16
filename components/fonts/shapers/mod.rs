@@ -2,20 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-mod harfbuzz;
 use std::cmp;
 
 use app_units::Au;
 use base::text::is_bidi_control;
 use euclid::default::Point2D;
 use fonts_traits::ByteIndex;
-pub use harfbuzz::{ShapedGlyphData, Shaper};
 use log::debug;
 use num_traits::Zero as _;
 
-const NO_GLYPH: i32 = -1;
-
 use crate::{Font, GlyphData, GlyphId, GlyphStore, ShapingOptions, advance_for_shaped_glyph};
+
+#[cfg(feature = "harfbuzz")]
+mod harfbuzz;
+#[cfg(feature = "harfbuzz")]
+pub use harfbuzz::Shaper;
+
+#[cfg(feature = "harfrust")]
+mod harfrust;
+#[cfg(all(feature = "harfrust", not(feature = "harfbuzz")))]
+pub use harfrust::Shaper;
+
+const NO_GLYPH: i32 = -1;
 
 /// Utility function to convert a `unicode_script::Script` enum into the corresponding `c_uint` tag that
 /// harfbuzz uses to represent unicode scipts.

@@ -21,7 +21,9 @@ bluetooth = [
     "script/bluetooth",
     "script_traits/bluetooth",
 ]
-default = ["clipboard", "raqote"]
+default = ["clipboard", "raqote", "harfbuzz"]
+harfbuzz = ["fonts/harfbuzz"]
+harfrust = ["fonts/harfrust"]
 clipboard = ["dep:arboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
@@ -84,7 +86,7 @@ dpi = { workspace = true }
 embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
-fonts = { path = "../fonts" }
+fonts = { path = "../fonts", default-features = false }
 gleam = { workspace = true }
 gstreamer = { workspace = true, optional = true }
 ipc-channel = { workspace = true }

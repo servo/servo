@@ -2684,6 +2684,7 @@ dependencies = [
  "fontsan",
  "freetype-sys",
  "harfbuzz-sys",
+ "harfrust",
  "ipc-channel",
  "itertools 0.14.0",
  "libc",
@@ -2695,7 +2696,7 @@ dependencies = [
  "parking_lot",
  "profile_traits",
  "range",
- "read-fonts",
+ "read-fonts 0.29.3",
  "serde",
  "servo-tracing",
  "servo_allocator",
@@ -3656,6 +3657,19 @@ dependencies = [
  "freetype-sys",
  "pkg-config",
  "winapi",
+]
+
+[[package]]
+name = "harfrust"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca4253de099ee464aea026833ee8f3968c08bfe0065bfb4f47c6ac590d533590"
+dependencies = [
+ "bitflags 2.9.2",
+ "bytemuck",
+ "core_maths",
+ "read-fonts 0.33.1",
+ "smallvec",
 ]
 
 [[package]]
@@ -6883,6 +6897,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "read-fonts"
+version = "0.33.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50ea612a55c08586a1d15134be8a776186c440c312ebda3b9e8efbfe4255b7f4"
+dependencies = [
+ "bytemuck",
+ "core_maths",
+ "font-types",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8029,7 +8054,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbeb4ca4399663735553a09dd17ce7e49a0a0203f03b706b39628c4d913a8607"
 dependencies = [
  "bytemuck",
- "read-fonts",
+ "read-fonts 0.29.3",
 ]
 
 [[package]]

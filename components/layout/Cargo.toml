@@ -27,7 +27,7 @@ data-url = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
-fonts = { path = "../fonts" }
+fonts = { path = "../fonts", default-features = false }
 fonts_traits = { workspace = true }
 fxhash = { workspace = true }
 html5ever = { workspace = true }

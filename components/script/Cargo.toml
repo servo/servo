@@ -66,7 +66,7 @@ embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
-fonts = { path = "../fonts" }
+fonts = { path = "../fonts", default-features = false }
 fonts_traits = { workspace = true }
 fxhash = { workspace = true }
 glow = { workspace = true }

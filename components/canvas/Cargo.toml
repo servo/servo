@@ -26,7 +26,7 @@ crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
 font-kit = { version = "0.14", optional = true }
-fonts = { path = "../fonts" }
+fonts = { path = "../fonts", default-features = false }
 ipc-channel = { workspace = true }
 kurbo = { workspace = true }
 log = { workspace = true }
