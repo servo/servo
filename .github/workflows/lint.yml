@@ -85,8 +85,6 @@ jobs:
           git switch --detach FETCH_HEAD
           git reset --hard FETCH_HEAD
         working-directory: /data/servo/servo
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       # Prevent downloading of components specified in our rust-toolchain.toml
       - run: rustup set profile minimal
         working-directory: /data/servo/servo
