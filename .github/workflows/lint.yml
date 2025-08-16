@@ -68,10 +68,10 @@ jobs:
       CARGO_INCREMENTAL: 1
     steps:
       # Set the remote-url when run in a fork.
-      - run: git remote set-url origin ${{ github.server_url}}/${{ github.repository }}
+      - if: ${{ github.repository != 'servo/servo' && github.event_name != 'pull_request_target' }}
+        run: git remote set-url origin ${{ github.server_url}}/${{ github.repository }}
         working-directory: /data/servo/servo
-        # todo: if not servo/servo.
-        if: ${{ github.event_name != 'pull_request_target' }}
+
       - if: ${{ github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $GITHUB_SHA
         working-directory: /data/servo/servo
