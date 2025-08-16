@@ -9,10 +9,10 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
-use embedder_traits::webdriver::WebDriverSenders;
+use embedder_traits::webdriver::{WebDriverCommandResponse, WebDriverSenders};
 use euclid::Vector2D;
 use keyboard_types::{Key, Modifiers, NamedKey, ShortcutMatcher};
-use log::{error, info};
+use log::{error, info, warn};
 use servo::base::id::WebViewId;
 use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
@@ -98,13 +98,17 @@ impl RunningAppState {
         window: Rc<dyn WindowPortsMethods>,
         servoshell_preferences: ServoShellPreferences,
         webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+        webdriver_action_senders: Option<IpcSender<WebDriverCommandResponse>>,
     ) -> RunningAppState {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
+        let webdriver_senders: RefCell<WebDriverSenders> = Default::default();
+        webdriver_senders.borrow_mut().action_senders = webdriver_action_senders;
+
         RunningAppState {
             servo,
             servoshell_preferences,
             webdriver_receiver,
-            webdriver_senders: RefCell::default(),
+            webdriver_senders,
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
@@ -648,6 +652,18 @@ impl WebViewDelegate for RunningAppState {
         if let Entry::Occupied(entry) = webdriver_state.pending_focus.entry(focus_id) {
             let sender = entry.remove();
             let _ = sender.send(webview.focused());
+        }
+    }
+
+    // Currently used to notify webdriver about hit test fails
+    fn notify_webdriver_input_event_failed(&self) {
+        if let Some(ref sender) = self.webdriver_senders.borrow_mut().action_senders {
+            if sender
+                .send(WebDriverCommandResponse::DispatchFailed)
+                .is_err()
+            {
+                warn!("Failed to notify webdriver regarding input dispatch failure");
+            }
         }
     }
 

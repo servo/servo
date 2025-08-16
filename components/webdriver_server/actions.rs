@@ -7,7 +7,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use base::id::BrowsingContextId;
-use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
+use embedder_traits::{
+    MouseButtonAction, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverScriptCommand,
+};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use log::{error, info};
@@ -189,12 +191,15 @@ impl Handler {
         for _ in 0..self.num_pending_actions.get() {
             match self.webdriver_response_receiver.recv() {
                 Ok(response) => {
+                    let WebDriverCommandResponse::DispatchSucceed(response_id) = response else {
+                        return Err(ErrorStatus::UnknownError);
+                    };
                     let current_waiting_id = self
                         .current_action_id
                         .get()
                         .expect("Current id should be set before dispatch_actions_inner is called");
 
-                    if current_waiting_id != response.id {
+                    if current_waiting_id != response_id {
                         error!("Dispatch actions completed with wrong id in response");
                         return Err(ErrorStatus::UnknownError);
                     }

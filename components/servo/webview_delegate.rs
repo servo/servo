@@ -421,6 +421,9 @@ pub trait WebViewDelegate {
     /// A focus operation that was initiated by this webview has completed.
     /// The current focus status of this [`WebView`] can be accessed via [`WebView::focused`].
     fn notify_focus_complete(&self, _webview: WebView, _focus_id: FocusId) {}
+    /// Send message to WebDriver that an input event sent by WebDriver
+    /// has failed to be dispatched.
+    fn notify_webdriver_input_event_failed(&self) {}
     /// This [`WebView`] has either started to animate or stopped animating. When a
     /// [`WebView`] is animating, it is up to the embedding application ensure that
     /// `Servo::spin_event_loop` is called at regular intervals in order to update the

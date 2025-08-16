@@ -290,8 +290,9 @@ pub enum WebDriverFrameId {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct WebDriverCommandResponse {
-    pub id: WebDriverMessageId,
+pub enum WebDriverCommandResponse {
+    DispatchSucceed(WebDriverMessageId),
+    DispatchFailed,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -315,4 +316,5 @@ pub struct WebDriverSenders {
     pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
     pub pending_traversals: HashMap<TraversalId, IpcSender<WebDriverLoadStatus>>,
     pub pending_focus: HashMap<FocusId, IpcSender<bool>>,
+    pub action_senders: Option<IpcSender<WebDriverCommandResponse>>,
 }

@@ -341,6 +341,9 @@ impl WebViewRenderer {
                     .nth(0);
                 if hit_test_result.is_none() {
                     warn!("Empty hit test result for input event, ignoring.");
+                    if event.webdriver_message_id().is_some() {
+                        self.webview.notify_webdriver_input_event_failed();
+                    }
                     return false;
                 }
                 hit_test_result

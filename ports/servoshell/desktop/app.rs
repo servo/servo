@@ -169,34 +169,46 @@ impl App {
         servo.setup_logging();
 
         // Initialize WebDriver server here before `servo` is moved.
-        let webdriver_receiver = self.servoshell_preferences.webdriver_port.map(|port| {
-            let (embedder_sender, embedder_receiver) = unbounded();
-            let (webdriver_response_sender, webdriver_response_receiver) = ipc::channel().unwrap();
+        let (webdriver_receiver, webdriver_action_senders) = {
+            if let Some(port) = self.servoshell_preferences.webdriver_port {
+                let (embedder_sender, embedder_receiver) = unbounded();
+                let (webdriver_response_sender, webdriver_response_receiver) =
+                    ipc::channel().unwrap();
+                let webdriver_sender_from_embedder = webdriver_response_sender.clone();
 
-            // Set the WebDriver response sender to constellation.
-            // TODO: consider using Servo API to notify embedder about input events completions
-            servo
-                .constellation_sender()
-                .send(EmbedderToConstellationMessage::SetWebDriverResponseSender(
-                    webdriver_response_sender,
-                ))
-                .expect("Failed to set WebDriver response sender in constellation when initing");
+                // Set the WebDriver response sender to constellation.
+                // TODO: consider using Servo API to notify embedder about input events completions
+                servo
+                    .constellation_sender()
+                    .send(EmbedderToConstellationMessage::SetWebDriverResponseSender(
+                        webdriver_response_sender,
+                    ))
+                    .expect(
+                        "Failed to set WebDriver response sender in constellation when initing",
+                    );
 
-            webdriver_server::start_server(
-                port,
-                embedder_sender,
-                self.waker.clone(),
-                webdriver_response_receiver,
-            );
+                webdriver_server::start_server(
+                    port,
+                    embedder_sender,
+                    self.waker.clone(),
+                    webdriver_response_receiver,
+                );
 
-            embedder_receiver
-        });
+                (
+                    Some(embedder_receiver),
+                    Some(webdriver_sender_from_embedder),
+                )
+            } else {
+                (None, None)
+            }
+        };
 
         let running_state = Rc::new(RunningAppState::new(
             servo,
             window.clone(),
             self.servoshell_preferences.clone(),
             webdriver_receiver,
+            webdriver_action_senders,
         ));
         running_state.create_and_focus_toplevel_webview(self.initial_url.clone().into_url());
         if let Some(ref mut minibrowser) = self.minibrowser {
