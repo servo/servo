@@ -71,9 +71,10 @@ jobs:
         working-directory: /data/servo/servo
       # support workflows in forks.
       - run: git remote add ci-remote ${{ github.repositoryUrl }}
+        working-directory: /data/servo/servo
         if: ${{ github.event_name != 'pull_request_target' }}
       - run: git remote -v
-      - run: echo "GITHUB_SHA $GITHUB_SHA, ref $GITHUB_REF"
+        working-directory: /data/servo/servo
       # Faster checkout for self-hosted runner that uses prebaked repo.
       - if: ${{ github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 ci-remote $GITHUB_SHA
