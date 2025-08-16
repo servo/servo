@@ -1434,6 +1434,9 @@ where
             EmbedderToConstellationMessage::TickAnimation(webview_ids) => {
                 self.handle_tick_animation(webview_ids)
             },
+            EmbedderToConstellationMessage::DisplayListDone(pipeline_id) => {
+                self.handle_display_list_done(pipeline_id)
+            },
             EmbedderToConstellationMessage::WebDriverCommand(command) => {
                 self.handle_webdriver_msg(command);
             },
@@ -3459,6 +3462,16 @@ where
             // some other message.
             let _ = event_loop.send(ScriptThreadMessage::TickAllAnimations(webview_ids.clone()));
         }
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn handle_display_list_done(&mut self, pipeline_id: PipelineId) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+        let _ = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::DisplayListDone(pipeline_id));
     }
 
     /// Schedule a navigation(via load_url).

@@ -256,6 +256,8 @@ pub enum ScriptThreadMessage {
     EvaluateJavaScript(PipelineId, JavaScriptEvaluationId, String),
     /// A new batch of keys for the image cache for the specific pipeline.
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
+    /// TODO
+    DisplayListDone(PipelineId),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

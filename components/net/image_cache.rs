@@ -168,7 +168,7 @@ fn set_webrender_image_key(
         flags,
     };
     let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(&bytes));
-    compositor_api.add_image(image_key, descriptor, data);
+    compositor_api.add_image(image_key, descriptor, data, None);
     image.id = Some(image_key);
 }
 
