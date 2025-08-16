@@ -11,7 +11,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use base::id::{BlobId, DomExceptionId, DomPointId, ImageBitmapId};
+use base::id::{BlobId, DomExceptionId, DomPointId, ImageBitmapId, QuotaExceededErrorId};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use pixels::Snapshot;
@@ -38,6 +38,9 @@ where
 }
 
 /// All the DOM interfaces that can be serialized.
+///
+/// NOTE: Variants which are derived from other serializable interfaces must come before their
+/// parents because serialization is attempted in order of the variants.
 #[derive(Clone, Copy, Debug, EnumIter)]
 pub enum Serializable {
     /// The `Blob` interface.
@@ -46,6 +49,8 @@ pub enum Serializable {
     DomPoint,
     /// The `DOMPointReadOnly` interface.
     DomPointReadOnly,
+    /// The `QuotaExceededError` interface.
+    QuotaExceededError,
     /// The `DOMException` interface.
     DomException,
     /// The `ImageBitmap` interface.
@@ -67,6 +72,9 @@ impl Serializable {
             },
             Serializable::ImageBitmap => {
                 StructuredSerializedData::clone_all_of_type::<SerializableImageBitmap>
+            },
+            Serializable::QuotaExceededError => {
+                StructuredSerializedData::clone_all_of_type::<SerializableQuotaExceededError>
             },
         }
     }
@@ -312,6 +320,30 @@ impl BroadcastClone for DomException {
         data: &mut StructuredSerializedData,
     ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
         &mut data.exceptions
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the QuotaExceededError interface.
+pub struct SerializableQuotaExceededError {
+    pub dom_exception: DomException,
+    pub quota: Option<f64>,
+    pub requested: Option<f64>,
+}
+
+impl BroadcastClone for SerializableQuotaExceededError {
+    type Id = QuotaExceededErrorId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>> {
+        &data.quota_exceeded_errors
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<HashMap<Self::Id, Self>> {
+        &mut data.quota_exceeded_errors
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {
