@@ -6559,6 +6559,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "servo_allocator",
  "servo_config",
  "task_info",
  "tikv-jemalloc-sys",
@@ -7625,6 +7626,7 @@ dependencies = [
 name = "servo_allocator"
 version = "0.0.1"
 dependencies = [
+ "backtrace",
  "libc",
  "tikv-jemalloc-sys",
  "tikv-jemallocator",

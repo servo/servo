@@ -293,7 +293,7 @@ pub fn perform_memory_report<F: FnOnce(&mut MallocSizeOfOps)>(f: F) {
     let seen_pointer = move |ptr| SEEN_POINTERS.with(|pointers| !pointers.borrow_mut().insert(ptr));
     let mut ops = MallocSizeOfOps::new(
         servo_allocator::usable_size,
-        None,
+        servo_allocator::enclosing_size,
         Some(Box::new(seen_pointer)),
     );
     f(&mut ops);

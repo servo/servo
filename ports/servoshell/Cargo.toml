@@ -121,7 +121,7 @@ headers = { workspace = true }
 net = { path = "../../components/net" }
 net_traits = { workspace = true }
 serde_json = { workspace = true }
-# For optional feature servo_allocator/use-system-allocator
+# For optional feature servo_allocator/use-system-allocator and servo_allocator/allocation-tracking
 servo_allocator = { path = "../../components/allocator" }
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
 winit = { workspace = true }

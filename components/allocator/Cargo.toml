@@ -11,7 +11,11 @@ rust-version.workspace = true
 path = "lib.rs"
 
 [features]
+allocation-tracking = ["backtrace"]
 use-system-allocator = ["libc"]
+
+[dependencies]
+backtrace = { workspace = true, optional = true }
 
 [target.'cfg(not(any(windows, target_env = "ohos")))'.dependencies]
 libc = { workspace = true, optional = true }

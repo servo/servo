@@ -112,6 +112,7 @@ impl Profiler {
                     })
                     .collect();
                 let _ = sender.send(MemoryReportResult { results });
+                servo_allocator::dump_unmeasured();
                 true
             },
             ProfilerMsg::Exit => false,
