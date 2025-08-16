@@ -600,8 +600,10 @@ impl ComputedValuesExt for ComputedValues {
 
         // https://www.w3.org/TR/css-overflow-3/#overflow-propagation
         // The element from which the value is propagated must then have a used overflow value of visible.
-        if fragment_flags.contains(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT) &&
-            !style_box.display.is_none()
+        if fragment_flags.contains(
+            FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT |
+                FragmentFlags::IS_ELEMENT_OVERFLOW_VALUE_PROPAGATED,
+        ) && !style_box.display.is_none()
         {
             return AxesOverflow {
                 x: Overflow::Visible,
