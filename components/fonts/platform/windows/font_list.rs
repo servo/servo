@@ -67,14 +67,15 @@ impl LocalFontIdentifier {
         }
     }
 
-    pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
+    pub(crate) fn read_data_from_file(&self) -> Option<(Vec<u8>, u32)> {
         let font = FontCollection::system()
             .font_from_descriptor(&self.font_descriptor)
             .ok()??;
         let face = font.create_font_face();
+        let index = face.get_index();
         let files = face.get_files();
         assert!(!files.is_empty());
-        Some(files[0].get_font_file_bytes())
+        Some((files[0].get_font_file_bytes(), index))
     }
 }
 

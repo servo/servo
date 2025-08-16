@@ -9,6 +9,13 @@ use style::color::AbsoluteColor;
 use crate::backend::Convert;
 use crate::canvas_data::Filter;
 
+impl Convert<peniko::Font> for fonts::RawFont {
+    fn convert(self) -> peniko::Font {
+        use std::sync::Arc;
+        peniko::Font::new(peniko::Blob::new(Arc::new(self.data)), self.index)
+    }
+}
+
 impl Convert<kurbo::Join> for LineJoinStyle {
     fn convert(self) -> kurbo::Join {
         match self {

@@ -75,15 +75,13 @@ unsafe impl Send for Shaper {}
 
 impl Shaper {
     pub(crate) fn new(font: &Font) -> Self {
-        let font_data = font.data().clone();
-        let font_index = font.identifier().index();
+        let raw_font = font.raw_font();
+        let font_data = raw_font.data.clone();
+        let font_index = raw_font.index;
         // Set points-per-em. if zero, performs no hinting in that direction
         let ppem = font.descriptor.pt_size.to_f64_px();
-        let units_per_em = read_fonts::FontRef::from_index(font_data.as_ref(), font_index)
-            .unwrap()
-            .head()
-            .unwrap()
-            .units_per_em();
+        let font_ref = read_fonts::FontRef::from_index(font_data.as_ref(), font_index).unwrap();
+        let units_per_em = font_ref.head().unwrap().units_per_em();
         let scale = ppem / (units_per_em as f64);
         Self {
             font: font as *const Font,
