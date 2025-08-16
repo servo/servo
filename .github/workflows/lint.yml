@@ -70,20 +70,20 @@ jobs:
       - run: pwd && ls -l
         working-directory: /data/servo/servo
       # temporarily hardcode. Supports ./mach try lint in fork.
-      - run: git remote add ci-remote https://github.com/jschwe/servo.git
+      - run: git remote set-url origin ${{ github.server_url}}/${{ github.repository }}
         working-directory: /data/servo/servo
         if: ${{ github.event_name != 'pull_request_target' }}
       - run: git remote -v
         working-directory: /data/servo/servo
       # Faster checkout for self-hosted runner that uses prebaked repo.
       - if: ${{ github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=1 ci-remote $GITHUB_SHA
+        run: git fetch --depth=1 origin $GITHUB_SHA
         working-directory: /data/servo/servo
       - if: ${{ github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
         working-directory: /data/servo/servo
       - run: |
-          git switch --detach
+          git switch --detach FETCH_HEAD
           git reset --hard FETCH_HEAD
         working-directory: /data/servo/servo
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
