@@ -70,7 +70,7 @@ jobs:
       - run: pwd && ls -l
         working-directory: /data/servo/servo
       # support workflows in forks.
-      - run: git remote add ci-remote ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}
+      - run: git remote add ci-remote ${{ github.repositoryUrl }}
         if: ${{ github.event_name != 'pull_request_target' }}
       - run: git remote -v
       - run: echo "GITHUB_SHA $GITHUB_SHA, ref $GITHUB_REF"
