@@ -173,6 +173,11 @@ pub struct WebDriverSession {
     /// <https://www.w3.org/TR/webdriver2/#dfn-current-browsing-context>
     browsing_context_id: BrowsingContextId,
 
+    /// <https://www.w3.org/TR/webdriver2/#dfn-window-handles>
+    /// Each browsing context has an associated window handle.
+    /// But the `window_handles` we keep track here are only for WebViews.
+    window_handles: HashMap<WebViewId, String>,
+
     timeouts: TimeoutsConfiguration,
 
     page_loading_strategy: PageLoadStrategy,
@@ -200,6 +205,7 @@ impl WebDriverSession {
             user_prompt_handler: UserPromptHandler::new(),
             input_state_table: RefCell::new(HashMap::new()),
             input_cancel_list: RefCell::new(Vec::new()),
+            window_handles: HashMap::new(),
         }
     }
 }
@@ -1107,12 +1113,17 @@ impl Handler {
         wait_for_ipc_response(receiver).expect("IPC receive failure")
     }
 
-    fn get_window_handles(&self) -> Vec<String> {
-        self.get_all_webviews()
-            .into_iter()
-            .map(BrowsingContextId::from)
-            .map(|id| self.get_window_handle(id))
-            .collect::<Vec<_>>()
+    fn get_window_handles(&mut self) -> Vec<String> {
+        let webviews = self.get_all_webviews();
+        let handles = webviews
+            .iter()
+            .map(|id| self.get_window_handle(BrowsingContextId::from(*id)))
+            .collect::<Vec<_>>();
+        // We are inserting when getting to reflect those created/destroyed by script
+        // for which the webdriver server is not aware of.
+        self.session_mut().unwrap().window_handles =
+            webviews.into_iter().zip(handles.iter().cloned()).collect();
+        handles
     }
 
     fn get_window_handle(&self, browsing_context_id: BrowsingContextId) -> String {
