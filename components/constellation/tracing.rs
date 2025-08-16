@@ -78,6 +78,7 @@ mod from_compositor {
                 Self::CreateMemoryReport(..) => target!("CreateMemoryReport"),
                 Self::SendImageKeysForPipeline(..) => target!("SendImageKeysForPipeline"),
                 Self::SetWebDriverResponseSender(..) => target!("SetWebDriverResponseSender"),
+                Self::PreferencesUpdated(..) => target!("PreferencesUpdated"),
             }
         }
     }
