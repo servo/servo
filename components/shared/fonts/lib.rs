@@ -154,7 +154,7 @@ pub struct FontDataAndIndex {
     pub index: u32,
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum FontDataError {
     FailedToLoad,
 }

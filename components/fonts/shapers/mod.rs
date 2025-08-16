@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-mod harfbuzz;
-
 use app_units::Au;
 use euclid::default::Point2D;
-pub(crate) use harfbuzz::Shaper;
 use read_fonts::types::Tag;
 use rustc_hash::FxHashMap;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
@@ -17,6 +14,28 @@ use crate::{
     AFRC, CALT, CLIG, DLIG, FRAC, FWID, GlyphId, HLIG, JP04, JP78, JP83, JP90, KERN, LIGA, LNUM,
     ONUM, ORDN, PNUM, PWID, RUBY, SMPL, SUBS, SUPS, ShapingFlags, ShapingOptions, TNUM, TRAD, ZERO,
 };
+
+#[cfg(feature = "harfbuzz")]
+mod harfbuzz;
+#[cfg(feature = "harfbuzz")]
+pub(crate) use harfbuzz::Shaper as HarfBuzzShaper;
+
+#[cfg(feature = "harfrust")]
+mod harfrust;
+#[cfg(feature = "harfrust")]
+pub(crate) use harfrust::Shaper as HarfRustShaper;
+
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+mod both;
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+pub(crate) use BothShaper as Shaper;
+// Configure default shaper (actually used)
+#[cfg(all(feature = "harfbuzz", not(feature = "harfrust")))]
+pub(crate) use HarfBuzzShaper as Shaper;
+#[cfg(all(not(feature = "harfbuzz"), feature = "harfrust"))]
+pub(crate) use HarfRustShaper as Shaper;
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+pub(crate) use both::Shaper as BothShaper;
 
 /// Utility function to convert a `unicode_script::Script` enum into the corresponding `c_uint` tag that
 /// harfbuzz uses to represent unicode scipts.
@@ -32,7 +51,7 @@ fn unicode_script_to_iso15924_tag(script: unicode_script::Script) -> u32 {
     u32::from_be_bytes(bytes)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct ShapedGlyph {
     /// The actual glyph to render for this [`ShapedGlyph`].
     pub glyph_id: GlyphId,
