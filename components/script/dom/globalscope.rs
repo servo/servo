@@ -2894,7 +2894,8 @@ impl GlobalScope {
         arguments: Vec<HandleValue>,
         timeout: Duration,
         is_interval: IsInterval,
-    ) -> i32 {
+        can_gc: CanGc,
+    ) -> Fallible<i32> {
         self.timers().set_timeout_or_interval(
             self,
             callback,
@@ -2902,6 +2903,7 @@ impl GlobalScope {
             timeout,
             is_interval,
             self.timer_source(),
+            can_gc,
         )
     }
 

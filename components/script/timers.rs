@@ -21,6 +21,8 @@ use timers::{BoxedTimerCallback, TimerEventRequest};
 use crate::dom::bindings::callback::ExceptionHandling::Report;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
@@ -32,6 +34,7 @@ use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
+use crate::dom::trustedscript::TrustedScript;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
@@ -185,7 +188,9 @@ impl OneshotTimers {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     pub(crate) fn fire_timer(&self, id: TimerEventId, global: &GlobalScope, can_gc: CanGc) {
+        // Step 9.2. If id does not exist in global's map of setTimeout and setInterval IDs, then abort these steps.
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
             debug!(
@@ -278,6 +283,7 @@ impl OneshotTimers {
         self.schedule_timer_call();
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     fn schedule_timer_call(&self) {
         if self.suspended_since.get().is_some() {
             // The timer will be scheduled when the pipeline is fully activated.
@@ -290,6 +296,8 @@ impl OneshotTimers {
         };
 
         let expected_event_id = self.invalidate_expected_event_id();
+        // Step 12. Let completionStep be an algorithm step which queues a global
+        // task on the timer task source given global to run task.
         let callback = TimerListener {
             context: Trusted::new(&*self.global_scope),
             task_source: self
@@ -321,6 +329,7 @@ impl OneshotTimers {
         next_id
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn set_timeout_or_interval(
         &self,
         global: &GlobalScope,
@@ -329,7 +338,8 @@ impl OneshotTimers {
         timeout: Duration,
         is_interval: IsInterval,
         source: TimerSource,
-    ) -> i32 {
+        can_gc: CanGc,
+    ) -> Fallible<i32> {
         self.js_timers.set_timeout_or_interval(
             global,
             callback,
@@ -337,6 +347,7 @@ impl OneshotTimers {
             timeout,
             is_interval,
             source,
+            can_gc,
         )
     }
 
@@ -388,9 +399,8 @@ pub(crate) enum IsInterval {
     NonInterval,
 }
 
-#[derive(Clone)]
 pub(crate) enum TimerCallback {
-    StringTimerCallback(DOMString),
+    StringTimerCallback(TrustedScriptOrString),
     FunctionTimerCallback(Rc<Function>),
 }
 
@@ -416,7 +426,8 @@ impl Default for JsTimers {
 }
 
 impl JsTimers {
-    // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
+    /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
+    #[allow(clippy::too_many_arguments)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn set_timeout_or_interval(
         &self,
@@ -426,16 +437,42 @@ impl JsTimers {
         timeout: Duration,
         is_interval: IsInterval,
         source: TimerSource,
-    ) -> i32 {
+        can_gc: CanGc,
+    ) -> Fallible<i32> {
         let callback = match callback {
-            TimerCallback::StringTimerCallback(code_str) => {
+            TimerCallback::StringTimerCallback(trusted_script_or_string) => {
+                // Step 9.6.1.1. Let globalName be "Window" if global is a Window object; "WorkerGlobalScope" otherwise.
+                let global_name = if global.is::<Window>() {
+                    "Window"
+                } else {
+                    "WorkerGlobalScope"
+                };
+                // Step 9.6.1.2. Let methodName be "setInterval" if repeat is true; "setTimeout" otherwise.
+                let method_name = if is_interval == IsInterval::Interval {
+                    "setInterval"
+                } else {
+                    "setTimeout"
+                };
+                // Step 9.6.1.3. Let sink be a concatenation of globalName, U+0020 SPACE, and methodName.
+                let sink = format!("{} {}", global_name, method_name);
+                // Step 9.6.1.4. Set handler to the result of invoking the
+                // Get Trusted Type compliant string algorithm with TrustedScript, global, handler, sink, and "script".
+                let code_str = TrustedScript::get_trusted_script_compliant_string(
+                    global,
+                    trusted_script_or_string,
+                    &sink,
+                    can_gc,
+                )?;
+                // Step 9.6.3. Perform EnsureCSPDoesNotBlockStringCompilation(realm, « », handler, handler, timer, « », handler).
+                // If this throws an exception, catch it, report it for global, and abort these steps.
                 if global
                     .get_csp_list()
                     .is_js_evaluation_allowed(global, code_str.as_ref())
                 {
+                    // Step 9.6.2. Assert: handler is a string.
                     InternalTimerCallback::StringTimerCallback(code_str)
                 } else {
-                    return 0;
+                    return Ok(0);
                 }
             },
             TimerCallback::FunctionTimerCallback(function) => {
@@ -448,6 +485,8 @@ impl JsTimers {
                 for (i, item) in arguments.iter().enumerate() {
                     args.get_mut(i).unwrap().set(item.get());
                 }
+                // Step 9.5. If handler is a Function, then invoke handler given arguments and "report",
+                // and with callback this value set to thisArg.
                 InternalTimerCallback::FunctionTimerCallback(
                     function,
                     Rc::new(args.into_boxed_slice()),
@@ -455,13 +494,15 @@ impl JsTimers {
             },
         };
 
-        // step 2
+        // Step 2. If previousId was given, let id be previousId; otherwise,
+        // let id be an implementation-defined integer that is greater than zero
+        // and does not already exist in global's map of setTimeout and setInterval IDs.
         let JsTimerHandle(new_handle) = self.next_timer_handle.get();
         self.next_timer_handle.set(JsTimerHandle(new_handle + 1));
 
-        // step 3 as part of initialize_and_schedule below
-
-        // step 4
+        // Step 3. If the surrounding agent's event loop's currently running task
+        // is a task that was created by this algorithm, then let nesting level
+        // be the task's timer nesting level. Otherwise, let nesting level be 0.
         let mut task = JsTimerTask {
             handle: JsTimerHandle(new_handle),
             source,
@@ -472,14 +513,13 @@ impl JsTimers {
             duration: Duration::ZERO,
         };
 
-        // step 5
+        // Step 4. If timeout is less than 0, then set timeout to 0.
         task.duration = timeout.max(Duration::ZERO);
 
-        // step 3, 6-9, 11-14
         self.initialize_and_schedule(global, task);
 
-        // step 10
-        new_handle
+        // Step 15. Return id.
+        Ok(new_handle)
     }
 
     pub(crate) fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
@@ -506,24 +546,27 @@ impl JsTimers {
         }
     }
 
-    // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
+    /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     fn initialize_and_schedule(&self, global: &GlobalScope, mut task: JsTimerTask) {
         let handle = task.handle;
         let mut active_timers = self.active_timers.borrow_mut();
 
-        // step 6
+        // Step 3. If the surrounding agent's event loop's currently running task
+        // is a task that was created by this algorithm, then let nesting level be
+        // the task's timer nesting level. Otherwise, let nesting level be 0.
         let nesting_level = self.nesting_level.get();
 
-        // step 7, 13
         let duration = self.user_agent_pad(clamp_duration(nesting_level, task.duration));
-        // step 8, 9
+        // Step 10. Increment nesting level by one.
+        // Step 11. Set task's timer nesting level to nesting level.
         task.nesting_level = nesting_level + 1;
 
-        // essentially step 11, 12, and 14
+        // Step 13. Set uniqueHandle to the result of running steps after a timeout given global,
+        // "setTimeout/setInterval", timeout, and completionStep.
         let callback = OneshotTimerCallback::JsTimer(task);
         let oneshot_handle = global.schedule_callback(callback, duration);
 
-        // step 3
+        // Step 14. Set global's map of setTimeout and setInterval IDs[id] to uniqueHandle.
         let entry = active_timers
             .entry(handle)
             .or_insert(JsTimerEntry { oneshot_handle });
@@ -531,8 +574,9 @@ impl JsTimers {
     }
 }
 
-// see step 7 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
+/// Step 5 of <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
 fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
+    // Step 5. If nesting level is greater than 5, and timeout is less than 4, then set timeout to 4.
     let lower_bound_ms = if nesting_level > 5 { 4 } else { 0 };
     let lower_bound = Duration::from_millis(lower_bound_ms);
     lower_bound.max(unclamped)
@@ -541,30 +585,47 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     pub(crate) fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, can_gc: CanGc) {
-        // step 4.1 can be ignored, because we proactively prevent execution
+        // step 9.2 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
-        // prep for step 6 in nested set_timeout_or_interval calls
+        // prep for step ? in nested set_timeout_or_interval calls
         timers.nesting_level.set(self.nesting_level);
 
-        // step 4.2
         let was_user_interacting = ScriptThread::is_user_interacting();
         ScriptThread::set_user_interacting(self.is_user_interacting);
         match self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
+                // Step 6.4. Let settings object be global's relevant settings object.
+                // Step 6. Let realm be global's relevant realm.
                 let global = this.global();
+                // Step 7. Let initiating script be the active script.
                 let cx = GlobalScope::get_cx();
+                // Step 9.6.7. If initiating script is not null, then:
                 rooted!(in(*cx) let mut rval = UndefinedValue());
+                // Step 9.6.7.1. Set fetch options to a script fetch options whose cryptographic nonce
+                // is initiating script's fetch options's cryptographic nonce,
+                // integrity metadata is the empty string, parser metadata is "not-parser-inserted",
+                // credentials mode is initiating script's fetch options's credentials mode,
+                // referrer policy is initiating script's fetch options's referrer policy,
+                // and fetch priority is "auto".
+                // Step 9.6.8. Let script be the result of creating a classic script given handler,
+                // settings object, base URL, and fetch options.
+                // Step 9.6.9. Run the classic script script.
+                //
                 // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
                 _ = global.evaluate_js_on_global_with_result(
                     code_str,
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(&global),
+                    // Step 9.6. Let base URL be settings object's API base URL.
+                    // Step 9.7.2. Set base URL to initiating script's base URL.
                     global.api_base_url(),
                     can_gc,
                     Some(IntroductionType::DOM_TIMER),
                 );
             },
+            // Step 9.5. If handler is a Function, then invoke handler given arguments and
+            // "report", and with callback this value set to thisArg.
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
                 let arguments = self.collect_heap_args(arguments);
                 rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
@@ -576,7 +637,9 @@ impl JsTimerTask {
         // reset nesting level (see above)
         timers.nesting_level.set(0);
 
-        // step 4.3
+        // Step 9.9. If repeat is true, then perform the timer initialization steps again,
+        // given global, handler, timeout, arguments, true, and id.
+        //
         // Since we choose proactively prevent execution (see 4.1 above), we must only
         // reschedule repeating timers when they were not canceled as part of step 4.2.
         if self.is_interval == IsInterval::Interval &&
@@ -622,10 +685,10 @@ struct TimerListener {
 impl TimerListener {
     /// Handle a timer-event coming from the [`timers::TimerScheduler`]
     /// by queuing the appropriate task on the relevant event-loop.
+    /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     fn handle(&self, event: TimerEvent) {
         let context = self.context.clone();
-        // Step 18, queue a task,
-        // https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
+        // Step 9. Let task be a task that runs the following substeps:
         self.task_source.queue(task!(timer_event: move || {
                 let global = context.root();
                 let TimerEvent(source, id) = event;
@@ -638,7 +701,6 @@ impl TimerListener {
                         global.downcast::<Window>().expect("Worker timer delivered to window");
                     },
                 };
-                // Step 7, substeps run in a task.
                 global.fire_timer(id, CanGc::note());
             })
         );

@@ -4,7 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#windoworworkerglobalscope
 
-typedef (DOMString or Function) TimerHandler;
+typedef (TrustedScript or DOMString or Function) TimerHandler;
 
 [Exposed=(Window,Worker)]
 interface mixin WindowOrWorkerGlobalScope {
@@ -15,9 +15,9 @@ interface mixin WindowOrWorkerGlobalScope {
   [Throws] DOMString atob(DOMString data);
 
   // timers
-  long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
+  [Throws] long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
   undefined clearTimeout(optional long handle = 0);
-  long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
+  [Throws] long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
   undefined clearInterval(optional long handle = 0);
 
   // microtask queuing
