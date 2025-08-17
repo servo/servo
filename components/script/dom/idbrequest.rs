@@ -23,13 +23,13 @@ use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
     IDBRequestMethods, IDBRequestReadyState,
 };
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{Error, Fallible, error_to_dom_error_name};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::structuredclone;
-use crate::dom::domexception::{DOMErrorName, DOMException};
+use crate::dom::domexception::DOMException;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -98,11 +98,14 @@ impl From<u64> for IdbResult {
 }
 
 impl RequestListener {
+    // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
+    // Implements Step 5.4
     fn handle_async_request_finished(&self, result: BackendResult<IdbResult>) {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
 
+        // Substep 1: Set the result of request to result.
         request.set_ready_state_done();
 
         let _ac = enter_realm(&*request);
@@ -129,15 +132,21 @@ impl RequestListener {
                 IdbResult::None => {
                     // no-op
                 },
-                IdbResult::Error(_err) => {
-                    request.set_result(answer.handle());
-                    Self::handle_async_request_error(request, &global);
+                IdbResult::Error(error) => {
+                    // Substep 2
+                    Self::handle_async_request_error(&global, cx, request, error);
                     return;
                 },
             }
 
+            // Substep 3.1: Set the result of request to answer.
             request.set_result(answer.handle());
 
+            // Substep 3.2: Set the error of request to undefined
+            request.set_error(cx, None, CanGc::note());
+
+            // Substep 3.3: Fire a success event at request.
+            // TODO: follow spec here
             let transaction = request
                 .transaction
                 .get()
@@ -157,15 +166,29 @@ impl RequestListener {
                 .fire(request.upcast(), CanGc::note());
             transaction.set_active_flag(false);
         } else {
-            request.set_result(answer.handle());
-            Self::handle_async_request_error(request, &global);
+            // FIXME:(arihant2math) dispatch correct error
+            // Substep 2
+            Self::handle_async_request_error(&global, cx, request, Error::Data);
         }
     }
 
-    fn handle_async_request_error(request: DomRoot<IDBRequest>, global: &GlobalScope) {
-        // FIXME:(rasviitanen)
-        // Set the error of request to result
+    // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
+    // Implements Step 5.4.2
+    fn handle_async_request_error(
+        global: &GlobalScope,
+        cx: SafeJSContext,
+        request: DomRoot<IDBRequest>,
+        error: Error,
+    ) {
+        // Substep 1: Set the result of request to undefined.
+        rooted!(in(*cx) let undefined = UndefinedValue());
+        request.set_result(undefined.handle());
 
+        // Substep 2: Set the error of request to result.
+        request.set_error(cx, Some(error), CanGc::note());
+
+        // Substep 3: Fire an error event at request.
+        // TODO: follow the spec here
         let transaction = request
             .transaction
             .get()
@@ -179,6 +202,7 @@ impl RequestListener {
             CanGc::note(),
         );
 
+        // TODO: why does the transaction need to be active?
         transaction.set_active_flag(true);
         event
             .upcast::<Event>()
@@ -227,14 +251,14 @@ impl IDBRequest {
         self.result.set(result.get());
     }
 
-    pub fn set_error(&self, error: Error, can_gc: CanGc) {
-        // FIXME:(rasviitanen) Support all error types
-        if let Error::Version = error {
-            self.error.set(Some(&DOMException::new(
-                &self.global(),
-                DOMErrorName::VersionError,
-                can_gc,
-            )));
+    pub fn set_error(&self, cx: SafeJSContext, error: Option<Error>, can_gc: CanGc) {
+        if let Some(error) = error {
+            if let Some(error_name) = error_to_dom_error_name(cx, &self.global(), error, can_gc) {
+                self.error
+                    .set(Some(&DOMException::new(&self.global(), error_name, can_gc)));
+            }
+        } else {
+            self.error.set(None);
         }
     }
 
