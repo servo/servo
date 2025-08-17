@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::sync::Arc;
 
 use log::warn;
@@ -21,7 +22,16 @@ pub struct FontStore {
     web_fonts_loading_for_stylesheets: Vec<(DocumentStyleSheet, usize)>,
     web_fonts_loading_for_script: usize,
 }
-pub(crate) type CrossThreadFontStore = Arc<RwLock<FontStore>>;
+
+#[derive(Default, MallocSizeOf)]
+pub(crate) struct CrossThreadFontStore(#[conditional_malloc_size_of] Arc<RwLock<FontStore>>);
+
+impl Deref for CrossThreadFontStore {
+    type Target = Arc<RwLock<FontStore>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl FontStore {
     pub(crate) fn clear(&mut self) {

@@ -5,6 +5,7 @@
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -14,7 +15,6 @@ use compositing_traits::CrossProcessCompositorApi;
 use fnv::FnvHasher;
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use log::{debug, trace};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
@@ -45,12 +45,25 @@ use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontSe
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
+#[derive(MallocSizeOf)]
+struct FontGroupRef(#[conditional_malloc_size_of] Arc<RwLock<FontGroup>>);
+
+impl Deref for FontGroupRef {
+    type Target = Arc<RwLock<FontGroup>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// The FontContext represents the per-thread/thread state necessary for
 /// working with fonts. It is the public API used by the layout and
 /// paint code. It talks directly to the system font service where
 /// required.
+#[derive(MallocSizeOf)]
 pub struct FontContext {
+    #[conditional_malloc_size_of]
     system_font_service_proxy: Arc<SystemFontServiceProxy>,
+
     resource_threads: Mutex<CoreResourceThread>,
 
     /// A sender that can send messages and receive replies from the compositor.
@@ -64,7 +77,7 @@ pub struct FontContext {
     /// resolved [`FontGroup`] which contains information about all fonts that
     /// can be selected with that style.
     resolved_font_groups:
-        RwLock<HashMap<FontGroupCacheKey, Arc<RwLock<FontGroup>>, BuildHasherDefault<FnvHasher>>>,
+        RwLock<HashMap<FontGroupCacheKey, FontGroupRef, BuildHasherDefault<FnvHasher>>>,
 
     web_fonts: CrossThreadFontStore,
 
@@ -83,26 +96,6 @@ pub struct FontContext {
     have_removed_web_fonts: AtomicBool,
 }
 
-impl MallocSizeOf for FontContext {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let font_cache_size = self
-            .fonts
-            .read()
-            .iter()
-            .map(|(key, font)| {
-                key.size_of(ops) + font.as_ref().map_or(0, |font| (*font).size_of(ops))
-            })
-            .sum::<usize>();
-        let font_group_cache_size = self
-            .resolved_font_groups
-            .read()
-            .iter()
-            .map(|(key, font_group)| key.size_of(ops) + (*font_group.read()).size_of(ops))
-            .sum::<usize>();
-        font_cache_size + font_group_cache_size
-    }
-}
-
 impl FontContext {
     pub fn new(
         system_font_service_proxy: Arc<SystemFontServiceProxy>,
@@ -116,7 +109,7 @@ impl FontContext {
             compositor_api: Mutex::new(compositor_api),
             fonts: Default::default(),
             resolved_font_groups: Default::default(),
-            web_fonts: Arc::new(RwLock::default()),
+            web_fonts: Default::default(),
             webrender_font_keys: RwLock::default(),
             webrender_font_instance_keys: RwLock::default(),
             have_removed_web_fonts: AtomicBool::new(false),
@@ -152,7 +145,7 @@ impl FontContext {
     ) -> Arc<RwLock<FontGroup>> {
         let cache_key = FontGroupCacheKey { size, style };
         if let Some(font_group) = self.resolved_font_groups.read().get(&cache_key) {
-            return font_group.clone();
+            return font_group.0.clone();
         }
 
         let mut descriptor = FontDescriptor::from(&*cache_key.style);
@@ -161,7 +154,7 @@ impl FontContext {
         let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style, descriptor)));
         self.resolved_font_groups
             .write()
-            .insert(cache_key, font_group.clone());
+            .insert(cache_key, FontGroupRef(font_group.clone()));
         font_group
     }
 
@@ -275,12 +268,12 @@ impl FontContext {
         font_descriptor: FontDescriptor,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<FontRef, &'static str> {
-        Ok(Arc::new(Font::new(
+        Ok(FontRef(Arc::new(Font::new(
             font_template.clone(),
             font_descriptor.clone(),
             self.get_font_data(&font_template.identifier()),
             synthesized_small_caps,
-        )?))
+        )?)))
     }
 
     pub(crate) fn create_font_instance_key(&self, font: &Font) -> FontInstanceKey {

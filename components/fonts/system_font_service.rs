@@ -363,7 +363,7 @@ struct FontTemplateCacheKey {
 
 /// The public interface to the [`SystemFontService`], used by per-Document
 /// `FontContext` instances.
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct SystemFontServiceProxy {
     sender: Mutex<IpcSender<SystemFontServiceMessage>>,
     templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
