@@ -277,7 +277,7 @@ pub enum AsyncReadWriteOperation {
     /// Sets the value of the given key in the associated idb data
     PutItem {
         sender: IpcSender<BackendResult<PutItemResult>>,
-        key: IndexedDBKeyType,
+        key: Option<IndexedDBKeyType>,
         value: Vec<u8>,
         should_overwrite: bool,
     },
