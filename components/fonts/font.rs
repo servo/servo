@@ -4,6 +4,7 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
@@ -548,7 +549,15 @@ impl Font {
     }
 }
 
-pub type FontRef = Arc<Font>;
+#[derive(Clone, MallocSizeOf)]
+pub struct FontRef(#[conditional_malloc_size_of] pub(crate) Arc<Font>);
+
+impl Deref for FontRef {
+    type Target = Arc<Font>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 /// A `FontGroup` is a prioritised list of fonts for a given set of font styles. It is used by
 /// `TextRun` to decide which font to render a character with. If none of the fonts listed in the

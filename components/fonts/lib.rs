@@ -22,6 +22,7 @@ pub use font_store::*;
 pub use font_template::*;
 pub use glyph::*;
 use ipc_channel::ipc::IpcSharedMemory;
+use malloc_size_of_derive::MallocSizeOf;
 pub use platform::LocalFontIdentifier;
 pub use shaper::*;
 pub use system_font_service::*;
@@ -30,8 +31,8 @@ use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
 /// A data structure to store data for fonts. Data is stored internally in an
 /// [`IpcSharedMemory`] handle, so that it can be send without serialization
 /// across IPC channels.
-#[derive(Clone)]
-pub struct FontData(pub(crate) Arc<IpcSharedMemory>);
+#[derive(Clone, MallocSizeOf)]
+pub struct FontData(#[conditional_malloc_size_of] pub(crate) Arc<IpcSharedMemory>);
 
 impl FontData {
     pub fn from_bytes(bytes: &[u8]) -> Self {

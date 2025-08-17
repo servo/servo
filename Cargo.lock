@@ -7703,6 +7703,7 @@ dependencies = [
  "keyboard-types",
  "markup5ever",
  "mime",
+ "parking_lot",
  "resvg",
  "servo_allocator",
  "servo_arc",
