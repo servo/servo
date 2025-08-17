@@ -643,6 +643,12 @@ impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Point2D<T, U> {
     }
 }
 
+impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Box2D<T, U> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.min.size_of(ops) + self.max.size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Rect<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.origin.size_of(ops) + self.size.size_of(ops)
@@ -892,6 +898,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrIdentifier);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrValue);
 malloc_size_of_is_stylo_malloc_size_of!(style::color::AbsoluteColor);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_caps::T);
+malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_style::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
 malloc_size_of_is_stylo_malloc_size_of!(style::logical_geometry::WritingMode);

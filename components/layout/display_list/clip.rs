@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
+use malloc_size_of_derive::MallocSizeOf;
 use style::values::computed::basic_shape::{BasicShape, ClipPath};
 use style::values::computed::length_percentage::NonNegativeLengthPercentage;
 use style::values::computed::position::Position;
@@ -16,7 +17,7 @@ use super::{BuilderForBoxFragment, compute_margin_box_radius, normalize_radii};
 
 /// An identifier for a clip used during StackingContextTree construction. This is a simple index in
 /// a [`ClipStore`]s vector of clips.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub(crate) struct ClipId(pub usize);
 
 impl ClipId {
@@ -27,7 +28,7 @@ impl ClipId {
 /// All the information needed to create a clip on a WebRender display list. These are created at
 /// two times: during `StackingContextTree` creation and during WebRender display list construction.
 /// Only the former are stored in a [`ClipStore`].
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct Clip {
     pub id: ClipId,
     pub radii: BorderRadius,
@@ -39,7 +40,7 @@ pub(crate) struct Clip {
 /// A simple vector of [`Clip`] that is built during `StackingContextTree` construction.
 /// These are later turned into WebRender clips and clip chains during WebRender display
 /// list construction.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, MallocSizeOf)]
 pub(crate) struct StackingContextTreeClipStore(pub Vec<Clip>);
 
 impl StackingContextTreeClipStore {
