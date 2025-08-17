@@ -15,6 +15,7 @@ use stylo_atoms::Atom;
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -220,8 +221,8 @@ impl IDBOpenDBRequest {
         self.idbrequest.set_result(result);
     }
 
-    pub fn set_error(&self, error: Error, can_gc: CanGc) {
-        self.idbrequest.set_error(error, can_gc);
+    pub fn set_error(&self, cx: SafeJSContext, error: Option<Error>, can_gc: CanGc) {
+        self.idbrequest.set_error(cx, error, can_gc);
     }
 
     pub fn open_database(&self, name: DOMString, version: Option<u64>) {
@@ -255,6 +256,7 @@ impl IDBOpenDBRequest {
 
                 task_source.queue(
                     task!(set_request_result_to_database: move || {
+                        let cx = GlobalScope::get_cx();
                         let (result, did_upgrade) =
                             response_listener.handle_open_db(name, version, message.unwrap(), CanGc::note());
                         // If an upgrade event was created, it will be responsible for
@@ -270,7 +272,7 @@ impl IDBOpenDBRequest {
                             },
                             Err(dom_exception) => {
                                 request.set_result(HandleValue::undefined());
-                                request.set_error(dom_exception, CanGc::note());
+                                request.set_error(cx, Some(dom_exception), CanGc::note());
                                 let event = Event::new(
                                     &global,
                                     Atom::from("error"),
