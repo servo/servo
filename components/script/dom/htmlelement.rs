@@ -20,6 +20,7 @@ use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
     EventHandlerNonNull, OnErrorEventHandlerNonNull,
 };
+use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
@@ -1110,17 +1111,35 @@ impl VirtualMethods for HTMLElement {
             .attribute_mutated(attr, mutation, can_gc);
         let element = self.as_element();
         match (attr.local_name(), mutation) {
-            (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
-                let source = &**attr.value();
+            // https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
+            (name, mutation)
+                if name.starts_with("on") && EventTarget::is_content_event_handler(name) =>
+            {
                 let evtarget = self.upcast::<EventTarget>();
-                let source_line = 1; // TODO(#9604) get current JS execution line
-                evtarget.set_event_handler_uncompiled(
-                    self.owner_window().get_url(),
-                    source_line,
-                    &name[2..],
-                    source,
-                );
+                let event_name = &name[2..];
+                match mutation {
+                    // https://html.spec.whatwg.org/multipage/#activate-an-event-handler
+                    AttributeMutation::Set(_) => {
+                        let source = &**attr.value();
+                        let source_line = 1; // TODO(#9604) get current JS execution line
+                        evtarget.set_event_handler_uncompiled(
+                            self.owner_window().get_url(),
+                            source_line,
+                            event_name,
+                            source,
+                        );
+                    },
+                    // https://html.spec.whatwg.org/multipage/#deactivate-an-event-handler
+                    AttributeMutation::Removed => {
+                        evtarget.remove_event_listener(
+                            event_name.into(),
+                            evtarget.get_event_handler_common(event_name, can_gc),
+                            EventListenerOptions { capture: false },
+                        );
+                    },
+                }
             },
+
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
                 self.form_attribute_mutated(mutation, can_gc);
             },
