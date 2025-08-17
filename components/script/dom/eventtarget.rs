@@ -68,6 +68,98 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
+/// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
+/// containing the values from
+/// <https://html.spec.whatwg.org/multipage/#globaleventhandlers>
+static CONTENT_EVENT_HANDLER_NAMES: [&str; 83] = [
+    "onabort",
+    "onauxclick",
+    "onbeforeinput",
+    "onbeforematch",
+    "onbeforetoggle",
+    "onblur",
+    "oncancel",
+    "oncanplay",
+    "oncanplaythrough",
+    "onchange",
+    "onclick",
+    "onclose",
+    "oncommand",
+    "oncontextlost",
+    "oncontextmenu",
+    "oncontextrestored",
+    "oncopy",
+    "oncuechange",
+    "oncut",
+    "ondblclick",
+    "ondrag",
+    "ondragend",
+    "ondragenter",
+    "ondragleave",
+    "ondragover",
+    "ondragstart",
+    "ondrop",
+    "ondurationchange",
+    "onemptied",
+    "onended",
+    "onerror",
+    "onfocus",
+    "onformdata",
+    "oninput",
+    "oninvalid",
+    "onkeydown",
+    "onkeypress",
+    "onkeyup",
+    "onload",
+    "onloadeddata",
+    "onloadedmetadata",
+    "onloadstart",
+    "onmousedown",
+    "onmouseenter",
+    "onmouseleave",
+    "onmousemove",
+    "onmouseout",
+    "onmouseover",
+    "onmouseup",
+    "onpaste",
+    "onpause",
+    "onplay",
+    "onplaying",
+    "onprogress",
+    "onratechange",
+    "onreset",
+    "onresize",
+    "onscroll",
+    "onscrollend",
+    "onsecuritypolicyviolation",
+    "onseeked",
+    "onseeking",
+    "onselect",
+    "onslotchange",
+    "onstalled",
+    "onsubmit",
+    "onsuspend",
+    "ontimeupdate",
+    "ontoggle",
+    "onvolumechange",
+    "onwaiting",
+    "onwebkitanimationend",
+    "onwebkitanimationiteration",
+    "onwebkitanimationstart",
+    "onwebkittransitionend",
+    "onwheel",
+    // https://drafts.csswg.org/css-animations/#interface-globaleventhandlers-idl
+    "onanimationend",
+    "onanimationiteration",
+    // https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
+    "ontransitionrun",
+    "ontransitionend",
+    "ontransitioncancel",
+    // https://w3c.github.io/selection-api/#extensions-to-globaleventhandlers-interface
+    "onselectstart",
+    "onselectionchange",
+];
+
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[allow(clippy::enum_variant_names)]
 pub(crate) enum CommonEventHandler {
@@ -955,6 +1047,11 @@ impl EventTarget {
                     .upcast::<EventTarget>(),
             );
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
+    pub(crate) fn is_content_event_handler(name: &str) -> bool {
+        CONTENT_EVENT_HANDLER_NAMES.contains(&name)
     }
 }
 
