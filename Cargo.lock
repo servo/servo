@@ -1088,7 +1088,7 @@ dependencies = [
  "tracing",
  "unicode-script",
  "vello",
- "vello_cpu",
+ "vello_cpu 0.0.1 (git+https://github.com/linebender/vello?rev=b0e2e598ac62c7b3d04d8660e7b1b7659b596970)",
  "webrender_api",
 ]
 
@@ -2400,7 +2400,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "778e2ac28f6c47af28e4907f13ffd1e1ddbd400980a9abd7c8df189bf578a5ad"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2587,6 +2587,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fontconfig-cache-parser"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7f8afb20c8069fd676d27b214559a337cc619a605d25a87baa90b49a06f3b18"
+dependencies = [
+ "bytemuck",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "fontconfig-parser"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2607,6 +2617,29 @@ dependencies = [
  "slotmap",
  "tinyvec",
  "ttf-parser",
+]
+
+[[package]]
+name = "fontique"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39f97079e1293b8c1e9fb03a2875d328bd2ee8f3b95ce62959c0acc04049c708"
+dependencies = [
+ "bytemuck",
+ "fontconfig-cache-parser",
+ "hashbrown",
+ "icu_locid",
+ "memmap2",
+ "objc2 0.6.1",
+ "objc2-core-foundation",
+ "objc2-core-text",
+ "objc2-foundation 0.3.1",
+ "peniko",
+ "read-fonts 0.29.3",
+ "roxmltree",
+ "smallvec",
+ "windows 0.58.0",
+ "windows-core 0.58.0",
 ]
 
 [[package]]
@@ -3049,7 +3082,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3622,6 +3655,8 @@ version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
+ "allocator-api2",
+ "equivalent",
  "foldhash",
  "serde",
 ]
@@ -4567,7 +4602,7 @@ checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4871,7 +4906,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -5840,6 +5875,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "objc2-core-text"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ba833d4a1cb1aac330f8c973fd92b6ff1858e4aef5cdd00a255eefb28022fb5"
+dependencies = [
+ "bitflags 2.9.1",
+ "objc2-core-foundation",
+]
+
+[[package]]
 name = "objc2-encode"
 version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6253,7 +6298,6 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.3.0"
-source = "git+https://github.com/servo/webrender?branch=0.67#15318d6627e91ec19fc0a44a7434b08673413140"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -6262,7 +6306,6 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.3.0"
-source = "git+https://github.com/servo/webrender?branch=0.67#15318d6627e91ec19fc0a44a7434b08673413140"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7041,7 +7084,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7054,7 +7097,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8442,7 +8485,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.8",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -9222,6 +9265,20 @@ dependencies = [
 [[package]]
 name = "vello_common"
 version = "0.0.1"
+source = "git+https://github.com/linebender/vello?rev=931e6fdc135507486324adec019edffa2f70a203#931e6fdc135507486324adec019edffa2f70a203"
+dependencies = [
+ "bytemuck",
+ "fearless_simd",
+ "log",
+ "peniko",
+ "png",
+ "skrifa 0.31.3",
+ "smallvec",
+]
+
+[[package]]
+name = "vello_common"
+version = "0.0.1"
 source = "git+https://github.com/linebender/vello?rev=b0e2e598ac62c7b3d04d8660e7b1b7659b596970#b0e2e598ac62c7b3d04d8660e7b1b7659b596970"
 dependencies = [
  "bytemuck",
@@ -9236,10 +9293,19 @@ dependencies = [
 [[package]]
 name = "vello_cpu"
 version = "0.0.1"
+source = "git+https://github.com/linebender/vello?rev=931e6fdc135507486324adec019edffa2f70a203#931e6fdc135507486324adec019edffa2f70a203"
+dependencies = [
+ "bytemuck",
+ "vello_common 0.0.1 (git+https://github.com/linebender/vello?rev=931e6fdc135507486324adec019edffa2f70a203)",
+]
+
+[[package]]
+name = "vello_cpu"
+version = "0.0.1"
 source = "git+https://github.com/linebender/vello?rev=b0e2e598ac62c7b3d04d8660e7b1b7659b596970#b0e2e598ac62c7b3d04d8660e7b1b7659b596970"
 dependencies = [
  "bytemuck",
- "vello_common",
+ "vello_common 0.0.1 (git+https://github.com/linebender/vello?rev=b0e2e598ac62c7b3d04d8660e7b1b7659b596970)",
 ]
 
 [[package]]
@@ -9698,7 +9764,6 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.66.0"
-source = "git+https://github.com/servo/webrender?branch=0.67#15318d6627e91ec19fc0a44a7434b08673413140"
 dependencies = [
  "allocator-api2",
  "bincode",
@@ -9733,7 +9798,6 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.66.0"
-source = "git+https://github.com/servo/webrender?branch=0.67#15318d6627e91ec19fc0a44a7434b08673413140"
 dependencies = [
  "app_units",
  "bitflags 2.9.1",
@@ -9754,7 +9818,6 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.2"
-source = "git+https://github.com/servo/webrender?branch=0.67#15318d6627e91ec19fc0a44a7434b08673413140"
 dependencies = [
  "bitflags 2.9.1",
  "lazy_static",
@@ -9977,7 +10040,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -10466,24 +10529,27 @@ dependencies = [
 [[package]]
 name = "wr_glyph_rasterizer"
 version = "0.1.0"
-source = "git+https://github.com/servo/webrender?branch=0.67#15318d6627e91ec19fc0a44a7434b08673413140"
 dependencies = [
  "core-foundation 0.9.4",
  "core-graphics",
  "core-text",
  "dwrote",
  "euclid",
+ "fontique",
  "freetype",
  "fxhash",
  "lazy_static",
  "libc",
  "log",
  "malloc_size_of_derive",
+ "memmap2",
  "objc",
  "rayon",
  "serde",
+ "skrifa 0.31.3",
  "smallvec",
  "tracy-rs",
+ "vello_cpu 0.0.1 (git+https://github.com/linebender/vello?rev=931e6fdc135507486324adec019edffa2f70a203)",
  "webrender_api",
  "wr_malloc_size_of",
 ]
@@ -10491,7 +10557,6 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender?branch=0.67#15318d6627e91ec19fc0a44a7434b08673413140"
 dependencies = [
  "app_units",
  "euclid",
