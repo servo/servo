@@ -449,9 +449,9 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     // }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction
-    // fn Transaction(&self) -> DomRoot<IDBTransaction> {
-    //     unimplemented!();
-    // }
+    fn GetTransaction(&self) -> Option<DomRoot<IDBTransaction>> {
+        self.transaction()
+    }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-autoincrement
     fn AutoIncrement(&self) -> bool {
