@@ -10,7 +10,7 @@ use script_bindings::codegen::GenericBindings::IDBKeyRangeBinding::IDBKeyRangeMe
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::globalscope::GlobalScope;
@@ -109,8 +109,24 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         lower_open: bool,
         upper_open: bool,
     ) -> Fallible<DomRoot<IDBKeyRange>> {
+        // Step 1. Let lowerKey be the result of running the steps to convert a value to a key with
+        // lower. Rethrow any exceptions.
+        // Step 2. If lowerKey is invalid, throw a "DataError" DOMException.
         let lower_key = convert_value_to_key(cx, lower, None)?;
+
+        // Step 3. Let upperKey be the result of running the steps to convert a value to a key with
+        // upper. Rethrow any exceptions.
+        // Step 4. If upperKey is invalid, throw a "DataError" DOMException.
         let upper_key = convert_value_to_key(cx, upper, None)?;
+
+        // Step 5. If lowerKey is greater than upperKey, throw a "DataError" DOMException.
+        if lower_key > upper_key {
+            return Err(Error::Data);
+        }
+
+        // Step 6. Create and return a new key range with lower bound set to lowerKey, lower open
+        // flag set if lowerOpen is true, upper bound set to upperKey and upper open flag set if
+        // upperOpen is true.
         let inner =
             IndexedDBKeyRange::new(Some(lower_key), Some(upper_key), lower_open, upper_open);
         Ok(IDBKeyRange::new(global, inner, CanGc::note()))
