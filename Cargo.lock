@@ -7627,6 +7627,7 @@ name = "servo_allocator"
 version = "0.0.1"
 dependencies = [
  "backtrace",
+ "fnv",
  "libc",
  "tikv-jemalloc-sys",
  "tikv-jemallocator",

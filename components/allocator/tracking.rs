@@ -8,10 +8,11 @@
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::os::raw::c_void;
-use std::sync::{LazyLock, Mutex};
+use std::sync::Mutex;
+
+use fnv::{FnvBuildHasher, FnvHashMap};
 
 /// The maximum number of allocations that we'll keep track of. Once the limit
 /// is reached, we'll evict the first allocation that is smaller than the new addition.
@@ -53,8 +54,8 @@ impl AllocSite {
 unsafe impl Send for AllocSite {}
 
 /// A map of pointers to allocation callsite metadata.
-static ALLOCATION_SITES: LazyLock<Mutex<HashMap<usize, AllocSite>>> =
-    LazyLock::new(Default::default);
+static ALLOCATION_SITES: Mutex<FnvHashMap<usize, AllocSite>> =
+    const { Mutex::new(FnvHashMap::with_hasher(FnvBuildHasher::new())) };
 
 #[derive(Default)]
 pub struct AccountingAlloc<A = System> {
