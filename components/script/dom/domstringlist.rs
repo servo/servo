@@ -36,6 +36,11 @@ impl DOMStringList {
             can_gc,
         )
     }
+
+    #[inline(always)]
+    pub fn contains(&self, string: &DOMString) -> bool {
+        self.strings.contains(string)
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#domstringlist
@@ -52,7 +57,7 @@ impl DOMStringListMethods<crate::DomTypeHolder> for DOMStringList {
 
     // https://html.spec.whatwg.org/multipage/#dom-domstringlist-contains
     fn Contains(&self, string: DOMString) -> bool {
-        self.strings.contains(&string)
+        self.contains(&string)
     }
 
     // check-tidy: no specs after this line

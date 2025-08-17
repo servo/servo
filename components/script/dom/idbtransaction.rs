@@ -13,7 +13,6 @@ use profile_traits::ipc;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
     IDBTransactionMethods, IDBTransactionMode,
 };
@@ -204,6 +203,10 @@ impl IDBTransaction {
     fn get_idb_thread(&self) -> IpcSender<IndexedDBThreadMsg> {
         self.global().resource_threads().sender()
     }
+
+    pub(crate) fn object_store_names(&self) -> &Dom<DOMStringList> {
+        &self.object_store_names
+    }
 }
 
 impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
@@ -220,7 +223,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         }
 
         // Step 2: Check that the object store exists
-        if !self.object_store_names.Contains(name.clone()) {
+        if !self.object_store_names.contains(&name) {
             return Err(Error::NotFound);
         }
 
