@@ -78,7 +78,6 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: None,
         word_spacing: Au::zero(),
         script: Script::Latin,
-        variation_settings: vec![],
         flags: ShapingFlags::empty(),
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
@@ -89,7 +88,6 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: None,
         word_spacing: Au::zero(),
         script: Script::Cherokee,
-        variation_settings: vec![],
         flags: ShapingFlags::empty(),
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
@@ -100,7 +98,6 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: None,
         word_spacing: Au::zero(),
         script: Script::Latin,
-        variation_settings: vec![],
         flags: ShapingFlags::RTL_FLAG,
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));

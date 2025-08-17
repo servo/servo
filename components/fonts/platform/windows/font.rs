@@ -21,7 +21,7 @@ use style::computed_values::font_weight::T as StyleFontWeight;
 use style::values::computed::font::FontStyle as StyleFontStyle;
 use truetype::tables::WindowsMetrics;
 use truetype::value::Read;
-use webrender_api::FontInstanceFlags;
+use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::font_list::LocalFontIdentifier;
 use crate::{
@@ -116,6 +116,7 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
+        _variations: &[FontVariation],
     ) -> Result<Self, &'static str> {
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
@@ -130,6 +131,7 @@ impl PlatformFontMethods for PlatformFont {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
+        _variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
         let font_face = FontCollection::system()
             .font_from_descriptor(&font_identifier.font_descriptor)
@@ -319,5 +321,10 @@ impl PlatformFontMethods for PlatformFont {
             Point2D::new(left_side_bearing, y_offset),
             Size2D::new(width, height),
         )
+    }
+
+    fn variations(&self) -> &[FontVariation] {
+        // FIXME: implement this for windows
+        &[]
     }
 }

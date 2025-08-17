@@ -19,7 +19,7 @@ use core_text::font_descriptor::{
 use euclid::default::{Point2D, Rect, Size2D};
 use log::debug;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
-use webrender_api::FontInstanceFlags;
+use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::core_text_font_cache::CoreTextFontCache;
 use super::font_list::LocalFontIdentifier;
@@ -201,6 +201,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: FontIdentifier,
         data: &FontData,
         requested_size: Option<Au>,
+        _variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
         Self::new(font_identifier, Some(data), requested_size)
     }
@@ -208,6 +209,7 @@ impl PlatformFontMethods for PlatformFont {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
+        _variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
         Self::new(FontIdentifier::Local(font_identifier), None, requested_size)
     }
@@ -352,6 +354,11 @@ impl PlatformFontMethods for PlatformFont {
             Point2D::new(rect.origin.x as f32, rect.origin.y as f32),
             Size2D::new(rect.size.width as f32, rect.size.height as f32),
         )
+    }
+
+    fn variations(&self) -> &[FontVariation] {
+        // FIXME: Implement this for macos
+        &[]
     }
 }
 

@@ -4,8 +4,8 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::ops::Deref;
 use std::hash::Hash;
+use std::ops::Deref;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
@@ -117,8 +117,6 @@ pub trait PlatformFontMethods: Sized {
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
 
     /// Return all the variation values that the font was instantiated with.
-    ///
-    /// Default values need not be included.
     fn variations(&self) -> &[FontVariation];
 }
 
@@ -387,7 +385,7 @@ bitflags! {
 }
 
 /// Various options that control text shaping.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
@@ -396,8 +394,6 @@ pub struct ShapingOptions {
     pub word_spacing: Au,
     /// The Unicode script property of the characters in this run.
     pub script: Script,
-    /// Set of variations provided by the `font-variation-settings` property.
-    pub variation_settings: Vec<FontVariation>,
     /// Various flags.
     pub flags: ShapingFlags,
 }
@@ -413,7 +409,7 @@ impl Font {
     pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
-            options: options.clone(),
+            options: *options,
         };
         {
             let cache = self.cached_shape_data.read();
@@ -475,8 +471,7 @@ impl Font {
                     self.table_for_tag(GPOS).is_none() &&
                     self.table_for_tag(GSUB).is_none()
             }) &&
-            text.is_ascii() &&
-            options.variation_settings.is_empty()
+            text.is_ascii()
     }
 
     /// Fast path for ASCII text that only needs simple horizontal LTR kerning.

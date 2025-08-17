@@ -23,7 +23,8 @@ use harfbuzz_sys::{
     hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
     hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
     hb_font_set_scale, hb_font_set_variations, hb_font_t, hb_glyph_info_t, hb_glyph_position_t,
-    hb_ot_layout_get_baseline, hb_position_t, hb_shape, hb_tag_t, hb_variation_t,
+    hb_ot_layout_get_baseline, hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t,
+    hb_variation_t,
 };
 use log::debug;
 use num_traits::Zero;
@@ -166,7 +167,7 @@ impl Shaper {
             let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
-            let pt_size = (*font).descriptor.pt_size.to_f64_px();
+            let pt_size = font.descriptor.pt_size.to_f64_px();
             hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
             // Set scaling. Note that this takes 16.16 fixed point.
@@ -185,7 +186,7 @@ impl Shaper {
             );
 
             if servo_config::pref!(layout_variable_fonts_enabled) {
-                let variations = &font.descriptor.variation_settings;
+                let variations = &font.variations();
                 if !variations.is_empty() {
                     let variations: Vec<_> = variations
                         .iter()

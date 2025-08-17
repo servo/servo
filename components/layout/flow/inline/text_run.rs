@@ -23,7 +23,6 @@ use style::str::char_is_whitespace;
 use style::values::computed::OverflowWrap;
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
-use webrender_api::FontVariation;
 use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
@@ -211,7 +210,7 @@ impl TextRunSegment {
                 continue;
             }
 
-            let mut options = shaping_options.clone();
+            let mut options = *shaping_options;
 
             // Extend the slice to the next UAX#14 line break opportunity.
             let mut slice = last_slice.end..*break_index;
@@ -396,15 +395,6 @@ impl TextRun {
 
         let specified_word_spacing = &inherited_text_style.word_spacing;
         let style_word_spacing: Option<Au> = specified_word_spacing.to_length().map(|l| l.into());
-        let mut font_variation_settings = parent_style
-            .clone_font_variation_settings()
-            .0
-            .iter()
-            .map(|setting| FontVariation {
-                tag: setting.tag.0,
-                value: setting.value,
-            })
-            .collect();
 
         let segments = self
             .segment_text_by_font(
@@ -428,12 +418,11 @@ impl TextRun {
                 if segment.bidi_level.is_rtl() {
                     flags.insert(ShapingFlags::RTL_FLAG);
                 }
-                let mut shaping_options = ShapingOptions {
+                let shaping_options = ShapingOptions {
                     letter_spacing,
                     word_spacing,
                     script: segment.script,
                     flags,
-                    variation_settings: mem::take(&mut font_variation_settings),
                 };
 
                 segment.shape_text(
@@ -443,7 +432,6 @@ impl TextRun {
                     &shaping_options,
                     font,
                 );
-                font_variation_settings = mem::take(&mut shaping_options.variation_settings);
 
                 segment
             })

@@ -45,6 +45,8 @@ use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontSe
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
+pub type FontParameters = (FontKey, Au, Vec<FontVariation>);
+
 #[derive(MallocSizeOf)]
 struct FontGroupRef(#[conditional_malloc_size_of] Arc<RwLock<FontGroup>>);
 
@@ -864,8 +866,8 @@ impl RemoteWebFontDownloader {
         let Ok(handle) = PlatformFont::new_from_data(identifier, &font_data, None, &[]) else {
             return false;
         };
-
         let state = self.take_state();
+
         let mut descriptor = handle.descriptor();
         descriptor
             .override_values_with_css_font_template_descriptors(&state.css_font_face_descriptors);
