@@ -11,12 +11,12 @@ use freetype_sys::{
     FT_Add_Default_Modules, FT_Done_Library, FT_Library, FT_Memory, FT_MemoryRec, FT_New_Library,
 };
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use parking_lot::Mutex;
+use parking_lot::ReentrantMutex;
 use servo_allocator::libc_compat::{free, malloc, realloc};
 use servo_allocator::usable_size;
 
 static FREETYPE_MEMORY_USAGE: AtomicUsize = AtomicUsize::new(0);
-static FREETYPE_LIBRARY_HANDLE: OnceLock<Mutex<FreeTypeLibraryHandle>> = OnceLock::new();
+static FREETYPE_LIBRARY_HANDLE: OnceLock<ReentrantMutex<FreeTypeLibraryHandle>> = OnceLock::new();
 
 extern "C" fn ft_alloc(_: FT_Memory, req_size: c_long) -> *mut c_void {
     unsafe {
@@ -90,7 +90,7 @@ impl FreeTypeLibraryHandle {
     /// > also, as long as a mutex lock is used around FT_New_Face and FT_Done_Face.
     ///
     /// See <https://freetype.org/freetype2/docs/reference/ft2-library_setup.html>.
-    pub(crate) fn get() -> &'static Mutex<FreeTypeLibraryHandle> {
+    pub(crate) fn get() -> &'static ReentrantMutex<FreeTypeLibraryHandle> {
         FREETYPE_LIBRARY_HANDLE.get_or_init(|| {
             let freetype_memory = Box::into_raw(Box::new(FT_MemoryRec {
                 user: ptr::null_mut(),
@@ -105,7 +105,7 @@ impl FreeTypeLibraryHandle {
                     panic!("Unable to initialize FreeType library");
                 }
                 FT_Add_Default_Modules(freetype_library);
-                Mutex::new(FreeTypeLibraryHandle {
+                ReentrantMutex::new(FreeTypeLibraryHandle {
                     freetype_library,
                     freetype_memory,
                 })
