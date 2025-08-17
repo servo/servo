@@ -6,6 +6,7 @@ use sea_query::Iden;
 #[derive(Iden)]
 #[expect(unused)]
 pub enum Column {
+    #[iden = "database"]
     Table,
     Name,
     Origin,

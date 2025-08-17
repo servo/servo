@@ -12,6 +12,7 @@ use net_traits::indexeddb_thread::{
 };
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
+use sea_query_rusqlite::RusqliteBinder;
 use serde::Serialize;
 use tokio::sync::oneshot;
 
@@ -40,7 +41,7 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     // Special case for optimization
     if let Some(singleton) = range.as_singleton() {
         let encoded = bincode::serialize(singleton).unwrap();
-        return Expr::column(object_data_model::Column::Data)
+        return Expr::column(object_data_model::Column::Key)
             .eq(encoded)
             .into_condition();
     }
@@ -48,18 +49,18 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     if let Some(upper) = range.upper.as_ref() {
         let upper_bytes = bincode::serialize(upper).unwrap();
         let query = if range.upper_open {
-            Expr::column(object_data_model::Column::Data).lt(upper_bytes)
+            Expr::column(object_data_model::Column::Key).lt(upper_bytes)
         } else {
-            Expr::column(object_data_model::Column::Data).lte(upper_bytes)
+            Expr::column(object_data_model::Column::Key).lte(upper_bytes)
         };
         parts.push(query);
     }
     if let Some(lower) = range.lower.as_ref() {
         let lower_bytes = bincode::serialize(lower).unwrap();
         let query = if range.upper_open {
-            Expr::column(object_data_model::Column::Data).gt(lower_bytes)
+            Expr::column(object_data_model::Column::Key).gt(lower_bytes)
         } else {
-            Expr::column(object_data_model::Column::Data).gte(lower_bytes)
+            Expr::column(object_data_model::Column::Key).gte(lower_bytes)
         };
         parts.push(query);
     }
@@ -143,13 +144,20 @@ impl SqliteEngine {
         key_range: IndexedDBKeyRange,
     ) -> Result<Option<object_data_model::Model>, Error> {
         let query = range_to_query(key_range);
-        let stmt = sea_query::Query::select()
+        let (sql, values) = sea_query::Query::select()
             .from(object_data_model::Column::Table)
+            .columns(vec![
+                object_data_model::Column::ObjectStoreId,
+                object_data_model::Column::Key,
+                object_data_model::Column::Data,
+            ])
             .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
-            .to_owned();
+            .build_rusqlite(SqliteQueryBuilder);
         connection
-            .prepare(&stmt.build(SqliteQueryBuilder).0)?
-            .query_one((), |row| object_data_model::Model::try_from(row))
+            .prepare(&sql)?
+            .query_one(&*values.as_params(), |row| {
+                object_data_model::Model::try_from(row)
+            })
             .optional()
     }
 
@@ -221,14 +229,14 @@ impl SqliteEngine {
         key_range: IndexedDBKeyRange,
     ) -> Result<usize, Error> {
         let query = range_to_query(key_range);
-        let count = sea_query::Query::select()
+        let (sql, values) = sea_query::Query::select()
             .expr(Expr::col(object_data_model::Column::Key).count())
             .from(object_data_model::Column::Table)
             .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
-            .to_owned();
+            .build_rusqlite(SqliteQueryBuilder);
         connection
-            .prepare(&count.build(SqliteQueryBuilder).0)?
-            .query_row((), |row| row.get(0))
+            .prepare(&sql)?
+            .query_row(&*values.as_params(), |row| row.get(0))
             .map(|count: i64| count as usize)
     }
 }
@@ -244,7 +252,7 @@ impl KvsEngine for SqliteEngine {
     ) -> Result<CreateObjectResult, Self::Error> {
         let mut stmt = self
             .connection
-            .prepare("SELECT 1 FROM object_store WHERE name = ?")?;
+            .prepare("SELECT * FROM object_store WHERE name = ?")?;
         if stmt.exists(params![store_name.to_string()])? {
             // Store already exists
             return Ok(CreateObjectResult::AlreadyExists);
@@ -307,7 +315,7 @@ impl KvsEngine for SqliteEngine {
             let connection = Connection::open(path).unwrap();
             for request in transaction.requests {
                 let object_store = connection
-                    .prepare("SELECT 1 FROM object_store WHERE name = ?")
+                    .prepare("SELECT * FROM object_store WHERE name = ?")
                     .and_then(|mut stmt| {
                         stmt.query_row(params![request.store_name.to_string()], |row| {
                             object_store_model::Model::try_from(row)
@@ -471,7 +479,7 @@ impl KvsEngine for SqliteEngine {
         )?;
 
         let index_exists: bool = self.connection.query_row(
-            "SELECT EXISTS(SELECT 1 FROM object_store_index WHERE name = ? AND object_store_id = ?)",
+            "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
             params![index_name.to_string(), object_store.id],
             |row| row.get(0),
         )?;
@@ -537,8 +545,8 @@ mod tests {
     use std::sync::Arc;
 
     use net_traits::indexeddb_thread::{
-        AsyncOperation, AsyncReadWriteOperation, CreateObjectResult, IndexedDBKeyType,
-        IndexedDBTxnMode, KeyPath,
+        AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
+        IndexedDBKeyType, IndexedDBTxnMode, KeyPath,
     };
     use servo_url::ImmutableOrigin;
     use url::Host;
@@ -693,21 +701,71 @@ mod tests {
         let store_name = SanitizedName::new("test_store".to_string());
         db.create_store(store_name.clone(), None, false)
             .expect("Failed to create store");
+        let channel = ipc_channel::ipc::channel().unwrap();
+        let channel2 = ipc_channel::ipc::channel().unwrap();
+        let channel3 = ipc_channel::ipc::channel().unwrap();
+        let channel4 = ipc_channel::ipc::channel().unwrap();
+        let channel5 = ipc_channel::ipc::channel().unwrap();
+        let channel6 = ipc_channel::ipc::channel().unwrap();
         let rx = db.process_transaction(KvsTransaction {
             mode: IndexedDBTxnMode::Readwrite,
             requests: VecDeque::from(vec![
-                // TODO: Test other operations
                 KvsOperation {
                     store_name: store_name.clone(),
                     operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender: ipc_channel::ipc::channel().unwrap().0,
+                        sender: channel.0,
                         key: IndexedDBKeyType::Number(1.0),
-                        value: vec![],
+                        value: vec![1, 2, 3],
                         should_overwrite: false,
                     }),
+                },
+                KvsOperation {
+                    store_name: store_name.clone(),
+                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                        sender: channel2.0,
+                        key_range: super::IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                    }),
+                },
+                KvsOperation {
+                    store_name: store_name.clone(),
+                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                        sender: channel3.0,
+                        key_range: super::IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
+                    }),
+                },
+                KvsOperation {
+                    store_name: store_name.clone(),
+                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
+                        sender: channel4.0,
+                        key_range: super::IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                    }),
+                },
+                KvsOperation {
+                    store_name: store_name.clone(),
+                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
+                        sender: channel5.0,
+                        key: IndexedDBKeyType::Number(1.0),
+                    }),
+                },
+                KvsOperation {
+                    store_name: store_name.clone(),
+                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(
+                        channel6.0,
+                    )),
                 },
             ]),
         });
         let _ = rx.blocking_recv().unwrap();
+        channel.1.recv().unwrap().unwrap();
+        let get_result = channel2.1.recv().unwrap();
+        let value = get_result.unwrap();
+        assert_eq!(value, Some(vec![1, 2, 3]));
+        let get_result = channel3.1.recv().unwrap();
+        let value = get_result.unwrap();
+        assert_eq!(value, None);
+        let amount = channel4.1.recv().unwrap().unwrap();
+        assert_eq!(amount, 1);
+        channel5.1.recv().unwrap().unwrap();
+        channel6.1.recv().unwrap().unwrap();
     }
 }
