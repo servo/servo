@@ -1,0 +1,62 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0" width="900" height="900">
+    <defs>
+        <symbol id="s" viewBox="0 0 3 3">
+            <rect fill="#000" width="1" height="1" x="1" y="1"/>
+        </symbol>
+        <symbol id="s1" viewBox="0 0 900 900">
+            <use xlink:href="#s" x="0" y="0" width="900" height="900"/>
+            <use xlink:href="#s" x="0" y="0" width="300" height="300"/>
+            <use xlink:href="#s" x="300" y="0" width="300" height="300"/>
+            <use xlink:href="#s" x="600" y="0" width="300" height="300"/>
+            <use xlink:href="#s" x="0" y="300" width="300" height="300"/>
+            <use xlink:href="#s" x="600" y="300" width="300" height="300"/>
+            <use xlink:href="#s" x="0" y="600" width="300" height="300"/>
+            <use xlink:href="#s" x="300" y="600" width="300" height="300"/>
+            <use xlink:href="#s" x="600" y="600" width="300" height="300"/>
+        </symbol>
+        <symbol id="s2" viewBox="0 0 900 900">
+            <use xlink:href="#s" x="0" y="0" width="900" height="900"/>
+            <use xlink:href="#s1" x="0" y="0" width="300" height="300"/>
+            <use xlink:href="#s1" x="300" y="0" width="300" height="300"/>
+            <use xlink:href="#s1" x="600" y="0" width="300" height="300"/>
+            <use xlink:href="#s1" x="0" y="300" width="300" height="300"/>
+            <use xlink:href="#s1" x="600" y="300" width="300" height="300"/>
+            <use xlink:href="#s1" x="0" y="600" width="300" height="300"/>
+            <use xlink:href="#s1" x="300" y="600" width="300" height="300"/>
+            <use xlink:href="#s1" x="600" y="600" width="300" height="300"/>
+        </symbol>
+        <symbol id="s3" viewBox="0 0 900 900">
+            <use xlink:href="#s" x="0" y="0" width="900" height="900"/>
+            <use xlink:href="#s2" x="0" y="0" width="300" height="300"/>
+            <use xlink:href="#s2" x="300" y="0" width="300" height="300"/>
+            <use xlink:href="#s2" x="600" y="0" width="300" height="300"/>
+            <use xlink:href="#s2" x="0" y="300" width="300" height="300"/>
+            <use xlink:href="#s2" x="600" y="300" width="300" height="300"/>
+            <use xlink:href="#s2" x="0" y="600" width="300" height="300"/>
+            <use xlink:href="#s2" x="300" y="600" width="300" height="300"/>
+            <use xlink:href="#s2" x="600" y="600" width="300" height="300"/>
+        </symbol>
+        <symbol id="s4" viewBox="0 0 900 900">
+            <use xlink:href="#s" x="0" y="0" width="900" height="900"/>
+            <use xlink:href="#s3" x="0" y="0" width="300" height="300"/>
+            <use xlink:href="#s3" x="300" y="0" width="300" height="300"/>
+            <use xlink:href="#s3" x="600" y="0" width="300" height="300"/>
+            <use xlink:href="#s3" x="0" y="300" width="300" height="300"/>
+            <use xlink:href="#s3" x="600" y="300" width="300" height="300"/>
+            <use xlink:href="#s3" x="0" y="600" width="300" height="300"/>
+            <use xlink:href="#s3" x="300" y="600" width="300" height="300"/>
+            <use xlink:href="#s3" x="600" y="600" width="300" height="300"/>
+        </symbol>
+    </defs>
+    <rect width="900" height="900" fill="#fff"/>
+    <use xlink:href="#s" x="0" y="0" width="900" height="900"/>
+    <use xlink:href="#s4" x="0" y="0" width="300" height="300"/>
+    <use xlink:href="#s4" x="300" y="0" width="300" height="300"/>
+    <use xlink:href="#s4" x="600" y="0" width="300" height="300"/>
+    <use xlink:href="#s4" x="0" y="300" width="300" height="300"/>
+    <use xlink:href="#s4" x="600" y="300" width="300" height="300"/>
+    <use xlink:href="#s4" x="0" y="600" width="300" height="300"/>
+    <use xlink:href="#s4" x="300" y="600" width="300" height="300"/>
+    <use xlink:href="#s4" x="600" y="600" width="300" height="300"/>
+</svg>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        let run = 0;
+        const urlParams = new URLSearchParams(window.location.search);
+        const runParam = urlParams.get('run');
+        if (runParam) {
+            run = runParam;
+        }
+        const nonce = crypto.randomUUID();
+        let index = run * 100000;
+        let inject = "";
+        for (let i = 0; i < 10000; i++) {
+            index++;
+            inject += '<script src="blank.js?n=' + nonce + '&i=' + index + '"></sc' + 'ript>';
+        }
+        document.write(inject);
+    </script>
+</head>
+<body>
+
+</body>
+</html>

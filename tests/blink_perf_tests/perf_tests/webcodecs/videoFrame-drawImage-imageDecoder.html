@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Test drawImage() performance with VideoFrame from ImageDecoder</title>
+<script src="../resources/runner.js"></script>
+<script src="videoFrame-utils.js"></script>
+<canvas id="canvas" width="1280" height="720"></canvas>
+
+<script>
+(function() {
+  const canvas = document.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  fourColorsFrame(ctx, canvas.width, canvas.height, 0x4C.toString(2));
+
+  const mime_type = "image/png";
+  canvas.toBlob(blob => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let decoder = new ImageDecoder({data: blob.stream(), type: mime_type});
+    decoder.decode().then(result => {
+      PerfTestRunner.measureInnerRAFTime({
+        description: "CPU time for drawImage() w/ VideoFrame from ImageDecoder",
+        run() {
+          for (let i = 0; i < 10; i++) {
+            ctx.drawImage(result.image, 0, 0);
+          }
+        }
+      });
+    }).catch(e => {
+      PerfTestRunner.logFatalError("Test error: " + e);
+    });
+  }, mime_type, 1);
+})();
+</script>

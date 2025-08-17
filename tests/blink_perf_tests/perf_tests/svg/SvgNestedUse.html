@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="../resources/runner.js"></script>
+  </head>
+  <body>
+    <div id="wrapper">
+      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <defs>
+          <g id="unit">
+            <polygon points="0,0 10,0 5,8.66025403784439"/>
+          </g>
+
+          <g id="q">
+            <use id="q0" xlink:href="#unit" x="10" y="0" fill="red"/>
+            <use id="q1" xlink:href="#unit" transform="translate(10,0) rotate(60)" fill="green"/>
+            <use id="q2" xlink:href="#unit" transform="translate(10,0) rotate(120)" fill="blue"/>
+            <use id="q3" xlink:href="#unit" transform="rotate(60) translate(10,0) rotate(-60)" fill="purple"/>
+          </g>
+
+          <g id="qq">
+              <use id="qq0" xlink:href="#q" x="20" y="0"/>
+              <use id="qq1" xlink:href="#q" transform="translate(20,0) rotate(60)"/>
+              <use id="qq2" xlink:href="#q" transform="translate(20,0) rotate(120)"/>
+              <use id="qq3" xlink:href="#unit" transform="rotate(60) translate(20,0) rotate(-60) scale(2)" fill="purple"/>
+          </g>
+
+          <g id="qqq">
+              <use xlink:href="#qq" x="40" y="0"/>
+              <use xlink:href="#qq" transform="translate(40,0) rotate(60)"/>
+              <use xlink:href="#qq" transform="translate(40,0) rotate(120)"/>
+              <use xlink:href="#q" transform="rotate(60) translate(40,0) rotate(-60) scale(2)"/>
+          </g>
+        </defs>
+
+        <use xlink:href="#qqq"/>
+        <g transform="translate(300 200)">
+          <rect width="70" height="26" stroke-width="1" fill="rgb(255,255,255)" fill-opacity="1.000" stroke="rgb(0,0,0)" stroke-opacity="1.000"/>
+          <text id="FPS" y="23" font-family="Verdana" font-size="23">0</text>
+        </g>
+      </svg>
+    </div>
+
+    <script type="text/javascript">
+        var frame = 0;
+        var times = [PerfTestRunner.now()];
+        var unit = document.getElementById("unit");
+    
+        requestAnimationFrame =
+            window['requestAnimationFrame'] ||
+            window['webkitRequestAnimationFrame'] ||
+            window['mozRequestAnimationFrame'] ||
+            window['oRequestAnimationFrame'] ||
+            window['msRequestAnimationFrame'] ||
+            function(callback) {
+                window.setTimeout(callback, 1000 / 60);
+            };
+
+        function newFrame() {
+            times.push(PerfTestRunner.now());
+            var avg = (times[times.length - 1] - times[0]) / (times.length - 1);
+            while (times.length > 10)
+                times.shift();
+
+            document.getElementById("FPS").textContent = (1000 / avg).toFixed(2);
+            unit.setAttribute('transform', 'scale(' + (Math.abs(frame++ % 20 - 10) / 10) + ')');
+            PerfTestRunner.forceLayout();
+        };
+
+        function animate() {
+            newFrame();
+            requestAnimationFrame(animate);
+        }
+
+        if (window.testRunner) {
+            PerfTestRunner.measureRunsPerSecond({ run: newFrame, done: function() {
+                document.getElementById('wrapper').style.display = 'none';
+            }});
+        } else
+            requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

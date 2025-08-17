@@ -1,0 +1,82 @@
+html, body {
+    padding: 0;
+    margin: 0;
+    text-align: justify;
+    font-family: Palatino, Georgia, serif;
+    font-size: 10px;
+    -webkit-hyphens: auto;
+    text-align: justify;
+    line-height: 1.2em;
+}
+
+.shape {
+    width: 100px;
+    height: 100px;
+}
+
+#circleShape {
+    float: left;
+    shape-outside: circle(closest-side at center);
+    margin: 2px;
+    -webkit-clip-path: circle(closest-side at center);
+    background-color: green;
+}
+
+#imageShape {
+    float: left;
+    background: url("shape.gif") no-repeat;
+    shape-outside: url("shape.gif");
+    shape-margin: 2px;
+    width: 200px;
+    height: 200px;
+}
+
+#insetShape {
+    float: right;
+    shape-outside: inset(5px);
+    -webkit-clip-path: inset(5px);
+    shape-margin: 4px;
+    background-color: red;
+    border: 1px solid black;
+}
+
+#roundedInsetShape {
+    float: right;
+    shape-outside: inset(5px round 64px 32px 16px 36px);
+    -webkit-clip-path: inset(5px round 64px 32px 16px 36px);
+    shape-margin: 4px;
+    background-color: lightblue;
+    opacity: 0.4;
+    border: 1px solid black;
+}
+
+#triangleLeft {
+    float: left;
+    shape-outside: polygon(0 0, 100% 50%, 0 100%);
+    -webkit-clip-path: polygon(0 0, 100% 50%, 0 100%);
+    shape-margin: 4px;
+    background-color: yellow;
+    opacity: 0.4;
+}
+
+#triangleRight {
+    float: right;
+    shape-outside: polygon(100% 0, 0 50%, 100% 100%);
+    -webkit-clip-path: polygon(100% 0, 0 50%, 100% 100%);
+    shape-margin: 4px;
+    background-color: orange;
+}
+
+#selfIntersectingStar {
+    float: left;
+    shape-outside: polygon(50% 0, 100% 100%, 0 34%, 100% 34%, 0 100%);
+    -webkit-clip-path: polygon(50% 0, 100% 100%, 0 34%, 100% 34%, 0 100%);
+    shape-margin: 4px;
+    background-color: blue;
+    width: 100px;
+    height: 200px;
+}
+
+#region1 { width: 40%; }
+#region2 { width: 22%; }
+#region3 { width: 22%; }

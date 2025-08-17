@@ -1,0 +1,107 @@
+<!doctype HTML>
+
+<!--
+This test appends 30,000 items to the page, locking all but the first one.
+It then changes the style of all the locked elements, causing self-layout
+for all of them.
+
+Note that there are 3 absolute positioned divs in each of the locked
+elements. This test ensures we skip out of flow positioned children layout
+when display locked.
+
+The test works with and without display locking. If display locking is not
+enabled, then none of the elements are locked and the performance should
+be noticeably worse.
+-->
+
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+.container {
+  contain: style layout;
+  width: 200px;
+  content-size: 100px;
+}
+.box {
+  background: blue;
+  overflow: hidden;
+  height: 100px;
+  position: absolute;
+  right: 1%;
+}
+.spacer {
+  width: 100%;
+  height: 300px;
+  background: lightblue;
+}
+</style>
+</head>
+
+<body>
+<!-- node template from which to construct items -->
+<template id="node_template">
+<div class="container">
+  <div class="spacer"></div>
+  <div class="box" style="width: 50%; top: 0px;">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+  </div>
+  <div class="box" style="width: 75%; top: 100px;">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+  </div>
+  <div class="box" style="width: 98%; top: 200px;">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+  </div>
+</div>
+</template>
+</body>
+
+<script>
+function construct(n) {
+  const specimen = document.importNode(
+    document.getElementById("node_template").content, true).firstElementChild;
+  for (let i = 0; i < n; ++i) {
+    const clone = specimen.cloneNode(true);
+    if (i > 0)
+      clone.hidden = 'until-found';
+    document.body.appendChild(clone);
+  }
+}
+
+let sizes = ["200px", "250px"];
+let size_index = 0;
+function changeStyle() {
+  document.styleSheets[0].rules[0].style.width = sizes[size_index];
+  size_index = 1 - size_index;
+}
+
+let testDone = false;
+let startTime;
+function runTest() {
+  if (startTime) {
+    PerfTestRunner.measureValueAsync(PerfTestRunner.now() - startTime);
+    PerfTestRunner.addRunTestEndMarker();
+  }
+  if (testDone)
+    return;
+
+  startTime = PerfTestRunner.now();
+  PerfTestRunner.addRunTestEndMarker();
+
+  changeStyle();
+  requestAnimationFrame(runTest);
+}
+
+construct(30000);
+
+PerfTestRunner.startMeasureValuesAsync({
+  unit: 'ms',
+  done: () => { testDone = true; },
+  run: runTest,
+  warmUpCount: 3,
+  iterationCount: 5
+});
+
+</script>

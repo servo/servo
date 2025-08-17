@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<main></main>
+<style>
+main { word-wrap: break-word; }
+main div { display: inline; }
+:root { --bg: blue; }
+.green:root { --bg: green; }
+*::selection /* same as ::selection */ {
+    /* explicitly inherit all for worst case scenario */
+    all: inherit;
+    background-color: var(--bg);
+}
+</style>
+<script>
+createDOMTree(document.querySelector("main"), 4, 6);
+for (const leaf of document.querySelectorAll("div:empty"))
+    leaf.append(".");
+const r = new Range;
+r.selectNodeContents(document.querySelector("main"));
+getSelection().removeAllRanges();
+getSelection().addRange(r);
+PerfTestRunner.measureFrameTime({
+    description: 'Measure impact of highlight inheritance on content with universal ::selection rules (select all, with paint)',
+    tracingCategories: "blink",
+    traceEventsToMeasure: [
+        "Document::updateStyle",
+        "Document::recalcStyle",
+        "LocalFrameView::RunPaintLifecyclePhase",
+    ],
+    run: () => {
+        document.documentElement.classList.toggle("green");
+        forceStyleRecalc(document.documentElement);
+    },
+});
+</script>
+</body>

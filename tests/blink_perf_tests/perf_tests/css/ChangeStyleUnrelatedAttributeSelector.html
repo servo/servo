@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<body>
+    <script>
+        createDOMTree(document.body, 5, 5);
+        var allElements = document.body.getElementsByTagName("div");
+        for (var i = 0; i < allElements.length; ++i) {
+            allElements[i].setAttribute('a', 'x');
+        }
+
+        PerfTestRunner.measureTime({
+            description: "Measures the performance of inserting an attribute rule that matches nothing.",
+            run: function() {
+                var rule = applyCSSRule("[a=y] { cursor: crosshair; }");
+                forceStyleRecalc(document.body);
+                rule.remove();
+                forceStyleRecalc(document.body);
+            },
+            tracingCategories: 'blink',
+            traceEventsToMeasure: [
+                'Document::updateStyle',
+                'Document::recalcStyle',
+                'Document::rebuildLayoutTree'
+            ]
+        });
+    </script>
+</body>
+</html>

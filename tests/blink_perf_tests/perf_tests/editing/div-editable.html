@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<div id="container" style="background-color:lime;" contenteditable></div>
+<script>
+var div = document.querySelector('div');
+div.focus();
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of adding new lines to an editable div using document.execCommand, then clearing it.",
+    run: function() {
+        for (var i = 0; i < 500; ++i)
+            document.execCommand('InsertLineBreak');
+        for (var i = 0; i < 500; ++i)
+            document.execCommand('Delete');
+
+        for (var i = 0; i < 500; ++i)
+            document.execCommand('InsertLineBreak');
+        // Move cursor to the beginning of div.
+        var range = document.createRange();
+        range.selectNodeContents(div);
+        range.collapse(true);
+        getSelection().removeAllRanges();
+        getSelection().addRange(range);
+        for (var i = 0; i < 500; ++i)
+            document.execCommand('ForwardDelete');
+    }
+});
+</script>

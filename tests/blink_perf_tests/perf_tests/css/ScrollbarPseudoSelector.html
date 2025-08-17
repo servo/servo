@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<style>
+    .ancestor ::-webkit-scrollbar-corner { background-color: red; }
+    .ancestor ::-webkit-scrollbar-thumb { background-color: red; }
+    .ancestor ::-webkit-scrollbar-track { background-color: red; }
+</style>
+<div id="root"></div>
+
+<script>
+function setup() {
+  createDOMTree(root, 1 /* siblings */, 500 /* depth */);
+}
+
+setup();
+
+PerfTestRunner.measureTime({
+    description: 'Calculate styles for a tree of elements affected by scrollbar part pseudo',
+    run: () => {
+      root.classList.add("ancestor");
+      root.offsetHeight;
+    },
+    teardown: () => {
+      root.classList.remove("ancestor");
+      root.offsetHeight;
+    }
+});
+
+</script>
+</body>
+</html>

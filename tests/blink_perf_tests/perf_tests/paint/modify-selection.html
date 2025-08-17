@@ -1,0 +1,44 @@
+<!doctype html>
+<script src="../resources/runner.js"></script>
+<script src="../layout/resources/line-layout-perf-test.js"></script>
+<script src="resources/paint.js"></script>
+
+<div id="container"></div>
+<script>
+const kNumberOfWords = 10000 * 30;
+const container = document.getElementById('container');
+const selection = window.getSelection();
+
+container.textContent = (() => {
+  const words = [];
+  for (let i = 0; i < kNumberOfWords; ++i)
+    words.push(TextGenerator.createWord(i % 12 + 3));
+  return words.join(' ');
+})();
+
+const text = container.firstChild;
+var count = 0;
+
+measurePaint({
+  iterationCount: 50,
+  warmUpCount: 5,
+  run: function() {
+    if (count < 20) {
+      // Select all.
+      selection.collapse(container, 0);
+      if (count % 2)
+        selection.extend(container, 1);
+    } else if (count < 35) {
+      // Modify selection at beginning.
+      selection.setBaseAndExtent(text, 4000 - count * 10, text, text.length);
+    } else if (count == 35) {
+      selection.setBaseAndExtent(text, 1000, text, 4000);
+    } else {
+      // Extend selection at end.
+      selection.modify("extend", "forward", "word");
+    }
+    count++;
+  },
+});
+</script>
+

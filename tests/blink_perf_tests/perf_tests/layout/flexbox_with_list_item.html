@@ -1,0 +1,52 @@
+<!doctype html>
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+#rootview {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+#elements-content { color: gray; overflow: auto; }
+.outline { outline: auto; }
+</style>
+</head>
+<body>
+<div id="rootview">
+    <div id="elements-content"></div>
+</div>
+<script>
+const container = document.getElementById('elements-content');
+const kItems = 100;
+for (let i = 0; i < kItems; ++i) {
+  const child = document.createElement('li');
+  container.appendChild(child);
+  child.innerHTML = `child ${i} - ` + `<span>= </span>`.repeat(200);
+}
+
+PerfTestRunner.forceLayout();
+
+  const startAt = Date.now();
+
+// For http://crbug.com/980399
+PerfTestRunner.measureRunsPerSecond({
+  descritpion: 'Measuers performance of moving foucs around list item.',
+  run : () => {
+    let lastChild = null;
+    for (const child of container.childNodes) {
+      if (lastChild) lastChild.classList.toggle('outline');
+      child.classList.toggle('outline');
+      lastChild = child;
+      PerfTestRunner.forceLayout();
+    }
+  },
+  done: () => {
+    container.textContent = '';
+  },
+});
+</script>
+</body>

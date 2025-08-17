@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<div id="target"></div>
+<script type='text/javascript'>
+const kElements = 20000;
+
+const selection = getSelection();
+let range;
+
+PerfTestRunner.measureTime({
+  description: `Measures performance of add a Range in a DOM tree of ${kElements} elements`,
+  setup: () => {
+    const fragments = []
+    for (let i = 0; i < kElements; ++i)
+      fragments.push(`<span>foo bar baz ${i} </span>`);
+    target.innerHTML = fragments.join('');
+
+    range = document.createRange();
+    range.setStart(target, 0);
+  },
+  run: () => {
+    selection.removeAllRanges();
+    selection.addRange(range);
+  },
+  done: () => {
+    target.innerHTML = '';
+  }
+});
+</script>

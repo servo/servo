@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<div id="container">
+  <div style="display:inline-block;">
+    <div style="display:inline-block;">
+      <div style="display:inline-block;">
+        <div style="display:inline-block;">
+          <div style="display:inline-block;">
+            <div style="display:inline-block;">
+              <div style="display:inline-block;">
+                <div style="display:inline-block;">
+                  <div style="display:inline-block;">
+                    <div style="display:inline-block; width:100px; height:100px;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  function test() {
+    document.elementsFromPoint(50, 50);
+  }
+
+  PerfTestRunner.measureRunsPerSecond({
+    description: `Measures performance of hit-testing nested inline-blocks, list-based.`,
+    run: test
+  });
+</script>
+</body>

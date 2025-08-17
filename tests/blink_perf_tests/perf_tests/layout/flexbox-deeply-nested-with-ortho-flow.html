@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<style>
+  body {
+    overflow: scroll;
+  }
+  iframe {
+    display: block;
+  }
+</style>
+<script src="../resources/runner.js"></script>
+<iframe id="target" xsrc="resources/flexbox-deeply-nested-with-ortho-flow-as-iframe.html">
+</iframe>
+<pre id="log"></pre>
+<script>
+  var target = document.getElementById("target");
+  var style = target.style;
+
+  var parent = target.contentDocument.body;
+  for (var i = 0; i < 20; i++) {
+    var div = target.contentDocument.createElement("div");
+    div.style.display = "flex";
+    parent.appendChild(div);
+    parent = div;
+  }
+  var div = target.contentDocument.createElement("div");
+  div.style.writingMode = "vertical-rl";
+  div.id = "ortho";
+  parent.appendChild(div);
+  parent = div;
+  var text = target.contentDocument.createTextNode("It went sideways");
+  parent.appendChild(text);
+
+  function test() {
+    style.height = "200px";
+    target.contentDocument.documentElement.offsetTop;
+    style.height = "190px";
+    target.contentDocument.documentElement.offsetTop;
+  }
+
+  onload = function() {
+    PerfTestRunner.measureRunsPerSecond({
+      description: "Orthogonal flow root inside deeply nested flex, change initial containing block size",
+      run: test
+    });
+  }
+</script>

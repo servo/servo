@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+  .col { display:flex; flex-direction:column; height:100%; }
+</style>
+<div style="display:flex; width:300px; height:200px;">
+  <div>
+    <div id="child"></div>
+  </div>
+  <div class="col">
+    <div class="col">
+      <div class="col">
+        <div class="col">
+          <div class="col">
+            <div class="col">
+              <div class="col">
+                <div class="col">
+                  <div class="col">
+                    <div class="col">
+                      <div class="col">
+                        <div class="col">
+                          <div class="col"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function runTest()
+{
+    document.getElementById("child").style.width = '100px';
+    PerfTestRunner.forceLayout();
+    document.getElementById("child").style.width = '200px';
+    PerfTestRunner.forceLayout();
+}
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Layout of sibling of deeply nested column flow flex containers",
+    run: runTest,
+});
+</script>

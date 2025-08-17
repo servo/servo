@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test VideoFrame texImage2D() performance</title>
+</head>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="videoFrame-utils.js"></script>
+<canvas id="canvas" width="1280" height="720"></canvas>
+
+<script id="fragment-shader" type="glsl">
+  uniform sampler2D tex;
+  void main(void) {
+    mediump vec2 coord = vec2(gl_FragCoord.x/1280.0, 1.0 - (gl_FragCoord.y/720.0));
+    mediump vec4 sample = texture2D(tex, coord);
+    gl_FragColor = vec4(sample.r, sample.g, sample.b, 1.0);
+  }
+</script>
+
+<script id="vertex-shader" type="glsl">
+  attribute vec2 c;
+  void main(void) {
+    gl_Position=vec4(c, 0.0, 1.0);
+  }
+</script>
+<script>
+
+(async function() {
+  let frame = await createDecodedFrame();
+  if (frame == null) {
+    PerfTestRunner.logFatalError("No frame decoded");
+    return;
+  }
+
+  const canvas = document.getElementById("canvas");
+  const gl = canvas.getContext('webgl2');
+  const format = gl.RGBA;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vs, document.getElementById('vertex-shader').innerText);
+  gl.compileShader(vs);
+
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, document.getElementById('fragment-shader').innerText);
+  gl.compileShader(fs);
+
+  if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+    TEST.log(gl.getShaderInfoLog(fs));
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program);
+  gl.useProgram(program);
+
+  const vb = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+  gl.bufferData(
+    gl.ARRAY_BUFFER, new Float32Array([-1, 1, -1, -1, 1, -1, 1, 1]),
+    gl.STATIC_DRAW);
+
+  const coordLoc = gl.getAttribLocation(program, 'c');
+  gl.vertexAttribPointer(coordLoc, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(coordLoc);
+
+  gl.clearColor(1, 1, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+
+  PerfTestRunner.measureInnerRAFTime({
+    description: "CPU time for texImage2D()",
+    run() {
+      for (let i = 0; i < 10; i++) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, frame);
+        gl.generateMipmap(gl.TEXTURE_2D);
+
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+        gl.finish();
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

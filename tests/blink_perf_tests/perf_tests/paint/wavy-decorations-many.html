@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Wavy decoration painting: many short decorations</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<style>
+* {
+  text-decoration-skip: none;
+  text-decoration-skip-ink: none;
+}
+main > span {
+  text-decoration: red wavy underline;
+}
+main.blue > span {
+  text-decoration: blue wavy underline;
+}
+</style>
+<main><span>Lorem</span> <span>ipsum</span> <span>dolor</span> <span>sit</span> <span>amet,</span> <span>consectetur</span> <span>adipiscing</span> <span>elit,</span> <span>sed</span> <span>do</span> <span>eiusmod</span> <span>tempor</span> <span>incididunt</span> <span>ut</span> <span>labore</span> <span>et</span> <span>dolore</span> <span>magna</span> <span>aliqua.</span> </main>
+<script>
+  const main = document.querySelector("main");
+  main.innerHTML = main.innerHTML.repeat(420);
+
+  measurePaint({
+    description: "Measure frame time for painting wavy decorations with many short decorations",
+    run: () => void document.querySelector("main").classList.toggle("blue"),
+  });
+</script>

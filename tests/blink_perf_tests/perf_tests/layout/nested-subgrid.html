@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<style>
+div {
+  gap: 5px;
+  padding: 5px;
+  display: inline-grid;
+  border: 2px solid black;
+}
+.sub-cols {
+  border-top-style: dashed;
+  border-bottom-style: dashed;
+  grid-template-columns: subgrid;
+}
+.sub-rows {
+  border-left-style: dashed;
+  border-right-style: dashed;
+  grid-template-rows: subgrid;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<body>
+<script>
+"use strict";
+
+function createSubgrid(n) {
+  if (n == 1) {
+    return document.createElement("div");
+  }
+
+  let subgrid = document.createElement("div");
+
+  let nested_subgrid = createSubgrid(n / 2);
+  nested_subgrid.style.gridArea = `1 / 1 / span ${n} / span ${n}`;
+  nested_subgrid.className = "sub-cols sub-rows";
+  subgrid.appendChild(nested_subgrid);
+
+  nested_subgrid = createSubgrid(n / 2);
+  nested_subgrid.style.gridArea = `1 / ${n + 1} / span ${n} / span ${n}`;
+  nested_subgrid.className = "sub-cols";
+  subgrid.appendChild(nested_subgrid);
+
+  nested_subgrid = createSubgrid(n / 2);
+  nested_subgrid.style.gridArea = `${n + 1} / 1 / span ${n} / span ${n}`;
+  nested_subgrid.className = "sub-rows";
+  subgrid.appendChild(nested_subgrid);
+
+  nested_subgrid = createSubgrid(n / 2);
+  nested_subgrid.style.gridArea = `${n + 1} / ${n + 1} / span ${n} / span ${n}`;
+  subgrid.appendChild(nested_subgrid);
+
+  return subgrid;
+}
+
+var run_count = 0;
+var main = createSubgrid(32);
+document.body.appendChild(main);
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of layout on a page with nested subgrids.",
+    run: function() {
+        main.style.width = (++run_count & 1) ? "99%" : "98%";
+        PerfTestRunner.forceLayout();
+    }
+});
+</script>
+</body>

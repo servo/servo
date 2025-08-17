@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+</head>
+<body style="overflow-y: scroll">
+
+<div id="flexbox" style="height: 400px; flex-direction: column; justify-content: center; align-items: center;">
+    <div style="flex: 1 auto">1</div>
+    <div style="flex: 2 auto">2 2</div>
+    <div style="flex: 3 auto">3 3 3</div>
+    <div style="flex: 4 auto">4 4 4 4</div>
+    <div style="flex: 5 auto">5 5 5 5 5</div>
+    <div style="flex: 6 auto">6 6 6 6 6 6</div>
+    <div style="flex: 7 auto">7 7 7 7 7 7 7</div>
+    <div style="flex: 8 auto">8 8 8 8 8 8 8 8</div>
+    <div style="flex: 9 auto">9 9 9 9 9 9 9 9 9</div>
+    <div style="flex: 10 auto">10 10 10 10 10 10 10 10 10</div>
+</div>
+
+</body>
+<script>
+function runTest()
+{
+    document.getElementById("flexbox").style.display = 'flex';
+    PerfTestRunner.forceLayout();
+    document.getElementById("flexbox").style.display = '';
+    PerfTestRunner.forceLayout();
+}
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of flexbox with no wrapping (column).",
+    run: runTest,
+    done: function() {
+        document.getElementById("flexbox").style.display = 'none';
+    }
+});
+</script>
+</html>

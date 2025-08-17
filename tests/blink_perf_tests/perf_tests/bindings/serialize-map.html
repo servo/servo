@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+
+var length = 200000;
+var obj = {};  // obj does not have a 'length' property.
+for (var i = 0; i < length; i++)
+    obj['key' + i] = i;
+var worker = new Worker('resources/worker.js');
+worker.onmessage = function(event) {
+    console.log("received");
+};
+
+PerfTestRunner.measureTime({
+    description: "Measures performance of serializing a large map object.",
+    run: function() {
+        worker.postMessage(obj);
+    }
+});
+</script>
+</body>

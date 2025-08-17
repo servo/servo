@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<style>
+.gridItem {
+    grid-column: span 100;
+    grid-row: span 100;
+}
+#grid {
+    display: grid;
+    grid-auto-rows: 2px;
+    grid-auto-columns: 5px;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<script>
+function startTest() {
+    PerfTestRunner.forceLayout();
+
+    var index = 0;
+    var grid = document.getElementById("grid");
+    PerfTestRunner.measureRunsPerSecond({
+        description: "Measures performance of layout on a page using CSS grid layout (item placement).",
+        run: function() {
+            // This style change forces the grid to place the item again, and thus regenerate the data structure holding the grid.
+            grid.style.gridAutoFlow = ++index % 2 ? "row" : "column";
+            PerfTestRunner.forceLayout();
+        }
+    });
+}
+</script>
+
+<body onload="startTest()">
+<div id="grid"">
+    <div class="gridItem" style="background: lime"></div>
+</div>
+</body>

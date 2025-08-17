@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<style>
+
+.container {
+    position: relative;
+    height: 3000px;
+}
+
+.row {
+    position: relative;
+    border-top: 1px solid;
+    box-sizing: border-box;
+    width: 120px;
+}
+
+.cell {
+    position: absolute;
+    border-left: 1px solid red;
+    width: 60px;
+    height: 30px;
+    box-sizing: border-box;
+    contain: size layout;
+    line-height: 1;
+}
+
+.row:nth-child(2n) {
+  text-align: center;
+}
+
+.row:nth-child(3n) {
+  text-align: end;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<script>
+  let textNodes = [];
+  let NUM_ROWS = 100;
+  let NUM_COLS = 100;
+
+  function populateData() {
+      let container = document.createElement('div');
+      container.classList.add('container');
+      let top = 0;
+      for (let i = 0; i < NUM_ROWS; i++) {
+          let left = 0;
+          let row = document.createElement('div');
+          row.classList.add('row');
+          row.style.top = top + "px";
+          for (let j = 0; j < NUM_COLS; j++) {
+              let cell = document.createElement('div');
+              cell.classList.add('cell');
+              let textNode = document.createTextNode('' + (100 * Math.random()).toFixed(2));
+              cell.appendChild(textNode);
+              cell.style.left = left + "px";
+              row.appendChild(cell);
+              textNodes.push(textNode);
+              left += 60;
+          }
+          top += 30;
+          container.appendChild(row);
+      }
+      document.body.appendChild(container);
+  }
+
+  function startTest() {
+    populateData();
+
+    PerfTestRunner.forceLayout();
+
+    PerfTestRunner.measureTime({
+      description: "Measures performance of changing text nodes content.",
+      run: function() {
+        for (let i = 0; i < textNodes.length; i++) {
+          textNodes[i].data = '' + (100 * Math.random()).toFixed(2);
+        }
+
+        PerfTestRunner.forceLayout();
+      },
+    });
+  }
+</script>
+<body onload="startTest();">
+</body>

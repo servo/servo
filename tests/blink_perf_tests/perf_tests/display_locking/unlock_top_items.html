@@ -1,0 +1,89 @@
+<!doctype HTML>
+
+<!--
+This test appends 30,000 locked items to the page. It then unlocks items
+starting from the top one and measures the length of requestAnimationFrame.
+
+The test works with and without display locking. However, without display
+locking, this simply measures requestAnimationFrame.
+-->
+
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+.container {
+  contain: style layout;
+  content-size: 100px;
+}
+.box {
+  background: blue;
+  overflow: hidden;
+  width: 100%;
+  height: 100px;
+}
+</style>
+</head>
+
+<body>
+<!-- node template from which to construct items -->
+<template id="node_template">
+<div class="container">
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+  <div class="box">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+  </div>
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+</div>
+</template>
+</body>
+
+<script>
+function construct(n) {
+  const specimen = document.importNode(
+    document.getElementById("node_template").content, true).firstElementChild;
+  for (let i = 0; i < n; ++i) {
+    const clone = specimen.cloneNode(true);
+    clone.id = "id" + i;
+    clone.hidden = 'until-found';
+    document.body.appendChild(clone);
+  }
+}
+
+let nextId = 0;
+function commitNextLock() {
+  const element = document.getElementById("id" + nextId);
+  ++nextId;
+  element.style = "";
+}
+
+let testDone = false;
+let startTime;
+function runTest() {
+  if (startTime) {
+    PerfTestRunner.measureValueAsync(PerfTestRunner.now() - startTime);
+    PerfTestRunner.addRunTestEndMarker();
+  }
+  if (testDone)
+    return;
+
+  startTime = PerfTestRunner.now();
+  PerfTestRunner.addRunTestEndMarker();
+
+  commitNextLock();
+  requestAnimationFrame(runTest);
+}
+
+construct(30000);
+
+PerfTestRunner.startMeasureValuesAsync({
+  unit: 'ms',
+  done: () => { testDone = true; },
+  run: runTest,
+  warmUpCount: 1,
+  iterationCount: 5
+});
+
+</script>

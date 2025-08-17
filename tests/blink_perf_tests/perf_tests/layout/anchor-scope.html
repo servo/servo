@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Performance Test: anchor-scope</title>
+<style>
+  #main {
+    background-color: lightgrey;
+    display: flex;
+    flex-wrap: wrap;
+    width: 600px;
+  }
+  .cell {
+    border: 1px solid tomato;
+    width: 10px;
+    height: 10px;
+    anchor-name: --a;
+    anchor-scope: --a;
+  }
+  .abs {
+    width: 5px;
+    height: 5px;
+    background-color: steelblue;
+    position: absolute;
+    position-anchor: --a;
+    position-area: center;
+  }
+  .selected {
+    background-color: lightcoral;
+  }
+</style>
+<div id=main>
+</div>
+<script src="../resources/runner.js"></script>
+<script>
+  // Insert many cells, each containing an abs pos
+  // anchored to it.
+  let cells = [];
+  for (let i = 0; i < 1000; i++) {
+    let cell = document.createElement('div');
+    cell.classList.add('cell');
+    let abs = document.createElement('div');
+    abs.className = 'abs';
+    cell.append(abs);
+    cells.push(cell);
+  }
+  main.append(...cells);
+
+  function startTest() {
+    let round = 0;
+    PerfTestRunner.measureFrameTime({
+        description: 'Many scoped in-flow anchors with the same name',
+        run: () => {
+          cells[round % cells.length].classList.toggle('selected');
+          PerfTestRunner.forceLayout();
+          round++;
+        },
+    });
+  }
+</script>
+<body onload="startTest()"></body>

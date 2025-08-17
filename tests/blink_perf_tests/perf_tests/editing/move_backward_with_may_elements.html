@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/line-layout-perf-test.js"></script>
+<style>
+#container {
+    width: 400px;
+    height: 200px;
+    overflow: scroll;
+}
+</style>
+<div id="container"></div>
+<script>
+const NUMBER_OF_WORDS = 300;
+const NUMBER_OF_MOVES = 500;
+const container = document.getElementById('container');
+const selection = window.getSelection();
+
+for (let wordCount = NUMBER_OF_WORDS; wordCount > 0; --wordCount) {
+    const word = document.createElement('span');
+    word.textContent = Math.random().toString(36).slice(2) + ' ';
+    container.appendChild(word);
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  setup: () => {
+  },
+  run: () => {
+    container.scrollTo(0, container.scrollHeight);
+    selection.collapse(container, container.childNodes.length);
+    for (let i = 0; i < NUMBER_OF_MOVES; ++i)
+      selection.modify('extend', 'backward', 'character');
+  },
+});
+</script>
