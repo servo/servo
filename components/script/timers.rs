@@ -442,7 +442,7 @@ impl JsTimers {
         let callback = match callback {
             TimerCallback::StringTimerCallback(trusted_script_or_string) => {
                 // Step 9.6.1.1. Let globalName be "Window" if global is a Window object; "WorkerGlobalScope" otherwise.
-                let global_name = if global.downcast::<Window>().is_some() {
+                let global_name = if global.is::<Window>() {
                     "Window"
                 } else {
                     "WorkerGlobalScope"
