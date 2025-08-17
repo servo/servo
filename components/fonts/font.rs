@@ -115,6 +115,11 @@ pub trait PlatformFontMethods: Sized {
 
     /// Get the necessary [`FontInstanceFlags`]` for this font.
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
+
+    /// Return all the variation values that the font was instantiated with.
+    ///
+    /// Default values need not be included.
+    fn variations(&self) -> &[FontVariation];
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -357,6 +362,10 @@ impl Font {
             )
         })
     }
+
+    pub fn variations(&self) -> &[FontVariation] {
+        self.handle.variations()
+    }
 }
 
 bitflags! {
@@ -449,9 +458,8 @@ impl Font {
     }
 
     fn shape_text_harfbuzz(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
-        let this = self as *const Font;
         self.shaper
-            .get_or_init(|| Shaper::new(this))
+            .get_or_init(|| Shaper::new(self))
             .shape_text(text, options, glyphs);
     }
 
@@ -568,8 +576,7 @@ impl Font {
 
     /// Get the [`FontBaseline`] for this font.
     pub fn baseline(&self) -> Option<FontBaseline> {
-        let this = self as *const Font;
-        self.shaper.get_or_init(|| Shaper::new(this)).baseline()
+        self.shaper.get_or_init(|| Shaper::new(self)).baseline()
     }
 }
 

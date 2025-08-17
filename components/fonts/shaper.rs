@@ -156,12 +156,11 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
-    #[allow(clippy::not_unsafe_ptr_arg_deref)] // Has an unsafe block inside
-    pub fn new(font: *const Font) -> Shaper {
+    pub fn new(font: &Font) -> Shaper {
         unsafe {
             let hb_face: *mut hb_face_t = hb_face_create_for_tables(
                 Some(font_table_func),
-                font as *const c_void as *mut c_void,
+                font as *const Font as *mut c_void,
                 None,
             );
             let hb_font: *mut hb_font_t = hb_font_create(hb_face);
@@ -181,9 +180,25 @@ impl Shaper {
             hb_font_set_funcs(
                 hb_font,
                 HB_FONT_FUNCS.0,
-                font as *mut Font as *mut c_void,
+                font as *const Font as *mut c_void,
                 None,
             );
+
+            if servo_config::pref!(layout_variable_fonts_enabled) {
+                let variations = &font.descriptor.variation_settings;
+                if !variations.is_empty() {
+                    let variations: Vec<_> = variations
+                        .iter()
+                        .map(|variation| hb_variation_t {
+                            tag: variation.tag,
+
+                            value: variation.value,
+                        })
+                        .collect();
+
+                    hb_font_set_variations(hb_font, variations.as_ptr(), variations.len() as u32);
+                }
+            }
 
             Shaper {
                 hb_face,
@@ -263,21 +278,6 @@ impl Shaper {
                     start: 0,
                     end: hb_buffer_get_length(hb_buffer),
                 })
-            }
-
-            if servo_config::pref!(layout_variable_fonts_enabled) {
-                for variation in &options.variation_settings {
-                    let variations = &[hb_variation_t {
-                        tag: variation.tag,
-                        value: variation.value,
-                    }];
-
-                    hb_font_set_variations(
-                        self.hb_font,
-                        variations.as_ptr(),
-                        variations.len() as u32,
-                    );
-                }
             }
 
             hb_shape(

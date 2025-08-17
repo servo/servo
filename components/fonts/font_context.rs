@@ -282,13 +282,13 @@ impl FontContext {
                 font.template.identifier(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
-                font.descriptor.variation_settings.clone(),
+                font.variations().to_owned(),
             ),
             FontIdentifier::Web(_) => self.create_web_font_instance(
                 font.template.clone(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
-                font.descriptor.variation_settings.clone(),
+                font.variations().to_owned(),
             ),
         }
     }
