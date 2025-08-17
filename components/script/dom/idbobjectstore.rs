@@ -168,7 +168,7 @@ impl IDBObjectStore {
         self.key_path.is_some()
     }
 
-    fn is_deleted(&self, transaction: &IDBTransaction) -> bool {
+    pub(crate) fn is_deleted(&self, transaction: &IDBTransaction) -> bool {
         transaction.object_store_names().contains(&self.db_name)
     }
 
