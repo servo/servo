@@ -126,6 +126,10 @@ impl From<ServoThreadSafeLayoutNode<'_>> for BaseFragmentInfo {
             if ThreadSafeLayoutElement::is_root(&element) {
                 flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
             }
+
+            if element.is_element_overflow_value_propagated() {
+                flags.insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT);
+            }
         };
 
         Self {
@@ -176,6 +180,9 @@ bitflags! {
         const SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM = 1 << 8;
         /// Whether or not the node that created this fragment is the root element.
         const IS_ROOT_ELEMENT = 1 << 9;
+        /// If element has propagated the overflow value to viewport.
+        const PROPAGATED_OVERFLOW_TO_VIEWPORT = 1 << 10;
+
     }
 }
 

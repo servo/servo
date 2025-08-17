@@ -1290,6 +1290,8 @@ pub(crate) fn get_attr_for_layout<'dom>(
 }
 
 pub(crate) trait LayoutElementHelpers<'dom> {
+    fn get_element_overflow_value_propagated(self) -> bool;
+    fn set_element_overflow_value_propagated(self);
     fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
     fn has_class_or_part_for_layout(
         self,
@@ -1818,6 +1820,20 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 }
             })
             .collect()
+    }
+
+    fn get_element_overflow_value_propagated(self) -> bool {
+        (self.unsafe_get()).rare_data().as_ref().is_some_and(|r| {
+            r.is_elements_overflow_value_propagated_to_viewport
+                .unwrap_or(false)
+        })
+    }
+
+    #[allow(unsafe_code)]
+    fn set_element_overflow_value_propagated(self) {
+        if let Some(ref mut rare_data) = *self.unsafe_get().rare_data_mut() {
+            rare_data.is_elements_overflow_value_propagated_to_viewport = Some(true);
+        }
     }
 }
 

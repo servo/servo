@@ -48,10 +48,6 @@ impl BoxTree {
     #[servo_tracing::instrument(name = "Box Tree Construction", skip_all)]
     pub(crate) fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
         let root_element = root_element.to_threadsafe();
-        let boxes = construct_for_root_element(context, root_element);
-
-        // Zero box for `:root { display: none }`, one for the root element otherwise.
-        assert!(boxes.len() <= 1);
 
         // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
         // > UAs must apply the overflow-* values set on the root element to the viewport when the
@@ -81,12 +77,22 @@ impl BoxTree {
                 if !style.get_box().display.is_none() {
                     viewport_overflow_x = style.clone_overflow_x();
                     viewport_overflow_y = style.clone_overflow_y();
+                    child.as_element().as_mut().inspect(|e| {
+                        e.set_element_overflow_value_propagated();
+                    });
 
                     break;
                 }
             }
+            root_element.as_element().as_mut().inspect(|e| {
+                e.set_element_overflow_value_propagated();
+            });
         }
 
+        let boxes = construct_for_root_element(context, root_element);
+
+        // Zero box for `:root { display: none }`, one for the root element otherwise.
+        assert!(boxes.len() <= 1);
         let contents = BlockContainer::BlockLevelBoxes(boxes);
         let contains_floats = contents.contains_floats();
         Self {
