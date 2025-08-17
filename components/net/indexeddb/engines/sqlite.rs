@@ -152,6 +152,7 @@ impl SqliteEngine {
                 object_data_model::Column::Data,
             ])
             .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
+            .limit(1)
             .build_rusqlite(SqliteQueryBuilder);
         connection
             .prepare(&sql)?
