@@ -10,7 +10,7 @@ use script_bindings::codegen::GenericBindings::IDBKeyRangeBinding::IDBKeyRangeMe
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::globalscope::GlobalScope;
@@ -111,6 +111,9 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
     ) -> Fallible<DomRoot<IDBKeyRange>> {
         let lower_key = convert_value_to_key(cx, lower, None)?;
         let upper_key = convert_value_to_key(cx, upper, None)?;
+        if lower_key > upper_key {
+            return Err(Error::Data);
+        }
         let inner =
             IndexedDBKeyRange::new(Some(lower_key), Some(upper_key), lower_open, upper_open);
         Ok(IDBKeyRange::new(global, inner, CanGc::note()))
