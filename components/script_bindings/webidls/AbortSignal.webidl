@@ -6,6 +6,7 @@
 
 [Exposed=*, Pref="dom_abort_controller_enabled"]
 interface AbortSignal : EventTarget {
+  [NewObject] static AbortSignal abort(optional any reason);
   readonly attribute boolean aborted;
   readonly attribute any reason;
   undefined throwIfAborted();
