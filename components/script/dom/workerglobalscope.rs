@@ -42,7 +42,8 @@ use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
-    RequestOrUSVString, StringOrFunction, TrustedScriptURLOrUSVString,
+    RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
+    TrustedScriptURLOrUSVString,
 };
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -485,19 +486,26 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     fn SetTimeout(
         &self,
         _cx: JSContext,
-        callback: StringOrFunction,
+        callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
-    ) -> i32 {
+        can_gc: CanGc,
+    ) -> Fallible<i32> {
         let callback = match callback {
-            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
-            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+            TrustedScriptOrStringOrFunction::String(i) => {
+                TimerCallback::StringTimerCallback(TrustedScriptOrString::String(i))
+            },
+            TrustedScriptOrStringOrFunction::TrustedScript(i) => {
+                TimerCallback::StringTimerCallback(TrustedScriptOrString::TrustedScript(i))
+            },
+            TrustedScriptOrStringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
             IsInterval::NonInterval,
+            can_gc,
         )
     }
 
@@ -511,19 +519,26 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     fn SetInterval(
         &self,
         _cx: JSContext,
-        callback: StringOrFunction,
+        callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
-    ) -> i32 {
+        can_gc: CanGc,
+    ) -> Fallible<i32> {
         let callback = match callback {
-            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
-            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+            TrustedScriptOrStringOrFunction::String(i) => {
+                TimerCallback::StringTimerCallback(TrustedScriptOrString::String(i))
+            },
+            TrustedScriptOrStringOrFunction::TrustedScript(i) => {
+                TimerCallback::StringTimerCallback(TrustedScriptOrString::TrustedScript(i))
+            },
+            TrustedScriptOrStringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
             IsInterval::Interval,
+            can_gc,
         )
     }
 

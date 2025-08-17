@@ -110,7 +110,9 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     self, FrameRequestCallback, ScrollBehavior, ScrollToOptions, WindowMethods,
     WindowPostMessageOptions,
 };
-use crate::dom::bindings::codegen::UnionTypes::{RequestOrUSVString, StringOrFunction};
+use crate::dom::bindings::codegen::UnionTypes::{
+    RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
@@ -1098,23 +1100,30 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .or_init(|| Navigator::new(self, CanGc::note()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
+    // https://html.spec.whatwg.org/multipage/#dom-settimeout
     fn SetTimeout(
         &self,
         _cx: JSContext,
-        callback: StringOrFunction,
+        callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
-    ) -> i32 {
+        can_gc: CanGc,
+    ) -> Fallible<i32> {
         let callback = match callback {
-            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
-            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+            TrustedScriptOrStringOrFunction::String(i) => {
+                TimerCallback::StringTimerCallback(TrustedScriptOrString::String(i))
+            },
+            TrustedScriptOrStringOrFunction::TrustedScript(i) => {
+                TimerCallback::StringTimerCallback(TrustedScriptOrString::TrustedScript(i))
+            },
+            TrustedScriptOrStringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
         self.as_global_scope().set_timeout_or_interval(
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
             IsInterval::NonInterval,
+            can_gc,
         )
     }
 
@@ -1127,19 +1136,26 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn SetInterval(
         &self,
         _cx: JSContext,
-        callback: StringOrFunction,
+        callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
-    ) -> i32 {
+        can_gc: CanGc,
+    ) -> Fallible<i32> {
         let callback = match callback {
-            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
-            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+            TrustedScriptOrStringOrFunction::String(i) => {
+                TimerCallback::StringTimerCallback(TrustedScriptOrString::String(i))
+            },
+            TrustedScriptOrStringOrFunction::TrustedScript(i) => {
+                TimerCallback::StringTimerCallback(TrustedScriptOrString::TrustedScript(i))
+            },
+            TrustedScriptOrStringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
         self.as_global_scope().set_timeout_or_interval(
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
             IsInterval::Interval,
+            can_gc,
         )
     }
 
