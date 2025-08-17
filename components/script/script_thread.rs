@@ -2840,52 +2840,51 @@ impl ScriptThread {
         metadata: Option<Metadata>,
         can_gc: CanGc,
     ) -> Option<DomRoot<ServoParser>> {
-        let idx = self
+        if self.closed_pipelines.borrow().contains(id) {
+            // If the pipeline closed, do not process the headers.
+            return None;
+        }
+
+        let Some(idx) = self
             .incomplete_loads
             .borrow()
             .iter()
-            .position(|load| load.pipeline_id == *id);
-        // The matching in progress load structure may not exist if
-        // the pipeline exited before the page load completed.
-        match idx {
-            Some(idx) => {
-                // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
-                // 2. If response's status is 204 or 205, then abort these steps.
-                let is20x = match metadata {
-                    Some(ref metadata) => metadata.status.in_range(204..=205),
-                    _ => false,
-                };
+            .position(|load| load.pipeline_id == *id)
+        else {
+            unreachable!("Pipeline shouldn't have finished loading.");
+        };
 
-                if is20x {
-                    // If we have an existing window that is being navigated:
-                    if let Some(window) = self.documents.borrow().find_window(*id) {
-                        let window_proxy = window.window_proxy();
-                        // https://html.spec.whatwg.org/multipage/
-                        // #navigating-across-documents:delaying-load-events-mode-2
-                        if window_proxy.parent().is_some() {
-                            // The user agent must take this nested browsing context
-                            // out of the delaying load events mode
-                            // when this navigation algorithm later matures,
-                            // or when it terminates (whether due to having run all the steps,
-                            // or being canceled, or being aborted), whichever happens first.
-                            window_proxy.stop_delaying_load_events_mode();
-                        }
-                    }
-                    self.senders
-                        .pipeline_to_constellation_sender
-                        .send((*id, ScriptToConstellationMessage::AbortLoadUrl))
-                        .unwrap();
-                    return None;
-                };
+        // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
+        // 2. If response's status is 204 or 205, then abort these steps.
+        let is20x = match metadata {
+            Some(ref metadata) => metadata.status.in_range(204..=205),
+            _ => false,
+        };
 
-                let load = self.incomplete_loads.borrow_mut().remove(idx);
-                metadata.map(|meta| self.load(meta, load, can_gc))
-            },
-            None => {
-                assert!(self.closed_pipelines.borrow().contains(id));
-                None
-            },
-        }
+        if is20x {
+            // If we have an existing window that is being navigated:
+            if let Some(window) = self.documents.borrow().find_window(*id) {
+                let window_proxy = window.window_proxy();
+                // https://html.spec.whatwg.org/multipage/
+                // #navigating-across-documents:delaying-load-events-mode-2
+                if window_proxy.parent().is_some() {
+                    // The user agent must take this nested browsing context
+                    // out of the delaying load events mode
+                    // when this navigation algorithm later matures,
+                    // or when it terminates (whether due to having run all the steps,
+                    // or being canceled, or being aborted), whichever happens first.
+                    window_proxy.stop_delaying_load_events_mode();
+                }
+            }
+            self.senders
+                .pipeline_to_constellation_sender
+                .send((*id, ScriptToConstellationMessage::AbortLoadUrl))
+                .unwrap();
+            return None;
+        };
+
+        let load = self.incomplete_loads.borrow_mut().remove(idx);
+        metadata.map(|meta| self.load(meta, load, can_gc))
     }
 
     /// Handles a request for the window title.

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Test for #36747: panic: Failed to get browsing context info from constellation.: Disconnected.</title>
+<style>
+#form { border-image-source: url(database64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/XBs/fNwfjZ0frl3/zy7////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABAALAAAAAAQABAAAAVVICSOZGlCQAosJ6mu7fiyZeKqNKToQGDsM8hBADgUXoGAiqhSvp5QAnQKGIgUhwFUYLCVDFCrKUE1lBavAViFIDlTImbKC5Gm2hB0SlBCBMQiB0UjIQA7); border-style: solid; }
+</style>
+<script>
+  window.addEventListener("load", _ => {
+    form.submit();
+    window.frames.stop();
+    iframe.src = "data:text/html,";
+  });
+</script>
+<form id="form">
+<iframe id="iframe"></iframe>
