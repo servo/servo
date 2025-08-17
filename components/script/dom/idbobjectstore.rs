@@ -133,38 +133,6 @@ impl IDBObjectStore {
         receiver.recv().unwrap().unwrap()
     }
 
-    // fn get_stored_key_path(&mut self) -> Option<KeyPath> {
-    //     let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-    //
-    //     let operation = SyncOperation::KeyPath(
-    //         sender,
-    //         self.global().origin().immutable().clone(),
-    //         self.db_name.to_string(),
-    //         self.name.borrow().to_string(),
-    //     );
-    //
-    //     self.global()
-    //         .resource_threads()
-    //         .sender()
-    //         .send(IndexedDBThreadMsg::Sync(operation))
-    //         .unwrap();
-    //
-    //     // First unwrap for ipc
-    //     // Second unwrap will never happen unless this db gets manually deleted somehow
-    //     let key_path = receiver.recv().unwrap().unwrap();
-    //     key_path.map(|p| {
-    //         // TODO: have separate storage for string sequence of len 1 and signle string
-    //         if p.len() == 1 {
-    //             KeyPath::String(DOMString::from_string(p[0].clone()))
-    //         } else {
-    //             let strings: Vec<_> = p.into_iter().map(|s| {
-    //                 DOMString::from_string(s)
-    //             }).collect();
-    //             KeyPath::StringSequence(strings)
-    //         }
-    //     })
-    // }
-
     // https://www.w3.org/TR/IndexedDB-2/#object-store-in-line-keys
     fn uses_inline_keys(&self) -> bool {
         self.key_path.is_some()

@@ -8,12 +8,14 @@ use std::collections::HashMap;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use net_traits::IpcSend;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
+use net_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use profile_traits::ipc;
+use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
+use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreParameters;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
     IDBTransactionMethods, IDBTransactionMode,
 };
@@ -203,6 +205,58 @@ impl IDBTransaction {
     fn get_idb_thread(&self) -> IpcSender<IndexedDBThreadMsg> {
         self.global().resource_threads().sender()
     }
+
+    fn get_object_store_parameters(
+        &self,
+        objec_store_name: &DOMString,
+    ) -> Option<IDBObjectStoreParameters> {
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+
+        let operation = SyncOperation::HasKeyGenerator(
+            sender,
+            self.global().origin().immutable().clone(),
+            self.db.get_name().to_string(),
+            objec_store_name.to_string(),
+        );
+
+        self.global()
+            .resource_threads()
+            .sender()
+            .send(IndexedDBThreadMsg::Sync(operation))
+            .unwrap();
+
+        // First unwrap for ipc
+        // Second unwrap will never happen unless this db gets manually deleted somehow
+        let auto_increment = receiver.recv().unwrap().ok()?;
+
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let operation = SyncOperation::KeyPath(
+            sender,
+            self.global().origin().immutable().clone(),
+            self.db.get_name().to_string(),
+            objec_store_name.to_string(),
+        );
+
+        self.global()
+            .resource_threads()
+            .sender()
+            .send(IndexedDBThreadMsg::Sync(operation))
+            .unwrap();
+
+        // First unwrap for ipc
+        // Second unwrap will never happen unless this db gets manually deleted somehow
+        let key_path = receiver.recv().unwrap().ok()?;
+        let key_path = key_path.map(|key_path| match key_path {
+            KeyPath::String(s) => StringOrStringSequence::String(DOMString::from_string(s)),
+            KeyPath::Sequence(seq) => StringOrStringSequence::StringSequence(
+                seq.into_iter().map(DOMString::from_string).collect(),
+            ),
+        });
+        Some(IDBObjectStoreParameters {
+            autoIncrement: auto_increment,
+            keyPath: key_path,
+        })
+    }
 }
 
 impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
@@ -213,7 +267,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstore
     fn ObjectStore(&self, name: DOMString) -> Fallible<DomRoot<IDBObjectStore>> {
-        // Step 1: Handle the case where transaction has finised
+        // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
         if self.finished.get() {
             return Err(Error::InvalidState);
         }
@@ -229,11 +283,12 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         let mut store_handles = self.store_handles.borrow_mut();
         let store = store_handles.entry(name.to_string()).or_insert_with(|| {
             // TODO: get key path from backend
+            let parameters = self.get_object_store_parameters(&name);
             let store = IDBObjectStore::new(
                 &self.global(),
                 self.db.get_name(),
                 name,
-                None,
+                parameters.as_ref(),
                 CanGc::note(),
                 self,
             );
