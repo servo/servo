@@ -42,7 +42,6 @@ pub(crate) enum ActionItem {
 }
 
 // A set of actions with multiple sources executed within a single tick.
-// The order in which they are performed is not guaranteed.
 // The `id` is used to identify the source of the actions.
 pub(crate) type TickActions = Vec<(String, ActionItem)>;
 
