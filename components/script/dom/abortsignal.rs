@@ -195,7 +195,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
         } else {
             // otherwise to a new "AbortError" DOMException.
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            Error::Abort.to_jsval(cx, &global, rooted_error.handle_mut(), can_gc);
+            Error::Abort.to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
             signal.abort_reason.set(rooted_error.get())
         }
 
