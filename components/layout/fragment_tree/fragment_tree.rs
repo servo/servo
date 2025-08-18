@@ -118,27 +118,26 @@ impl FragmentTree {
             let scrollable_overflow = self.root_fragments.iter().fold(
                 self.initial_containing_block,
                 |overflow, fragment| {
-                    // We need to calculate the overflow for each fragments within the tree
-                    // to be processed in the further stages of reflow.
-                    let calculated_overflow = fragment.calculate_scrollable_overflow_for_parent();
+                    // Need to calculate the overflow for each fragments within the tree
+                    // because it is required in the next stages of reflow.
+                    let overflow_from_fragment =
+                        fragment.calculate_scrollable_overflow_for_parent();
 
-                    // Fixed positioned fragment without any ancestor that establishes
-                    // its containing block is placed as a child of the fragment tree.
-                    // But, it is not contained by the initial containing block, cannot
-                    // be scrolled, and should not included in the calculation. These
-                    // fragments should be ignored.
-                    // <https://drafts.csswg.org/css-position/#fixed-cb>
-                    let should_include_overflow =
-                        fragment
-                            .retrieve_box_fragment()
-                            .is_some_and(|box_fragment| {
-                                box_fragment.borrow().style.get_box().position != Position::Fixed
-                            });
-
-                    match should_include_overflow {
-                        true => overflow.union(&calculated_overflow),
-                        false => overflow,
+                    // Scrollable overflow should be accumulated in the block that
+                    // establishes the containing block for the element. Thus, fixed
+                    // positioned fragments whose containing block is the initial
+                    // containing block should not be included in overflow calculation.
+                    // See <https://www.w3.org/TR/css-overflow-3/#scrollable>.
+                    if fragment
+                        .retrieve_box_fragment()
+                        .is_some_and(|box_fragment| {
+                            box_fragment.borrow().style.get_box().position == Position::Fixed
+                        })
+                    {
+                        return overflow;
                     }
+
+                    overflow.union(&overflow_from_fragment)
                 },
             );
 
