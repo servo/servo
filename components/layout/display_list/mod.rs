@@ -12,7 +12,6 @@ use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNod
 use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
-use layout_api::ReflowRequest;
 use net_traits::image_cache::Image as CachedImage;
 use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
@@ -145,7 +144,11 @@ struct HighlightTraversalState {
 impl InspectorHighlight {
     fn for_node(node: OpaqueNode) -> Self {
         Self {
-            tag: Tag::new(node),
+            tag: Tag {
+                node,
+                // TODO: Support highlighting pseudo-elements.
+                pseudo_element_chain: Default::default(),
+            },
             state: None,
         }
     }
@@ -153,11 +156,11 @@ impl InspectorHighlight {
 
 impl DisplayListBuilder<'_> {
     pub(crate) fn build(
-        reflow_request: &ReflowRequest,
         stacking_context_tree: &mut StackingContextTree,
         fragment_tree: &FragmentTree,
         image_resolver: Arc<ImageResolver>,
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
+        highlighted_dom_node: Option<OpaqueNode>,
         debug: &DebugOptions,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
@@ -184,9 +187,7 @@ impl DisplayListBuilder<'_> {
             current_clip_id: ClipId::INVALID,
             webrender_display_list_builder: &mut webrender_display_list_builder,
             compositor_info,
-            inspector_highlight: reflow_request
-                .highlighted_dom_node
-                .map(InspectorHighlight::for_node),
+            inspector_highlight: highlighted_dom_node.map(InspectorHighlight::for_node),
             paint_body_background: true,
             clip_map: Default::default(),
             image_resolver,

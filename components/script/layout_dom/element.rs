@@ -969,10 +969,10 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
 /// ever access safe properties and cannot race on elements.
 #[derive(Clone, Copy, Debug)]
 pub struct ServoThreadSafeLayoutElement<'dom> {
-    /// The wrapped [`ServoLayoutNode`].
+    /// The wrapped [`ServoLayoutElement`].
     pub(super) element: ServoLayoutElement<'dom>,
 
-    /// The possibly nested [`PseudoElementChain`] for this node.
+    /// The possibly nested [`PseudoElementChain`] for this element.
     pub(super) pseudo_element_chain: PseudoElementChain,
 }
 

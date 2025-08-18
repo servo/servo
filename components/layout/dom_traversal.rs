@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 
 use fonts::ByteIndex;
-use html5ever::{LocalName, local_name};
+use html5ever::LocalName;
 use layout_api::wrapper_traits::{
     PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -23,7 +23,6 @@ use style::values::specified::Quotes;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::flow::inline::SharedInlineStyles;
-use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags, Tag};
 use crate::quotes::quotes_for_lang;
 use crate::replaced::ReplacedContents;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
@@ -70,66 +69,6 @@ impl<'dom> NodeAndStyleInfo<'dom> {
 
     pub(crate) fn get_selection_range(&self) -> Option<Range<ByteIndex>> {
         self.node.selection()
-    }
-}
-
-impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
-    fn from(info: &NodeAndStyleInfo<'dom>) -> Self {
-        let threadsafe_node = info.node;
-        let pseudo_element_chain = info.node.pseudo_element_chain();
-        let mut flags = FragmentFlags::empty();
-
-        // Anonymous boxes should not have a tag, because they should not take part in hit testing.
-        //
-        // TODO(mrobinson): It seems that anonymous boxes should take part in hit testing in some
-        // cases, but currently this means that the order of hit test results isn't as expected for
-        // some WPT tests. This needs more investigation.
-        if matches!(
-            pseudo_element_chain.innermost(),
-            Some(PseudoElement::ServoAnonymousBox) |
-                Some(PseudoElement::ServoAnonymousTable) |
-                Some(PseudoElement::ServoAnonymousTableCell) |
-                Some(PseudoElement::ServoAnonymousTableRow)
-        ) {
-            return Self::anonymous();
-        }
-
-        if let Some(element) = threadsafe_node.as_html_element() {
-            if element.is_body_element_of_html_element_root() {
-                flags.insert(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
-            }
-
-            match element.get_local_name() {
-                &local_name!("br") => {
-                    flags.insert(FragmentFlags::IS_BR_ELEMENT);
-                },
-                &local_name!("table") | &local_name!("th") | &local_name!("td") => {
-                    flags.insert(FragmentFlags::IS_TABLE_TH_OR_TD_ELEMENT);
-                },
-                _ => {},
-            }
-
-            if matches!(
-                element.type_id(),
-                Some(LayoutNodeType::Element(
-                    LayoutElementType::HTMLInputElement | LayoutElementType::HTMLTextAreaElement
-                ))
-            ) {
-                flags.insert(FragmentFlags::IS_TEXT_CONTROL);
-            }
-
-            if ThreadSafeLayoutElement::is_root(&element) {
-                flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
-            }
-        };
-
-        Self {
-            tag: Some(Tag::new_pseudo(
-                threadsafe_node.opaque(),
-                pseudo_element_chain,
-            )),
-            flags,
-        }
     }
 }
 
