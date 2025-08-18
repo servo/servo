@@ -9,7 +9,7 @@ use style::color::AbsoluteColor;
 use crate::backend::Convert;
 use crate::canvas_data::Filter;
 
-impl Convert<peniko::Font> for fonts::RawFont {
+impl Convert<peniko::Font> for fonts::FontDataAndIndex {
     fn convert(self) -> peniko::Font {
         use std::sync::Arc;
         peniko::Font::new(peniko::Blob::new(Arc::new(self.data)), self.index)

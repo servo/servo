@@ -333,9 +333,11 @@ impl GenericDrawTarget for raqote::DrawTarget {
             SHARED_FONT_CACHE.with(|font_cache| {
                 let identifier = template.identifier();
                 if !font_cache.borrow().contains_key(&identifier) {
-                    let raw_font = run.font.raw_font();
-                    let data = std::sync::Arc::new(raw_font.data.as_ref().to_vec());
-                    let Ok(font) = Font::from_bytes(data, raw_font.index) else {
+                    let Ok(font_data_and_index) = run.font.font_data_and_index() else {
+                        return;
+                    };
+                    let data = std::sync::Arc::new(font_data_and_index.data.as_ref().to_vec());
+                    let Ok(font) = Font::from_bytes(data, font_data_and_index.index) else {
                         return;
                     };
                     font_cache.borrow_mut().insert(identifier.clone(), font);

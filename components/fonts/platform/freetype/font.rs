@@ -410,7 +410,7 @@ enum FreeTypeFaceTableProviderData {
 impl FreeTypeFaceTableProviderData {
     fn font_ref(&self) -> Result<FontRef<'_>, ReadError> {
         match self {
-            Self::Web(ipc_shared_memory) => FontRef::new(&ipc_shared_memory.0),
+            Self::Web(ipc_shared_memory) => FontRef::new(ipc_shared_memory.as_ref()),
             Self::Local(mmap, index) => FontRef::from_index(mmap, *index),
         }
     }

@@ -14,41 +14,16 @@ pub mod platform;
 mod shaper;
 mod system_font_service;
 
-use std::sync::Arc;
-
 pub use font::*;
 pub use font_context::*;
 pub use font_store::*;
 pub use font_template::*;
+pub use fonts_traits::*;
 pub use glyph::*;
-use ipc_channel::ipc::IpcSharedMemory;
-use malloc_size_of_derive::MallocSizeOf;
 pub use platform::LocalFontIdentifier;
 pub use shaper::*;
 pub use system_font_service::*;
 use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
-
-/// A data structure to store data for fonts. Data is stored internally in an
-/// [`IpcSharedMemory`] handle, so that it can be send without serialization
-/// across IPC channels.
-#[derive(Clone, MallocSizeOf)]
-pub struct FontData(#[conditional_malloc_size_of] pub(crate) Arc<IpcSharedMemory>);
-
-impl FontData {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        Self(Arc::new(IpcSharedMemory::from_bytes(bytes)))
-    }
-
-    pub(crate) fn as_ipc_shared_memory(&self) -> Arc<IpcSharedMemory> {
-        self.0.clone()
-    }
-}
-
-impl AsRef<[u8]> for FontData {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
 
 /// Whether or not font fallback selection prefers the emoji or text representation
 /// of a character. If `None` then either presentation is acceptable.

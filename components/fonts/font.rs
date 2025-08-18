@@ -33,8 +33,8 @@ use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
 use crate::{
     ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
-    FontIdentifier, FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods, GlyphData,
-    GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
+    FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
+    FontTemplateRefMethods, GlyphData, GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
 };
 
 #[macro_export]
@@ -248,23 +248,15 @@ impl malloc_size_of::MallocSizeOf for CachedShapeData {
     }
 }
 
-/// Raw data and index for a font
-#[derive(Clone)]
-pub struct RawFont {
-    /// The raw font file data (.ttf, .otf, .ttc, etc)
-    pub data: FontData,
-    /// The index of the font within the file (0 if the file is not a ttc)
-    pub index: u32,
-}
-
 pub struct Font {
     pub handle: PlatformFont,
     pub template: FontTemplateRef,
     pub metrics: FontMetrics,
     pub descriptor: FontDescriptor,
 
-    /// The data for this font. This might be uninitialized for system fonts.
-    raw: OnceLock<RawFont>,
+    /// The data for this font. And the index of the font within the data (in case it's a TTC)
+    /// This might be uninitialized for system fonts.
+    data_and_index: OnceLock<FontDataAndIndex>,
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
@@ -322,8 +314,8 @@ impl Font {
             template,
             metrics,
             descriptor,
-            raw: data
-                .map(|data| OnceLock::from(RawFont { data, index: 0 }))
+            data_and_index: data
+                .map(|data| OnceLock::from(FontDataAndIndex { data, index: 0 }))
                 .unwrap_or_default(),
             shaper: OnceLock::new(),
             cached_shape_data: Default::default(),
@@ -359,19 +351,20 @@ impl Font {
 
     /// Return the data for this `Font`. Note that this is currently highly inefficient for system
     /// fonts and should not be used except in legacy canvas code.
-    pub fn raw_font(&self) -> &RawFont {
-        self.raw.get_or_init(|| {
-            let FontIdentifier::Local(local_font_identifier) = self.identifier() else {
-                unreachable!("All web fonts should already have initialized data");
-            };
-            let Some((bytes, index)) = local_font_identifier.read_data_from_file() else {
-                panic!("Failed to load raw font data");
-            };
+    pub fn font_data_and_index(&self) -> Result<&FontDataAndIndex, FontDataError> {
+        if let Some(data_and_index) = self.data_and_index.get() {
+            return Ok(data_and_index);
+        }
 
-            let data = FontData::from_bytes(&bytes);
+        let FontIdentifier::Local(local_font_identifier) = self.identifier() else {
+            unreachable!("All web fonts should already have initialized data");
+        };
+        let Some(data_and_index) = local_font_identifier.font_data_and_index() else {
+            return Err(FontDataError::FailedToLoad);
+        };
 
-            RawFont { data, index }
-        })
+        let data_and_index = self.data_and_index.get_or_init(move || data_and_index);
+        Ok(data_and_index)
     }
 
     pub fn variations(&self) -> &[FontVariation] {

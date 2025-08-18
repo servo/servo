@@ -2660,6 +2660,7 @@ dependencies = [
 name = "fonts_traits"
 version = "0.0.1"
 dependencies = [
+ "ipc-channel",
  "malloc_size_of_derive",
  "range",
  "serde",
