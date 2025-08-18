@@ -2004,7 +2004,7 @@ impl Handler {
             .borrow_mut()
             .drain(..)
             .rev()
-            .map(|(id, action_item)| HashMap::from([(id, action_item)]))
+            .map(|(id, action_item)| Vec::from([(id, action_item)]))
             .collect();
         // Step 7. Dispatch undo actions with current browsing context.
         if let Err(err) = self.dispatch_actions(undo_actions, session.browsing_context_id) {
