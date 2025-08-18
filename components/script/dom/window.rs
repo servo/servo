@@ -1624,8 +1624,15 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // Step 1
         let x = options.left.unwrap_or(0.0f64);
         let y = options.top.unwrap_or(0.0f64);
-        self.ScrollBy_(x, y);
-        self.scroll(x, y, options.parent.behavior);
+
+        let scroll_offset = self.scroll_offset();
+        // Step 3
+        let left = x + scroll_offset.x as f64;
+        // Step 4
+        let top = y + scroll_offset.y as f64;
+
+        // Step 5
+        self.scroll(left, top, options.parent.behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
