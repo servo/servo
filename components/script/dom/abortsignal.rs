@@ -178,6 +178,31 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
         self.aborted()
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-abortsignal-abort>
+    fn Abort(
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        reason: HandleValue,
+        can_gc: CanGc,
+    ) -> DomRoot<AbortSignal> {
+        // Let signal be a new AbortSignal object.
+        let signal = AbortSignal::new_with_proto(global, None, can_gc);
+
+        let abort_reason = reason.get();
+        // Set signal’s abort reason to reason if it is given;
+        if !abort_reason.is_undefined() {
+            signal.abort_reason.set(abort_reason);
+        } else {
+            // otherwise to a new "AbortError" DOMException.
+            rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+            Error::Abort.to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
+            signal.abort_reason.set(rooted_error.get())
+        }
+
+        // Return signal.
+        signal
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-reason>
     fn Reason(&self, _cx: SafeJSContext, mut rval: MutableHandleValue) {
         // The reason getter steps are to return this’s abort reason.
