@@ -305,7 +305,6 @@ impl Serialize for SendableWebDriverJSValue {
             WebDriverJSValue::Undefined => serializer.serialize_unit(),
             WebDriverJSValue::Null => serializer.serialize_unit(),
             WebDriverJSValue::Boolean(x) => serializer.serialize_bool(x),
-            WebDriverJSValue::Int(x) => serializer.serialize_i32(x),
             WebDriverJSValue::Number(x) => serializer.serialize_f64(x),
             WebDriverJSValue::String(ref x) => serializer.serialize_str(x),
             WebDriverJSValue::Element(ref x) => x.serialize(serializer),

@@ -259,7 +259,6 @@ pub enum WebDriverJSValue {
     Undefined,
     Null,
     Boolean(bool),
-    Int(i32),
     Number(f64),
     String(String),
     Element(WebElement),
