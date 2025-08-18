@@ -6,17 +6,20 @@
 
 # fmt: off
 
+from __future__ import annotations
+
 from WebIDL import IDLUnionType
 from WebIDL import IDLSequenceType
 from collections import defaultdict
 from itertools import groupby
-from typing import Optional
+from typing import Optional, Any
 from collections.abc import Generator
 from abc import abstractmethod
 
 import operator
 import os
 import re
+from re import Match
 import string
 import textwrap
 import functools
@@ -40,6 +43,10 @@ from WebIDL import (
     IDLTypedefType,
     IDLUndefinedValue,
     IDLWrapperType,
+    IDLRecordType,
+    IDLAttribute,
+    IDLConst,
+    IDLInterfaceOrNamespace,
 )
 
 from configuration import (
@@ -180,11 +187,11 @@ def containsDomInterface(t: IDLObject, logging: bool = False) -> bool:
     return False
 
 
-def toStringBool(arg) -> str:
+def toStringBool(arg: bool) -> str:
     return str(not not arg).lower()
 
 
-def toBindingNamespace(arg) -> str:
+def toBindingNamespace(arg: str) -> str:
     """
     Namespaces are *_Bindings
 
@@ -193,7 +200,7 @@ def toBindingNamespace(arg) -> str:
     return re.sub("((_workers)?$)", "_Binding\\1", MakeNativeName(arg))
 
 
-def toBindingModuleFile(arg) -> str:
+def toBindingModuleFile(arg: str) -> str:
     """
     Module files are *Bindings
 
@@ -203,8 +210,9 @@ def toBindingModuleFile(arg) -> str:
 
 
 def toBindingModuleFileFromDescriptor(desc: Descriptor) -> str:
-    if desc.maybeGetSuperModule() is not None:
-        return toBindingModuleFile(desc.maybeGetSuperModule())
+    isSuperModule = desc.maybeGetSuperModule()
+    if isSuperModule is not None:
+        return toBindingModuleFile(isSuperModule)
     else:
         return toBindingModuleFile(desc.name)
 
@@ -218,16 +226,22 @@ def stripTrailingWhitespace(text: str) -> str:
     return f"{joined_lines}{tail}"
 
 
-def innerContainerType(type):
+def innerContainerType(type: IDLType) -> IDLType:
     assert type.isSequence() or type.isRecord()
+    assert isinstance(type, (IDLSequenceType, IDLRecordType, IDLNullableType))
     return type.inner.inner if type.nullable() else type.inner
 
 
-def wrapInNativeContainerType(type, inner):
+def wrapInNativeContainerType(type: IDLType, inner: CGThing | None) -> CGThing:
     if type.isSequence():
         return CGWrapper(inner, pre="Vec<", post=">")
     elif type.isRecord():
-        key = type.inner.keyType if type.nullable() else type.keyType
+        if type.nullable():
+            assert isinstance(type, IDLNullableType)
+            key = type.inner.keyType
+        else:
+            assert isinstance(type, IDLRecordType)
+            key = type.keyType
         return CGRecord(key, inner)
     else:
         raise TypeError(f"Unexpected container type {type}")
@@ -304,7 +318,7 @@ fill_multiline_substitution_re = re.compile(r"( *)\$\*{(\w+)}(\n)?")
 
 
 @functools.cache
-def compile_fill_template(template):
+def compile_fill_template(template: str) -> tuple:
     """
     Helper function for fill().  Given the template string passed to fill(),
     do the reusable part of template processing and return a pair (t,
@@ -319,7 +333,7 @@ def compile_fill_template(template):
     assert t.endswith("\n") or "\n" not in t
     argModList = []
 
-    def replace(match):
+    def replace(match: Match[str]) -> str:
         """
         Replaces a line like '  $*{xyz}\n' with '${xyz_n}',
         where n is the indent depth, and add a corresponding entry to
@@ -345,7 +359,7 @@ def compile_fill_template(template):
     return (string.Template(t), argModList)
 
 
-def fill(template, **args):
+def fill(template: str, **args: str) -> str:
     """
     Convenience function for filling in a multiline template.
 
@@ -403,7 +417,7 @@ class CGMethodCall(CGThing):
     signatures and generation of a call to that signature.
     """
     cgRoot: CGThing
-    def __init__(self, argsPre, nativeMethodName, static, descriptor, method):
+    def __init__(self, argsPre, nativeMethodName: str, static, descriptor: Descriptor, method) -> None:
         CGThing.__init__(self)
 
         methodName = f'\\"{descriptor.interface.identifier.name}.{method.identifier.name}\\"'
@@ -617,21 +631,28 @@ class CGMethodCall(CGThing):
         return self.cgRoot.define()
 
 
-def dictionaryHasSequenceMember(dictionary):
+def dictionaryHasSequenceMember(dictionary: IDLDictionary) -> bool:
+    # pyrefly: ignore  # bad-return
     return (any(typeIsSequenceOrHasSequenceMember(m.type) for m in
                 dictionary.members)
             or (dictionary.parent
+                # pyrefly: ignore  # bad-argument-type
                 and dictionaryHasSequenceMember(dictionary.parent)))
 
 
-def typeIsSequenceOrHasSequenceMember(type):
+def typeIsSequenceOrHasSequenceMember(type: IDLType) -> bool:
     if type.nullable():
+        assert isinstance(type, IDLNullableType)
         type = type.inner
     if type.isSequence():
         return True
     if type.isDictionary():
+        assert isinstance(type, IDLDictionary)
+        # pyrefly: ignore  # missing-attribute
         return dictionaryHasSequenceMember(type.inner)
     if type.isUnion():
+        assert isinstance(type, IDLUnionType)
+        assert type.flatMemberTypes is not None
         return any(typeIsSequenceOrHasSequenceMember(m.type) for m in
                    type.flatMemberTypes)
     return False
@@ -2380,7 +2401,7 @@ class CGNamespace(CGWrapper):
         return CGNamespace(namespaces[0], inner, public=public)
 
 
-def DOMClassTypeId(desc):
+def DOMClassTypeId(desc: Descriptor) -> str:
     protochain = desc.prototypeChain
     inner = ""
     if desc.hasDescendants():
@@ -2396,7 +2417,7 @@ def DOMClassTypeId(desc):
     return f"crate::codegen::InheritTypes::TopTypeId {{ {protochain[0].lower()}: {inner} }}"
 
 
-def DOMClass(descriptor):
+def DOMClass(descriptor: Descriptor) -> str:
     protoList = [f'PrototypeList::ID::{proto}' for proto in descriptor.prototypeChain]
     # Pad out the list to the right length with ID::Last so we
     # guarantee that all the lists are the same length.  ID::Last
@@ -2540,11 +2561,11 @@ impl {args['selfName']} {{
 """
 
 
-def str_to_cstr(s):
+def str_to_cstr(s: str) -> str:
     return f'c"{s}"'
 
 
-def str_to_cstr_ptr(s):
+def str_to_cstr_ptr(s: str) -> str:
     return f'c"{s}".as_ptr()'
 
 
@@ -2753,7 +2774,7 @@ def UnionTypes(
                      typedefs=[], imports=imports, config=config)
 
 
-def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs, config):
+def DomTypes(descriptors: list[Descriptor], descriptorProvider: DescriptorProvider, dictionaries: IDLDictionary, callbacks: IDLCallback, typedefs: IDLTypedef, config: Configuration) -> CGThing:
     traits = [
         "crate::interfaces::DomHelpers<Self>",
         "js::rust::Trace",
@@ -2763,7 +2784,7 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
     joinedTraits = ' + '.join(traits)
     elements = [CGGeneric(f"pub trait DomTypes: {joinedTraits} where Self: 'static {{\n")]
 
-    def fixupInterfaceTypeReferences(typename):
+    def fixupInterfaceTypeReferences(typename: str) -> str:
         return typename.replace("D::", "Self::")
 
     for descriptor in descriptors:
@@ -2864,7 +2885,7 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
     return CGList(imports + elements)
 
 
-def DomTypeHolder(descriptors, descriptorProvider, dictionaries, callbacks, typedefs, config):
+def DomTypeHolder(descriptors: list[Descriptor], descriptorProvider: DescriptorProvider, dictionaries: IDLDictionary, callbacks: IDLCallback, typedefs: IDLTypedef, config: Configuration) -> CGThing:
     elements = [
         CGGeneric(
             "#[derive(JSTraceable, MallocSizeOf, PartialEq)]\n"
@@ -3075,7 +3096,7 @@ unsafe {
         return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
 
-def InitLegacyUnforgeablePropertiesOnHolder(descriptor, properties):
+def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: PropertyArrays) -> CGThing:
     """
     Define the unforgeable properties on the unforgeable holder for
     the interface represented by descriptor.
@@ -3097,7 +3118,7 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor, properties):
     return CGList(unforgeables, "\n")
 
 
-def CopyLegacyUnforgeablePropertiesToInstance(descriptor):
+def CopyLegacyUnforgeablePropertiesToInstance(descriptor: Descriptor) -> str:
     """
     Copy the unforgeable properties from the unforgeable holder for
     this interface to the instance object we have.
@@ -3292,7 +3313,7 @@ DomRoot::from_ref(&*root)\
 """)
 
 
-def toBindingPath(descriptor):
+def toBindingPath(descriptor: Descriptor) -> str:
     module = toBindingModuleFileFromDescriptor(descriptor)
     namespace = toBindingNamespace(descriptor.interface.identifier.name)
     return f"{module}::{namespace}"
@@ -3958,7 +3979,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         )
 
 
-def needCx(returnType, arguments, considerTypes):
+def needCx(returnType: IDLType, arguments, considerTypes: bool) -> bool:
     return (considerTypes
             and (typeNeedsCx(returnType, True)
                  or any(typeNeedsCx(a.type) for a in arguments)))
@@ -4278,7 +4299,7 @@ let global = D::GlobalScope::from_object(args.callee());
         raise NotImplementedError
 
 
-def GetConstructorNameForReporting(descriptor, ctor):
+def GetConstructorNameForReporting(descriptor: Descriptor, ctor: IDLInterfaceOrNamespace) -> str:
     # Figure out the name of our constructor for reporting purposes.
     # For unnamed webidl constructors, identifier.name is "constructor" but
     # the name JS sees is the interface name; for legacy factory functions
@@ -5015,7 +5036,7 @@ class CGStaticMethodJitinfo(CGGeneric):
         )
 
 
-def getEnumValueName(value):
+def getEnumValueName(value: str) -> str:
     # Some enum values can be empty strings.  Others might have weird
     # characters in them.  Deal with the former by returning "_empty",
     # deal with possible name collisions from that by throwing if the
@@ -5127,7 +5148,7 @@ impl FromJSValConvertible for super::{ident} {{
         return self.cgRoot.define()
 
 
-def convertConstIDLValueToRust(value):
+def convertConstIDLValueToRust(value: IDLConst) -> str:
     tag = value.type.tag()
     if tag in [IDLType.Tags.int8, IDLType.Tags.uint8,
                IDLType.Tags.int16, IDLType.Tags.uint16,
@@ -5164,11 +5185,13 @@ class CGConstant(CGThing):
         return f"pub const {name}: {const_type} = {value};\n"
 
 
-def getUnionTypeTemplateVars(type, descriptorProvider: DescriptorProvider):
+def getUnionTypeTemplateVars(type: IDLType, descriptorProvider: DescriptorProvider) -> dict[str, Any]:
     if type.isGeckoInterface():
+        # pyrefly: ignore  # missing-attribute
         name = type.inner.identifier.name
         typeName = descriptorProvider.getDescriptor(name).returnType
     elif type.isEnum():
+        # pyrefly: ignore  # missing-attribute
         name = type.inner.identifier.name
         typeName = name
     elif type.isDictionary():
@@ -5229,7 +5252,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider: DescriptorProvider):
     }
 
 
-def traitRequiresManualImpl(name, ty):
+def traitRequiresManualImpl(name: str, ty: IDLObject) -> bool:
     return name == "Clone" and containsDomInterface(ty)
 
 
@@ -6583,7 +6606,7 @@ let this = native_from_object_static::<{self.descriptor.concreteType}>(obj).unwr
         raise NotImplementedError
 
 
-def finalizeHook(descriptor, hookName, context):
+def finalizeHook(descriptor: Descriptor, hookName: str, context: str) -> str:
     if descriptor.isGlobal():
         release = "finalize_global(obj, this);"
     elif descriptor.weakReferenceable:
@@ -7870,7 +7893,7 @@ class CGBindingRoot(CGThing):
         return stripTrailingWhitespace(self.root.define())
 
 
-def type_needs_tracing(t: IDLObject):
+def type_needs_tracing(t: IDLObject) -> bool:
     assert isinstance(t, IDLObject), (t, type(t))
 
     if t.isType():
@@ -7918,15 +7941,16 @@ def type_needs_tracing(t: IDLObject):
         return False
 
     assert False, (t, type(t))
+    return False
 
 
-def is_typed_array(t: IDLType):
+def is_typed_array(t: IDLType) -> bool:
     assert isinstance(t, IDLObject), (t, type(t))
 
     return t.isTypedArray() or t.isArrayBuffer() or t.isArrayBufferView()
 
 
-def type_needs_auto_root(t: IDLType):
+def type_needs_auto_root(t: IDLType) -> bool:
     """
     Certain IDL types, such as `sequence<any>` or `sequence<object>` need to be
     traced and wrapped via (Custom)AutoRooter
@@ -7943,7 +7967,7 @@ def type_needs_auto_root(t: IDLType):
     return False
 
 
-def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, variadic=False):
+def argument_type(descriptorProvider: DescriptorProvider, ty: IDLType, optional: bool = False, defaultValue=None, variadic: bool = False) -> str:
     info = getJSToNativeConversionInfo(
         ty, descriptorProvider, isArgument=True,
         isAutoRooted=type_needs_auto_root(ty))
@@ -7966,8 +7990,8 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
     return declType.define()
 
 
-def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None,
-                     inRealm=False, canGc=False):
+def method_arguments(descriptorProvider: DescriptorProvider, returnType, arguments, passJSBits: bool = True, trailing=None,
+                     inRealm: bool = False, canGc: bool = False):
     if needCx(returnType, arguments, passJSBits):
         yield "cx", "SafeJSContext"
 
@@ -7989,7 +8013,7 @@ def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True,
         yield "rval", outparamTypeFromReturnType(returnType),
 
 
-def return_type(descriptorProvider, rettype, infallible):
+def return_type(descriptorProvider: DescriptorProvider, rettype, infallible: bool) -> str:
     result = getRetvalDeclarationForType(rettype, descriptorProvider)
     if rettype and returnTypeNeedsOutparam(rettype):
         result = CGGeneric("()")
@@ -8130,11 +8154,11 @@ class CGCallback(CGClass):
 
 
 # We're always fallible
-def callbackGetterName(attr, descriptor):
+def callbackGetterName(attr: IDLAttribute, descriptor: Descriptor) -> str:
     return f"Get{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name, attr.isStatic()))}"
 
 
-def callbackSetterName(attr, descriptor):
+def callbackSetterName(attr: IDLAttribute, descriptor: Descriptor) -> str:
     return f"Set{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name, attr.isStatic()))}"
 
 
@@ -8185,19 +8209,19 @@ class CGCallbackInterface(CGCallback):
 
 
 class FakeMember():
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def isStatic(self):
+    def isStatic(self) -> bool:
         return False
 
-    def isAttr(self):
+    def isAttr(self) -> bool:
         return False
 
-    def isMethod(self):
+    def isMethod(self) -> bool:
         return False
 
-    def getExtendedAttribute(self, name):
+    def getExtendedAttribute(self, name: str) -> None:
         return None
 
 
@@ -8630,11 +8654,11 @@ class CGIterableMethodGenerator(CGGeneric):
             itrMethod=methodName.title()))
 
 
-def camel_to_upper_snake(s):
+def camel_to_upper_snake(s: str) -> str:
     return "_".join(m.group(0).upper() for m in re.finditer("[A-Z][a-z]*", s))
 
 
-def process_arg(expr, arg):
+def process_arg(expr: str, arg: IDLArgument) -> str:
     if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
         if arg.variadic or arg.type.isSequence():
             expr += ".r()"
