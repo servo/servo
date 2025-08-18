@@ -3979,16 +3979,14 @@ impl ScriptThread {
             return;
         };
 
-        let result = match jsval_to_webdriver(
+        let result = jsval_to_webdriver(
             context,
             global_scope,
             return_value.handle(),
             (&realm).into(),
             can_gc,
-        ) {
-            Ok(ref value) => Ok(value.into()),
-            Err(_) => Err(JavaScriptEvaluationError::SerializationError),
-        };
+        )
+        .map_err(|_| JavaScriptEvaluationError::SerializationError);
 
         let _ = self.senders.pipeline_to_constellation_sender.send((
             pipeline_id,

@@ -20,10 +20,9 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FocusId, FormControl,
-    GamepadHapticEffectType, KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate,
-    ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
-    WebDriverJSValue, WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder,
-    WebViewDelegate,
+    GamepadHapticEffectType, JSValue, KeyboardEvent, LoadStatus, PermissionRequest, Servo,
+    ServoDelegate, ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -500,8 +499,10 @@ impl RunningAppState {
             .borrow()
             .script_evaluation_interrupt_sender
         {
-            sender.send(Ok(WebDriverJSValue::Null)).unwrap_or_else(|err| {
-                info!("Notify dialog appear failed. Maybe the channel to webdriver is closed: {err}");
+            sender.send(Ok(JSValue::Null)).unwrap_or_else(|err| {
+                info!(
+                    "Notify dialog appear failed. Maybe the channel to webdriver is closed: {err}"
+                );
             });
         }
     }

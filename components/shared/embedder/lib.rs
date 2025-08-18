@@ -1003,29 +1003,6 @@ pub enum JSValue {
     Object(HashMap<String, JSValue>),
 }
 
-impl From<&WebDriverJSValue> for JSValue {
-    fn from(value: &WebDriverJSValue) -> Self {
-        match value {
-            WebDriverJSValue::Undefined => Self::Undefined,
-            WebDriverJSValue::Null => Self::Null,
-            WebDriverJSValue::Boolean(value) => Self::Boolean(*value),
-            WebDriverJSValue::Number(value) => Self::Number(*value),
-            WebDriverJSValue::String(value) => Self::String(value.clone()),
-            WebDriverJSValue::Element(web_element) => Self::Element(web_element.0.clone()),
-            WebDriverJSValue::Frame(web_frame) => Self::Frame(web_frame.0.clone()),
-            WebDriverJSValue::Window(web_window) => Self::Window(web_window.0.clone()),
-            WebDriverJSValue::ArrayLike(vector) => {
-                Self::Array(vector.iter().map(Into::into).collect())
-            },
-            WebDriverJSValue::Object(map) => Self::Object(
-                map.iter()
-                    .map(|(key, value)| (key.clone(), value.into()))
-                    .collect(),
-            ),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum JavaScriptEvaluationError {
     /// The script could not be compiled

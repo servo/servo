@@ -19,11 +19,10 @@ use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
-use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
-use crate::{FocusId, MouseButton, MouseButtonAction, TraversalId};
+use crate::{FocusId, JSValue, MouseButton, MouseButtonAction, TraversalId};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
@@ -226,11 +225,7 @@ pub enum WebDriverScriptCommand {
         String,
         IpcSender<Result<Option<String>, ErrorStatus>>,
     ),
-    GetElementProperty(
-        String,
-        String,
-        IpcSender<Result<WebDriverJSValue, ErrorStatus>>,
-    ),
+    GetElementProperty(String, String, IpcSender<Result<JSValue, ErrorStatus>>),
     GetElementCSS(String, String, IpcSender<Result<String, ErrorStatus>>),
     GetElementRect(String, IpcSender<Result<UntypedRect<f64>, ErrorStatus>>),
     GetElementTagName(String, IpcSender<Result<String, ErrorStatus>>),
@@ -254,33 +249,19 @@ pub enum WebDriverScriptCommand {
     GetWindowHandle(IpcSender<Result<String, ErrorStatus>>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum WebDriverJSValue {
-    Undefined,
-    Null,
-    Boolean(bool),
-    Number(f64),
-    String(String),
-    Element(WebElement),
-    Frame(WebFrame),
-    Window(WebWindow),
-    ArrayLike(Vec<WebDriverJSValue>),
-    Object(HashMap<String, WebDriverJSValue>),
-}
-
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverJSError {
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,
-    JSException(WebDriverJSValue),
+    JSException(JSValue),
     JSError,
     StaleElementReference,
     Timeout,
     UnknownType,
 }
 
-pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
+pub type WebDriverJSResult = Result<JSValue, WebDriverJSError>;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverFrameId {

@@ -27,8 +27,8 @@ use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    EventLoopWaker, MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverFrameId,
-    WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverMessageId,
+    EventLoopWaker, JSValue, MouseButton, WebDriverCommandMsg, WebDriverCommandResponse,
+    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus, WebDriverMessageId,
     WebDriverScriptCommand,
 };
 use euclid::{Point2D, Rect, Size2D};
@@ -60,7 +60,9 @@ use webdriver::command::{
     SwitchToFrameParameters, SwitchToWindowParameters, TimeoutsParameters, WebDriverCommand,
     WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
 };
-use webdriver::common::{Cookie, Date, LocatorStrategy, Parameters, ShadowRoot, WebElement};
+use webdriver::common::{
+    Cookie, Date, LocatorStrategy, Parameters, ShadowRoot, WebElement, WebFrame, WebWindow,
+};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{
@@ -294,31 +296,31 @@ impl WebDriverExtensionCommand for ServoExtensionCommand {
 }
 
 #[derive(Clone)]
-struct SendableWebDriverJSValue(pub WebDriverJSValue);
+struct SendableJSValue(pub JSValue);
 
-impl Serialize for SendableWebDriverJSValue {
+impl Serialize for SendableJSValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         match self.0 {
-            WebDriverJSValue::Undefined => serializer.serialize_unit(),
-            WebDriverJSValue::Null => serializer.serialize_unit(),
-            WebDriverJSValue::Boolean(x) => serializer.serialize_bool(x),
-            WebDriverJSValue::Number(x) => serializer.serialize_f64(x),
-            WebDriverJSValue::String(ref x) => serializer.serialize_str(x),
-            WebDriverJSValue::Element(ref x) => x.serialize(serializer),
-            WebDriverJSValue::Frame(ref x) => x.serialize(serializer),
-            WebDriverJSValue::Window(ref x) => x.serialize(serializer),
-            WebDriverJSValue::ArrayLike(ref x) => x
+            JSValue::Undefined => serializer.serialize_unit(),
+            JSValue::Null => serializer.serialize_unit(),
+            JSValue::Boolean(x) => serializer.serialize_bool(x),
+            JSValue::Number(x) => serializer.serialize_f64(x),
+            JSValue::String(ref x) => serializer.serialize_str(x),
+            JSValue::Element(ref x) => WebElement(x.clone()).serialize(serializer),
+            JSValue::Frame(ref x) => WebFrame(x.clone()).serialize(serializer),
+            JSValue::Window(ref x) => WebWindow(x.clone()).serialize(serializer),
+            JSValue::Array(ref x) => x
                 .iter()
-                .map(|element| SendableWebDriverJSValue(element.clone()))
-                .collect::<Vec<SendableWebDriverJSValue>>()
+                .map(|element| SendableJSValue(element.clone()))
+                .collect::<Vec<SendableJSValue>>()
                 .serialize(serializer),
-            WebDriverJSValue::Object(ref x) => x
+            JSValue::Object(ref x) => x
                 .iter()
-                .map(|(k, v)| (k.clone(), SendableWebDriverJSValue(v.clone())))
-                .collect::<HashMap<String, SendableWebDriverJSValue>>()
+                .map(|(k, v)| (k.clone(), SendableJSValue(v.clone())))
+                .collect::<HashMap<String, SendableJSValue>>()
                 .serialize(serializer),
         }
     }
@@ -1748,7 +1750,7 @@ impl Handler {
 
         match wait_for_ipc_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(SendableWebDriverJSValue(value))?,
+                serde_json::to_value(SendableJSValue(value))?,
             ))),
             Err(error) => Err(WebDriverError::new(error, "")),
         }
@@ -2100,7 +2102,7 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         match result {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(SendableWebDriverJSValue(value))?,
+                serde_json::to_value(SendableJSValue(value))?,
             ))),
             Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
                 ErrorStatus::NoSuchWindow,
