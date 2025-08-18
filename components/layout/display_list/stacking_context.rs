@@ -307,6 +307,7 @@ pub(crate) enum StackingContextContent {
         containing_block: PhysicalRect<Au>,
         fragment: Fragment,
         is_collapsed_table_borders: bool,
+        #[conditional_malloc_size_of]
         text_decorations: Arc<Vec<FragmentTextDecoration>>,
     },
 

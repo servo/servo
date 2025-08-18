@@ -832,7 +832,9 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BorderRadius);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BorderStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BoxShadowClipMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ColorF);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::Epoch);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExtendMode);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExternalScrollId);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontInstanceKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GlyphInstance);
@@ -842,8 +844,14 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ImageRendering);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::LineStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::MixBlendMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::NormalBorder);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::PipelineId);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ReferenceFrameKind);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::RepeatMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontVariation);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::SpatialId);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::StickyOffsetBounds);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::TransformStyle);
+malloc_size_of_is_webrender_malloc_size_of!(webrender::FastTransform<webrender_api::units::LayoutPixel,webrender_api::units::LayoutPixel>);
 
 macro_rules! malloc_size_of_is_stylo_malloc_size_of(
     ($($ty:ty),+) => (
