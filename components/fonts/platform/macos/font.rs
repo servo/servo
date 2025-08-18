@@ -70,10 +70,43 @@ unsafe impl Sync for PlatformFont {}
 unsafe impl Send for PlatformFont {}
 
 impl PlatformFont {
+    pub(crate) fn new_with_ctfont(ctfont: CTFont) -> Self {
+        Self {
+            ctfont,
+            h_kern_subtable: None,
+        }
+    }
+
+    fn new(
+        font_identifier: FontIdentifier,
+        data: Option<&FontData>,
+        requested_size: Option<Au>,
+    ) -> Result<PlatformFont, &'static str> {
+        let size = match requested_size {
+            Some(s) => s.to_f64_px(),
+            None => 0.0,
+        };
+        let Some(mut platform_font) =
+            CoreTextFontCache::core_text_font(font_identifier, data, size)
+        else {
+            return Err("Could not generate CTFont for FontTemplateData");
+        };
+
+        platform_font.load_h_kern_subtable();
+        Ok(platform_font)
+    }
+
     /// Cache all the data needed for basic horizontal kerning. This is used only as a fallback or
     /// fast path (when the GPOS table is missing or unnecessary) so it needn't handle every case.
-    fn find_h_kern_subtable(&self) -> Option<CachedKernTable> {
-        let font_table = self.table_for_tag(KERN)?;
+    fn load_h_kern_subtable(&mut self) {
+        if self.h_kern_subtable.is_some() {
+            return;
+        }
+
+        let Some(font_table) = self.table_for_tag(KERN) else {
+            return;
+        };
+
         let mut result = CachedKernTable {
             font_table,
             pair_data_range: 0..0,
@@ -89,7 +122,7 @@ impl PlatformFont {
             let table = result.font_table.buffer();
             let version = BigEndian::read_u16(table);
             if version != 0 {
-                return None;
+                return;
             }
             let num_subtables = BigEndian::read_u16(&table[2..]);
             let mut start = 4;
@@ -102,7 +135,7 @@ impl PlatformFont {
                     // Found a matching subtable.
                     if !result.pair_data_range.is_empty() {
                         debug!("Found multiple horizontal kern tables. Disable fast path.");
-                        return None;
+                        return;
                     }
                     // Read the subtable header.
                     let subtable_start = start + SUBTABLE_HEADER_LEN;
@@ -112,7 +145,7 @@ impl PlatformFont {
                     result.pair_data_range = pair_data_start..end;
                     if result.pair_data_range.len() != n_pairs * KERN_PAIR_LEN {
                         debug!("Bad data in kern header. Disable fast path.");
-                        return None;
+                        return;
                     }
 
                     let pt_per_font_unit =
@@ -122,10 +155,9 @@ impl PlatformFont {
                 start = end;
             }
         }
+
         if !result.pair_data_range.is_empty() {
-            Some(result)
-        } else {
-            None
+            self.h_kern_subtable = Some(result);
         }
     }
 }
@@ -161,30 +193,6 @@ impl CachedKernTable {
 impl fmt::Debug for CachedKernTable {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "CachedKernTable")
-    }
-}
-
-impl PlatformFont {
-    fn new(
-        font_identifier: FontIdentifier,
-        data: Option<&FontData>,
-        requested_size: Option<Au>,
-    ) -> Result<PlatformFont, &'static str> {
-        let size = match requested_size {
-            Some(s) => s.to_f64_px(),
-            None => 0.0,
-        };
-        let Some(core_text_font) = CoreTextFontCache::core_text_font(font_identifier, data, size)
-        else {
-            return Err("Could not generate CTFont for FontTemplateData");
-        };
-
-        let mut handle = PlatformFont {
-            ctfont: core_text_font.clone_with_font_size(size),
-            h_kern_subtable: None,
-        };
-        handle.h_kern_subtable = handle.find_h_kern_subtable();
-        Ok(handle)
     }
 }
 

@@ -17,6 +17,7 @@ use core_text::font_descriptor::kCTFontURLAttribute;
 use parking_lot::RwLock;
 
 use crate::FontData;
+use crate::platform::font::PlatformFont;
 use crate::system_font_service::FontIdentifier;
 
 /// A cache of `CTFont` to avoid having to create `CTFont` instances over and over. It is
@@ -36,7 +37,7 @@ impl CoreTextFontCache {
         font_identifier: FontIdentifier,
         data: Option<&FontData>,
         pt_size: f64,
-    ) -> Option<CTFont> {
+    ) -> Option<PlatformFont> {
         //// If you pass a zero font size to one of the Core Text APIs, it'll replace it with
         //// 12.0. We don't want that! (Issue #10492.)
         let clamped_pt_size = pt_size.max(0.01);
@@ -49,7 +50,7 @@ impl CoreTextFontCache {
                 .get(&font_identifier)
                 .and_then(|identifier_cache| identifier_cache.get(&au_size))
             {
-                return Some(core_text_font.clone());
+                return Some(PlatformFont::new_with_ctfont(core_text_font.clone()));
             }
         }
 
@@ -60,7 +61,7 @@ impl CoreTextFontCache {
         // on the cache has been acquired, the cache was populated with the data that we need. Thus
         // check again and return the CTFont if it is is already cached.
         if let Some(core_text_font) = identifier_cache.get(&au_size) {
-            return Some(core_text_font.clone());
+            return Some(PlatformFont::new_with_ctfont(core_text_font.clone()));
         }
 
         let core_text_font = match font_identifier {
@@ -98,6 +99,6 @@ impl CoreTextFontCache {
         };
 
         identifier_cache.insert(au_size, core_text_font.clone());
-        Some(core_text_font)
+        Some(PlatformFont::new_with_ctfont(core_text_font))
     }
 }
