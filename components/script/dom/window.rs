@@ -2175,8 +2175,16 @@ impl Window {
         // Even though the note mention the scrollend, it is relevant to the scroll as well.
         if reflow_phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
             match element {
-                Some(el) => self.Document().handle_element_scroll_event(el),
-                None => self.Document().handle_viewport_scroll_event(),
+                Some(el) => {
+                    self.Document().handle_element_scroll_event(el);
+                    // Add to pending scrollend events for instant scroll completion
+                    self.Document().handle_element_scrollend_event(el);
+                },
+                None => {
+                    self.Document().handle_viewport_scroll_event();
+                    // Add to pending scrollend events for instant scroll completion
+                    self.Document().handle_viewport_scrollend_event();
+                },
             };
         }
     }
