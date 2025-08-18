@@ -60,6 +60,13 @@
       {}
      ]
     ],
+    "navigate-loop-crash.html": [
+     "626ca5d87cc9ebb3b5bcb0b8c478ed9a1a0e0c66",
+     [
+      null,
+      {}
+     ]
+    ],
     "path2D_addPath-crash.html": [
      "f913e6baf8340886c58f99609755ae061bf64f12",
      [
@@ -10673,10 +10680,6 @@
     ],
     "max-session-history-frame.html": [
      "192c7235d061b439ef2b57d4b01b170b7412dcdc",
-     []
-    ],
-    "navigate_loop_crash.html": [
-     "626ca5d87cc9ebb3b5bcb0b8c478ed9a1a0e0c66",
      []
     ],
     "nested_asap_script.js": [
