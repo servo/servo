@@ -9,7 +9,7 @@ use std::ptr::NonNull;
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use embedder_traits::{
-    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+    JSValue, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
@@ -31,7 +31,6 @@ use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMeth
 use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
 use servo_url::ServoUrl;
-use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 
 use crate::document_collection::DocumentCollection;
@@ -364,13 +363,13 @@ unsafe fn jsval_to_webdriver_inner(
 ) -> WebDriverJSResult {
     let _ac = enter_realm(global_scope);
     if val.get().is_undefined() {
-        Ok(WebDriverJSValue::Undefined)
+        Ok(JSValue::Undefined)
     } else if val.get().is_null() {
-        Ok(WebDriverJSValue::Null)
+        Ok(JSValue::Null)
     } else if val.get().is_boolean() {
-        Ok(WebDriverJSValue::Boolean(val.get().to_boolean()))
+        Ok(JSValue::Boolean(val.get().to_boolean()))
     } else if val.get().is_number() {
-        Ok(WebDriverJSValue::Number(
+        Ok(JSValue::Number(
             match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
                 ConversionResult::Success(c) => c,
                 _ => unreachable!(),
@@ -385,7 +384,7 @@ unsafe fn jsval_to_webdriver_inner(
                 ConversionResult::Success(c) => c,
                 _ => unreachable!(),
             };
-        Ok(WebDriverJSValue::String(String::from(string)))
+        Ok(JSValue::String(String::from(string)))
     }
     // https://w3c.github.io/webdriver/#dfn-clone-an-object
     else if val.get().is_object() {
@@ -406,7 +405,7 @@ unsafe fn jsval_to_webdriver_inner(
         let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
             is_arguments_object(cx, val)
         {
-            let mut result: Vec<WebDriverJSValue> = Vec::new();
+            let mut result: Vec<JSValue> = Vec::new();
 
             let length = match get_property::<u32>(
                 cx,
@@ -449,12 +448,10 @@ unsafe fn jsval_to_webdriver_inner(
                     },
                 }
             }
-            Ok(WebDriverJSValue::ArrayLike(result))
+            Ok(JSValue::Array(result))
         } else if let Ok(element) = root_from_object::<Element>(*object, cx) {
-            Ok(WebDriverJSValue::Element(WebElement(
-                element
-                    .upcast::<Node>()
-                    .unique_id(element.owner_document().window().pipeline_id()),
+            Ok(JSValue::Element(element.upcast::<Node>().unique_id(
+                element.owner_document().window().pipeline_id(),
             )))
         } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
             let window_proxy = window.window_proxy();
@@ -463,13 +460,13 @@ unsafe fn jsval_to_webdriver_inner(
             } else {
                 let pipeline = window.pipeline_id();
                 if window_proxy.browsing_context_id() == window_proxy.webview_id() {
-                    Ok(WebDriverJSValue::Window(WebWindow(
+                    Ok(JSValue::Window(
                         window.Document().upcast::<Node>().unique_id(pipeline),
-                    )))
+                    ))
                 } else {
-                    Ok(WebDriverJSValue::Frame(WebFrame(
+                    Ok(JSValue::Frame(
                         window.Document().upcast::<Node>().unique_id(pipeline),
-                    )))
+                    ))
                 }
             }
         } else if object_has_to_json_property(cx, global_scope, object.handle()) {
@@ -547,7 +544,7 @@ unsafe fn jsval_to_webdriver_inner(
                     }
                 }
             }
-            Ok(WebDriverJSValue::Object(result))
+            Ok(JSValue::Object(result))
         };
         // Step 5. Remove the last element of `seen`.
         seen.remove(&hashable);
@@ -1648,7 +1645,7 @@ pub(crate) fn handle_get_property(
     pipeline: PipelineId,
     node_id: String,
     name: String,
-    reply: IpcSender<Result<WebDriverJSValue, ErrorStatus>>,
+    reply: IpcSender<Result<JSValue, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1676,12 +1673,12 @@ pub(crate) fn handle_get_property(
                             can_gc,
                         ) {
                             Ok(property) => property,
-                            Err(_) => WebDriverJSValue::Undefined,
+                            Err(_) => JSValue::Undefined,
                         }
                     },
                     Err(error) => {
                         throw_dom_exception(cx, &element.global(), error, can_gc);
-                        WebDriverJSValue::Undefined
+                        JSValue::Undefined
                     },
                 }
             }),
