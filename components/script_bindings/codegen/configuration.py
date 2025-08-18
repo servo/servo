@@ -22,6 +22,7 @@ from WebIDL import (
     IDLCallback,
     IDLAttribute,
     IDLMethod,
+    IDLParametrizedType,
 )
 
 
@@ -494,7 +495,7 @@ class Descriptor(DescriptorProvider):
                 or self.hasDescendants() or self.hasHTMLConstructor() or False)
 
     def shouldCacheConstructor(self) -> bool:
-        return self.hasDescendants() or self.hasHTMLConstructor() or False
+        return self.hasDescendants() or self.hasHTMLConstructor()
 
     def isExposedConditionally(self) -> bool:
         return self.interface.isExposedConditionally()
@@ -523,7 +524,7 @@ def getModuleFromObject(object: IDLObject) -> str:
     return ('crate::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
 
 
-def getTypesFromDescriptor(descriptor: Descriptor) -> list:
+def getTypesFromDescriptor(descriptor: Descriptor) -> list[IDLParametrizedType]:
     """
     Get all argument and return types for all members of the descriptor
     """
