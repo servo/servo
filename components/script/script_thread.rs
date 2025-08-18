@@ -2856,12 +2856,12 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
         // 2. If response's status is 204 or 205, then abort these steps.
-        let is20x = match metadata {
+        let is_204_205 = match metadata {
             Some(ref metadata) => metadata.status.in_range(204..=205),
             _ => false,
         };
 
-        if is20x {
+        if is_204_205 {
             // If we have an existing window that is being navigated:
             if let Some(window) = self.documents.borrow().find_window(*id) {
                 let window_proxy = window.window_proxy();
