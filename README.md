@@ -90,4 +90,4 @@ For more detailed build instructions, see the Servo book under [Setting up your 
   - `OHOS_SDK_NATIVE` (e.g. `${DEVECO_SDK_HOME}/default/openharmony/native` or `${OHOS_BASE_SDK_HOME}/${API_VERSION}/native`)
   - `SERVO_OHOS_SIGNING_CONFIG`: Path to json file containing a valid signing configuration for the demo app.
 - Review the detailed instructions at [Building for OpenHarmony].
-- The target distribution can be modified by passing `--flavor=<default|harmonyos>` to `mach <build|package|install>.
+- The target distribution can be modified by passing `--flavor=<default|harmonyos>` to `mach <build|package|install>`.
