@@ -23,7 +23,7 @@ use style::Zero;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
-use webrender_api::FontInstanceFlags;
+use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::LocalFontIdentifier;
 use super::library_handle::FreeTypeLibraryHandle;
@@ -63,6 +63,7 @@ pub struct PlatformFont {
     face: ReentrantMutex<FreeTypeFace>,
     requested_face_size: Au,
     actual_face_size: Au,
+    variations: Vec<FontVariation>,
 
     /// A member that allows using `skrifa` to read values from this font.
     table_provider_data: FreeTypeFaceTableProviderData,
@@ -73,10 +74,13 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         font_data: &FontData,
         requested_size: Option<Au>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
         let face = FreeTypeFace::new_from_memory(&library, data)?;
+
+        let normalized_variations = face.set_variations_for_font(variations, &library)?;
 
         let (requested_face_size, actual_face_size) = match requested_size {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
@@ -88,17 +92,21 @@ impl PlatformFontMethods for PlatformFont {
             requested_face_size,
             actual_face_size,
             table_provider_data: FreeTypeFaceTableProviderData::Web(font_data.clone()),
+            variations: normalized_variations,
         })
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
 
         let face = FreeTypeFace::new_from_file(&library, &filename, font_identifier.index())?;
+
+        let normalized_variations = face.set_variations_for_font(variations, &library)?;
 
         let (requested_face_size, actual_face_size) = match requested_size {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
@@ -119,6 +127,7 @@ impl PlatformFontMethods for PlatformFont {
                 Arc::new(memory_mapped_font_data),
                 font_identifier.index(),
             ),
+            variations: normalized_variations,
         })
     }
 
@@ -376,6 +385,10 @@ impl PlatformFontMethods for PlatformFont {
         // color characters, but not passing this flag simply *prevents* WebRender from
         // loading bitmaps. There's no harm to always passing it.
         FontInstanceFlags::EMBEDDED_BITMAPS
+    }
+
+    fn variations(&self) -> &[FontVariation] {
+        &self.variations
     }
 }
 

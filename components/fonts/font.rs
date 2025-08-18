@@ -4,6 +4,7 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
@@ -26,7 +27,7 @@ use style::values::computed::font::{
 };
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
-use webrender_api::{FontInstanceFlags, FontInstanceKey};
+use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
 use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
@@ -43,13 +44,14 @@ macro_rules! ot_tag {
     };
 }
 
-pub const GPOS: u32 = ot_tag!('G', 'P', 'O', 'S');
-pub const GSUB: u32 = ot_tag!('G', 'S', 'U', 'B');
-pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
-pub const SBIX: u32 = ot_tag!('s', 'b', 'i', 'x');
-pub const CBDT: u32 = ot_tag!('C', 'B', 'D', 'T');
-pub const COLR: u32 = ot_tag!('C', 'O', 'L', 'R');
-pub const BASE: u32 = ot_tag!('B', 'A', 'S', 'E');
+pub type OpenTypeTableTag = u32;
+pub const GPOS: OpenTypeTableTag = ot_tag!('G', 'P', 'O', 'S');
+pub const GSUB: OpenTypeTableTag = ot_tag!('G', 'S', 'U', 'B');
+pub const KERN: OpenTypeTableTag = ot_tag!('k', 'e', 'r', 'n');
+pub const SBIX: OpenTypeTableTag = ot_tag!('s', 'b', 'i', 'x');
+pub const CBDT: OpenTypeTableTag = ot_tag!('C', 'B', 'D', 'T');
+pub const COLR: OpenTypeTableTag = ot_tag!('C', 'O', 'L', 'R');
+pub const BASE: OpenTypeTableTag = ot_tag!('B', 'A', 'S', 'E');
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -66,6 +68,7 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
+        variations: &[FontVariation],
         data: &Option<FontData>,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
@@ -73,13 +76,14 @@ pub trait PlatformFontMethods: Sized {
 
         match font_identifier {
             FontIdentifier::Local(font_identifier) => {
-                Self::new_from_local_font_identifier(font_identifier, pt_size)
+                Self::new_from_local_font_identifier(font_identifier, pt_size, variations)
             },
             FontIdentifier::Web(_) => Self::new_from_data(
                 font_identifier,
                 data.as_ref()
                     .expect("Should never create a web font without data."),
                 pt_size,
+                variations,
             ),
         }
     }
@@ -87,12 +91,14 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str>;
 
     fn new_from_data(
         font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str>;
 
     /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
@@ -109,6 +115,9 @@ pub trait PlatformFontMethods: Sized {
 
     /// Get the necessary [`FontInstanceFlags`]` for this font.
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
+
+    /// Return all the variation values that the font was instantiated with.
+    fn variations(&self) -> &[FontVariation];
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -192,18 +201,29 @@ pub struct FontDescriptor {
     pub style: FontStyle,
     pub variant: font_variant_caps::T,
     pub pt_size: Au,
+    pub variation_settings: Vec<FontVariation>,
 }
 
 impl Eq for FontDescriptor {}
 
 impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
     fn from(style: &'a FontStyleStruct) -> Self {
+        let variation_settings = style
+            .clone_font_variation_settings()
+            .0
+            .into_iter()
+            .map(|setting| FontVariation {
+                tag: setting.tag.0,
+                value: setting.value,
+            })
+            .collect();
         FontDescriptor {
             weight: style.font_weight,
             stretch: style.font_stretch,
             style: style.font_style,
             variant: style.font_variant_caps,
             pt_size: Au::from_f32_px(style.font_size.computed_size().px()),
+            variation_settings,
         }
     }
 }
@@ -280,8 +300,12 @@ impl Font {
         data: Option<FontData>,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
-        let handle =
-            PlatformFont::new_from_template(template.clone(), Some(descriptor.pt_size), &data)?;
+        let handle = PlatformFont::new_from_template(
+            template.clone(),
+            Some(descriptor.pt_size),
+            &descriptor.variation_settings,
+            &data,
+        )?;
         let metrics = handle.metrics();
 
         Ok(Font {
@@ -335,6 +359,10 @@ impl Font {
                     .unwrap_or_default(),
             )
         })
+    }
+
+    pub fn variations(&self) -> &[FontVariation] {
+        self.handle.variations()
     }
 }
 
@@ -426,9 +454,8 @@ impl Font {
     }
 
     fn shape_text_harfbuzz(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
-        let this = self as *const Font;
         self.shaper
-            .get_or_init(|| Shaper::new(this))
+            .get_or_init(|| Shaper::new(self))
             .shape_text(text, options, glyphs);
     }
 
@@ -544,8 +571,7 @@ impl Font {
 
     /// Get the [`FontBaseline`] for this font.
     pub fn baseline(&self) -> Option<FontBaseline> {
-        let this = self as *const Font;
-        self.shaper.get_or_init(|| Shaper::new(this)).baseline()
+        self.shaper.get_or_init(|| Shaper::new(self)).baseline()
     }
 }
 

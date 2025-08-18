@@ -837,6 +837,7 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::LineStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::MixBlendMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::NormalBorder);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::RepeatMode);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontVariation);
 
 macro_rules! malloc_size_of_is_stylo_malloc_size_of(
     ($($ty:ty),+) => (

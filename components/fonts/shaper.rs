@@ -22,8 +22,9 @@ use harfbuzz_sys::{
     hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t, hb_font_create,
     hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
     hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
-    hb_font_set_scale, hb_font_t, hb_glyph_info_t, hb_glyph_position_t, hb_ot_layout_get_baseline,
-    hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t,
+    hb_font_set_scale, hb_font_set_variations, hb_font_t, hb_glyph_info_t, hb_glyph_position_t,
+    hb_ot_layout_get_baseline, hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t,
+    hb_variation_t,
 };
 use log::debug;
 use num_traits::Zero;
@@ -32,13 +33,14 @@ use crate::font::advance_for_shaped_glyph;
 use crate::platform::font::FontTable;
 use crate::{
     BASE, ByteIndex, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphData, GlyphId,
-    GlyphStore, KERN, ShapingFlags, ShapingOptions, fixed_to_float, float_to_fixed, ot_tag,
+    GlyphStore, KERN, OpenTypeTableTag, ShapingFlags, ShapingOptions, fixed_to_float,
+    float_to_fixed, ot_tag,
 };
 
 const NO_GLYPH: i32 = -1;
-const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');
-const HB_OT_TAG_DEFAULT_SCRIPT: u32 = ot_tag!('D', 'F', 'L', 'T');
-const HB_OT_TAG_DEFAULT_LANGUAGE: u32 = ot_tag!('d', 'f', 'l', 't');
+const LIGA: OpenTypeTableTag = ot_tag!('l', 'i', 'g', 'a');
+const HB_OT_TAG_DEFAULT_SCRIPT: OpenTypeTableTag = ot_tag!('D', 'F', 'L', 'T');
+const HB_OT_TAG_DEFAULT_LANGUAGE: OpenTypeTableTag = ot_tag!('d', 'f', 'l', 't');
 
 pub struct ShapedGlyphData {
     count: usize,
@@ -155,18 +157,17 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
-    #[allow(clippy::not_unsafe_ptr_arg_deref)] // Has an unsafe block inside
-    pub fn new(font: *const Font) -> Shaper {
+    pub fn new(font: &Font) -> Shaper {
         unsafe {
             let hb_face: *mut hb_face_t = hb_face_create_for_tables(
                 Some(font_table_func),
-                font as *const c_void as *mut c_void,
+                font as *const Font as *mut c_void,
                 None,
             );
             let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
-            let pt_size = (*font).descriptor.pt_size.to_f64_px();
+            let pt_size = font.descriptor.pt_size.to_f64_px();
             hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
             // Set scaling. Note that this takes 16.16 fixed point.
@@ -180,9 +181,25 @@ impl Shaper {
             hb_font_set_funcs(
                 hb_font,
                 HB_FONT_FUNCS.0,
-                font as *mut Font as *mut c_void,
+                font as *const Font as *mut c_void,
                 None,
             );
+
+            if servo_config::pref!(layout_variable_fonts_enabled) {
+                let variations = &font.variations();
+                if !variations.is_empty() {
+                    let variations: Vec<_> = variations
+                        .iter()
+                        .map(|variation| hb_variation_t {
+                            tag: variation.tag,
+
+                            value: variation.value,
+                        })
+                        .collect();
+
+                    hb_font_set_variations(hb_font, variations.as_ptr(), variations.len() as u32);
+                }
+            }
 
             Shaper {
                 hb_face,
@@ -270,6 +287,7 @@ impl Shaper {
                 features.as_mut_ptr(),
                 features.len() as u32,
             );
+
             self.save_glyph_results(text, options, glyphs, hb_buffer);
             hb_buffer_destroy(hb_buffer);
         }

@@ -14,7 +14,7 @@ use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use smallvec::SmallVec;
 use strum_macros::IntoStaticStr;
-use webrender_api::DocumentId;
+use webrender_api::{DocumentId, FontVariation};
 
 pub mod display_list;
 pub mod rendering_context;
@@ -132,7 +132,13 @@ pub enum CompositorMsg {
     /// Add a system font with the given font key and handle.
     AddSystemFont(FontKey, NativeFontHandle),
     /// Add an instance of a font with the given instance key.
-    AddFontInstance(FontInstanceKey, FontKey, f32, FontInstanceFlags),
+    AddFontInstance(
+        FontInstanceKey,
+        FontKey,
+        f32,
+        FontInstanceFlags,
+        Vec<FontVariation>,
+    ),
     /// Remove the given font resources from our WebRender instance.
     RemoveFonts(Vec<FontKey>, Vec<FontInstanceKey>),
     /// Measure the current memory usage associated with the compositor.
@@ -303,12 +309,14 @@ impl CrossProcessCompositorApi {
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
+        variations: Vec<FontVariation>,
     ) {
         let _x = self.0.send(CompositorMsg::AddFontInstance(
             font_instance_key,
             font_key,
             size,
             flags,
+            variations,
         ));
     }
 

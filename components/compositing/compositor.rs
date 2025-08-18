@@ -43,9 +43,9 @@ use webrender_api::units::{
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
     ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
-    HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
-    RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
-    SpatialTreeItemKey, TransformStyle,
+    FontVariation, HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding,
+    ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo,
+    SpatialId, SpatialTreeItemKey, TransformStyle,
 };
 
 use crate::InitialCompositorState;
@@ -713,8 +713,14 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CompositorMsg::AddFontInstance(font_instance_key, font_key, size, flags) => {
-                self.add_font_instance(font_instance_key, font_key, size, flags);
+            CompositorMsg::AddFontInstance(
+                font_instance_key,
+                font_key,
+                size,
+                flags,
+                variations,
+            ) => {
+                self.add_font_instance(font_instance_key, font_key, size, flags, variations);
             },
 
             CompositorMsg::RemoveFonts(keys, instance_keys) => {
@@ -1506,7 +1512,14 @@ impl IOCompositor {
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
+        variations: Vec<FontVariation>,
     ) {
+        let variations = if pref!(layout_variable_fonts_enabled) {
+            variations
+        } else {
+            vec![]
+        };
+
         let mut transaction = Transaction::new();
 
         let font_instance_options = FontInstanceOptions {
@@ -1519,7 +1532,7 @@ impl IOCompositor {
             size,
             Some(font_instance_options),
             None,
-            Vec::new(),
+            variations,
         );
 
         self.global.borrow_mut().send_transaction(transaction);

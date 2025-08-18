@@ -27,7 +27,7 @@ fn make_font(path: PathBuf) -> Font {
     let data = FontData::from_bytes(&bytes);
 
     let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap());
-    let platform_font = PlatformFont::new_from_data(identifier.clone(), &data, None).unwrap();
+    let platform_font = PlatformFont::new_from_data(identifier.clone(), &data, None, &[]).unwrap();
 
     let template = FontTemplate {
         identifier,
@@ -40,6 +40,7 @@ fn make_font(path: PathBuf) -> Font {
         style: FontStyle::normal(),
         variant: FontVariantCaps::Normal,
         pt_size: Au::from_px(24),
+        variation_settings: vec![],
     };
     Font::new(FontTemplateRef::new(template), descriptor, Some(data), None).unwrap()
 }
