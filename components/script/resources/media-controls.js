@@ -1,7 +1,3 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 (() => {
   "use strict";
 
@@ -62,6 +58,7 @@
 
   function formatTime(time, showHours = false) {
     // Format the duration as "h:mm:ss" or "m:ss"
+    if (isNaN(time) || !isFinite(time)) return "00:00";
     time = Math.round(time / 1000);
 
     const hours = Math.floor(time / 3600);
@@ -74,6 +71,172 @@
     return `${formattedHours}${mins
       .toString()
       .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }
+
+  class CustomRangeInput {
+    constructor(originalInput) {
+      this.originalInput = originalInput;
+      this.container = document.createElement('div');
+      this.container.className = 'custom-range-container';
+      this.container.style.position = 'relative';
+      this.container.style.height = '20px';
+      this.container.style.width = '150px';
+      
+      this.track = document.createElement('div');
+      this.track.className = 'custom-range-track';
+      this.track.style.position = 'absolute';
+      this.track.style.top = '50%';
+      this.track.style.transform = 'translateY(-50%)';
+      this.track.style.width = '100%';
+      this.track.style.height = '4px';
+      this.track.style.backgroundColor = '#d3d3d3';
+      this.track.style.borderRadius = '2px';
+      
+      this.progress = document.createElement('div');
+      this.progress.className = 'custom-range-progress';
+      this.progress.style.position = 'absolute';
+      this.progress.style.top = '50%';
+      this.progress.style.transform = 'translateY(-50%)';
+      this.progress.style.width = '0%';
+      this.progress.style.height = '4px';
+      this.progress.style.backgroundColor = '#4c8bf5';
+      this.progress.style.borderRadius = '2px';
+      
+      this.thumb = document.createElement('div');
+      this.thumb.className = 'custom-range-thumb';
+      this.thumb.style.position = 'absolute';
+      this.thumb.style.top = '50%';
+      this.thumb.style.transform = 'translate(-50%, -50%)';
+      this.thumb.style.width = '16px';
+      this.thumb.style.height = '16px';
+      this.thumb.style.backgroundColor = '#4c8bf5';
+      this.thumb.style.borderRadius = '50%';
+      this.thumb.style.cursor = 'pointer';
+      this.thumb.style.zIndex = '1';
+
+      this.originalInput.style.display = 'none';
+
+      // Assemble component
+      this.container.appendChild(this.track);
+      this.container.appendChild(this.progress);
+      this.container.appendChild(this.thumb);
+      this.originalInput.parentNode.insertBefore(this.container, this.originalInput.nextSibling);
+    
+      this.updateThumbPosition();
+    
+      // Bind event handlers
+      this.bindEvents();
+    }
+
+    updateThumbPosition() {
+      const min = parseFloat(this.originalInput.min) || 0;
+      const max = parseFloat(this.originalInput.max) || 100;
+      const value = parseFloat(this.originalInput.value) || min;
+      
+      // Calculate percentage
+      const percentage = ((value - min) / (max - min)) * 100;
+      
+      // Update thumb and progress position
+      this.thumb.style.left = `${percentage}%`;
+      this.progress.style.width = `${percentage}%`;
+    }
+
+    setValue(clientX) {
+      const rect = this.track.getBoundingClientRect();
+      const min = parseFloat(this.originalInput.min) || 0;
+      const max = parseFloat(this.originalInput.max) || 100;
+      const step = parseFloat(this.originalInput.step) || 1;
+      
+      // Calculate percentage of position within track
+      let percentage = (clientX - rect.left) / rect.width;
+      
+      // Clamp percentage to 0-1 range
+      percentage = Math.max(0, Math.min(1, percentage));
+      
+      // Calculate value based on percentage
+      let value = min + percentage * (max - min);
+      
+      // Apply step if specified
+      if (step > 0) {
+        value = Math.round(value / step) * step;
+      }
+      
+      // Ensure value is within min/max bounds
+      value = Math.max(min, Math.min(max, value));
+      
+      // Update original input value
+      this.originalInput.value = value;
+      
+      // Dispatch input and change events
+      const inputEvent = new Event('input', { bubbles: true });
+      const changeEvent = new Event('change', { bubbles: true });
+      this.originalInput.dispatchEvent(inputEvent);
+      this.originalInput.dispatchEvent(changeEvent);
+      
+      // Update thumb position
+      this.updateThumbPosition();
+    }
+
+    bindEvents() {
+      // Store bound functions so we can remove them later
+      this.mouseMoveHandler = (e) => {
+        if (this.isDragging) {
+          this.setValue(e.clientX);
+        }
+      };
+      
+      this.mouseUpHandler = () => {
+        this.isDragging = false;
+      };
+      
+      this.touchMoveHandler = (e) => {
+        if (this.isDragging) {
+          this.setValue(e.touches[0].clientX);
+        }
+      };
+      
+      this.touchEndHandler = () => {
+        this.isDragging = false;
+      };
+
+      // Mouse events
+      this.container.addEventListener('mousedown', (e) => {
+        this.isDragging = true;
+        this.setValue(e.clientX);
+        e.preventDefault();
+      });
+      
+      document.addEventListener('mousemove', this.mouseMoveHandler);
+      document.addEventListener('mouseup', this.mouseUpHandler);
+      
+      // Touch events
+      this.container.addEventListener('touchstart', (e) => {
+        this.isDragging = true;
+        this.setValue(e.touches[0].clientX);
+        e.preventDefault();
+      });
+      
+      document.addEventListener('touchmove', this.touchMoveHandler);
+      document.addEventListener('touchend', this.touchEndHandler);
+    }
+
+    destroy() {
+      // Remove all event listeners
+      document.removeEventListener('mousemove', this.mouseMoveHandler);
+      document.removeEventListener('mouseup', this.mouseUpHandler);
+      document.removeEventListener('touchmove', this.touchMoveHandler);
+      document.removeEventListener('touchend', this.touchEndHandler);
+      
+      // Remove DOM elements
+      if (this.container && this.container.parentNode) {
+        this.container.parentNode.removeChild(this.container);
+      }
+      
+      // Restore original input
+      if (this.originalInput) {
+        this.originalInput.style.display = '';
+      }
+    }
   }
 
   class MediaControls {
@@ -100,7 +263,6 @@
       this.root.innerHTML = generateMarkup(this.isAudioOnly);
       this.controls.appendChild(this.root);
 
-
       const elementNames = [
         "duration",
         "play-pause-button",
@@ -120,6 +282,10 @@
       elementNames.forEach(id => {
         this.elements[camelCase(id)] = this.controls.getElementById(id);
       });
+
+      // Replace standard range inputs with custom ones
+      this.customProgress = new CustomRangeInput(this.elements.progress);
+      this.customVolume = new CustomRangeInput(this.elements.volumeLevel);
 
       // Init position duration box.
       const positionTextNode = this.elements.positionText;
@@ -204,10 +370,6 @@
       });
 
       // Create state transitions.
-      //
-      // It exposes one method per transition. i.e. this.pause(), this.play(), etc.
-      // For each transition, we check that the transition is possible and call
-      // the `onStateChange` handler.
       for (let name in TRANSITIONS) {
         if (!TRANSITIONS.hasOwnProperty(name)) {
           continue;
@@ -215,7 +377,6 @@
         this[name] = () => {
           const from = this.state;
 
-          // Checks if the transition is valid in the current state.
           if (!TRANSITIONS[name][from]) {
             const error = `Transition "${name}" invalid for the current state "${from}"`;
             console.error(error);
@@ -228,7 +389,6 @@
             return;
           }
 
-          // Transition to the next state.
           this.state = to;
           this.onStateChange(from);
         };
@@ -240,37 +400,48 @@
     }
 
     cleanup() {
+      // Remove mutation observer
       this.mutationObserver.disconnect();
+      
+      // Remove media event listeners
       this.mediaEvents.forEach(event => {
         this.media.removeEventListener(event, this);
       });
+      
+      // Remove control event listeners
       this.controlEvents.forEach(({ el, type }) => {
         el.removeEventListener(type, this);
       });
+      
+      // Clean up custom range inputs
+      if (this.customProgress) {
+        this.customProgress.destroy();
+      }
+      if (this.customVolume) {
+        this.customVolume.destroy();
+      }
+      
+      // Remove root element
+      if (this.root && this.root.parentNode) {
+        this.root.parentNode.removeChild(this.root);
+      }
     }
 
-    // State change handler
     onStateChange(from) {
       this.render(from);
     }
 
     render(from = this.state) {
       if (!this.isAudioOnly) {
-        // XXX This should ideally use clientHeight/clientWidth,
-        //     but for some reason I couldn't figure out yet,
-        //     using it breaks layout.
         this.root.style.height = this.media.videoHeight;
         this.root.style.width = this.media.videoWidth;
       }
 
-      // Error
       if (this.state == ERRORED) {
-        //XXX render errored state
         return;
       }
 
       if (this.state != from) {
-        // Play/Pause button.
         const playPauseButton = this.elements.playPauseButton;
         playPauseButton.classList.remove(from);
         playPauseButton.classList.add(this.state);
@@ -281,8 +452,10 @@
         (this.media.currentTime / this.media.duration) * 100;
       if (Number.isFinite(positionPercent)) {
         this.elements.progress.value = positionPercent;
+        this.customProgress.updateThumbPosition();
       } else {
         this.elements.progress.value = 0;
+        this.customProgress.updateThumbPosition();
       }
 
       // Current time and duration.
@@ -302,6 +475,7 @@
         : Math.round(this.media.volume * 100);
       if (this.elements.volumeLevel.value != volumeLevelValue) {
         this.elements.volumeLevel.value = volumeLevelValue;
+        this.customVolume.updateThumbPosition();
       }
     }
 
@@ -329,8 +503,8 @@
               this.toggleMuted();
               break;
             case this.elements.fullscreenSwitch:
-                this.toggleFullscreen();
-                break;
+              this.toggleFullscreen();
+              break;
           }
           break;
         case "input":
@@ -345,7 +519,6 @@
       }
     }
 
-    // HTMLMediaElement event handler
     onMediaEvent(event) {
       switch (event.type) {
         case "ended":
@@ -353,7 +526,6 @@
           break;
         case "play":
         case "pause":
-          // Transition to PLAYING or PAUSED state.
           this[event.type]();
           break;
         case "volumechange":
@@ -367,7 +539,6 @@
     }
 
     /* Media actions */
-
     playOrPause() {
       switch (this.state) {
         case PLAYING:
@@ -388,19 +559,18 @@
     }
 
     toggleFullscreen() {
-        const { fullscreenEnabled, fullscreenElement } = document;
+      const { fullscreenEnabled, fullscreenElement } = document;
+      const isElementFullscreen = fullscreenElement && fullscreenElement === this.media;
 
-        const isElementFullscreen = fullscreenElement && fullscreenElement === this.media;
-
-        if (fullscreenEnabled && isElementFullscreen) {
-            document.exitFullscreen().then(() => {
-                this.elements.fullscreenSwitch.classList.remove("fullscreen-active");
-            });
-        } else {
-            this.media.requestFullscreen().then(() => {
-                this.elements.fullscreenSwitch.classList.add("fullscreen-active");
-            });
-        }
+      if (fullscreenEnabled && isElementFullscreen) {
+        document.exitFullscreen().then(() => {
+          this.elements.fullscreenSwitch.classList.remove("fullscreen-active");
+        });
+      } else {
+        this.media.requestFullscreen().then(() => {
+          this.elements.fullscreenSwitch.classList.add("fullscreen-active");
+        });
+      }
     }
 
     changeVolume() {
@@ -413,4 +583,3 @@
 
   new MediaControls();
 })();
-
