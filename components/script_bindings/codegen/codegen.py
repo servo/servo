@@ -2682,6 +2682,7 @@ def getAllTypes(
     for d in descriptors:
         for t in getTypesFromDescriptor(d):
             if t.isRecord():
+                # pyrefly: ignore  # missing-attribute
                 yield (t.inner, d)
             yield (t, d)
     for dictionary in dictionaries:

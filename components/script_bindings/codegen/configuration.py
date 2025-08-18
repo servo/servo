@@ -22,7 +22,6 @@ from WebIDL import (
     IDLCallback,
     IDLAttribute,
     IDLMethod,
-    IDLParametrizedType,
 )
 
 
@@ -524,7 +523,7 @@ def getModuleFromObject(object: IDLObject) -> str:
     return ('crate::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
 
 
-def getTypesFromDescriptor(descriptor: Descriptor) -> list[IDLParametrizedType]:
+def getTypesFromDescriptor(descriptor: Descriptor) -> list[IDLType]:
     """
     Get all argument and return types for all members of the descriptor
     """
