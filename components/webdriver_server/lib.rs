@@ -1089,8 +1089,10 @@ impl Handler {
     }
 
     fn get_window_handle(&mut self, webview_id: WebViewId) -> WebDriverResult<String> {
-        self.update_window_handles()?;
-        self.session_mut()?.window_handles_data_valid = true;
+        if !self.session()?.window_handles_data_valid {
+            self.update_window_handles()?;
+            self.session_mut()?.window_handles_data_valid = true;
+        }
 
         self.session()?
             .window_handles()
@@ -1120,6 +1122,19 @@ impl Handler {
 
         let mut new_window_handles = HashMap::new();
         for id in webviews.iter() {
+            // If there is an active user prompt for the webview
+            // Use the cache data instead
+            // TODO: this step helps us get rid of timeout tests,
+            // The correct solution is update the window handle before user prompt appears.
+            let (sender, receiver) = ipc::channel().unwrap();
+            self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(*id, sender))?;
+            if wait_for_ipc_response(receiver)?.is_some() {
+                if let Some((k, v)) = self.session()?.window_handles().get_key_value(id) {
+                    new_window_handles.insert(*k, v.clone());
+                }
+                continue;
+            }
+
             let (sender, receiver) = ipc::channel().unwrap();
             self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
                 BrowsingContextId::from(*id),
@@ -1299,11 +1314,6 @@ impl Handler {
         &mut self,
         parameters: &SwitchToWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        if self.session()?.id().to_string() == parameters.handle {
-            // There's only one main window, so there's nothing to do here.
-            return Ok(WebDriverResponse::Void);
-        }
-
         self.session_mut()?.window_handles_data_valid = false;
         let window_handles = self.get_window_handles()?;
         let Some(webview_id) = window_handles
@@ -2500,9 +2510,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         msg: WebDriverMessage<ServoExtensionRoute>,
     ) -> WebDriverResult<WebDriverResponse> {
         info!("{:?}", msg.command);
+        dbg!("Handle command: {:?}", &msg.command);
 
-        // Drain the load status receiver to avoid blocking
-        // the command processing.
+        // Drain the load status receiver to avoid incorrect status handling
         while self.load_status_receiver.try_recv().is_ok() {}
 
         // Unless we are trying to create a new session, we need to ensure that a

@@ -93,10 +93,6 @@ impl WebDriverSession {
         }
     }
 
-    pub fn id(&self) -> Uuid {
-        self.id
-    }
-
     pub fn set_webview_id(&mut self, webview_id: Option<WebViewId>) {
         self.webview_id = webview_id;
     }
