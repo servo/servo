@@ -22,7 +22,6 @@ use embedder_traits::{
     CompositorHitTestResult, FocusId, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
     Theme, TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
 };
-use euclid::Point2D;
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
@@ -32,7 +31,6 @@ use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;
 use strum_macros::IntoStaticStr;
-use style_traits::CSSPixel;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{ExternalScrollId, ImageKey};
 
@@ -78,9 +76,10 @@ pub enum EmbedderToConstellationMessage {
     BlurWebView,
     /// Forward an input event to an appropriate ScriptTask.
     ForwardInputEvent(WebViewId, InputEvent, Option<CompositorHitTestResult>),
-    /// Request that the given pipeline do a hit test at the location and reset the
-    /// cursor accordingly. This happens after a display list update is rendered.
-    RefreshCursor(PipelineId, Point2D<f32, CSSPixel>),
+    /// Request that the given pipeline refresh the cursor by doing a hit test at the most
+    /// recently hovered cursor position and resetting the cursor. This happens after a
+    /// display list update is rendered.
+    RefreshCursor(PipelineId),
     /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
     ToggleProfiler(Duration, Duration),
     /// Request to exit from fullscreen mode

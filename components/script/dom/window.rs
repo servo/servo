@@ -3067,22 +3067,6 @@ impl Window {
             node.dirty(NodeDamage::Other);
         }
     }
-
-    pub fn handle_refresh_cursor(&self, cursor_position: Point2D<f32, CSSPixel>) {
-        let layout = self.layout.borrow();
-        layout.ensure_stacking_context_tree(self.viewport_details.get());
-        let Some(hit_test_result) = layout
-            .query_elements_from_point(cursor_position.cast_unit(), ElementsFromPointFlags::empty())
-            .into_iter()
-            .nth(0)
-        else {
-            return;
-        };
-
-        self.Document()
-            .event_handler()
-            .set_cursor(hit_test_result.cursor);
-    }
 }
 
 impl Window {

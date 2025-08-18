@@ -1601,7 +1601,6 @@ impl IOCompositor {
                 .constellation_sender
                 .send(EmbedderToConstellationMessage::RefreshCursor(
                     hit_test_result.pipeline_id,
-                    hit_test_result.point_in_viewport,
                 ))
         {
             warn!("Sending event to constellation failed ({:?}).", error);

@@ -79,7 +79,7 @@ pub(crate) struct DocumentEventHandler {
     current_hover_target: MutNullableDom<Element>,
     /// The most recent mouse movement point, used for processing `mouseleave` events.
     #[no_trace]
-    most_recent_mousemove_point: Point2D<f32, CSSPixel>,
+    most_recent_mousemove_point: Cell<Option<Point2D<f32, CSSPixel>>>,
     /// The currently set [`Cursor`] or `None` if the `Document` isn't being hovered
     /// by the cursor.
     #[no_trace]
@@ -212,13 +212,15 @@ impl DocumentEventHandler {
             }));
     }
 
-    pub(crate) fn set_cursor(&self, cursor: Cursor) {
-        if Some(cursor) == self.current_cursor.get() {
+    pub(crate) fn set_cursor(&self, cursor: Option<Cursor>) {
+        if cursor == self.current_cursor.get() {
             return;
         }
-        self.current_cursor.set(Some(cursor));
-        self.window
-            .send_to_embedder(EmbedderMsg::SetCursor(self.window.webview_id(), cursor));
+        self.current_cursor.set(cursor);
+        self.window.send_to_embedder(EmbedderMsg::SetCursor(
+            self.window.webview_id(),
+            cursor.unwrap_or_default(),
+        ));
     }
 
     fn handle_mouse_left_viewport_event(
@@ -238,8 +240,9 @@ impl DocumentEventHandler {
             }
 
             if let Some(hit_test_result) = self
-                .window
-                .hit_test_from_point_in_viewport(self.most_recent_mousemove_point)
+                .most_recent_mousemove_point
+                .get()
+                .and_then(|point| self.window.hit_test_from_point_in_viewport(point))
             {
                 MouseEvent::new_simple(
                     &self.window,
@@ -263,15 +266,23 @@ impl DocumentEventHandler {
             }
         }
 
-        self.current_cursor.set(None);
-        self.current_hover_target.set(None);
-
-        // If focus is moving to another frame, it will decide what the new status text is, but if
-        // this mouse leave event is leaving the WebView entirely, then clear it.
+        // We do not want to always inform the embedder that cursor has been set to the
+        // default cursor, in order to avoid a timing issue when moving between `<iframe>`
+        // elements. There is currently no way to control which `SetCursor` message will
+        // reach the embedder first. This is safer when leaving the `WebView` entirely.
         if !mouse_leave_event.focus_moving_to_another_iframe {
+            // If focus is moving to another frame, it will decide what the new status
+            // text is, but if this mouse leave event is leaving the WebView entirely,
+            // then clear it.
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), None));
+            self.set_cursor(None);
+        } else {
+            self.current_cursor.set(None);
         }
+
+        self.current_hover_target.set(None);
+        self.most_recent_mousemove_point.set(None);
     }
 
     fn handle_mouse_enter_leave_event(
@@ -336,7 +347,7 @@ impl DocumentEventHandler {
         };
 
         // Update the cursor when the mouse moves, if it has changed.
-        self.set_cursor(hit_test_result.cursor);
+        self.set_cursor(Some(hit_test_result.cursor));
 
         let Some(new_target) = hit_test_result
             .node
@@ -451,6 +462,8 @@ impl DocumentEventHandler {
         .fire(new_target.upcast(), can_gc);
 
         self.update_current_hover_target_and_status(Some(new_target));
+        self.most_recent_mousemove_point
+            .set(Some(hit_test_result.point_in_frame));
     }
 
     fn update_current_hover_target_and_status(&self, new_hover_target: Option<DomRoot<Element>>) {
@@ -500,6 +513,21 @@ impl DocumentEventHandler {
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), None));
         }
+    }
+
+    pub(crate) fn handle_refresh_cursor(&self) {
+        let Some(most_recent_mousemove_point) = self.most_recent_mousemove_point.get() else {
+            return;
+        };
+
+        let Some(hit_test_result) = self
+            .window
+            .hit_test_from_point_in_viewport(most_recent_mousemove_point)
+        else {
+            return;
+        };
+
+        self.set_cursor(Some(hit_test_result.cursor));
     }
 
     /// <https://w3c.github.io/uievents/#mouseevent-algorithms>

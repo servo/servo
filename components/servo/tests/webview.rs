@@ -15,7 +15,11 @@ use std::rc::Rc;
 
 use anyhow::ensure;
 use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript, run_api_tests};
-use servo::{JSValue, JavaScriptEvaluationError, Theme, WebViewBuilder};
+use euclid::Point2D;
+use servo::{
+    Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MouseLeftViewportEvent,
+    MouseMoveEvent, Theme, WebViewBuilder,
+};
 use url::Url;
 
 fn test_create_webview(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
@@ -141,9 +145,54 @@ fn test_theme_change(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+fn test_cursor_change(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html><style> html { cursor: crosshair; margin: 0}</style><body>hello</body>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    webview.focus();
+    webview.show(true);
+    webview.move_resize(servo_test.rendering_context.size2d().to_f32().into());
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
+
+    // Wait for at least one frame after the load completes.
+    delegate.reset();
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || Ok(!captured_delegate.new_frame_ready.get()))?;
+
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(Point2D::new(
+        10., 10.,
+    ))));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || Ok(!captured_delegate.cursor_changed.get()))?;
+    ensure!(webview.cursor() == Cursor::Crosshair);
+
+    delegate.reset();
+    webview.notify_input_event(InputEvent::MouseLeftViewport(
+        MouseLeftViewportEvent::default(),
+    ));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || Ok(!captured_delegate.cursor_changed.get()))?;
+    ensure!(webview.cursor() == Cursor::Default);
+
+    Ok(())
+}
+
 fn main() {
     run_api_tests!(
         test_create_webview,
+        test_cursor_change,
         test_evaluate_javascript_basic,
         test_evaluate_javascript_panic,
         test_theme_change,
