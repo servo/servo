@@ -1009,7 +1009,6 @@ impl From<&WebDriverJSValue> for JSValue {
             WebDriverJSValue::Undefined => Self::Undefined,
             WebDriverJSValue::Null => Self::Null,
             WebDriverJSValue::Boolean(value) => Self::Boolean(*value),
-            WebDriverJSValue::Int(value) => Self::Number(*value as f64),
             WebDriverJSValue::Number(value) => Self::Number(*value),
             WebDriverJSValue::String(value) => Self::String(value.clone()),
             WebDriverJSValue::Element(web_element) => Self::Element(web_element.0.clone()),
