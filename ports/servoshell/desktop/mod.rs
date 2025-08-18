@@ -19,5 +19,6 @@ mod keyutils;
 mod minibrowser;
 mod protocols;
 mod tracing;
+#[cfg(feature = "webxr")]
 mod webxr;
 mod window_trait;

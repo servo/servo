@@ -141,6 +141,7 @@ impl WindowPortsMethods for Window {
         // Not expecting any winit events.
     }
 
+    #[cfg(feature = "webxr")]
     fn new_glwindow(
         &self,
         _events_loop: &winit::event_loop::ActiveEventLoop,

@@ -17,14 +17,12 @@ use winit::event_loop::ActiveEventLoop;
 
 use super::window_trait::WindowPortsMethods;
 
-#[cfg(feature = "webxr")]
 enum XrDiscovery {
     GlWindow(GlWindowDiscovery),
     #[cfg(target_os = "windows")]
     OpenXr(OpenXrDiscovery),
 }
 
-#[cfg(feature = "webxr")]
 pub(crate) struct XrDiscoveryWebXrRegistry {
     xr_discovery: RefCell<Option<XrDiscovery>>,
 }
@@ -75,7 +73,6 @@ impl prefs::Observer for XrPrefObserver {
     }
 }
 
-#[cfg(feature = "webxr")]
 impl WebXrRegistry for XrDiscoveryWebXrRegistry {
     fn register(&self, xr: &mut servo::webxr::MainThreadRegistry) {
         use servo::webxr::headless::HeadlessMockDiscovery;
