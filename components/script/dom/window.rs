@@ -2051,10 +2051,30 @@ impl Window {
         // Even though the note mention the scrollend, it is relevant to the scroll as well.
         if reflow_phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
             match element {
-                Some(el) => self.Document().handle_element_scroll_event(el),
-                None => self.Document().handle_viewport_scroll_event(),
+                Some(el) => {
+                    self.Document().handle_element_scroll_event(el);
+                    // Add to pending scrollend events for instant scroll completion
+                    self.Document().handle_element_scrollend_event(el);
+                },
+                None => {
+                    self.Document().handle_viewport_scroll_event();
+                    // Add to pending scrollend events for instant scroll completion
+                    self.Document().handle_viewport_scrollend_event();
+                },
             };
+
+            // Schedule scrollend event dispatch to happen after current JavaScript execution
+            // This ensures that any JavaScript event listeners added synchronously have time to register
+            let document = Trusted::new(&*self.Document());
+            self.as_global_scope()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(task!(fire_instant_scrollend: move || {
+                    let document = document.root();
+                    document.handle_scroll_complete_event(CanGc::note());
+                }));
         }
+
     }
 
     pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
