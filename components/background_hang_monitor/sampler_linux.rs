@@ -173,7 +173,7 @@ impl Sampler for LinuxSampler {
                     let ip = frame.ip();
                     let sp = frame.sp();
 
-                    //This return value here determines whether we proceed to the next stack frame or not.
+                    // This return value here determines whether we proceed to the next stack frame or not.
                     native_stack.process_register(ip, sp).is_ok()
                 })
             };

@@ -789,7 +789,7 @@ impl HTMLImageElement {
                 let wid = imgsource.descriptor.width.unwrap();
                 imgsource.descriptor.density = Some(wid as f64 / source_size_length.to_f64_px());
             } else {
-                //Step 2.3
+                // Step 2.3
                 imgsource.descriptor.density = Some(1_f64);
             }
         }
@@ -1547,7 +1547,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     }
 }
 
-//https://html.spec.whatwg.org/multipage/#parse-a-sizes-attribute
+// https://html.spec.whatwg.org/multipage/#parse-a-sizes-attribute
 pub(crate) fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
     let mut input = ParserInput::new(&value);
     let mut parser = Parser::new(&mut input);

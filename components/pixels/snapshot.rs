@@ -84,7 +84,7 @@ impl SnapshotAlphaMode {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SnapshotData {
     // TODO: https://github.com/servo/servo/issues/36594
-    //IPC(IpcSharedMemory),
+    // IPC(IpcSharedMemory),
     Owned(Vec<u8>),
 }
 
@@ -93,7 +93,7 @@ impl Deref for SnapshotData {
 
     fn deref(&self) -> &Self::Target {
         match &self {
-            //Data::IPC(ipc_shared_memory) => ipc_shared_memory,
+            // Data::IPC(ipc_shared_memory) => ipc_shared_memory,
             SnapshotData::Owned(items) => items,
         }
     }
@@ -102,7 +102,7 @@ impl Deref for SnapshotData {
 impl DerefMut for SnapshotData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            //Data::IPC(ipc_shared_memory) => unsafe { ipc_shared_memory.deref_mut() },
+            // Data::IPC(ipc_shared_memory) => unsafe { ipc_shared_memory.deref_mut() },
             SnapshotData::Owned(items) => items,
         }
     }
@@ -288,7 +288,7 @@ impl Snapshot<SnapshotData> {
             alpha_mode,
         } = self;
         let data = match data {
-            //Data::IPC(ipc_shared_memory) => ipc_shared_memory,
+            // Data::IPC(ipc_shared_memory) => ipc_shared_memory,
             SnapshotData::Owned(items) => IpcSharedMemory::from_bytes(&items),
         };
         Snapshot {

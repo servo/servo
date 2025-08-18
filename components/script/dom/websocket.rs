@@ -102,12 +102,12 @@ pub(crate) struct WebSocket {
     url: ServoUrl,
     ready_state: Cell<WebSocketRequestState>,
     buffered_amount: Cell<u64>,
-    clearing_buffer: Cell<bool>, //Flag to tell if there is a running thread to clear buffered_amount
+    clearing_buffer: Cell<bool>, // Flag to tell if there is a running thread to clear buffered_amount
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
     sender: IpcSender<WebSocketDomAction>,
     binary_type: Cell<BinaryType>,
-    protocol: DomRefCell<String>, //Subprotocol selected by server
+    protocol: DomRefCell<String>, // Subprotocol selected by server
 }
 
 impl WebSocket {
@@ -421,22 +421,22 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
     // https://html.spec.whatwg.org/multipage/#dom-websocket-close
     fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> ErrorResult {
         if let Some(code) = code {
-            //Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
+            // Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
             if code != close_code::NORMAL && !(3000..=4999).contains(&code) {
                 return Err(Error::InvalidAccess);
             }
         }
         if let Some(ref reason) = reason {
             if reason.0.len() > 123 {
-                //reason cannot be larger than 123 bytes
+                // reason cannot be larger than 123 bytes
                 return Err(Error::Syntax);
             }
         }
 
         match self.ready_state.get() {
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {}, //Do nothing
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {}, // Do nothing
             WebSocketRequestState::Connecting => {
-                //Connection is not yet established
+                // Connection is not yet established
                 /*By setting the state to closing, the open function
                 will abort connecting the websocket*/
                 self.ready_state.set(WebSocketRequestState::Closing);
@@ -459,7 +459,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 let _ = self.sender.send(WebSocketDomAction::Close(code, reason));
             },
         }
-        Ok(()) //Return Ok
+        Ok(()) // Return Ok
     }
 }
 

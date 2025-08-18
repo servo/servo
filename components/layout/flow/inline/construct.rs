@@ -71,7 +71,7 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// The traversal is at all times as deep in the tree as this stack is,
     /// which is why the code doesn't need to keep track of the actual
     /// container root (see `handle_inline_level_element`).
-    //_
+    // _
     /// When an inline box ends, it's removed from this stack.
     inline_box_stack: Vec<InlineBoxIdentifier>,
 

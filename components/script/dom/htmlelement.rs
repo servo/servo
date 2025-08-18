@@ -717,7 +717,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
     let mut result = String::with_capacity(name.len().saturating_sub(DATA_PREFIX.len()));
     let mut name_chars = name.chars();
     while let Some(curr_char) = name_chars.next() {
-        //check for hyphen followed by character
+        // check for hyphen followed by character
         if curr_char == DATA_HYPHEN_SEPARATOR {
             if let Some(next_char) = name_chars.next() {
                 if next_char.is_ascii_lowercase() {
@@ -1105,7 +1105,7 @@ impl VirtualMethods for HTMLElement {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let source = &**attr.value();
                 let evtarget = self.upcast::<EventTarget>();
-                let source_line = 1; //TODO(#9604) get current JS execution line
+                let source_line = 1; // TODO(#9604) get current JS execution line
                 evtarget.set_event_handler_uncompiled(
                     self.owner_window().get_url(),
                     source_line,

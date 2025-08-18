@@ -555,6 +555,9 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
         return
 
     for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
+        for match in re.finditer(r"(;|\s|^)//\w", line):
+            yield (idx + 1, "Comments starting with `//` should also include a space")
+
         line = re.sub(r"//.*?$|/\*.*?$|^\*.*?$", "//", line)
         rules = [
             # There should be any use of banned types:

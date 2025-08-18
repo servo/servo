@@ -512,8 +512,8 @@ impl<T: MallocSizeOf> MallocSizeOf for OnceCell<T> {
 // We don't want MallocSizeOf to be defined for Rc and Arc. If negative trait bounds are
 // ever allowed, this code should be uncommented.  Instead, there is a compile-fail test for
 // this.
-//impl<T> !MallocSizeOf for Arc<T> { }
-//impl<T> !MallocShallowSizeOf for Arc<T> { }
+// impl<T> !MallocSizeOf for Arc<T> { }
+// impl<T> !MallocShallowSizeOf for Arc<T> { }
 
 impl<T> MallocUnconditionalShallowSizeOf for servo_arc::Arc<T> {
     fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
@@ -876,7 +876,7 @@ impl<T> MallocSizeOf for style::shared_lock::Locked<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // TODO: fix this implementation when Locked derives MallocSizeOf.
         0
-        //<style::shared_lock::Locked<T> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+        // <style::shared_lock::Locked<T> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
     }
 }
 
