@@ -8,7 +8,8 @@ extend-exclude = [
     # upstream
     "third_party/**",
     "python/mach/**",
-    "components/**",
+    "components/net/**",
+    "components/shared/**",
     "tests/**",
 ]
 
@@ -30,7 +31,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"!python/**/**.py" = ["ANN"]
+"etc/**" = ["ANN"]
+"components/script_bindings/codegen/codegen.py" = ["ANN"]
 "**/test.py" = ["ANN"]
 "**/*_tests.py" = ["ANN"]
 "**/tests/**/*.py" = ["ANN"]

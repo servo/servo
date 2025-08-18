@@ -4,11 +4,14 @@
 
 # Common codegen classes.
 
+# fmt: off
+
 from WebIDL import IDLUnionType
 from WebIDL import IDLSequenceType
 from collections import defaultdict
 from itertools import groupby
-from typing import Generator, Optional, cast
+from typing import Optional
+from collections.abc import Generator
 from abc import abstractmethod
 
 import operator
@@ -2679,6 +2682,7 @@ def getAllTypes(
     for d in descriptors:
         for t in getTypesFromDescriptor(d):
             if t.isRecord():
+                # pyrefly: ignore  # missing-attribute
                 yield (t.inner, d)
             yield (t, d)
     for dictionary in dictionaries:
@@ -4722,7 +4726,7 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
                 assert isAlwaysInSlot or self.member.getExtendedAttribute("Cached")
                 isLazilyCachedInSlot = not isAlwaysInSlot
                 # pyrefly: ignore  # unknown-name
-                slotIndex = memberReservedSlot(self.member)  # noqa:FIXME: memberReservedSlot is not defined
+                slotIndex = memberReservedSlot(self.member)  # noqa: F821 FIXME: memberReservedSlot is not defined
                 # We'll statically assert that this is not too big in
                 # CGUpdateMemberSlotsMethod, in the case when
                 # isAlwaysInSlot is true.
