@@ -368,7 +368,7 @@ impl OpenXRInput {
         select_name: &str,
         squeeze_name: Option<&str>,
         interaction_profile: &InteractionProfile,
-    ) -> Vec<Binding> {
+    ) -> Vec<Binding<'_>> {
         let hand = hand_str(self.handedness);
         let path_aim_pose = instance
             .string_to_path(&format!("/user/hand/{}/input/aim/pose", hand))
