@@ -47,6 +47,7 @@ from WebIDL import (
     IDLAttribute,
     IDLConst,
     IDLInterfaceOrNamespace,
+    IDLValue,
 )
 
 from configuration import (
@@ -674,7 +675,7 @@ class JSToNativeConversionInfo():
     """
     An object representing information about a JS-to-native conversion.
     """
-    def __init__(self, template, default=None, declType=None):
+    def __init__(self, template: str | CGThing, default: str | None = None, declType: CGThing | None = None) -> None:
         """
         template: A string representing the conversion code.  This will have
                   template substitution performed on it as follows:
@@ -694,17 +695,17 @@ class JSToNativeConversionInfo():
         self.declType = declType
 
 
-def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
+def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorProvider, failureCode: str | None = None,
                                 isDefinitelyObject: bool = False,
                                 isMember: bool | str = False,
-                                isArgument=False,
-                                isAutoRooted=False,
-                                invalidEnumValueFatal=True,
-                                defaultValue=None,
-                                exceptionCode=None,
+                                isArgument: bool = False,
+                                isAutoRooted: bool = False,
+                                invalidEnumValueFatal: bool = True,
+                                defaultValue: IDLValue | None = None,
+                                exceptionCode: str | None = None,
                                 allowTreatNonObjectAsNull: bool = False,
-                                isCallbackReturnValue=False,
-                                sourceDescription="value") -> JSToNativeConversionInfo:
+                                isCallbackReturnValue: str | bool = False,
+                                sourceDescription: str = "value") -> JSToNativeConversionInfo:
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -769,13 +770,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     else:
         failOrPropagate = failureCode
 
-    def handleOptional(template, declType, default):
+    def handleOptional(template: str, declType: CGThing | None, default: str | None) -> JSToNativeConversionInfo:
         assert (defaultValue is None) == (default is None)
         return JSToNativeConversionInfo(template, default, declType)
 
     # Helper functions for dealing with failures due to the JS value being the
     # wrong type of value.
-    def onFailureNotAnObject(failureCode):
+    def onFailureNotAnObject(failureCode: str | None) -> CGThing:
         return CGWrapper(
             CGGeneric(
                 failureCode
@@ -783,14 +784,14 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                     f'{exceptionCode}')),
             post="\n")
 
-    def onFailureNotCallable(failureCode):
+    def onFailureNotCallable(failureCode: str | None) -> CGThing:
         return CGGeneric(
             failureCode
             or (f'throw_type_error(*cx, \"{firstCap(sourceDescription)} is not callable.\");\n'
                 f'{exceptionCode}'))
 
     # A helper function for handling default values.
-    def handleDefault(nullValue):
+    def handleDefault(nullValue: str) -> str | None:
         if defaultValue is None:
             return None
 
@@ -808,8 +809,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     # A helper function for wrapping up the template body for
     # possibly-nullable objecty stuff
-    def wrapObjectTemplate(templateBody, nullValue, isDefinitelyObject, type,
-                           failureCode=None):
+    def wrapObjectTemplate(templateBody: str, nullValue: str, isDefinitelyObject: bool, type: IDLType,
+                           failureCode: str | None = None) -> str:
         if not isDefinitelyObject:
             # Handle the non-object cases by wrapping up the whole
             # thing in an if cascade.
@@ -827,7 +828,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         return templateBody
 
     # A helper function for types that implement FromJSValConvertible trait
-    def fromJSValTemplate(config, errorHandler, exceptionCode):
+    def fromJSValTemplate(config: str, errorHandler: str, exceptionCode: str) -> str:
         return f"""match FromJSValConvertible::from_jsval(*cx, ${{val}}, {config}) {{
     Ok(ConversionResult::Success(value)) => value,
     Ok(ConversionResult::Failure(error)) => {{
@@ -865,6 +866,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         dictionaries = [
             memberType
+            # pyrefly: ignore  # missing-attribute
             for memberType in type.unroll().flatMemberTypes
             if memberType.isDictionary()
         ]
@@ -932,8 +934,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp
 
-        descriptor = descriptorProvider.getDescriptor(
-            type.unroll().inner.identifier.name)
+        descriptor = descriptorProvider.getDescriptor(type.unroll().inner.identifier.name) # pyrefly: ignore  # missing-attribute
 
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
@@ -1112,6 +1113,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type.nullable():
             raise TypeError("We don't support nullable enumerated arguments "
                             "yet")
+        # pyrefly: ignore  # missing-attribute
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
             handleInvalidEnumValueCode = failureCode or f"throw_type_error(*cx, &error); {exceptionCode}"
@@ -1134,6 +1136,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         assert not type.treatNonObjectAsNull() or type.nullable()
         assert not type.treatNonObjectAsNull() or not type.treatNonCallableAsNull()
 
+        # pyrefly: ignore  # missing-attribute
         callback = type.unroll().callback
         declType = CGGeneric(f"{callback.identifier.name}<D>")
         finalDeclType = CGTemplatedType("Rc", declType)
@@ -1240,6 +1243,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         # There are no nullable dictionaries
         assert not type.nullable() or (isMember and isMember != "Dictionary")
 
+        # pyrefly: ignore  # missing-attribute
         typeName = f"{CGDictionary.makeModuleName(type.inner)}::{CGDictionary.makeDictionaryName(type.inner)}"
         if containsDomInterface(type):
             typeName += "<D>"
@@ -1294,9 +1298,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     return handleOptional(template, declType, defaultStr)
 
 
-def instantiateJSToNativeConversionTemplate(templateBody, replacements,
-                                            declType, declName,
-                                            needsAutoRoot=False) -> CGThing:
+def instantiateJSToNativeConversionTemplate(templateBody: str, replacements: dict[str, Any],
+                                            declType: CGThing | None, declName: str,
+                                            needsAutoRoot: bool = False) -> CGThing:
     """
     Take the templateBody and declType as returned by
     getJSToNativeConversionInfo, a set of replacements as required by the
@@ -1330,7 +1334,7 @@ def instantiateJSToNativeConversionTemplate(templateBody, replacements,
     return result
 
 
-def convertConstIDLValueToJSVal(value):
+def convertConstIDLValueToJSVal(value: IDLValue) -> str | None:
     if isinstance(value, IDLNullValue):
         return "ConstantVal::NullVal"
     tag = value.type.tag()
@@ -2685,7 +2689,7 @@ class CGGeneric(CGThing):
 
 
 class CGCallbackTempRoot(CGGeneric):
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object())")
 
 
