@@ -20,6 +20,7 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 parking_lot = { workspace = true }
 serde = { workspace = true }
+servo_config = { path = "../../config" }
 time = { workspace = true }
 webrender_api = { workspace = true }
 

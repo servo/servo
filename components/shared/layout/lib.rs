@@ -20,6 +20,7 @@ use std::thread::JoinHandle;
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
+use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
@@ -30,7 +31,6 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect};
 use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
-use ipc_channel::ipc::IpcSender;
 pub use layout_damage::LayoutDamage;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
@@ -197,7 +197,7 @@ pub struct LayoutConfig {
     pub webview_id: WebViewId,
     pub url: ServoUrl,
     pub is_iframe: bool,
-    pub script_chan: IpcSender<ScriptThreadMessage>,
+    pub script_chan: GenericSender<ScriptThreadMessage>,
     pub image_cache: Arc<dyn ImageCache>,
     pub font_context: Arc<FontContext>,
     pub time_profiler_chan: time::ProfilerChan,

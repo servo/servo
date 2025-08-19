@@ -17,6 +17,7 @@ use std::time::{Duration, Instant};
 use app_units::Au;
 use backtrace::Backtrace;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use base64::Engine;
 #[cfg(feature = "bluetooth")]
@@ -3043,7 +3044,7 @@ impl Window {
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         constellation_chan: ScriptToConstellationChan,
-        control_chan: IpcSender<ScriptThreadMessage>,
+        control_chan: GenericSender<ScriptThreadMessage>,
         pipeline_id: PipelineId,
         parent_info: Option<PipelineId>,
         viewport_details: ViewportDetails,
@@ -3292,7 +3293,7 @@ impl Window {
 #[derive(MallocSizeOf)]
 pub(crate) struct CSSErrorReporter {
     pub(crate) pipelineid: PipelineId,
-    pub(crate) script_chan: IpcSender<ScriptThreadMessage>,
+    pub(crate) script_chan: GenericSender<ScriptThreadMessage>,
 }
 unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 
