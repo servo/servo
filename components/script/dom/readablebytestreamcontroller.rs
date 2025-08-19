@@ -1486,10 +1486,8 @@ impl ReadableByteStreamController {
 
         // Let descriptor be controller.[[pendingPullIntos]][0].
         // Remove descriptor from controller.[[pendingPullIntos]].
-        let descriptor = self.pending_pull_intos.borrow_mut().remove(0);
-
         // Return descriptor.
-        descriptor
+        self.pending_pull_intos.borrow_mut().remove(0)
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerprocessreadrequestsusingqueue>

@@ -887,7 +887,7 @@ impl DataBlock {
                 *cx,
                 range.end - range.start,
                 // SAFETY: This is safe because we have checked there is no overlapping view
-                (*raw)[range.clone()].as_mut_ptr() as _,
+                (&mut (*raw))[range.clone()].as_mut_ptr() as _,
                 Some(free_func),
                 raw as _,
             )

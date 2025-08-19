@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::iter::repeat;
+use std::iter::repeat_n;
 
 use atomic_refcell::AtomicRef;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
@@ -1165,6 +1165,6 @@ fn add_column(
             shared_background_style: SharedStyle::new(column_info.style.clone()),
         })
     });
-    collection.extend(repeat(column.clone()).take(span as usize));
+    collection.extend(repeat_n(column.clone(), span as usize));
     column
 }

@@ -17,6 +17,7 @@ use servo::{
     SelectElementOptionOrOptgroup, SimpleDialog, WebDriverUserPrompt,
 };
 
+#[allow(clippy::large_enum_variant)]
 pub enum Dialog {
     File {
         dialog: EguiFileDialog,

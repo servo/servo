@@ -1977,11 +1977,9 @@ fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> boo
     // https://w3c.github.io/webdriver/#dfn-pointer-events-are-not-disabled
     // An element is said to have pointer events disabled
     // if the resolved value of its "pointer-events" style property is "none".
-    let pointer_events_not_disabled = element
+    element
         .style()
-        .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None);
-
-    pointer_events_not_disabled
+        .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None)
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-pointer-interactable-paint-tree>

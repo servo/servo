@@ -531,7 +531,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                     task_source.queue(task!(audio_decode_eos: move || {
                         let this = this.root();
                         let decoded_audio = decoded_audio__.lock().unwrap();
-                        let length = if decoded_audio.len() >= 1 {
+                        let length = if !decoded_audio.is_empty() {
                             decoded_audio[0].len()
                         } else {
                             0

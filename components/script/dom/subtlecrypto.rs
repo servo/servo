@@ -1092,6 +1092,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 // These "subtle" structs are proxies for the codegen'd dicts which don't hold a DOMString
 // so they can be sent safely when running steps in parallel.
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub(crate) struct SubtleAlgorithm {
     #[allow(dead_code)]

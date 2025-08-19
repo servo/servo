@@ -8322,8 +8322,6 @@ class CallbackMember(CGNativeMember):
             jsvalIndex = f"{i} + idx"
         else:
             jsvalIndex = f"{i}"
-            if arg.optional and not arg.defaultValue:
-                argval += ".unwrap()"
 
         conversion = wrapForType(
             "argv_root.handle_mut()", result=argval,
@@ -8340,7 +8338,7 @@ class CallbackMember(CGNativeMember):
             )
         elif arg.optional and not arg.defaultValue:
             conversion = (
-                f"{CGIfWrapper(f'{arg.identifier.name}.is_some()', CGGeneric(conversion)).define()}"
+                f"{CGIfWrapper(f'let Some({arg.identifier.name}) = {arg.identifier.name}', CGGeneric(conversion)).define()}"
                 f" else if argc == {i + 1} {{\n"
                 "    // This is our current trailing argument; reduce argc\n"
                 "    argc -= 1;\n"

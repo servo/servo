@@ -33,6 +33,7 @@ impl ConstellationProxy {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn try_send(
         &self,
         msg: EmbedderToConstellationMessage,

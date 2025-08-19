@@ -76,8 +76,7 @@ impl CSSStyleOwner {
                 let document = el.owner_document();
                 let shared_lock = document.style_shared_lock();
                 let mut attr = el.style_attribute().borrow_mut().take();
-                let result = if attr.is_some() {
-                    let lock = attr.as_ref().unwrap();
+                let result = if let Some(lock) = attr.as_ref() {
                     let mut guard = shared_lock.write();
                     let pdb = lock.write_with(&mut guard);
                     f(pdb, &mut changed)

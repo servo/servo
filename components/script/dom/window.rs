@@ -740,7 +740,7 @@ pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
 pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
     fn is_html_space(c: char) -> bool {
-        HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
+        HTML_SPACE_CHARACTERS.contains(&c)
     }
     let without_spaces = input
         .chars()
@@ -1176,7 +1176,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = ImageBitmap::create_image_bitmap(
+        ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
             0,
@@ -1185,8 +1185,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             None,
             options,
             can_gc,
-        );
-        p
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1200,7 +1199,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = ImageBitmap::create_image_bitmap(
+        ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
             sx,
@@ -1209,8 +1208,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Some(sh),
             options,
             can_gc,
-        );
-        p
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window

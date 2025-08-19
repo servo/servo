@@ -841,9 +841,10 @@ impl WritableStream {
 
         // Let writer be stream.[[writer]].
         let writer = self.get_writer();
-        if writer.is_some() && backpressure != self.get_backpressure() {
+        if backpressure != self.get_backpressure() &&
+            let Some(writer) = writer
+        {
             // If writer is not undefined
-            let writer = writer.expect("Writer is some, as per the above check.");
             // and backpressure is not stream.[[backpressure]],
             if backpressure {
                 // If backpressure is true, set writer.[[readyPromise]] to a new promise.

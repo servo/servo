@@ -868,8 +868,7 @@ impl Element {
         let mut parser_input = CssParserInput::new(media_query);
         let mut parser = CssParser::new(&mut parser_input);
         let media_list = MediaList::parse(&context, &mut parser);
-        let result = media_list.evaluate(document.window().layout().device(), quirks_mode);
-        result
+        media_list.evaluate(document.window().layout().device(), quirks_mode)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view>
@@ -992,7 +991,7 @@ impl Element {
             if let Some(style) = element.style() {
                 let overflow_x = style.get_box().clone_overflow_x();
                 let overflow_y = style.get_box().clone_overflow_y();
-                return overflow_x.is_scrollable() || overflow_y.is_scrollable();
+                overflow_x.is_scrollable() || overflow_y.is_scrollable()
             } else {
                 false // Element without style is not a scrolling box
             }
@@ -5216,7 +5215,7 @@ impl Element {
 
     // https://html.spec.whatwg.org/multipage/#category-submit
     pub(crate) fn as_maybe_validatable(&self) -> Option<&dyn Validatable> {
-        let element = match self.upcast::<Node>().type_id() {
+        match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
             )) => {
@@ -5260,8 +5259,7 @@ impl Element {
                 Some(element as &dyn Validatable)
             },
             _ => None,
-        };
-        element
+        }
     }
 
     pub(crate) fn is_invalid(&self, needs_update: bool, can_gc: CanGc) -> bool {

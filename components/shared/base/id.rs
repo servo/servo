@@ -378,16 +378,14 @@ namespace_id! {OffscreenCanvasId, OffscreenCanvasIndex, "OffscreenCanvas"}
 
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
-#[allow(unsafe_code)]
 pub const TEST_PIPELINE_INDEX: Index<PipelineIndex> =
-    unsafe { Index(NonZeroU32::new_unchecked(5678), PhantomData) };
+    Index(NonZeroU32::new(5678).unwrap(), PhantomData);
 pub const TEST_PIPELINE_ID: PipelineId = PipelineId {
     namespace_id: TEST_NAMESPACE,
     index: TEST_PIPELINE_INDEX,
 };
-#[allow(unsafe_code)]
 pub const TEST_BROWSING_CONTEXT_INDEX: Index<BrowsingContextIndex> =
-    unsafe { Index(NonZeroU32::new_unchecked(8765), PhantomData) };
+    Index(NonZeroU32::new(8765).unwrap(), PhantomData);
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
     namespace_id: TEST_NAMESPACE,
     index: TEST_BROWSING_CONTEXT_INDEX,

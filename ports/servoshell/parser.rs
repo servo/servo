@@ -47,8 +47,10 @@ pub fn get_default_url(
         }
     }
 
-    if new_url.is_none() && url_opt.is_some() {
-        new_url = location_bar_input_to_url(url_opt.unwrap(), &preferences.searchpage);
+    if new_url.is_none() &&
+        let Some(url_opt) = url_opt
+    {
+        new_url = location_bar_input_to_url(url_opt, &preferences.searchpage);
     }
 
     let pref_url = parse_url_or_filename(cwd.as_ref(), &preferences.homepage).ok();
