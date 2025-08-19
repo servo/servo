@@ -2510,7 +2510,6 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         msg: WebDriverMessage<ServoExtensionRoute>,
     ) -> WebDriverResult<WebDriverResponse> {
         info!("{:?}", msg.command);
-        dbg!("Handle command: {:?}", &msg.command);
 
         // Drain the load status receiver to avoid incorrect status handling
         while self.load_status_receiver.try_recv().is_ok() {}
