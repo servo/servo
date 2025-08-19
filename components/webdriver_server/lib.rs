@@ -27,9 +27,9 @@ use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    EventLoopWaker, JSValue, MouseButton, WebDriverCommandMsg, WebDriverCommandResponse,
-    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus, WebDriverMessageId,
-    WebDriverScriptCommand,
+    EventLoopWaker, InputEvent, JSValue, MouseButton, WebDriverCommandMsg,
+    WebDriverCommandResponse, WebDriverFrameId, WebDriverJSError, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverMessageId, WebDriverScriptCommand,
 };
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
@@ -241,6 +241,9 @@ struct Handler {
 
     /// Number of pending actions of which WebDriver is waiting for responses.
     num_pending_actions: Cell<u32>,
+
+    /// Input event that is failed to dispatched and to be sent once again.
+    input_to_retry: RefCell<Vec<InputEvent>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -479,6 +482,7 @@ impl Handler {
             id_generator: WebDriverMessageIdGenerator::new(),
             current_action_id: Cell::new(None),
             num_pending_actions: Cell::new(0),
+            input_to_retry: RefCell::new(Vec::new()),
         }
     }
 

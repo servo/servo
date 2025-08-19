@@ -1905,16 +1905,20 @@ where
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
             ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
-                if let Some(ref reply_sender) = self.webdriver_input_command_reponse_sender {
-                    reply_sender
-                        .send(WebDriverCommandResponse { id: msg_id })
-                        .unwrap_or_else(|_| {
-                            warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
-                        });
-                } else {
-                    warn!("No webdriver_input_command_reponse_sender");
-                }
+                self.notify_input_status_to_webdriver(WebDriverCommandResponse::DispatchSucceed(
+                    msg_id,
+                ));
             },
+        }
+    }
+
+    fn notify_input_status_to_webdriver(&self, response: WebDriverCommandResponse) {
+        if let Some(ref reply_sender) = self.webdriver_input_command_reponse_sender {
+            reply_sender.send(response).unwrap_or_else(|_| {
+                warn!("Failed to send WebDriverCommandResponse");
+            });
+        } else {
+            warn!("No webdriver_input_command_reponse_sender");
         }
     }
 
@@ -2944,13 +2948,21 @@ where
             return;
         };
 
-        let event = ConstellationInputEvent {
+        let constellation_event = ConstellationInputEvent {
             hit_test_result,
             pressed_mouse_buttons,
             active_keyboard_modifiers,
-            event,
+            event: event.clone(),
         };
-        webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts);
+        let event_sent = webview.forward_input_event(
+            constellation_event,
+            &self.pipelines,
+            &self.browsing_contexts,
+        );
+
+        if !event_sent && event.webdriver_message_id().is_some() {
+            self.notify_input_status_to_webdriver(WebDriverCommandResponse::DispatchFailed(event));
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]

@@ -627,6 +627,15 @@ impl App {
                 WebDriverCommandMsg::TakeScreenshot(..) => {
                     running_state.servo().execute_webdriver_command(msg);
                 },
+                WebDriverCommandMsg::RetryInputEvent(webview_id, events) => {
+                    let Some(webview) = running_state.webview_by_id(webview_id) else {
+                        continue;
+                    };
+
+                    for event in events {
+                        webview.notify_input_event(event);
+                    }
+                },
             };
         }
     }
