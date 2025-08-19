@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -42,9 +42,8 @@ pub(crate) enum ActionItem {
 }
 
 // A set of actions with multiple sources executed within a single tick.
-// The order in which they are performed is not guaranteed.
 // The `id` is used to identify the source of the actions.
-pub(crate) type TickActions = HashMap<String, ActionItem>;
+pub(crate) type TickActions = Vec<(String, ActionItem)>;
 
 // Consumed by the `dispatch_actions` method.
 pub(crate) type ActionsByTick = Vec<TickActions>;
@@ -859,12 +858,12 @@ impl Handler {
 
             // Step 4.2.2. Ensure we have enough ticks to hold all actions
             while actions_by_tick.len() < source_actions.len() {
-                actions_by_tick.push(HashMap::new());
+                actions_by_tick.push(Vec::new());
             }
 
             // Step 4.2.3.
             for (tick_index, action_item) in source_actions.into_iter().enumerate() {
-                actions_by_tick[tick_index].insert(id.clone(), action_item);
+                actions_by_tick[tick_index].push((id.clone(), action_item));
             }
         }
 
