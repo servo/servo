@@ -13,7 +13,6 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::io::Read;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
@@ -511,7 +510,10 @@ impl DevtoolsInstance {
             .watcher
             .clone();
 
-        let netevent_actor_name = self.find_network_event_actor(request_id, watcher_name);
+        let netevent_actor_name = match self.actor_requests.get(&request_id) {
+            Some(name) => name.clone(),
+            None => self.create_network_event_actor(request_id, watcher_name),
+        };
 
         handle_network_event(
             Arc::clone(&self.actors),
@@ -521,25 +523,19 @@ impl DevtoolsInstance {
         )
     }
 
-    // Find the name of NetworkEventActor corresponding to request_id
-    // Create a new one if it does not exist, add it to the actor_requests hashmap
-    fn find_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
+    /// Create a new NetworkEventActor for a given request ID and watcher name.
+    fn create_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
         let mut actors = self.actors.lock().unwrap();
-        match self.actor_requests.entry(request_id) {
-            Occupied(name) => {
-                // TODO: Delete from map like Firefox does?
-                name.into_mut().clone()
-            },
-            Vacant(entry) => {
-                let resource_id = self.next_resource_id;
-                self.next_resource_id += 1;
-                let actor_name = actors.new_name("netevent");
-                let actor = NetworkEventActor::new(actor_name.clone(), resource_id, watcher_name);
-                entry.insert(actor_name.clone());
-                actors.register(Box::new(actor));
-                actor_name
-            },
-        }
+        let resource_id = self.next_resource_id;
+        self.next_resource_id += 1;
+
+        let actor_name = actors.new_name("netevent");
+        let actor = NetworkEventActor::new(actor_name.clone(), resource_id, watcher_name);
+
+        self.actor_requests.insert(request_id, actor_name.clone());
+        actors.register(Box::new(actor));
+
+        actor_name
     }
 
     fn handle_create_source_actor(
