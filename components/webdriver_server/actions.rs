@@ -171,7 +171,11 @@ impl Handler {
             self.wait_for_user_agent_handling_complete()?;
 
             // Since hit test can fails, we do retry for input event that failed to be dispatched.
-            self.redispatch_failed_input_event()?;
+            // TODO: Based on spec, tick actions should be ordered (see #37387). However, the way
+            // we do the retry does not respect the ordering of actions.
+            if !self.input_to_retry.borrow().is_empty(){
+                self.redispatch_failed_input_event()?;
+            }
 
             // At least tick duration milliseconds have passed.
             let elapsed = now.elapsed();
@@ -937,6 +941,7 @@ impl Handler {
         }
     }
 
+    /// Retry the input event that suffers from epoch mismatching.
     fn redispatch_failed_input_event(&self) -> Result<(), ErrorStatus> {
         let session = self.session().unwrap();
 
