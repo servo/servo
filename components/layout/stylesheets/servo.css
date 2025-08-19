@@ -25,37 +25,38 @@ input::-servo-text-control-inner-editor {
 }
 
 input::-servo-text-control-inner-container {
-  position: relative;
+  display: flex;
   height: 100%;
   pointer-events: none;
-  display: flex;
+  position: relative;
 }
 
 input:not(:placeholder-shown)::placeholder {
-  visibility: hidden !important
+  visibility: hidden !important;
 }
 
 input::-servo-text-control-inner-editor, input::placeholder {
-  white-space: pre;
-  margin-block: auto !important;
-  inset-block: 0 !important;
   block-size: fit-content !important;
+  inset-block: 0 !important;
+  margin-block: auto !important;
+  min-width: 100%;
+  white-space: pre;
 }
 
 input::placeholder {
-  overflow: hidden !important;
-  position: absolute !important;
-  color: grey !important;
+  color: grey;
+  overflow: hidden;
   pointer-events: none !important;
+  position: absolute !important;
 }
 
 input::color-swatch {
-  width: 100%;
-  height: 100%;
-  display: inline-block;
   box-sizing: border-box;
   border: 1px solid gray;
   border-radius: 2px;
+  display: inline-block;
+  height: 100%;
+  width: 100%;
 }
 
 input::selection,
