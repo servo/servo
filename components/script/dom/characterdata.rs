@@ -73,7 +73,7 @@ impl CharacterData {
     }
 
     #[inline]
-    pub(crate) fn data(&self) -> Ref<DOMString> {
+    pub(crate) fn data(&self) -> Ref<'_, DOMString> {
         self.data.borrow()
     }
 

@@ -350,7 +350,7 @@ impl WebGLRenderingContext {
         })
     }
 
-    pub(crate) fn current_vertex_attribs(&self) -> RefMut<Box<[VertexAttrib]>> {
+    pub(crate) fn current_vertex_attribs(&self) -> RefMut<'_, Box<[VertexAttrib]>> {
         self.current_vertex_attribs.borrow_mut()
     }
 
@@ -3581,7 +3581,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         param: u32,
         mut retval: MutableHandleValue,
     ) {
-        let mut get_attrib = |data: Ref<VertexAttribData>| {
+        let mut get_attrib = |data: Ref<'_, VertexAttribData>| {
             if param == constants::CURRENT_VERTEX_ATTRIB {
                 let attrib = self.current_vertex_attribs.borrow()[index as usize];
                 match attrib {

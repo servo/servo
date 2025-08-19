@@ -2754,21 +2754,21 @@ impl Table {
     }
 
     #[inline]
-    pub(crate) fn layout_style_for_grid(&self) -> LayoutStyle {
+    pub(crate) fn layout_style_for_grid(&self) -> LayoutStyle<'_> {
         LayoutStyle::Default(&self.grid_style)
     }
 }
 
 impl TableTrack {
     #[inline]
-    pub(crate) fn layout_style(&self) -> LayoutStyle {
+    pub(crate) fn layout_style(&self) -> LayoutStyle<'_> {
         LayoutStyle::Default(&self.base.style)
     }
 }
 
 impl TableTrackGroup {
     #[inline]
-    pub(crate) fn layout_style(&self) -> LayoutStyle {
+    pub(crate) fn layout_style(&self) -> LayoutStyle<'_> {
         LayoutStyle::Default(&self.base.style)
     }
 }
@@ -2806,7 +2806,7 @@ impl TableLayoutStyle<'_> {
 
 impl TableSlotCell {
     #[inline]
-    fn layout_style(&self) -> LayoutStyle {
+    fn layout_style(&self) -> LayoutStyle<'_> {
         self.contents.layout_style(&self.base)
     }
 

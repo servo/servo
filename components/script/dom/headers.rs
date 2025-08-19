@@ -432,10 +432,7 @@ pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
     // true
     let lowercase_name = name.to_lowercase();
 
-    if forbidden_header_names
-        .iter()
-        .any(|header| *header == lowercase_name.as_str())
-    {
+    if forbidden_header_names.contains(&lowercase_name.as_str()) {
         return true;
     }
 

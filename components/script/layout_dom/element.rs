@@ -249,7 +249,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             .is_some()
     }
 
-    fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
+    fn style_attribute(&self) -> Option<ArcBorrow<'_, StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute())
                 .as_ref()
@@ -421,7 +421,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         unsafe { self.as_node().get_jsmanaged().clear_style_and_layout_data() }
     }
 
-    unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
+    unsafe fn ensure_data(&self) -> AtomicRefMut<'_, ElementData> {
         unsafe {
             self.as_node().get_jsmanaged().initialize_style_data();
         };
@@ -434,12 +434,12 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     /// Immutably borrows the ElementData.
-    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+    fn borrow_data(&self) -> Option<AtomicRef<'_, ElementData>> {
         self.get_style_data().map(|data| data.element_data.borrow())
     }
 
     /// Mutably borrows the ElementData.
-    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
+    fn mutate_data(&self) -> Option<AtomicRefMut<'_, ElementData>> {
         self.get_style_data()
             .map(|data| data.element_data.borrow_mut())
     }
@@ -1063,7 +1063,7 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
         self.element.get_attr(namespace, name)
     }
 
-    fn style_data(&self) -> AtomicRef<ElementData> {
+    fn style_data(&self) -> AtomicRef<'_, ElementData> {
         self.element.borrow_data().expect("Unstyled layout node?")
     }
 

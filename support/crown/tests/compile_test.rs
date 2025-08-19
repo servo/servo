@@ -43,7 +43,7 @@ fn run_mode(mode: &'static str, bless: bool) {
 
 #[test]
 fn compile_test() {
-    let bless = env::var("BLESS").map_or(false, |x| !x.trim().is_empty());
+    let bless = env::var("BLESS").is_ok_and(|x| !x.trim().is_empty());
     run_mode("compile-fail", bless);
     run_mode("run-pass", bless);
     // UI test fails on windows

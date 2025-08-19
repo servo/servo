@@ -63,7 +63,7 @@ impl DataTransferItem {
         )
     }
 
-    fn item_kind(&self) -> Option<Ref<Kind>> {
+    fn item_kind(&self) -> Option<Ref<'_, Kind>> {
         Ref::filter_map(self.data_store.borrow(), |data_store| {
             data_store
                 .as_ref()

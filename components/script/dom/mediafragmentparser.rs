@@ -204,7 +204,7 @@ impl From<&ServoUrl> for MediaFragmentParser {
 }
 
 // 5.1.1 Processing name-value components.
-fn decode_octets(bytes: &[u8]) -> Vec<(Cow<str>, Cow<str>)> {
+fn decode_octets(bytes: &[u8]) -> Vec<(Cow<'_, str>, Cow<'_, str>)> {
     form_urlencoded::parse(bytes)
         .filter(|(key, _)| matches!(key.as_bytes(), b"t" | b"track" | b"id" | b"xywh"))
         .collect()

@@ -285,7 +285,7 @@ impl Stream for BodyStream {
                         return Poll::Ready(None);
                     }
                 }
-                Poll::Ready(Some(Err(io::Error::new(io::ErrorKind::Other, err))))
+                Poll::Ready(Some(Err(io::Error::other(err))))
             },
             None => Poll::Ready(None),
         }

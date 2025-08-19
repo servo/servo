@@ -91,6 +91,7 @@ pub(crate) struct TaffyItemBox {
     pub(crate) taffy_level_box: TaffyItemBoxInner,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum TaffyItemBoxInner {
     InFlowBox(IndependentFormattingContext),

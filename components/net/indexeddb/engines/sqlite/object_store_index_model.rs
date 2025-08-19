@@ -14,6 +14,7 @@ pub enum Column {
     MultiEntryIndex,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Model {
     pub id: i32,

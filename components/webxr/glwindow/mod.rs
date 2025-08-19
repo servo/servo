@@ -52,7 +52,7 @@ pub trait GlWindow {
     fn get_mode(&self) -> GlWindowMode {
         GlWindowMode::Blit
     }
-    fn display_handle(&self) -> DisplayHandle;
+    fn display_handle(&self) -> DisplayHandle<'_>;
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

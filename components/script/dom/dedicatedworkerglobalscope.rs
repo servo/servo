@@ -232,7 +232,10 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         self.handle_mixed_message(event, can_gc)
     }
 
-    fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
+    fn handle_worker_post_event(
+        &self,
+        worker: &TrustedWorkerAddress,
+    ) -> Option<AutoWorkerReset<'_>> {
         let ar = AutoWorkerReset::new(self, worker.clone());
         Some(ar)
     }

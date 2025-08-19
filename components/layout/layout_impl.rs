@@ -997,9 +997,11 @@ impl LayoutThread {
         }
 
         let root_node = root_element.as_node();
-        let damage_from_environment = viewport_changed
-            .then_some(RestyleDamage::RELAYOUT)
-            .unwrap_or_default();
+        let damage_from_environment = if viewport_changed {
+            RestyleDamage::RELAYOUT
+        } else {
+            Default::default()
+        };
         let damage = compute_damage_and_repair_style(
             &layout_context.style_context,
             root_node.to_threadsafe(),

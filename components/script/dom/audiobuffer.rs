@@ -179,7 +179,7 @@ impl AudioBuffer {
         Some(result)
     }
 
-    pub(crate) fn get_channels(&self) -> Ref<Option<ServoMediaAudioBuffer>> {
+    pub(crate) fn get_channels(&self) -> Ref<'_, Option<ServoMediaAudioBuffer>> {
         if self.shared_channels.borrow().is_none() {
             let channels = self.acquire_contents();
             if channels.is_some() {

@@ -72,5 +72,5 @@ fn main() {
     // Pass cfg(crown) to rustc
     args.extend(["--cfg".to_owned(), "crown".to_owned()]);
 
-    rustc_driver::RunCompiler::new(&args, &mut MyCallbacks).run()
+    rustc_driver::run_compiler(&args, &mut MyCallbacks)
 }

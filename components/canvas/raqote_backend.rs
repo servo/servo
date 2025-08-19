@@ -135,7 +135,7 @@ impl Repetition {
     }
 }
 
-pub fn source(pattern: &Pattern) -> raqote::Source {
+pub fn source(pattern: &Pattern) -> raqote::Source<'_> {
     match pattern {
         Pattern::Color(a, r, g, b) => raqote::Source::Solid(
             raqote::SolidSource::from_unpremultiplied_argb(*a, *r, *g, *b),

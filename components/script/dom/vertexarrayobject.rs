@@ -82,7 +82,7 @@ impl VertexArrayObject {
         &self.element_array_buffer
     }
 
-    pub(crate) fn get_vertex_attrib(&self, index: u32) -> Option<Ref<VertexAttribData>> {
+    pub(crate) fn get_vertex_attrib(&self, index: u32) -> Option<Ref<'_, VertexAttribData>> {
         Ref::filter_map(self.vertex_attribs.borrow(), |attribs| {
             attribs.get(index as usize)
         })

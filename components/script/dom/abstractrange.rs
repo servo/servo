@@ -45,7 +45,7 @@ impl AbstractRange {
         end_offset: u32,
         can_gc: CanGc,
     ) -> DomRoot<AbstractRange> {
-        let abstractrange = reflect_dom_object(
+        reflect_dom_object(
             Box::new(AbstractRange::new_inherited(
                 start_container,
                 start_offset,
@@ -54,8 +54,7 @@ impl AbstractRange {
             )),
             document.window(),
             can_gc,
-        );
-        abstractrange
+        )
     }
 
     pub(crate) fn start(&self) -> &BoundaryPoint {

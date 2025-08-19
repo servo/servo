@@ -64,11 +64,11 @@ pub(crate) trait ToLayout<T> {
     /// # Safety
     ///
     /// The `self` parameter to this method must meet all the requirements of [`ptr::NonNull::as_ref`].
-    unsafe fn to_layout(&self) -> LayoutDom<T>;
+    unsafe fn to_layout(&self) -> LayoutDom<'_, T>;
 }
 
 impl<T: DomObject> ToLayout<T> for Dom<T> {
-    unsafe fn to_layout(&self) -> LayoutDom<T> {
+    unsafe fn to_layout(&self) -> LayoutDom<'_, T> {
         assert_in_layout();
         LayoutDom {
             value: unsafe { self.as_ptr().as_ref().unwrap() },
@@ -266,7 +266,7 @@ impl<T: DomObject> MutNullableDom<T> {
     /// Retrieve a copy of the inner optional `Dom<T>` as `LayoutDom<T>`.
     /// For use by layout, which can't use safe types like Temporary.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) unsafe fn get_inner_as_layout(&self) -> Option<LayoutDom<T>> {
+    pub(crate) unsafe fn get_inner_as_layout(&self) -> Option<LayoutDom<'_, T>> {
         assert_in_layout();
         unsafe { (*self.ptr.get()).as_ref().map(|js| js.to_layout()) }
     }

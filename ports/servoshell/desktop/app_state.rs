@@ -135,11 +135,11 @@ impl RunningAppState {
         webview
     }
 
-    pub(crate) fn inner(&self) -> Ref<RunningAppStateInner> {
+    pub(crate) fn inner(&self) -> Ref<'_, RunningAppStateInner> {
         self.inner.borrow()
     }
 
-    pub(crate) fn inner_mut(&self) -> RefMut<RunningAppStateInner> {
+    pub(crate) fn inner_mut(&self) -> RefMut<'_, RunningAppStateInner> {
         self.inner.borrow_mut()
     }
 
@@ -429,11 +429,11 @@ impl RunningAppState {
                 webview.notify_scroll_event(ScrollLocation::End, origin);
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowUp), || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, -1.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, -LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowDown), || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, 1.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowLeft), || {

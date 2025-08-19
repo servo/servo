@@ -769,7 +769,7 @@ pub struct ActiveUniformInfo {
 }
 
 impl ActiveUniformInfo {
-    pub fn name(&self) -> Cow<str> {
+    pub fn name(&self) -> Cow<'_, str> {
         if self.size.is_some() {
             let mut name = String::from(&*self.base_name);
             name.push_str("[0]");

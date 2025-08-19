@@ -178,7 +178,7 @@ impl ServoUrl {
         self.0.join(input).map(Self::from_url)
     }
 
-    pub fn path_segments(&self) -> Option<::std::str::Split<char>> {
+    pub fn path_segments(&self) -> Option<::std::str::Split<'_, char>> {
         self.0.path_segments()
     }
 

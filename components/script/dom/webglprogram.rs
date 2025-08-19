@@ -220,15 +220,15 @@ impl WebGLProgram {
         Ok(())
     }
 
-    pub(crate) fn active_attribs(&self) -> Ref<[ActiveAttribInfo]> {
+    pub(crate) fn active_attribs(&self) -> Ref<'_, [ActiveAttribInfo]> {
         Ref::map(self.active_attribs.borrow(), |attribs| &**attribs)
     }
 
-    pub(crate) fn active_uniforms(&self) -> Ref<[ActiveUniformInfo]> {
+    pub(crate) fn active_uniforms(&self) -> Ref<'_, [ActiveUniformInfo]> {
         Ref::map(self.active_uniforms.borrow(), |uniforms| &**uniforms)
     }
 
-    pub(crate) fn active_uniform_blocks(&self) -> Ref<[ActiveUniformBlockInfo]> {
+    pub(crate) fn active_uniform_blocks(&self) -> Ref<'_, [ActiveUniformBlockInfo]> {
         Ref::map(self.active_uniform_blocks.borrow(), |blocks| &**blocks)
     }
 

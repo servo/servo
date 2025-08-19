@@ -576,7 +576,7 @@ impl TaffyContainer {
     }
 
     #[inline]
-    pub(crate) fn layout_style(&self) -> LayoutStyle {
+    pub(crate) fn layout_style(&self) -> LayoutStyle<'_> {
         LayoutStyle::Default(&self.style)
     }
 }

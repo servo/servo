@@ -2017,7 +2017,7 @@ async fn http_network_fetch(
         .iter()
         .map(|header_value| header_value.to_str().unwrap_or(""))
         .collect();
-    let wildcard_present = header_strings.iter().any(|header_str| *header_str == "*");
+    let wildcard_present = header_strings.contains(&"*");
     // The spec: https://www.w3.org/TR/resource-timing-2/#sec-timing-allow-origin
     // says that a header string is either an origin or a wildcard so we can just do a straight
     // check against the document origin

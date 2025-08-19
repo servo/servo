@@ -149,7 +149,7 @@ pub fn flip_y_rgba8_image_inplace(size: Size2D<u32>, pixels: &mut [u8]) {
     }
 }
 
-pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
+pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<'_, [u8]> {
     assert!(!rect.is_empty());
     assert!(Rect::from_size(size).contains_rect(&rect));
     assert_eq!(pixels.len() % 4, 0);
@@ -311,7 +311,7 @@ impl RasterImage {
         self.frames.len() > 1
     }
 
-    pub fn frames(&self) -> impl Iterator<Item = ImageFrameView> {
+    pub fn frames(&self) -> impl Iterator<Item = ImageFrameView<'_>> {
         self.frames.iter().map(|frame| ImageFrameView {
             delay: frame.delay,
             bytes: self.bytes.get(frame.byte_range.clone()).unwrap(),
@@ -320,7 +320,7 @@ impl RasterImage {
         })
     }
 
-    pub fn first_frame(&self) -> ImageFrameView {
+    pub fn first_frame(&self) -> ImageFrameView<'_> {
         self.frames()
             .next()
             .expect("All images should have at least one frame")

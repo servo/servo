@@ -187,7 +187,7 @@ impl WebViewRenderer {
 
     pub(crate) fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         let pipeline_id = frame_tree.pipeline.id;
-        let old_pipeline_id = std::mem::replace(&mut self.root_pipeline_id, Some(pipeline_id));
+        let old_pipeline_id = self.root_pipeline_id.replace(pipeline_id);
 
         if old_pipeline_id != self.root_pipeline_id {
             debug!(

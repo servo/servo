@@ -116,7 +116,7 @@ impl Poller {
     }
 
     /// Lock for device maintain calls (in poll_all_devices and queue_submit)
-    pub(crate) fn lock(&self) -> MutexGuard<()> {
+    pub(crate) fn lock(&self) -> MutexGuard<'_, ()> {
         self.lock.lock().unwrap()
     }
 }

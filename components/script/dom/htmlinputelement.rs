@@ -1168,7 +1168,7 @@ impl HTMLInputElement {
             }));
     }
 
-    fn text_shadow_tree(&self, can_gc: CanGc) -> Ref<InputTypeTextShadowTree> {
+    fn text_shadow_tree(&self, can_gc: CanGc) -> Ref<'_, InputTypeTextShadowTree> {
         let has_text_shadow_tree = self
             .shadow_tree
             .borrow()
@@ -1218,7 +1218,7 @@ impl HTMLInputElement {
     ///
     /// If the input is a shadow host for a different kind of shadow tree then the old
     /// tree will be removed and a new one will be created.
-    fn color_shadow_tree(&self, can_gc: CanGc) -> Ref<InputTypeColorShadowTree> {
+    fn color_shadow_tree(&self, can_gc: CanGc) -> Ref<'_, InputTypeColorShadowTree> {
         let has_color_shadow_tree = self
             .shadow_tree
             .borrow()
@@ -2510,7 +2510,7 @@ impl HTMLInputElement {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn selection(&self) -> TextControlSelection<Self> {
+    fn selection(&self) -> TextControlSelection<'_, Self> {
         TextControlSelection::new(self, &self.textinput)
     }
 

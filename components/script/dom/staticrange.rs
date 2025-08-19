@@ -55,7 +55,7 @@ impl StaticRange {
         init: &StaticRangeInit,
         can_gc: CanGc,
     ) -> DomRoot<StaticRange> {
-        let staticrange = reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto(
             Box::new(StaticRange::new_inherited(
                 &init.startContainer,
                 init.startOffset,
@@ -65,8 +65,7 @@ impl StaticRange {
             document.window(),
             proto,
             can_gc,
-        );
-        staticrange
+        )
     }
 }
 

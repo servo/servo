@@ -65,7 +65,7 @@ impl TaskCancellers {
 
 macro_rules! task_source_functions {
     ($self:ident, $task_source:ident, $task_source_name:ident) => {
-        pub(crate) fn $task_source(&$self) -> TaskSource {
+        pub(crate) fn $task_source(&$self) -> TaskSource<'_> {
             TaskSource {
                 task_manager: $self,
                 name: TaskSourceName::$task_source_name,
@@ -105,7 +105,7 @@ impl TaskManager {
         self.pipeline_id
     }
 
-    pub(crate) fn sender(&self) -> Ref<Option<ScriptEventLoopSender>> {
+    pub(crate) fn sender(&self) -> Ref<'_, Option<ScriptEventLoopSender>> {
         self.sender.borrow()
     }
 

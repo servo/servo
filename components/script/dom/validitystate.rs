@@ -100,7 +100,7 @@ impl ValidityState {
     }
 
     // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
-    pub(crate) fn custom_error_message(&self) -> Ref<DOMString> {
+    pub(crate) fn custom_error_message(&self) -> Ref<'_, DOMString> {
         self.custom_error_message.borrow()
     }
 

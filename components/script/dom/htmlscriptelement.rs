@@ -1211,7 +1211,7 @@ impl HTMLScriptElement {
         let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
         let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
 
-        let script_type = match (
+        match (
             type_attr.as_ref().map(|t| t.value()),
             language_attr.as_ref().map(|l| l.value()),
         ) {
@@ -1256,10 +1256,7 @@ impl HTMLScriptElement {
                     None
                 }
             },
-        };
-
-        // https://github.com/rust-lang/rust/issues/21114
-        script_type
+        }
     }
 
     pub(crate) fn set_parser_inserted(&self, parser_inserted: bool) {

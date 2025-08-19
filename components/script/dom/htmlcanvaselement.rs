@@ -191,7 +191,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
 }
 
 impl HTMLCanvasElement {
-    pub(crate) fn context(&self) -> Option<Ref<RenderingContext>> {
+    pub(crate) fn context(&self) -> Option<Ref<'_, RenderingContext>> {
         Ref::filter_map(self.context_mode.borrow(), |ctx| ctx.as_ref()).ok()
     }
 

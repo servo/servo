@@ -925,7 +925,7 @@ impl GlobalScope {
         let dom_port = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let dom_port = if let Some(managed_port) = message_ports.get_mut(&port_id) {
+            if let Some(managed_port) = message_ports.get_mut(&port_id) {
                 if managed_port.pending {
                     unreachable!("CompleteDisentanglement msg received for a pending port.");
                 }
@@ -940,8 +940,7 @@ impl GlobalScope {
                 // can happen if the port has already been transferred out of this global,
                 // in which case the disentanglement will complete along with the transfer.
                 return;
-            };
-            dom_port
+            }
         } else {
             return;
         };
@@ -2038,8 +2037,8 @@ impl GlobalScope {
     /// Promote non-Slice blob:
     /// 1. Memory-based: The bytes in data slice will be transferred to file manager thread.
     /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
-    ///     Depending on set_valid, the returned FileID can be part of
-    ///     valid or invalid Blob URL.
+    ///    Depending on set_valid, the returned FileID can be part of
+    ///    valid or invalid Blob URL.
     pub(crate) fn promote(&self, blob_info: &mut BlobInfo, set_valid: bool) -> Uuid {
         let mut bytes = vec![];
         let global_url = self.get_url();
@@ -3239,7 +3238,7 @@ impl GlobalScope {
         }
     }
 
-    pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
+    pub(crate) fn dynamic_module_list(&self) -> RefMut<'_, DynamicModuleList> {
         self.dynamic_modules.borrow_mut()
     }
 

@@ -429,11 +429,11 @@ impl Window {
         self.upcast::<GlobalScope>()
     }
 
-    pub(crate) fn layout(&self) -> Ref<Box<dyn Layout>> {
+    pub(crate) fn layout(&self) -> Ref<'_, Box<dyn Layout>> {
         self.layout.borrow()
     }
 
-    pub(crate) fn layout_mut(&self) -> RefMut<Box<dyn Layout>> {
+    pub(crate) fn layout_mut(&self) -> RefMut<'_, Box<dyn Layout>> {
         self.layout.borrow_mut()
     }
 
@@ -489,7 +489,7 @@ impl Window {
         unsafe { JSContext::from_ptr(self.js_runtime.borrow().as_ref().unwrap().cx()) }
     }
 
-    pub(crate) fn get_js_runtime(&self) -> Ref<Option<Rc<Runtime>>> {
+    pub(crate) fn get_js_runtime(&self) -> Ref<'_, Option<Rc<Runtime>>> {
         self.js_runtime.borrow()
     }
 
@@ -741,7 +741,7 @@ pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
 pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
     fn is_html_space(c: char) -> bool {
-        HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
+        HTML_SPACE_CHARACTERS.contains(&c)
     }
     let without_spaces = input
         .chars()
@@ -1177,7 +1177,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = ImageBitmap::create_image_bitmap(
+        ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
             0,
@@ -1186,8 +1186,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             None,
             options,
             can_gc,
-        );
-        p
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1201,7 +1200,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = ImageBitmap::create_image_bitmap(
+        ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
             sx,
@@ -1210,8 +1209,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Some(sh),
             options,
             can_gc,
-        );
-        p
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window

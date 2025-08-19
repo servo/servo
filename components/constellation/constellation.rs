@@ -1019,7 +1019,7 @@ where
     fn fully_active_descendant_browsing_contexts_iter(
         &self,
         browsing_context_id: BrowsingContextId,
-    ) -> FullyActiveBrowsingContextsIterator {
+    ) -> FullyActiveBrowsingContextsIterator<'_> {
         FullyActiveBrowsingContextsIterator {
             stack: vec![browsing_context_id],
             pipelines: &self.pipelines,
@@ -1031,7 +1031,7 @@ where
     fn fully_active_browsing_contexts_iter(
         &self,
         webview_id: WebViewId,
-    ) -> FullyActiveBrowsingContextsIterator {
+    ) -> FullyActiveBrowsingContextsIterator<'_> {
         self.fully_active_descendant_browsing_contexts_iter(BrowsingContextId::from(webview_id))
     }
 
@@ -1039,7 +1039,7 @@ where
     fn all_descendant_browsing_contexts_iter(
         &self,
         browsing_context_id: BrowsingContextId,
-    ) -> AllBrowsingContextsIterator {
+    ) -> AllBrowsingContextsIterator<'_> {
         AllBrowsingContextsIterator {
             stack: vec![browsing_context_id],
             pipelines: &self.pipelines,
@@ -1157,6 +1157,7 @@ where
     /// Handles loading pages, navigation, and granting access to the compositor
     #[servo_tracing::instrument(skip_all)]
     fn handle_request(&mut self) {
+        #[allow(clippy::large_enum_variant)]
         #[derive(Debug)]
         enum Request {
             PipelineNamespace(PipelineNamespaceRequest),
@@ -3174,7 +3175,8 @@ where
                     );
                 },
             };
-            let is_parent_private = match self.browsing_contexts.get(&parent_browsing_context_id) {
+
+            match self.browsing_contexts.get(&parent_browsing_context_id) {
                 Some(ctx) => ctx.is_private,
                 None => {
                     return warn!(
@@ -3182,8 +3184,7 @@ where
                         parent_browsing_context_id, browsing_context_id,
                     );
                 },
-            };
-            is_parent_private
+            }
         };
         let is_private = is_private || is_parent_private;
 

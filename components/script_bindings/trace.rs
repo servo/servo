@@ -354,7 +354,7 @@ where
     Heap<T>: JSTraceable + 'static,
     T: GCMethods + Copy,
 {
-    pub fn handle(&self) -> Handle<T> {
+    pub fn handle(&self) -> Handle<'_, T> {
         self.0.handle()
     }
 }

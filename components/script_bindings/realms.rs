@@ -47,11 +47,11 @@ impl<'a> From<&'a JSAutoRealm> for InRealm<'a> {
 }
 
 impl InRealm<'_> {
-    pub fn already(token: &AlreadyInRealm) -> InRealm {
+    pub fn already(token: &AlreadyInRealm) -> InRealm<'_> {
         InRealm::Already(token)
     }
 
-    pub fn entered(token: &JSAutoRealm) -> InRealm {
+    pub fn entered(token: &JSAutoRealm) -> InRealm<'_> {
         InRealm::Entered(token)
     }
 }

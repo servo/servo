@@ -111,7 +111,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if the value is currently mutably borrowed.
     #[track_caller]
-    pub(crate) fn borrow(&self) -> Ref<T> {
+    pub(crate) fn borrow(&self) -> Ref<'_, T> {
         self.value.borrow()
     }
 
@@ -124,7 +124,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if the value is currently borrowed.
     #[track_caller]
-    pub(crate) fn borrow_mut(&self) -> RefMut<T> {
+    pub(crate) fn borrow_mut(&self) -> RefMut<'_, T> {
         self.value.borrow_mut()
     }
 
@@ -138,7 +138,7 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub(crate) fn try_borrow(&self) -> Result<Ref<T>, BorrowError> {
+    pub(crate) fn try_borrow(&self) -> Result<Ref<'_, T>, BorrowError> {
         assert_in_script();
         self.value.try_borrow()
     }
@@ -153,7 +153,7 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub(crate) fn try_borrow_mut(&self) -> Result<RefMut<T>, BorrowMutError> {
+    pub(crate) fn try_borrow_mut(&self) -> Result<RefMut<'_, T>, BorrowMutError> {
         assert_in_script();
         self.value.try_borrow_mut()
     }

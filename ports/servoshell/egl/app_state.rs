@@ -373,11 +373,11 @@ impl RunningAppState {
         }
     }
 
-    fn inner(&self) -> Ref<RunningAppStateInner> {
+    fn inner(&self) -> Ref<'_, RunningAppStateInner> {
         self.inner.borrow()
     }
 
-    fn inner_mut(&self) -> RefMut<RunningAppStateInner> {
+    fn inner_mut(&self) -> RefMut<'_, RunningAppStateInner> {
         self.inner.borrow_mut()
     }
 

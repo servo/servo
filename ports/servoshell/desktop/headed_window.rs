@@ -908,7 +908,7 @@ impl servo::webxr::glwindow::GlWindow for XRWindow {
         }
     }
 
-    fn display_handle(&self) -> raw_window_handle::DisplayHandle {
+    fn display_handle(&self) -> raw_window_handle::DisplayHandle<'_> {
         self.winit_window
             .display_handle()
             .expect("Every window should have a display handle")

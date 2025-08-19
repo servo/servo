@@ -1376,7 +1376,7 @@ impl IOCompositor {
     }
 
     /// Get the message receiver for this [`IOCompositor`].
-    pub fn receiver(&self) -> Ref<Receiver<CompositorMsg>> {
+    pub fn receiver(&self) -> Ref<'_, Receiver<CompositorMsg>> {
         Ref::map(self.global.borrow(), |global| &global.compositor_receiver)
     }
 

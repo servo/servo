@@ -226,7 +226,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         if auto_increment {
             match key_path {
                 Some(StringOrStringSequence::String(path)) => {
-                    if path == "" {
+                    if path.is_empty() {
                         return Err(Error::InvalidAccess);
                     }
                 },

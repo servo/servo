@@ -355,7 +355,7 @@ impl WebGL2RenderingContext {
         &self,
         pixel_type: u32,
         format: u32,
-    ) -> WebGLResult<ReadPixelsAllowedFormats> {
+    ) -> WebGLResult<ReadPixelsAllowedFormats<'_>> {
         let array_types = match pixel_type {
             constants::BYTE => &[Type::Int8][..],
             constants::SHORT => &[Type::Int16][..],

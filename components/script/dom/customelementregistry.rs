@@ -591,16 +591,13 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             return promise;
         }
 
-        // Steps 3, 4, 5
+        // Steps 3, 4, 5, 6
         let existing_promise = self.when_defined.borrow().get(&name).cloned();
-        let promise = existing_promise.unwrap_or_else(|| {
+        existing_promise.unwrap_or_else(|| {
             let promise = Promise::new_in_current_realm(comp, can_gc);
             self.when_defined.borrow_mut().insert(name, promise.clone());
             promise
-        });
-
-        // Step 6
-        promise
+        })
     }
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade>
     fn Upgrade(&self, node: &Node) {

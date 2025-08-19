@@ -466,7 +466,7 @@ impl WindowRenderingContext {
         Ok(())
     }
 
-    pub fn surfman_details(&self) -> (RefMut<Device>, RefMut<Context>) {
+    pub fn surfman_details(&self) -> (RefMut<'_, Device>, RefMut<'_, Context>) {
         (
             self.surfman_context.device.borrow_mut(),
             self.surfman_context.context.borrow_mut(),

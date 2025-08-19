@@ -766,8 +766,7 @@ impl HTMLImageElement {
     ) -> Au {
         let document = self.owner_document();
         let quirks_mode = document.quirks_mode();
-        let result = source_size_list.evaluate(document.window().layout().device(), quirks_mode);
-        result
+        source_size_list.evaluate(document.window().layout().device(), quirks_mode)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#normalise-the-source-densities>
@@ -859,7 +858,7 @@ impl HTMLImageElement {
 
     fn init_image_request(
         &self,
-        request: &mut RefMut<ImageRequest>,
+        request: &mut RefMut<'_, ImageRequest>,
         url: &ServoUrl,
         src: &USVString,
         can_gc: CanGc,
@@ -1308,6 +1307,7 @@ impl HTMLImageElement {
                     // Already a part of the list of available images due to Step 14
 
                     // Step 15.5
+                    #[allow(clippy::swap_with_temporary)]
                     mem::swap(&mut this.current_request.borrow_mut(), &mut pending_request);
                 }
                 this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
@@ -1398,7 +1398,7 @@ impl HTMLImageElement {
 
         let value = usemap_attr.value();
 
-        if value.len() == 0 || !value.is_char_boundary(1) {
+        if value.is_empty() || !value.is_char_boundary(1) {
             return None;
         }
 
@@ -1568,7 +1568,7 @@ pub(crate) fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
 }
 
 fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
-    if token == "" {
+    if token.is_empty() {
         // Empty token is treated as the default referrer policy inside determine_policy_for_token,
         // so it should remain unchanged.
         DOMString::new()
