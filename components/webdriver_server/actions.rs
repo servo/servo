@@ -173,7 +173,7 @@ impl Handler {
             // Since hit test can fails, we do retry for input event that failed to be dispatched.
             // TODO: Based on spec, tick actions should be ordered (see #37387). However, the way
             // we do the retry does not respect the ordering of actions.
-            if !self.input_to_retry.borrow().is_empty(){
+            if !self.input_to_retry.borrow().is_empty() {
                 self.redispatch_failed_input_event()?;
             }
 
