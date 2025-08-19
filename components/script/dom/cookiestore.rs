@@ -52,6 +52,7 @@ pub(crate) struct CookieStore {
 }
 
 struct CookieListener {
+    // TODO:(whatwg/cookiestore#239) The spec is missing details for what task source to use
     task_source: SendableTaskSource,
     context: Trusted<CookieStore>,
 }
@@ -85,7 +86,9 @@ impl CookieListener {
                         .collect_vec(),
                     CanGc::note());
                 },
-                _ => {promise.resolve_native(&(), CanGc::note());}
+                CookieData::Delete(_) | CookieData::Change(_) | CookieData::Set(_) => {
+                    promise.resolve_native(&(), CanGc::note());
+                }
             }
         }));
     }
@@ -127,7 +130,7 @@ impl CookieStore {
             }),
         );
 
-        let _ = self
+        let res = self
             .global()
             .resource_threads()
             .send(CoreResourceMsg::NewCookieListener(
@@ -135,11 +138,16 @@ impl CookieStore {
                 cookie_sender,
                 self.global().creation_url().clone(),
             ));
+        if res.is_err() {
+            error!("Failed to send cookiestore message to resource threads");
+        }
     }
 }
 
 /// <https://cookiestore.spec.whatwg.org/#create-a-cookielistitem>
 fn cookie_to_list_item(cookie: Cookie) -> CookieListItem {
+    // TODO: Investigate if we need to explicitly UTF-8 decode without BOM here or if thats
+    // already being done by cookie-rs or implicitly by using rust strings
     CookieListItem {
         // Let domain be the result of running UTF-8 decode without BOM on cookie’s domain.
         domain: cookie
@@ -194,13 +202,14 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             p.reject_error(Error::Security, can_gc);
             return p;
         }
+
         // 4. Let url be settings’s creation URL.
         let creation_url = global.creation_url();
 
         self.in_flight.borrow_mut().push_back(p.clone());
 
         // 6. Run the following steps in parallel:
-        let _ = self
+        let res = self
             .global()
             .resource_threads()
             .send(CoreResourceMsg::GetCookieDataForUrlAsync(
@@ -208,6 +217,10 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 creation_url.clone(),
                 Some(name.to_string()),
             ));
+        if res.is_err() {
+            self.in_flight.borrow_mut().pop_back();
+            error!("Failed to send cookiestore message to resource threads");
+        }
 
         // 7. Return p.
         p
@@ -241,6 +254,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         }
 
         let mut final_url = creation_url.clone();
+
         // 6. If options["url"] is present, then run these steps:
         if let Some(get_url) = &options.url {
             // 6.1. Let parsed be the result of parsing options["url"] with settings’s API base URL.
@@ -280,7 +294,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         self.in_flight.borrow_mut().push_back(p.clone());
 
         // 6. Run the following steps in parallel:
-        let _ = self
+        let res = self
             .global()
             .resource_threads()
             .send(CoreResourceMsg::GetCookieDataForUrlAsync(
@@ -288,6 +302,10 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 final_url.clone(),
                 options.name.clone().map(|val| val.0),
             ));
+        if res.is_err() {
+            self.in_flight.borrow_mut().pop_back();
+            error!("Failed to send cookiestore message to resource threads");
+        }
 
         p
     }
@@ -314,7 +332,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         self.in_flight.borrow_mut().push_back(p.clone());
 
         // 6. Run the following steps in parallel:
-        let _ =
+        let res =
             self.global()
                 .resource_threads()
                 .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
@@ -322,6 +340,10 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                     creation_url.clone(),
                     Some(name.to_string()),
                 ));
+        if res.is_err() {
+            self.in_flight.borrow_mut().pop_back();
+            error!("Failed to send cookiestore message to resource threads");
+        }
 
         // 7. Return p.
         p
@@ -355,6 +377,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         }
 
         let mut final_url = creation_url.clone();
+
         // 6. If options["url"] is present, then run these steps:
         if let Some(get_url) = &options.url {
             // 6.1. Let parsed be the result of parsing options["url"] with settings’s API base URL.
@@ -394,7 +417,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         self.in_flight.borrow_mut().push_back(p.clone());
 
         // 6. Run the following steps in parallel:
-        let _ =
+        let res =
             self.global()
                 .resource_threads()
                 .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
@@ -402,6 +425,10 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                     final_url.clone(),
                     options.name.clone().map(|val| val.0),
                 ));
+        if res.is_err() {
+            self.in_flight.borrow_mut().pop_back();
+            error!("Failed to send cookiestore message to resource threads");
+        }
 
         // 8. Return p
         p
@@ -440,7 +467,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         self.in_flight.borrow_mut().push_back(p.clone());
 
         // 10. Run the following steps in parallel:
-        let _ = self
+        let res = self
             .global()
             .resource_threads()
             .send(CoreResourceMsg::SetCookieForUrlAsync(
@@ -449,6 +476,10 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 Serde(cookie.build()),
                 NonHTTP,
             ));
+        if res.is_err() {
+            self.in_flight.borrow_mut().pop_back();
+            error!("Failed to send cookiestore message to resource threads");
+        }
 
         // 11. Return p.
         p
@@ -486,7 +517,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         self.in_flight.borrow_mut().push_back(p.clone());
 
         // 6. Run the following steps in parallel:
-        let _ = self
+        let res = self
             .global()
             .resource_threads()
             .send(CoreResourceMsg::SetCookieForUrlAsync(
@@ -495,6 +526,10 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 Serde(cookie.build()),
                 NonHTTP,
             ));
+        if res.is_err() {
+            self.in_flight.borrow_mut().pop_back();
+            error!("Failed to send cookiestore message to resource threads");
+        }
 
         // 7. Return p
         p
@@ -521,13 +556,17 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
         // 6. Run the following steps in parallel:
         // TODO: the spec passes additional parameters to _delete a cookie_ that we don't handle yet
-        let _ = global
+        let res = global
             .resource_threads()
             .send(CoreResourceMsg::DeleteCookieAsync(
                 self.store_id,
                 global.creation_url().clone(),
                 name.0,
             ));
+        if res.is_err() {
+            self.in_flight.borrow_mut().pop_back();
+            error!("Failed to send cookiestore message to resource threads");
+        }
 
         // 7. Return p.
         p
@@ -554,15 +593,31 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
         // 6. Run the following steps in parallel:
         // TODO: the spec passes additional parameters to _delete a cookie_ that we don't handle yet
-        let _ = global
+        let res = global
             .resource_threads()
             .send(CoreResourceMsg::DeleteCookieAsync(
                 self.store_id,
                 global.creation_url().clone(),
                 options.name.to_string(),
             ));
+        if res.is_err() {
+            self.in_flight.borrow_mut().pop_back();
+            error!("Failed to send cookiestore message to resource threads");
+        }
 
         // 7. Return p.
         p
+    }
+}
+
+impl Drop for CookieStore {
+    fn drop(&mut self) {
+        let res = self
+            .global()
+            .resource_threads()
+            .send(CoreResourceMsg::RemoveCookieListener(self.store_id));
+        if res.is_err() {
+            error!("Failed to send cookiestore message to resource threads");
+        }
     }
 }

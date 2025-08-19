@@ -1068,8 +1068,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     // https://cookiestore.spec.whatwg.org/#Window
-    fn CookieStore(&self) -> DomRoot<CookieStore> {
-        self.global().cookie_store(CanGc::note())
+    fn CookieStore(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
+        self.global().cookie_store(can_gc)
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto

@@ -340,15 +340,17 @@ impl ResourceChannelManager {
     }
 
     fn send_cookie_response(&self, store_id: CookieStoreId, data: CookieData) {
-        let sender = self.cookie_listeners.get(&store_id);
-        if sender.is_none() {
+        let Some(sender) = self.cookie_listeners.get(&store_id) else {
             warn!(
                 "Async cookie request made for store id that is non-existent {:?}",
                 store_id
             );
             return;
+        };
+        let res = sender.send(CookieAsyncResponse { data });
+        if res.is_err() {
+            warn!("Unable to send cookie response to script thread");
         }
-        let _ = sender.unwrap().send(CookieAsyncResponse { data });
     }
 
     /// Returns false if the thread should exit.
