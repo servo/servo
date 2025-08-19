@@ -169,6 +169,19 @@
       ],
       {}
      ]
+    ],
+    "input-textual-text-align.html": [
+     "600a41cba133e9933132165e7cc4a2ea0ca28884",
+     [
+      "appearance/input-textual-text-align.html",
+      [
+       [
+        "/_mozilla/appearance/input-textual-text-align-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
     ]
    },
    "css": {
@@ -8152,6 +8165,10 @@
     ],
     "input-textual-placeholder-ref.html": [
      "d30f13a2a1bab16989ec585a57ba7b7bd0b1c329",
+     []
+    ],
+    "input-textual-text-align-ref.html": [
+     "c2c99bc0751afd0aea3479a54df5f1d107fff38d",
      []
     ],
     "supports": {
