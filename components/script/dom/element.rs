@@ -2140,29 +2140,86 @@ impl Element {
         self.push_attribute(&attr, can_gc);
     }
 
-    pub(crate) fn push_attribute(&self, attr: &Attr, can_gc: CanGc) {
+    /// <https://dom.spec.whatwg.org/#handle-attribute-changes>
+    fn handle_attribute_changes(
+        &self,
+        attr: &Attr,
+        old_value: Option<&AttrValue>,
+        new_value: Option<DOMString>,
+        can_gc: CanGc,
+    ) {
+        let old_value_string = old_value.map(|old_value| DOMString::from(&**old_value));
+        // Step 1. Queue a mutation record of "attributes" for element with attribute’s local name,
+        // attribute’s namespace, oldValue, « », « », null, and null.
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
         let mutation = LazyCell::new(|| Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
-            old_value: None,
+            old_value: old_value_string.clone(),
         });
-
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
+        // Avoid double borrow
+        let has_new_value = new_value.is_none();
+
+        // Step 2. If element is custom, then enqueue a custom element callback reaction with element,
+        // callback name "attributeChangedCallback", and « attribute’s local name, oldValue, newValue, attribute’s namespace ».
         if self.is_custom() {
-            let value = DOMString::from(&**attr.value());
-            let reaction = CallbackReaction::AttributeChanged(name, None, Some(value), namespace);
+            let reaction = CallbackReaction::AttributeChanged(
+                attr.local_name().clone(),
+                old_value_string,
+                new_value,
+                attr.namespace().clone(),
+            );
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
 
+        // Step 3. Run the attribute change steps with element, attribute’s local name, oldValue, newValue, and attribute’s namespace.
+        if is_relevant_attribute(attr.namespace(), attr.local_name()) {
+            let attribute_mutation = if has_new_value {
+                AttributeMutation::Removed
+            } else {
+                AttributeMutation::Set(old_value)
+            };
+            vtable_for(self.upcast()).attribute_mutated(attr, attribute_mutation, can_gc);
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-change>
+    pub(crate) fn change_attribute(&self, attr: &Attr, mut value: AttrValue, can_gc: CanGc) {
+        // Step 1. Let oldValue be attribute’s value.
+        //
+        // Clone to avoid double borrow
+        let old_value = &attr.value().clone();
+        // Step 2. Set attribute’s value to value.
+        self.will_mutate_attr(attr);
+        attr.swap_value(&mut value);
+        // Step 3. Handle attribute changes for attribute with attribute’s element, oldValue, and value.
+        //
+        // Put on a separate line to avoid double borrow
+        let new_value = DOMString::from(&**attr.value());
+        self.handle_attribute_changes(attr, Some(old_value), Some(new_value), can_gc);
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-append>
+    pub(crate) fn push_attribute(&self, attr: &Attr, can_gc: CanGc) {
+        // Step 2. Set attribute’s element to element.
+        //
+        // Handled by callers of this function and asserted here.
         assert!(attr.GetOwnerElement().as_deref() == Some(self));
+        // Step 3. Set attribute’s node document to element’s node document.
+        //
+        // Handled by callers of this function and asserted here.
+        assert!(attr.upcast::<Node>().owner_doc() == self.node.owner_doc());
+        // Step 1. Append attribute to element’s attribute list.
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(Dom::from_ref(attr));
-        if is_relevant_attribute(attr.namespace(), attr.local_name()) {
-            vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None), can_gc);
-        }
+        // Step 4. Handle attribute changes for attribute with element, null, and attribute’s value.
+        //
+        // Put on a separate line to avoid double borrow
+        let new_value = DOMString::from(&**attr.value());
+        self.handle_attribute_changes(attr, None, Some(new_value), can_gc);
     }
 
     pub(crate) fn get_attribute(
@@ -2270,6 +2327,7 @@ impl Element {
         Ok(())
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-set-value>
     #[allow(clippy::too_many_arguments)]
     fn set_first_matching_attribute<F>(
         &self,
@@ -2283,6 +2341,7 @@ impl Element {
     ) where
         F: Fn(&Attr) -> bool,
     {
+        // Step 1. Let attribute be the result of getting an attribute given namespace, localName, and element.
         let attr = self
             .attrs
             .borrow()
@@ -2290,8 +2349,14 @@ impl Element {
             .find(|attr| find(attr))
             .map(|js| DomRoot::from_ref(&**js));
         if let Some(attr) = attr {
-            attr.set_value(value, self, can_gc);
+            // Step 3. Change attribute to value.
+            self.will_mutate_attr(&attr);
+            self.change_attribute(&attr, value, can_gc);
         } else {
+            // Step 2. If attribute is null, create an attribute whose namespace is namespace,
+            // namespace prefix is prefix, local name is localName, value is value,
+            // and node document is element’s node document,
+            // then append this attribute to element, and then return.
             self.push_new_attribute(local_name, value, name, namespace, prefix, can_gc);
         };
     }
@@ -2329,6 +2394,7 @@ impl Element {
         self.remove_first_matching_attribute(|attr| attr.name() == name, can_gc)
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-remove>
     fn remove_first_matching_attribute<F>(&self, find: F, can_gc: CanGc) -> Option<DomRoot<Attr>>
     where
         F: Fn(&Attr) -> bool,
@@ -2336,34 +2402,15 @@ impl Element {
         let idx = self.attrs.borrow().iter().position(|attr| find(attr));
         idx.map(|idx| {
             let attr = DomRoot::from_ref(&*(*self.attrs.borrow())[idx]);
+
+            // Step 2. Remove attribute from element’s attribute list.
             self.will_mutate_attr(&attr);
-
-            let name = attr.local_name().clone();
-            let namespace = attr.namespace().clone();
-            let old_value = DOMString::from(&**attr.value());
-            let mutation = LazyCell::new(|| Mutation::Attribute {
-                name: name.clone(),
-                namespace: namespace.clone(),
-                old_value: Some(old_value.clone()),
-            });
-
-            MutationObserver::queue_a_mutation_record(&self.node, mutation);
-
-            if self.is_custom() {
-                let reaction =
-                    CallbackReaction::AttributeChanged(name, Some(old_value), None, namespace);
-                ScriptThread::enqueue_callback_reaction(self, reaction, None);
-            }
-
             self.attrs.borrow_mut().remove(idx);
+            // Step 3. Set attribute’s element to null.
             attr.set_owner(None);
-            if is_relevant_attribute(attr.namespace(), attr.local_name()) {
-                vtable_for(self.upcast()).attribute_mutated(
-                    &attr,
-                    AttributeMutation::Removed,
-                    can_gc,
-                );
-            }
+            // Step 4. Handle attribute changes for attribute with element, attribute’s value, and null.
+            self.handle_attribute_changes(&attr, Some(&attr.value()), None, can_gc);
+
             attr
         })
     }
@@ -2655,6 +2702,94 @@ impl Element {
             },
             AttributeMutation::Removed => None,
         };
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-set>
+    /// including steps of
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-replace>
+    fn set_attribute_node(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
+        // Step 1. Let verifiedValue be the result of calling
+        // get Trusted Types-compliant attribute value with attr’s local name,
+        // attr’s namespace, element, and attr’s value. [TRUSTED-TYPES]
+        let verified_value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
+            self.namespace(),
+            self.local_name(),
+            attr.local_name(),
+            Some(attr.namespace()),
+            TrustedTypeOrString::String(attr.Value()),
+            &self.owner_global(),
+            can_gc,
+        )?;
+
+        // Step 2. If attr’s element is neither null nor element,
+        // throw an "InUseAttributeError" DOMException.
+        if let Some(owner) = attr.GetOwnerElement() {
+            if &*owner != self {
+                return Err(Error::InUseAttribute);
+            }
+        }
+
+        let vtable = vtable_for(self.upcast());
+
+        // Step 5. Set attr’s value to verifiedValue.
+        //
+        // This ensures that the attribute is of the expected kind for this
+        // specific element. This is inefficient and should probably be done
+        // differently.
+        attr.swap_value(
+            &mut vtable.parse_plain_attribute(attr.local_name(), verified_value.clone()),
+        );
+
+        // Step 3. Let oldAttr be the result of getting an attribute given attr’s namespace, attr’s local name, and element.
+        let position = self.attrs.borrow().iter().position(|old_attr| {
+            attr.namespace() == old_attr.namespace() && attr.local_name() == old_attr.local_name()
+        });
+
+        let old_attr = if let Some(position) = position {
+            let old_attr = DomRoot::from_ref(&*self.attrs.borrow()[position]);
+
+            // Step 4. If oldAttr is attr, return attr.
+            if &*old_attr == attr {
+                return Ok(Some(DomRoot::from_ref(attr)));
+            }
+
+            // Step 6. If oldAttr is non-null, then replace oldAttr with attr.
+            //
+            // Start of steps for https://dom.spec.whatwg.org/#concept-element-attributes-replace
+
+            // Step 1. Let element be oldAttribute’s element.
+            //
+            // Skipped, as that points to self.
+
+            // Step 2. Replace oldAttribute by newAttribute in element’s attribute list.
+            self.will_mutate_attr(attr);
+            self.attrs.borrow_mut()[position] = Dom::from_ref(attr);
+            // Step 3. Set newAttribute’s element to element.
+            attr.set_owner(Some(self));
+            // Step 4. Set newAttribute’s node document to element’s node document.
+            attr.upcast::<Node>().set_owner_doc(&self.node.owner_doc());
+            // Step 5. Set oldAttribute’s element to null.
+            old_attr.set_owner(None);
+            // Step 6. Handle attribute changes for oldAttribute with element, oldAttribute’s value, and newAttribute’s value.
+            self.handle_attribute_changes(
+                attr,
+                Some(&old_attr.value()),
+                Some(verified_value),
+                can_gc,
+            );
+
+            Some(old_attr)
+        } else {
+            // Step 7. Otherwise, append attr to element.
+            attr.set_owner(Some(self));
+            attr.upcast::<Node>().set_owner_doc(&self.node.owner_doc());
+            self.push_attribute(attr, can_gc);
+
+            None
+        };
+
+        // Step 8. Return oldAttr.
+        Ok(old_attr)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
@@ -3241,74 +3376,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenode
     fn SetAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
-        // Step 1.
-        if let Some(owner) = attr.GetOwnerElement() {
-            if &*owner != self {
-                return Err(Error::InUseAttribute);
-            }
-        }
-
-        let vtable = vtable_for(self.upcast());
-
-        // This ensures that the attribute is of the expected kind for this
-        // specific element. This is inefficient and should probably be done
-        // differently.
-        attr.swap_value(&mut vtable.parse_plain_attribute(attr.local_name(), attr.Value()));
-
-        // Step 2.
-        let position = self.attrs.borrow().iter().position(|old_attr| {
-            attr.namespace() == old_attr.namespace() && attr.local_name() == old_attr.local_name()
-        });
-
-        if let Some(position) = position {
-            let old_attr = DomRoot::from_ref(&*self.attrs.borrow()[position]);
-
-            // Step 3.
-            if &*old_attr == attr {
-                return Ok(Some(DomRoot::from_ref(attr)));
-            }
-
-            // Step 4.
-            if self.is_custom() {
-                let old_name = old_attr.local_name().clone();
-                let old_value = DOMString::from(&**old_attr.value());
-                let new_value = DOMString::from(&**attr.value());
-                let namespace = old_attr.namespace().clone();
-                let reaction = CallbackReaction::AttributeChanged(
-                    old_name,
-                    Some(old_value),
-                    Some(new_value),
-                    namespace,
-                );
-                ScriptThread::enqueue_callback_reaction(self, reaction, None);
-            }
-            self.will_mutate_attr(attr);
-            attr.set_owner(Some(self));
-            self.attrs.borrow_mut()[position] = Dom::from_ref(attr);
-            old_attr.set_owner(None);
-            if is_relevant_attribute(attr.namespace(), attr.local_name()) {
-                vtable.attribute_mutated(
-                    attr,
-                    AttributeMutation::Set(Some(&old_attr.value())),
-                    can_gc,
-                );
-            }
-
-            // Step 6.
-            Ok(Some(old_attr))
-        } else {
-            // Step 5.
-            attr.set_owner(Some(self));
-            self.push_attribute(attr, can_gc);
-
-            // Step 6.
-            Ok(None)
-        }
+        self.set_attribute_node(attr, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenodens
     fn SetAttributeNodeNS(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
-        self.SetAttributeNode(attr, can_gc)
+        self.set_attribute_node(attr, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattribute
@@ -4563,11 +4636,14 @@ impl VirtualMethods for Element {
             },
             &local_name!("style") => self.update_style_attribute(attr, mutation),
             &local_name!("id") => {
+                // https://dom.spec.whatwg.org/#ref-for-concept-element-attributes-change-ext%E2%91%A2
                 *self.id_attribute.borrow_mut() = mutation.new_value(attr).and_then(|value| {
                     let value = value.as_atom();
                     if value != &atom!("") {
+                        // Step 2. Otherwise, if localName is id, namespace is null, then set element’s ID to value.
                         Some(value.clone())
                     } else {
+                        // Step 1. If localName is id, namespace is null, and value is null or the empty string, then unset element’s ID.
                         None
                     }
                 });

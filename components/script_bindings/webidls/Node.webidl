@@ -54,7 +54,7 @@ interface Node : EventTarget {
   [Pure]
   readonly attribute Node? nextSibling;
 
-  [CEReactions, Pure]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString? nodeValue;
   [CEReactions, Pure]
            attribute DOMString? textContent;
