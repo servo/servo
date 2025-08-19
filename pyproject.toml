@@ -1,3 +1,8 @@
+[project]
+# `uv` logs warnings if this file doesn't contain a `project` table.
+name = "servo"
+version = "0.0.1"
+
 [tool.ruff]
 line-length = 120
 extend-exclude = [
