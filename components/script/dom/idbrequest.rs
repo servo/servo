@@ -297,11 +297,8 @@ impl IDBRequest {
                 task_source.queue(task!(request_callback: move || {
                     response_listener.handle_async_request_finished(
                         message.expect("Could not unwrap message").inspect_err(|e| {
-                            match e {
-                                BackendError::DbErr(e) => {
-                                    error!("Error in IndexedDB operation: {}", e);
-                                },
-                                _ => {}
+                            if let BackendError::DbErr(e) = e {
+                                error!("Error in IndexedDB operation: {}", e);
                             }
                         }).map(|t| t.into()));
                 }));
