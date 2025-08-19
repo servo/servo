@@ -191,12 +191,17 @@ impl Handler {
     }
 
     fn wait_for_user_agent_handling_complete(&self) -> Result<(), ErrorStatus> {
+        let mut input_to_retry = self.input_to_retry.borrow_mut();
+        let current_waiting_id = self
+            .current_action_id
+            .get()
+            .expect("Current id should be set before dispatch_actions_inner is called");
+
         // To ensure we wait for all events to be processed, only the last event
         // in each tick action step holds the message id.
         // Whenever a new event is generated, the message id is passed to it.
         //
         // Wait for num_pending_actions number of responses
-        let mut input_to_retry = self.input_to_retry.borrow_mut();
         for _ in 0..self.num_pending_actions.get() {
             match self.webdriver_response_receiver.recv() {
                 Ok(response) => {
@@ -207,11 +212,6 @@ impl Handler {
                             continue;
                         },
                     };
-                    let current_waiting_id = self
-                        .current_action_id
-                        .get()
-                        .expect("Current id should be set before dispatch_actions_inner is called");
-
                     if current_waiting_id != response_id {
                         error!("Dispatch actions completed with wrong id in response");
                         return Err(ErrorStatus::UnknownError);
@@ -947,7 +947,7 @@ impl Handler {
 
         {
             let mut input_to_retry = self.input_to_retry.borrow_mut();
-            let _ = self.send_message_to_embedder(WebDriverCommandMsg::RetryInputEvent(
+            let _ = self.send_message_to_embedder(WebDriverCommandMsg::RetryInputEvents(
                 session.webview_id,
                 input_to_retry.to_vec(),
             ));

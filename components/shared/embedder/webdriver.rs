@@ -170,7 +170,7 @@ pub enum WebDriverCommandMsg {
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),
-    RetryInputEvent(WebViewId, Vec<InputEvent>),
+    RetryInputEvents(WebViewId, Vec<InputEvent>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
