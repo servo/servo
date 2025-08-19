@@ -510,8 +510,8 @@ impl DevtoolsInstance {
             .watcher
             .clone();
 
-        let netevent_actor_name = match self.actor_requests.get(&request_id).cloned() {
-            Some(name) => name,
+        let netevent_actor_name = match self.actor_requests.get(&request_id) {
+            Some(name) => name.clone(),
             None => self.create_network_event_actor(request_id, watcher_name),
         };
 
@@ -524,7 +524,6 @@ impl DevtoolsInstance {
     }
 
     /// Create a new NetworkEventActor for a given request ID and watcher name.
-    /// Fails if one already exists.
     fn create_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
         let mut actors = self.actors.lock().unwrap();
         let resource_id = self.next_resource_id;
