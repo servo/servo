@@ -83,7 +83,7 @@ pub struct WGPUExternalImages {
 }
 
 impl WebrenderExternalImageApi for WGPUExternalImages {
-    fn lock(&mut self, id: u64) -> (ExternalImageSource, Size2D<i32>) {
+    fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         let id = WebGPUContextId(id);
         let webgpu_contexts = self.images.lock().unwrap();
         let context_data = webgpu_contexts.get(&id).unwrap();

@@ -49,7 +49,7 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
         .collect()
 }
 
-pub fn replace_host(host: &str) -> Cow<str> {
+pub fn replace_host(host: &str) -> Cow<'_, str> {
     HOST_TABLE
         .lock()
         .unwrap()

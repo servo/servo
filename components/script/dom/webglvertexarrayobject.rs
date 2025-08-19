@@ -64,7 +64,7 @@ impl WebGLVertexArrayObject {
         self.array_object.element_array_buffer()
     }
 
-    pub(crate) fn get_vertex_attrib(&self, index: u32) -> Option<Ref<VertexAttribData>> {
+    pub(crate) fn get_vertex_attrib(&self, index: u32) -> Option<Ref<'_, VertexAttribData>> {
         self.array_object.get_vertex_attrib(index)
     }
 

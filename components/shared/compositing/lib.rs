@@ -350,7 +350,7 @@ impl CrossProcessCompositorApi {
 /// This trait is used to notify lock/unlock messages and get the
 /// required info that WR needs.
 pub trait WebrenderExternalImageApi {
-    fn lock(&mut self, id: u64) -> (ExternalImageSource, UntypedSize2D<i32>);
+    fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, UntypedSize2D<i32>);
     fn unlock(&mut self, id: u64);
 }
 
@@ -433,7 +433,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
     /// image content.
     /// The WR client should not change the image content until the
     /// unlock() call.
-    fn lock(&mut self, key: ExternalImageId, _channel_index: u8) -> ExternalImage {
+    fn lock(&mut self, key: ExternalImageId, _channel_index: u8) -> ExternalImage<'_> {
         let external_images = self.external_images.lock().unwrap();
         let handler_type = external_images
             .get(&key)

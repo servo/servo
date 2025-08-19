@@ -176,7 +176,7 @@ impl Minibrowser {
     }
 
     /// Create a frameless button with square sizing, as used in the toolbar.
-    fn toolbar_button(text: &str) -> egui::Button {
+    fn toolbar_button(text: &str) -> egui::Button<'_> {
         egui::Button::new(text)
             .frame(false)
             .min_size(Vec2 { x: 20.0, y: 20.0 })

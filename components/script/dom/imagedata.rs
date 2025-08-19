@@ -180,7 +180,7 @@ impl ImageData {
 
     /// Nothing must change the array on the JS side while the slice is live.
     #[allow(unsafe_code)]
-    pub(crate) unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<[u8]> {
+    pub(crate) unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<'_, [u8]> {
         pixels::rgba8_get_rect(unsafe { self.as_slice() }, self.get_size().to_u32(), rect)
     }
 

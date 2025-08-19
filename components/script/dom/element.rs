@@ -355,15 +355,15 @@ impl Element {
         )
     }
 
-    fn rare_data(&self) -> Ref<Option<Box<ElementRareData>>> {
+    fn rare_data(&self) -> Ref<'_, Option<Box<ElementRareData>>> {
         self.rare_data.borrow()
     }
 
-    fn rare_data_mut(&self) -> RefMut<Option<Box<ElementRareData>>> {
+    fn rare_data_mut(&self) -> RefMut<'_, Option<Box<ElementRareData>>> {
         self.rare_data.borrow_mut()
     }
 
-    fn ensure_rare_data(&self) -> RefMut<Box<ElementRareData>> {
+    fn ensure_rare_data(&self) -> RefMut<'_, Box<ElementRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {
             *rare_data = Some(Default::default());
@@ -792,7 +792,7 @@ impl Element {
     /// Lazily initialize the raredata if it does not exist.
     pub(crate) fn registered_intersection_observers_mut(
         &self,
-    ) -> RefMut<Vec<IntersectionObserverRegistration>> {
+    ) -> RefMut<'_, Vec<IntersectionObserverRegistration>> {
         RefMut::map(self.ensure_rare_data(), |rare_data| {
             &mut rare_data.registered_intersection_observers
         })
@@ -800,8 +800,8 @@ impl Element {
 
     pub(crate) fn registered_intersection_observers(
         &self,
-    ) -> Option<Ref<Vec<IntersectionObserverRegistration>>> {
-        let rare_data: Ref<_> = self.rare_data.borrow();
+    ) -> Option<Ref<'_, Vec<IntersectionObserverRegistration>>> {
+        let rare_data: Ref<'_, _> = self.rare_data.borrow();
 
         if rare_data.is_none() {
             return None;
@@ -817,7 +817,7 @@ impl Element {
     pub(crate) fn get_intersection_observer_registration(
         &self,
         observer: &IntersectionObserver,
-    ) -> Option<Ref<IntersectionObserverRegistration>> {
+    ) -> Option<Ref<'_, IntersectionObserverRegistration>> {
         if let Some(registrations) = self.registered_intersection_observers() {
             registrations
                 .iter()
@@ -1845,7 +1845,7 @@ impl Element {
         &self.namespace
     }
 
-    pub(crate) fn prefix(&self) -> Ref<Option<Prefix>> {
+    pub(crate) fn prefix(&self) -> Ref<'_, Option<Prefix>> {
         self.prefix.borrow()
     }
 
@@ -1853,7 +1853,7 @@ impl Element {
         *self.prefix.borrow_mut() = prefix;
     }
 
-    pub(crate) fn attrs(&self) -> Ref<[Dom<Attr>]> {
+    pub(crate) fn attrs(&self) -> Ref<'_, [Dom<Attr>]> {
         Ref::map(self.attrs.borrow(), |attrs| &**attrs)
     }
 

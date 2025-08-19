@@ -63,7 +63,7 @@ impl ImageBitmap {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn bitmap_data(&self) -> Ref<Option<Snapshot>> {
+    pub(crate) fn bitmap_data(&self) -> Ref<'_, Option<Snapshot>> {
         self.bitmap_data.borrow()
     }
 

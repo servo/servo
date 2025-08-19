@@ -1001,7 +1001,7 @@ impl FlexContainer {
     }
 
     #[inline]
-    pub(crate) fn layout_style(&self) -> LayoutStyle {
+    pub(crate) fn layout_style(&self) -> LayoutStyle<'_> {
         LayoutStyle::Default(&self.style)
     }
 }
@@ -2046,7 +2046,7 @@ impl FlexItemBox {
         content_box_sizes_and_pbm: &ContentBoxSizesAndPBM,
         config: &FlexContainerConfig,
         flex_context_getter: &impl Fn() -> &'a FlexContext<'a>,
-    ) -> FlexItem {
+    ) -> FlexItem<'_> {
         let flex_axis = config.flex_axis;
         let style = self.style();
         let cross_axis_is_item_block_axis = cross_axis_is_item_block_axis(

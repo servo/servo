@@ -258,7 +258,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn promise_obj(&self) -> HandleObject {
+    pub(crate) fn promise_obj(&self) -> HandleObject<'_> {
         let obj = self.reflector().get_jsobject();
         unsafe {
             assert!(IsPromiseObject(obj));

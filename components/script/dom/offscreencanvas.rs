@@ -101,7 +101,7 @@ impl OffscreenCanvas {
         }
     }
 
-    pub(crate) fn context(&self) -> Option<Ref<OffscreenRenderingContext>> {
+    pub(crate) fn context(&self) -> Option<Ref<'_, OffscreenRenderingContext>> {
         Ref::filter_map(self.context.borrow(), |ctx| ctx.as_ref()).ok()
     }
 

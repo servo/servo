@@ -105,7 +105,7 @@ impl ModuleObject {
 pub(crate) struct RethrowError(RootedTraceableBox<Heap<JSVal>>);
 
 impl RethrowError {
-    fn handle(&self) -> Handle<JSVal> {
+    fn handle(&self) -> Handle<'_, JSVal> {
         self.0.handle()
     }
 }

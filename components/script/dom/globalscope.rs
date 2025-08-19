@@ -3238,7 +3238,7 @@ impl GlobalScope {
         }
     }
 
-    pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
+    pub(crate) fn dynamic_module_list(&self) -> RefMut<'_, DynamicModuleList> {
         self.dynamic_modules.borrow_mut()
     }
 

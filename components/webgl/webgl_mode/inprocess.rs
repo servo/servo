@@ -134,7 +134,7 @@ impl WebGLExternalImages {
 }
 
 impl WebrenderExternalImageApi for WebGLExternalImages {
-    fn lock(&mut self, id: u64) -> (ExternalImageSource, Size2D<i32>) {
+    fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         let id = WebGLContextId(id);
         let (texture_id, size) = self.lock_swap_chain(id).unwrap_or_default();
         (ExternalImageSource::NativeTexture(texture_id), size)

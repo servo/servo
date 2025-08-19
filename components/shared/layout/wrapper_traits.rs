@@ -291,7 +291,7 @@ pub trait ThreadSafeLayoutElement<'dom>:
 
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue>;
 
-    fn style_data(&self) -> AtomicRef<ElementData>;
+    fn style_data(&self) -> AtomicRef<'_, ElementData>;
 
     fn pseudo_element_chain(&self) -> PseudoElementChain;
 

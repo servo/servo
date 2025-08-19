@@ -136,11 +136,11 @@ impl RunningAppState {
         webview
     }
 
-    pub(crate) fn inner(&self) -> Ref<RunningAppStateInner> {
+    pub(crate) fn inner(&self) -> Ref<'_, RunningAppStateInner> {
         self.inner.borrow()
     }
 
-    pub(crate) fn inner_mut(&self) -> RefMut<RunningAppStateInner> {
+    pub(crate) fn inner_mut(&self) -> RefMut<'_, RunningAppStateInner> {
         self.inner.borrow_mut()
     }
 

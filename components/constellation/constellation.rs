@@ -1019,7 +1019,7 @@ where
     fn fully_active_descendant_browsing_contexts_iter(
         &self,
         browsing_context_id: BrowsingContextId,
-    ) -> FullyActiveBrowsingContextsIterator {
+    ) -> FullyActiveBrowsingContextsIterator<'_> {
         FullyActiveBrowsingContextsIterator {
             stack: vec![browsing_context_id],
             pipelines: &self.pipelines,
@@ -1031,7 +1031,7 @@ where
     fn fully_active_browsing_contexts_iter(
         &self,
         webview_id: WebViewId,
-    ) -> FullyActiveBrowsingContextsIterator {
+    ) -> FullyActiveBrowsingContextsIterator<'_> {
         self.fully_active_descendant_browsing_contexts_iter(BrowsingContextId::from(webview_id))
     }
 
@@ -1039,7 +1039,7 @@ where
     fn all_descendant_browsing_contexts_iter(
         &self,
         browsing_context_id: BrowsingContextId,
-    ) -> AllBrowsingContextsIterator {
+    ) -> AllBrowsingContextsIterator<'_> {
         AllBrowsingContextsIterator {
             stack: vec![browsing_context_id],
             pipelines: &self.pipelines,

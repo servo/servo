@@ -53,7 +53,7 @@ impl<'ld> ServoLayoutDocument<'ld> {
         self.document.style_shared_lock()
     }
 
-    pub fn shadow_roots(&self) -> Vec<ServoShadowRoot> {
+    pub fn shadow_roots(&self) -> Vec<ServoShadowRoot<'_>> {
         unsafe {
             self.document
                 .shadow_roots()

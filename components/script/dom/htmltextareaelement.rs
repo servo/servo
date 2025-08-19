@@ -465,7 +465,7 @@ impl HTMLTextAreaElement {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn selection(&self) -> TextControlSelection<Self> {
+    fn selection(&self) -> TextControlSelection<'_, Self> {
         TextControlSelection::new(self, &self.textinput)
     }
 }

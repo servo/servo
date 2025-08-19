@@ -252,7 +252,7 @@ impl WorkerGlobalScope {
         self.closing.load(Ordering::SeqCst)
     }
 
-    pub(crate) fn get_url(&self) -> Ref<ServoUrl> {
+    pub(crate) fn get_url(&self) -> Ref<'_, ServoUrl> {
         self.worker_url.borrow()
     }
 
@@ -268,7 +268,7 @@ impl WorkerGlobalScope {
         self.globalscope.pipeline_id()
     }
 
-    pub(crate) fn policy_container(&self) -> Ref<PolicyContainer> {
+    pub(crate) fn policy_container(&self) -> Ref<'_, PolicyContainer> {
         self.policy_container.borrow()
     }
 
@@ -330,7 +330,7 @@ impl WorkerGlobalScope {
     }
 
     /// Get a mutable reference to the [`TimerScheduler`] for this [`ServiceWorkerGlobalScope`].
-    pub(crate) fn timer_scheduler(&self) -> RefMut<TimerScheduler> {
+    pub(crate) fn timer_scheduler(&self) -> RefMut<'_, TimerScheduler> {
         self.timer_scheduler.borrow_mut()
     }
 

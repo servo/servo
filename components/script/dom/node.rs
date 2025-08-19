@@ -596,11 +596,11 @@ impl Iterator for QuerySelectorIterator {
 }
 
 impl Node {
-    fn rare_data(&self) -> Ref<Option<Box<NodeRareData>>> {
+    fn rare_data(&self) -> Ref<'_, Option<Box<NodeRareData>>> {
         self.rare_data.borrow()
     }
 
-    fn ensure_rare_data(&self) -> RefMut<Box<NodeRareData>> {
+    fn ensure_rare_data(&self) -> RefMut<'_, Box<NodeRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {
             *rare_data = Some(Default::default());
@@ -621,14 +621,14 @@ impl Node {
 
     /// Return all registered mutation observers for this node. Lazily initialize the
     /// raredata if it does not exist.
-    pub(crate) fn registered_mutation_observers_mut(&self) -> RefMut<Vec<RegisteredObserver>> {
+    pub(crate) fn registered_mutation_observers_mut(&self) -> RefMut<'_, Vec<RegisteredObserver>> {
         RefMut::map(self.ensure_rare_data(), |rare_data| {
             &mut rare_data.mutation_observers
         })
     }
 
-    pub(crate) fn registered_mutation_observers(&self) -> Option<Ref<Vec<RegisteredObserver>>> {
-        let rare_data: Ref<_> = self.rare_data.borrow();
+    pub(crate) fn registered_mutation_observers(&self) -> Option<Ref<'_, Vec<RegisteredObserver>>> {
+        let rare_data: Ref<'_, _> = self.rare_data.borrow();
 
         if rare_data.is_none() {
             return None;
@@ -745,7 +745,7 @@ impl Node {
         self.children_count.get()
     }
 
-    pub(crate) fn ranges(&self) -> RefMut<WeakRangeVec> {
+    pub(crate) fn ranges(&self) -> RefMut<'_, WeakRangeVec> {
         RefMut::map(self.ensure_rare_data(), |rare_data| &mut rare_data.ranges)
     }
 

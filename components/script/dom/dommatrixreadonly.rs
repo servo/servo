@@ -77,7 +77,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    pub(crate) fn matrix(&self) -> Ref<Transform3D<f64>> {
+    pub(crate) fn matrix(&self) -> Ref<'_, Transform3D<f64>> {
         self.matrix.borrow()
     }
 

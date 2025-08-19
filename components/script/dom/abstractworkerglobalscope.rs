@@ -21,7 +21,10 @@ pub(crate) trait WorkerEventLoopMethods {
     type Event;
     fn task_queue(&self) -> &TaskQueue<Self::WorkerMsg>;
     fn handle_event(&self, event: Self::Event, can_gc: CanGc) -> bool;
-    fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset>;
+    fn handle_worker_post_event(
+        &self,
+        worker: &TrustedWorkerAddress,
+    ) -> Option<AutoWorkerReset<'_>>;
     fn from_control_msg(msg: Self::ControlMsg) -> Self::Event;
     fn from_worker_msg(msg: Self::WorkerMsg) -> Self::Event;
     fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> Self::Event;

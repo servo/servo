@@ -198,7 +198,7 @@ impl Attr {
         &self.identifier
     }
 
-    pub(crate) fn value(&self) -> Ref<AttrValue> {
+    pub(crate) fn value(&self) -> Ref<'_, AttrValue> {
         self.value.borrow()
     }
 

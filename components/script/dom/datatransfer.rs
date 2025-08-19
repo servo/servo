@@ -85,7 +85,7 @@ impl DataTransfer {
         Self::new_with_proto(window, None, can_gc, data_store)
     }
 
-    pub(crate) fn data_store(&self) -> Option<Ref<DragDataStore>> {
+    pub(crate) fn data_store(&self) -> Option<Ref<'_, DragDataStore>> {
         Ref::filter_map(self.data_store.borrow(), |data_store| data_store.as_ref()).ok()
     }
 }

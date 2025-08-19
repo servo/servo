@@ -662,12 +662,12 @@ impl Document {
     }
 
     #[inline]
-    pub(crate) fn loader(&self) -> Ref<DocumentLoader> {
+    pub(crate) fn loader(&self) -> Ref<'_, DocumentLoader> {
         self.loader.borrow()
     }
 
     #[inline]
-    pub(crate) fn loader_mut(&self) -> RefMut<DocumentLoader> {
+    pub(crate) fn loader_mut(&self) -> RefMut<'_, DocumentLoader> {
         self.loader.borrow_mut()
     }
 
@@ -1755,7 +1755,7 @@ impl Document {
         }
     }
 
-    pub(crate) fn policy_container(&self) -> Ref<PolicyContainer> {
+    pub(crate) fn policy_container(&self) -> Ref<'_, PolicyContainer> {
         self.policy_container.borrow()
     }
 
@@ -2385,14 +2385,14 @@ impl Document {
 
     /// A reference to the [`IFrameCollection`] of this [`Document`], holding information about
     /// `<iframe>`s found within it.
-    pub(crate) fn iframes(&self) -> Ref<IFrameCollection> {
+    pub(crate) fn iframes(&self) -> Ref<'_, IFrameCollection> {
         self.iframes.borrow_mut().validate(self);
         self.iframes.borrow()
     }
 
     /// A mutable reference to the [`IFrameCollection`] of this [`Document`], holding information about
     /// `<iframe>`s found within it.
-    pub(crate) fn iframes_mut(&self) -> RefMut<IFrameCollection> {
+    pub(crate) fn iframes_mut(&self) -> RefMut<'_, IFrameCollection> {
         self.iframes.borrow_mut().validate(self);
         self.iframes.borrow_mut()
     }
@@ -2411,7 +2411,7 @@ impl Document {
             .set_navigation_start(navigation_start);
     }
 
-    pub(crate) fn get_interactive_metrics(&self) -> Ref<ProgressiveWebMetrics> {
+    pub(crate) fn get_interactive_metrics(&self) -> Ref<'_, ProgressiveWebMetrics> {
         self.interactive_time.borrow()
     }
 
@@ -2704,11 +2704,11 @@ impl Document {
         fonts.fulfill_ready_promise_if_needed(can_gc)
     }
 
-    pub(crate) fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
+    pub(crate) fn id_map(&self) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         self.id_map.borrow()
     }
 
-    pub(crate) fn name_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
+    pub(crate) fn name_map(&self) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         self.name_map.borrow()
     }
 
@@ -3676,7 +3676,7 @@ impl Document {
             .map(|elements| DomRoot::from_ref(&*elements[0]))
     }
 
-    pub(crate) fn ensure_pending_restyle(&self, el: &Element) -> RefMut<PendingRestyle> {
+    pub(crate) fn ensure_pending_restyle(&self, el: &Element) -> RefMut<'_, PendingRestyle> {
         let map = self.pending_restyles.borrow_mut();
         RefMut::map(map, |m| {
             &mut m
@@ -4068,13 +4068,13 @@ impl Document {
         )
     }
 
-    pub(crate) fn get_elements_with_id(&self, id: &Atom) -> Ref<[Dom<Element>]> {
+    pub(crate) fn get_elements_with_id(&self, id: &Atom) -> Ref<'_, [Dom<Element>]> {
         Ref::map(self.id_map.borrow(), |map| {
             map.get(id).map(|vec| &**vec).unwrap_or_default()
         })
     }
 
-    pub(crate) fn get_elements_with_name(&self, name: &Atom) -> Ref<[Dom<Element>]> {
+    pub(crate) fn get_elements_with_name(&self, name: &Atom) -> Ref<'_, [Dom<Element>]> {
         Ref::map(self.name_map.borrow(), |map| {
             map.get(name).map(|vec| &**vec).unwrap_or_default()
         })
@@ -4115,7 +4115,7 @@ impl Document {
         self.animation_timeline.borrow().current_value()
     }
 
-    pub(crate) fn animations(&self) -> Ref<Animations> {
+    pub(crate) fn animations(&self) -> Ref<'_, Animations> {
         self.animations.borrow()
     }
 
@@ -4159,7 +4159,7 @@ impl Document {
         self.animations().send_pending_events(self.window(), can_gc);
     }
 
-    pub(crate) fn image_animation_manager(&self) -> Ref<ImageAnimationManager> {
+    pub(crate) fn image_animation_manager(&self) -> Ref<'_, ImageAnimationManager> {
         self.image_animation_manager.borrow()
     }
 

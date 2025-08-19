@@ -185,7 +185,10 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         self.handle_mixed_message(event, can_gc)
     }
 
-    fn handle_worker_post_event(&self, _worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
+    fn handle_worker_post_event(
+        &self,
+        _worker: &TrustedWorkerAddress,
+    ) -> Option<AutoWorkerReset<'_>> {
         None
     }
 

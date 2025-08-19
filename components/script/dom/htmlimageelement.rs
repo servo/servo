@@ -858,7 +858,7 @@ impl HTMLImageElement {
 
     fn init_image_request(
         &self,
-        request: &mut RefMut<ImageRequest>,
+        request: &mut RefMut<'_, ImageRequest>,
         url: &ServoUrl,
         src: &USVString,
         can_gc: CanGc,

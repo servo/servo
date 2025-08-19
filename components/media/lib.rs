@@ -214,7 +214,7 @@ impl GLPlayerExternalImages {
 }
 
 impl WebrenderExternalImageApi for GLPlayerExternalImages {
-    fn lock(&mut self, id: u64) -> (ExternalImageSource, Size2D<i32>) {
+    fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         // The GLPlayerMsgForward::Lock message inserts a fence in the
         // GLPlayer command queue.
         self.glplayer_channel

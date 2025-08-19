@@ -428,11 +428,11 @@ impl Window {
         self.upcast::<GlobalScope>()
     }
 
-    pub(crate) fn layout(&self) -> Ref<Box<dyn Layout>> {
+    pub(crate) fn layout(&self) -> Ref<'_, Box<dyn Layout>> {
         self.layout.borrow()
     }
 
-    pub(crate) fn layout_mut(&self) -> RefMut<Box<dyn Layout>> {
+    pub(crate) fn layout_mut(&self) -> RefMut<'_, Box<dyn Layout>> {
         self.layout.borrow_mut()
     }
 
@@ -488,7 +488,7 @@ impl Window {
         unsafe { JSContext::from_ptr(self.js_runtime.borrow().as_ref().unwrap().cx()) }
     }
 
-    pub(crate) fn get_js_runtime(&self) -> Ref<Option<Rc<Runtime>>> {
+    pub(crate) fn get_js_runtime(&self) -> Ref<'_, Option<Rc<Runtime>>> {
         self.js_runtime.borrow()
     }
 

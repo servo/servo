@@ -60,7 +60,7 @@ impl EvaluationCtx {
         }
     }
 
-    pub(crate) fn subcontext_iter_for_nodes(&self) -> EvalNodesetIter {
+    pub(crate) fn subcontext_iter_for_nodes(&self) -> EvalNodesetIter<'_> {
         let size = self.predicate_nodes.as_ref().map_or(0, |v| v.len());
         EvalNodesetIter {
             ctx: self,

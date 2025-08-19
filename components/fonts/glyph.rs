@@ -606,7 +606,7 @@ impl GlyphStore {
     pub fn iter_glyphs_for_byte_range(
         &self,
         range: &Range<ByteIndex>,
-    ) -> impl Iterator<Item = GlyphInfo> + use<'_> {
+    ) -> impl Iterator<Item = GlyphInfo<'_>> + use<'_> {
         if range.begin() >= self.len() {
             panic!("iter_glyphs_for_range: range.begin beyond length!");
         }
