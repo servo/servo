@@ -474,20 +474,10 @@ impl ReplacedContents {
         style: &ComputedValues,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
-        style
-            .preferred_aspect_ratio(
-                self.inline_size_over_block_size_intrinsic_ratio(style),
-                padding_border_sums,
-            )
-            .or_else(|| {
-                matches!(self.kind, ReplacedContentKind::Video(_)).then(Self::default_aspect_ratio)
-            })
-    }
-
-    /// The aspect ratio of the default object sizes.
-    /// <https://drafts.csswg.org/css-images-3/#default-object-size>
-    pub(crate) fn default_aspect_ratio() -> AspectRatio {
-        AspectRatio::from_content_ratio(2.0)
+        style.preferred_aspect_ratio(
+            self.inline_size_over_block_size_intrinsic_ratio(style),
+            padding_border_sums,
+        )
     }
 
     /// The inline size that would result from combining the natural size
