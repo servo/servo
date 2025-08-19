@@ -267,19 +267,6 @@ impl ReplacedContents {
         }
     }
 
-    fn inline_size_over_block_size_intrinsic_ratio(
-        &self,
-        style: &ComputedValues,
-    ) -> Option<CSSFloat> {
-        self.natural_size.ratio.map(|width_over_height| {
-            if style.writing_mode.is_vertical() {
-                1. / width_over_height
-            } else {
-                width_over_height
-            }
-        })
-    }
-
     #[inline]
     fn content_size(
         &self,
@@ -474,10 +461,7 @@ impl ReplacedContents {
         style: &ComputedValues,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
-        style.preferred_aspect_ratio(
-            self.inline_size_over_block_size_intrinsic_ratio(style),
-            padding_border_sums,
-        )
+        style.preferred_aspect_ratio(self.natural_size.ratio, padding_border_sums)
     }
 
     /// The inline size that would result from combining the natural size
