@@ -12,8 +12,8 @@ use js::jsval::{DoubleValue, JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, BackendResult, IndexedDBKeyType, IndexedDBThreadMsg, IndexedDBTxnMode,
-    PutItemResult,
+    AsyncOperation, BackendError, BackendResult, IndexedDBKeyType, IndexedDBThreadMsg,
+    IndexedDBTxnMode, PutItemResult,
 };
 use profile_traits::ipc::IpcReceiver;
 use serde::{Deserialize, Serialize};
@@ -296,7 +296,11 @@ impl IDBRequest {
                 let response_listener = response_listener.clone();
                 task_source.queue(task!(request_callback: move || {
                     response_listener.handle_async_request_finished(
-                        message.expect("Could not unwrap message").map(|t| t.into()));
+                        message.expect("Could not unwrap message").inspect_err(|e| {
+                            if let BackendError::DbErr(e) = e {
+                                error!("Error in IndexedDB operation: {}", e);
+                            }
+                        }).map(|t| t.into()));
                 }));
             }),
         );

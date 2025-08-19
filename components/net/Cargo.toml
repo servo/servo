@@ -60,7 +60,8 @@ rustls-pemfile = { workspace = true }
 rustls-pki-types = { workspace = true }
 resvg = { workspace = true }
 rusqlite = { version = "0.37", features = ["bundled"] }
-sea-query = { version = "0.32", default-features = false, features = ["derive", "backend-sqlite"] }
+sea-query = { version = "1.0.0-rc.9", default-features = false, features = ["derive", "backend-sqlite"] }
+sea-query-rusqlite = { version = "0.8.0-rc.8" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_arc = { workspace = true }

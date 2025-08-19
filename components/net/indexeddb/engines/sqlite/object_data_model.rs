@@ -6,6 +6,7 @@ use sea_query::Iden;
 
 #[derive(Iden)]
 pub enum Column {
+    #[iden = "object_data"]
     Table,
     ObjectStoreId,
     Key,
