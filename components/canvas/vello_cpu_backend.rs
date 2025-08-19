@@ -305,13 +305,11 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
                 SHARED_FONT_CACHE.with(|font_cache| {
                     let identifier = template.identifier();
                     if !font_cache.borrow().contains_key(&identifier) {
-                        font_cache.borrow_mut().insert(
-                            identifier.clone(),
-                            peniko::Font::new(
-                                peniko::Blob::from(run.font.data().as_ref().to_vec()),
-                                identifier.index(),
-                            ),
-                        );
+                        let Ok(font) = run.font.font_data_and_index() else {
+                            return;
+                        };
+                        let font = font.clone().convert();
+                        font_cache.borrow_mut().insert(identifier.clone(), font);
                     }
 
                     let font_cache = font_cache.borrow();

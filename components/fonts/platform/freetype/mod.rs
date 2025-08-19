@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use style::Atom;
 use webrender_api::NativeFontHandle;
 
+use crate::{FontData, FontDataAndIndex};
+
 pub mod font;
 mod freetype_face;
 
@@ -57,9 +59,14 @@ impl LocalFontIdentifier {
         }
     }
 
-    pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
+    pub(crate) fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
         let file = File::open(Path::new(&*self.path)).ok()?;
         let mmap = unsafe { Mmap::map(&file).ok()? };
-        Some(mmap[..].to_vec())
+        let data = FontData::from_bytes(&mmap);
+
+        Some(FontDataAndIndex {
+            data,
+            index: self.variation_index as u32,
+        })
     }
 }

@@ -15,8 +15,8 @@ use style::values::specified::font::FontStretchKeyword;
 use webrender_api::NativeFontHandle;
 
 use crate::{
-    EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
-    FontTemplateDescriptor, LowercaseFontFamilyName,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontData, FontDataAndIndex,
+    FontIdentifier, FontTemplate, FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
 pub fn for_each_available_family<F>(mut callback: F)
@@ -67,14 +67,19 @@ impl LocalFontIdentifier {
         }
     }
 
-    pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
+    pub(crate) fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
         let font = FontCollection::system()
             .font_from_descriptor(&self.font_descriptor)
             .ok()??;
         let face = font.create_font_face();
+        let index = face.get_index();
         let files = face.get_files();
         assert!(!files.is_empty());
-        Some(files[0].get_font_file_bytes())
+
+        let data = files[0].get_font_file_bytes();
+        let data = FontData::from_bytes(&data);
+
+        Some(FontDataAndIndex { data, index })
     }
 }
 

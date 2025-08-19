@@ -6,9 +6,11 @@ use std::fs::File;
 use std::path::Path;
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
-use log::debug;
+use log::{debug, warn};
 use malloc_size_of_derive::MallocSizeOf;
 use memmap2::Mmap;
+use read_fonts::types::NameId;
+use read_fonts::{FileRef, TableProvider as _};
 use serde::{Deserialize, Serialize};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
@@ -18,8 +20,8 @@ use webrender_api::NativeFontHandle;
 use crate::platform::add_noto_fallback_families;
 use crate::platform::font::CoreTextFontTraitsMapping;
 use crate::{
-    EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
-    FontTemplateDescriptor, LowercaseFontFamilyName,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontData, FontDataAndIndex,
+    FontIdentifier, FontTemplate, FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
 /// An identifier for a local font on a MacOS system. These values comes from the CoreText
@@ -43,16 +45,61 @@ impl LocalFontIdentifier {
         0
     }
 
-    pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
-        // TODO: This is incorrect, if the font file is a TTC (collection) with more than
-        // one font. In that case we either need to reconstruct the pertinent tables into
-        // a bundle of font data (expensive) or make sure that the value returned by
-        // `index()` above is correct. The latter is potentially tricky as macOS might not
-        // do an accurate mapping between the PostScript name that it gives us and what is
-        // listed in the font.
+    pub(crate) fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
         let file = File::open(Path::new(&*self.path)).ok()?;
         let mmap = unsafe { Mmap::map(&file).ok()? };
-        Some(mmap[..].to_vec())
+
+        // Determine index
+        let file_ref = FileRef::new(mmap.as_ref()).ok()?;
+        let index = ttc_index_from_postscript_name(file_ref, &self.postscript_name);
+
+        Some(FontDataAndIndex {
+            data: FontData::from_bytes(&mmap),
+            index,
+        })
+    }
+}
+
+/// CoreText font enumeration gives us a Postscript name rather than an index.
+/// This functions maps from a Postscript name to an index.
+///
+/// This mapping works for single-font files and for simple TTC files, but may not work in all cases.
+/// We are not 100% sure which cases (if any) will not work. But we suspect that variable fonts may cause
+/// issues due to the Postscript names corresponding to instances not being straightforward, and the possibility
+/// that CoreText may return a non-standard in that scenerio.
+fn ttc_index_from_postscript_name(font_file: FileRef<'_>, postscript_name: &str) -> u32 {
+    match font_file {
+        // File only contains one font: simply return 0
+        FileRef::Font(_) => 0,
+        // File is a collection: iterate through each font in the collection and check
+        // whether the name matches
+        FileRef::Collection(collection) => {
+            for i in 0..collection.len() {
+                let font = collection.get(i).unwrap();
+                let name_table = font.name().unwrap();
+                if name_table
+                    .name_record()
+                    .iter()
+                    .filter(|record| record.name_id() == NameId::POSTSCRIPT_NAME)
+                    .any(|record| {
+                        record
+                            .string(name_table.string_data())
+                            .unwrap()
+                            .chars()
+                            .eq(postscript_name.chars())
+                    })
+                {
+                    return i;
+                }
+            }
+
+            // If we fail to find a font, just use the first font in the file.
+            warn!(
+                "Font with postscript_name {} not found in collection",
+                postscript_name
+            );
+            0
+        },
     }
 }
 

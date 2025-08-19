@@ -33,8 +33,8 @@ use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
 use crate::{
     ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
-    FontIdentifier, FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods, GlyphData,
-    GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
+    FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
+    FontTemplateRefMethods, GlyphData, GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
 };
 
 #[macro_export]
@@ -254,8 +254,9 @@ pub struct Font {
     pub metrics: FontMetrics,
     pub descriptor: FontDescriptor,
 
-    /// The data for this font. This might be uninitialized for system fonts.
-    data: OnceLock<FontData>,
+    /// The data for this font. And the index of the font within the data (in case it's a TTC)
+    /// This might be uninitialized for system fonts.
+    data_and_index: OnceLock<FontDataAndIndex>,
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
@@ -313,7 +314,9 @@ impl Font {
             template,
             metrics,
             descriptor,
-            data: data.map(OnceLock::from).unwrap_or_default(),
+            data_and_index: data
+                .map(|data| OnceLock::from(FontDataAndIndex { data, index: 0 }))
+                .unwrap_or_default(),
             shaper: OnceLock::new(),
             cached_shape_data: Default::default(),
             font_instance_key: Default::default(),
@@ -348,17 +351,20 @@ impl Font {
 
     /// Return the data for this `Font`. Note that this is currently highly inefficient for system
     /// fonts and should not be used except in legacy canvas code.
-    pub fn data(&self) -> &FontData {
-        self.data.get_or_init(|| {
-            let FontIdentifier::Local(local_font_identifier) = self.identifier() else {
-                unreachable!("All web fonts should already have initialized data");
-            };
-            FontData::from_bytes(
-                &local_font_identifier
-                    .read_data_from_file()
-                    .unwrap_or_default(),
-            )
-        })
+    pub fn font_data_and_index(&self) -> Result<&FontDataAndIndex, FontDataError> {
+        if let Some(data_and_index) = self.data_and_index.get() {
+            return Ok(data_and_index);
+        }
+
+        let FontIdentifier::Local(local_font_identifier) = self.identifier() else {
+            unreachable!("All web fonts should already have initialized data");
+        };
+        let Some(data_and_index) = local_font_identifier.font_data_and_index() else {
+            return Err(FontDataError::FailedToLoad);
+        };
+
+        let data_and_index = self.data_and_index.get_or_init(move || data_and_index);
+        Ok(data_and_index)
     }
 
     pub fn variations(&self) -> &[FontVariation] {
