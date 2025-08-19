@@ -1452,34 +1452,41 @@ def wrapForType(jsvalRef: str, result: str = 'result', successCode: str = 'true'
     return wrap
 
 
-def typeNeedsCx(type, retVal=False):
+def typeNeedsCx(type: IDLType, retVal: bool = False):
     if type is None:
         return False
     if type.nullable():
+        assert isinstance(type, IDLNullableType)
         type = type.inner
     if type.isSequence():
+        assert isinstance(type, IDLSequenceType)
         type = type.inner
     if type.isUnion():
-        return any(typeNeedsCx(t) for t in type.unroll().flatMemberTypes)
+        assert isinstance(type, IDLUnionType)
+        flatMemberTypes = type.unroll().flatMemberTypes
+        assert flatMemberTypes is not None
+
+        return any(typeNeedsCx(t) for t in flatMemberTypes)
     if retVal and type.isSpiderMonkeyInterface():
         return True
     return type.isAny() or type.isObject()
 
 
-def returnTypeNeedsOutparam(type):
+def returnTypeNeedsOutparam(type: IDLType) -> bool:
     if type.nullable():
+        assert isinstance(type, IDLNullableType)
         type = type.inner
     return type.isAny()
 
 
-def outparamTypeFromReturnType(type):
+def outparamTypeFromReturnType(type: IDLType) -> str | None:
     if type.isAny():
         return "MutableHandleValue"
     raise TypeError(f"Don't know how to handle {type} as an outparam")
 
 
 # Returns a conversion behavior suitable for a type
-def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
+def getConversionConfigForType(type: IDLType, isEnforceRange: bool, isClamp: bool, treatNullAs: str) -> str:
     if type.isSequence() or type.isRecord():
         return getConversionConfigForType(innerContainerType(type), isEnforceRange, isClamp, treatNullAs)
     if type.isDOMString():
@@ -1508,7 +1515,7 @@ def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
     return "()"
 
 
-def builtin_return_type(returnType):
+def builtin_return_type(returnType: IDLType) -> CGThing:
     result = CGGeneric(builtinNames[returnType.tag()])
     if returnType.nullable():
         result = CGWrapper(result, pre="Option<", post=">")
@@ -1516,7 +1523,7 @@ def builtin_return_type(returnType):
 
 
 # Returns a CGThing containing the type of the return value.
-def getRetvalDeclarationForType(returnType, descriptorProvider):
+def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: DescriptorProvider) -> CGThing:
     if returnType is None or returnType.isUndefined():
         # Nothing to declare
         return CGGeneric("()")
@@ -1540,6 +1547,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isEnum():
+        # pyrefly: ignore  # missing-attribute
         result = CGGeneric(returnType.unroll().inner.identifier.name)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
@@ -1549,12 +1557,14 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         return CGGeneric("Rc<D::Promise>")
     if returnType.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
+            # pyrefly: ignore  # missing-attribute
             returnType.unroll().inner.identifier.name)
         result = CGGeneric(descriptor.returnType)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isCallback():
+        # pyrefly: ignore  # missing-attribute
         callback = returnType.unroll().callback
         result = CGGeneric(f'Rc<{getModuleFromObject(callback)}::{callback.identifier.name}<D>>')
         if returnType.nullable():
@@ -1580,6 +1590,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         return result
     if returnType.isDictionary():
         nullable = returnType.nullable()
+        # pyrefly: ignore  # missing-attribute
         dictName = returnType.inner.name if nullable else returnType.name
         generic = "<D>" if containsDomInterface(returnType) else ""
         result = CGGeneric(f"{dictName}{generic}")
@@ -1592,7 +1603,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     raise TypeError(f"Don't know how to declare return value for {returnType}")
 
 
-def MemberCondition(pref, func, exposed, secure):
+def MemberCondition(pref: str | None, func: str | None, exposed: set | None, secure: bool | None) -> list[str]:
     """
     A string representing the condition for a member to actually be exposed.
     Any of the arguments can be None. If not None, they should have the
