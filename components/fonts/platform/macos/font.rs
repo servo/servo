@@ -31,6 +31,7 @@ use crate::{
 
 const KERN_PAIR_LEN: usize = 6;
 
+#[derive(Clone)]
 pub struct FontTable {
     data: CFData,
 }
@@ -52,9 +53,10 @@ impl FontTableMethods for FontTable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PlatformFont {
-    ctfont: CTFont,
+    pub(crate) ctfont: CTFont,
+    variations: Vec<FontVariation>,
     h_kern_subtable: Option<CachedKernTable>,
 }
 
@@ -71,8 +73,16 @@ unsafe impl Send for PlatformFont {}
 
 impl PlatformFont {
     pub(crate) fn new_with_ctfont(ctfont: CTFont) -> Self {
+        Self::new_with_ctfont_and_variations(ctfont, vec![])
+    }
+
+    pub(crate) fn new_with_ctfont_and_variations(
+        ctfont: CTFont,
+        variations: Vec<FontVariation>,
+    ) -> PlatformFont {
         Self {
             ctfont,
+            variations,
             h_kern_subtable: None,
         }
     }
@@ -81,13 +91,14 @@ impl PlatformFont {
         font_identifier: FontIdentifier,
         data: Option<&FontData>,
         requested_size: Option<Au>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
         let size = match requested_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
         };
         let Some(mut platform_font) =
-            CoreTextFontCache::core_text_font(font_identifier, data, size)
+            CoreTextFontCache::core_text_font(font_identifier, data, size, variations)
         else {
             return Err("Could not generate CTFont for FontTemplateData");
         };
@@ -162,6 +173,7 @@ impl PlatformFont {
     }
 }
 
+#[derive(Clone)]
 struct CachedKernTable {
     font_table: FontTable,
     pair_data_range: Range<usize>,
@@ -201,17 +213,22 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: FontIdentifier,
         data: &FontData,
         requested_size: Option<Au>,
-        _variations: &[FontVariation],
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
-        Self::new(font_identifier, Some(data), requested_size)
+        Self::new(font_identifier, Some(data), requested_size, variations)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
-        _variations: &[FontVariation],
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
-        Self::new(FontIdentifier::Local(font_identifier), None, requested_size)
+        Self::new(
+            FontIdentifier::Local(font_identifier),
+            None,
+            requested_size,
+            variations,
+        )
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
@@ -357,8 +374,7 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn variations(&self) -> &[FontVariation] {
-        // FIXME: Implement this for macos
-        &[]
+        &self.variations
     }
 }
 
