@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 
 use base::id::{BrowsingContextId, WebViewId};
@@ -54,11 +54,6 @@ pub struct WebDriverSession {
     /// The id of the current browsing context
     browsing_context_id: Option<BrowsingContextId>,
 
-    /// <https://www.w3.org/TR/webdriver2/#dfn-window-handles>
-    /// The spec said each browsing context has an associated window handle.
-    /// Actually, each webview has a unique window handle.
-    window_handles: RefCell<HashMap<WebViewId, String>>,
-
     timeouts: RefCell<TimeoutsConfiguration>,
 
     page_loading_strategy: PageLoadStrategy,
@@ -72,8 +67,6 @@ pub struct WebDriverSession {
 
     /// <https://w3c.github.io/webdriver/#dfn-input-cancel-list>
     input_cancel_list: RefCell<Vec<(String, ActionItem)>>,
-
-    pub window_handles_data_valid: bool,
 }
 
 impl WebDriverSession {
@@ -82,14 +75,12 @@ impl WebDriverSession {
             id: Uuid::new_v4(),
             webview_id: None,
             browsing_context_id: None,
-            window_handles: RefCell::new(HashMap::new()),
             timeouts: RefCell::new(TimeoutsConfiguration::default()),
             page_loading_strategy: PageLoadStrategy::Normal,
             strict_file_interactability: false,
             user_prompt_handler: UserPromptHandler::new(),
             input_state_table: RefCell::new(HashMap::new()),
             input_cancel_list: RefCell::new(Vec::new()),
-            window_handles_data_valid: false,
         }
     }
 
@@ -123,16 +114,6 @@ impl WebDriverSession {
 
     pub fn user_prompt_handler(&self) -> &UserPromptHandler {
         &self.user_prompt_handler
-    }
-
-    // Webdriver handle should use `get_window_handles` instead of
-    // using this method directly
-    pub fn window_handles(&self) -> Ref<HashMap<WebViewId, String>> {
-        self.window_handles.borrow()
-    }
-
-    pub fn set_window_handles(&self, handles: HashMap<WebViewId, String>) {
-        self.window_handles.replace(handles);
     }
 
     pub fn input_state_table(&self) -> RefMut<HashMap<String, InputSourceState>> {

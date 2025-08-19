@@ -689,8 +689,9 @@ impl Servo {
                     webview.delegate().request_resize_to(webview, size);
                 }
             },
-            EmbedderMsg::ShowSimpleDialog(webview_id, prompt_definition) => {
+            EmbedderMsg::ShowSimpleDialog(webview_id, prompt_definition, document_id) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_document_id_before_prompt(document_id);
                     webview
                         .delegate()
                         .show_simple_dialog(webview, prompt_definition);

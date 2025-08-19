@@ -381,14 +381,21 @@ impl App {
                         running_state.set_pending_focus(focus_id, response_sender);
                     }
                 },
-                WebDriverCommandMsg::GetAllWebViews(response_sender) => {
+                WebDriverCommandMsg::GetAllWebViewsForWindowHandles(response_sender) => {
                     let webviews = running_state
                         .webviews()
                         .iter()
-                        .map(|(id, _)| *id)
+                        .map(|(id, webview)| {
+                            let document_id = if running_state.webview_has_active_dialog(*id) {
+                                webview.document_id_before_prompt()
+                            } else {
+                                None
+                            };
+                            (*id, document_id)
+                        })
                         .collect::<Vec<_>>();
 
-                    if let Err(error) = response_sender.send(Ok(webviews)) {
+                    if let Err(error) = response_sender.send(webviews) {
                         warn!("Failed to send response of GetAllWebViews: {error}");
                     }
                 },

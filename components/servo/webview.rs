@@ -88,6 +88,7 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
+    document_id_before_prompt: Option<String>,
 }
 
 impl Drop for WebViewInner {
@@ -130,6 +131,7 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            document_id_before_prompt: None,
         })));
 
         let viewport_details = webview.viewport_details();
@@ -578,6 +580,14 @@ impl WebView {
             script.to_string(),
             Box::new(callback),
         );
+    }
+
+    pub fn set_document_id_before_prompt(&self, document_id: Option<String>) {
+        self.inner_mut().document_id_before_prompt = document_id;
+    }
+
+    pub fn document_id_before_prompt(&self) -> Option<String> {
+        self.inner().document_id_before_prompt.clone()
     }
 }
 

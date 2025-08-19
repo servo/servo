@@ -712,6 +712,13 @@ impl Window {
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
         &self.font_context
     }
+
+    fn document_id(&self) -> Option<String> {
+        let window_proxy = self.window_proxy.get()?;
+        let pipeline_id = window_proxy.currently_active()?;
+        let document = ScriptThread::find_document(pipeline_id)?;
+        Some(document.upcast::<Node>().unique_id(pipeline_id))
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -815,7 +822,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             message: s.to_string(),
             response_sender: sender,
         };
-        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
+        let document_id = self.document_id();
+        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog, document_id);
         self.send_to_embedder(msg);
         receiver.recv().unwrap_or_else(|_| {
             // If the receiver is closed, we assume the dialog was cancelled.
@@ -832,7 +840,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             message: s.to_string(),
             response_sender: sender,
         };
-        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
+        let document_id = self.document_id();
+        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog, document_id);
         self.send_to_embedder(msg);
         match receiver.recv() {
             Ok(ConfirmResponse::Ok) => true,
@@ -853,7 +862,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             default: default.to_string(),
             response_sender: sender,
         };
-        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
+        let document_id = self.document_id();
+        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog, document_id);
         self.send_to_embedder(msg);
         match receiver.recv() {
             Ok(PromptResponse::Ok(input)) => Some(input.into()),

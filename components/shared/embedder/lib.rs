@@ -370,7 +370,7 @@ pub enum EmbedderMsg {
     /// Show the user a [simple dialog](https://html.spec.whatwg.org/multipage/#simple-dialogs) (`alert()`, `confirm()`,
     /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
     /// way that makes them impossible to mistake for browser UI.
-    ShowSimpleDialog(WebViewId, SimpleDialog),
+    ShowSimpleDialog(WebViewId, SimpleDialog, Option<String>),
     /// Request authentication for a load or navigation from the embedder.
     RequestAuthentication(
         WebViewId,

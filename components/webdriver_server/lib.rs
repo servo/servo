@@ -576,10 +576,6 @@ impl Handler {
         self.session_mut()?
             .set_browsing_context_id(Some(BrowsingContextId::from(webview_id)));
 
-        // Append associated window handles for session
-        let new_window_handles = self.get_window_handles()?;
-        self.session_mut()?.set_window_handles(new_window_handles);
-
         // Step 9. Set the request queue to a new queue.
         // Skip here because the requests are handled in the external crate.
 
@@ -1078,24 +1074,8 @@ impl Handler {
         )))
     }
 
-    // Get all window handles for each webview
-    fn get_window_handles(&mut self) -> WebDriverResult<HashMap<WebViewId, String>> {
-        if !self.session()?.window_handles_data_valid {
-            self.update_window_handles()?;
-            self.session_mut()?.window_handles_data_valid = true;
-        }
-
-        Ok(self.session()?.window_handles().clone())
-    }
-
     fn get_window_handle(&mut self, webview_id: WebViewId) -> WebDriverResult<String> {
-        if !self.session()?.window_handles_data_valid {
-            self.update_window_handles()?;
-            self.session_mut()?.window_handles_data_valid = true;
-        }
-
-        self.session()?
-            .window_handles()
+        self.get_window_handles()?
             .get(&webview_id)
             .cloned()
             .ok_or_else(|| {
@@ -1106,38 +1086,22 @@ impl Handler {
             })
     }
 
-    fn update_window_handles(&mut self) -> WebDriverResult<()> {
+    fn get_window_handles(&mut self) -> WebDriverResult<HashMap<WebViewId, String>> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViews(sender))?;
+        self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViewsForWindowHandles(sender))?;
 
-        let webviews = match wait_for_ipc_response(receiver)? {
-            Ok(webviews) => webviews,
-            Err(_) => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnknownError,
-                    "Failed to get window handles",
-                ));
-            },
-        };
+        let webviews = wait_for_ipc_response(receiver)?;
 
         let mut new_window_handles = HashMap::new();
-        for id in webviews.iter() {
-            // If there is an active user prompt for the webview
-            // Use the cache data instead
-            // TODO: this step helps us get rid of timeout tests,
-            // The correct solution is update the window handle before user prompt appears.
-            let (sender, receiver) = ipc::channel().unwrap();
-            self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(*id, sender))?;
-            if wait_for_ipc_response(receiver)?.is_some() {
-                if let Some((k, v)) = self.session()?.window_handles().get_key_value(id) {
-                    new_window_handles.insert(*k, v.clone());
-                }
+        for (id, cache_handle) in webviews.into_iter() {
+            if let Some(handle) = cache_handle {
+                new_window_handles.insert(id, handle);
                 continue;
             }
 
             let (sender, receiver) = ipc::channel().unwrap();
             self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
-                BrowsingContextId::from(*id),
+                BrowsingContextId::from(id),
                 WebDriverScriptCommand::GetWindowHandle(sender),
             ))?;
 
@@ -1150,11 +1114,9 @@ impl Handler {
                     ));
                 },
             };
-            new_window_handles.insert(*id, handle);
+            new_window_handles.insert(id, handle);
         }
-        self.session_mut()?.set_window_handles(new_window_handles);
-
-        Ok(())
+        Ok(new_window_handles)
     }
 
     /// <https://w3c.github.io/webdriver/#find-element>
@@ -1186,7 +1148,6 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)?;
 
         wait_for_ipc_response(receiver)?;
-        self.session_mut()?.window_handles_data_valid = false;
 
         // Step 4. If there are no more open top-level browsing contexts, try to close the session.
         let window_handles: Vec<String> = self.get_window_handles()?.values().cloned().collect();
@@ -1225,7 +1186,6 @@ impl Handler {
 
         if let Ok(webview_id) = receiver.recv() {
             let _ = self.wait_for_document_ready_state();
-            self.session_mut()?.window_handles_data_valid = false;
             let handle = self.get_window_handle(webview_id)?;
 
             Ok(WebDriverResponse::NewWindow(NewWindowResponse {
@@ -1314,7 +1274,6 @@ impl Handler {
         &mut self,
         parameters: &SwitchToWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        self.session_mut()?.window_handles_data_valid = false;
         let window_handles = self.get_window_handles()?;
         let Some(webview_id) = window_handles
             .iter()
