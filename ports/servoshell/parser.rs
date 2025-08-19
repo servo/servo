@@ -47,10 +47,14 @@ pub fn get_default_url(
         }
     }
 
-    if new_url.is_none() &&
-        let Some(url_opt) = url_opt
-    {
-        new_url = location_bar_input_to_url(url_opt, &preferences.searchpage);
+    #[allow(
+        clippy::collapsible_if,
+        reason = "let chains are not available in 1.85"
+    )]
+    if new_url.is_none() {
+        if let Some(url_opt) = url_opt {
+            new_url = location_bar_input_to_url(url_opt, &preferences.searchpage);
+        }
     }
 
     let pref_url = parse_url_or_filename(cwd.as_ref(), &preferences.homepage).ok();

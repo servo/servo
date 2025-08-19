@@ -431,11 +431,15 @@ impl Serialize for Ser<'_, HeaderMap> {
             {
                 let mut serializer = serializer.serialize_seq(Some(self.0.len()))?;
                 for v in self.0 {
-                    if self.1 &&
-                        let Ok(v) = str::from_utf8(v)
-                    {
-                        serializer.serialize_element(v)?;
-                        continue;
+                    #[allow(
+                        clippy::collapsible_if,
+                        reason = "let chains are not available in 1.85"
+                    )]
+                    if self.1 {
+                        if let Ok(v) = str::from_utf8(v) {
+                            serializer.serialize_element(v)?;
+                            continue;
+                        }
                     }
                     serializer.serialize_element(&Bytes::new(v))?;
                 }
