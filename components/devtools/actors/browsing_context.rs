@@ -24,6 +24,7 @@ use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
+use crate::actors::pause::PauseActor;
 use crate::actors::reflow::ReflowActor;
 use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::tab::TabDescriptorActor;
@@ -252,6 +253,8 @@ impl BrowsingContextActor {
             SessionContext::new(SessionContextType::BrowserElement),
         );
 
+        let pause_actor = PauseActor::new(actors.new_name("pause"));
+
         let target = BrowsingContextActor {
             name,
             script_chan: script_sender,
@@ -281,6 +284,7 @@ impl BrowsingContextActor {
         actors.register(Box::new(tabdesc));
         actors.register(Box::new(thread));
         actors.register(Box::new(watcher));
+        actors.register(Box::new(pause_actor));
 
         target
     }

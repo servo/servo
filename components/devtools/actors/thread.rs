@@ -7,6 +7,10 @@ use serde_json::{Map, Value};
 
 use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actors::frame::FrameActor;
+use crate::actors::object::ObjectActor;
+use crate::actors::pause::PauseActor;
+use crate::actors::source::SourceActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -21,17 +25,14 @@ struct ThreadAttached {
     error: u32,
     recording_endpoint: u32,
     execution_point: u32,
-    popped_frames: Vec<PoppedFrameMsg>,
     why: WhyMsg,
 }
 
-#[derive(Serialize)]
-enum PoppedFrameMsg {}
-
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 struct WhyMsg {
     #[serde(rename = "type")]
     type_: String,
+    on_next: bool,
 }
 
 #[derive(Serialize)]
@@ -41,11 +42,14 @@ struct ThreadResumedReply {
     type_: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 struct ThreadInterruptedReply {
+    actor:String,
+    frame: FrameActor,
     from: String,
     #[serde(rename = "type")]
     type_: String,
+    why: WhyMsg,
 }
 
 pub struct ThreadActor {
@@ -85,9 +89,9 @@ impl Actor for ThreadActor {
                     error: 0,
                     recording_endpoint: 0,
                     execution_point: 0,
-                    popped_frames: vec![],
                     why: WhyMsg {
                         type_: "attached".to_owned(),
+                        on_next: false,
                     },
                 };
                 request.write_json_packet(&msg)?;
@@ -104,12 +108,40 @@ impl Actor for ThreadActor {
             },
 
             "interrupt" => {
+                // Next step:
+                // investigate crash on "pause" click
+                let pause_actor = registry.new_name("pause");
+
+                let source_forms = self.source_manager.source_forms(registry);
+
+                let source_actor = source_forms[0].actor.clone();
+
+                // let object_uuid = format!("object-{}", self.name);
+                // let object_actor_name = ObjectActor::register(registry, object_uuid);
+
+                // let object_actor = registry.find::<ObjectActor>("object");
+
+                let frame = FrameActor::new(
+                    self.name.clone(),
+                    source_actor,
+                    5,
+                    16,
+                    // object_actor_name,
+                 );
+
                 let msg = ThreadInterruptedReply {
                     from: self.name(),
-                    type_: "interrupted".to_owned(),
+                    frame: frame,
+                    type_: "paused".to_owned(),
+                    actor: pause_actor.clone(),
+                    why: WhyMsg {
+                        type_: "interrupted".to_owned(),
+                        on_next: true,
+                    },
                 };
+
                 request.write_json_packet(&msg)?;
-                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+                request.reply_final(&msg)?
             },
 
             "reconfigure" => request.reply_final(&EmptyReplyMsg { from: self.name() })?,

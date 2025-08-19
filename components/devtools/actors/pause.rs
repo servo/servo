@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use serde_json::{Map, Value};
+use serde::Serialize;
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 
+#[derive(Serialize)]
 #[derive(Clone, Debug)]
 pub struct PauseActor {
     pub name: String,

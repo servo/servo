@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use serde::Serialize;
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 
 use crate::actors::object::ObjectActor;
 use crate::StreamId;
@@ -12,6 +12,7 @@ use crate::protocol::ClientRequest;
 
 use super::source::SourceActor;
 
+#[derive(Serialize)]
 #[derive(Clone, Debug)]
 pub struct FrameActor {
     pub name: String,
@@ -20,7 +21,7 @@ pub struct FrameActor {
     pub display_name: String,
     pub oldest: bool,
     pub state: String,
-    pub this_object: String,
+    // pub this_object: String,
     pub type_: String,
     pub where_: WhereInfo,
 }
@@ -49,9 +50,9 @@ impl FrameActor {
     pub fn new(
         name: String,
         source_actor: String,
-        line: u32,
-        column: u32,
-        this_object: String,
+        line_number: u32,
+        column_number: u32,
+        // this_object: String,
     ) -> FrameActor {
         FrameActor {
             name,
@@ -60,12 +61,12 @@ impl FrameActor {
             display_name: "tick".to_owned(), // check what other values it can have
             oldest: true,
             state: "on-stack".to_owned(), // what is the correct value?
-            this_object,
+            // this_object,
             type_: "call".to_owned(),
             where_: WhereInfo {
                 actor: source_actor,
-                line,
-                column,
+                line: line_number,
+                column: column_number,
             },
         }
     }
@@ -79,15 +80,19 @@ impl FrameActor {
         let name = registry.new_name("frame");
 
         // expand obj actor to have rest of the fields
-        let this_object = ObjectActor::register(registry, "window".to_owned());
+        // let this_object = registry.find::<String>("object");
 
-        let actor = FrameActor::new(
+        // Create a frame actor with default arguments to match Firefox protocol logs
+        let mut actor = FrameActor::new(
             name.clone(),
             source_actor.name.clone(),
             line,
             column,
-            this_object, // we need to pass actual obj actor data here
+            // this_object.to_string(), // we need to pass actual obj actor data here
         );
+        
+        // Add sample argument as seen in logs
+        actor.arguments = vec![json!(3764.5)];
 
         registry.register_later(Box::new(actor));
         name
