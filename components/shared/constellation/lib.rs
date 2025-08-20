@@ -28,6 +28,7 @@ use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::MemoryReportResult;
 use serde::{Deserialize, Serialize};
+use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;
 use strum_macros::IntoStaticStr;
@@ -102,6 +103,8 @@ pub enum EmbedderToConstellationMessage {
     SendImageKeysForPipeline(PipelineId, Vec<ImageKey>),
     /// Set WebDriver input event handled sender.
     SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
+    /// A set of preferences were updated with the given new values.
+    PreferencesUpdated(Vec<(&'static str, PrefValue)>),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the

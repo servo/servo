@@ -9,6 +9,7 @@
 //! of `assert!` for test assertions. `ensure!` will produce a `Result::Err` in
 //! place of panicking.
 
+#[allow(dead_code)]
 mod common;
 
 use anyhow::ensure;

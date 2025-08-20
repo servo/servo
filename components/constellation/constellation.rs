@@ -160,6 +160,7 @@ use script_traits::{
     ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use serde::{Deserialize, Serialize};
+use servo_config::prefs::{self, PrefValue};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
@@ -252,6 +253,18 @@ struct BrowsingContextGroup {
     /// The set of all WebGPU channels in this BrowsingContextGroup.
     #[cfg(feature = "webgpu")]
     webgpus: HashMap<Host, WebGPU>,
+}
+
+struct PreferenceForwarder(Sender<EmbedderToConstellationMessage>);
+
+impl prefs::Observer for PreferenceForwarder {
+    fn prefs_changed(&self, changes: &[(&'static str, PrefValue)]) {
+        let _ = self
+            .0
+            .send(EmbedderToConstellationMessage::PreferencesUpdated(
+                changes.to_owned(),
+            ));
+    }
 }
 
 /// The `Constellation` itself. In the servo browser, there is one
@@ -583,6 +596,7 @@ where
         hard_fail: bool,
     ) -> Sender<EmbedderToConstellationMessage> {
         let (compositor_sender, compositor_receiver) = unbounded();
+        let compositor_sender_self = compositor_sender.clone();
 
         // service worker manager to communicate with constellation
         let (swmanager_ipc_sender, swmanager_ipc_receiver) =
@@ -653,6 +667,10 @@ where
                 };
 
                 let rippy_data = resources::read_bytes(Resource::RippyPNG);
+
+                if opts::get().multiprocess {
+                    prefs::add_observer(Box::new(PreferenceForwarder(compositor_sender_self)));
+                }
 
                 let mut constellation: Constellation<STF, SWF> = Constellation {
                     namespace_receiver,
@@ -1506,6 +1524,20 @@ where
             },
             EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
                 self.webdriver_input_command_reponse_sender = Some(sender);
+            },
+            EmbedderToConstellationMessage::PreferencesUpdated(updates) => {
+                let event_loops = self
+                    .pipelines
+                    .values()
+                    .map(|pipeline| pipeline.event_loop.clone());
+                for event_loop in event_loops {
+                    let _ = event_loop.send(ScriptThreadMessage::PreferencesUpdated(
+                        updates
+                            .iter()
+                            .map(|(name, value)| (String::from(*name), value.clone()))
+                            .collect(),
+                    ));
+                }
             },
         }
     }

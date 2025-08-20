@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -11,15 +12,20 @@ use anyhow::Error;
 use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
-use servo::{Servo, ServoBuilder};
+use servo::{
+    JSValue, JavaScriptEvaluationError, LoadStatus, Servo, ServoBuilder, WebView, WebViewDelegate,
+};
 
 macro_rules! run_api_tests {
     ($($test_function:ident), +) => {
+        run_api_tests!(setup: |builder| builder, $($test_function),+)
+    };
+    (setup: $builder:expr, $($test_function:ident), +) => {
         let mut failed = false;
 
         // Be sure that `servo_test` is dropped before exiting early.
         {
-            let servo_test = ServoTest::new();
+            let servo_test = ServoTest::new($builder);
             $(
                 common::run_test($test_function, stringify!($test_function), &servo_test, &mut failed);
             )+
@@ -28,7 +34,7 @@ macro_rules! run_api_tests {
         if failed {
             std::process::exit(1);
         }
-    }
+    };
 }
 
 pub(crate) use run_api_tests;
@@ -64,7 +70,10 @@ impl Drop for ServoTest {
 }
 
 impl ServoTest {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new<F>(customize: F) -> Self
+    where
+        F: FnOnce(ServoBuilder) -> ServoBuilder,
+    {
         let rendering_context = Rc::new(
             SoftwareRenderingContext::new(PhysicalSize {
                 width: 500,
@@ -87,9 +96,10 @@ impl ServoTest {
         }
 
         let user_event_triggered = Arc::new(AtomicBool::new(false));
-        let servo = ServoBuilder::new(rendering_context.clone())
-            .event_loop_waker(Box::new(EventLoopWakerImpl(user_event_triggered)))
-            .build();
+        let builder = ServoBuilder::new(rendering_context.clone())
+            .event_loop_waker(Box::new(EventLoopWakerImpl(user_event_triggered)));
+        let builder = customize(builder);
+        let servo = builder.build();
         Self { servo }
     }
 
@@ -121,4 +131,43 @@ impl ServoTest {
 
         Ok(())
     }
+}
+
+#[derive(Default)]
+pub(crate) struct WebViewDelegateImpl {
+    pub(crate) url_changed: Cell<bool>,
+}
+
+impl WebViewDelegateImpl {
+    pub(crate) fn reset(&self) {
+        self.url_changed.set(false);
+    }
+}
+
+impl WebViewDelegate for WebViewDelegateImpl {
+    fn notify_url_changed(&self, _webview: servo::WebView, _url: url::Url) {
+        self.url_changed.set(true);
+    }
+}
+
+pub(crate) fn evaluate_javascript(
+    servo_test: &ServoTest,
+    webview: WebView,
+    script: impl ToString,
+) -> Result<JSValue, JavaScriptEvaluationError> {
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
+
+    let saved_result = Rc::new(RefCell::new(None));
+    let callback_result = saved_result.clone();
+    webview.evaluate_javascript(script, move |result| {
+        *callback_result.borrow_mut() = Some(result)
+    });
+
+    let spin_result = saved_result.clone();
+    let _ = servo_test.spin(move || Ok(spin_result.borrow().is_none()));
+
+    (*saved_result.borrow())
+        .clone()
+        .expect("Should have waited until value available")
 }

@@ -88,7 +88,7 @@ use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
-use servo_config::opts;
+use servo_config::{opts, prefs};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 use style_traits::CSSPixel;
@@ -1886,6 +1886,13 @@ impl ScriptThread {
             },
             ScriptThreadMessage::RefreshCursor(pipeline_id, cursor_position) => {
                 self.handle_refresh_cursor(pipeline_id, cursor_position);
+            },
+            ScriptThreadMessage::PreferencesUpdated(updates) => {
+                let mut current_preferences = prefs::get().clone();
+                for (name, value) in updates {
+                    current_preferences.set_value(&name, value);
+                }
+                prefs::set(current_preferences);
             },
         }
     }

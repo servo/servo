@@ -31,6 +31,7 @@ net_traits = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }
 serde = { workspace = true }
+servo_config = { path = "../../config" }
 servo_url = { path = "../../url" }
 strum = { workspace = true }
 strum_macros = { workspace = true }

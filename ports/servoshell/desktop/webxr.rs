@@ -63,7 +63,7 @@ impl XrDiscoveryWebXrRegistry {
 struct XrPrefObserver(Arc<AtomicBool>);
 
 impl prefs::Observer for XrPrefObserver {
-    fn prefs_changed(&self, changes: Vec<(&'static str, prefs::PrefValue)>) {
+    fn prefs_changed(&self, changes: &[(&'static str, prefs::PrefValue)]) {
         if let Some((_, value)) = changes.iter().find(|(name, _)| *name == "dom_webxr_test") {
             let prefs::PrefValue::Bool(value) = value else {
                 return;
@@ -79,7 +79,7 @@ impl WebXrRegistry for XrDiscoveryWebXrRegistry {
 
         let mock_enabled = Arc::new(AtomicBool::new(pref!(dom_webxr_test)));
         xr.register_mock(HeadlessMockDiscovery::new(mock_enabled.clone()));
-        prefs::set_observer(Box::new(XrPrefObserver(mock_enabled)));
+        prefs::add_observer(Box::new(XrPrefObserver(mock_enabled)));
 
         if let Some(xr_discovery) = self.xr_discovery.take() {
             match xr_discovery {
