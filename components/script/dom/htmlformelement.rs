@@ -1031,12 +1031,11 @@ impl HTMLFormElement {
         // for a given form, whereas an ongoing navigation is a per navigable (read: window for now)
         // concept.
         //
-        // Setting the ongoing navigation now
-        // means the navigation could be cancelled even if the below task has not run yet.
-        // This is not how the spec is written: it seems instead to imply that
-        // a `window.stop` should only cancel the navigation that has already started
-        // (here the task is queued, but the nav starts only in the task).
-        // See https://github.com/whatwg/html/issues/11562
+        // Setting the ongoing navigation now means the navigation could be cancelled
+        // even if the below task has not run yet. This is not how the spec is written: it
+        // seems instead to imply that a `window.stop` should only cancel the navigation 
+        // that has already started (here the task is queued, but the navigation starts only
+        // in the task). See <https://github.com/whatwg/html/issues/11562>.
         let ongoing_navigation = target.set_ongoing_navigation();
 
         let referrer_policy = target.Document().get_referrer_policy();
