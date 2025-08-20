@@ -115,8 +115,6 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
-#[cfg(feature = "webgpu")]
-use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::cdatasection::CDATASection;
@@ -276,9 +274,6 @@ pub(crate) enum DeclarativeRefresh {
     },
     CreatedAfterLoad,
 }
-#[cfg(feature = "webgpu")]
-pub(crate) type WebGPUContextsMap =
-    Rc<RefCell<HashMapTracedValues<WebGPUContextId, WeakRef<GPUCanvasContext>>>>;
 
 /// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
@@ -482,10 +477,9 @@ pub(crate) struct Document {
     /// List of all WebGL context IDs that need flushing.
     dirty_webgl_contexts:
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
-    /// List of all WebGPU contexts.
+    /// List of all WebGPU contexts that need flushing.
     #[cfg(feature = "webgpu")]
-    #[ignore_malloc_size_of = "Rc are hard"]
-    webgpu_contexts: WebGPUContextsMap,
+    dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
@@ -2596,8 +2590,14 @@ impl Document {
     }
 
     #[cfg(feature = "webgpu")]
-    pub(crate) fn webgpu_contexts(&self) -> WebGPUContextsMap {
-        self.webgpu_contexts.clone()
+    pub(crate) fn add_dirty_webgpu_context(&self, context: &GPUCanvasContext) {
+        let Ok(mut dirty_webgpu_contexts) = self.dirty_webgpu_contexts.try_borrow_mut() else {
+            // ignore already borrowed problem, that happens when updating the rendering
+            return;
+        };
+        dirty_webgpu_contexts
+            .entry(context.context_id())
+            .or_insert_with(|| Dom::from_ref(context));
     }
 
     /// Whether or not this [`Document`] needs a rendering update, due to changed
@@ -2641,12 +2641,11 @@ impl Document {
 
         // All dirty canvases are flushed before updating the rendering.
         #[cfg(feature = "webgpu")]
-        self.webgpu_contexts
+        self.dirty_webgpu_contexts
             .borrow_mut()
-            .iter()
-            .filter_map(|(_, context)| context.root())
-            .filter(|context| context.onscreen())
-            .for_each(|context| context.update_rendering());
+            .drain()
+            .filter(|(_, context)| context.onscreen())
+            .for_each(|(_, context)| context.update_rendering());
 
         self.dirty_2d_contexts
             .borrow_mut()
@@ -3332,7 +3331,7 @@ impl Document {
             dirty_2d_contexts: DomRefCell::new(HashMapTracedValues::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             #[cfg(feature = "webgpu")]
-            webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
+            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout_animations_test_enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())

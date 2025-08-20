@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self};
 use pixels::Snapshot;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
+use script_bindings::inheritance::Castable;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPUContextId, WebGPURequest,
 };
@@ -30,11 +31,9 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::weakref::WeakRef;
-use crate::dom::document::WebGPUContextsMap;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
-use crate::dom::node::NodeTraits;
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::script_runtime::CanGc;
 
 /// <https://gpuweb.github.io/gpuweb/#supported-context-formats>
@@ -67,9 +66,6 @@ pub(crate) struct GPUCanvasContext {
     texture_descriptor: RefCell<Option<GPUTextureDescriptor>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot>
     current_texture: MutNullableDom<GPUTexture>,
-    /// This is used for clearing
-    #[ignore_malloc_size_of = "Rc are hard"]
-    webgpu_contexts: WebGPUContextsMap,
     cleared: Cell<bool>,
 }
 
@@ -78,7 +74,6 @@ impl GPUCanvasContext {
         global: &GlobalScope,
         canvas: HTMLCanvasElementOrOffscreenCanvas,
         channel: WebGPU,
-        webgpu_contexts: WebGPUContextsMap,
     ) -> Self {
         let (sender, receiver) = ipc::channel().unwrap();
         let size = canvas.size().cast().cast_unit();
@@ -103,7 +98,6 @@ impl GPUCanvasContext {
             configuration: RefCell::new(None),
             texture_descriptor: RefCell::new(None),
             current_texture: MutNullableDom::default(),
-            webgpu_contexts,
             cleared: Cell::new(true),
         }
     }
@@ -114,22 +108,15 @@ impl GPUCanvasContext {
         channel: WebGPU,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let document = canvas.owner_document();
-        let this = reflect_dom_object(
+        reflect_dom_object(
             Box::new(GPUCanvasContext::new_inherited(
                 global,
                 HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
                 channel,
-                document.webgpu_contexts(),
             )),
             global,
             can_gc,
-        );
-        this.webgpu_contexts
-            .borrow_mut()
-            .entry(this.context_id())
-            .or_insert_with(|| WeakRef::new(&this));
-        this
+        )
     }
 }
 
@@ -286,6 +273,16 @@ impl CanvasContext for GPUCanvasContext {
     fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
         Some(self.canvas.clone())
     }
+
+    fn mark_as_dirty(&self) {
+        match self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                canvas.upcast::<Node>().dirty(NodeDamage::Other);
+                canvas.owner_document().add_dirty_webgpu_context(self);
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
+        }
+    }
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
@@ -384,7 +381,6 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
 impl Drop for GPUCanvasContext {
     fn drop(&mut self) {
-        self.webgpu_contexts.borrow_mut().remove(&self.context_id());
         if let Err(e) = self.channel.0.send(WebGPURequest::DestroyContext {
             context_id: self.context_id,
         }) {
