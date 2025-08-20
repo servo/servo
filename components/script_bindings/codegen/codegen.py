@@ -13,7 +13,7 @@ from WebIDL import IDLSequenceType
 from collections import defaultdict
 from itertools import groupby
 from typing import Optional, Any
-from collections.abc import Generator
+from collections.abc import Generator, Callable
 from abc import abstractmethod
 
 import operator
@@ -48,6 +48,7 @@ from WebIDL import (
     IDLConst,
     IDLInterfaceOrNamespace,
     IDLValue,
+    IDLMethod
 )
 
 from configuration import (
@@ -418,12 +419,12 @@ class CGMethodCall(CGThing):
     signatures and generation of a call to that signature.
     """
     cgRoot: CGThing
-    def __init__(self, argsPre, nativeMethodName: str, static, descriptor: Descriptor, method) -> None:
+    def __init__(self, argsPre: list[str], nativeMethodName: str, static: bool, descriptor: Descriptor, method: IDLMethod) -> None:
         CGThing.__init__(self)
 
         methodName = f'\\"{descriptor.interface.identifier.name}.{method.identifier.name}\\"'
 
-        def requiredArgCount(signature):
+        def requiredArgCount(signature: tuple[IDLType, list[IDLArgument]]) -> int:
             arguments = signature[1]
             if len(arguments) == 0:
                 return 0
@@ -432,9 +433,9 @@ class CGMethodCall(CGThing):
                 requiredArgs -= 1
             return requiredArgs
 
-        signatures = method.signatures()
+        signatures: list[tuple[IDLType, list[IDLArgument]]] = method.signatures()
 
-        def getPerSignatureCall(signature, argConversionStartsAt=0):
+        def getPerSignatureCall(signature: tuple[IDLType, list[IDLArgument]], argConversionStartsAt: int = 0) -> CGThing:
             signatureIndex = signatures.index(signature)
             return CGPerSignatureCall(signature[0], argsPre, signature[1],
                                       f"{nativeMethodName}{'_' * signatureIndex}",
@@ -499,7 +500,7 @@ class CGMethodCall(CGThing):
             # Select the right overload from our set.
             distinguishingArg = f"HandleValue::from_raw(args.get({distinguishingIndex}))"
 
-            def pickFirstSignature(condition, filterLambda):
+            def pickFirstSignature(condition: str | None, filterLambda: Callable[[Any], bool]) -> bool:
                 sigs = list(filter(filterLambda, possibleSignatures))
                 assert len(sigs) < 2
                 if len(sigs) > 0:
@@ -628,7 +629,7 @@ class CGMethodCall(CGThing):
         self.cgRoot = CGWrapper(CGList(overloadCGThings, "\n"),
                                 pre="\n")
 
-    def define(self):
+    def define(self) -> str:
         return self.cgRoot.define()
 
 
@@ -1360,8 +1361,8 @@ class CGArgumentConverter(CGThing):
     unwrap the argument to the right native type.
     """
     converter: CGThing
-    def __init__(self, argument, index, args, argc, descriptorProvider,
-                 invalidEnumValueFatal=True):
+    def __init__(self, argument: IDLArgument, index: int, args: str, argc: str, descriptorProvider: DescriptorProvider,
+                 invalidEnumValueFatal: bool=True) -> None:
         CGThing.__init__(self)
         assert not argument.defaultValue or argument.optional
 
@@ -1432,7 +1433,7 @@ if {argc} > {index} {{
     }}
 }}""")
 
-    def define(self):
+    def define(self) -> str:
         return self.converter.define()
 
 
@@ -1452,7 +1453,7 @@ def wrapForType(jsvalRef: str, result: str = 'result', successCode: str = 'true'
     return wrap
 
 
-def typeNeedsCx(type: IDLType, retVal: bool = False):
+def typeNeedsCx(type: IDLType, retVal: bool = False) -> bool:
     if type is None:
         return False
     if type.nullable():
@@ -1644,27 +1645,27 @@ class PropertyDefiner:
     """
     name: str
     regular: list
-    def __init__(self, descriptor, name: str):
+    def __init__(self, descriptor: Descriptor, name: str) -> None:
         self.descriptor = descriptor
         self.name = name
 
-    def variableName(self):
+    def variableName(self) -> str:
         return f"s{self.name}"
 
-    def length(self):
+    def length(self) -> int:
         return len(self.regular)
 
     @abstractmethod
-    def generateArray(self, array, name) -> str:
+    def generateArray(self, array: list[IDLInterfaceMember], name: str) -> str:
         raise NotImplementedError
 
-    def __str__(self):
+    def __str__(self) -> str:
         # We only need to generate id arrays for things that will end
         # up used via ResolveProperty or EnumerateProperties.
         return self.generateArray(self.regular, self.variableName())
 
     @staticmethod
-    def getStringAttr(member, name):
+    def getStringAttr(member: IDLInterfaceMember, name: str) -> str | None:
         attr = member.getExtendedAttribute(name)
         if attr is None:
             return None
@@ -1674,7 +1675,7 @@ class PropertyDefiner:
         return attr[0]
 
     @staticmethod
-    def getControllingCondition(interfaceMember, descriptor):
+    def getControllingCondition(interfaceMember: IDLInterfaceMember, descriptor: Descriptor) -> list[str]:
         return MemberCondition(
             PropertyDefiner.getStringAttr(interfaceMember,
                                           "Pref"),
@@ -1683,8 +1684,8 @@ class PropertyDefiner:
             interfaceMember.exposureSet,
             interfaceMember.getExtendedAttribute("SecureContext"))
 
-    def generateGuardedArray(self, array, name, specTemplate, specTerminator,
-                             specType, getCondition, getDataTuple):
+    def generateGuardedArray(self, array: list[IDLInterfaceMember], name: str, specTemplate: Callable | str, specTerminator: Callable | str | None,
+                             specType: str, getCondition: Callable, getDataTuple: Callable) -> str:
         """
         This method generates our various arrays.
 
@@ -1746,8 +1747,8 @@ pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
 
         return f"{specsArray}{initSpecs}{prefArray}{initPrefs}"
 
-    def generateUnguardedArray(self, array, name, specTemplate, specTerminator,
-                               specType, getCondition, getDataTuple):
+    def generateUnguardedArray(self, array: list[IDLInterfaceMember], name: str, specTemplate: Callable | str, specTerminator: Callable | str,
+                               specType: str, getCondition: Callable, getDataTuple: Callable) -> str:
         """
         Takes the same set of parameters as generateGuardedArray but instead
         generates a single, flat array of type `&[specType]` that contains all
@@ -1777,7 +1778,7 @@ pub(crate) fn init_{name}<D: DomTypes>() {{
 
 # The length of a method is the minimum of the lengths of the
 # argument lists of all its overloads.
-def methodLength(method):
+def methodLength(method: IDLMethod) -> int:
     signatures = method.signatures()
     return min(
         len([arg for arg in arguments if not arg.optional and not arg.variadic])
