@@ -48,7 +48,7 @@ from WebIDL import (
     IDLConst,
     IDLInterfaceOrNamespace,
     IDLValue,
-    IDLMethod
+    IDLMethod,
 )
 
 from configuration import (
@@ -1925,7 +1925,7 @@ class MethodDefiner(PropertyDefiner):
         if len(array) == 0:
             return ""
 
-        def condition(m: dict[str, Any], d: list[dict[str, Any]]) -> list[str]:
+        def condition(m: dict[str, Any], d: Descriptor) -> list[str]:
             return m["condition"]
 
         def specData(m: dict[str, Any]) -> tuple:
@@ -2000,7 +2000,7 @@ class MethodDefiner(PropertyDefiner):
 
 
 class AttrDefiner(PropertyDefiner):
-    def __init__(self, descriptor, name, static, unforgeable, crossorigin=False):
+    def __init__(self, descriptor: Descriptor, name: str, static: bool, unforgeable: bool, crossorigin: bool = False) -> None:
         assert not (static and unforgeable)
         assert not (static and crossorigin)
         assert not (unforgeable and crossorigin)
@@ -2039,11 +2039,11 @@ class AttrDefiner(PropertyDefiner):
                 "kind": "JSPropertySpec_Kind::Value",
             })
 
-    def generateArray(self, array, name):
+    def generateArray(self, array: list[dict[str, Any]], name: str) -> str:
         if len(array) == 0:
             return ""
 
-        def getter(attr):
+        def getter(attr: dict[str, Any]) -> str:
             attr = attr['attr']
 
             if self.crossorigin and not attr.getExtendedAttribute("CrossOriginReadable"):
@@ -2066,7 +2066,7 @@ class AttrDefiner(PropertyDefiner):
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
-        def setter(attr):
+        def setter(attr: dict[str, Any]) -> str :
             attr = attr['attr']
 
             if ((self.crossorigin and not attr.getExtendedAttribute("CrossOriginWritable"))
@@ -2088,12 +2088,12 @@ class AttrDefiner(PropertyDefiner):
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
-        def condition(m, d):
+        def condition(m: dict[str, Any], d: Descriptor) -> list[str]:
             if m["name"] == "@@toStringTag":
                 return MemberCondition(pref=None, func=None, exposed=None, secure=None)
             return PropertyDefiner.getControllingCondition(m["attr"], d)
 
-        def specData(attr):
+        def specData(attr: dict[str, Any]) -> tuple:
             if attr["name"] == "@@toStringTag":
                 return (attr["name"][2:], attr["flags"], attr["kind"],
                         str_to_cstr_ptr(self.descriptor.interface.getClassName()))
@@ -2104,7 +2104,7 @@ class AttrDefiner(PropertyDefiner):
             return (str_to_cstr_ptr(attr["attr"].identifier.name), flags, attr["kind"], getter(attr),
                     setter(attr))
 
-        def template(m):
+        def template(m: dict[str, Any]) -> str:
             if m["name"] == "@@toStringTag":
                 return """    JSPropertySpec {
                     name: JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 },
@@ -2157,16 +2157,16 @@ class ConstDefiner(PropertyDefiner):
     """
     A class for definining constants on the interface object
     """
-    def __init__(self, descriptor, name):
+    def __init__(self, descriptor: Descriptor, name: str) -> None:
         PropertyDefiner.__init__(self, descriptor, name)
         self.name = name
         self.regular = [m for m in descriptor.interface.members if m.isConst()]
 
-    def generateArray(self, array, name):
+    def generateArray(self, array: list[dict[str, Any]], name: str) -> str:
         if len(array) == 0:
             return ""
 
-        def specData(const):
+        def specData(const: IDLConst) -> tuple:
             return (str_to_cstr(const.identifier.name),
                     convertConstIDLValueToJSVal(const.value))
 
