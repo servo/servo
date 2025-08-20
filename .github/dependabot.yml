@@ -2,6 +2,9 @@ version: 2
 updates:
 - package-ecosystem: cargo
   directory: "/"
+  exclude-paths:
+    - "tests/blink_perf/**"
+    - "tests/wpt/**"
   schedule:
     interval: daily
   open-pull-requests-limit: 10
