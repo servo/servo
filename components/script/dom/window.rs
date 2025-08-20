@@ -725,7 +725,7 @@ impl Window {
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-ongoing-navigation>
     pub(crate) fn set_ongoing_navigation(&self) -> OngoingNavigation {
-        // Note: since this value, for now, is only used in a single script-thread,
+        // Note: since this value, for now, is only used in a single `ScriptThread`,
         // we just increment it (it is not a uuid).
         let new_value = self.ongoing_navigation.get().0.wrapping_add(1);
 
