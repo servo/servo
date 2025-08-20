@@ -285,8 +285,8 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             }
 
             // 6.4. Set url to parsed.
-            if parsed_url.is_ok() {
-                final_url = parsed_url.unwrap();
+            if let Ok(url) = parsed_url {
+                final_url = url;
             }
         }
 
@@ -406,8 +406,8 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             }
 
             // 6.4. Set url to parsed.
-            if parsed_url.is_ok() {
-                final_url = parsed_url.unwrap();
+            if let Ok(url) = parsed_url {
+                final_url = url;
             }
         }
 
