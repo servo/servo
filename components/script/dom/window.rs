@@ -729,12 +729,12 @@ impl Window {
         // we just increment it (it is not a uuid).
         let new_value = self.ongoing_navigation.get().0.wrapping_add(1);
 
-        // If navigable's ongoing navigation is equal to newValue, then return.
+        // 1. If navigable's ongoing navigation is equal to newValue, then return.
         // Note: cannot happen in the way it is currently used.
 
-        // TODO: Inform the navigation API about aborting navigation given navigable.
+        // TODO: 2. Inform the navigation API about aborting navigation given navigable.
 
-        // Set navigable's ongoing navigation to newValue.
+        // 3. Set navigable's ongoing navigation to newValue.
         self.ongoing_navigation.set(OngoingNavigation(new_value));
 
         // Note: Return the ongoing navigation for the caller to use.
@@ -743,21 +743,21 @@ impl Window {
 
     /// <https://html.spec.whatwg.org/multipage/#nav-stop>
     fn stop_loading(&self, can_gc: CanGc) {
-        // Let document be navigable's active document.
+        // 1. Let document be navigable's active document.
         let doc = self.Document();
 
-        // If document's unload counter is 0,
+        // 2. If document's unload counter is 0,
         // and navigable's ongoing navigation is a navigation ID,
         // then set the ongoing navigation for navigable to null.
         //
         // Note: since the concept of `navigable` is nascent in Servo,
         // for now we do two things:
-        // 1. increment the `ongoing_navigation`(preventing planned form navigations).
-        // 2. Send a `AbortLoadUrl` message(in case the navigation
+        // - increment the `ongoing_navigation`(preventing planned form navigations).
+        // - Send a `AbortLoadUrl` message(in case the navigation
         // already started at the constellation).
         self.set_ongoing_navigation();
 
-        // Abort a document and its descendants given document.
+        // 3. Abort a document and its descendants given document.
         doc.abort(can_gc);
     }
 }
@@ -915,10 +915,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-stop
     fn Stop(&self, can_gc: CanGc) {
-        // If this's navigable is null, then return.
+        // 1. If this's navigable is null, then return.
         // Note: Servo doesn't have a concept of navigable yet.
 
-        // Stop loading this's navigable.
+        // 2. Stop loading this's navigable.
         self.stop_loading(can_gc);
     }
 
