@@ -649,7 +649,6 @@ def typeIsSequenceOrHasSequenceMember(type: IDLType) -> bool:
     if type.isSequence():
         return True
     if type.isDictionary():
-        assert isinstance(type, IDLDictionary)
         # pyrefly: ignore  # missing-attribute
         return dictionaryHasSequenceMember(type.inner)
     if type.isUnion():
