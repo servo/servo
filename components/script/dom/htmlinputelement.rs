@@ -31,6 +31,7 @@ use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg};
 use net_traits::{CoreResourceMsg, IpcSend};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use servo_config::pref;
 use style::attr::AttrValue;
 use style::selector_parser::PseudoElement;
 use style::str::{split_commas, str_join};
@@ -2293,6 +2294,21 @@ impl HTMLInputElement {
         let target = self.upcast::<EventTarget>();
 
         if self.Multiple() {
+            // When using WebDriver command element send keys,
+            // we are expected to append the files to the existing filelist.
+            if pref!(dom_testing_html_input_element_select_files_enabled) {
+                let filelist = self.filelist.get();
+                if let Some(filelist) = filelist {
+                    for i in 0..filelist.Length() {
+                        files.push(
+                            filelist
+                                .Item(i)
+                                .expect("We should have iterate within filelist length"),
+                        );
+                    }
+                }
+            }
+
             let opt_test_paths = opt_test_paths.map(|paths| {
                 paths
                     .iter()
