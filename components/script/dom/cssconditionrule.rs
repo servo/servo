@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{Locked, SharedRwLock};
+use style::shared_lock::{Locked, SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::CssRules as StyleCssRules;
 
 use crate::dom::bindings::codegen::Bindings::CSSConditionRuleBinding::CSSConditionRuleMethods;
@@ -20,7 +22,7 @@ pub(crate) struct CSSConditionRule {
     cssgroupingrule: CSSGroupingRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    rules: Arc<Locked<StyleCssRules>>,
+    rules: RefCell<Arc<Locked<StyleCssRules>>>,
 }
 
 impl CSSConditionRule {
@@ -30,7 +32,7 @@ impl CSSConditionRule {
     ) -> CSSConditionRule {
         CSSConditionRule {
             cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet),
-            rules,
+            rules: RefCell::new(rules),
         }
     }
 
@@ -43,7 +45,16 @@ impl CSSConditionRule {
     }
 
     pub(crate) fn clone_rules(&self) -> Arc<Locked<StyleCssRules>> {
-        self.rules.clone()
+        self.rules.borrow().clone()
+    }
+
+    pub(crate) fn update_rules(
+        &self,
+        rules: Arc<Locked<StyleCssRules>>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        self.cssgroupingrule.update_rules(&rules, guard);
+        *self.rules.borrow_mut() = rules;
     }
 }
 

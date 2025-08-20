@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::mem;
 
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput, ToCss};
@@ -9,7 +10,7 @@ use dom_struct::dom_struct;
 use selectors::parser::{ParseRelative, SelectorList};
 use servo_arc::Arc;
 use style::selector_parser::SelectorParser;
-use style::shared_lock::{Locked, ToCssWithGuard};
+use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, CssRules, Origin, StyleRule};
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::CSSStyleRuleMethods;
@@ -29,7 +30,7 @@ pub(crate) struct CSSStyleRule {
     cssgroupingrule: CSSGroupingRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    stylerule: Arc<Locked<StyleRule>>,
+    stylerule: RefCell<Arc<Locked<StyleRule>>>,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
 }
 
@@ -40,7 +41,7 @@ impl CSSStyleRule {
     ) -> CSSStyleRule {
         CSSStyleRule {
             cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet),
-            stylerule,
+            stylerule: RefCell::new(stylerule),
             style_decl: Default::default(),
         }
     }
@@ -63,10 +64,27 @@ impl CSSStyleRule {
         let lock = self.cssgroupingrule.shared_lock();
         let mut guard = lock.write();
         self.stylerule
+            .borrow()
             .write_with(&mut guard)
             .rules
             .get_or_insert_with(|| CssRules::new(vec![], lock))
             .clone()
+    }
+
+    pub(crate) fn update_rule(
+        &self,
+        stylerule: Arc<Locked<StyleRule>>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        if let Some(ref rules) = stylerule.read_with(guard).rules {
+            self.cssgroupingrule.update_rules(rules, guard);
+        }
+
+        if let Some(ref style_decl) = self.style_decl.get() {
+            style_decl.update_property_declaration_block(&stylerule.read_with(guard).block);
+        }
+
+        *self.stylerule.borrow_mut() = stylerule;
     }
 }
 
@@ -78,6 +96,7 @@ impl SpecificCSSRule for CSSStyleRule {
     fn get_css(&self) -> DOMString {
         let guard = self.cssgroupingrule.shared_lock().read();
         self.stylerule
+            .borrow()
             .read_with(&guard)
             .to_css_string(&guard)
             .into()
@@ -93,7 +112,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
                     Dom::from_ref(self.upcast()),
-                    self.stylerule.read_with(&guard).block.clone(),
+                    RefCell::new(self.stylerule.borrow().read_with(&guard).block.clone()),
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
@@ -105,8 +124,13 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext
     fn SelectorText(&self) -> DOMString {
         let guard = self.cssgroupingrule.shared_lock().read();
-        let stylerule = self.stylerule.read_with(&guard);
-        DOMString::from_string(stylerule.selectors.to_css_string())
+        DOMString::from_string(
+            self.stylerule
+                .borrow()
+                .read_with(&guard)
+                .selectors
+                .to_css_string(),
+        )
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext
@@ -115,7 +139,8 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
             .cssgroupingrule
             .parent_stylesheet()
             .style_stylesheet()
-            .contents;
+            .contents
+            .clone();
         // It's not clear from the spec if we should use the stylesheet's namespaces.
         // https://github.com/w3c/csswg-drafts/issues/1511
         let namespaces = contents.namespaces.read();
@@ -131,10 +156,13 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         // TODO: Maybe allow setting relative selectors from the OM, if we're in a nested style
         // rule?
         if let Ok(mut s) = SelectorList::parse(&parser, &mut css_parser, ParseRelative::No) {
+            self.cssgroupingrule.parent_stylesheet().will_modify();
             // This mirrors what we do in CSSStyleOwner::mutate_associated_block.
             let mut guard = self.cssgroupingrule.shared_lock().write();
-            let stylerule = self.stylerule.write_with(&mut guard);
-            mem::swap(&mut stylerule.selectors, &mut s);
+            mem::swap(
+                &mut self.stylerule.borrow().write_with(&mut guard).selectors,
+                &mut s,
+            );
             self.cssgroupingrule
                 .parent_stylesheet()
                 .notify_invalidations();

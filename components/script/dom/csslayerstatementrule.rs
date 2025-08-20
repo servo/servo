@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
 use servo_arc::Arc;
@@ -24,7 +26,7 @@ pub(crate) struct CSSLayerStatementRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    layerstatementrule: Arc<LayerStatementRule>,
+    layerstatementrule: RefCell<Arc<LayerStatementRule>>,
 }
 
 impl CSSLayerStatementRule {
@@ -34,7 +36,7 @@ impl CSSLayerStatementRule {
     ) -> CSSLayerStatementRule {
         CSSLayerStatementRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            layerstatementrule,
+            layerstatementrule: RefCell::new(layerstatementrule),
         }
     }
 
@@ -54,6 +56,10 @@ impl CSSLayerStatementRule {
             can_gc,
         )
     }
+
+    pub(crate) fn update_rule(&self, layerstatementrule: Arc<LayerStatementRule>) {
+        *self.layerstatementrule.borrow_mut() = layerstatementrule;
+    }
 }
 
 impl SpecificCSSRule for CSSLayerStatementRule {
@@ -63,7 +69,10 @@ impl SpecificCSSRule for CSSLayerStatementRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.layerstatementrule.to_css_string(&guard).into()
+        self.layerstatementrule
+            .borrow()
+            .to_css_string(&guard)
+            .into()
     }
 }
 
@@ -72,6 +81,7 @@ impl CSSLayerStatementRuleMethods<crate::DomTypeHolder> for CSSLayerStatementRul
     fn NameList(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
         let names: Vec<DOMString> = self
             .layerstatementrule
+            .borrow()
             .names
             .iter()
             .map(|name| DOMString::from_string(name.to_css_string()))

@@ -5,7 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use style::shared_lock::SharedRwLock;
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{CssRule as StyleCssRule, CssRuleType};
 
 use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
@@ -157,7 +157,73 @@ impl CSSRule {
     }
 
     pub(crate) fn shared_lock(&self) -> &SharedRwLock {
-        &self.parent_stylesheet.style_stylesheet().shared_lock
+        self.parent_stylesheet.shared_lock()
+    }
+
+    pub(crate) fn update_rule(&self, style_rule: &StyleCssRule, guard: &SharedRwLockReadGuard) {
+        match style_rule {
+            StyleCssRule::Import(s) => {
+                if let Some(rule) = self.downcast::<CSSImportRule>() {
+                    rule.update_rule(s.clone());
+                }
+            },
+            StyleCssRule::Style(s) => {
+                if let Some(rule) = self.downcast::<CSSStyleRule>() {
+                    rule.update_rule(s.clone(), guard);
+                }
+            },
+            StyleCssRule::FontFace(s) => {
+                if let Some(rule) = self.downcast::<CSSFontFaceRule>() {
+                    rule.update_rule(s.clone());
+                }
+            },
+            StyleCssRule::FontFeatureValues(_) => unimplemented!(),
+            StyleCssRule::CounterStyle(_) => unimplemented!(),
+            StyleCssRule::Keyframes(s) => {
+                if let Some(rule) = self.downcast::<CSSKeyframesRule>() {
+                    rule.update_rule(s.clone(), guard);
+                }
+            },
+            StyleCssRule::Media(s) => {
+                if let Some(rule) = self.downcast::<CSSMediaRule>() {
+                    rule.update_rule(s.clone(), guard);
+                }
+            },
+            StyleCssRule::Namespace(s) => {
+                if let Some(rule) = self.downcast::<CSSNamespaceRule>() {
+                    rule.update_rule(s.clone());
+                }
+            },
+            StyleCssRule::Supports(s) => {
+                if let Some(rule) = self.downcast::<CSSSupportsRule>() {
+                    rule.update_rule(s.clone(), guard);
+                }
+            },
+            StyleCssRule::Page(_) => unreachable!(),
+            StyleCssRule::Container(_) => unimplemented!(), // TODO
+            StyleCssRule::Document(_) => unimplemented!(),  // TODO
+            StyleCssRule::LayerBlock(s) => {
+                if let Some(rule) = self.downcast::<CSSLayerBlockRule>() {
+                    rule.update_rule(s.clone(), guard);
+                }
+            },
+            StyleCssRule::LayerStatement(s) => {
+                if let Some(rule) = self.downcast::<CSSLayerStatementRule>() {
+                    rule.update_rule(s.clone());
+                }
+            },
+            StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
+            StyleCssRule::Property(_) => unimplemented!(),          // TODO
+            StyleCssRule::Margin(_) => unimplemented!(),            // TODO
+            StyleCssRule::Scope(_) => unimplemented!(),             // TODO
+            StyleCssRule::StartingStyle(_) => unimplemented!(),     // TODO
+            StyleCssRule::PositionTry(_) => unimplemented!(),       // TODO
+            StyleCssRule::NestedDeclarations(s) => {
+                if let Some(rule) = self.downcast::<CSSNestedDeclarations>() {
+                    rule.update_rule(s.clone(), guard);
+                }
+            },
+        }
     }
 }
 

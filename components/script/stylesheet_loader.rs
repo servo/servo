@@ -214,6 +214,9 @@ impl FetchResponseListener for StylesheetContext {
                         .is_none_or(|generation| generation == link.get_request_generation_id());
                     if is_stylesheet_load_applicable {
                         let shared_lock = document.style_shared_lock().clone();
+                        #[cfg(feature = "tracing")]
+                        let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true)
+                            .entered();
                         let sheet = Arc::new(Stylesheet::from_bytes(
                             &data,
                             UrlExtraData(final_url.get_arc()),
@@ -235,6 +238,9 @@ impl FetchResponseListener for StylesheetContext {
                     }
                 },
                 StylesheetContextSource::Import(ref stylesheet) => {
+                    #[cfg(feature = "tracing")]
+                    let _span =
+                        tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
                     Stylesheet::update_from_bytes(
                         stylesheet,
                         &data,

@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{Locked, ToCssWithGuard};
+use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, NestedDeclarationsRule};
 
 use crate::dom::bindings::codegen::Bindings::CSSNestedDeclarationsBinding::CSSNestedDeclarationsMethods;
@@ -23,7 +25,7 @@ pub(crate) struct CSSNestedDeclarations {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    nesteddeclarationsrule: Arc<Locked<NestedDeclarationsRule>>,
+    nesteddeclarationsrule: RefCell<Arc<Locked<NestedDeclarationsRule>>>,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
 }
 
@@ -34,7 +36,7 @@ impl CSSNestedDeclarations {
     ) -> Self {
         Self {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            nesteddeclarationsrule,
+            nesteddeclarationsrule: RefCell::new(nesteddeclarationsrule),
             style_decl: Default::default(),
         }
     }
@@ -55,6 +57,18 @@ impl CSSNestedDeclarations {
             can_gc,
         )
     }
+
+    pub(crate) fn update_rule(
+        &self,
+        nesteddeclarationsrule: Arc<Locked<NestedDeclarationsRule>>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        if let Some(ref style_decl) = self.style_decl.get() {
+            style_decl
+                .update_property_declaration_block(&nesteddeclarationsrule.read_with(guard).block);
+        }
+        *self.nesteddeclarationsrule.borrow_mut() = nesteddeclarationsrule;
+    }
 }
 
 impl SpecificCSSRule for CSSNestedDeclarations {
@@ -65,6 +79,7 @@ impl SpecificCSSRule for CSSNestedDeclarations {
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
         self.nesteddeclarationsrule
+            .borrow()
             .read_with(&guard)
             .to_css_string(&guard)
             .into()
@@ -80,7 +95,13 @@ impl CSSNestedDeclarationsMethods<crate::DomTypeHolder> for CSSNestedDeclaration
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
                     Dom::from_ref(self.upcast()),
-                    self.nesteddeclarationsrule.read_with(&guard).block.clone(),
+                    RefCell::new(
+                        self.nesteddeclarationsrule
+                            .borrow()
+                            .read_with(&guard)
+                            .block
+                            .clone(),
+                    ),
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
