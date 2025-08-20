@@ -22,5 +22,7 @@ interface DOMPointReadOnly {
     readonly attribute unrestricted double z;
     readonly attribute unrestricted double w;
 
+    [Throws, NewObject] DOMPoint matrixTransform(optional DOMMatrixInit matrix = {});
+
     [Default] object toJSON();
 };

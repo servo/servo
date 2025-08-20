@@ -10,14 +10,17 @@ use constellation_traits::DomPoint;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
+use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrixInit;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
+use crate::dom::dommatrixreadonly::dommatrixinit_to_matrix;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::types::DOMPoint;
 use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
@@ -111,6 +114,37 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
     fn W(&self) -> f64 {
         self.w.get()
+    }
+
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-matrixtransform
+    // https://drafts.fxtf.org/geometry/Overview.html#transform-a-point-with-a-matrix
+    fn MatrixTransform(
+        &self,
+        matrix: &DOMMatrixInit,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<DOMPoint>> {
+        let matrix_object = match dommatrixinit_to_matrix(matrix) {
+            Ok(converted) => converted,
+            Err(exception) => {
+                return Err(exception);
+            },
+        };
+        let x = self.X();
+        let y = self.Y();
+        let z = self.Z();
+        let w = self.W();
+        let m = &matrix_object.1;
+        let transformed_point = DOMPointInit {
+            x: m.m11 * x + m.m21 * y + m.m31 * z + m.m41 * w,
+            y: m.m12 * x + m.m22 * y + m.m32 * z + m.m42 * w,
+            z: m.m13 * x + m.m23 * y + m.m33 * z + m.m43 * w,
+            w: m.m14 * x + m.m24 * y + m.m34 * z + m.m44 * w,
+        };
+        Ok(DOMPoint::new_from_init(
+            &self.global(),
+            &transformed_point,
+            can_gc,
+        ))
     }
 }
 
