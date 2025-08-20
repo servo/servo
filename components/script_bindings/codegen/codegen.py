@@ -1644,7 +1644,7 @@ class PropertyDefiner:
     things exposed to web pages.
     """
     name: str
-    regular: list
+    regular: list[dict[str, Any]]
     def __init__(self, descriptor: Descriptor, name: str) -> None:
         self.descriptor = descriptor
         self.name = name
@@ -1656,7 +1656,7 @@ class PropertyDefiner:
         return len(self.regular)
 
     @abstractmethod
-    def generateArray(self, array: list[IDLInterfaceMember], name: str) -> str:
+    def generateArray(self, array: list[dict[str, Any]], name: str) -> str:
         raise NotImplementedError
 
     def __str__(self) -> str:
@@ -1684,7 +1684,7 @@ class PropertyDefiner:
             interfaceMember.exposureSet,
             interfaceMember.getExtendedAttribute("SecureContext"))
 
-    def generateGuardedArray(self, array: list[IDLInterfaceMember], name: str, specTemplate: Callable | str, specTerminator: Callable | str | None,
+    def generateGuardedArray(self, array: list[dict[str, Any]], name: str, specTemplate: Callable | str, specTerminator: Callable | str | None,
                              specType: str, getCondition: Callable, getDataTuple: Callable) -> str:
         """
         This method generates our various arrays.
@@ -1747,7 +1747,7 @@ pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
 
         return f"{specsArray}{initSpecs}{prefArray}{initPrefs}"
 
-    def generateUnguardedArray(self, array: list[IDLInterfaceMember], name: str, specTemplate: Callable | str, specTerminator: Callable | str,
+    def generateUnguardedArray(self, array: list[dict[str, Any]], name: str, specTemplate: Callable | str, specTerminator: Callable | str,
                                specType: str, getCondition: Callable, getDataTuple: Callable) -> str:
         """
         Takes the same set of parameters as generateGuardedArray but instead
@@ -1789,7 +1789,7 @@ class MethodDefiner(PropertyDefiner):
     """
     A class for defining methods on a prototype object.
     """
-    def __init__(self, descriptor, name, static, unforgeable, crossorigin=False):
+    def __init__(self, descriptor: Descriptor, name: str, static: bool, unforgeable: bool, crossorigin: bool = False) -> None:
         assert not (static and unforgeable)
         assert not (static and crossorigin)
         assert not (unforgeable and crossorigin)
@@ -1826,7 +1826,7 @@ class MethodDefiner(PropertyDefiner):
         # failing. Also, may be more tiebreak rules to implement once spec bug
         # is resolved.
         # https://www.w3.org/Bugs/Public/show_bug.cgi?id=28592
-        def hasIterator(methods, regular):
+        def hasIterator(methods: list[IDLMethod], regular: list[dict[str, Any]]) -> bool:
             return (any("@@iterator" in m.aliases for m in methods)
                     or any("@@iterator" == r["name"] for r in regular))
 
@@ -1837,8 +1837,8 @@ class MethodDefiner(PropertyDefiner):
         if (not static
             and not unforgeable
             and not crossorigin
-            and descriptor.supportsIndexedProperties()):  # noqa
-            if hasIterator(methods, self.regular):  # noqa
+            and descriptor.supportsIndexedProperties()):
+            if hasIterator(methods, self.regular):
                 raise TypeError("Cannot have indexed getter/attr on "
                                 f"interface {self.descriptor.interface.identifier.name} with other members "
                                 "that generate @@iterator, such as "
@@ -1911,7 +1911,7 @@ class MethodDefiner(PropertyDefiner):
         self.crossorigin = crossorigin
 
     @staticmethod
-    def methodData(m, descriptor, crossorigin):
+    def methodData(m: IDLMethod, descriptor: Descriptor, crossorigin: bool) -> dict[str, Any]:
         return {
             "name": m.identifier.name,
             "methodInfo": not m.isStatic(),
@@ -1921,14 +1921,14 @@ class MethodDefiner(PropertyDefiner):
             "returnsPromise": m.returnsPromise()
         }
 
-    def generateArray(self, array, name):
+    def generateArray(self, array: list[dict[str, Any]], name: str) -> str:
         if len(array) == 0:
             return ""
 
-        def condition(m, d):
+        def condition(m: dict[str, Any], d: list[dict[str, Any]]) -> list[str]:
             return m["condition"]
 
-        def specData(m):
+        def specData(m: dict[str, Any]) -> tuple:
             flags = m["flags"]
             if self.unforgeable:
                 flags += " | JSPROP_PERMANENT | JSPROP_READONLY"
