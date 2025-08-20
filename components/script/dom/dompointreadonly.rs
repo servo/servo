@@ -23,7 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::DOMPoint;
 use crate::script_runtime::CanGc;
 
-/// http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
+/// <http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly>
 #[dom_struct]
 pub(crate) struct DOMPointReadOnly {
     reflector_: Reflector,
@@ -76,7 +76,7 @@ impl DOMPointReadOnly {
 
 #[allow(non_snake_case)]
 impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
-    /// https://drafts.fxtf.org/geometry/#dom-dompoint-dompoint
+    /// <https://drafts.fxtf.org/geometry/#dom-dompoint-dompoint>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -91,33 +91,33 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
         ))
     }
 
-    /// https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint
+    /// <https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint>
     fn FromPoint(global: &GlobalScope, init: &DOMPointInit, can_gc: CanGc) -> DomRoot<Self> {
         Self::new(global, init.x, init.y, init.z, init.w, can_gc)
     }
 
-    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
+    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x>
     fn X(&self) -> f64 {
         self.x.get()
     }
 
-    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
+    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y>
     fn Y(&self) -> f64 {
         self.y.get()
     }
 
-    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
+    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z>
     fn Z(&self) -> f64 {
         self.z.get()
     }
 
-    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
+    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w>
     fn W(&self) -> f64 {
         self.w.get()
     }
 
-    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-matrixtransform
-    /// https://drafts.fxtf.org/geometry/Overview.html#transform-a-point-with-a-matrix
+    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-matrixtransform>
+    /// <https://drafts.fxtf.org/geometry/Overview.html#transform-a-point-with-a-matrix>
     fn MatrixTransform(
         &self,
         matrix: &DOMMatrixInit,
