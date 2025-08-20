@@ -51,7 +51,7 @@ impl FetchResponseListener for LayoutImageContext {
     fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
         self.cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseChunk(request_id, payload),
+            FetchResponseMsg::ProcessResponseChunk(request_id, payload.into()),
         );
     }
 

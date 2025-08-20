@@ -773,7 +773,7 @@ impl FetchResponseListener for ResourceFetchListener {
         if self.status.is_ok() {
             self.image_cache.notify_pending_response(
                 self.pending_image_id,
-                FetchResponseMsg::ProcessResponseChunk(request_id, payload),
+                FetchResponseMsg::ProcessResponseChunk(request_id, payload.into()),
             );
         }
     }

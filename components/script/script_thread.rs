@@ -3567,7 +3567,7 @@ impl ScriptThread {
                 self.handle_fetch_metadata(pipeline_id, request_id, metadata)
             },
             FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
-                self.handle_fetch_chunk(pipeline_id, request_id, chunk)
+                self.handle_fetch_chunk(pipeline_id, request_id, chunk.0)
             },
             FetchResponseMsg::ProcessResponseEOF(request_id, eof) => {
                 self.handle_fetch_eof(pipeline_id, request_id, eof)
