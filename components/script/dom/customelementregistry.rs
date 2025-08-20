@@ -614,28 +614,28 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct LifecycleCallbacks {
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     connected_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     disconnected_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     adopted_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     attribute_changed_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     form_associated_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     form_reset_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     form_disabled_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     form_state_restore_callback: Option<Rc<Function>>,
 }
 
@@ -657,7 +657,7 @@ pub(crate) struct CustomElementDefinition {
     pub(crate) local_name: LocalName,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-constructor>
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     pub(crate) constructor: Rc<CustomElementConstructor>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-observed-attributes>
@@ -988,9 +988,9 @@ pub(crate) fn try_upgrade_element(element: &Element) {
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum CustomElementReaction {
-    Upgrade(#[ignore_malloc_size_of = "Rc"] Rc<CustomElementDefinition>),
+    Upgrade(#[conditional_malloc_size_of] Rc<CustomElementDefinition>),
     Callback(
-        #[ignore_malloc_size_of = "Rc"] Rc<Function>,
+        #[conditional_malloc_size_of] Rc<Function>,
         #[ignore_malloc_size_of = "mozjs"] Box<[Heap<JSVal>]>,
     ),
 }

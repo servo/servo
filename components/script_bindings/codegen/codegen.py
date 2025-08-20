@@ -8057,7 +8057,7 @@ class CGCallback(CGClass):
                          constructors=self.getConstructors(),
                          methods=realMethods,
                          templateSpecialization=['D: DomTypes'],
-                         decorators="#[derive(JSTraceable, PartialEq)]\n"
+                         decorators="#[derive(JSTraceable, MallocSizeOf, PartialEq)]\n"
                                     "#[cfg_attr(crown, allow(crown::unrooted_must_root))]\n"
                                     "#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]")
 

@@ -6,6 +6,7 @@ use base::id::WebViewId;
 use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::channel;
+use malloc_size_of_derive::MallocSizeOf;
 
 /// A trait which abstracts access to the embedder's clipboard in order to allow unit
 /// testing clipboard-dependent parts of `script`.
@@ -16,6 +17,7 @@ pub trait ClipboardProvider {
     fn set_text(&mut self, _: String);
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct EmbedderClipboardProvider {
     pub constellation_sender: ScriptToConstellationChan,
     pub webview_id: WebViewId,

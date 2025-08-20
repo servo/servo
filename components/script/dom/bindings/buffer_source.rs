@@ -823,7 +823,7 @@ pub(crate) fn create_array_buffer_with_size(
 #[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct DataBlock {
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     data: Arc<Box<[u8]>>,
     /// Data views (mutable subslices of data)
     data_views: Vec<DataView>,

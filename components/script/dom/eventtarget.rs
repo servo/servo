@@ -163,11 +163,11 @@ static CONTENT_EVENT_HANDLER_NAMES: [&str; 83] = [
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[allow(clippy::enum_variant_names)]
 pub(crate) enum CommonEventHandler {
-    EventHandler(#[ignore_malloc_size_of = "Rc"] Rc<EventHandlerNonNull>),
+    EventHandler(#[conditional_malloc_size_of] Rc<EventHandlerNonNull>),
 
-    ErrorEventHandler(#[ignore_malloc_size_of = "Rc"] Rc<OnErrorEventHandlerNonNull>),
+    ErrorEventHandler(#[conditional_malloc_size_of] Rc<OnErrorEventHandlerNonNull>),
 
-    BeforeUnloadEventHandler(#[ignore_malloc_size_of = "Rc"] Rc<OnBeforeUnloadEventHandlerNonNull>),
+    BeforeUnloadEventHandler(#[conditional_malloc_size_of] Rc<OnBeforeUnloadEventHandlerNonNull>),
 }
 
 impl CommonEventHandler {
@@ -231,7 +231,7 @@ fn get_compiled_handler(
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 enum EventListenerType {
-    Additive(#[ignore_malloc_size_of = "Rc"] Rc<EventListener>),
+    Additive(#[conditional_malloc_size_of] Rc<EventListener>),
     Inline(RefCell<InlineEventListener>),
 }
 
@@ -439,7 +439,7 @@ impl std::cmp::PartialEq for EventListenerEntry {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 /// A mix of potentially uncompiled and compiled event listeners of the same type.
 pub(crate) struct EventListeners(
-    #[ignore_malloc_size_of = "Rc"] Vec<Rc<RefCell<EventListenerEntry>>>,
+    #[conditional_malloc_size_of] Vec<Rc<RefCell<EventListenerEntry>>>,
 );
 
 impl Deref for EventListeners {

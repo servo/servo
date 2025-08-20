@@ -118,7 +118,7 @@ impl fmt::Debug for dyn TaskBox {
 /// Encapsulated state required to create cancellable tasks from non-script threads.
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct TaskCanceller {
-    #[ignore_malloc_size_of = "This is difficult, because only one of them should be measured"]
+    #[conditional_malloc_size_of]
     pub(crate) cancelled: Arc<AtomicBool>,
 }
 

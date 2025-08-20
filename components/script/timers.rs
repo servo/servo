@@ -381,7 +381,6 @@ struct JsTimerEntry {
 // TODO: Handle rooting during invocation when movable GC is turned on
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct JsTimerTask {
-    #[ignore_malloc_size_of = "Because it is non-owning"]
     handle: JsTimerHandle,
     #[no_trace]
     source: TimerSource,
@@ -409,7 +408,7 @@ pub(crate) enum TimerCallback {
 enum InternalTimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(
-        #[ignore_malloc_size_of = "Rc"] Rc<Function>,
+        #[conditional_malloc_size_of] Rc<Function>,
         #[ignore_malloc_size_of = "Rc"] Rc<Box<[Heap<JSVal>]>>,
     ),
 }

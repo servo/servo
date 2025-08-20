@@ -66,7 +66,7 @@ pub(crate) struct ElementRareData {
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue>
     pub(crate) custom_element_reaction_queue: Vec<CustomElementReaction>,
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-definition>
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     pub(crate) custom_element_definition: Option<Rc<CustomElementDefinition>>,
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     pub(crate) custom_element_state: CustomElementState,
