@@ -197,6 +197,11 @@ skip = [
     # Remove when cexpr updates its nom version
     # and bindgen updates the cexpr version
     "nom",
+
+    # duplicated by `cargo metadata` as a build-dependency of mozjs-sys.
+    # Can be removed if `icu_capi` exposes the C include dir via the `DEP_`
+    # variable in the future.
+    "ordered-float",
 ]
 
 # github.com organizations to allow git sources for
