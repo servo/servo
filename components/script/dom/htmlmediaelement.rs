@@ -111,13 +111,17 @@ static MEDIA_CONTROL_CSS: &str = include_str!("../resources/media-controls.css")
 /// A JS file to control the media controls.
 static MEDIA_CONTROL_JS: &str = include_str!("../resources/media-controls.js");
 
-#[derive(PartialEq)]
+#[derive(MallocSizeOf, PartialEq)]
 enum FrameStatus {
     Locked,
     Unlocked,
 }
 
-struct FrameHolder(FrameStatus, VideoFrame);
+#[derive(MallocSizeOf)]
+struct FrameHolder(
+    FrameStatus,
+    #[ignore_malloc_size_of = "defined in servo-media"] VideoFrame,
+);
 
 impl FrameHolder {
     fn new(frame: VideoFrame) -> FrameHolder {
@@ -159,6 +163,7 @@ impl FrameHolder {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct MediaFrameRenderer {
     player_id: Option<u64>,
     compositor_api: CrossProcessCompositorApi,
@@ -389,7 +394,7 @@ pub(crate) struct HTMLMediaElement {
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     player: DomRefCell<Option<Arc<Mutex<dyn Player>>>>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     video_renderer: Arc<Mutex<MediaFrameRenderer>>,
     #[ignore_malloc_size_of = "Arc"]
@@ -417,7 +422,6 @@ pub(crate) struct HTMLMediaElement {
     #[no_trace]
     blob_url: DomRefCell<Option<ServoUrl>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-played>
-    #[ignore_malloc_size_of = "Rc"]
     played: DomRefCell<TimeRangesContainer>,
     // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
     audio_tracks_list: MutNullableDom<AudioTrackList>,

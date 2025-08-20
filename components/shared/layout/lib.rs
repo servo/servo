@@ -175,7 +175,7 @@ pub struct PendingRasterizationImage {
     pub size: DeviceIntSize,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct MediaFrame {
     pub image_key: webrender_api::ImageKey,
     pub width: i32,
