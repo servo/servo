@@ -235,7 +235,7 @@ impl Handler {
                     // Step 9. If subtype is "keyDown", append a copy of action
                     // object with the subtype property changed to "keyUp" to
                     // input state's input cancel list.
-                    session.input_cancel_list().push((
+                    session.input_cancel_list_mut().push((
                         input_id.clone(),
                         ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction {
                             value: keydown_action.value.clone(),
@@ -255,7 +255,7 @@ impl Handler {
                     // Step 10. If subtype is "pointerDown", append a copy of action
                     // object with the subtype property changed to "pointerUp" to
                     // input state's input cancel list.
-                    session.input_cancel_list().push((
+                    session.input_cancel_list_mut().push((
                         input_id.clone(),
                         ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
                             PointerUpAction {
@@ -292,7 +292,7 @@ impl Handler {
     fn dispatch_general_action(&self, source_id: &str) {
         self.session()
             .unwrap()
-            .input_state_table()
+            .input_state_table_mut()
             .entry(source_id.to_string())
             .or_insert(InputSourceState::Null);
     }
@@ -300,7 +300,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
     fn dispatch_keydown_action(&self, source_id: &str, action: &KeyDownAction) {
         let session = self.session().unwrap();
-        let mut input_state_table = session.input_state_table();
+        let mut input_state_table = session.input_state_table_mut();
 
         let raw_key = action.value.chars().next().unwrap();
         let key_input_state = match input_state_table.get_mut(source_id).unwrap() {
@@ -326,7 +326,7 @@ impl Handler {
         // See https://github.com/w3c/webdriver/issues/1905 &&
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
         {
-            let mut input_cancel_list = session.input_cancel_list();
+            let mut input_cancel_list = session.input_cancel_list_mut();
             if let Some(pos) = input_cancel_list.iter().rposition(|(id, item)| {
                 id == source_id &&
                     matches!(item,
@@ -339,7 +339,7 @@ impl Handler {
         }
 
         let raw_key = action.value.chars().next().unwrap();
-        let mut input_state_table = session.input_state_table();
+        let mut input_state_table = session.input_state_table_mut();
         let key_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
@@ -362,7 +362,7 @@ impl Handler {
     pub(crate) fn dispatch_pointerdown_action(&self, source_id: &str, action: &PointerDownAction) {
         let session = self.session().unwrap();
 
-        let mut input_state_table = session.input_state_table();
+        let mut input_state_table = session.input_state_table_mut();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
@@ -390,7 +390,7 @@ impl Handler {
     pub(crate) fn dispatch_pointerup_action(&self, source_id: &str, action: &PointerUpAction) {
         let session = self.session().unwrap();
 
-        let mut input_state_table = session.input_state_table();
+        let mut input_state_table = session.input_state_table_mut();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
@@ -405,7 +405,7 @@ impl Handler {
         // See https://github.com/w3c/webdriver/issues/1905 &&
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
         {
-            let mut input_cancel_list = session.input_cancel_list();
+            let mut input_cancel_list = session.input_cancel_list_mut();
             if let Some(pos) = input_cancel_list.iter().position(|(id, item)| {
                 id == source_id &&
                     matches!(item, ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
@@ -542,7 +542,7 @@ impl Handler {
         tick_start: Instant,
     ) {
         let session = self.session().unwrap();
-        let mut input_state_table = session.input_state_table();
+        let mut input_state_table = session.input_state_table_mut();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
@@ -869,7 +869,7 @@ impl Handler {
         // Step 2. Let id be the value of the id property of action sequence.
         let id = action_sequence.id.clone();
 
-        let mut input_state_table = self.session().unwrap().input_state_table();
+        let mut input_state_table = self.session().unwrap().input_state_table_mut();
 
         match action_sequence.actions {
             ActionsType::Null {

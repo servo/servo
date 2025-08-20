@@ -1882,13 +1882,13 @@ impl Handler {
         let session = self.session()?;
 
         if let Some(timeout) = parameters.script {
-            session.session_timeouts().script = timeout;
+            session.session_timeouts_mut().script = timeout;
         }
         if let Some(timeout) = parameters.page_load {
-            session.session_timeouts().page_load = timeout
+            session.session_timeouts_mut().page_load = timeout
         }
         if let Some(timeout) = parameters.implicit {
-            session.session_timeouts().implicit_wait = timeout
+            session.session_timeouts_mut().implicit_wait = timeout
         }
 
         Ok(WebDriverResponse::Void)
@@ -1959,7 +1959,7 @@ impl Handler {
         // Step 6. Let undo actions be input cancel list in reverse order.
 
         let undo_actions = session
-            .input_cancel_list()
+            .input_cancel_list_mut()
             .drain(..)
             .rev()
             .map(|(id, action_item)| Vec::from([(id, action_item)]))
@@ -1970,7 +1970,7 @@ impl Handler {
         }
 
         // Step 8. Reset the input state of session's current top-level browsing context.
-        session.input_state_table().clear();
+        session.input_state_table_mut().clear();
 
         Ok(WebDriverResponse::Void)
     }
@@ -2194,7 +2194,7 @@ impl Handler {
         let id = Uuid::new_v4().to_string();
 
         // Step 8.1
-        self.session_mut()?.input_state_table().insert(
+        self.session_mut()?.input_state_table_mut().insert(
             id.clone(),
             InputSourceState::Pointer(PointerInputState::new(PointerType::Mouse)),
         );
@@ -2246,7 +2246,7 @@ impl Handler {
         }
 
         // Step 8.17 Remove an input source with input state and input id.
-        self.session_mut()?.input_state_table().remove(&id);
+        self.session_mut()?.input_state_table_mut().remove(&id);
 
         Ok(WebDriverResponse::Void)
     }

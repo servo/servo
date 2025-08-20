@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{RefCell, RefMut};
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 
 use base::id::{BrowsingContextId, WebViewId};
@@ -100,7 +100,11 @@ impl WebDriverSession {
         self.browsing_context_id
     }
 
-    pub fn session_timeouts(&self) -> RefMut<TimeoutsConfiguration> {
+    pub fn session_timeouts(&self) -> Ref<'_, TimeoutsConfiguration> {
+        self.timeouts.borrow()
+    }
+
+    pub fn session_timeouts_mut(&self) -> RefMut<'_, TimeoutsConfiguration> {
         self.timeouts.borrow_mut()
     }
 
@@ -116,11 +120,15 @@ impl WebDriverSession {
         &self.user_prompt_handler
     }
 
-    pub fn input_state_table(&self) -> RefMut<HashMap<String, InputSourceState>> {
+    pub fn input_state_table(&self) -> Ref<'_, HashMap<String, InputSourceState>> {
+        self.input_state_table.borrow()
+    }
+
+    pub fn input_state_table_mut(&self) -> RefMut<'_, HashMap<String, InputSourceState>> {
         self.input_state_table.borrow_mut()
     }
 
-    pub fn input_cancel_list(&self) -> RefMut<Vec<(String, ActionItem)>> {
+    pub fn input_cancel_list_mut(&self) -> RefMut<'_, Vec<(String, ActionItem)>> {
         self.input_cancel_list.borrow_mut()
     }
 }
