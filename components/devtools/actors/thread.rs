@@ -32,6 +32,7 @@ struct ThreadAttached {
 struct WhyMsg {
     #[serde(rename = "type")]
     type_: String,
+    #[serde(rename = "onNext")]
     on_next: bool,
 }
 
@@ -50,6 +51,12 @@ struct ThreadInterruptedReply {
     #[serde(rename = "type")]
     type_: String,
     why: WhyMsg,
+}
+
+
+#[derive(Serialize)]
+struct InterruptAck {
+    from: String,
 }
 
 pub struct ThreadActor {
@@ -141,7 +148,8 @@ impl Actor for ThreadActor {
                 };
 
                 request.write_json_packet(&msg)?;
-                request.reply_final(&msg)?
+                let ack = InterruptAck { from: self.name()};
+                request.reply_final(&ack)?;
             },
 
             "reconfigure" => request.reply_final(&EmptyReplyMsg { from: self.name() })?,

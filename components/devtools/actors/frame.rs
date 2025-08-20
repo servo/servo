@@ -17,12 +17,16 @@ use super::source::SourceActor;
 pub struct FrameActor {
     pub name: String,
     pub arguments: Vec<Value>,
+    #[serde(rename = "asyncCause")]
     pub async_cause: Option<String>,
+    #[serde(rename = "displayName")]
     pub display_name: String,
     pub oldest: bool,
     pub state: String,
     // pub this_object: String,
+    #[serde(rename = "type")]
     pub type_: String,
+    #[serde(rename = "where")]
     pub where_: WhereInfo,
 }
 
@@ -56,7 +60,7 @@ impl FrameActor {
     ) -> FrameActor {
         FrameActor {
             name,
-            arguments: vec![],
+            arguments: vec![json!(3764.5)],
             async_cause: None,
             display_name: "tick".to_owned(), // check what other values it can have
             oldest: true,
@@ -90,9 +94,6 @@ impl FrameActor {
             column,
             // this_object.to_string(), // we need to pass actual obj actor data here
         );
-        
-        // Add sample argument as seen in logs
-        actor.arguments = vec![json!(3764.5)];
 
         registry.register_later(Box::new(actor));
         name
