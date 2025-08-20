@@ -26,7 +26,7 @@ use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
 use embedder_traits::{CompositorHitTestResult, InputEvent, ShutdownState, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
@@ -741,18 +741,11 @@ impl IOCompositor {
                 number_of_font_instance_keys,
                 result_sender,
             ) => {
-                let font_keys = (0..number_of_font_keys)
-                    .map(|_| self.global.borrow().webrender_api.generate_font_key())
-                    .collect();
-                let font_instance_keys = (0..number_of_font_instance_keys)
-                    .map(|_| {
-                        self.global
-                            .borrow()
-                            .webrender_api
-                            .generate_font_instance_key()
-                    })
-                    .collect();
-                let _ = result_sender.send((font_keys, font_instance_keys));
+                self.handle_generate_font_keys(
+                    number_of_font_keys,
+                    number_of_font_instance_keys,
+                    result_sender,
+                );
             },
             CompositorMsg::Viewport(webview_id, viewport_description) => {
                 if let Some(webview) = self.webview_renderers.get_mut(webview_id) {
@@ -790,18 +783,11 @@ impl IOCompositor {
                 number_of_font_instance_keys,
                 result_sender,
             ) => {
-                let font_keys = (0..number_of_font_keys)
-                    .map(|_| self.global.borrow().webrender_api.generate_font_key())
-                    .collect();
-                let font_instance_keys = (0..number_of_font_instance_keys)
-                    .map(|_| {
-                        self.global
-                            .borrow()
-                            .webrender_api
-                            .generate_font_instance_key()
-                    })
-                    .collect();
-                let _ = result_sender.send((font_keys, font_instance_keys));
+                self.handle_generate_font_keys(
+                    number_of_font_keys,
+                    number_of_font_instance_keys,
+                    result_sender,
+                );
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
                 // Subtract from the number of pending frames, but do not do any compositing.
@@ -811,6 +797,27 @@ impl IOCompositor {
                 debug!("Ignoring message ({:?} while shutting down", msg);
             },
         }
+    }
+
+    /// Generate the font keys and send them to the `result_sender`.
+    fn handle_generate_font_keys(
+        &self,
+        number_of_font_keys: usize,
+        number_of_font_instance_keys: usize,
+        result_sender: IpcSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
+    ) {
+        let font_keys = (0..number_of_font_keys)
+            .map(|_| self.global.borrow().webrender_api.generate_font_key())
+            .collect();
+        let font_instance_keys = (0..number_of_font_instance_keys)
+            .map(|_| {
+                self.global
+                    .borrow()
+                    .webrender_api
+                    .generate_font_instance_key()
+            })
+            .collect();
+        let _ = result_sender.send((font_keys, font_instance_keys));
     }
 
     /// Queue a new frame in the transaction and increase the pending frames count.
