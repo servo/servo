@@ -89,7 +89,7 @@ impl ServoTest {
         let user_event_triggered = Arc::new(AtomicBool::new(false));
         let servo = ServoBuilder::new(rendering_context.clone())
             .event_loop_waker(Box::new(EventLoopWakerImpl(user_event_triggered)))
-            .build();
+            .build(None);
         Self { servo }
     }
 

@@ -20,7 +20,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
     CompositorHitTestResult, FocusId, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
+    Theme, TraversalId, ViewportDetails, WebDriverCommandMsg,
 };
 use euclid::Point2D;
 pub use from_script_message::*;
@@ -100,8 +100,6 @@ pub enum EmbedderToConstellationMessage {
     CreateMemoryReport(IpcSender<MemoryReportResult>),
     /// Sends the generated image key to the image cache associated with this pipeline.
     SendImageKeysForPipeline(PipelineId, Vec<ImageKey>),
-    /// Set WebDriver input event handled sender.
-    SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
