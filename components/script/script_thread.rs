@@ -348,9 +348,6 @@ pub struct ScriptThread {
     /// change that requires a rendering update.
     needs_rendering_update: Arc<AtomicBool>,
 
-    #[no_trace]
-    pending_display_lists: DomRefCell<HashSet<PipelineId>>,
-
     debugger_global: Dom<DebuggerGlobalScope>,
 }
 
@@ -1002,7 +999,6 @@ impl ScriptThread {
             scheduled_update_the_rendering: Default::default(),
             needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
-            pending_display_lists: DomRefCell::new(HashSet::new()),
         }
     }
 
@@ -1136,10 +1132,6 @@ impl ScriptThread {
                 continue;
             }
 
-            if self.pending_display_lists.borrow().contains(pipeline_id) {
-                continue;
-            }
-
             // TODO(#31581): The steps in the "Revealing the document" section need to be implemented
             // `process_pending_input_events` handles the focusing steps as well as other events
             // from the compositor.
@@ -1214,9 +1206,6 @@ impl ScriptThread {
             let built_display_list = document
                 .update_the_rendering()
                 .contains(ReflowPhasesRun::BuiltDisplayList);
-            if built_display_list {
-                self.pending_display_lists.borrow_mut().insert(*pipeline_id);
-            }
             built_any_display_lists |= built_display_list;
 
             // TODO: Process top layer removals according to
@@ -1407,10 +1396,12 @@ impl ScriptThread {
                 )) => {
                     self.set_needs_rendering_update();
                 },
-                MixedMessage::FromConstellation(ScriptThreadMessage::DisplayListDone(
+                MixedMessage::FromConstellation(ScriptThreadMessage::NoLongerWaitingOnCanvas(
                     pipeline_id,
                 )) => {
-                    self.pending_display_lists.borrow_mut().remove(&pipeline_id);
+                    if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                        document.handle_no_longer_waiting_on_canvas();
+                    }
                 },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)
@@ -1879,7 +1870,7 @@ impl ScriptThread {
             msg @ ScriptThreadMessage::ExitFullScreen(..) |
             msg @ ScriptThreadMessage::SendInputEvent(..) |
             msg @ ScriptThreadMessage::TickAllAnimations(..) |
-            msg @ ScriptThreadMessage::DisplayListDone(..) |
+            msg @ ScriptThreadMessage::NoLongerWaitingOnCanvas(..) |
             msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },

@@ -1453,8 +1453,8 @@ where
             EmbedderToConstellationMessage::TickAnimation(webview_ids) => {
                 self.handle_tick_animation(webview_ids)
             },
-            EmbedderToConstellationMessage::DisplayListDone(pipeline_id) => {
-                self.handle_display_list_done(pipeline_id)
+            EmbedderToConstellationMessage::NoLongerWaitingOnCanvas(pipeline_ids) => {
+                self.handle_no_longer_waiting_on_canvas(pipeline_ids)
             },
             EmbedderToConstellationMessage::WebDriverCommand(command) => {
                 self.handle_webdriver_msg(command);
@@ -3498,13 +3498,14 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_display_list_done(&mut self, pipeline_id: PipelineId) {
-        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-            return;
-        };
-        let _ = pipeline
-            .event_loop
-            .send(ScriptThreadMessage::DisplayListDone(pipeline_id));
+    fn handle_no_longer_waiting_on_canvas(&mut self, pipeline_ids: Vec<PipelineId>) {
+        for pipeline_id in pipeline_ids.into_iter() {
+            if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                let _ = pipeline
+                    .event_loop
+                    .send(ScriptThreadMessage::NoLongerWaitingOnCanvas(pipeline_id));
+            }
+        }
     }
 
     /// Schedule a navigation(via load_url).

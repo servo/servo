@@ -120,6 +120,11 @@ pub enum CompositorMsg {
     GenerateImageKeysForPipeline(PipelineId),
     /// Perform a resource update operation.
     UpdateImages(SmallVec<[ImageUpdate; 1]>),
+    /// Pause all pipeline display list processing for the given pipeline until the
+    /// following image updates have been received. This is used to ensure that canvas
+    /// elements have had a chance to update their rendering and send the image update to
+    /// the renderer before their associated display list is actually displayed.
+    DelayNewFrameForCanvas(PipelineId, Epoch, Vec<ImageKey>),
 
     /// Generate a new batch of font keys which can be used to allocate
     /// keys asynchronously.
@@ -211,6 +216,21 @@ impl CrossProcessCompositorApi {
         }
     }
 
+    pub fn delay_new_frame_for_canvas(
+        &self,
+        pipeline_id: PipelineId,
+        canvas_epoch: Epoch,
+        image_keys: Vec<ImageKey>,
+    ) {
+        if let Err(error) = self.0.send(CompositorMsg::DelayNewFrameForCanvas(
+            pipeline_id,
+            canvas_epoch,
+            image_keys,
+        )) {
+            warn!("Error delaying frames for canvas image updates {error:?}");
+        }
+    }
+
     /// Inform WebRender of a new display list for the given pipeline.
     pub fn send_display_list(
         &self,
@@ -269,9 +289,8 @@ impl CrossProcessCompositorApi {
         key: ImageKey,
         descriptor: ImageDescriptor,
         data: SerializableImageData,
-        epoch: Option<Epoch>,
     ) {
-        self.update_images([ImageUpdate::AddImage(key, descriptor, data, epoch)].into());
+        self.update_images([ImageUpdate::AddImage(key, descriptor, data)].into());
     }
 
     pub fn update_image(
@@ -499,12 +518,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
 /// Serializable image updates that must be performed by WebRender.
 pub enum ImageUpdate {
     /// Register a new image.
-    AddImage(
-        ImageKey,
-        ImageDescriptor,
-        SerializableImageData,
-        Option<Epoch>,
-    ),
+    AddImage(ImageKey, ImageDescriptor, SerializableImageData),
     /// Delete a previously registered image registration.
     DeleteImage(ImageKey),
     /// Update an existing image registration.
@@ -519,11 +533,10 @@ pub enum ImageUpdate {
 impl Debug for ImageUpdate {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::AddImage(image_key, image_desc, _, epoch) => f
+            Self::AddImage(image_key, image_desc, _) => f
                 .debug_tuple("AddImage")
                 .field(image_key)
                 .field(image_desc)
-                .field(epoch)
                 .finish(),
             Self::DeleteImage(image_key) => f.debug_tuple("DeleteImage").field(image_key).finish(),
             Self::UpdateImage(image_key, image_desc, _, epoch) => f

@@ -345,7 +345,6 @@ impl crate::WGPU {
             image_key,
             context_data.image_desc.0,
             SerializableImageData::External(context_data.image_data),
-            Some(Epoch(0)),
         );
         assert!(
             self.wgpu_image_map
@@ -427,7 +426,7 @@ impl crate::WGPU {
                 context_data.image_key,
                 context_data.image_desc.0,
                 SerializableImageData::External(context_data.image_data),
-                None, // we do not need to update epoch as cleared is handled in script
+                None,
             );
         }
     }
@@ -438,7 +437,7 @@ impl crate::WGPU {
         context_id: WebGPUContextId,
         encoder_id: id::Id<id::markers::CommandEncoder>,
         texture_id: id::Id<id::markers::Texture>,
-        image_epoch: Epoch,
+        canvas_epoch: Option<Epoch>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         fn err<T: std::error::Error + 'static>(e: Option<T>) -> Result<(), T> {
             if let Some(error) = e {
@@ -522,7 +521,7 @@ impl crate::WGPU {
                     compositor_api,
                     image_desc,
                     presentation_id,
-                    image_epoch,
+                    canvas_epoch,
                 );
             })
         };
@@ -555,7 +554,7 @@ fn update_wr_image(
     compositor_api: CrossProcessCompositorApi,
     image_desc: WebGPUImageDescriptor,
     presentation_id: PresentationId,
-    image_epoch: Epoch,
+    canvas_epoch: Option<Epoch>,
 ) {
     match result {
         Ok(()) => {
@@ -583,7 +582,7 @@ fn update_wr_image(
                     context_data.image_key,
                     context_data.image_desc.0,
                     SerializableImageData::External(context_data.image_data),
-                    Some(image_epoch),
+                    canvas_epoch,
                 );
                 if let Some(old_presentation_buffer) = old_presentation_buffer {
                     context_data.unmap_old_buffer(old_presentation_buffer)

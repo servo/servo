@@ -101,11 +101,11 @@ impl CanvasRenderingContext2D {
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
-    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)> {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         let canvas_state = &self.unsafe_get().canvas_state;
 
         if canvas_state.is_paintable() {
-            Some((canvas_state.image_key(), canvas_state.current_epoch()))
+            Some(canvas_state.image_key())
         } else {
             None
         }
@@ -123,12 +123,11 @@ impl CanvasContext for CanvasRenderingContext2D {
         Some(self.canvas.clone())
     }
 
-    fn update_rendering(&self) {
-        self.canvas_state.update_rendering();
-        // we need to remark as dirty for layout to prevent using cached epoch
-        if let Some(canvas) = self.canvas.canvas() {
-            canvas.upcast::<Node>().dirty(NodeDamage::Other);
+    fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
+        if !self.onscreen() {
+            return false;
         }
+        self.canvas_state.update_rendering(canvas_epoch)
     }
 
     fn resize(&self) {
@@ -159,6 +158,10 @@ impl CanvasContext for CanvasRenderingContext2D {
             canvas.upcast::<Node>().dirty(NodeDamage::Other);
             canvas.owner_document().add_dirty_2d_canvas(self);
         }
+    }
+
+    fn image_key(&self) -> Option<ImageKey> {
+        Some(self.canvas_state.image_key())
     }
 }
 

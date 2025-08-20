@@ -75,8 +75,6 @@ pub(crate) struct GPUCanvasContext {
     #[no_trace]
     webrender_image: ImageKey,
     #[no_trace]
-    image_epoch: RefCell<Epoch>,
-    #[no_trace]
     context_id: WebGPUContextId,
     #[ignore_malloc_size_of = "manual writing is hard"]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configuration-slot>
@@ -118,7 +116,6 @@ impl GPUCanvasContext {
             channel,
             canvas,
             webrender_image,
-            image_epoch: RefCell::new(Epoch(0)),
             context_id: WebGPUContextId(external_id.0),
             drawing_buffer: RefCell::new(DrawingBuffer {
                 size,
@@ -187,19 +184,29 @@ impl GPUCanvasContext {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-expire-the-current-texture>
-    fn expire_current_texture(&self) {
-        if let Some(current_texture) = self.current_texture.take() {
-            // Make copy of texture content
-            self.send_swap_chain_present(current_texture.id());
-            // Step 1
-            current_texture.Destroy()
-        }
+    fn expire_current_texture(&self, canvas_epoch: Option<Epoch>) -> bool {
+        // Step 1: If context.[[currentTexture]] is not null:
+        let Some(current_texture) = self.current_texture.take() else {
+            return false;
+        };
+
+        // Make copy of texture content
+        let did_swap = self.send_swap_chain_present(current_texture.id(), canvas_epoch);
+
+        // Step 1.1: Call context.currentTexture.destroy() (without destroying
+        // context.drawingBuffer) to terminate write access to the image.
+        current_texture.Destroy();
+
+        // Step 1.2: Set context.[[currentTexture]] to null.
+        // This is handled by the call to `.take()` above.
+
+        did_swap
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-replace-the-drawing-buffer>
     fn replace_drawing_buffer(&self) {
         // Step 1
-        self.expire_current_texture();
+        self.expire_current_texture(None);
         // Step 2
         let configuration = self.configuration.borrow();
         // Step 3
@@ -230,30 +237,36 @@ impl GPUCanvasContext {
 
 // Internal helper methods
 impl GPUCanvasContext {
-    fn layout_handle(&self) -> Option<(ImageKey, Epoch)> {
+    fn layout_handle(&self) -> Option<ImageKey> {
         if self.drawing_buffer.borrow().cleared {
             None
         } else {
-            Some((self.webrender_image, *self.image_epoch.borrow()))
+            Some(self.webrender_image)
         }
     }
 
-    fn send_swap_chain_present(&self, texture_id: WebGPUTexture) {
+    fn send_swap_chain_present(
+        &self,
+        texture_id: WebGPUTexture,
+        canvas_epoch: Option<Epoch>,
+    ) -> bool {
         self.drawing_buffer.borrow_mut().cleared = false;
-        self.image_epoch.borrow_mut().next();
         let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
-        let image_epoch = *self.image_epoch.borrow();
-        if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
+        let send_result = self.channel.0.send(WebGPURequest::SwapChainPresent {
             context_id: self.context_id,
             texture_id: texture_id.0,
             encoder_id,
-            image_epoch,
-        }) {
+            canvas_epoch,
+        });
+
+        if let Err(error) = &send_result {
             warn!(
-                "Failed to send UpdateWebrenderData({:?}) ({})",
-                self.context_id, e
+                "Failed to send UpdateWebrenderData({:?}) ({error})",
+                self.context_id,
             );
         }
+
+        send_result.is_ok()
     }
 }
 
@@ -265,9 +278,19 @@ impl CanvasContext for GPUCanvasContext {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
-    fn update_rendering(&self) {
-        // Step 1
-        self.expire_current_texture();
+    fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
+        if !self.onscreen() {
+            return false;
+        }
+
+        // Step 1: Expire the current texture of context.
+        self.expire_current_texture(canvas_epoch)
+        // Step 2: Set context.[[lastPresentedImage]] to context.[[drawingBuffer]].
+        // TODO: Implement this.
+    }
+
+    fn image_key(&self) -> Option<ImageKey> {
+        Some(self.webrender_image)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-update-the-canvas-size>
@@ -311,7 +334,7 @@ impl CanvasContext for GPUCanvasContext {
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
-    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)> {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         (*self.unsafe_get()).layout_handle()
     }
 }

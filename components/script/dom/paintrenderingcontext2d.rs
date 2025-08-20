@@ -63,9 +63,12 @@ impl PaintRenderingContext2D {
         ))
     }
 
+    pub(crate) fn update_rendering(&self) -> bool {
+        self.canvas_state.update_rendering(None)
+    }
+
     /// Send update to canvas paint thread and returns [`ImageKey`]
     pub(crate) fn image_key(&self) -> ImageKey {
-        self.canvas_state.update_rendering();
         self.canvas_state.image_key()
     }
 

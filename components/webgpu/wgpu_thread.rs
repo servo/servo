@@ -520,10 +520,14 @@ impl WGPU {
                         context_id,
                         texture_id,
                         encoder_id,
-                        image_epoch,
+                        canvas_epoch,
                     } => {
-                        let result =
-                            self.swapchain_present(context_id, encoder_id, texture_id, image_epoch);
+                        let result = self.swapchain_present(
+                            context_id,
+                            encoder_id,
+                            texture_id,
+                            canvas_epoch,
+                        );
                         if let Err(e) = result {
                             log::error!("Error occured in SwapChainPresent: {e:?}");
                         }

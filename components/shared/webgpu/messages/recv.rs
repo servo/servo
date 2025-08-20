@@ -163,7 +163,7 @@ pub enum WebGPURequest {
         context_id: WebGPUContextId,
         texture_id: TextureId,
         encoder_id: CommandEncoderId,
-        image_epoch: Epoch,
+        canvas_epoch: Option<Epoch>,
     },
     /// Obtains image from latest presentation buffer (same as wr update)
     GetImage {

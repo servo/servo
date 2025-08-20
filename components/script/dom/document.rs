@@ -12,6 +12,7 @@ use std::str::FromStr;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
+use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
 use canvas_traits::canvas::CanvasId;
@@ -551,6 +552,15 @@ pub(crate) struct Document {
     /// When a `ResizeObserver` starts observing a target, this becomes true, which in turn is a
     /// signal to the [`ScriptThread`] that a rendering update should happen.
     resize_observer_started_observing_target: Cell<bool>,
+    /// Whether or not this [`Document`] is waiting on canvas image updates. If it is
+    /// waiting it will not do any new layout until the canvas images are up-to-date in
+    /// the renderer.
+    waiting_on_canvas_image_updates: Cell<bool>,
+    /// The current canvas epoch, which is used to track when canvas images have been
+    /// uploaded to the renderer after a rendering update. Until those images are uploaded
+    /// this `Document` will not perform any more rendering updates.
+    #[no_trace]
+    current_canvas_epoch: RefCell<Epoch>,
 }
 
 #[allow(non_snake_case)]
@@ -2640,36 +2650,67 @@ impl Document {
         self.update_animating_images();
 
         // All dirty canvases are flushed before updating the rendering.
+        self.current_canvas_epoch.borrow_mut().next();
+        let canvas_epoch = *self.current_canvas_epoch.borrow();
+        let mut image_keys = Vec::new();
+
         #[cfg(feature = "webgpu")]
-        self.webgpu_contexts
-            .borrow_mut()
-            .iter()
-            .filter_map(|(_, context)| context.root())
-            .filter(|context| context.onscreen())
-            .for_each(|context| context.update_rendering());
+        image_keys.extend(
+            self.webgpu_contexts
+                .borrow_mut()
+                .iter()
+                .filter_map(|(_, context)| context.root())
+                .filter(|context| context.update_rendering(Some(canvas_epoch)))
+                .map(|context| context.image_key()),
+        );
 
-        self.dirty_2d_contexts
-            .borrow_mut()
-            .drain()
-            .filter(|(_, context)| context.onscreen())
-            .for_each(|(_, context)| context.update_rendering());
+        image_keys.extend(
+            self.dirty_2d_contexts
+                .borrow_mut()
+                .drain()
+                .filter(|(_, context)| context.update_rendering(Some(canvas_epoch)))
+                .map(|(_, context)| context.image_key()),
+        );
 
-        let dirty_webgl_context_ids_and_epochs: Vec<_> = self
+        let dirty_webgl_context_ids: Vec<_> = self
             .dirty_webgl_contexts
             .borrow_mut()
             .drain()
             .filter(|(_, context)| context.onscreen())
-            .map(|(id, context)| (id, context.next_epoch()))
+            .map(|(id, context)| {
+                image_keys.push(context.image_key());
+                id
+            })
             .collect();
-        if !dirty_webgl_context_ids_and_epochs.is_empty() {
+
+        if !dirty_webgl_context_ids.is_empty() {
             self.window
                 .webgl_chan()
                 .expect("Where's the WebGL channel?")
-                .send(WebGLMsg::SwapBuffers(dirty_webgl_context_ids_and_epochs, 0))
+                .send(WebGLMsg::SwapBuffers(
+                    dirty_webgl_context_ids,
+                    Some(canvas_epoch),
+                    0,
+                ))
                 .unwrap();
         }
 
+        // The renderer should wait to display the frame until all canvas images are
+        // uploaded. This allows canvas image uploading to happen asynchronously.
+        if !image_keys.is_empty() {
+            self.waiting_on_canvas_image_updates.set(true);
+            self.window().compositor_api().delay_new_frame_for_canvas(
+                self.window().pipeline_id(),
+                canvas_epoch,
+                image_keys.into_iter().flatten().collect(),
+            );
+        }
+
         self.window().reflow(ReflowGoal::UpdateTheRendering)
+    }
+
+    pub(crate) fn handle_no_longer_waiting_on_canvas(&self) {
+        self.waiting_on_canvas_image_updates.set(false);
     }
 
     /// From <https://drafts.csswg.org/css-font-loading/#fontfaceset-pending-on-the-environment>:
@@ -3356,6 +3397,8 @@ impl Document {
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_event_targets: Default::default(),
             resize_observer_started_observing_target: Cell::new(false),
+            waiting_on_canvas_image_updates: Cell::new(false),
+            current_canvas_epoch: RefCell::new(Epoch(0)),
         }
     }
 

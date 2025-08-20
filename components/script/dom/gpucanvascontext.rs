@@ -32,7 +32,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
-    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)> {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         unimplemented!()
     }
 }

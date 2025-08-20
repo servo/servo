@@ -450,7 +450,7 @@ pub struct TextOptions {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    Recreate(Option<Size2D<u64>>, CanvasId, Epoch),
+    Recreate(Option<Size2D<u64>>, CanvasId),
     Close(CanvasId),
 }
 
@@ -531,7 +531,7 @@ pub enum Canvas2dMsg {
         CompositionOptions,
         Transform2D<f64>,
     ),
-    UpdateImage(Epoch),
+    UpdateImage(Option<Epoch>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

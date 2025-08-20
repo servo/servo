@@ -76,8 +76,8 @@ impl CanvasPaintThread {
                                 Ok(CanvasMsg::Close(canvas_id)) => {
                                     canvas_paint_thread.canvases.remove(&canvas_id);
                                 },
-                                Ok(CanvasMsg::Recreate(size, canvas_id, epoch)) => {
-                                    canvas_paint_thread.canvas(canvas_id).recreate(size, epoch);
+                                Ok(CanvasMsg::Recreate(size, canvas_id)) => {
+                                    canvas_paint_thread.canvas(canvas_id).recreate(size);
                                 },
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
@@ -675,26 +675,26 @@ impl Canvas {
         }
     }
 
-    fn update_image_rendering(&mut self, epoch: Epoch) {
+    fn update_image_rendering(&mut self, canvas_epoch: Option<Epoch>) {
         match self {
             #[cfg(feature = "raqote")]
-            Canvas::Raqote(canvas_data) => canvas_data.update_image_rendering(epoch),
+            Canvas::Raqote(canvas_data) => canvas_data.update_image_rendering(canvas_epoch),
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => canvas_data.update_image_rendering(epoch),
+            Canvas::Vello(canvas_data) => canvas_data.update_image_rendering(canvas_epoch),
             #[cfg(feature = "vello_cpu")]
-            Canvas::VelloCPU(canvas_data) => canvas_data.update_image_rendering(epoch),
+            Canvas::VelloCPU(canvas_data) => canvas_data.update_image_rendering(canvas_epoch),
             _ => unreachable!(),
         }
     }
 
-    fn recreate(&mut self, size: Option<Size2D<u64>>, epoch: Epoch) {
+    fn recreate(&mut self, size: Option<Size2D<u64>>) {
         match self {
             #[cfg(feature = "raqote")]
-            Canvas::Raqote(canvas_data) => canvas_data.recreate(size, epoch),
+            Canvas::Raqote(canvas_data) => canvas_data.recreate(size),
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => canvas_data.recreate(size, epoch),
+            Canvas::Vello(canvas_data) => canvas_data.recreate(size),
             #[cfg(feature = "vello_cpu")]
-            Canvas::VelloCPU(canvas_data) => canvas_data.recreate(size, epoch),
+            Canvas::VelloCPU(canvas_data) => canvas_data.recreate(size),
             _ => unreachable!(),
         }
     }

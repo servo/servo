@@ -368,8 +368,8 @@ impl WebGLThread {
                     }))
                     .unwrap();
             },
-            WebGLMsg::ResizeContext(ctx_id, size, sender, epoch) => {
-                let _ = sender.send(self.resize_webgl_context(ctx_id, size, epoch));
+            WebGLMsg::ResizeContext(ctx_id, size, sender) => {
+                let _ = sender.send(self.resize_webgl_context(ctx_id, size));
             },
             WebGLMsg::RemoveContext(ctx_id) => {
                 self.remove_webgl_context(ctx_id);
@@ -381,8 +381,8 @@ impl WebGLThread {
                 #[cfg(feature = "webxr")]
                 self.handle_webxr_command(_command);
             },
-            WebGLMsg::SwapBuffers(swap_ids, sent_time) => {
-                self.handle_swap_buffers(swap_ids, sent_time);
+            WebGLMsg::SwapBuffers(swap_ids, canvas_epoch, sent_time) => {
+                self.handle_swap_buffers(canvas_epoch, swap_ids, sent_time);
             },
             WebGLMsg::Exit(sender) => {
                 // Call remove_context functions in order to correctly delete WebRender image keys.
@@ -670,7 +670,6 @@ impl WebGLThread {
         &mut self,
         context_id: WebGLContextId,
         requested_size: Size2D<u32>,
-        epoch: Epoch,
     ) -> Result<(), String> {
         let data = Self::make_current_if_needed_mut(
             &self.device,
@@ -712,7 +711,7 @@ impl WebGLThread {
             .state
             .requested_flags
             .contains(ContextAttributeFlags::ALPHA);
-        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha, epoch);
+        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha, None);
 
         Ok(())
     }
@@ -765,9 +764,14 @@ impl WebGLThread {
         self.bound_context_id = None;
     }
 
-    fn handle_swap_buffers(&mut self, context_ids: Vec<(WebGLContextId, Epoch)>, _sent_time: u64) {
+    fn handle_swap_buffers(
+        &mut self,
+        canvas_epoch: Option<Epoch>,
+        context_ids: Vec<WebGLContextId>,
+        _sent_time: u64,
+    ) {
         debug!("handle_swap_buffers()");
-        for (context_id, epoch) in context_ids {
+        for context_id in context_ids {
             let data = Self::make_current_if_needed_mut(
                 &self.device,
                 context_id,
@@ -842,7 +846,7 @@ impl WebGLThread {
                 .state
                 .requested_flags
                 .contains(ContextAttributeFlags::ALPHA);
-            self.update_wr_image_for_context(context_id, size, has_alpha, epoch);
+            self.update_wr_image_for_context(context_id, size, has_alpha, canvas_epoch);
         }
 
         #[allow(unused)]
@@ -904,7 +908,7 @@ impl WebGLThread {
         let data = Self::external_image_data(context_id, image_buffer_kind);
 
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
-        compositor_api.add_image(image_key, descriptor, data, Some(Epoch(0)));
+        compositor_api.add_image(image_key, descriptor, data);
 
         image_key
     }
@@ -916,7 +920,7 @@ impl WebGLThread {
         context_id: WebGLContextId,
         size: Size2D<i32>,
         has_alpha: bool,
-        epoch: Epoch,
+        canvas_epoch: Option<Epoch>,
     ) {
         let info = self.cached_context_info.get(&context_id).unwrap();
         let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
@@ -925,7 +929,7 @@ impl WebGLThread {
         let image_data = Self::external_image_data(context_id, image_buffer_kind);
 
         self.compositor_api
-            .update_image(info.image_key, descriptor, image_data, Some(epoch));
+            .update_image(info.image_key, descriptor, image_data, canvas_epoch);
     }
 
     /// Helper function to create a `ImageDescriptor`.

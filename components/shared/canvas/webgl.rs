@@ -95,12 +95,7 @@ pub enum WebGLMsg {
         WebGLSender<Result<WebGLCreateContextResult, String>>,
     ),
     /// Resizes a WebGLContext.
-    ResizeContext(
-        WebGLContextId,
-        Size2D<u32>,
-        WebGLSender<Result<(), String>>,
-        Epoch,
-    ),
+    ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
     /// Drops a WebGLContext.
     RemoveContext(WebGLContextId),
     /// Runs a WebGLCommand in a specific WebGLContext.
@@ -113,7 +108,7 @@ pub enum WebGLMsg {
     /// The third field contains the time (in ns) when the request
     /// was initiated. The u64 in the second field will be the time the
     /// request is fulfilled
-    SwapBuffers(Vec<(WebGLContextId, Epoch)>, u64),
+    SwapBuffers(Vec<WebGLContextId>, Option<Epoch>, u64),
     /// Frees all resources and closes the thread.
     Exit(IpcSender<()>),
 }
@@ -192,10 +187,9 @@ impl WebGLMsgSender {
         &self,
         size: Size2D<u32>,
         sender: WebGLSender<Result<(), String>>,
-        epoch: Epoch,
     ) -> WebGLSendResult {
         self.sender
-            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender, epoch))
+            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
     }
 
     #[inline]

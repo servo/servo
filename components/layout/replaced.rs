@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, MAX_AU};
-use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
@@ -108,7 +107,7 @@ impl NaturalSizes {
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct CanvasInfo {
-    pub source: Option<(ImageKey, Epoch)>,
+    pub source: Option<ImageKey>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -360,7 +359,6 @@ impl ReplacedContents {
                         rect,
                         clip,
                         image_key: Some(image_key),
-                        image_epoch: None,
                     }))
                 })
                 .into_iter()
@@ -372,7 +370,6 @@ impl ReplacedContents {
                     rect,
                     clip,
                     image_key: video.as_ref().map(|video| video.image_key),
-                    image_epoch: None,
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
@@ -404,7 +401,7 @@ impl ReplacedContents {
                     return vec![];
                 }
 
-                let Some((image_key, image_epoch)) = canvas_info.source else {
+                let Some(image_key) = canvas_info.source else {
                     return vec![];
                 };
 
@@ -414,7 +411,6 @@ impl ReplacedContents {
                     rect,
                     clip,
                     image_key: Some(image_key),
-                    image_epoch: Some(image_epoch),
                 }))]
             },
             ReplacedContentKind::SVGElement(vector_image) => {
@@ -452,7 +448,6 @@ impl ReplacedContents {
                             rect,
                             clip,
                             image_key: Some(image_key),
-                            image_epoch: None,
                         }))
                     })
                     .into_iter()

@@ -79,7 +79,7 @@ mod from_compositor {
                 Self::SendImageKeysForPipeline(..) => target!("SendImageKeysForPipeline"),
                 Self::SetWebDriverResponseSender(..) => target!("SetWebDriverResponseSender"),
                 Self::PreferencesUpdated(..) => target!("PreferencesUpdated"),
-                Self::DisplayListDone(..) => target!("DisplayListDone"),
+                Self::NoLongerWaitingOnCanvas(..) => target!("NoLongerWaitingOnCanvas"),
             }
         }
     }

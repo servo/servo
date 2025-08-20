@@ -24,7 +24,7 @@ use crate::dom::types::{
 
 pub(crate) trait LayoutCanvasRenderingContextHelpers {
     /// `None` is rendered as transparent black (cleared canvas)
-    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)>;
+    fn canvas_data_source(self) -> Option<ImageKey>;
 }
 
 pub(crate) trait LayoutHTMLCanvasElementHelpers {
@@ -67,7 +67,14 @@ pub(crate) trait CanvasContext {
         }
     }
 
-    fn update_rendering(&self) {}
+    /// The WebRender [`ImageKey`] of this [`CanvasContext`] if any.
+    fn image_key(&self) -> Option<ImageKey>;
+
+    /// Request that the [`CanvasContext`] update the rendering of its contents, returning
+    /// the new [`Epoch`] of the image produced, if one was.
+    fn update_rendering(&self, _canvas_epoch: Option<Epoch>) -> bool {
+        false
+    }
 
     fn onscreen(&self) -> bool {
         let Some(canvas) = self.canvas() else {
@@ -229,19 +236,31 @@ impl CanvasContext for RenderingContext {
         }
     }
 
-    fn update_rendering(&self) {
+    fn image_key(&self) -> Option<ImageKey> {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => {
-                if let Some(context) = offscreen_canvas.context() {
-                    context.update_rendering()
-                }
-            },
-            RenderingContext::Context2d(context) => context.update_rendering(),
-            RenderingContext::BitmapRenderer(context) => context.update_rendering(),
-            RenderingContext::WebGL(context) => context.update_rendering(),
-            RenderingContext::WebGL2(context) => context.update_rendering(),
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .and_then(|context| context.image_key()),
+            RenderingContext::Context2d(context) => context.image_key(),
+            RenderingContext::BitmapRenderer(context) => context.image_key(),
+            RenderingContext::WebGL(context) => context.image_key(),
+            RenderingContext::WebGL2(context) => context.image_key(),
             #[cfg(feature = "webgpu")]
-            RenderingContext::WebGPU(context) => context.update_rendering(),
+            RenderingContext::WebGPU(context) => context.image_key(),
+        }
+    }
+
+    fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .is_some_and(|context| context.update_rendering(canvas_epoch)),
+            RenderingContext::Context2d(context) => context.update_rendering(canvas_epoch),
+            RenderingContext::BitmapRenderer(context) => context.update_rendering(canvas_epoch),
+            RenderingContext::WebGL(context) => context.update_rendering(canvas_epoch),
+            RenderingContext::WebGL2(context) => context.update_rendering(canvas_epoch),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.update_rendering(canvas_epoch),
         }
     }
 
@@ -334,11 +353,17 @@ impl CanvasContext for OffscreenRenderingContext {
         }
     }
 
-    fn update_rendering(&self) {
+    fn image_key(&self) -> Option<ImageKey> {
+        None
+    }
+
+    fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
         match self {
-            OffscreenRenderingContext::Context2d(context) => context.update_rendering(),
-            OffscreenRenderingContext::BitmapRenderer(context) => context.update_rendering(),
-            OffscreenRenderingContext::Detached => {},
+            OffscreenRenderingContext::Context2d(context) => context.update_rendering(canvas_epoch),
+            OffscreenRenderingContext::BitmapRenderer(context) => {
+                context.update_rendering(canvas_epoch)
+            },
+            OffscreenRenderingContext::Detached => false,
         }
     }
 

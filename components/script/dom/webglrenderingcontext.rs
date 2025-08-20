@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
 #[cfg(feature = "webxr")]
@@ -10,7 +10,6 @@ use std::rc::Rc;
 
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
-use base::Epoch;
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
@@ -214,8 +213,6 @@ pub(crate) struct WebGLRenderingContext {
     textures: Textures,
     #[no_trace]
     api_type: GlType,
-    #[no_trace]
-    image_epoch: RefCell<Epoch>,
 }
 
 impl WebGLRenderingContext {
@@ -281,7 +278,6 @@ impl WebGLRenderingContext {
                 current_vao_webgl2: Default::default(),
                 textures: Textures::new(max_combined_texture_image_units),
                 api_type: ctx_data.api_type,
-                image_epoch: RefCell::new(Epoch(0)),
             }
         })
     }
@@ -318,11 +314,6 @@ impl WebGLRenderingContext {
                 None
             },
         }
-    }
-
-    pub(crate) fn next_epoch(&self) -> Epoch {
-        self.image_epoch.borrow_mut().next();
-        *self.image_epoch.borrow()
     }
 
     pub(crate) fn webgl_version(&self) -> WebGLVersion {
@@ -941,8 +932,8 @@ impl WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
-    pub(crate) fn layout_handle(&self) -> Option<(ImageKey, Epoch)> {
-        Some((self.webrender_image, *self.image_epoch.borrow()))
+    pub(crate) fn layout_handle(&self) -> Option<ImageKey> {
+        Some(self.webrender_image)
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -1946,9 +1937,7 @@ impl CanvasContext for WebGLRenderingContext {
     fn resize(&self) {
         let size = self.size().cast();
         let (sender, receiver) = webgl_channel().unwrap();
-        self.webgl_sender
-            .send_resize(size, sender, self.next_epoch())
-            .unwrap();
+        self.webgl_sender.send_resize(size, sender).unwrap();
         // FIXME(#21718) The backend is allowed to choose a size smaller than
         // what was requested
         self.size.set(size);
@@ -2052,6 +2041,10 @@ impl CanvasContext for WebGLRenderingContext {
             },
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
         }
+    }
+
+    fn image_key(&self) -> Option<ImageKey> {
+        Some(self.webrender_image)
     }
 }
 
@@ -4947,7 +4940,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext> {
-    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)> {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         (*self.unsafe_get()).layout_handle()
     }
 }
@@ -5247,9 +5240,8 @@ impl WebGLMessageSender {
         &self,
         size: Size2D<u32>,
         sender: WebGLSender<Result<(), String>>,
-        epoch: Epoch,
     ) -> WebGLSendResult {
-        self.sender.send_resize(size, sender, epoch)
+        self.sender.send_resize(size, sender)
     }
 
     pub(crate) fn send_remove(&self) -> WebGLSendResult {

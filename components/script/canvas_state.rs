@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -204,8 +204,6 @@ pub(crate) struct CanvasState {
     #[no_trace]
     image_key: ImageKey,
     #[no_trace]
-    image_epoch: RefCell<Epoch>,
-    #[no_trace]
     size: Cell<Size2D<u64>>,
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
@@ -261,7 +259,6 @@ impl CanvasState {
             missing_image_urls: DomRefCell::new(Vec::new()),
             saved_states: DomRefCell::new(Vec::new()),
             image_key,
-            image_epoch: RefCell::new(Epoch(0)),
             origin,
             current_default_path: DomRefCell::new(Path::new()),
         })
@@ -293,27 +290,19 @@ impl CanvasState {
             .unwrap()
     }
 
-    pub(crate) fn current_epoch(&self) -> Epoch {
-        *self.image_epoch.borrow()
-    }
-
-    fn next_epoch(&self) -> Epoch {
-        self.image_epoch.borrow_mut().next();
-        *self.image_epoch.borrow()
-    }
-
     /// Updates WR image and blocks on completion
-    pub(crate) fn update_rendering(&self) {
+    pub(crate) fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
         if !self.is_paintable() {
-            return;
+            return false;
         }
 
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(
-                Canvas2dMsg::UpdateImage(self.next_epoch()),
+                Canvas2dMsg::UpdateImage(canvas_epoch),
                 self.canvas_id,
             ))
             .unwrap();
+        true
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
@@ -326,7 +315,6 @@ impl CanvasState {
             .send(CanvasMsg::Recreate(
                 Some(self.size.get()),
                 self.get_canvas_id(),
-                self.next_epoch(),
             ))
             .unwrap();
     }
@@ -339,11 +327,7 @@ impl CanvasState {
         }
 
         self.ipc_renderer
-            .send(CanvasMsg::Recreate(
-                None,
-                self.get_canvas_id(),
-                self.next_epoch(),
-            ))
+            .send(CanvasMsg::Recreate(None, self.get_canvas_id()))
             .unwrap();
     }
 

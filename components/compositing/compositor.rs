@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref, RefCell};
-use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs::create_dir_all;
 use std::iter::once;
@@ -123,6 +124,11 @@ pub struct ServoRenderer {
     /// The last position in the rendered view that the mouse moved over. This becomes `None`
     /// when the mouse leaves the rendered view.
     pub(crate) last_mouse_move_position: Option<DevicePoint>,
+
+    /// A [`FrameRequestDelayer`] which is used to wait for canvas image updates to
+    /// arrive before requesting a new frame, as these happen asynchronously with
+    /// `ScriptThread` display list construction.
+    frame_delayer: FrameDelayer,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -147,14 +153,11 @@ pub struct IOCompositor {
     rendering_context: Rc<dyn RenderingContext>,
 
     /// The number of frames pending to receive from WebRender.
-    pending_frames: usize,
+    pending_frames: Cell<usize>,
 
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
-
-    /// Epoch of WebRender's images
-    image_epochs: HashMap<ImageKey, Epoch>,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -223,9 +226,6 @@ pub(crate) struct PipelineDetails {
     /// Which parts of Servo have reported that this `Pipeline` has exited. Only when all
     /// have done so will it be discarded.
     pub exited: PipelineExitSource,
-
-    /// Display list waiting to be sent to WR when all images resolve.
-    pub awaiting_display_list: Option<(BuiltDisplayList, CompositorDisplayListInfo)>,
 }
 
 impl PipelineDetails {
@@ -251,7 +251,6 @@ impl PipelineDetails {
             first_paint_metric: PaintMetricState::Waiting,
             first_contentful_paint_metric: PaintMetricState::Waiting,
             exited: PipelineExitSource::empty(),
-            awaiting_display_list: None,
         }
     }
 
@@ -332,15 +331,15 @@ impl IOCompositor {
                 webxr_main_thread: state.webxr_main_thread,
                 convert_mouse_to_touch,
                 last_mouse_move_position: None,
+                frame_delayer: Default::default(),
             })),
             webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
             ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
-            pending_frames: 0,
+            pending_frames: Cell::new(0),
             _mem_profiler_registration: registration,
-            image_epochs: HashMap::new(),
         };
 
         {
@@ -495,7 +494,7 @@ impl IOCompositor {
                     self.ready_to_save_state,
                     ReadyState::WaitingForConstellationReply
                 );
-                if is_ready && self.pending_frames == 0 {
+                if is_ready && self.pending_frames.get() == 0 {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
@@ -639,24 +638,50 @@ impl IOCompositor {
                 )
                 .entered();
 
-                let pipeline_id = display_list_info.pipeline_id.into();
-
-                let Some(webview) = self.webview_renderers.get_mut(webview_id) else {
-                    return warn!(
-                        "Received SendDisplayList for non-existing webview renderer {webview_id}"
-                    );
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+                    return warn!("Could not find WebView for incoming display list");
                 };
 
-                let pipeline_details = webview.ensure_pipeline_details(pipeline_id);
+                let old_scale = webview_renderer.device_pixels_per_page_pixel();
 
-                if pipeline_details
-                    .awaiting_display_list
-                    .replace((built_display_list, display_list_info))
-                    .is_some()
-                {
-                    warn!("Skipping display list!")
+                let pipeline_id = display_list_info.pipeline_id;
+                let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
+                details.install_new_scroll_tree(display_list_info.scroll_tree);
+                details.viewport_scale =
+                    Some(display_list_info.viewport_details.hidpi_scale_factor);
+
+                let epoch = display_list_info.epoch;
+                let first_reflow = display_list_info.first_reflow;
+                if details.first_paint_metric == PaintMetricState::Waiting {
+                    details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
                 }
-                self.maybe_send_awaiting_display_list_for_pipeline(pipeline_id);
+                if details.first_contentful_paint_metric == PaintMetricState::Waiting &&
+                    display_list_info.is_contentful
+                {
+                    details.first_contentful_paint_metric =
+                        PaintMetricState::Seen(epoch, first_reflow);
+                }
+
+                let mut transaction = Transaction::new();
+                let is_root_pipeline =
+                    Some(pipeline_id.into()) == webview_renderer.root_pipeline_id;
+                if is_root_pipeline && old_scale != webview_renderer.device_pixels_per_page_pixel()
+                {
+                    self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+                }
+
+                transaction
+                    .set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
+                self.update_transaction_with_all_scroll_offsets(&mut transaction);
+
+                let mut global = self.global.borrow_mut();
+                global.frame_delayer.set_pending_frame(true);
+                if global.frame_delayer.needs_new_frame() {
+                    global.frame_delayer.set_pending_frame(false);
+                    self.generate_frame(&mut transaction, RenderReasons::SCENE);
+                }
+
+                global.send_transaction(transaction);
             },
 
             CompositorMsg::GenerateImageKey(sender) => {
@@ -677,34 +702,43 @@ impl IOCompositor {
                 }
             },
             CompositorMsg::UpdateImages(updates) => {
+                let mut global = self.global.borrow_mut();
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {
-                        ImageUpdate::AddImage(key, desc, data, epoch) => {
-                            if let Some(epoch) = epoch {
-                                assert!(self.image_epochs.insert(key, epoch).is_none());
-                            }
+                        ImageUpdate::AddImage(key, desc, data) => {
                             txn.add_image(key, desc, data.into(), None)
                         },
                         ImageUpdate::DeleteImage(key) => {
                             txn.delete_image(key);
-                            self.image_epochs.remove(&key);
+                            global.frame_delayer.delete_image(key);
                         },
                         ImageUpdate::UpdateImage(key, desc, data, epoch) => {
                             if let Some(epoch) = epoch {
-                                if let Some(compositor_epoch) = self.image_epochs.get_mut(&key) {
-                                    *compositor_epoch = epoch
-                                } else {
-                                    warn!("Received epoch {epoch:?} for unknown image {key:?}");
-                                }
+                                global.frame_delayer.update_image(key, epoch);
                             }
                             txn.update_image(key, desc, data.into(), &DirtyRect::All)
                         },
                     }
                 }
-                self.global.borrow_mut().send_transaction(txn);
-                self.maybe_send_awaiting_display_list();
+
+                if global.frame_delayer.needs_new_frame() {
+                    global.frame_delayer.set_pending_frame(false);
+                    self.generate_frame(&mut txn, RenderReasons::SCENE);
+                    let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
+                    let _ = global.constellation_sender.send(
+                        EmbedderToConstellationMessage::NoLongerWaitingOnCanvas(waiting_pipelines),
+                    );
+                }
+
+                global.send_transaction(txn);
             },
+
+            CompositorMsg::DelayNewFrameForCanvas(pipeline_id, canvas_epoch, image_keys) => self
+                .global
+                .borrow_mut()
+                .frame_delayer
+                .add_delay(pipeline_id, canvas_epoch, image_keys),
 
             CompositorMsg::AddFont(font_key, data, index) => {
                 self.add_font(font_key, index, data);
@@ -758,90 +792,6 @@ impl IOCompositor {
         }
     }
 
-    fn maybe_send_awaiting_display_list_for_pipeline(&mut self, pipeline_id: PipelineId) {
-        let Some(webview_id) = self
-            .global
-            .borrow()
-            .pipeline_to_webview_map
-            .get(&pipeline_id)
-            .copied()
-        else {
-            return warn!("Could not find WebView for incoming display list");
-        };
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-            return warn!("Could not find WebView for incoming display list");
-        };
-        let details = webview_renderer.ensure_pipeline_details(pipeline_id);
-        let (built_display_list, display_list_info) = {
-            let Some((_, display_list_info)) = &mut details.awaiting_display_list else {
-                return;
-            };
-            for (k, v) in &self.image_epochs {
-                let Some(val) = display_list_info.image_epochs.get(k) else {
-                    continue;
-                };
-
-                if v >= val {
-                    display_list_info.image_epochs.remove(k);
-                }
-            }
-            if !display_list_info.image_epochs.is_empty() {
-                return;
-            }
-            let Some(a) = details.awaiting_display_list.take() else {
-                return;
-            };
-            a
-        };
-
-        let old_scale = webview_renderer.device_pixels_per_page_pixel();
-
-        let pipeline_id = display_list_info.pipeline_id;
-        let _ = self.global.borrow().constellation_sender.send(
-            EmbedderToConstellationMessage::DisplayListDone(pipeline_id.into()),
-        );
-        let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
-        details.install_new_scroll_tree(display_list_info.scroll_tree);
-        details.viewport_scale = Some(display_list_info.viewport_details.hidpi_scale_factor);
-
-        let epoch = display_list_info.epoch;
-        let first_reflow = display_list_info.first_reflow;
-        if details.first_paint_metric == PaintMetricState::Waiting {
-            details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
-        }
-        if details.first_contentful_paint_metric == PaintMetricState::Waiting &&
-            display_list_info.is_contentful
-        {
-            details.first_contentful_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
-        }
-        let _ = details;
-
-        let mut transaction = Transaction::new();
-
-        let is_root_pipeline = Some(pipeline_id.into()) == webview_renderer.root_pipeline_id;
-        if is_root_pipeline && old_scale != webview_renderer.device_pixels_per_page_pixel() {
-            self.send_root_pipeline_display_list_in_transaction(&mut transaction);
-        }
-
-        transaction.set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
-        self.update_transaction_with_all_scroll_offsets(&mut transaction);
-        self.generate_frame(&mut transaction, RenderReasons::SCENE);
-        self.global.borrow_mut().send_transaction(transaction);
-    }
-
-    fn maybe_send_awaiting_display_list(&mut self) {
-        let pipelines: Vec<_> = self
-            .webview_renderers
-            .iter()
-            .flat_map(WebViewRenderer::pipeline_ids)
-            .copied()
-            .collect();
-
-        for pipeline_id in pipelines {
-            self.maybe_send_awaiting_display_list_for_pipeline(pipeline_id);
-        }
-    }
-
     /// Handle messages sent to the compositor during the shutdown process. In general,
     /// the things the compositor can do in this state are limited. It's very important to
     /// answer any synchronous messages though as other threads might be waiting on the
@@ -878,7 +828,7 @@ impl IOCompositor {
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
                 // Subtract from the number of pending frames, but do not do any compositing.
-                self.pending_frames -= 1;
+                self.pending_frames.set(self.pending_frames.get() - 1);
             },
             _ => {
                 debug!("Ignoring message ({:?} while shutting down", msg);
@@ -908,8 +858,8 @@ impl IOCompositor {
     }
 
     /// Queue a new frame in the transaction and increase the pending frames count.
-    pub(crate) fn generate_frame(&mut self, transaction: &mut Transaction, reason: RenderReasons) {
-        self.pending_frames += 1;
+    pub(crate) fn generate_frame(&self, transaction: &mut Transaction, reason: RenderReasons) {
+        self.pending_frames.set(self.pending_frames.get() + 1);
         transaction.generate_frame(0, true /* present */, reason);
     }
 
@@ -1483,7 +1433,7 @@ impl IOCompositor {
                 CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
                     // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
                     // one frame from the pending frames.
-                    self.pending_frames -= 1;
+                    self.pending_frames.set(self.pending_frames.get() - 1);
                     false
                 },
                 CompositorMsg::NewWebRenderFrameReady(..) => {
@@ -1702,12 +1652,80 @@ impl IOCompositor {
     }
 
     fn handle_new_webrender_frame_ready(&mut self, recomposite_needed: bool) {
-        self.pending_frames -= 1;
+        self.pending_frames.set(self.pending_frames.get() - 1);
         if recomposite_needed {
             self.refresh_cursor();
         }
         if recomposite_needed || self.animation_callbacks_running() {
             self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
         }
+    }
+}
+
+/// A struct that is reponsible for delaying frame requests until all new canvas images
+/// for a particular "update the rendering" call in the `ScriptThread` have been
+/// sent to WebRender.
+#[derive(Default)]
+struct FrameDelayer {
+    /// The latest [`Epoch`] of canvas images that have been sent to WebRender. Note
+    /// that this only records the `Epoch`s for canvases and only ones that are involved
+    /// in "update the rendering".
+    image_epochs: HashMap<ImageKey, Epoch>,
+    /// A map of all pending canvas images
+    pending_canvas_images: HashMap<ImageKey, Epoch>,
+    /// Whether or not we have a pending frame.
+    pending_frame: bool,
+    /// A list of pipelines that should be notified when we are no longer waiting for
+    /// canvas images.
+    waiting_pipelines: HashSet<PipelineId>,
+}
+
+impl FrameDelayer {
+    fn delete_image(&mut self, image_key: ImageKey) {
+        self.image_epochs.remove(&image_key);
+        self.pending_canvas_images.remove(&image_key);
+    }
+
+    fn update_image(&mut self, image_key: ImageKey, epoch: Epoch) {
+        self.image_epochs.insert(image_key, epoch);
+        let Entry::Occupied(entry) = self.pending_canvas_images.entry(image_key) else {
+            return;
+        };
+        if *entry.get() <= epoch {
+            entry.remove();
+        }
+    }
+
+    fn add_delay(
+        &mut self,
+        pipeline_id: PipelineId,
+        canvas_epoch: Epoch,
+        image_keys: Vec<ImageKey>,
+    ) {
+        for image_key in image_keys.into_iter() {
+            // If we've already seen the necessary epoch for this image, do not
+            // start waiting for it.
+            if self
+                .image_epochs
+                .get(&image_key)
+                .is_some_and(|epoch_seen| *epoch_seen >= canvas_epoch)
+            {
+                continue;
+            }
+            self.pending_canvas_images.insert(image_key, canvas_epoch);
+        }
+        self.waiting_pipelines.insert(pipeline_id);
+    }
+
+    fn needs_new_frame(&self) -> bool {
+        self.pending_frame && self.pending_canvas_images.is_empty()
+    }
+
+    fn set_pending_frame(&mut self, value: bool) {
+        self.pending_frame = value;
+    }
+
+    fn take_waiting_pipelines(&mut self) -> Vec<PipelineId> {
+        self.waiting_pipelines.drain().collect()
     }
 }
