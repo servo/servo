@@ -21,19 +21,19 @@ use std::{os, ptr, thread};
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
 use js::glue::{
-    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JS_GetReservedSlot,
-    JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
-    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
+    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun,
+    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, SetUpEventLoopDispatch,
+    StreamConsumerConsumeChunk, StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd,
+    StreamConsumerStreamError,
 };
 use js::jsapi::{
-    AsmJSOption, BuildIdCharVector, CompilationType, ContextOptionsRef, Dispatchable as JSRunnable,
+    AsmJSOption, BuildIdCharVector, CompilationType, ContextOptionsRef,
     Dispatchable_MaybeShuttingDown, GCDescription, GCOptions, GCProgress, GCReason,
     GetPromiseUserInputEventHandlingState, HandleObject, HandleString,
-    HandleValue as RawHandleValue, Heap, InitConsumeStreamCallback, InitDispatchToEventLoop,
-    JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
-    JS_NewObject, JS_NewStringCopyN, JS_SetGCCallback, JS_SetGCParameter,
-    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetParallelParsingEnabled, JS_SetReservedSlot, JS_SetSecurityCallbacks,
+    HandleValue as RawHandleValue, Heap, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
+    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_NewObject,
+    JS_NewStringCopyN, JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_SetOffthreadIonCompilationEnabled, JS_SetReservedSlot, JS_SetSecurityCallbacks,
     JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
     JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
     JSSecurityCallbacks, JSTracer, JobQueue, MimeType, MutableHandleObject, MutableHandleString,
@@ -694,7 +694,7 @@ impl Runtime {
 
         unsafe extern "C" fn dispatch_to_event_loop(
             closure: *mut c_void,
-            dispatchable: *mut JSRunnable,
+            dispatchable: *mut DispatchablePointer,
         ) -> bool {
             let networking_task_src: &SendableTaskSource = &*(closure as *mut SendableTaskSource);
             let runnable = Runnable(dispatchable);
@@ -711,7 +711,7 @@ impl Runtime {
         let mut networking_task_src_ptr = std::ptr::null_mut();
         if let Some(source) = networking_task_source {
             networking_task_src_ptr = Box::into_raw(Box::new(source));
-            InitDispatchToEventLoop(
+            SetUpEventLoopDispatch(
                 cx,
                 Some(dispatch_to_event_loop),
                 networking_task_src_ptr as *mut c_void,
@@ -777,7 +777,6 @@ impl Runtime {
             JSJitCompilerOption::JSJITCOMPILER_NATIVE_REGEXP_ENABLE,
             pref!(js_native_regex_enabled) as u32,
         );
-        JS_SetParallelParsingEnabled(cx, pref!(js_parallel_parsing_enabled));
         JS_SetOffthreadIonCompilationEnabled(cx, pref!(js_offthread_compilation_enabled));
         JS_SetGlobalJitCompilerOption(
             cx,
@@ -1263,7 +1262,7 @@ unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usi
     );
 }
 
-pub(crate) struct Runnable(*mut JSRunnable);
+pub(crate) struct Runnable(*mut DispatchablePointer);
 
 #[allow(unsafe_code)]
 unsafe impl Sync for Runnable {}
