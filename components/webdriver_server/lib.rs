@@ -1063,9 +1063,15 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#get-window-handles>
     fn handle_window_handles(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let handles = self
+        let mut handles = self
             .get_window_handles()?
             .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        handles.sort();
+
+        let handles = handles
+            .into_iter()
             .map(serde_json::to_value)
             .collect::<Result<Vec<_>, _>>()?;
 
