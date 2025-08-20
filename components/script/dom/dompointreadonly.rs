@@ -23,7 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::DOMPoint;
 use crate::script_runtime::CanGc;
 
-// http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
+/// http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
 #[dom_struct]
 pub(crate) struct DOMPointReadOnly {
     reflector_: Reflector,
@@ -76,7 +76,7 @@ impl DOMPointReadOnly {
 
 #[allow(non_snake_case)]
 impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
-    // https://drafts.fxtf.org/geometry/#dom-dompoint-dompoint
+    /// https://drafts.fxtf.org/geometry/#dom-dompoint-dompoint
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -91,48 +91,51 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
         ))
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint
+    /// https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint
     fn FromPoint(global: &GlobalScope, init: &DOMPointInit, can_gc: CanGc) -> DomRoot<Self> {
         Self::new(global, init.x, init.y, init.z, init.w, can_gc)
     }
 
-    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
+    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
     fn X(&self) -> f64 {
         self.x.get()
     }
 
-    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
+    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
     fn Y(&self) -> f64 {
         self.y.get()
     }
 
-    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
+    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
     fn Z(&self) -> f64 {
         self.z.get()
     }
 
-    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
+    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
     fn W(&self) -> f64 {
         self.w.get()
     }
 
-    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-matrixtransform
-    // https://drafts.fxtf.org/geometry/Overview.html#transform-a-point-with-a-matrix
+    /// https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-matrixtransform
+    /// https://drafts.fxtf.org/geometry/Overview.html#transform-a-point-with-a-matrix
     fn MatrixTransform(
         &self,
         matrix: &DOMMatrixInit,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMPoint>> {
+        // Let matrixObject be the result of invoking create a DOMMatrix from the dictionary matrix.
         let matrix_object = match dommatrixinit_to_matrix(matrix) {
             Ok(converted) => converted,
             Err(exception) => {
                 return Err(exception);
             },
         };
+        // Steps 1-4 of transforming a point with a matrix
         let x = self.X();
         let y = self.Y();
         let z = self.Z();
         let w = self.W();
+        // Steps 5-12 of transforming a point with a matrix
         let m = &matrix_object.1;
         let transformed_point = DOMPointInit {
             x: m.m11 * x + m.m21 * y + m.m31 * z + m.m41 * w,
@@ -140,6 +143,8 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
             z: m.m13 * x + m.m23 * y + m.m33 * z + m.m43 * w,
             w: m.m14 * x + m.m24 * y + m.m34 * z + m.m44 * w,
         };
+        // Return the result of invoking transform a point with a matrix, given the current point
+        // and matrixObject. The current point does not get modified.
         Ok(DOMPoint::new_from_init(
             &self.global(),
             &transformed_point,
