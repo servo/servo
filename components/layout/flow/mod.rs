@@ -139,10 +139,6 @@ impl BlockLevelBox {
         self.with_base(|base| base.clear_fragment_layout_cache());
     }
 
-    pub(crate) fn fragments(&self) -> Vec<Fragment> {
-        self.with_base(LayoutBoxBase::fragments)
-    }
-
     pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {

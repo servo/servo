@@ -26,7 +26,7 @@ use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineItem;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::FragmentTree;
+use crate::fragment_tree::{FragmentFlags, FragmentTree};
 use crate::geom::{LogicalVec2, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContents;
@@ -48,10 +48,6 @@ impl BoxTree {
     #[servo_tracing::instrument(name = "Box Tree Construction", skip_all)]
     pub(crate) fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
         let root_element = root_element.to_threadsafe();
-        let boxes = construct_for_root_element(context, root_element);
-
-        // Zero box for `:root { display: none }`, one for the root element otherwise.
-        assert!(boxes.len() <= 1);
 
         // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
         // > UAs must apply the overflow-* values set on the root element to the viewport when the
@@ -65,6 +61,7 @@ impl BoxTree {
 
         let mut viewport_overflow_x = root_style.clone_overflow_x();
         let mut viewport_overflow_y = root_style.clone_overflow_y();
+        let mut element_propagating_overflow = root_element;
         if viewport_overflow_x == Overflow::Visible &&
             viewport_overflow_y == Overflow::Visible &&
             !root_style.get_box().display.is_none()
@@ -81,9 +78,25 @@ impl BoxTree {
                 if !style.get_box().display.is_none() {
                     viewport_overflow_x = style.clone_overflow_x();
                     viewport_overflow_y = style.clone_overflow_y();
+                    element_propagating_overflow = child;
 
                     break;
                 }
+            }
+        }
+
+        let boxes = construct_for_root_element(context, root_element);
+
+        // Zero box for `:root { display: none }`, one for the root element otherwise.
+        assert!(boxes.len() <= 1);
+
+        if let Some(layout_data) = element_propagating_overflow.inner_layout_data() {
+            if let Some(ref mut layout_box) = *layout_data.self_box.borrow_mut() {
+                layout_box.with_base_mut(|base| {
+                    base.base_fragment_info
+                        .flags
+                        .insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT)
+                });
             }
         }
 
