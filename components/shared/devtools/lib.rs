@@ -443,12 +443,34 @@ pub enum CachedConsoleMessage {
     ConsoleLog(ConsoleLog),
 }
 
+#[derive(Clone, PartialEq)]
+pub struct DebugVec(pub Vec<u8>);
+
+impl std::ops::Deref for DebugVec {
+    type Target = Vec<u8>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<Vec<u8>> for DebugVec {
+    fn from(v: Vec<u8>) -> Self {
+        Self(v)
+    }
+}
+
+impl std::fmt::Debug for DebugVec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("[{}; ...]", self.0.len()))
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct HttpRequest {
     pub url: ServoUrl,
     pub method: Method,
     pub headers: HeaderMap,
-    pub body: Option<Vec<u8>>,
+    pub body: Option<DebugVec>,
     pub pipeline_id: PipelineId,
     pub started_date_time: SystemTime,
     pub time_stamp: i64,
@@ -463,7 +485,7 @@ pub struct HttpRequest {
 pub struct HttpResponse {
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
-    pub body: Option<Vec<u8>>,
+    pub body: Option<DebugVec>,
     pub from_cache: bool,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,

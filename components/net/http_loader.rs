@@ -416,7 +416,7 @@ fn prepare_devtools_request(
         url,
         method,
         headers,
-        body,
+        body: body.map(devtools_traits::DebugVec::from),
         pipeline_id,
         started_date_time,
         time_stamp: started_date_time
@@ -491,7 +491,7 @@ pub fn send_response_values_to_devtools(
         let devtoolsresponse = DevtoolsHttpResponse {
             headers,
             status,
-            body,
+            body: body.map(devtools_traits::DebugVec::from),
             from_cache,
             pipeline_id,
             browsing_context_id,
