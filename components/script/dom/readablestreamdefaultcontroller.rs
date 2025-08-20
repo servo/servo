@@ -115,17 +115,18 @@ impl Callback for StartAlgorithmRejectionHandler {
 }
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
-#[derive(Debug, JSTraceable, PartialEq)]
+#[derive(Debug, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ValueWithSize {
     /// <https://streams.spec.whatwg.org/#value-with-size-value>
+    #[ignore_malloc_size_of = "Heap is measured by mozjs"]
     pub(crate) value: Box<Heap<JSVal>>,
     /// <https://streams.spec.whatwg.org/#value-with-size-size>
     pub(crate) size: f64,
 }
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
-#[derive(Debug, JSTraceable, PartialEq)]
+#[derive(Debug, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum EnqueuedValue {
     /// A value enqueued from Rust.
@@ -191,7 +192,6 @@ fn is_non_negative_number(value: &EnqueuedValue) -> bool {
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct QueueWithSizes {
-    #[ignore_malloc_size_of = "EnqueuedValue::Js"]
     queue: VecDeque<EnqueuedValue>,
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queuetotalsize>
     pub(crate) total_size: f64,
