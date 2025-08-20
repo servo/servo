@@ -16,7 +16,7 @@ use egui::{
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
 use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
-use log::{trace, warn};
+use log::{error, trace, warn};
 use servo::base::id::WebViewId;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
@@ -24,7 +24,7 @@ use servo::webrender_api::units::DevicePixel;
 use servo::{LoadStatus, OffscreenRenderingContext, RenderingContext, WebView};
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
-use winit::window::Window;
+use winit::window::{Window, WindowId};
 
 use super::app_state::RunningAppState;
 use super::egui_glue::EguiGlow;
@@ -49,6 +49,8 @@ pub struct Minibrowser {
     load_status: LoadStatus,
 
     status_text: Option<String>,
+
+    window_id: WindowId,
 }
 
 pub enum MinibrowserEvent {
@@ -82,6 +84,7 @@ impl Minibrowser {
         event_loop: &ActiveEventLoop,
         event_loop_proxy: EventLoopProxy,
         initial_url: ServoUrl,
+        window_id: WindowId,
     ) -> Self {
         let rendering_context = window.offscreen_rendering_context();
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
@@ -111,6 +114,7 @@ impl Minibrowser {
             location_dirty: false.into(),
             load_status: LoadStatus::Complete,
             status_text: None,
+            window_id,
         }
     }
 
@@ -271,10 +275,11 @@ impl Minibrowser {
         window: &dyn WindowPortsMethods,
         state: &RunningAppState,
         reason: &'static str,
+        paint_other: bool,
     ) {
-        let now = Instant::now();
         let winit_window = window.winit_window().unwrap();
-        trace!(
+        let now = Instant::now();
+        error!(
             "{:?} since last update ({})",
             now - self.last_update,
             reason
@@ -397,7 +402,7 @@ impl Minibrowser {
             // For reasons that are unclear, the TopBottomPanel’s ui cursor exceeds this by one egui
             // point, but the Context is correct and the TopBottomPanel is wrong.
             *toolbar_height = Length::new(ctx.available_rect().min.y);
-            window.set_toolbar_height(*toolbar_height);
+            //            window.set_toolbar_height(*toolbar_height);
 
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
@@ -406,9 +411,21 @@ impl Minibrowser {
                 state.for_each_active_dialog(|dialog| dialog.update(ctx));
             });
 
-            let Some(webview) = state.focused_webview() else {
+            let webview_pot = if paint_other {
+                state.inner().other_webview.clone()
+            } else {
+                state.inner().webview.clone()
+            };
+
+            let Some(webview) = webview_pot else {
+                error!("Could not find have webview");
                 return;
             };
+
+            //let Some(webview) = state.focused_webview() else {
+            //    error!("Could not find have webview");
+            //    return;
+            //};
             CentralPanel::default().frame(Frame::NONE).show(ctx, |ui| {
                 // If the top parts of the GUI changed size, then update the size of the WebView and also
                 // the size of its RenderingContext.
@@ -439,9 +456,13 @@ impl Minibrowser {
                     .map(|response| response.inner);
                 }
 
-                state.repaint_servo_if_necessary();
+                //state.repaint_servo_if_necessary(false);
+                error!("Repaint servo stuff");
+                state.repaint_servo_if_necessary(paint_other);
+                error!("Repaint servo done");
 
                 if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
+                    error!("The callback thingy for {paint_other}");
                     ui.painter().add(PaintCallback {
                         rect,
                         callback: Arc::new(CallbackFn::new(move |info, painter| {
