@@ -1078,14 +1078,6 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
     fn is_root(&self) -> bool {
         self.element.is_root()
     }
-
-    fn is_element_overflow_value_propagated(&self) -> bool {
-        self.element.element.get_element_overflow_value_propagated()
-    }
-
-    fn set_element_overflow_value_propagated(&self) {
-        self.element.element.set_element_overflow_value_propagated()
-    }
 }
 
 /// This implementation of `::selectors::Element` is used for implementing lazy

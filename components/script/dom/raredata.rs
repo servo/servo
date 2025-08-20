@@ -91,7 +91,4 @@ pub(crate) struct ElementRareData {
 
     /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
     pub(crate) part: MutNullableDom<DOMTokenList>,
-
-    /// <https://www.w3.org/TR/css-overflow-3/#overflow-propagation>
-    pub(crate) is_elements_overflow_value_propagated_to_viewport: Option<bool>,
 }

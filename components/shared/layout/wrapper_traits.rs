@@ -371,10 +371,6 @@ pub trait ThreadSafeLayoutElement<'dom>:
     /// Note that, like `Self::is_body_element_of_html_element_root`, this accesses the parent.
     /// As in that case, since this is an immutable borrow, we do not violate thread safety.
     fn is_root(&self) -> bool;
-
-    /// Setter and Getter whether this element has propagated its overflow value to the viewport.
-    fn is_element_overflow_value_propagated(&self) -> bool;
-    fn set_element_overflow_value_propagated(&self);
 }
 
 /// A chain of pseudo-elements up to two levels deep. This is used to represent cases

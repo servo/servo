@@ -126,10 +126,6 @@ impl From<ServoThreadSafeLayoutNode<'_>> for BaseFragmentInfo {
             if ThreadSafeLayoutElement::is_root(&element) {
                 flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
             }
-
-            if element.is_element_overflow_value_propagated() {
-                flags.insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT);
-            }
         };
 
         Self {

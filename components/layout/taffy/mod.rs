@@ -21,6 +21,7 @@ use crate::dom::LayoutBox;
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
+use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 
 #[derive(Debug, MallocSizeOf)]
@@ -146,13 +147,24 @@ impl TaffyItemBox {
         }
     }
 
-    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+    pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
         match self.taffy_level_box {
             TaffyItemBoxInner::InFlowBox(ref independent_formatting_context) => {
-                independent_formatting_context.base.fragments()
+                callback(&independent_formatting_context.base)
             },
             TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref positioned_box) => {
-                positioned_box.borrow().context.base.fragments()
+                callback(&positioned_box.borrow().context.base)
+            },
+        }
+    }
+
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl Fn(&mut LayoutBoxBase) -> T) -> T {
+        match &mut self.taffy_level_box {
+            TaffyItemBoxInner::InFlowBox(independent_formatting_context) => {
+                callback(&mut independent_formatting_context.base)
+            },
+            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                callback(&mut positioned_box.borrow_mut().context.base)
             },
         }
     }

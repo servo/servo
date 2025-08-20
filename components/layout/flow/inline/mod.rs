@@ -125,6 +125,7 @@ use crate::fragment_tree::{
     PositioningFragment,
 };
 use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
+use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
@@ -273,20 +274,38 @@ impl InlineItem {
         }
     }
 
-    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+    pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
         match self {
-            InlineItem::StartInlineBox(inline_box) => inline_box.borrow().base.fragments(),
+            InlineItem::StartInlineBox(inline_box) => callback(&inline_box.borrow().base),
             InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
                 unreachable!("Should never have these kind of fragments attached to a DOM node")
             },
             InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
-                positioned_box.borrow().context.base.fragments()
+                callback(&positioned_box.borrow().context.base)
+            },
+            InlineItem::OutOfFlowFloatBox(float_box) => callback(&float_box.borrow().contents.base),
+            InlineItem::Atomic(independent_formatting_context, ..) => {
+                callback(&independent_formatting_context.borrow().base)
+            },
+        }
+    }
+
+    pub(crate) fn with_base_mut(&mut self, callback: impl Fn(&mut LayoutBoxBase)) {
+        match self {
+            InlineItem::StartInlineBox(inline_box) => {
+                callback(&mut inline_box.borrow_mut().base);
+            },
+            InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
+                unreachable!("Should never have these kind of fragments attached to a DOM node")
+            },
+            InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
+                callback(&mut positioned_box.borrow_mut().context.base)
             },
             InlineItem::OutOfFlowFloatBox(float_box) => {
-                float_box.borrow().contents.base.fragments()
+                callback(&mut float_box.borrow_mut().contents.base)
             },
             InlineItem::Atomic(independent_formatting_context, ..) => {
-                independent_formatting_context.borrow().base.fragments()
+                callback(&mut independent_formatting_context.borrow_mut().base)
             },
         }
     }
