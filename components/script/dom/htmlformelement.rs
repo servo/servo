@@ -1028,8 +1028,8 @@ impl HTMLFormElement {
         //
         // The concept of ongoing navigation must be separated from the form's
         // planned navigation concept, because each planned navigation cancels the previous one
-        // for a given form,
-        // whereas an ongoing navigation is a per navigable (read: window for now) concept.
+        // for a given form, whereas an ongoing navigation is a per navigable (read: window for now)
+        // concept.
         //
         // Setting the ongoing navigation now
         // means the navigation could be cancelled even if the below task has not run yet.
