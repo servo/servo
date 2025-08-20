@@ -50,7 +50,6 @@ use crate::textinput::{
 #[dom_struct]
 pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
-    #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
     textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     placeholder: DomRefCell<DOMString>,

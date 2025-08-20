@@ -23,6 +23,7 @@ use euclid::default::Size2D as UntypedSize2D;
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
@@ -42,7 +43,7 @@ use crate::{
 };
 
 /// A Script to Constellation channel.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScriptToConstellationChan {
     /// Sender for communicating with constellation thread.
     pub sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
