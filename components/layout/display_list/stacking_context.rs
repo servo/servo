@@ -1443,25 +1443,6 @@ impl BoxFragment {
             });
         }
 
-        // scrollable overflow path
-        // From https://drafts.csswg.org/css-overflow/#propdef-overflow:
-        // > UAs must apply the overflow-* values set on the root element to the viewport when the
-        // > root element’s display value is not none. However, when the root element is an [HTML]
-        // > html element (including XML syntax for HTML) whose overflow value is visible (in both
-        // > axes), and that element has as a child a body element whose display value is also not
-        // > none, user agents must instead apply the overflow-* values of the first such child
-        // > element to the viewport. The element from which the value is propagated must then have a
-        // > used overflow value of visible.
-        //
-        // TODO: This should only happen when the `display` value is actually propagated.
-        if self
-            .base
-            .flags
-            .contains(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
-        {
-            return None;
-        }
-
         let scroll_frame_rect = self
             .padding_rect()
             .translate(containing_block_rect.origin.to_vector())
