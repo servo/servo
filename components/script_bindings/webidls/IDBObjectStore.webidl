@@ -11,8 +11,8 @@
 [Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBObjectStore {
   [SetterThrows] attribute DOMString name;
-  // readonly attribute any keyPath;
-  // readonly attribute DOMStringList indexNames;
+  readonly attribute any keyPath;
+  readonly attribute DOMStringList indexNames;
   [SameObject] readonly attribute IDBTransaction transaction;
   readonly attribute boolean autoIncrement;
 
