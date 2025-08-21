@@ -121,11 +121,34 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 //                      But, this could be slower in performance and does have some discrepancies. For example,
 //                      they would try to vertically align <input> text baseline with the baseline of other
 //                      TextNode within an inline flow. Another example is the horizontal scroll.
-// FIXME(stevennovaryo): Implement lazily initiated placeholder.
-// FIXME(stevennovaryo): Refactor these logic into a TextControl wrapper that would handle all textual input.
+// FIXME(#38263): Refactor these logics into a TextControl wrapper that would decouple all textual input.
 struct InputTypeTextShadowTree {
+    inner_container: Dom<HTMLDivElement>,
     text_container: Dom<HTMLDivElement>,
-    placeholder_container: Dom<HTMLDivElement>,
+    placeholder_container: DomRefCell<Option<Dom<HTMLDivElement>>>,
+}
+
+impl InputTypeTextShadowTree {
+    /// Initialize the placeholder container only when it is necessary. This would help the performance of input
+    /// element with shadow dom that is quite bulky.
+    fn init_placeholder_container_if_necessary(&self, host: &HTMLInputElement, can_gc: CanGc) {
+        // If the container is already initialized or there is no placeholder then it is not necessary to
+        // initialize a new placeholder container.
+        if self.placeholder_container.borrow().is_some() || host.placeholder.borrow().is_empty() {
+            return;
+        }
+
+        *self.placeholder_container.borrow_mut() = Some(
+            create_ua_widget_div_with_text_node(
+                &host.owner_document(),
+                self.inner_container.upcast::<Node>(),
+                PseudoElement::Placeholder,
+                true,
+                can_gc,
+            )
+            .as_traced(),
+        );
+    }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -145,6 +168,40 @@ enum ShadowTree {
     Text(InputTypeTextShadowTree),
     Color(InputTypeColorShadowTree),
     // TODO: Add shadow trees for other input types (range etc) here
+}
+
+/// Create a div element with a text node within an UA Widget and either append or prepend it to
+/// the designated parent. This is used to create the text container for input elements.
+fn create_ua_widget_div_with_text_node(
+    document: &Document,
+    parent: &Node,
+    implemented_pseudo: PseudoElement,
+    as_first_child: bool,
+    can_gc: CanGc,
+) -> DomRoot<HTMLDivElement> {
+    let el = HTMLDivElement::new(local_name!("div"), None, document, None, can_gc);
+    parent
+        .upcast::<Node>()
+        .AppendChild(el.upcast::<Node>(), can_gc)
+        .unwrap();
+    el.upcast::<Node>()
+        .set_implemented_pseudo_element(implemented_pseudo);
+    let text_node = document.CreateTextNode("".into(), can_gc);
+
+    if !as_first_child {
+        el.upcast::<Node>()
+            .AppendChild(text_node.upcast::<Node>(), can_gc)
+            .unwrap();
+    } else {
+        el.upcast::<Node>()
+            .InsertBefore(
+                text_node.upcast::<Node>(),
+                el.upcast::<Node>().GetFirstChild().as_deref(),
+                can_gc,
+            )
+            .unwrap();
+    }
+    el
 }
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
@@ -1106,30 +1163,6 @@ impl HTMLInputElement {
             .unwrap_or_else(|| self.upcast::<Element>().attach_ua_shadow_root(true, can_gc))
     }
 
-    /// Create a div element with a text node within an UA Widget.
-    /// This will be used to create the text container for
-    /// input elements.
-    fn create_ua_widget_div_with_text_node(
-        &self,
-        document: &Document,
-        parent: &Node,
-        implemented_pseudo: PseudoElement,
-        can_gc: CanGc,
-    ) -> DomRoot<HTMLDivElement> {
-        let el = HTMLDivElement::new(local_name!("div"), None, document, None, can_gc);
-        parent
-            .upcast::<Node>()
-            .AppendChild(el.upcast::<Node>(), can_gc)
-            .unwrap();
-        el.upcast::<Node>()
-            .set_implemented_pseudo_element(implemented_pseudo);
-        let text_node = document.CreateTextNode("".into(), can_gc);
-        el.upcast::<Node>()
-            .AppendChild(text_node.upcast::<Node>(), can_gc)
-            .unwrap();
-        el
-    }
-
     fn create_text_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
         let shadow_root = self.shadow_root(can_gc);
@@ -1145,17 +1178,11 @@ impl HTMLInputElement {
             .upcast::<Node>()
             .set_implemented_pseudo_element(PseudoElement::ServoTextControlInnerContainer);
 
-        let placeholder_container = self.create_ua_widget_div_with_text_node(
-            &document,
-            inner_container.upcast::<Node>(),
-            PseudoElement::Placeholder,
-            can_gc,
-        );
-
-        let text_container = self.create_ua_widget_div_with_text_node(
+        let text_container = create_ua_widget_div_with_text_node(
             &document,
             inner_container.upcast::<Node>(),
             PseudoElement::ServoTextControlInnerEditor,
+            false,
             can_gc,
         );
 
@@ -1163,8 +1190,9 @@ impl HTMLInputElement {
             .shadow_tree
             .borrow_mut()
             .insert(ShadowTree::Text(InputTypeTextShadowTree {
+                inner_container: inner_container.as_traced(),
                 text_container: text_container.as_traced(),
-                placeholder_container: placeholder_container.as_traced(),
+                placeholder_container: DomRefCell::new(None),
             }));
     }
 
@@ -1292,12 +1320,12 @@ impl HTMLInputElement {
             (true, _) => "\u{200B}".into(),
         };
 
-        // FIXME(stevennovaryo): Refactor this inside a TextControl wrapper
+        // We are finding and updating the CharacterData child directly to optimize the update.
         text_shadow_tree
             .text_container
             .upcast::<Node>()
             .GetFirstChild()
-            .expect("Text container without child")
+            .expect("UA widget text container without child")
             .downcast::<CharacterData>()
             .expect("First child is not a CharacterData node")
             .SetData(value_text);
@@ -2263,14 +2291,21 @@ impl HTMLInputElement {
             return;
         }
 
+        let text_shadow_tree = self.text_shadow_tree(can_gc);
+        text_shadow_tree.init_placeholder_container_if_necessary(self, can_gc);
+
+        let Some(ref placeholder_container) = *text_shadow_tree.placeholder_container.borrow()
+        else {
+            // No update is necesssary.
+            return;
+        };
         let placeholder_text = self.placeholder.borrow().clone();
 
-        // FIXME(stevennovaryo): Refactor this inside a TextControl wrapper
-        self.text_shadow_tree(can_gc)
-            .placeholder_container
+        // We are finding and updating the CharacterData child directly to optimize the update.
+        placeholder_container
             .upcast::<Node>()
             .GetFirstChild()
-            .expect("Text container without child")
+            .expect("UA widget text container without child")
             .downcast::<CharacterData>()
             .expect("First child is not a CharacterData node")
             .SetData(placeholder_text);
