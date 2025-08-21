@@ -284,6 +284,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "1024x768",
     );
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
+    opts.optflag("I", "force-ipc", "Use ipc_channel in singleprocess mode");
     opts.optflag("B", "bhm", "Background Hang Monitor enabled");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
     opts.optopt(
@@ -695,6 +696,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         user_stylesheets,
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         multiprocess: opt_match.opt_present("M"),
+        force_ipc: opt_match.opt_present("I"),
         background_hang_monitor: opt_match.opt_present("B"),
         sandbox: opt_match.opt_present("S"),
         random_pipeline_closure_probability,
