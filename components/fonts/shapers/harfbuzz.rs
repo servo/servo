@@ -27,10 +27,10 @@ use harfbuzz_sys::{
 };
 use num_traits::Zero;
 
-use super::{ShapedGlyphEntry, THarfShapedGlyphData, THarfShaper, unicode_script_to_iso15924_tag};
+use super::{HarfBuzzShapedGlyphData, ShapedGlyphEntry, unicode_script_to_iso15924_tag};
 use crate::platform::font::FontTable;
 use crate::{
-    BASE, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphId, KERN, LIGA,
+    BASE, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphId, GlyphStore, KERN, LIGA,
     OpenTypeTableTag, ShapingFlags, ShapingOptions, fixed_to_float, float_to_fixed, ot_tag,
 };
 
@@ -76,7 +76,7 @@ impl Drop for ShapedGlyphData {
     }
 }
 
-impl THarfShapedGlyphData for ShapedGlyphData {
+impl HarfBuzzShapedGlyphData for ShapedGlyphData {
     #[inline]
     fn len(&self) -> usize {
         self.count
@@ -207,20 +207,8 @@ impl Shaper {
         }
     }
 
-    fn float_to_fixed(f: f64) -> i32 {
-        float_to_fixed(16, f)
-    }
-
-    fn fixed_to_float(i: hb_position_t) -> f64 {
-        fixed_to_float(16, i)
-    }
-}
-
-impl THarfShaper for Shaper {
-    type ShapedGlyphData = ShapedGlyphData;
-
-    /// Calculate the layout metrics associated with the given text when painted in a specific font.
-    fn shape_text(&self, text: &str, options: &ShapingOptions) -> Self::ShapedGlyphData {
+    /// Calculate the layout metrics associated with the given text with the [`Shaper`]s font.
+    fn shaped_glyph_data(&self, text: &str, options: &ShapingOptions) -> ShapedGlyphData {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
             hb_buffer_set_direction(
@@ -283,7 +271,13 @@ impl THarfShaper for Shaper {
         unsafe { &(*self.font) }
     }
 
-    fn baseline(&self) -> Option<FontBaseline> {
+    pub fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
+        let glyph_data = self.shaped_glyph_data(text, options);
+        let font = self.font();
+        super::shape_text_harfbuzz(&glyph_data, font, text, options, glyphs);
+    }
+
+    pub fn baseline(&self) -> Option<FontBaseline> {
         unsafe { (*self.font).table_for_tag(BASE)? };
 
         let mut hanging_baseline = 0;
@@ -324,6 +318,14 @@ impl THarfShaper for Shaper {
             alphabetic_baseline: Shaper::fixed_to_float(alphabetic_baseline) as f32,
             hanging_baseline: Shaper::fixed_to_float(hanging_baseline) as f32,
         })
+    }
+
+    fn float_to_fixed(f: f64) -> i32 {
+        float_to_fixed(16, f)
+    }
+
+    fn fixed_to_float(i: hb_position_t) -> f64 {
+        fixed_to_float(16, i)
     }
 }
 
