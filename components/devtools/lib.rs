@@ -42,6 +42,8 @@ use crate::actors::performance::PerformanceActor;
 use crate::actors::preference::PreferenceActor;
 use crate::actors::process::ProcessActor;
 use crate::actors::root::RootActor;
+use crate::actors::frame::FrameActor;
+use crate::actors::pause::PauseActor;
 use crate::actors::source::SourceActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::watcher::WatcherActor;
@@ -75,6 +77,8 @@ mod actors {
     pub mod timeline;
     pub mod watcher;
     pub mod worker;
+    pub mod frame;
+    pub mod pause;
 }
 mod id;
 mod network_handler;
