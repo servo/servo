@@ -316,6 +316,12 @@ impl Canvas {
             .to_lowercase()
             .as_str()
         {
+            #[cfg(feature = "vello_cpu")]
+            "" | "auto" | "vello_cpu" => Some(Self::VelloCPU(CanvasData::new(
+                size,
+                compositor_api,
+                font_context,
+            ))),
             #[cfg(feature = "raqote")]
             "" | "auto" | "raqote" => Some(Self::Raqote(CanvasData::new(
                 size,
@@ -324,12 +330,6 @@ impl Canvas {
             ))),
             #[cfg(feature = "vello")]
             "" | "auto" | "vello" => Some(Self::Vello(CanvasData::new(
-                size,
-                compositor_api,
-                font_context,
-            ))),
-            #[cfg(feature = "vello_cpu")]
-            "" | "auto" | "vello_cpu" => Some(Self::VelloCPU(CanvasData::new(
                 size,
                 compositor_api,
                 font_context,
