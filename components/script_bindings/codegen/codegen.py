@@ -1686,14 +1686,16 @@ class PropertyDefiner(Generic[PropertyDefinerElementType]):
             interfaceMember.exposureSet,
             interfaceMember.getExtendedAttribute("SecureContext"))
 
-    def generateGuardedArray(self,
-                             array: list[PropertyDefinerElementType],
-                             name: str, specTemplate: Callable | str,
-                             specTerminator: Callable | str | None,
-                             specType: str,
-                             getCondition: Callable,
-                             getDataTuple: Callable
-                             ) -> str:
+    def generateGuardedArray(
+            self,
+            array: list[PropertyDefinerElementType],
+            name: str,
+            specTemplate: Callable[[PropertyDefinerElementType], str] | str,
+            specTerminator: str | None,
+            specType: str,
+            getCondition: Callable[[PropertyDefinerElementType, Descriptor], list[str]],
+            getDataTuple: Callable[[PropertyDefinerElementType], tuple[str, ...]]
+    ) -> str:
         """
         This method generates our various arrays.
 
@@ -1755,15 +1757,16 @@ pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
 
         return f"{specsArray}{initSpecs}{prefArray}{initPrefs}"
 
-    def generateUnguardedArray(self,
-                               array: list[dict[str, Any]],
-                               name: str,
-                               specTemplate: Callable | str,
-                               specTerminator: Callable | str,
-                               specType: str,
-                               getCondition: Callable,
-                               getDataTuple: Callable
-                               ) -> str:
+    def generateUnguardedArray(
+            self,
+            array: list[dict[str, Any]],
+            name: str,
+            specTemplate: Callable[[dict[str, Any]], str] | str,
+            specTerminator: str,
+            specType: str,
+            getCondition: Callable[[dict[str, Any], Descriptor], list[str]],
+            getDataTuple: Callable[[dict[str, Any]], tuple[str, ...]]
+    ) -> str:
         """
         Takes the same set of parameters as generateGuardedArray but instead
         generates a single, flat array of type `&[specType]` that contains all
@@ -6802,7 +6805,9 @@ class CGInterfaceTrait(CGThing):
                     name = CGSpecializedMethod.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
-                        arguments = method_arguments(descriptor, cast(IDLType, rettype), cast(list[IDLArgument], arguments),
+                        rettype = cast(IDLType, rettype)
+                        arguments = cast(list[IDLArgument], arguments)
+                        arguments = method_arguments(descriptor, rettype, arguments,
                                                      inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
                         rettype = return_type(descriptor, cast(IDLType, rettype), infallible)
