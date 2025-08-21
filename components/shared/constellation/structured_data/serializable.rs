@@ -11,7 +11,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use base::id::{BlobId, DomExceptionId, DomPointId, DomQuadId, DomRectId, ImageBitmapId, QuotaExceededErrorId};
+use base::id::{BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId, QuotaExceededErrorId};
+use euclid::default::Transform3D;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use pixels::Snapshot;
@@ -55,6 +56,10 @@ pub enum Serializable {
     DomRectReadOnly,
     /// The `DOMQuad` interface.
     DomQuad,
+    /// The `DOMMatrix` interface.
+    DomMatrix,
+    /// The `DOMMatrixReadOnly` interface.
+    DomMatrixReadOnly,
     /// The `QuotaExceededError` interface.
     QuotaExceededError,
     /// The `DOMException` interface.
@@ -76,6 +81,8 @@ impl Serializable {
             Serializable::DomRect => StructuredSerializedData::clone_all_of_type::<DomRect>,
             Serializable::DomRectReadOnly => StructuredSerializedData::clone_all_of_type::<DomRect>,
             Serializable::DomQuad => StructuredSerializedData::clone_all_of_type::<DomQuad>,
+            Serializable::DomMatrix => StructuredSerializedData::clone_all_of_type::<DomMatrix>,
+            Serializable::DomMatrixReadOnly => StructuredSerializedData::clone_all_of_type::<DomMatrix>,
             Serializable::DomException => {
                 StructuredSerializedData::clone_all_of_type::<DomException>
             },
@@ -368,6 +375,35 @@ impl BroadcastClone for DomQuad {
         data: &mut StructuredSerializedData,
     ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
         &mut data.quads
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the DOMMatrix/DOMMatrixReadOnly interface.
+pub struct DomMatrix {
+    /// The matrix.
+    pub matrix: Transform3D<f64>,
+    /// Whether this matrix represents a 2D transformation.
+    pub is_2d: bool,
+}
+
+impl BroadcastClone for DomMatrix {
+    type Id = DomMatrixId;
+
+    fn source(
+        data: &StructuredSerializedData,
+    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+        &data.matrices
+    }
+
+    fn destination(
+        data: &mut StructuredSerializedData,
+    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+        &mut data.matrices
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {

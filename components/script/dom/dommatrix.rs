@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+
+use base::id::{DomMatrixId, DomMatrixIndex};
+use constellation_traits::DomMatrix;
 use dom_struct::dom_struct;
 use euclid::default::Transform3D;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
@@ -15,6 +19,8 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::Serializable;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dommatrixreadonly::{
     DOMMatrixReadOnly, dommatrixinit_to_matrix, entries_to_matrix, transform_to_matrix,
 };
@@ -470,5 +476,94 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         self.upcast::<DOMMatrixReadOnly>().invert_self();
         // Step 3.
         DomRoot::from_ref(self)
+    }
+}
+
+impl Serializable for DOMMatrix {
+    type Index = DomMatrixIndex;
+    type Data = DomMatrix;
+
+    fn serialize(&self) -> Result<(DomMatrixId, Self::Data), ()> {
+        let serialized: DomMatrix;
+        if self.parent.is2D() {
+            serialized = DomMatrix {
+                matrix: Transform3D::new(
+                    self.M11(),
+                    self.M12(),
+                    f64::NAN,
+                    f64::NAN,
+                    self.M21(),
+                    self.M22(),
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    self.M41(),
+                    self.M42(),
+                    f64::NAN,
+                    f64::NAN,
+                ),
+                is_2d: true,
+            };
+        } else {
+            serialized = DomMatrix {
+                matrix: *self.parent.matrix(),
+                is_2d: false,
+            };
+        }
+        Ok((DomMatrixId::new(), serialized))
+    }
+
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+    Self: Sized,
+    {
+        if serialized.is_2d {
+            Ok(Self::new(
+                owner,
+                true,
+                Transform3D::new(
+                    serialized.matrix.m11,
+                    serialized.matrix.m12,
+                    0.0,
+                    0.0,
+                    serialized.matrix.m21,
+                    serialized.matrix.m22,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    serialized.matrix.m41,
+                    serialized.matrix.m42,
+                    0.0,
+                    1.0,
+                ),
+                can_gc,
+            ))
+        } else {
+            Ok(Self::new(
+                owner,
+                false,
+                serialized.matrix,
+                can_gc,
+            ))
+        }
+    }
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<DomMatrixId, Self::Data>> {
+        match data {
+            StructuredData::Reader(reader) => &mut reader.matrices,
+            StructuredData::Writer(writer) => &mut writer.matrices,
+        }
     }
 }

@@ -5,7 +5,8 @@
 // https://drafts.fxtf.org/geometry/#dommatrix
 
 [Exposed=(Window,Worker,PaintWorklet),
- LegacyWindowAlias=(SVGMatrix,WebKitCSSMatrix)]
+ LegacyWindowAlias=(SVGMatrix,WebKitCSSMatrix),
+ Serializable]
 interface DOMMatrix : DOMMatrixReadOnly {
     [Throws] constructor(optional (DOMString or sequence<unrestricted double>) init);
 
