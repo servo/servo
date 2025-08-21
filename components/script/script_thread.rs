@@ -279,7 +279,7 @@ pub struct ScriptThread {
     docs_with_no_blocking_loads: DomRefCell<HashSet<Dom<Document>>>,
 
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
-    custom_element_reaction_stack: CustomElementReactionStack,
+    custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 
     /// Cross-process access to the compositor's API.
     #[no_trace]
@@ -724,8 +724,7 @@ impl ScriptThread {
     }
 
     pub(crate) fn get_fully_active_document_ids(&self) -> HashSet<PipelineId> {
-        self
-            .documents
+        self.documents
             .borrow()
             .iter()
             .filter_map(|(id, document)| {
@@ -808,19 +807,13 @@ impl ScriptThread {
             .register_paint_worklet_modules(name, properties, painter);
     }
 
-    pub(crate) fn push_new_element_queue() {
-        with_script_thread(|script_thread| {
+    pub(crate) fn custom_element_reaction_stack() -> Rc<CustomElementReactionStack> {
+        with_optional_script_thread(|script_thread| {
             script_thread
+                .as_ref()
+                .unwrap()
                 .custom_element_reaction_stack
-                .push_new_element_queue();
-        })
-    }
-
-    pub(crate) fn pop_current_element_queue(can_gc: CanGc) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .custom_element_reaction_stack
-                .pop_current_element_queue(can_gc);
+                .clone()
         })
     }
 
@@ -1004,7 +997,7 @@ impl ScriptThread {
             webxr_registry: state.webxr_registry,
             worklet_thread_pool: Default::default(),
             docs_with_no_blocking_loads: Default::default(),
-            custom_element_reaction_stack: CustomElementReactionStack::new(),
+            custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
             compositor_api: state.compositor_api,
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
@@ -3420,6 +3413,7 @@ impl ScriptThread {
             true,
             incomplete.load_data.inherited_insecure_requests_policy,
             incomplete.load_data.has_trustworthy_ancestor_origin,
+            self.custom_element_reaction_stack.clone(),
             can_gc,
         );
 

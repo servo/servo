@@ -453,7 +453,9 @@ impl ScriptThreadReceivers {
                 .ok()?;
             return MixedMessage::FromConstellation(message).into();
         }
-        if let Ok(message) = task_queue.take_tasks_and_recv(script_thread.get_fully_active_document_ids()) {
+        if let Ok(message) =
+            task_queue.take_tasks_and_recv(script_thread.get_fully_active_document_ids())
+        {
             return MixedMessage::FromScript(message).into();
         }
         if let Ok(message) = self.devtools_server_receiver.try_recv() {
