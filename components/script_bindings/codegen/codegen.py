@@ -433,7 +433,7 @@ class CGMethodCall(CGThing):
                 requiredArgs -= 1
             return requiredArgs
 
-        signatures: list[tuple[IDLType, list[IDLArgument]]] = method.signatures()
+        signatures = method.signatures()
 
         def getPerSignatureCall(signature: tuple[IDLType, list[IDLArgument]], argConversionStartsAt: int = 0) -> CGThing:
             signatureIndex = signatures.index(signature)
