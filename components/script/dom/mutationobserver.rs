@@ -9,22 +9,18 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, ns};
 use js::rust::HandleObject;
 
-use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserver_Binding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
     MutationCallback, MutationObserverInit,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::eventtarget::EventTarget;
 use crate::dom::mutationrecord::MutationRecord;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::window::Window;
-use crate::microtask::Microtask;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -91,59 +87,12 @@ impl MutationObserver {
         }
     }
 
-    /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
-    pub(crate) fn queue_mutation_observer_microtask() {
-        // Step 1. If the surrounding agent’s mutation observer microtask queued is true, then return.
-        if ScriptThread::is_mutation_observer_microtask_queued() {
-            return;
-        }
-
-        // Step 2. Set the surrounding agent’s mutation observer microtask queued to true.
-        ScriptThread::set_mutation_observer_microtask_queued(true);
-
-        // Step 3. Queue a microtask to notify mutation observers.
-        ScriptThread::enqueue_microtask(Microtask::NotifyMutationObservers);
+    pub(crate) fn record_queue(&self) -> &DomRefCell<Vec<DomRoot<MutationRecord>>> {
+        &self.record_queue
     }
 
-    /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
-    pub(crate) fn notify_mutation_observers(can_gc: CanGc) {
-        // Step 1. Set the surrounding agent’s mutation observer microtask queued to false.
-        ScriptThread::set_mutation_observer_microtask_queued(false);
-
-        // Step 2. Let notifySet be a clone of the surrounding agent’s pending mutation observers.
-        // TODO Step 3. Empty the surrounding agent’s pending mutation observers.
-        let notify_list = ScriptThread::get_mutation_observers();
-
-        // Step 4. Let signalSet be a clone of the surrounding agent’s signal slots.
-        // Step 5. Empty the surrounding agent’s signal slots.
-        let signal_set = ScriptThread::take_signal_slots();
-
-        // Step 6. For each mo of notifySet:
-        for mo in &notify_list {
-            // Step 6.1 Let records be a clone of mo’s record queue.
-            let queue: Vec<DomRoot<MutationRecord>> = mo.record_queue.borrow().clone();
-
-            // Step 6.2 Empty mo’s record queue.
-            mo.record_queue.borrow_mut().clear();
-
-            // TODO Step 6.3 For each node of mo’s node list, remove all transient registered observers
-            // whose observer is mo from node’s registered observer list.
-
-            // Step 6.4 If records is not empty, then invoke mo’s callback with « records,
-            // mo » and "report", and with callback this value mo.
-            if !queue.is_empty() {
-                let _ = mo
-                    .callback
-                    .Call_(&**mo, queue, mo, ExceptionHandling::Report, can_gc);
-            }
-        }
-
-        // Step 6. For each slot of signalSet, fire an event named slotchange,
-        // with its bubbles attribute set to true, at slot.
-        for slot in signal_set {
-            slot.upcast::<EventTarget>()
-                .fire_event(atom!("slotchange"), can_gc);
-        }
+    pub(crate) fn callback(&self) -> &Rc<MutationCallback> {
+        &self.callback
     }
 
     /// <https://dom.spec.whatwg.org/#queueing-a-mutation-record>
@@ -286,7 +235,8 @@ impl MutationObserver {
         }
 
         // Step 5
-        MutationObserver::queue_mutation_observer_microtask();
+        let mutation_observers = ScriptThread::mutation_observers();
+        mutation_observers.queue_mutation_observer_microtask(ScriptThread::microtask_queue());
     }
 }
 

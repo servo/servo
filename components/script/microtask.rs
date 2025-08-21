@@ -22,7 +22,6 @@ use crate::dom::defaultteereadrequest::DefaultTeeReadRequestMicrotask;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlimageelement::ImageElementMicrotask;
 use crate::dom::html::htmlmediaelement::MediaElementMicrotask;
-use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::promise::WaitForAllSuccessStepsMicrotask;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext, notify_about_rejected_promises};
@@ -118,13 +117,12 @@ impl MicrotaskQueue {
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
-                            let was_interacting = ScriptThread::is_user_interacting();
-                            ScriptThread::set_user_interacting(job.is_user_interacting);
+                            let _ = ScriptThread::is_user_interacting();
+                            let _ = ScriptThread::user_iteracting_guard();
                             let _realm = enter_realm(&*target);
                             let _ = job
                                 .callback
                                 .Call_(&*target, ExceptionHandling::Report, can_gc);
-                            ScriptThread::set_user_interacting(was_interacting);
                         }
                     },
                     Microtask::User(ref job) => {
@@ -155,7 +153,7 @@ impl MicrotaskQueue {
                         ScriptThread::invoke_backup_element_queue(can_gc);
                     },
                     Microtask::NotifyMutationObservers => {
-                        MutationObserver::notify_mutation_observers(can_gc);
+                        ScriptThread::mutation_observers().notify_mutation_observers(can_gc);
                     },
                 }
             }

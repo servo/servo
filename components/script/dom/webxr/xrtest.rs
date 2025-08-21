@@ -15,6 +15,7 @@ use js::jsval::JSVal;
 use profile_traits::ipc;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
+use crate::ScriptThread;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -27,7 +28,6 @@ use crate::dom::fakexrdevice::{FakeXRDevice, get_origin, get_views, get_world};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct XRTest {
@@ -181,7 +181,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn SimulateUserActivation(&self, f: Rc<Function>, can_gc: CanGc) {
-        ScriptThread::set_user_interacting(true);
+        let _ = ScriptThread::user_iteracting_guard();
         rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
         let _ = f.Call__(
             vec![],
@@ -189,7 +189,6 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             ExceptionHandling::Rethrow,
             can_gc,
         );
-        ScriptThread::set_user_interacting(false);
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
