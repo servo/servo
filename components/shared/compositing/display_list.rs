@@ -56,14 +56,14 @@ pub struct AxesScrollSensitivity {
     pub y: ScrollType,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SpatialTreeNodeInfo {
     ReferenceFrame(ReferenceFrameNodeInfo),
     Scroll(ScrollableNodeInfo),
     Sticky(StickyNodeInfo),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct StickyNodeInfo {
     pub frame_rect: LayoutRect,
     pub margins: SideOffsets2D<Option<f32>, LayoutPixel>,
@@ -160,7 +160,7 @@ impl StickyNodeInfo {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ReferenceFrameNodeInfo {
     pub origin: LayoutPoint,
     /// Origin of this frame relative to the document for bounding box queries.
@@ -172,7 +172,7 @@ pub struct ReferenceFrameNodeInfo {
 
 /// Data stored for nodes in the [ScrollTree] that actually scroll,
 /// as opposed to reference frames and sticky nodes which do not.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollableNodeInfo {
     /// The external scroll id of this node, used to track
     /// it between successive re-layouts.
@@ -278,7 +278,7 @@ impl ScrollableNodeInfo {
 /// Potential ideas for improvement:
 ///  - Test optimizing simple translations to avoid having to do full matrix
 ///    multiplication when transforms are not involved.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollTreeNodeTransformationCache {
     node_to_root_transform: FastLayoutTransform,
     root_to_node_transform: Option<FastLayoutTransform>,
@@ -290,7 +290,7 @@ struct AncestorStickyInfo {
     nearest_scrolling_ancestor_viewport: LayoutRect,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 /// A node in a tree of scroll nodes. This may either be a scrollable
 /// node which responds to scroll events or a non-scrollable one.
 pub struct ScrollTreeNode {
@@ -421,7 +421,7 @@ impl ScrollTreeNode {
 /// A tree of spatial nodes, which mirrors the spatial nodes in the WebRender
 /// display list, except these are used to scrolling in the compositor so that
 /// new offsets can be sent to WebRender.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollTree {
     /// A list of compositor-side scroll nodes that describe the tree
     /// of WebRender spatial nodes, used by the compositor to scroll the
@@ -778,7 +778,7 @@ impl ScrollTree {
 
 /// A data structure which stores compositor-side information about
 /// display lists sent to the compositor.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CompositorDisplayListInfo {
     /// The WebRender [PipelineId] of this display list.
     pub pipeline_id: PipelineId,

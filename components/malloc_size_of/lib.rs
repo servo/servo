@@ -643,6 +643,12 @@ impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Point2D<T, U> {
     }
 }
 
+impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Box2D<T, U> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.min.size_of(ops) + self.max.size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Rect<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.origin.size_of(ops) + self.size.size_of(ops)
@@ -826,7 +832,9 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BorderRadius);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BorderStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BoxShadowClipMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ColorF);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::Epoch);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExtendMode);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExternalScrollId);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontInstanceKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GlyphInstance);
@@ -836,8 +844,14 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ImageRendering);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::LineStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::MixBlendMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::NormalBorder);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::PipelineId);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ReferenceFrameKind);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::RepeatMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontVariation);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::SpatialId);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::StickyOffsetBounds);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::TransformStyle);
+malloc_size_of_is_webrender_malloc_size_of!(webrender::FastTransform<webrender_api::units::LayoutPixel,webrender_api::units::LayoutPixel>);
 
 macro_rules! malloc_size_of_is_stylo_malloc_size_of(
     ($($ty:ty),+) => (
@@ -892,6 +906,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrIdentifier);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrValue);
 malloc_size_of_is_stylo_malloc_size_of!(style::color::AbsoluteColor);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_caps::T);
+malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_style::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
 malloc_size_of_is_stylo_malloc_size_of!(style::logical_geometry::WritingMode);

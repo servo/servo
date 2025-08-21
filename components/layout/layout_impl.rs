@@ -459,6 +459,12 @@ impl Layout for LayoutThread {
                 .unwrap_or_default(),
         });
 
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "stacking-context-tree"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: self.stacking_context_tree.size_of(ops),
+        });
+
         reports.push(self.image_cache.memory_report(formatted_url, ops));
     }
 
