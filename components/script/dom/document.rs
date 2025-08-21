@@ -124,7 +124,7 @@ use crate::dom::cdatasection::CDATASection;
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::customelementregistry::CustomElementDefinition;
+use crate::dom::customelementregistry::{CustomElementDefinition, CustomElementReactionStack};
 use crate::dom::customevent::CustomEvent;
 use crate::dom::document_event_handler::DocumentEventHandler;
 use crate::dom::documentfragment::DocumentFragment;
@@ -556,6 +556,10 @@ pub(crate) struct Document {
     /// When a `ResizeObserver` starts observing a target, this becomes true, which in turn is a
     /// signal to the [`ScriptThread`] that a rendering update should happen.
     resize_observer_started_observing_target: Cell<bool>,
+
+    /// The global custom element reaction stack for this script thread.
+    #[conditional_malloc_size_of]
+    custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 }
 
 #[allow(non_snake_case)]
@@ -3219,6 +3223,7 @@ impl Document {
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
+        custom_element_reaction_stack: Rc<CustomElementReactionStack>,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3390,6 +3395,7 @@ impl Document {
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_event_targets: Default::default(),
             resize_observer_started_observing_target: Cell::new(false),
+            custom_element_reaction_stack,
         }
     }
 
@@ -3492,6 +3498,7 @@ impl Document {
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
+        custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3513,6 +3520,7 @@ impl Document {
             allow_declarative_shadow_roots,
             inherited_insecure_requests_policy,
             has_trustworthy_ancestor_origin,
+            custom_element_reaction_stack,
             can_gc,
         )
     }
@@ -3537,6 +3545,7 @@ impl Document {
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
+        custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -3558,6 +3567,7 @@ impl Document {
                 allow_declarative_shadow_roots,
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,
+                custom_element_reaction_stack,
             )),
             window,
             proto,
@@ -3692,6 +3702,7 @@ impl Document {
                     self.allow_declarative_shadow_roots(),
                     Some(self.insecure_requests_policy()),
                     self.has_trustworthy_ancestor_or_current_origin(),
+                    self.custom_element_reaction_stack.clone(),
                     can_gc,
                 );
                 new_doc
@@ -4369,6 +4380,10 @@ impl Document {
     pub(crate) fn highlighted_dom_node(&self) -> Option<DomRoot<Node>> {
         self.highlighted_dom_node.get()
     }
+
+    pub(crate) fn custom_element_reaction_stack(&self) -> Rc<CustomElementReactionStack> {
+        self.custom_element_reaction_stack.clone()
+    }
 }
 
 #[allow(non_snake_case)]
@@ -4400,6 +4415,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.allow_declarative_shadow_roots(),
             Some(doc.insecure_requests_policy()),
             doc.has_trustworthy_ancestor_or_current_origin(),
+            doc.custom_element_reaction_stack(),
             can_gc,
         ))
     }
