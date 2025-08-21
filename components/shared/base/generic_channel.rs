@@ -156,7 +156,7 @@ pub fn channel<T>() -> Option<(GenericSender<T>, GenericReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    if servo_config::opts::get().multiprocess {
+    if servo_config::opts::get().multiprocess || servo_config::opts::get().force_ipc {
         ipc_channel::ipc::channel()
             .map(|(tx, rx)| (GenericSender::Ipc(tx), GenericReceiver::Ipc(rx)))
             .ok()

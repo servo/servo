@@ -47,6 +47,10 @@ pub struct Opts {
     /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
 
+    /// Whether to force using ipc_channel instead of crossbeam_channel in singleprocess mode. Does
+    /// nothing in multiprocess mode.
+    pub force_ipc: bool,
+
     /// Whether we want background hang monitor enabled or not
     pub background_hang_monitor: bool,
 
@@ -189,6 +193,7 @@ impl Default for Opts {
             user_stylesheets: Vec::new(),
             hard_fail: true,
             multiprocess: false,
+            force_ipc: false,
             background_hang_monitor: false,
             random_pipeline_closure_probability: None,
             random_pipeline_closure_seed: None,
