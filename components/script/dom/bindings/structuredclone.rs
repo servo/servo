@@ -10,10 +10,10 @@ use std::os::raw;
 use std::ptr;
 
 use base::id::{
-    BlobId, DomExceptionId, DomPointId, DomRectId, ImageBitmapId, Index, MessagePortId, NamespaceIndex, OffscreenCanvasId, PipelineNamespaceId, QuotaExceededErrorId
+    BlobId, DomExceptionId, DomPointId, DomQuadId, DomRectId, ImageBitmapId, Index, MessagePortId, NamespaceIndex, OffscreenCanvasId, PipelineNamespaceId, QuotaExceededErrorId
 };
 use constellation_traits::{
-    BlobImpl, DomException, DomPoint, DomRect, MessagePortImpl, Serializable as SerializableInterface, SerializableImageBitmap, SerializableQuotaExceededError, StructuredSerializedData, TransferableOffscreenCanvas, Transferrable as TransferrableInterface, TransformStreamData
+    BlobImpl, DomException, DomPoint, DomQuad, DomRect, MessagePortImpl, Serializable as SerializableInterface, SerializableImageBitmap, SerializableQuotaExceededError, StructuredSerializedData, TransferableOffscreenCanvas, Transferrable as TransferrableInterface, TransformStreamData
 };
 use js::gc::RootedVec;
 use js::glue::{
@@ -46,7 +46,7 @@ use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageport::MessagePort;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::types::{DOMException, DOMRect, DOMRectReadOnly, QuotaExceededError, TransformStream};
+use crate::dom::types::{DOMException, DOMQuad, DOMRect, DOMRectReadOnly, QuotaExceededError, TransformStream};
 use crate::dom::writablestream::WritableStream;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -73,6 +73,7 @@ pub(super) enum StructuredCloneTags {
     QuotaExceededError = 0xFFFF800C,
     DomRect = 0xFFFF800D,
     DomRectReadOnly = 0xFFFF800E,
+    DomQuad = 0xFFFF800F,
     Max = 0xFFFFFFFF,
 }
 
@@ -84,6 +85,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
             SerializableInterface::DomPointReadOnly => StructuredCloneTags::DomPointReadOnly,
             SerializableInterface::DomRect => StructuredCloneTags::DomRect,
             SerializableInterface::DomRectReadOnly => StructuredCloneTags::DomRectReadOnly,
+            SerializableInterface::DomQuad => StructuredCloneTags::DomQuad,
             SerializableInterface::DomException => StructuredCloneTags::DomException,
             SerializableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
             SerializableInterface::QuotaExceededError => StructuredCloneTags::QuotaExceededError,
@@ -118,6 +120,7 @@ fn reader_for_type(
         SerializableInterface::DomPointReadOnly => read_object::<DOMPointReadOnly>,
         SerializableInterface::DomRect => read_object::<DOMRect>,
         SerializableInterface::DomRectReadOnly => read_object::<DOMRectReadOnly>,
+        SerializableInterface::DomQuad => read_object::<DOMQuad>,
         SerializableInterface::DomException => read_object::<DOMException>,
         SerializableInterface::ImageBitmap => read_object::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => read_object::<QuotaExceededError>,
@@ -265,6 +268,7 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::DomPointReadOnly => try_serialize::<DOMPointReadOnly>,
         SerializableInterface::DomRect => try_serialize::<DOMRect>,
         SerializableInterface::DomRectReadOnly => try_serialize::<DOMRectReadOnly>,
+        SerializableInterface::DomQuad => try_serialize::<DOMQuad>,
         SerializableInterface::DomException => try_serialize::<DOMException>,
         SerializableInterface::ImageBitmap => try_serialize::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => try_serialize::<QuotaExceededError>,
@@ -579,6 +583,8 @@ pub(crate) struct StructuredDataReader<'a> {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// A map of serialized rects.
     pub(crate) rects: Option<HashMap<DomRectId, DomRect>>,
+    /// A map of serialized quads.
+    pub(crate) quads: Option<HashMap<DomQuadId, DomQuad>>,
     /// A map of serialized exceptions.
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// A map of serialized quota exceeded errors.
@@ -606,6 +612,8 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// Serialized rects.
     pub(crate) rects: Option<HashMap<DomRectId, DomRect>>,
+    /// Serialized quads.
+    pub(crate) quads: Option<HashMap<DomQuadId, DomQuad>>,
     /// Serialized exceptions.
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// Serialized quota exceeded errors.
@@ -675,6 +683,7 @@ pub(crate) fn write(
             transform_streams: sc_writer.transform_streams_port.take(),
             points: sc_writer.points.take(),
             rects: sc_writer.rects.take(),
+            quads: sc_writer.quads.take(),
             exceptions: sc_writer.exceptions.take(),
             quota_exceeded_errors: sc_writer.quota_exceeded_errors.take(),
             blobs: sc_writer.blobs.take(),
@@ -705,6 +714,7 @@ pub(crate) fn read(
         blob_impls: data.blobs.take(),
         points: data.points.take(),
         rects: data.rects.take(),
+        quads: data.quads.take(),
         exceptions: data.exceptions.take(),
         quota_exceeded_errors: data.quota_exceeded_errors.take(),
         image_bitmaps: data.image_bitmaps.take(),

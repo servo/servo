@@ -11,7 +11,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use base::id::{BlobId, DomExceptionId, DomPointId, DomRectId, ImageBitmapId, QuotaExceededErrorId};
+use base::id::{BlobId, DomExceptionId, DomPointId, DomQuadId, DomRectId, ImageBitmapId, QuotaExceededErrorId};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use pixels::Snapshot;
@@ -53,6 +53,8 @@ pub enum Serializable {
     DomRect,
     /// The `DOMRectReadOnly` interface.
     DomRectReadOnly,
+    /// The `DOMQuad` interface.
+    DomQuad,
     /// The `QuotaExceededError` interface.
     QuotaExceededError,
     /// The `DOMException` interface.
@@ -73,6 +75,7 @@ impl Serializable {
             },
             Serializable::DomRect => StructuredSerializedData::clone_all_of_type::<DomRect>,
             Serializable::DomRectReadOnly => StructuredSerializedData::clone_all_of_type::<DomRect>,
+            Serializable::DomQuad => StructuredSerializedData::clone_all_of_type::<DomQuad>,
             Serializable::DomException => {
                 StructuredSerializedData::clone_all_of_type::<DomException>
             },
@@ -332,6 +335,39 @@ impl BroadcastClone for DomRect {
         data: &mut StructuredSerializedData,
     ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
         &mut data.rects
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the DOMQuad interface.
+pub struct DomQuad {
+    /// The first point.
+    pub p1: DomPoint,
+    /// The second point.
+    pub p2: DomPoint,
+    /// The third point.
+    pub p3: DomPoint,
+    /// The fourth point.
+    pub p4: DomPoint,
+}
+
+impl BroadcastClone for DomQuad {
+    type Id = DomQuadId;
+
+    fn source(
+        data: &StructuredSerializedData,
+    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+        &data.quads
+    }
+
+    fn destination(
+        data: &mut StructuredSerializedData,
+    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+        &mut data.quads
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {
