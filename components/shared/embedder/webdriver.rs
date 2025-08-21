@@ -157,7 +157,7 @@ pub enum WebDriverCommandMsg {
     /// Get focused webview. For now, this is only used when start new session.
     GetFocusedWebView(IpcSender<Option<WebViewId>>),
     /// Get webviews state
-    GetAllWebViewsForWindowHandles(IpcSender<Vec<(WebViewId, Option<String>)>>),
+    GetAllWebViews(IpcSender<Vec<WebViewId>>),
     /// Check whether top-level browsing context is open.
     IsWebViewOpen(WebViewId, IpcSender<bool>),
     /// Check whether browsing context is open.
@@ -246,7 +246,6 @@ pub enum WebDriverScriptCommand {
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
     AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
     RemoveLoadStatusSender(WebViewId),
-    GetWindowHandle(IpcSender<Result<String, ErrorStatus>>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

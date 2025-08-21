@@ -1056,6 +1056,7 @@ impl Handler {
         let handle = self
             .get_window_handle(webview_id)
             .expect("Failed to get window handle of an existing webview");
+
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(handle)?,
         )))
@@ -1063,11 +1064,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#get-window-handles>
     fn handle_window_handles(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let mut handles = self
-            .get_window_handles()?
-            .values()
-            .cloned()
-            .collect::<Vec<_>>();
+        let mut handles = self.get_window_handles()?;
         handles.sort();
 
         let handles = handles
@@ -1082,7 +1079,8 @@ impl Handler {
 
     fn get_window_handle(&mut self, webview_id: WebViewId) -> WebDriverResult<String> {
         self.get_window_handles()?
-            .get(&webview_id)
+            .iter()
+            .find(|id| id == &&webview_id.to_string())
             .cloned()
             .ok_or_else(|| {
                 WebDriverError::new(
@@ -1092,37 +1090,22 @@ impl Handler {
             })
     }
 
-    fn get_window_handles(&mut self) -> WebDriverResult<HashMap<WebViewId, String>> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViewsForWindowHandles(sender))?;
+    fn get_window_handles(&self) -> WebDriverResult<Vec<String>> {
+        let handles = self
+            .get_all_webview_ids()?
+            .into_iter()
+            .map(|id| id.to_string())
+            .collect::<Vec<_>>();
 
+        Ok(handles)
+    }
+
+    fn get_all_webview_ids(&self) -> WebDriverResult<Vec<WebViewId>> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViews(sender))?;
         let webviews = wait_for_ipc_response(receiver)?;
 
-        let mut new_window_handles = HashMap::new();
-        for (id, cache_handle) in webviews.into_iter() {
-            if let Some(handle) = cache_handle {
-                new_window_handles.insert(id, handle);
-                continue;
-            }
-
-            let (sender, receiver) = ipc::channel().unwrap();
-            self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
-                BrowsingContextId::from(id),
-                WebDriverScriptCommand::GetWindowHandle(sender),
-            ))?;
-
-            let handle = match wait_for_ipc_response(receiver)? {
-                Ok(handle) => handle,
-                Err(_) => {
-                    return Err(WebDriverError::new(
-                        ErrorStatus::UnknownError,
-                        "Failed to get window handle",
-                    ));
-                },
-            };
-            new_window_handles.insert(id, handle);
-        }
-        Ok(new_window_handles)
+        Ok(webviews)
     }
 
     /// <https://w3c.github.io/webdriver/#find-element>
@@ -1156,7 +1139,7 @@ impl Handler {
         wait_for_ipc_response(receiver)?;
 
         // Step 4. If there are no more open top-level browsing contexts, try to close the session.
-        let window_handles: Vec<String> = self.get_window_handles()?.values().cloned().collect();
+        let window_handles = self.get_window_handles()?;
 
         if window_handles.is_empty() {
             self.session = None;
@@ -1280,11 +1263,10 @@ impl Handler {
         &mut self,
         parameters: &SwitchToWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let window_handles = self.get_window_handles()?;
+        let window_handles = self.get_all_webview_ids()?;
         let Some(webview_id) = window_handles
             .iter()
-            .find(|(_k, v)| **v == parameters.handle)
-            .map(|(k, _v)| k)
+            .find(|id| id.to_string() == parameters.handle)
         else {
             return Err(WebDriverError::new(
                 ErrorStatus::NoSuchWindow,

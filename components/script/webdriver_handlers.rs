@@ -460,9 +460,7 @@ unsafe fn jsval_to_webdriver_inner(
             } else {
                 let pipeline = window.pipeline_id();
                 if window_proxy.browsing_context_id() == window_proxy.webview_id() {
-                    Ok(JSValue::Window(
-                        window.Document().upcast::<Node>().unique_id(pipeline),
-                    ))
+                    Ok(JSValue::Window(window.webview_id().to_string()))
                 } else {
                     Ok(JSValue::Frame(
                         window.Document().upcast::<Node>().unique_id(pipeline),
@@ -2074,18 +2072,5 @@ pub(crate) fn handle_remove_load_status_sender(
     if let Some(document) = documents.find_document(pipeline) {
         let window = document.window();
         window.set_webdriver_load_status_sender(None);
-    }
-}
-
-pub(crate) fn handle_get_window_handle(
-    pipeline_id: PipelineId,
-    reply: IpcSender<Result<String, ErrorStatus>>,
-) {
-    if let Some(res) = ScriptThread::find_document(pipeline_id)
-        .map(|document| document.upcast::<Node>().unique_id(pipeline_id))
-    {
-        reply.send(Ok(res)).ok();
-    } else {
-        reply.send(Err(ErrorStatus::NoSuchWindow)).ok();
     }
 }
