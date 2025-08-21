@@ -11,7 +11,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use base::id::{BlobId, DomExceptionId, DomPointId, ImageBitmapId, QuotaExceededErrorId};
+use base::id::{BlobId, DomExceptionId, DomPointId, DomRectId, ImageBitmapId, QuotaExceededErrorId};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use pixels::Snapshot;
@@ -49,6 +49,10 @@ pub enum Serializable {
     DomPoint,
     /// The `DOMPointReadOnly` interface.
     DomPointReadOnly,
+    /// The `DOMRect` interface.
+    DomRect,
+    /// The `DOMRectReadOnly` interface.
+    DomRectReadOnly,
     /// The `QuotaExceededError` interface.
     QuotaExceededError,
     /// The `DOMException` interface.
@@ -63,10 +67,12 @@ impl Serializable {
     ) -> fn(&StructuredSerializedData, &mut StructuredSerializedData) {
         match self {
             Serializable::Blob => StructuredSerializedData::clone_all_of_type::<BlobImpl>,
+            Serializable::DomPoint => StructuredSerializedData::clone_all_of_type::<DomPoint>,
             Serializable::DomPointReadOnly => {
                 StructuredSerializedData::clone_all_of_type::<DomPoint>
             },
-            Serializable::DomPoint => StructuredSerializedData::clone_all_of_type::<DomPoint>,
+            Serializable::DomRect => StructuredSerializedData::clone_all_of_type::<DomRect>,
+            Serializable::DomRectReadOnly => StructuredSerializedData::clone_all_of_type::<DomRect>,
             Serializable::DomException => {
                 StructuredSerializedData::clone_all_of_type::<DomException>
             },
@@ -293,6 +299,39 @@ impl BroadcastClone for DomPoint {
         data: &mut StructuredSerializedData,
     ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
         &mut data.points
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the DOMRect/DOMRectReadOnly interface.
+pub struct DomRect {
+    /// The x coordinate.
+    pub x: f64,
+    /// The y coordinate.
+    pub y: f64,
+    /// The width.
+    pub width: f64,
+    /// The height.
+    pub height: f64,
+}
+
+impl BroadcastClone for DomRect {
+    type Id = DomRectId;
+
+    fn source(
+        data: &StructuredSerializedData,
+    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+        &data.rects
+    }
+
+    fn destination(
+        data: &mut StructuredSerializedData,
+    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+        &mut data.rects
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {

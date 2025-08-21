@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+
+use base::id::{DomRectId, DomRectIndex};
+use constellation_traits::DomRect;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
@@ -12,6 +16,8 @@ use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::Serializable;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::domrectreadonly::{DOMRectReadOnly, create_a_domrectreadonly_from_the_dictionary};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
@@ -119,5 +125,47 @@ impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
     // https://drafts.fxtf.org/geometry/#dom-domrect-height
     fn SetHeight(&self, value: f64) {
         self.rect.set_height(value);
+    }
+}
+
+impl Serializable for DOMRect {
+    type Index = DomRectIndex;
+    type Data = DomRect;
+
+    fn serialize(&self) -> Result<(DomRectId, Self::Data), ()> {
+        let serialized = DomRect {
+            x: self.X(),
+            y: self.Y(),
+            width: self.Width(),
+            height: self.Height(),
+        };
+        Ok((DomRectId::new(), serialized))
+    }
+
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+    Self: Sized,
+    {
+        Ok(Self::new(
+            owner,
+            serialized.x,
+            serialized.y,
+            serialized.width,
+            serialized.height,
+            can_gc,
+        ))
+    }
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<DomRectId, Self::Data>> {
+        match data {
+            StructuredData::Reader(reader) => &mut reader.rects,
+            StructuredData::Writer(writer) => &mut writer.rects,
+        }
     }
 }

@@ -11,8 +11,7 @@ mod transferable;
 use std::collections::HashMap;
 
 use base::id::{
-    BlobId, DomExceptionId, DomPointId, ImageBitmapId, MessagePortId, OffscreenCanvasId,
-    QuotaExceededErrorId,
+    BlobId, DomExceptionId, DomPointId, DomRectId, ImageBitmapId, MessagePortId, OffscreenCanvasId, QuotaExceededErrorId
 };
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -31,6 +30,8 @@ pub struct StructuredSerializedData {
     pub blobs: Option<HashMap<BlobId, BlobImpl>>,
     /// Serialized point objects.
     pub points: Option<HashMap<DomPointId, DomPoint>>,
+    /// Serialized rect objects.
+    pub rects: Option<HashMap<DomRectId, DomRect>>,
     /// Serialized exception objects.
     pub exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// Serialized quota exceeded errors.

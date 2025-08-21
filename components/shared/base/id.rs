@@ -366,6 +366,12 @@ namespace_id! {BlobId, BlobIndex, "Blob"}
 
 namespace_id! {DomPointId, DomPointIndex, "DomPoint"}
 
+namespace_id! {DomRectId, DomRectIndex, "DomRect"}
+
+namespace_id! {DomQuadId, DomQuadIndex, "DomQuad"}
+
+namespace_id! {DomMatrixId, DomMatrixIndex, "DomMatrix"}
+
 namespace_id! {DomExceptionId, DomExceptionIndex, "DomException"}
 
 namespace_id! {QuotaExceededErrorId, QuotaExceededErrorIndex, "QuotaExceededError"}
