@@ -137,8 +137,6 @@ pub enum ScriptThreadMessage {
     ThemeChange(PipelineId, Theme),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, ViewportDetails),
-    /// Window switched from fullscreen mode.
-    ExitFullScreen(PipelineId),
     /// Notifies the script that the document associated with this pipeline should 'unload'.
     UnloadDocument(PipelineId),
     /// Notifies the script that a pipeline should be closed.

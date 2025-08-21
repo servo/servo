@@ -83,8 +83,6 @@ pub enum EmbedderToConstellationMessage {
     RefreshCursor(PipelineId, Point2D<f32, CSSPixel>),
     /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
     ToggleProfiler(Duration, Duration),
-    /// Request to exit from fullscreen mode
-    ExitFullScreen(WebViewId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
     /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.

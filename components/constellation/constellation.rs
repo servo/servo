@@ -1477,9 +1477,6 @@ where
                     }
                 }
             },
-            EmbedderToConstellationMessage::ExitFullScreen(webview_id) => {
-                self.handle_exit_fullscreen_msg(webview_id);
-            },
             EmbedderToConstellationMessage::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
@@ -5005,13 +5002,6 @@ where
         self.resize_browsing_context(new_viewport_details, size_type, browsing_context_id);
     }
 
-    /// Called when the window exits from fullscreen mode
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_exit_fullscreen_msg(&mut self, webview_id: WebViewId) {
-        let browsing_context_id = BrowsingContextId::from(webview_id);
-        self.switch_fullscreen_mode(browsing_context_id);
-    }
-
     /// Checks the state of all script and layout pipelines to see if they are idle
     /// and compares the current layout state to what the compositor has. This is used
     /// to check if the output image is "stable" and can be written as a screenshot
@@ -5230,26 +5220,6 @@ where
                     pipeline.id,
                 );
             }
-        }
-    }
-
-    // Handle switching from fullscreen mode
-    #[servo_tracing::instrument(skip_all)]
-    fn switch_fullscreen_mode(&mut self, browsing_context_id: BrowsingContextId) {
-        if let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) {
-            let pipeline_id = browsing_context.pipeline_id;
-            let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => {
-                    return warn!(
-                        "{}: Switched from fullscreen mode after closing",
-                        pipeline_id
-                    );
-                },
-                Some(pipeline) => pipeline,
-            };
-            let _ = pipeline
-                .event_loop
-                .send(ScriptThreadMessage::ExitFullScreen(pipeline.id));
         }
     }
 

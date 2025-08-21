@@ -1413,10 +1413,6 @@ impl ScriptThread {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
                     // Continue without adding it to "sequential".
                 },
-                MixedMessage::FromConstellation(ScriptThreadMessage::ExitFullScreen(id)) => self
-                    .profile_event(ScriptThreadEventCategory::ExitFullscreen, Some(id), || {
-                        self.handle_exit_fullscreen(id, can_gc);
-                    }),
                 _ => {
                     sequential.push(event);
                 },
@@ -1860,7 +1856,6 @@ impl ScriptThread {
             msg @ ScriptThreadMessage::AttachLayout(..) |
             msg @ ScriptThreadMessage::Viewport(..) |
             msg @ ScriptThreadMessage::Resize(..) |
-            msg @ ScriptThreadMessage::ExitFullScreen(..) |
             msg @ ScriptThreadMessage::SendInputEvent(..) |
             msg @ ScriptThreadMessage::TickAllAnimations(..) |
             msg @ ScriptThreadMessage::ExitScriptThread => {
@@ -2468,15 +2463,6 @@ impl ScriptThread {
     fn handle_theme_change_msg(&self, theme: Theme) {
         for (_, document) in self.documents.borrow().iter() {
             document.window().handle_theme_change(theme);
-        }
-    }
-
-    // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
-    fn handle_exit_fullscreen(&self, id: PipelineId, can_gc: CanGc) {
-        let document = self.documents.borrow().find_document(id);
-        if let Some(document) = document {
-            let _ac = enter_realm(&*document);
-            document.exit_fullscreen(can_gc);
         }
     }
 

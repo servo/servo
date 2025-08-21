@@ -516,9 +516,7 @@ impl WebView {
     }
 
     pub fn exit_fullscreen(&self) {
-        self.inner()
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::ExitFullScreen(self.id()));
+        self.evaluate_javascript("document.exitFullscreen()", |_| {});
     }
 
     pub fn set_throttled(&self, throttled: bool) {

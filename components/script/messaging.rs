@@ -90,7 +90,6 @@ impl MixedMessage {
                 ScriptThreadMessage::ReportCSSError(id, ..) => Some(*id),
                 ScriptThreadMessage::Reload(id, ..) => Some(*id),
                 ScriptThreadMessage::PaintMetric(id, ..) => Some(*id),
-                ScriptThreadMessage::ExitFullScreen(id, ..) => Some(*id),
                 ScriptThreadMessage::MediaSessionAction(..) => None,
                 #[cfg(feature = "webgpu")]
                 ScriptThreadMessage::SetWebGPUPort(..) => None,

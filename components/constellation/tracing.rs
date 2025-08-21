@@ -69,7 +69,6 @@ mod from_compositor {
                 Self::ForwardInputEvent(_webview_id, event, ..) => event.log_target(),
                 Self::RefreshCursor(..) => target!("RefreshCursor"),
                 Self::ToggleProfiler(..) => target!("EnableProfiler"),
-                Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
                 Self::SetScrollStates(..) => target!("SetScrollStates"),
