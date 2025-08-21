@@ -52,6 +52,7 @@ pub const SBIX: OpenTypeTableTag = ot_tag!('s', 'b', 'i', 'x');
 pub const CBDT: OpenTypeTableTag = ot_tag!('C', 'B', 'D', 'T');
 pub const COLR: OpenTypeTableTag = ot_tag!('C', 'O', 'L', 'R');
 pub const BASE: OpenTypeTableTag = ot_tag!('B', 'A', 'S', 'E');
+pub const LIGA: OpenTypeTableTag = ot_tag!('l', 'i', 'g', 'a');
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
