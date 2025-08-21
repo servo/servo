@@ -132,7 +132,7 @@ pub struct InitialPipelineState {
     pub script_to_constellation_chan: ScriptToConstellationChan,
 
     /// A sender to request pipeline namespace ids.
-    pub namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
+    pub namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
@@ -470,7 +470,7 @@ pub struct UnprivilegedPipelineContent {
     browsing_context_id: BrowsingContextId,
     parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
-    namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
+    namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
     script_to_constellation_chan: ScriptToConstellationChan,
     background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
     bhm_control_port: Option<IpcReceiver<BackgroundHangMonitorControlMsg>>,
