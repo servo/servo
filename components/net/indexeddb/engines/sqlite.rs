@@ -83,7 +83,6 @@ impl SqliteEngine {
     pub fn new(
         base_dir: &Path,
         db_info: &IndexedDBDescription,
-        version: u64,
         pool: Arc<CoreResourceThreadPool>,
     ) -> Result<Self, Error> {
         let mut db_path = PathBuf::new();
@@ -96,7 +95,7 @@ impl SqliteEngine {
             std::fs::create_dir_all(db_parent).unwrap();
             std::fs::File::create(&db_path).unwrap();
         }
-        let connection = Self::init_db(&db_path, db_info, version)?;
+        let connection = Self::init_db(&db_path, db_info)?;
 
         for stmt in DB_PRAGMAS {
             // TODO: Handle errors properly
@@ -111,11 +110,7 @@ impl SqliteEngine {
         })
     }
 
-    fn init_db(
-        path: &Path,
-        db_info: &IndexedDBDescription,
-        version: u64,
-    ) -> Result<Connection, Error> {
+    fn init_db(path: &Path, db_info: &IndexedDBDescription) -> Result<Connection, Error> {
         let connection = Connection::open(path)?;
         if connection.table_exists(None, "database")? {
             // Database already exists, no need to initialize
@@ -127,12 +122,13 @@ impl SqliteEngine {
             let _ = connection.execute(stmt, ());
         }
         create::create_tables(&connection)?;
+        // From https://w3c.github.io/IndexedDB/#database-version:
+        // "When a database is first created, its version is 0 (zero)."
         connection.execute(
-            "INSERT INTO database (name, origin, version) VALUES (?, ?, ?)",
+            "INSERT INTO database (name, origin, version) VALUES (?, ?, 0)",
             params![
                 db_info.name.to_owned(),
                 db_info.origin.to_owned().ascii_serialization(),
-                i64::from_ne_bytes(version.to_ne_bytes())
             ],
         )?;
         Ok(connection)
