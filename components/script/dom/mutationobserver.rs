@@ -8,6 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, ns};
 use js::rust::HandleObject;
+use script_bindings::root::Dom;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
@@ -23,6 +24,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::mutationrecord::MutationRecord;
 use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::types::HTMLSlotElement;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
 use crate::script_runtime::CanGc;
@@ -93,13 +95,17 @@ impl MutationObserver {
 
     /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
     pub(crate) fn queue_mutation_observer_microtask() {
+        let mutation_observers = ScriptThread::mutation_observers();
+
         // Step 1. If the surrounding agent’s mutation observer microtask queued is true, then return.
-        if ScriptThread::is_mutation_observer_microtask_queued() {
+        if mutation_observers.mutation_observer_microtask_queued.get() {
             return;
         }
 
         // Step 2. Set the surrounding agent’s mutation observer microtask queued to true.
-        ScriptThread::set_mutation_observer_microtask_queued(true);
+        mutation_observers
+            .mutation_observer_microtask_queued
+            .set(true);
 
         // Step 3. Queue a microtask to notify mutation observers.
         ScriptThread::enqueue_microtask(Microtask::NotifyMutationObservers);
@@ -107,19 +113,24 @@ impl MutationObserver {
 
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
     pub(crate) fn notify_mutation_observers(can_gc: CanGc) {
+        let mutation_observers = ScriptThread::mutation_observers();
+
         // Step 1. Set the surrounding agent’s mutation observer microtask queued to false.
-        ScriptThread::set_mutation_observer_microtask_queued(false);
+        mutation_observers
+            .mutation_observer_microtask_queued
+            .set(false);
 
         // Step 2. Let notifySet be a clone of the surrounding agent’s pending mutation observers.
         // TODO Step 3. Empty the surrounding agent’s pending mutation observers.
-        let notify_list = ScriptThread::get_mutation_observers();
+        let notify_list = mutation_observers.mutation_observers.borrow();
 
         // Step 4. Let signalSet be a clone of the surrounding agent’s signal slots.
         // Step 5. Empty the surrounding agent’s signal slots.
-        let signal_set = ScriptThread::take_signal_slots();
+        let signal_set: Vec<DomRoot<HTMLSlotElement>> = ScriptThread::take_signal_slots();
 
         // Step 6. For each mo of notifySet:
-        for mo in &notify_list {
+        let notify_list: &Vec<Dom<MutationObserver>> = notify_list.as_ref();
+        for mo in notify_list {
             // Step 6.1 Let records be a clone of mo’s record queue.
             let queue: Vec<DomRoot<MutationRecord>> = mo.record_queue.borrow().clone();
 
