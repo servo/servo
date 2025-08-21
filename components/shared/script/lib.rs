@@ -182,7 +182,7 @@ pub enum ScriptThreadMessage {
         /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-origin>
         source_origin: ImmutableOrigin,
         /// The data to be posted.
-        data: StructuredSerializedData,
+        data: Box<StructuredSerializedData>,
     },
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.

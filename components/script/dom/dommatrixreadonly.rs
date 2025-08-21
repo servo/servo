@@ -934,9 +934,8 @@ impl Serializable for DOMMatrixReadOnly {
     type Data = DomMatrix;
 
     fn serialize(&self) -> Result<(DomMatrixId, Self::Data), ()> {
-        let serialized: DomMatrix;
-        if self.is2D() {
-            serialized = DomMatrix {
+        let serialized = if self.is2D() {
+            DomMatrix {
                 matrix: Transform3D::new(
                     self.M11(),
                     self.M12(),
@@ -956,13 +955,13 @@ impl Serializable for DOMMatrixReadOnly {
                     f64::NAN,
                 ),
                 is_2d: true,
-            };
+            }
         } else {
-            serialized = DomMatrix {
+            DomMatrix {
                 matrix: *self.matrix(),
                 is_2d: false,
-            };
-        }
+            }
+        };
         Ok((DomMatrixId::new(), serialized))
     }
 
