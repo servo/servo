@@ -698,7 +698,7 @@ impl Handler {
         }
 
         // Step 3. let timeout be the session's page load timeout.
-        let timeout = self.session()?.session_timeouts().page_load;
+        let timeout = session.session_timeouts().page_load;
 
         // TODO: Step 4. Implement timer parameter
 
@@ -1867,13 +1867,13 @@ impl Handler {
         &mut self,
         parameters: &TimeoutsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let session = self.session()?;
+        let session = self.session_mut()?;
 
         if let Some(timeout) = parameters.script {
             session.session_timeouts_mut().script = timeout;
         }
         if let Some(timeout) = parameters.page_load {
-            session.session_timeouts_mut().page_load = timeout
+            session.session_timeouts_mut().page_load = timeout;
         }
         if let Some(timeout) = parameters.implicit {
             session.session_timeouts_mut().implicit_wait = timeout

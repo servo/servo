@@ -54,7 +54,7 @@ pub struct WebDriverSession {
     /// The id of the current browsing context
     browsing_context_id: Option<BrowsingContextId>,
 
-    timeouts: RefCell<TimeoutsConfiguration>,
+    timeouts: TimeoutsConfiguration,
 
     page_loading_strategy: PageLoadStrategy,
 
@@ -75,7 +75,7 @@ impl WebDriverSession {
             id: Uuid::new_v4(),
             webview_id: None,
             browsing_context_id: None,
-            timeouts: RefCell::new(TimeoutsConfiguration::default()),
+            timeouts: TimeoutsConfiguration::default(),
             page_loading_strategy: PageLoadStrategy::Normal,
             strict_file_interactability: false,
             user_prompt_handler: UserPromptHandler::new(),
@@ -100,12 +100,12 @@ impl WebDriverSession {
         self.browsing_context_id
     }
 
-    pub fn session_timeouts(&self) -> Ref<'_, TimeoutsConfiguration> {
-        self.timeouts.borrow()
+    pub fn session_timeouts(&self) -> &TimeoutsConfiguration {
+        &self.timeouts
     }
 
-    pub fn session_timeouts_mut(&self) -> RefMut<'_, TimeoutsConfiguration> {
-        self.timeouts.borrow_mut()
+    pub fn session_timeouts_mut(&mut self) -> &mut TimeoutsConfiguration {
+        &mut self.timeouts
     }
 
     pub fn page_loading_strategy(&self) -> PageLoadStrategy {
@@ -224,16 +224,14 @@ impl Handler {
         // Step 9.3. Let timeouts be the result of getting a property "timeouts" from capabilities.
         // If timeouts is not undefined, set session's session timeouts to timeouts.
         if let Some(timeouts) = capabilities.get("timeouts") {
-            session
-                .timeouts
-                .replace(deserialize_as_timeouts_configuration(timeouts)?);
+            session.timeouts = deserialize_as_timeouts_configuration(timeouts)?;
         }
 
         // Step 9.4 Set a property on capabilities with name "timeouts"
         // and value serialize the timeouts configuration with session's session timeouts.
         capabilities.insert(
             "timeouts".to_string(),
-            json!(serialize_timeouts_configuration(&session.timeouts.borrow())),
+            json!(serialize_timeouts_configuration(&session.timeouts)),
         );
 
         // Step 10. Process any extension capabilities in capabilities in an implementation-defined manner
