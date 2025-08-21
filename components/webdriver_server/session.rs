@@ -2,19 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Ref, RefCell, RefMut};
+use std::collections::HashMap;
+
 use base::id::{BrowsingContextId, WebViewId};
 use serde_json::{Map, Value, json};
 use uuid::Uuid;
 use webdriver::error::WebDriverResult;
 
+use crate::Handler;
+use crate::actions::{ActionItem, InputSourceState};
 use crate::capabilities::ServoCapabilities;
-use crate::timeout::{deserialize_as_timeouts_configuration, serialize_timeouts_configuration};
-use crate::user_prompt::{
-    default_unhandled_prompt_behavior, deserialize_unhandled_prompt_behaviour,
+use crate::timeout::{
+    TimeoutsConfiguration, deserialize_as_timeouts_configuration, serialize_timeouts_configuration,
 };
-use crate::{Handler, WebDriverSession};
+use crate::user_prompt::{
+    UserPromptHandler, default_unhandled_prompt_behavior, deserialize_unhandled_prompt_behaviour,
+};
 
-#[derive(Debug, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub enum PageLoadStrategy {
     None,
     Eager,
@@ -33,17 +39,109 @@ impl ToString for PageLoadStrategy {
     }
 }
 
+/// Represents the current WebDriver session and holds relevant session state.
+/// Currently, only 1 webview is supported per session.
+/// So only there is only 1 InputState.
+pub struct WebDriverSession {
+    /// <https://www.w3.org/TR/webdriver2/#dfn-session-id>
+    id: Uuid,
+
+    /// <https://www.w3.org/TR/webdriver2/#dfn-current-top-level-browsing-context>
+    /// The id of the current top-level browsing context
+    webview_id: Option<WebViewId>,
+
+    /// <https://www.w3.org/TR/webdriver2/#dfn-current-browsing-context>
+    /// The id of the current browsing context
+    browsing_context_id: Option<BrowsingContextId>,
+
+    timeouts: TimeoutsConfiguration,
+
+    page_loading_strategy: PageLoadStrategy,
+
+    strict_file_interactability: bool,
+
+    user_prompt_handler: UserPromptHandler,
+
+    /// <https://w3c.github.io/webdriver/#dfn-input-state-map>
+    input_state_table: RefCell<HashMap<String, InputSourceState>>,
+
+    /// <https://w3c.github.io/webdriver/#dfn-input-cancel-list>
+    input_cancel_list: RefCell<Vec<(String, ActionItem)>>,
+}
+
+impl WebDriverSession {
+    pub fn new() -> WebDriverSession {
+        WebDriverSession {
+            id: Uuid::new_v4(),
+            webview_id: None,
+            browsing_context_id: None,
+            timeouts: TimeoutsConfiguration::default(),
+            page_loading_strategy: PageLoadStrategy::Normal,
+            strict_file_interactability: false,
+            user_prompt_handler: UserPromptHandler::new(),
+            input_state_table: RefCell::new(HashMap::new()),
+            input_cancel_list: RefCell::new(Vec::new()),
+        }
+    }
+
+    pub fn set_webview_id(&mut self, webview_id: Option<WebViewId>) {
+        self.webview_id = webview_id;
+    }
+
+    pub fn set_browsing_context_id(&mut self, browsing_context_id: Option<BrowsingContextId>) {
+        self.browsing_context_id = browsing_context_id;
+    }
+
+    pub fn current_webview_id(&self) -> Option<WebViewId> {
+        self.webview_id
+    }
+
+    pub fn current_browsing_context_id(&self) -> Option<BrowsingContextId> {
+        self.browsing_context_id
+    }
+
+    pub fn session_timeouts(&self) -> &TimeoutsConfiguration {
+        &self.timeouts
+    }
+
+    pub fn session_timeouts_mut(&mut self) -> &mut TimeoutsConfiguration {
+        &mut self.timeouts
+    }
+
+    pub fn page_loading_strategy(&self) -> PageLoadStrategy {
+        self.page_loading_strategy.clone()
+    }
+
+    pub fn strict_file_interactability(&self) -> bool {
+        self.strict_file_interactability
+    }
+
+    pub fn user_prompt_handler(&self) -> &UserPromptHandler {
+        &self.user_prompt_handler
+    }
+
+    pub fn input_state_table(&self) -> Ref<'_, HashMap<String, InputSourceState>> {
+        self.input_state_table.borrow()
+    }
+
+    pub fn input_state_table_mut(&self) -> RefMut<'_, HashMap<String, InputSourceState>> {
+        self.input_state_table.borrow_mut()
+    }
+
+    pub fn input_cancel_list_mut(&self) -> RefMut<'_, Vec<(String, ActionItem)>> {
+        self.input_cancel_list.borrow_mut()
+    }
+}
+
 impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-create-a-session>
     pub(crate) fn create_session(
         &mut self,
         capabilities: &mut Map<String, Value>,
         servo_capabilities: &ServoCapabilities,
-        webview_id: WebViewId,
-        browsing_context_id: BrowsingContextId,
     ) -> WebDriverResult<Uuid> {
         // Step 2. Let session be a new session
-        let mut session = WebDriverSession::new(browsing_context_id, webview_id);
+        let mut session = WebDriverSession::new();
 
         // Step 3. Let proxy be the result of getting property "proxy" from capabilities
         match capabilities.get("proxy") {

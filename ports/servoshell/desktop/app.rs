@@ -382,13 +382,9 @@ impl App {
                     }
                 },
                 WebDriverCommandMsg::GetAllWebViews(response_sender) => {
-                    let webviews = running_state
-                        .webviews()
-                        .iter()
-                        .map(|(id, _)| *id)
-                        .collect::<Vec<_>>();
+                    let webviews = running_state.webviews().iter().map(|(id, _)| *id).collect();
 
-                    if let Err(error) = response_sender.send(Ok(webviews)) {
+                    if let Err(error) = response_sender.send(webviews) {
                         warn!("Failed to send response of GetAllWebViews: {error}");
                     }
                 },

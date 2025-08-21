@@ -2436,9 +2436,6 @@ impl ScriptThread {
             WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
                 webdriver_handlers::handle_remove_load_status_sender(&documents, pipeline_id)
             },
-            WebDriverScriptCommand::GetWindowHandle(reply) => {
-                webdriver_handlers::handle_get_window_handle(pipeline_id, reply)
-            },
             _ => (),
         }
     }
