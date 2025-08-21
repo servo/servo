@@ -359,17 +359,17 @@ pub struct Constellation<STF, SWF> {
     bluetooth_ipc_sender: IpcSender<BluetoothRequest>,
 
     /// A map of origin to sender to a Service worker manager.
-    sw_managers: HashMap<ImmutableOrigin, IpcSender<ServiceWorkerMsg>>,
+    sw_managers: HashMap<ImmutableOrigin, GenericSender<ServiceWorkerMsg>>,
 
     /// An IPC channel for Service Worker Manager threads to send
     /// messages to the constellation.  This is the SW Manager thread's
     /// view of `swmanager_receiver`.
-    swmanager_ipc_sender: IpcSender<SWManagerMsg>,
+    swmanager_ipc_sender: GenericSender<SWManagerMsg>,
 
     /// A channel for the constellation to receive messages from the
     /// Service Worker Manager thread. This is the constellation's view of
     /// `swmanager_sender`.
-    swmanager_receiver: Receiver<Result<SWManagerMsg, IpcError>>,
+    swmanager_receiver: RoutedReceiver<SWManagerMsg>,
 
     /// A channel for the constellation to send messages to the
     /// time profiler thread.
@@ -607,7 +607,7 @@ where
 
         // service worker manager to communicate with constellation
         let (swmanager_ipc_sender, swmanager_ipc_receiver) =
-            ipc::channel().expect("ipc channel failure");
+            generic_channel::channel().expect("ipc channel failure");
 
         thread::Builder::new()
             .name("Constellation".to_owned())
@@ -653,10 +653,7 @@ where
                     )
                 };
 
-                let swmanager_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        swmanager_ipc_receiver,
-                    );
+                let swmanager_receiver = swmanager_ipc_receiver.route_preserving_errors();
 
                 // Zero is reserved for the embedder.
                 PipelineNamespace::install(PipelineNamespaceId(1));
@@ -2447,7 +2444,8 @@ where
         let sw_manager = match self.sw_managers.entry(origin.clone()) {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
-                let (own_sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+                let (own_sender, receiver) =
+                    generic_channel::channel().expect("Failed to create IPC channel!");
 
                 let sw_senders = SWManagerSenders {
                     swmanager_sender: self.swmanager_ipc_sender.clone(),

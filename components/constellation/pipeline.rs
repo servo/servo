@@ -155,7 +155,7 @@ pub struct InitialPipelineState {
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A channel to the service worker manager thread
-    pub swmanager_thread: IpcSender<SWManagerMsg>,
+    pub swmanager_thread: GenericSender<SWManagerMsg>,
 
     /// A proxy to the system font service, responsible for managing the list of system fonts.
     pub system_font_service: Arc<SystemFontServiceProxy>,
@@ -481,7 +481,7 @@ pub struct UnprivilegedPipelineContent {
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     #[cfg(feature = "bluetooth")]
     bluetooth_thread: IpcSender<BluetoothRequest>,
-    swmanager_thread: IpcSender<SWManagerMsg>,
+    swmanager_thread: GenericSender<SWManagerMsg>,
     system_font_service: SystemFontServiceProxySender,
     resource_threads: ResourceThreads,
     time_profiler_chan: time::ProfilerChan,

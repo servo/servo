@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use base::Epoch;
-use base::generic_channel::{GenericCallback, GenericSender, SendResult};
+use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
@@ -24,7 +24,7 @@ use embedder_traits::{
 use euclid::default::Size2D as UntypedSize2D;
 use fonts_traits::SystemFontServiceProxySender;
 use http::{HeaderMap, Method};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
@@ -206,7 +206,7 @@ pub struct DOMMessage {
 #[derive(Deserialize, Serialize)]
 pub struct SWManagerSenders {
     /// Sender of messages to the constellation.
-    pub swmanager_sender: IpcSender<SWManagerMsg>,
+    pub swmanager_sender: GenericSender<SWManagerMsg>,
     /// [`ResourceThreads`] for initating fetches or using i/o.
     pub resource_threads: ResourceThreads,
     /// [`CrossProcessCompositorApi`] for communicating with the compositor.
@@ -214,9 +214,9 @@ pub struct SWManagerSenders {
     /// The [`SystemFontServiceProxy`] used to communicate with the `SystemFontService`.
     pub system_font_service_sender: SystemFontServiceProxySender,
     /// Sender of messages to the manager.
-    pub own_sender: IpcSender<ServiceWorkerMsg>,
+    pub own_sender: GenericSender<ServiceWorkerMsg>,
     /// Receiver of messages from the constellation.
-    pub receiver: IpcReceiver<ServiceWorkerMsg>,
+    pub receiver: GenericReceiver<ServiceWorkerMsg>,
 }
 
 /// Messages sent to Service Worker Manager thread

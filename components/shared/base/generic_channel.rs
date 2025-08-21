@@ -252,6 +252,16 @@ impl From<crossbeam_channel::TryRecvError> for TryReceiveError {
 pub type RoutedReceiver<T> = crossbeam_channel::Receiver<Result<T, ipc_channel::Error>>;
 pub type ReceiveResult<T> = Result<T, ReceiveError>;
 pub type TryReceiveResult<T> = Result<T, TryReceiveError>;
+pub type RoutedReceiverReceiveResult<T> =
+    Result<Result<T, ipc_channel::Error>, crossbeam_channel::RecvError>;
+
+pub fn to_receive_result<T>(receive_result: RoutedReceiverReceiveResult<T>) -> ReceiveResult<T> {
+    match receive_result {
+        Ok(Ok(msg)) => Ok(msg),
+        Err(_crossbeam_recv_err) => Err(ReceiveError::Disconnected),
+        Ok(Err(ipc_err)) => Err(ReceiveError::DeserializationFailed(ipc_err.to_string())),
+    }
+}
 
 pub struct GenericReceiver<T>(GenericReceiverVariants<T>)
 where
