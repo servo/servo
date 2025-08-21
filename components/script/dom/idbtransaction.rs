@@ -204,8 +204,8 @@ impl IDBTransaction {
         self.global().resource_threads().sender()
     }
 
-    pub(crate) fn object_store_names(&self) -> &Dom<DOMStringList> {
-        &self.object_store_names
+    pub(crate) fn object_store_names(&self) -> &DOMStringList {
+        &*self.object_store_names
     }
 }
 

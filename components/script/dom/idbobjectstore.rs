@@ -169,7 +169,7 @@ impl IDBObjectStore {
     }
 
     pub(crate) fn is_deleted(&self, transaction: &IDBTransaction) -> bool {
-        transaction.object_store_names().contains(&self.db_name)
+        !transaction.object_store_names().contains(&self.db_name)
     }
 
     /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
