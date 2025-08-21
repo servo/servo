@@ -208,20 +208,24 @@ impl IDBTransaction {
 
     fn get_object_store_parameters(
         &self,
-        objec_store_name: &DOMString,
+        object_store_name: &DOMString,
     ) -> Option<IDBObjectStoreParameters> {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let global = self.global();
+        let idb_sender = global.resource_threads().sender();
+        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+
+        let origin = global.origin().immutable().clone();
+        let db_name = self.db.get_name().to_string();
+        let object_store_name = object_store_name.to_string();
 
         let operation = SyncOperation::HasKeyGenerator(
             sender,
-            self.global().origin().immutable().clone(),
-            self.db.get_name().to_string(),
-            objec_store_name.to_string(),
+            origin.clone(),
+            db_name.clone(),
+            object_store_name.clone(),
         );
 
-        self.global()
-            .resource_threads()
-            .sender()
+        idb_sender
             .send(IndexedDBThreadMsg::Sync(operation))
             .unwrap();
 
@@ -230,16 +234,9 @@ impl IDBTransaction {
         let auto_increment = receiver.recv().unwrap().ok()?;
 
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let operation = SyncOperation::KeyPath(
-            sender,
-            self.global().origin().immutable().clone(),
-            self.db.get_name().to_string(),
-            objec_store_name.to_string(),
-        );
+        let operation = SyncOperation::KeyPath(sender, origin, db_name, object_store_name);
 
-        self.global()
-            .resource_threads()
-            .sender()
+        idb_sender
             .send(IndexedDBThreadMsg::Sync(operation))
             .unwrap();
 
@@ -282,7 +279,6 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         // returns the same IDBObjectStore instance.
         let mut store_handles = self.store_handles.borrow_mut();
         let store = store_handles.entry(name.to_string()).or_insert_with(|| {
-            // TODO: get key path from backend
             let parameters = self.get_object_store_parameters(&name);
             let store = IDBObjectStore::new(
                 &self.global(),
