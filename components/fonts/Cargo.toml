@@ -73,7 +73,7 @@ fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 xml-rs = "0.8"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = "0.11.2"
+dwrote = "0.11.4"
 truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }
 
 [lints.rust]
