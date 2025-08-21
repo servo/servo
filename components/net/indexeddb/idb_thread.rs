@@ -308,7 +308,6 @@ impl IndexedDBManager {
                             SqliteEngine::new(
                                 idb_base_dir,
                                 &idb_description,
-                                version,
                                 self.thread_pool.clone(),
                             )
                             .expect("Failed to create sqlite engine"),
