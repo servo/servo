@@ -428,6 +428,7 @@ pub(crate) mod htmlunknownelement;
 pub(crate) mod htmlvideoelement;
 pub(crate) mod idbdatabase;
 pub(crate) mod idbfactory;
+pub(crate) mod idbindex;
 pub(crate) mod idbkeyrange;
 pub(crate) mod idbobjectstore;
 pub(crate) mod idbopendbrequest;
