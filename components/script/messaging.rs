@@ -33,6 +33,7 @@ use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerScriptMsg;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::script_runtime::ScriptThreadEventCategory;
+use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
@@ -397,10 +398,12 @@ impl ScriptThreadReceivers {
         &self,
         task_queue: &TaskQueue<MainThreadScriptMsg>,
         timer_scheduler: &TimerScheduler,
+        script_thread: &ScriptThread,
     ) -> MixedMessage {
         select! {
             recv(task_queue.select()) -> msg => {
-                task_queue.take_tasks(msg.unwrap());
+                let fully_active = script_thread.get_fully_active_document_ids();
+                task_queue.take_tasks(msg.unwrap(), fully_active);
                 let event = task_queue
                     .recv()
                     .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
@@ -437,6 +440,7 @@ impl ScriptThreadReceivers {
     pub(crate) fn try_recv(
         &self,
         task_queue: &TaskQueue<MainThreadScriptMsg>,
+        script_thread: &ScriptThread,
     ) -> Option<MixedMessage> {
         if let Ok(message) = self.constellation_receiver.try_recv() {
             let message = message
@@ -449,7 +453,7 @@ impl ScriptThreadReceivers {
                 .ok()?;
             return MixedMessage::FromConstellation(message).into();
         }
-        if let Ok(message) = task_queue.take_tasks_and_recv() {
+        if let Ok(message) = task_queue.take_tasks_and_recv(script_thread.get_fully_active_document_ids()) {
             return MixedMessage::FromScript(message).into();
         }
         if let Ok(message) = self.devtools_server_receiver.try_recv() {

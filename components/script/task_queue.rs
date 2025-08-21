@@ -15,7 +15,6 @@ use strum::VariantArray;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::script_runtime::ScriptThreadEventCategory;
-use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 
@@ -197,17 +196,16 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     }
 
     /// Take all tasks again and then run `recv()`.
-    pub(crate) fn take_tasks_and_recv(&self) -> Result<T, ()> {
-        self.take_tasks(T::wake_up_msg());
+    pub(crate) fn take_tasks_and_recv(&self, fully_active: HashSet<PipelineId>) -> Result<T, ()> {
+        self.take_tasks(T::wake_up_msg(), fully_active);
         self.recv()
     }
 
     /// Drain the queue for the current iteration of the event-loop.
     /// Holding-back throttles above a given high-water mark.
-    pub(crate) fn take_tasks(&self, first_msg: T) {
+    pub(crate) fn take_tasks(&self, first_msg: T, fully_active: HashSet<PipelineId>) {
         // High-watermark: once reached, throttled tasks will be held-back.
         const PER_ITERATION_MAX: u64 = 5;
-        let fully_active = ScriptThread::get_fully_active_document_ids();
         // Always first check for new tasks, but don't reset 'taken_task_counter'.
         self.process_incoming_tasks(first_msg, &fully_active);
         let mut throttled = self.throttled.borrow_mut();
