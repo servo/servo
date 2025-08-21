@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 use dom_struct::dom_struct;
+use js::gc::MutableHandleValue;
+use js::jsval::{NullValue, UndefinedValue};
 use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
@@ -10,6 +11,7 @@ use net_traits::indexeddb_thread::{
     IndexedDBThreadMsg, SyncOperation,
 };
 use profile_traits::ipc;
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::ErrorResult;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -34,7 +36,7 @@ use crate::indexed_db::{
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum KeyPath {
     String(DOMString),
     StringSequence(Vec<DOMString>),
@@ -514,14 +516,29 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath
-    // fn KeyPath(&self, _cx: SafeJSContext, _val: MutableHandleValue) {
-    //     unimplemented!();
-    // }
+    fn KeyPath(&self, cx: SafeJSContext, mut ret_val: MutableHandleValue) {
+        if let Some(key_path) = self.key_path.clone() {
+            match key_path {
+                KeyPath::String(path) => {
+                    rooted!(in(*cx) let mut rooted_path = UndefinedValue());
+                    path.safe_to_jsval(cx, rooted_path.handle_mut());
+                    ret_val.set(*rooted_path)
+                },
+                KeyPath::StringSequence(paths) => {
+                    rooted!(in(*cx) let mut rooted_sequence = UndefinedValue());
+                    paths.safe_to_jsval(cx, rooted_sequence.handle_mut());
+                    ret_val.set(*rooted_sequence);
+                },
+            }
+        } else {
+            ret_val.set(NullValue());
+        }
+    }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames
-    // fn IndexNames(&self) -> DomRoot<DOMStringList> {
-    //     unimplemented!();
-    // }
+    fn IndexNames(&self) -> DomRoot<DOMStringList> {
+        self.index_names.clone()
+    }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction>
     fn Transaction(&self) -> DomRoot<IDBTransaction> {
