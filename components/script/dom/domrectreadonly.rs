@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::collections::HashMap;
 
+use base::id::{DomRectId, DomRectIndex};
+use constellation_traits::DomRect;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
@@ -15,6 +18,8 @@ use crate::dom::bindings::reflector::{
     Reflector, reflect_dom_object, reflect_dom_object_with_proto,
 };
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::Serializable;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -194,5 +199,50 @@ pub(super) fn create_a_domrectreadonly_from_the_dictionary(other: &DOMRectInit) 
         y: Cell::new(other.y),
         width: Cell::new(other.width),
         height: Cell::new(other.height),
+    }
+}
+
+type Type = DomRectId;
+
+impl Serializable for DOMRectReadOnly {
+    type Index = DomRectIndex;
+    type Data = DomRect;
+
+    fn serialize(&self) -> Result<(DomRectId, Self::Data), ()> {
+        let serialized = DomRect {
+            x: self.X(),
+            y: self.Y(),
+            width: self.Width(),
+            height: self.Height(),
+        };
+        Ok((DomRectId::new(), serialized))
+    }
+
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+        Self: Sized,
+    {
+        Ok(Self::new(
+            owner,
+            None,
+            serialized.x,
+            serialized.y,
+            serialized.width,
+            serialized.height,
+            can_gc,
+        ))
+    }
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<Type, Self::Data>> {
+        match data {
+            StructuredData::Reader(reader) => &mut reader.rects,
+            StructuredData::Writer(writer) => &mut writer.rects,
+        }
     }
 }

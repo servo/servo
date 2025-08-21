@@ -1773,7 +1773,7 @@ impl ScriptThread {
                 source_browsing_context,
                 origin,
                 source_origin,
-                data,
+                *data,
             ),
             ScriptThreadMessage::UpdatePipelineId(
                 parent_pipeline_id,

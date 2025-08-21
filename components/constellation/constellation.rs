@@ -4168,7 +4168,7 @@ where
             source_browsing_context,
             target_origin: origin,
             source_origin,
-            data,
+            data: Box::new(data),
         };
         let result = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.event_loop.send(msg),

@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+
+use base::id::{DomQuadId, DomQuadIndex};
+use constellation_traits::{DomPoint, DomQuad};
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
@@ -11,6 +15,8 @@ use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::serializable::Serializable;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
@@ -201,5 +207,58 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
             bottom - top,
             can_gc,
         )
+    }
+}
+
+impl Serializable for DOMQuad {
+    type Index = DomQuadIndex;
+    type Data = DomQuad;
+
+    fn serialize(&self) -> Result<(DomQuadId, Self::Data), ()> {
+        let make_point = |src: DomRoot<DOMPoint>| -> DomPoint {
+            DomPoint {
+                x: src.X(),
+                y: src.Y(),
+                z: src.Z(),
+                w: src.W(),
+            }
+        };
+        let serialized = DomQuad {
+            p1: make_point(self.P1()),
+            p2: make_point(self.P2()),
+            p3: make_point(self.P3()),
+            p4: make_point(self.P4()),
+        };
+        Ok((DomQuadId::new(), serialized))
+    }
+
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+        Self: Sized,
+    {
+        let make_point = |src: DomPoint| -> DomRoot<DOMPoint> {
+            DOMPoint::new(owner, src.x, src.y, src.z, src.w, can_gc)
+        };
+        Ok(Self::new(
+            owner,
+            &make_point(serialized.p1),
+            &make_point(serialized.p2),
+            &make_point(serialized.p3),
+            &make_point(serialized.p4),
+            can_gc,
+        ))
+    }
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<DomQuadId, Self::Data>> {
+        match data {
+            StructuredData::Reader(reader) => &mut reader.quads,
+            StructuredData::Writer(writer) => &mut writer.quads,
+        }
     }
 }
