@@ -85,11 +85,6 @@ pub struct ServoRenderer {
     /// The [`RefreshDriver`] which manages the rythym of painting.
     refresh_driver: RefreshDriver,
 
-    /// This is a temporary map between [`PipelineId`]s and their associated [`WebViewId`]. Once
-    /// all renderer operations become per-`WebView` this map can be removed, but we still sometimes
-    /// need to work backwards to figure out what `WebView` is associated with a `Pipeline`.
-    pub(crate) pipeline_to_webview_map: HashMap<PipelineId, WebViewId>,
-
     /// Tracks whether we are in the process of shutting down, or have shut down and should close
     /// the compositor. This is shared with the `Servo` instance.
     shutdown_state: Rc<Cell<ShutdownState>>,
@@ -313,7 +308,6 @@ impl IOCompositor {
                     state.event_loop_waker,
                 ),
                 shutdown_state: state.shutdown_state,
-                pipeline_to_webview_map: Default::default(),
                 compositor_receiver: state.receiver,
                 constellation_sender: state.constellation_chan,
                 time_profiler_chan: state.time_profiler_chan,
