@@ -48,5 +48,26 @@ addEventListener("getPossibleBreakpoints", event => {
         }
         return result;
     }
+
     getPossibleBreakpointsResult(event, getPossibleBreakpointsRecursive(script));
+});
+
+addEventListener("setBreakpoint", event => {
+    const {spidermonkeyId, offset} = event;
+    const script = sourceIdsToScripts.get(spidermonkeyId);
+    function breakpointHandler(...args) {
+        // todo: notify script tp pause
+        // tell spidermonkey to pause
+       return {throw: "1"}
+    }
+
+    function getPossibleBreakpointsRecursive(script) {
+        script.setBreakpoint(offset, { hit: breakpointHandler })
+        for (const child of script.getChildScripts()) {
+            getPossibleBreakpointsRecursive(child)
+        }
+    }
+
+    getPossibleBreakpointsRecursive(script);
+    setBreakpointResult(event, true)
 });
