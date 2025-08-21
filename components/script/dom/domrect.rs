@@ -148,7 +148,7 @@ impl Serializable for DOMRect {
         can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
-    Self: Sized,
+        Self: Sized,
     {
         Ok(Self::new(
             owner,

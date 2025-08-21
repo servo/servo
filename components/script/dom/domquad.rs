@@ -238,17 +238,10 @@ impl Serializable for DOMQuad {
         can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
-    Self: Sized,
+        Self: Sized,
     {
         let make_point = |src: DomPoint| -> DomRoot<DOMPoint> {
-            DOMPoint::new(
-                owner,
-                src.x,
-                src.y,
-                src.z,
-                src.w,
-                can_gc
-            )
+            DOMPoint::new(owner, src.x, src.y, src.z, src.w, can_gc)
         };
         Ok(Self::new(
             owner,

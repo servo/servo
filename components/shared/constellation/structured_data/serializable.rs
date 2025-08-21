@@ -11,7 +11,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use base::id::{BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId, QuotaExceededErrorId};
+use base::id::{
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
+    QuotaExceededErrorId,
+};
 use euclid::default::Transform3D;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
@@ -82,7 +85,9 @@ impl Serializable {
             Serializable::DomRectReadOnly => StructuredSerializedData::clone_all_of_type::<DomRect>,
             Serializable::DomQuad => StructuredSerializedData::clone_all_of_type::<DomQuad>,
             Serializable::DomMatrix => StructuredSerializedData::clone_all_of_type::<DomMatrix>,
-            Serializable::DomMatrixReadOnly => StructuredSerializedData::clone_all_of_type::<DomMatrix>,
+            Serializable::DomMatrixReadOnly => {
+                StructuredSerializedData::clone_all_of_type::<DomMatrix>
+            },
             Serializable::DomException => {
                 StructuredSerializedData::clone_all_of_type::<DomException>
             },

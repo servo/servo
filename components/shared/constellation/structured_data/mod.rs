@@ -11,7 +11,8 @@ mod transferable;
 use std::collections::HashMap;
 
 use base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId, MessagePortId, OffscreenCanvasId, QuotaExceededErrorId
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
+    MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
 };
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;

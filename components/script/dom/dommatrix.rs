@@ -522,7 +522,7 @@ impl Serializable for DOMMatrix {
         can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
-    Self: Sized,
+        Self: Sized,
     {
         if serialized.is_2d {
             Ok(Self::new(
@@ -549,12 +549,7 @@ impl Serializable for DOMMatrix {
                 can_gc,
             ))
         } else {
-            Ok(Self::new(
-                owner,
-                false,
-                serialized.matrix,
-                can_gc,
-            ))
+            Ok(Self::new(owner, false, serialized.matrix, can_gc))
         }
     }
 

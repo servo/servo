@@ -10,10 +10,14 @@ use std::os::raw;
 use std::ptr;
 
 use base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId, Index, MessagePortId, NamespaceIndex, OffscreenCanvasId, PipelineNamespaceId, QuotaExceededErrorId
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId, Index,
+    MessagePortId, NamespaceIndex, OffscreenCanvasId, PipelineNamespaceId, QuotaExceededErrorId,
 };
 use constellation_traits::{
-    BlobImpl, DomException, DomMatrix, DomPoint, DomQuad, DomRect, MessagePortImpl, Serializable as SerializableInterface, SerializableImageBitmap, SerializableQuotaExceededError, StructuredSerializedData, TransferableOffscreenCanvas, Transferrable as TransferrableInterface, TransformStreamData
+    BlobImpl, DomException, DomMatrix, DomPoint, DomQuad, DomRect, MessagePortImpl,
+    Serializable as SerializableInterface, SerializableImageBitmap, SerializableQuotaExceededError,
+    StructuredSerializedData, TransferableOffscreenCanvas, Transferrable as TransferrableInterface,
+    TransformStreamData,
 };
 use js::gc::RootedVec;
 use js::glue::{
@@ -46,7 +50,10 @@ use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageport::MessagePort;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::types::{DOMException, DOMMatrix, DOMMatrixReadOnly, DOMQuad, DOMRect, DOMRectReadOnly, QuotaExceededError, TransformStream};
+use crate::dom::types::{
+    DOMException, DOMMatrix, DOMMatrixReadOnly, DOMQuad, DOMRect, DOMRectReadOnly,
+    QuotaExceededError, TransformStream,
+};
 use crate::dom::writablestream::WritableStream;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
