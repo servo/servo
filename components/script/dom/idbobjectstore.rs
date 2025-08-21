@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransacti
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, MutDom};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::domstringlist::DOMStringList;
@@ -42,7 +42,7 @@ pub struct IDBObjectStore {
     name: DomRefCell<DOMString>,
     key_path: Option<KeyPath>,
     index_names: DomRoot<DOMStringList>,
-    transaction: MutDom<IDBTransaction>,
+    transaction: Dom<IDBTransaction>,
     auto_increment: bool,
 
     // We store the db name in the object store to be able to find the correct
@@ -75,7 +75,7 @@ impl IDBObjectStore {
             key_path,
 
             index_names: DOMStringList::new(global, Vec::new(), can_gc),
-            transaction: MutDom::new(transaction),
+            transaction: Dom::from_ref(transaction),
             // FIXME:(arihant2math)
             auto_increment: false,
 
@@ -110,7 +110,7 @@ impl IDBObjectStore {
     }
 
     pub fn transaction(&self) -> DomRoot<IDBTransaction> {
-        self.transaction.get()
+        self.transaction.as_rooted()
     }
 
     fn has_key_generator(&self) -> bool {
@@ -174,7 +174,7 @@ impl IDBObjectStore {
     /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
     fn check_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
-        let transaction = self.transaction.get();
+        let transaction = &self.transaction;
 
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
         if !transaction.is_active() {
@@ -188,7 +188,7 @@ impl IDBObjectStore {
     /// it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
     fn check_readwrite_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
-        let transaction = self.transaction.get();
+        let transaction = &self.transaction;
 
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
         if !transaction.is_active() {
