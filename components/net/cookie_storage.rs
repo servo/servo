@@ -205,6 +205,27 @@ impl CookieStorage {
         }
     }
 
+    /// <https://cookiestore.spec.whatwg.org/#query-cookies>
+    pub fn query_cookies(&mut self, url: &ServoUrl, name: Option<String>) -> Vec<Cookie<'static>> {
+        // 1. Retrieve cookie-list given request-uri and "non-HTTP" source
+        let cookie_list = self.cookies_data_for_url(url, CookieSource::NonHTTP);
+
+        // 3. For each cookie in cookie-list, run these steps:
+        // 3.2. If name is given, then run these steps:
+        if let Some(name) = name {
+            // Let cookieName be the result of running UTF-8 decode without BOM on cookie’s name.
+            // If cookieName does not equal name, then continue.
+            cookie_list.filter(|cookie| cookie.name() == name).collect()
+        } else {
+            cookie_list.collect()
+        }
+
+        // Note: we do not convert the list into CookieListItem's here, we do that in script to not not have to define
+        // the binding types in net.
+
+        // Return list
+    }
+
     pub fn cookies_data_for_url<'a>(
         &'a mut self,
         url: &'a ServoUrl,

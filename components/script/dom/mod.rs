@@ -259,6 +259,7 @@ pub(crate) mod comment;
 pub(crate) mod compositionevent;
 pub(crate) mod console;
 pub(crate) mod constantsourcenode;
+pub(crate) mod cookiestore;
 pub(crate) mod countqueuingstrategy;
 mod create;
 pub(crate) mod crypto;

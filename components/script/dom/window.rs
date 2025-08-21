@@ -127,6 +127,7 @@ use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
+use crate::dom::cookiestore::CookieStore;
 use crate::dom::crypto::Crypto;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::customelementregistry::CustomElementRegistry;
@@ -1064,6 +1065,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn LocalStorage(&self) -> DomRoot<Storage> {
         self.local_storage
             .or_init(|| Storage::new(self, StorageType::Local, CanGc::note()))
+    }
+
+    // https://cookiestore.spec.whatwg.org/#Window
+    fn CookieStore(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
+        self.global().cookie_store(can_gc)
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
