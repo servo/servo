@@ -383,7 +383,7 @@ pub enum SyncOperation {
     ),
 
     OpenDatabase(
-        IpcSender<u64>, // Returns the version
+        IpcSender<(u64, Vec<String>)>, // Returns the version and object stores
         ImmutableOrigin,
         String,      // Database
         Option<u64>, // Eventual version

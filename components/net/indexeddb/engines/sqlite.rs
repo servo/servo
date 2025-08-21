@@ -538,6 +538,16 @@ impl KvsEngine for SqliteEngine {
         }
         Ok(())
     }
+
+    fn object_store_names(&self) -> Result<Vec<String>, Self::Error> {
+        let mut stmt = self.connection.prepare("SELECT name FROM object_store")?;
+        let object_store_iter = stmt.query_map([], |r| r.get(0))?;
+        let mut object_stores = vec![];
+        for object_store in object_store_iter {
+            object_stores.push(object_store?);
+        }
+        Ok(object_stores)
+    }
 }
 
 #[cfg(test)]

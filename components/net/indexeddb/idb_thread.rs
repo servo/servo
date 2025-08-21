@@ -181,6 +181,12 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             .set_version(version)
             .map_err(|err| format!("{err:?}"))
     }
+
+    fn object_store_names(&self) -> DbResult<Vec<String>> {
+        self.engine
+            .object_store_names()
+            .map_err(|err| format!("{err:?}"))
+    }
 }
 
 struct IndexedDBManager {
@@ -313,11 +319,14 @@ impl IndexedDBManager {
                             )
                             .expect("Failed to create sqlite engine"),
                         );
-                        let _ = sender.send(db.version().unwrap_or(version));
+                        let _ = sender.send((db.version().unwrap_or(version), vec![]));
                         e.insert(db);
                     },
                     Entry::Occupied(db) => {
-                        let _ = sender.send(db.get().version().unwrap_or(version));
+                        let db = db.get();
+                        let version = db.version().unwrap_or(version);
+                        let object_stores = db.object_store_names().unwrap_or_default();
+                        let _ = sender.send((version, object_stores));
                     },
                 }
             },

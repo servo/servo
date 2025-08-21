@@ -98,4 +98,6 @@ pub trait KvsEngine {
 
     fn version(&self) -> Result<u64, Self::Error>;
     fn set_version(&self, version: u64) -> Result<(), Self::Error>;
+
+    fn object_store_names(&self) -> Result<Vec<String>, Self::Error>;
 }
