@@ -3340,18 +3340,19 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
-    fn SetNodeValue(&self, val: Option<DOMString>, can_gc: CanGc) {
+    fn SetNodeValue(&self, val: Option<DOMString>, can_gc: CanGc) -> Fallible<()> {
         match self.type_id() {
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(val.unwrap_or_default(), can_gc);
+                attr.SetValue(val.unwrap_or_default(), can_gc)?;
             },
             NodeTypeId::CharacterData(_) => {
                 let character_data = self.downcast::<CharacterData>().unwrap();
                 character_data.SetData(val.unwrap_or_default());
             },
             _ => {},
-        }
+        };
+        Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-textcontent>
@@ -3390,7 +3391,8 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(value, can_gc);
+                // TODO(#36258): Propagate failure to callers
+                let _ = attr.SetValue(value, can_gc);
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();

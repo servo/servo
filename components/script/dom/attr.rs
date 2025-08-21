@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::cell::LazyCell;
 use std::mem;
 use std::sync::LazyLock;
 
@@ -16,17 +15,15 @@ use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::mutationobserver::{Mutation, MutationObserver};
-use crate::dom::node::Node;
-use crate::dom::virtualmethods::vtable_for;
+use crate::dom::element::Element;
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
@@ -112,14 +109,41 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
         DOMString::from(&**self.value())
     }
 
-    // https://dom.spec.whatwg.org/#dom-attr-value
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    /// <https://dom.spec.whatwg.org/#set-an-existing-attribute-value>
+    fn SetValue(&self, value: DOMString, can_gc: CanGc) -> Fallible<()> {
+        // Step 2. Otherwise:
         if let Some(owner) = self.owner() {
-            let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
-            self.set_value(value, &owner, can_gc);
+            // Step 2.1. Let originalElement be attribute’s element.
+            let original_element = owner.clone();
+            // Step 2.2. Let verifiedValue be the result of calling
+            // get Trusted Types-compliant attribute value with attribute’s local name,
+            // attribute’s namespace, this, and value. [TRUSTED-TYPES]
+            let value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
+                owner.namespace(),
+                owner.local_name(),
+                self.local_name(),
+                Some(self.namespace()),
+                TrustedTypeOrString::String(value),
+                &owner.owner_global(),
+                can_gc,
+            )?;
+            if let Some(owner) = self.owner() {
+                // Step 2.4. If attribute’s element is not originalElement, then return.
+                if owner != original_element {
+                    return Ok(());
+                }
+                // Step 2.5. Change attribute to verifiedValue.
+                let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
+                owner.change_attribute(self, value, can_gc);
+            } else {
+                // Step 2.3. If attribute’s element is null, then set attribute’s value to verifiedValue, and return.
+                self.set_value(value);
+            }
         } else {
-            *self.value.borrow_mut() = AttrValue::String(value.into());
+            // Step 1. If attribute’s element is null, then set attribute’s value to value.
+            self.set_value(value);
         }
+        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-name
@@ -154,41 +178,6 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
 }
 
 impl Attr {
-    pub(crate) fn set_value(&self, mut value: AttrValue, owner: &Element, can_gc: CanGc) {
-        let name = self.local_name().clone();
-        let namespace = self.namespace().clone();
-        let old_value = DOMString::from(&**self.value());
-        let new_value = DOMString::from(&*value);
-        let mutation = LazyCell::new(|| Mutation::Attribute {
-            name: name.clone(),
-            namespace: namespace.clone(),
-            old_value: Some(old_value.clone()),
-        });
-
-        MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
-
-        if owner.is_custom() {
-            let reaction = CallbackReaction::AttributeChanged(
-                name,
-                Some(old_value),
-                Some(new_value),
-                namespace,
-            );
-            ScriptThread::enqueue_callback_reaction(owner, reaction, None);
-        }
-
-        assert_eq!(Some(owner), self.owner().as_deref());
-        owner.will_mutate_attr(self);
-        self.swap_value(&mut value);
-        if is_relevant_attribute(self.namespace(), self.local_name()) {
-            vtable_for(owner.upcast()).attribute_mutated(
-                self,
-                AttributeMutation::Set(Some(&value)),
-                can_gc,
-            );
-        }
-    }
-
     /// Used to swap the attribute's value without triggering mutation events
     pub(crate) fn swap_value(&self, value: &mut AttrValue) {
         mem::swap(&mut *self.value.borrow_mut(), value);
@@ -200,6 +189,10 @@ impl Attr {
 
     pub(crate) fn value(&self) -> Ref<'_, AttrValue> {
         self.value.borrow()
+    }
+
+    fn set_value(&self, value: DOMString) {
+        *self.value.borrow_mut() = AttrValue::String(value.into());
     }
 
     pub(crate) fn local_name(&self) -> &LocalName {
