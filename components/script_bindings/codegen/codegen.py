@@ -12,7 +12,7 @@ from WebIDL import IDLUnionType
 from WebIDL import IDLSequenceType
 from collections import defaultdict
 from itertools import groupby
-from typing import Optional, Any, Generic, TypeVar, cast
+from typing import cast, Optional, Any, Generic, TypeVar
 from collections.abc import Generator, Callable, Iterator
 from abc import abstractmethod
 
@@ -1759,13 +1759,13 @@ pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
 
     def generateUnguardedArray(
             self,
-            array: list[dict[str, Any]],
+            array: list[PropertyDefinerElementType],
             name: str,
-            specTemplate: Callable[[dict[str, Any]], str] | str,
+            specTemplate: Callable[[PropertyDefinerElementType], str] | str,
             specTerminator: str,
             specType: str,
-            getCondition: Callable[[dict[str, Any], Descriptor], list[str]],
-            getDataTuple: Callable[[dict[str, Any]], tuple[str, ...]]
+            getCondition: Callable[[PropertyDefinerElementType, Descriptor], list[str]],
+            getDataTuple: Callable[[PropertyDefinerElementType], tuple[str, ...]]
     ) -> str:
         """
         Takes the same set of parameters as generateGuardedArray but instead
@@ -2189,7 +2189,8 @@ class ConstDefiner(PropertyDefiner[IDLConst]):
                     convertConstIDLValueToJSVal(const.value))
 
         return self.generateGuardedArray(
-            array, name,
+            array,
+            name,
             '    ConstantSpec { name: %s, value: %s }',
             None,
             'ConstantSpec',
