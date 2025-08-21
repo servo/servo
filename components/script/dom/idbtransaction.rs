@@ -236,8 +236,8 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
                 name,
                 None,
                 CanGc::note(),
+                self,
             );
-            store.set_transaction(self);
             Dom::from_ref(&*store)
         });
 

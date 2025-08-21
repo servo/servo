@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransacti
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, MutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::domstringlist::DOMStringList;
@@ -42,7 +42,7 @@ pub struct IDBObjectStore {
     name: DomRefCell<DOMString>,
     key_path: Option<KeyPath>,
     index_names: DomRoot<DOMStringList>,
-    transaction: MutNullableDom<IDBTransaction>,
+    transaction: MutDom<IDBTransaction>,
     auto_increment: bool,
 
     // We store the db name in the object store to be able to find the correct
@@ -57,6 +57,7 @@ impl IDBObjectStore {
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
         can_gc: CanGc,
+        transaction: &IDBTransaction,
     ) -> IDBObjectStore {
         let key_path: Option<KeyPath> = match options {
             Some(options) => options.keyPath.as_ref().map(|path| match path {
@@ -74,7 +75,7 @@ impl IDBObjectStore {
             key_path,
 
             index_names: DOMStringList::new(global, Vec::new(), can_gc),
-            transaction: Default::default(),
+            transaction: MutDom::new(transaction),
             // FIXME:(arihant2math)
             auto_increment: false,
 
@@ -88,10 +89,16 @@ impl IDBObjectStore {
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
         can_gc: CanGc,
+        transaction: &IDBTransaction,
     ) -> DomRoot<IDBObjectStore> {
         reflect_dom_object(
             Box::new(IDBObjectStore::new_inherited(
-                global, db_name, name, options, can_gc,
+                global,
+                db_name,
+                name,
+                options,
+                can_gc,
+                transaction,
             )),
             global,
             can_gc,
@@ -102,11 +109,7 @@ impl IDBObjectStore {
         self.name.borrow().clone()
     }
 
-    pub fn set_transaction(&self, transaction: &IDBTransaction) {
-        self.transaction.set(Some(transaction));
-    }
-
-    pub fn transaction(&self) -> Option<DomRoot<IDBTransaction>> {
+    pub fn transaction(&self) -> DomRoot<IDBTransaction> {
         self.transaction.get()
     }
 
@@ -171,7 +174,7 @@ impl IDBObjectStore {
     /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
     fn check_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
-        let transaction = self.transaction.get().ok_or(Error::TransactionInactive)?;
+        let transaction = self.transaction.get();
 
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
         if !transaction.is_active() {
@@ -185,7 +188,7 @@ impl IDBObjectStore {
     /// it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
     fn check_readwrite_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
-        let transaction = self.transaction.get().ok_or(Error::TransactionInactive)?;
+        let transaction = self.transaction.get();
 
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
         if !transaction.is_active() {
@@ -449,7 +452,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     // }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction
-    fn GetTransaction(&self) -> Option<DomRoot<IDBTransaction>> {
+    fn Transaction(&self) -> DomRoot<IDBTransaction> {
         self.transaction()
     }
 
