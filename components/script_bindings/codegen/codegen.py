@@ -634,7 +634,6 @@ class CGMethodCall(CGThing):
 
 
 def dictionaryHasSequenceMember(dictionary: IDLDictionary) -> bool:
-    # pyrefly: ignore  # bad-return
     return (any(typeIsSequenceOrHasSequenceMember(m.type) for m in
                 dictionary.members)
             or (dictionary.parent
@@ -861,13 +860,16 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         declType = CGGeneric(union_native_type(type))
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
+        assert isinstance(type, (IDLUnionType, IDLNullableType))
 
         templateBody = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
+        flatMemberTypes = type.unroll().flatMemberTypes
+        assert flatMemberTypes is not None
+
         dictionaries = [
             memberType
-            # pyrefly: ignore  # missing-attribute
-            for memberType in type.unroll().flatMemberTypes
+            for memberType in flatMemberTypes
             if memberType.isDictionary()
         ]
         if (defaultValue
@@ -5893,6 +5895,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
     Base class for classes for calling an indexed or named special operation
     (don't use this directly, use the derived classes below).
     """
+    templateValues: dict[str, Any] | None
     def __init__(self, descriptor, operation):
         nativeName = MakeNativeName(descriptor.binaryNameFor(operation, False))
         operation = descriptor.operations[operation]
@@ -5930,11 +5933,9 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         return args
 
     def wrap_return_value(self):
-        # pyrefly: ignore  # missing-attribute
         if not self.idlNode.isGetter() or self.templateValues is None:
             return ""
 
-        # pyrefly: ignore  # missing-argument, bad-unpacking
         wrap = CGGeneric(wrapForType(**self.templateValues))
         wrap = CGIfWrapper("let Some(result) = result", wrap)
         return f"\n{wrap.define()}"
