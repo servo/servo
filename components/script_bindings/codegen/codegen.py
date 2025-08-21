@@ -6810,7 +6810,7 @@ class CGInterfaceTrait(CGThing):
                         arguments = method_arguments(descriptor, rettype, arguments,
                                                      inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
-                        rettype = return_type(descriptor, cast(IDLType, rettype), infallible)
+                        rettype = return_type(descriptor, rettype, infallible)
                         yield f"{name}{'_' * idx}", arguments, rettype, m.isStatic()
                 elif m.isAttr():
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
