@@ -12,8 +12,8 @@ from WebIDL import IDLUnionType
 from WebIDL import IDLSequenceType
 from collections import defaultdict
 from itertools import groupby
-from typing import Optional, Any
-from collections.abc import Generator, Callable
+from typing import Optional, Any, Generic, TypeVar, cast
+from collections.abc import Generator, Callable, Iterator
 from abc import abstractmethod
 
 import operator
@@ -320,7 +320,7 @@ fill_multiline_substitution_re = re.compile(r"( *)\$\*{(\w+)}(\n)?")
 
 
 @functools.cache
-def compile_fill_template(template: str) -> tuple:
+def compile_fill_template(template: str) -> tuple[string.Template, list[tuple[str, str, int]]]:
     """
     Helper function for fill().  Given the template string passed to fill(),
     do the reusable part of template processing and return a pair (t,
@@ -703,7 +703,6 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                                 defaultValue: IDLValue | None = None,
                                 exceptionCode: str | None = None,
                                 allowTreatNonObjectAsNull: bool = False,
-                                isCallbackReturnValue: str | bool = False,
                                 sourceDescription: str = "value") -> JSToNativeConversionInfo:
     """
     Get a template for converting a JS value to a native object based on the
@@ -1481,7 +1480,7 @@ def returnTypeNeedsOutparam(type: IDLType) -> bool:
     return type.isAny()
 
 
-def outparamTypeFromReturnType(type: IDLType) -> str | None:
+def outparamTypeFromReturnType(type: IDLType) -> str:
     if type.isAny():
         return "MutableHandleValue"
     raise TypeError(f"Don't know how to handle {type} as an outparam")
@@ -1635,8 +1634,9 @@ def MemberCondition(pref: str | None, func: str | None, exposed: set | None, sec
         conditions.append("Condition::Satisfied")
     return conditions
 
+PropertyDefinerElementType = TypeVar('PropertyDefinerElementType')
 
-class PropertyDefiner:
+class PropertyDefiner(Generic[PropertyDefinerElementType]):
     """
     A common superclass for defining things on prototype objects.
 
@@ -1645,7 +1645,8 @@ class PropertyDefiner:
     things exposed to web pages.
     """
     name: str
-    regular: list[dict[str, Any]]
+    regular: list[PropertyDefinerElementType]
+
     def __init__(self, descriptor: Descriptor, name: str) -> None:
         self.descriptor = descriptor
         self.name = name
@@ -1657,7 +1658,7 @@ class PropertyDefiner:
         return len(self.regular)
 
     @abstractmethod
-    def generateArray(self, array: list[dict[str, Any]], name: str) -> str:
+    def generateArray(self, array: list[PropertyDefinerElementType], name: str) -> str:
         raise NotImplementedError
 
     def __str__(self) -> str:
@@ -1685,8 +1686,14 @@ class PropertyDefiner:
             interfaceMember.exposureSet,
             interfaceMember.getExtendedAttribute("SecureContext"))
 
-    def generateGuardedArray(self, array: list[dict[str, Any]], name: str, specTemplate: Callable | str, specTerminator: Callable | str | None,
-                             specType: str, getCondition: Callable, getDataTuple: Callable) -> str:
+    def generateGuardedArray(self,
+                             array: list[PropertyDefinerElementType],
+                             name: str, specTemplate: Callable | str,
+                             specTerminator: Callable | str | None,
+                             specType: str,
+                             getCondition: Callable,
+                             getDataTuple: Callable
+                             ) -> str:
         """
         This method generates our various arrays.
 
@@ -1715,8 +1722,8 @@ class PropertyDefiner:
         specs = []
         prefableSpecs = []
         prefableTemplate = '    Guard::new(%s, (%s)[%d])'
-        origTemplate = specTemplate
         if isinstance(specTemplate, str):
+            origTemplate = specTemplate
             specTemplate = lambda _: origTemplate  # noqa
 
         for cond, members in groupby(array, lambda m: getCondition(m, self.descriptor)):
@@ -1748,8 +1755,15 @@ pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
 
         return f"{specsArray}{initSpecs}{prefArray}{initPrefs}"
 
-    def generateUnguardedArray(self, array: list[dict[str, Any]], name: str, specTemplate: Callable | str, specTerminator: Callable | str,
-                               specType: str, getCondition: Callable, getDataTuple: Callable) -> str:
+    def generateUnguardedArray(self,
+                               array: list[dict[str, Any]],
+                               name: str,
+                               specTemplate: Callable | str,
+                               specTerminator: Callable | str,
+                               specType: str,
+                               getCondition: Callable,
+                               getDataTuple: Callable
+                               ) -> str:
         """
         Takes the same set of parameters as generateGuardedArray but instead
         generates a single, flat array of type `&[specType]` that contains all
@@ -1761,8 +1775,8 @@ pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
         groups = groupby(array, lambda m: getCondition(m, self.descriptor))
         assert len(list(groups)) == 1
 
-        origTemplate = specTemplate
         if isinstance(specTemplate, str):
+            origTemplate = specTemplate
             specTemplate = lambda _: origTemplate  # noqa
 
         specsArray = [specTemplate(m) % getDataTuple(m) for m in array]
@@ -1812,7 +1826,7 @@ class MethodDefiner(PropertyDefiner):
                        and (MemberIsLegacyUnforgeable(m, descriptor) == unforgeable or crossorigin)]
         else:
             methods = []
-        self.regular = []
+        self.regular: list[dict[str, Any]] = []
         for m in methods:
             method = self.methodData(m, descriptor, crossorigin)
 
@@ -2012,7 +2026,7 @@ class AttrDefiner(PropertyDefiner):
 
         self.name = name
         self.descriptor = descriptor
-        self.regular = [
+        self.regular: list[dict[str, Any]] = [
             {
                 "name": m.identifier.name,
                 "attr": m,
@@ -2154,16 +2168,16 @@ class AttrDefiner(PropertyDefiner):
                 condition, specData)
 
 
-class ConstDefiner(PropertyDefiner):
+class ConstDefiner(PropertyDefiner[IDLConst]):
     """
     A class for definining constants on the interface object
     """
     def __init__(self, descriptor: Descriptor, name: str) -> None:
         PropertyDefiner.__init__(self, descriptor, name)
         self.name = name
-        self.regular = [m for m in descriptor.interface.members if m.isConst()]
+        self.regular: list[IDLConst] = [m for m in descriptor.interface.members if m.isConst()]
 
-    def generateArray(self, array: list[dict[str, Any]], name: str) -> str:
+    def generateArray(self, array: list[IDLConst], name: str) -> str:
         if len(array) == 0:
             return ""
 
@@ -2791,7 +2805,13 @@ def UnionTypes(
                      typedefs=[], imports=imports, config=config)
 
 
-def DomTypes(descriptors: list[Descriptor], descriptorProvider: DescriptorProvider, dictionaries: IDLDictionary, callbacks: IDLCallback, typedefs: IDLTypedef, config: Configuration) -> CGThing:
+def DomTypes(descriptors: list[Descriptor],
+             descriptorProvider: DescriptorProvider,
+             dictionaries: IDLDictionary,
+             callbacks: IDLCallback,
+             typedefs: IDLTypedef,
+             config: Configuration
+             ) -> CGThing:
     traits = [
         "crate::interfaces::DomHelpers<Self>",
         "js::rust::Trace",
@@ -2902,7 +2922,13 @@ def DomTypes(descriptors: list[Descriptor], descriptorProvider: DescriptorProvid
     return CGList(imports + elements)
 
 
-def DomTypeHolder(descriptors: list[Descriptor], descriptorProvider: DescriptorProvider, dictionaries: IDLDictionary, callbacks: IDLCallback, typedefs: IDLTypedef, config: Configuration) -> CGThing:
+def DomTypeHolder(descriptors: list[Descriptor],
+                  descriptorProvider: DescriptorProvider,
+                  dictionaries: IDLDictionary,
+                  callbacks: IDLCallback,
+                  typedefs: IDLTypedef,
+                  config: Configuration
+                  ) -> CGThing:
     elements = [
         CGGeneric(
             "#[derive(JSTraceable, MallocSizeOf, PartialEq)]\n"
@@ -6748,7 +6774,7 @@ pub(crate) fn init_proxy_handler_dom_class<D: DomTypes>() {{
 
 
 class CGInterfaceTrait(CGThing):
-    def __init__(self, descriptor, descriptorProvider):
+    def __init__(self, descriptor: Descriptor, descriptorProvider: DescriptorProvider):
         CGThing.__init__(self)
 
         def attribute_arguments(attribute_type, argument=None, inRealm=False, canGc=False, retval=False):
@@ -6776,10 +6802,10 @@ class CGInterfaceTrait(CGThing):
                     name = CGSpecializedMethod.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
-                        arguments = method_arguments(descriptor, rettype, arguments,
+                        arguments = method_arguments(descriptor, cast(IDLType, rettype), cast(list[IDLArgument], arguments),
                                                      inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
-                        rettype = return_type(descriptor, rettype, infallible)
+                        rettype = return_type(descriptor, cast(IDLType, rettype), infallible)
                         yield f"{name}{'_' * idx}", arguments, rettype, m.isStatic()
                 elif m.isAttr():
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
@@ -8006,8 +8032,14 @@ def argument_type(descriptorProvider: DescriptorProvider, ty: IDLType, optional:
     return declType.define()
 
 
-def method_arguments(descriptorProvider: DescriptorProvider, returnType, arguments, passJSBits: bool = True, trailing=None,
-                     inRealm: bool = False, canGc: bool = False):
+def method_arguments(descriptorProvider: DescriptorProvider,
+                     returnType: IDLType,
+                     arguments: list[IDLArgument],
+                     passJSBits: bool = True,
+                     trailing: tuple[str, str] | None = None,
+                     inRealm: bool = False,
+                     canGc: bool = False
+                     ) -> Iterator[tuple[str, str]]:
     if needCx(returnType, arguments, passJSBits):
         yield "cx", "SafeJSContext"
 
@@ -8029,7 +8061,7 @@ def method_arguments(descriptorProvider: DescriptorProvider, returnType, argumen
         yield "rval", outparamTypeFromReturnType(returnType),
 
 
-def return_type(descriptorProvider: DescriptorProvider, rettype, infallible: bool) -> str:
+def return_type(descriptorProvider: DescriptorProvider, rettype: IDLType, infallible: bool) -> str:
     result = getRetvalDeclarationForType(rettype, descriptorProvider)
     if rettype and returnTypeNeedsOutparam(rettype):
         result = CGGeneric("()")
@@ -8315,7 +8347,6 @@ class CallbackMember(CGNativeMember):
             self.retvalType,
             self.descriptorProvider,
             exceptionCode=self.exceptionCode,
-            isCallbackReturnValue="Callback",
             # XXXbz we should try to do better here
             sourceDescription="return value")
         template = info.template
