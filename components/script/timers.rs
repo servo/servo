@@ -590,48 +590,48 @@ impl JsTimerTask {
         // prep for step ? in nested set_timeout_or_interval calls
         timers.nesting_level.set(self.nesting_level);
 
-        let was_user_interacting = ScriptThread::is_user_interacting();
-        ScriptThread::set_user_interacting(self.is_user_interacting);
-        match self.callback {
-            InternalTimerCallback::StringTimerCallback(ref code_str) => {
-                // Step 6.4. Let settings object be global's relevant settings object.
-                // Step 6. Let realm be global's relevant realm.
-                let global = this.global();
-                // Step 7. Let initiating script be the active script.
-                let cx = GlobalScope::get_cx();
-                // Step 9.6.7. If initiating script is not null, then:
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                // Step 9.6.7.1. Set fetch options to a script fetch options whose cryptographic nonce
-                // is initiating script's fetch options's cryptographic nonce,
-                // integrity metadata is the empty string, parser metadata is "not-parser-inserted",
-                // credentials mode is initiating script's fetch options's credentials mode,
-                // referrer policy is initiating script's fetch options's referrer policy,
-                // and fetch priority is "auto".
-                // Step 9.6.8. Let script be the result of creating a classic script given handler,
-                // settings object, base URL, and fetch options.
-                // Step 9.6.9. Run the classic script script.
-                //
-                // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
-                _ = global.evaluate_js_on_global_with_result(
-                    code_str,
-                    rval.handle_mut(),
-                    ScriptFetchOptions::default_classic_script(&global),
-                    // Step 9.6. Let base URL be settings object's API base URL.
-                    // Step 9.7.2. Set base URL to initiating script's base URL.
-                    global.api_base_url(),
-                    can_gc,
-                    Some(IntroductionType::DOM_TIMER),
-                );
-            },
-            // Step 9.5. If handler is a Function, then invoke handler given arguments and
-            // "report", and with callback this value set to thisArg.
-            InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
-                let arguments = self.collect_heap_args(arguments);
-                rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
-                let _ = function.Call_(this, arguments, value.handle_mut(), Report, can_gc);
-            },
-        };
-        ScriptThread::set_user_interacting(was_user_interacting);
+        crate::script_thread::with_script_thread(|script_thread| {
+            let _ = script_thread.get_user_interacting_guard();
+            match self.callback {
+                InternalTimerCallback::StringTimerCallback(ref code_str) => {
+                    // Step 6.4. Let settings object be global's relevant settings object.
+                    // Step 6. Let realm be global's relevant realm.
+                    let global = this.global();
+                    // Step 7. Let initiating script be the active script.
+                    let cx = GlobalScope::get_cx();
+                    // Step 9.6.7. If initiating script is not null, then:
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    // Step 9.6.7.1. Set fetch options to a script fetch options whose cryptographic nonce
+                    // is initiating script's fetch options's cryptographic nonce,
+                    // integrity metadata is the empty string, parser metadata is "not-parser-inserted",
+                    // credentials mode is initiating script's fetch options's credentials mode,
+                    // referrer policy is initiating script's fetch options's referrer policy,
+                    // and fetch priority is "auto".
+                    // Step 9.6.8. Let script be the result of creating a classic script given handler,
+                    // settings object, base URL, and fetch options.
+                    // Step 9.6.9. Run the classic script script.
+                    //
+                    // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
+                    _ = global.evaluate_js_on_global_with_result(
+                        code_str,
+                        rval.handle_mut(),
+                        ScriptFetchOptions::default_classic_script(&global),
+                        // Step 9.6. Let base URL be settings object's API base URL.
+                        // Step 9.7.2. Set base URL to initiating script's base URL.
+                        global.api_base_url(),
+                        can_gc,
+                        Some(IntroductionType::DOM_TIMER),
+                    );
+                },
+                // Step 9.5. If handler is a Function, then invoke handler given arguments and
+                // "report", and with callback this value set to thisArg.
+                InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
+                    let arguments = self.collect_heap_args(arguments);
+                    rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
+                    let _ = function.Call_(this, arguments, value.handle_mut(), Report, can_gc);
+                },
+            }
+        });
 
         // reset nesting level (see above)
         timers.nesting_level.set(0);

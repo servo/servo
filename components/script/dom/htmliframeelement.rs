@@ -666,7 +666,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
         // Step 2-3.
         // Note that this lookup will fail if the document is dissimilar-origin,
         // so we should return None in that case.
-        let document = ScriptThread::find_document(pipeline_id)?;
+        let document = ScriptThread::find_document_on_current_script(pipeline_id)?;
 
         // Step 4.
         let current = GlobalScope::current()
@@ -850,7 +850,9 @@ impl VirtualMethods for HTMLIFrameElement {
         // when the `PipelineExit` message arrives.
         for exited_pipeline_id in exited_pipeline_ids {
             // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-            if let Some(exited_document) = ScriptThread::find_document(exited_pipeline_id) {
+            if let Some(exited_document) =
+                ScriptThread::find_document_on_current_script(exited_pipeline_id)
+            {
                 debug!(
                     "Discarding browsing context for pipeline {}",
                     exited_pipeline_id

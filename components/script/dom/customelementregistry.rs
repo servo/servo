@@ -1101,7 +1101,9 @@ impl CustomElementReactionStack {
                 .set(BackupElementQueueFlag::Processing);
 
             // Step 4
-            ScriptThread::enqueue_microtask(Microtask::CustomElementReaction);
+            crate::script_thread::with_script_thread(|script_thread| {
+                script_thread.enqueue_microtask(Microtask::CustomElementReaction)
+            });
         }
     }
 

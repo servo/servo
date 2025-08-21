@@ -400,6 +400,31 @@ impl Drop for ScriptMemoryFailsafe<'_> {
         }
     }
 }
+/// A simple guard structure that restore the user interacting state when dropped
+#[derive(Default)]
+pub(crate) struct ScriptUserInteractingGuard<'a> {
+    was_interacting: bool,
+    script_thread: Option<&'a ScriptThread>,
+}
+
+impl<'a> ScriptUserInteractingGuard<'a> {
+    fn new(script_thread: &'a ScriptThread) -> Self {
+        let was_interacting = script_thread.is_user_interacting.get();
+        script_thread.is_user_interacting.set(true);
+        Self {
+            was_interacting,
+            script_thread: Some(script_thread),
+        }
+    }
+}
+
+impl Drop for ScriptUserInteractingGuard<'_> {
+    fn drop(&mut self) {
+        if let Some(script_thread) = self.script_thread {
+            script_thread.is_user_interacting.set(self.was_interacting)
+        }
+    }
+}
 
 impl ScriptThreadFactory for ScriptThread {
     fn create(
@@ -478,37 +503,29 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn set_mutation_observer_microtask_queued(value: bool) {
-        with_script_thread(|script_thread| {
-            script_thread.mutation_observer_microtask_queued.set(value);
-        })
+    pub(crate) fn set_mutation_observer_microtask_queued(&self, value: bool) {
+        self.mutation_observer_microtask_queued.set(value);
     }
 
-    pub(crate) fn is_mutation_observer_microtask_queued() -> bool {
-        with_script_thread(|script_thread| script_thread.mutation_observer_microtask_queued.get())
+    pub(crate) fn is_mutation_observer_microtask_queued(&self) -> bool {
+        self.mutation_observer_microtask_queued.get()
     }
 
-    pub(crate) fn add_mutation_observer(observer: &MutationObserver) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .mutation_observers
-                .borrow_mut()
-                .push(Dom::from_ref(observer));
-        })
+    pub(crate) fn add_mutation_observer(&self, observer: &MutationObserver) {
+        self.mutation_observers
+            .borrow_mut()
+            .push(Dom::from_ref(observer));
     }
 
-    pub(crate) fn get_mutation_observers() -> Vec<DomRoot<MutationObserver>> {
-        with_script_thread(|script_thread| {
-            script_thread
-                .mutation_observers
-                .borrow()
-                .iter()
-                .map(|o| DomRoot::from_ref(&**o))
-                .collect()
-        })
+    pub(crate) fn get_mutation_observers(&self) -> Vec<DomRoot<MutationObserver>> {
+        self.mutation_observers
+            .borrow()
+            .iter()
+            .map(|o| DomRoot::from_ref(&**o))
+            .collect()
     }
 
-    pub(crate) fn add_signal_slot(observer: &HTMLSlotElement) {
+    pub(crate) fn add_signal_slot(&self, observer: &HTMLSlotElement) {
         with_script_thread(|script_thread| {
             script_thread
                 .signal_slots
@@ -517,18 +534,15 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn take_signal_slots() -> Vec<DomRoot<HTMLSlotElement>> {
-        with_script_thread(|script_thread| {
-            script_thread
-                .signal_slots
-                .take()
-                .into_iter()
-                .inspect(|slot| {
-                    slot.remove_from_signal_slots();
-                })
-                .map(|slot| slot.as_rooted())
-                .collect()
-        })
+    pub(crate) fn take_signal_slots(&self) -> Vec<DomRoot<HTMLSlotElement>> {
+        self.signal_slots
+            .take()
+            .into_iter()
+            .inspect(|slot| {
+                slot.remove_from_signal_slots();
+            })
+            .map(|slot| slot.as_rooted())
+            .collect()
     }
 
     pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
@@ -682,14 +696,17 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
-        with_script_thread(|script_thread| script_thread.documents.borrow().find_document(id))
+    pub(crate) fn find_document(&self, id: PipelineId) -> Option<DomRoot<Document>> {
+        self.documents.borrow().find_document(id)
     }
 
-    pub(crate) fn set_user_interacting(interacting: bool) {
-        with_script_thread(|script_thread| {
-            script_thread.is_user_interacting.set(interacting);
-        });
+    /// This function uses the thread local variable. Use sparringly.
+    pub(crate) fn find_document_on_current_script(id: PipelineId) -> Option<DomRoot<Document>> {
+        with_script_thread(|script_thread| script_thread.find_document(id))
+    }
+
+    pub(crate) fn get_user_interacting_guard(&self) -> ScriptUserInteractingGuard<'_> {
+        ScriptUserInteractingGuard::new(self)
     }
 
     pub(crate) fn is_user_interacting() -> bool {
@@ -1048,10 +1065,9 @@ impl ScriptThread {
             warn!("Compositor event sent to a pipeline with a closed window {pipeline_id}.");
             return;
         }
-        ScriptThread::set_user_interacting(true);
+        let _ = ScriptUserInteractingGuard::new(self);
 
         document.event_handler().handle_pending_input_events(can_gc);
-        ScriptThread::set_user_interacting(false);
     }
 
     fn cancel_scheduled_update_the_rendering(&self) {
@@ -3919,12 +3935,8 @@ impl ScriptThread {
         };
     }
 
-    pub(crate) fn enqueue_microtask(job: Microtask) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .microtask_queue
-                .enqueue(job, script_thread.get_cx());
-        });
+    pub(crate) fn enqueue_microtask(&self, job: Microtask) {
+        self.microtask_queue.enqueue(job, self.get_cx());
     }
 
     fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {

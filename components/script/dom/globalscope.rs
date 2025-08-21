@@ -3010,8 +3010,21 @@ impl GlobalScope {
     /// Returns a boolean indicating whether further events should be processed.
     pub(crate) fn process_event(&self, msg: CommonScriptMsg) -> bool {
         if self.is::<Window>() {
-            return ScriptThread::process_event(msg);
+            return match msg {
+                // We shortcut the valuation here for messages that run on this realm.
+                // This safes querying the thread local variable for the script thread in
+                // `ScriptThread::process_event`
+                CommonScriptMsg::Task(_, task_box, pipeline_id, _)
+                    if pipeline_id.map(|p| p == self.pipeline_id).unwrap_or(false) =>
+                {
+                    let _global = enter_realm(self);
+                    task_box.run_box();
+                    true
+                },
+                _ => ScriptThread::process_event(msg),
+            };
         }
+
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.process_event(msg);
         }

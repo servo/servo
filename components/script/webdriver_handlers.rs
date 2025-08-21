@@ -2081,7 +2081,7 @@ pub(crate) fn handle_get_window_handle(
     pipeline_id: PipelineId,
     reply: IpcSender<Result<String, ErrorStatus>>,
 ) {
-    if let Some(res) = ScriptThread::find_document(pipeline_id)
+    if let Some(res) = ScriptThread::find_document_on_current_script(pipeline_id)
         .map(|document| document.upcast::<Node>().unique_id(pipeline_id))
     {
         reply.send(Ok(res)).ok();
