@@ -258,28 +258,36 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
-        let glyph = self.face.get_glyph_indices(&[codepoint as u32])[0];
-        if glyph == 0 {
+        let Ok(glyphs) = self.face.glyph_indices(&[codepoint as u32]) else {
+            return None;
+        };
+        let Some(glyph) = glyphs.first() else {
+            return None;
+        };
+        if *glyph == 0 {
             return None;
         }
-        Some(glyph as GlyphId)
+        Some(*glyph as GlyphId)
     }
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
         if glyph == 0 {
             return None;
         }
-
-        let gm = self.face.get_design_glyph_metrics(&[glyph as u16], false)[0];
-        let f = (gm.advanceWidth as f32 * self.scaled_du_to_px) as FractionalPixel;
-
-        Some(f)
+        let Ok(metrics) = self.face.design_glyph_metrics(&[glyph as u16], false) else {
+            return None;
+        };
+        let Some(glyph_metric) = metrics.first() else {
+            return None;
+        };
+        Some((glyph_metric.advanceWidth as f32 * self.scaled_du_to_px) as FractionalPixel)
     }
 
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
         let adjustment = self
             .face
-            .get_glyph_pair_kerning_adjustment(first_glyph as u16, second_glyph as u16);
+            .glyph_pair_kerning_adjustment(first_glyph as u16, second_glyph as u16)
+            .unwrap_or_default();
 
         (adjustment as f32 * self.scaled_du_to_px) as FractionalPixel
     }
@@ -340,7 +348,9 @@ impl PlatformFontMethods for PlatformFont {
         // tag bytes, which means that `u32::swap_bytes` must be called here in order to
         // use a byte order compatible with the rest of Servo.
         self.face
-            .get_font_table(u32::swap_bytes(tag))
+            .font_table(u32::swap_bytes(tag))
+            .ok()
+            .flatten()
             .map(|bytes| FontTable { data: bytes })
     }
 
@@ -349,10 +359,12 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
-        let metrics = self
-            .face
-            .get_design_glyph_metrics(&[glyph_id as u16], false);
-        let metrics = &metrics[0];
+        let Ok(metrics) = self.face.design_glyph_metrics(&[glyph_id as u16], false) else {
+            return Rect::zero();
+        };
+        let Some(metrics) = metrics.first() else {
+            return Rect::zero();
+        };
         let advance_width = metrics.advanceWidth as f32;
         let advance_height = metrics.advanceHeight as f32;
         let left_side_bearing = metrics.leftSideBearing as f32;
