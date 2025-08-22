@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSender;
 use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
@@ -10,6 +10,8 @@ use net_traits::indexeddb_thread::{
     IndexedDBThreadMsg, SyncOperation,
 };
 use profile_traits::ipc;
+use script_bindings::codegen::GenericBindings::IDBObjectStoreBinding::IDBIndexParameters;
+use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use script_bindings::error::ErrorResult;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -25,18 +27,51 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::idbindex::IDBIndex;
 use crate::dom::idbrequest::IDBRequest;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::indexed_db;
 use crate::indexed_db::{convert_value_to_key, convert_value_to_key_range, extract_key};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum KeyPath {
     String(DOMString),
     StringSequence(Vec<DOMString>),
+}
+
+impl From<StringOrStringSequence> for KeyPath {
+    fn from(value: StringOrStringSequence) -> Self {
+        match value {
+            StringOrStringSequence::String(s) => KeyPath::String(s),
+            StringOrStringSequence::StringSequence(ss) => KeyPath::StringSequence(ss),
+        }
+    }
+}
+
+impl From<net_traits::indexeddb_thread::KeyPath> for KeyPath {
+    fn from(value: net_traits::indexeddb_thread::KeyPath) -> Self {
+        match value {
+            net_traits::indexeddb_thread::KeyPath::String(s) => {
+                KeyPath::String(DOMString::from_string(s))
+            },
+            net_traits::indexeddb_thread::KeyPath::Sequence(ss) => {
+                KeyPath::StringSequence(ss.into_iter().map(DOMString::from_string).collect())
+            },
+        }
+    }
+}
+
+impl From<KeyPath> for net_traits::indexeddb_thread::KeyPath {
+    fn from(item: KeyPath) -> Self {
+        match item {
+            KeyPath::String(s) => Self::String(s.to_string()),
+            KeyPath::StringSequence(ss) => {
+                Self::Sequence(ss.into_iter().map(|s| s.to_string()).collect())
+            },
+        }
+    }
 }
 
 #[dom_struct]
@@ -44,7 +79,7 @@ pub struct IDBObjectStore {
     reflector_: Reflector,
     name: DomRefCell<DOMString>,
     key_path: Option<KeyPath>,
-    index_names: DomRoot<DOMStringList>,
+    index_names: DomRefCell<Vec<DOMString>>,
     transaction: Dom<IDBTransaction>,
     auto_increment: bool,
 
@@ -55,11 +90,11 @@ pub struct IDBObjectStore {
 
 impl IDBObjectStore {
     pub fn new_inherited(
-        global: &GlobalScope,
+        _global: &GlobalScope,
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
-        can_gc: CanGc,
+        _can_gc: CanGc,
         transaction: &IDBTransaction,
     ) -> IDBObjectStore {
         let key_path: Option<KeyPath> = match options {
@@ -76,8 +111,7 @@ impl IDBObjectStore {
             reflector_: Reflector::new(),
             name: DomRefCell::new(name),
             key_path,
-
-            index_names: DOMStringList::new(global, Vec::new(), can_gc),
+            index_names: DomRefCell::new(vec![]),
             transaction: Dom::from_ref(transaction),
             // FIXME:(arihant2math)
             auto_increment: false,
@@ -116,6 +150,10 @@ impl IDBObjectStore {
         self.transaction.as_rooted()
     }
 
+    fn get_idb_thread(&self) -> IpcSender<IndexedDBThreadMsg> {
+        self.global().resource_threads().sender()
+    }
+
     fn has_key_generator(&self) -> bool {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
@@ -126,9 +164,7 @@ impl IDBObjectStore {
             self.name.borrow().to_string(),
         );
 
-        self.global()
-            .resource_threads()
-            .sender()
+        self.get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(operation))
             .unwrap();
 
@@ -136,38 +172,6 @@ impl IDBObjectStore {
         // Second unwrap will never happen unless this db gets manually deleted somehow
         receiver.recv().unwrap().unwrap()
     }
-
-    // fn get_stored_key_path(&mut self) -> Option<KeyPath> {
-    //     let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-    //
-    //     let operation = SyncOperation::KeyPath(
-    //         sender,
-    //         self.global().origin().immutable().clone(),
-    //         self.db_name.to_string(),
-    //         self.name.borrow().to_string(),
-    //     );
-    //
-    //     self.global()
-    //         .resource_threads()
-    //         .sender()
-    //         .send(IndexedDBThreadMsg::Sync(operation))
-    //         .unwrap();
-    //
-    //     // First unwrap for ipc
-    //     // Second unwrap will never happen unless this db gets manually deleted somehow
-    //     let key_path = receiver.recv().unwrap().unwrap();
-    //     key_path.map(|p| {
-    //         // TODO: have separate storage for string sequence of len 1 and signle string
-    //         if p.len() == 1 {
-    //             KeyPath::String(DOMString::from_string(p[0].clone()))
-    //         } else {
-    //             let strings: Vec<_> = p.into_iter().map(|s| {
-    //                 DOMString::from_string(s)
-    //             }).collect();
-    //             KeyPath::StringSequence(strings)
-    //         }
-    //     })
-    // }
 
     // https://www.w3.org/TR/IndexedDB-2/#object-store-in-line-keys
     fn uses_inline_keys(&self) -> bool {
@@ -512,5 +516,90 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     fn AutoIncrement(&self) -> bool {
         // FIXME(arihant2math): This is wrong
         self.auto_increment
+    }
+
+    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-createindex
+    fn CreateIndex(
+        &self,
+        name: DOMString,
+        key_path: StringOrStringSequence,
+        options: &IDBIndexParameters,
+    ) -> Fallible<DomRoot<IDBIndex>> {
+        let key_path: KeyPath = key_path.into();
+        // Step 3
+        if self.transaction.Mode() != IDBTransactionMode::Versionchange {
+            return Err(Error::InvalidState);
+        }
+        // TODO: Step 4
+        // Step 5
+        self.check_transaction_active()?;
+        // Step 6
+        if self.index_names.borrow().contains(&name) {
+            return Err(Error::Constraint);
+        }
+        // TODO: Step 7: Validate key path
+        // Step 10
+        if matches!(key_path, KeyPath::StringSequence(_)) && options.multiEntry {
+            return Err(Error::InvalidAccess);
+        }
+        // Step 11
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let create_index_operation = SyncOperation::CreateIndex(
+            sender,
+            self.global().origin().immutable().clone(),
+            self.db_name.to_string(),
+            self.name.borrow().to_string(),
+            name.to_string(),
+            key_path.clone().into(),
+            options.unique,
+            options.multiEntry,
+        );
+        self.get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(create_index_operation))
+            .unwrap();
+        // TODO: Handle result properly
+        let _ = receiver.recv().unwrap();
+        // Step 12
+        self.index_names.borrow_mut().push(name.clone());
+        Ok(IDBIndex::new(
+            &self.global(),
+            DomRoot::from_ref(self),
+            name,
+            options.multiEntry,
+            options.unique,
+            CanGc::note(),
+        ))
+    }
+
+    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-deleteindex
+    fn DeleteIndex(&self, name: DOMString) -> Fallible<()> {
+        // Step 3
+        if self.transaction.Mode() != IDBTransactionMode::Versionchange {
+            return Err(Error::InvalidState);
+        }
+        // TODO: Step 4
+        // Step 5
+        self.check_transaction_active()?;
+        // Step 6
+        if !self.index_names.borrow().contains(&name) {
+            return Err(Error::NotFound);
+        }
+        // Step 7
+        self.index_names.borrow_mut().retain(|n| n != &name);
+        // Step 8
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let delete_index_operation = SyncOperation::DeleteIndex(
+            sender,
+            self.global().origin().immutable().clone(),
+            self.db_name.to_string(),
+            self.name.borrow().to_string(),
+            name.to_string(),
+        );
+        self.get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(delete_index_operation))
+            .unwrap();
+        // TODO: Handle result properly
+        let _ = receiver.recv().unwrap();
+        Ok(())
     }
 }
