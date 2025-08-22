@@ -43,6 +43,7 @@ impl IDBCursorWithValue {
     }
 
     #[expect(dead_code)]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         transaction: DomRoot<IDBTransaction>,
@@ -66,6 +67,7 @@ impl IDBCursorWithValue {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
