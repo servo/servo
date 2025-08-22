@@ -426,6 +426,8 @@ pub(crate) mod htmltrackelement;
 pub(crate) mod htmlulistelement;
 pub(crate) mod htmlunknownelement;
 pub(crate) mod htmlvideoelement;
+pub(crate) mod idbcursor;
+pub(crate) mod idbcursorwithvalue;
 pub(crate) mod idbdatabase;
 pub(crate) mod idbfactory;
 pub(crate) mod idbindex;
