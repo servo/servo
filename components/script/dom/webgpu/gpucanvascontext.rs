@@ -11,7 +11,6 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self};
 use pixels::Snapshot;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
-use script_bindings::inheritance::Castable;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,
     WebGPURequest,
@@ -37,8 +36,8 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
-use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 
 /// <https://gpuweb.github.io/gpuweb/#supported-context-formats>
@@ -298,7 +297,6 @@ impl CanvasContext for GPUCanvasContext {
 
     fn mark_as_dirty(&self) {
         if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) = self.canvas {
-            canvas.upcast::<Node>().dirty(NodeDamage::Other);
             canvas.owner_document().add_dirty_webgpu_context(self);
         }
     }
