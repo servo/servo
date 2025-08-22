@@ -56,10 +56,12 @@ impl LocalFontIdentifier {
             .expect("Could not create Font from FontDescriptor")
             .create_font_face();
         let path = face
-            .get_files()
-            .first()
+            .files()
+            .ok()
+            .and_then(|files| files.first().cloned())
             .expect("Could not get FontFace files")
-            .get_font_file_path()
+            .font_file_path()
+            .ok()
             .expect("Could not get FontFace files path");
         NativeFontHandle {
             path,
@@ -73,10 +75,10 @@ impl LocalFontIdentifier {
             .ok()??;
         let face = font.create_font_face();
         let index = face.get_index();
-        let files = face.get_files();
+        let files = face.files().ok()?;
         assert!(!files.is_empty());
 
-        let data = files[0].get_font_file_bytes();
+        let data = files[0].font_file_bytes().ok()?;
         let data = FontData::from_bytes(&data);
 
         Some(FontDataAndIndex { data, index })
