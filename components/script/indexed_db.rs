@@ -265,7 +265,7 @@ pub(crate) fn evaluate_key_path_on_value(
                 else if identifier == "length" {
                     unsafe {
                         let mut is_array = false;
-                        if IsArrayObject(*cx, current_value.handle(), &mut is_array) {
+                        if !IsArrayObject(*cx, current_value.handle(), &mut is_array) {
                             return Err(Error::Data);
                         }
                         if is_array {
