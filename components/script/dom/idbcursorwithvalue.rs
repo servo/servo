@@ -42,7 +42,7 @@ impl IDBCursorWithValue {
         }
     }
 
-    #[expect(dead_code)]
+    #[expect(unused)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,

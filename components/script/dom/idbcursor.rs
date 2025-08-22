@@ -26,7 +26,7 @@ use crate::indexed_db::key_type_to_jsval;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[expect(dead_code)]
+#[expect(unused)]
 pub(crate) enum ObjectStoreOrIndex {
     ObjectStore(DomRoot<IDBObjectStore>),
     Index(DomRoot<IDBIndex>),
@@ -91,7 +91,7 @@ impl IDBCursor {
         }
     }
 
-    #[expect(dead_code)]
+    #[expect(unused)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
