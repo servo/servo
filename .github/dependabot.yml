@@ -16,13 +16,12 @@ updates:
       patterns:
         - "ecolor"
         - "egui"
+        - "egui-file-dialog"
         - "egui-winit"
         - "egui_glow"
         - "emath"
         - "epaint"
         - "epaint_default_fonts"
-        - "accesskit_winit"
-        - "egui-file-dialog"
     gstreamer-related:
       patterns:
         - "gio*"
