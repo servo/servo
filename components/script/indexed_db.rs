@@ -209,10 +209,8 @@ pub(crate) fn evaluate_key_path_on_value(
             rooted!(in(*cx) let mut result = unsafe { JS_NewObject(*cx, ptr::null()) });
 
             // Step 1.2. Let i be 0.
-            let mut i = 0;
-
             // Step 1.3. For each item in keyPath:
-            for item in key_path {
+            for (i, item) in key_path.iter().enumerate() {
                 // Step 1.3.1. Let key be the result of recursively running the steps to evaluate a key
                 // path on a value using item as keyPath and value as value.
                 // Step 1.3.2. Assert: key is not an abrupt completion.
@@ -234,7 +232,7 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // Step 1.3.7. Increase i by 1.
-                i += 1;
+                // Done by for loop with enumerate()
             }
 
             // Step 1.4. Return result.
