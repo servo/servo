@@ -59,6 +59,9 @@ pub enum EmbedderToConstellationMessage {
     /// Requests that the constellation instruct script/layout to try to layout again and tick
     /// animations.
     TickAnimation(Vec<WebViewId>),
+    /// Notify the `ScriptThread` that the Servo renderer is no longer waiting on canvas
+    /// images for the given `Pipeline`s.
+    NoLongerWaitingOnCanvas(Vec<PipelineId>),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload a top-level browsing context.

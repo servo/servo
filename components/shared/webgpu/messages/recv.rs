@@ -6,6 +6,7 @@
 //! (usually from the ScriptThread, and more specifically from DOM objects)
 
 use arrayvec::ArrayVec;
+use base::Epoch;
 use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use pixels::IpcSnapshot;
@@ -162,6 +163,7 @@ pub enum WebGPURequest {
         context_id: WebGPUContextId,
         texture_id: TextureId,
         encoder_id: CommandEncoderId,
+        canvas_epoch: Option<Epoch>,
     },
     /// Obtains image from latest presentation buffer (same as wr update)
     GetImage {

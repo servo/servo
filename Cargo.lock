@@ -1073,6 +1073,7 @@ name = "canvas"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "base",
  "bytemuck",
  "canvas_traits",
  "compositing_traits",
@@ -9725,6 +9726,7 @@ dependencies = [
 name = "webgl"
 version = "0.0.1"
 dependencies = [
+ "base",
  "bitflags 2.9.2",
  "byteorder",
  "canvas_traits",

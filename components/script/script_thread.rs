@@ -1203,10 +1203,10 @@ impl ScriptThread {
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            built_any_display_lists = document
+            let built_display_list = document
                 .update_the_rendering()
-                .contains(ReflowPhasesRun::BuiltDisplayList) ||
-                built_any_display_lists;
+                .contains(ReflowPhasesRun::BuiltDisplayList);
+            built_any_display_lists |= built_display_list;
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
@@ -1395,6 +1395,13 @@ impl ScriptThread {
                     _webviews,
                 )) => {
                     self.set_needs_rendering_update();
+                },
+                MixedMessage::FromConstellation(ScriptThreadMessage::NoLongerWaitingOnCanvas(
+                    pipeline_id,
+                )) => {
+                    if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                        document.handle_no_longer_waiting_on_canvas();
+                    }
                 },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)
@@ -1863,6 +1870,7 @@ impl ScriptThread {
             msg @ ScriptThreadMessage::ExitFullScreen(..) |
             msg @ ScriptThreadMessage::SendInputEvent(..) |
             msg @ ScriptThreadMessage::TickAllAnimations(..) |
+            msg @ ScriptThreadMessage::NoLongerWaitingOnCanvas(..) |
             msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },

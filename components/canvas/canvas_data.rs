@@ -6,6 +6,7 @@ use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
+use base::Epoch;
 use canvas_traits::canvas::*;
 use compositing_traits::CrossProcessCompositorApi;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
@@ -636,11 +637,11 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             .drawtarget
             .create_similar_draw_target(&Size2D::new(size.width, size.height).cast());
 
-        self.update_image_rendering();
+        self.update_image_rendering(None);
     }
 
     /// Update image in WebRender
-    pub(crate) fn update_image_rendering(&mut self) {
+    pub(crate) fn update_image_rendering(&mut self, canvas_epoch: Option<Epoch>) {
         let (descriptor, data) = {
             #[cfg(feature = "tracing")]
             let _span = tracing::trace_span!(
@@ -652,7 +653,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         };
 
         self.compositor_api
-            .update_image(self.image_key, descriptor, data);
+            .update_image(self.image_key, descriptor, data, canvas_epoch);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

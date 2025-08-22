@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{slice, thread};
 
+use base::Epoch;
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
@@ -380,8 +381,8 @@ impl WebGLThread {
                 #[cfg(feature = "webxr")]
                 self.handle_webxr_command(_command);
             },
-            WebGLMsg::SwapBuffers(swap_ids, sender, sent_time) => {
-                self.handle_swap_buffers(swap_ids, sender, sent_time);
+            WebGLMsg::SwapBuffers(swap_ids, canvas_epoch, sent_time) => {
+                self.handle_swap_buffers(canvas_epoch, swap_ids, sent_time);
             },
             WebGLMsg::Exit(sender) => {
                 // Call remove_context functions in order to correctly delete WebRender image keys.
@@ -710,7 +711,7 @@ impl WebGLThread {
             .state
             .requested_flags
             .contains(ContextAttributeFlags::ALPHA);
-        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha);
+        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha, None);
 
         Ok(())
     }
@@ -765,8 +766,8 @@ impl WebGLThread {
 
     fn handle_swap_buffers(
         &mut self,
+        canvas_epoch: Option<Epoch>,
         context_ids: Vec<WebGLContextId>,
-        completed_sender: WebGLSender<u64>,
         _sent_time: u64,
     ) {
         debug!("handle_swap_buffers()");
@@ -845,12 +846,11 @@ impl WebGLThread {
                 .state
                 .requested_flags
                 .contains(ContextAttributeFlags::ALPHA);
-            self.update_wr_image_for_context(context_id, size, has_alpha);
+            self.update_wr_image_for_context(context_id, size, has_alpha, canvas_epoch);
         }
 
         #[allow(unused)]
         let mut end_swap = 0;
-        completed_sender.send(end_swap).unwrap();
     }
 
     /// Which access mode to use
@@ -920,6 +920,7 @@ impl WebGLThread {
         context_id: WebGLContextId,
         size: Size2D<i32>,
         has_alpha: bool,
+        canvas_epoch: Option<Epoch>,
     ) {
         let info = self.cached_context_info.get(&context_id).unwrap();
         let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
@@ -928,7 +929,7 @@ impl WebGLThread {
         let image_data = Self::external_image_data(context_id, image_buffer_kind);
 
         self.compositor_api
-            .update_image(info.image_key, descriptor, image_data);
+            .update_image(info.image_key, descriptor, image_data, canvas_epoch);
     }
 
     /// Helper function to create a `ImageDescriptor`.

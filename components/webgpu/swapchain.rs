@@ -8,6 +8,7 @@ use std::slice;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
+use base::Epoch;
 use compositing_traits::{
     CrossProcessCompositorApi, ExternalImageSource, SerializableImageData,
     WebrenderExternalImageApi,
@@ -425,6 +426,7 @@ impl crate::WGPU {
                 context_data.image_key,
                 context_data.image_desc.0,
                 SerializableImageData::External(context_data.image_data),
+                None,
             );
         }
     }
@@ -435,6 +437,7 @@ impl crate::WGPU {
         context_id: WebGPUContextId,
         encoder_id: id::Id<id::markers::CommandEncoder>,
         texture_id: id::Id<id::markers::Texture>,
+        canvas_epoch: Option<Epoch>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         fn err<T: std::error::Error + 'static>(e: Option<T>) -> Result<(), T> {
             if let Some(error) = e {
@@ -518,6 +521,7 @@ impl crate::WGPU {
                     compositor_api,
                     image_desc,
                     presentation_id,
+                    canvas_epoch,
                 );
             })
         };
@@ -550,6 +554,7 @@ fn update_wr_image(
     compositor_api: CrossProcessCompositorApi,
     image_desc: WebGPUImageDescriptor,
     presentation_id: PresentationId,
+    canvas_epoch: Option<Epoch>,
 ) {
     match result {
         Ok(()) => {
@@ -577,6 +582,7 @@ fn update_wr_image(
                     context_data.image_key,
                     context_data.image_desc.0,
                     SerializableImageData::External(context_data.image_data),
+                    canvas_epoch,
                 );
                 if let Some(old_presentation_buffer) = old_presentation_buffer {
                     context_data.unmap_old_buffer(old_presentation_buffer)

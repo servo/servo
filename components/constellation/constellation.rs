@@ -1453,6 +1453,9 @@ where
             EmbedderToConstellationMessage::TickAnimation(webview_ids) => {
                 self.handle_tick_animation(webview_ids)
             },
+            EmbedderToConstellationMessage::NoLongerWaitingOnCanvas(pipeline_ids) => {
+                self.handle_no_longer_waiting_on_canvas(pipeline_ids)
+            },
             EmbedderToConstellationMessage::WebDriverCommand(command) => {
                 self.handle_webdriver_msg(command);
             },
@@ -3491,6 +3494,17 @@ where
             // low, so it's probably safe to ignore this error and handle the crashed ScriptThread on
             // some other message.
             let _ = event_loop.send(ScriptThreadMessage::TickAllAnimations(webview_ids.clone()));
+        }
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn handle_no_longer_waiting_on_canvas(&mut self, pipeline_ids: Vec<PipelineId>) {
+        for pipeline_id in pipeline_ids.into_iter() {
+            if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                let _ = pipeline
+                    .event_loop
+                    .send(ScriptThreadMessage::NoLongerWaitingOnCanvas(pipeline_id));
+            }
         }
     }
 

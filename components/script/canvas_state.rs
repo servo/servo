@@ -7,6 +7,7 @@ use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use base::Epoch;
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending, Direction,
     FillOrStrokeStyle, FillRule, LineCapStyle, LineJoinStyle, LineOptions, LinearGradientStyle,
@@ -290,19 +291,18 @@ impl CanvasState {
     }
 
     /// Updates WR image and blocks on completion
-    pub(crate) fn update_rendering(&self) {
+    pub(crate) fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
         if !self.is_paintable() {
-            return;
+            return false;
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(
-                Canvas2dMsg::UpdateImage(sender),
+                Canvas2dMsg::UpdateImage(canvas_epoch),
                 self.canvas_id,
             ))
             .unwrap();
-        receiver.recv().unwrap();
+        true
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
