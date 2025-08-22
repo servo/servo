@@ -111,9 +111,7 @@ impl VelloCPUDrawTarget {
         if self.state == State::Drawing {
             self.ignore_clips(|self_| {
                 self_.ctx.flush();
-                self_
-                    .ctx
-                    .render_to_pixmap(&mut self_.pixmap, vello_cpu::RenderMode::OptimizeSpeed);
+                self_.ctx.render_to_pixmap(&mut self_.pixmap);
                 self_.ctx.reset();
                 self_.state = State::Rendered;
             });
