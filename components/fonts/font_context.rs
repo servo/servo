@@ -20,6 +20,7 @@ use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
 use parking_lot::{Mutex, RwLock};
 use servo_arc::Arc as ServoArc;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
@@ -364,10 +365,16 @@ impl FontContext {
         }
 
         if let FontFaceSourceFormat::String(string) = format_hint {
-            return string == "truetype" ||
-                string == "opentype" ||
-                string == "woff" ||
-                string == "woff2";
+            if string == "truetype" || string == "opentype" || string == "woff" || string == "woff2"
+            {
+                return true;
+            }
+
+            return pref!(layout_variable_fonts_enabled) &&
+                (string == "truetype-variations" ||
+                    string == "opentype-variations" ||
+                    string == "woff-variations" ||
+                    string == "woff2-variations");
         }
 
         false
