@@ -38,12 +38,12 @@ pub(crate) struct IDBCursor {
 
     /// <https://www.w3.org/TR/IndexedDB-2/#cursor-transaction>
     transaction: DomRoot<IDBTransaction>,
-    /// <https://www.w3.org/TR/IndexedDB-2/#cursor-source>
+    /// <https://www.w3.org/TR/IndexedDB-2/#cursor-range>
     #[no_trace]
     range: IndexedDBKeyRange,
-    /// <https://www.w3.org/TR/IndexedDB-2/#cursor-direction>
+    /// <https://www.w3.org/TR/IndexedDB-2/#cursor-source>
     source: ObjectStoreOrIndex,
-    /// <https://www.w3.org/TR/IndexedDB-2/#cursor-range>
+    /// <https://www.w3.org/TR/IndexedDB-2/#cursor-direction>
     direction: IDBCursorDirection,
     /// <https://www.w3.org/TR/IndexedDB-2/#cursor-position>
     #[no_trace]
