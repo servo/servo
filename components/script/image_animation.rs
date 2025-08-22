@@ -72,8 +72,7 @@ impl ImageAnimationManager {
 
                 let image = &state.image;
                 let frame = image
-                    .frames()
-                    .nth(state.active_frame)
+                    .frame(state.active_frame)
                     .expect("active_frame should within range of frames");
 
                 if let Some(node) = rooted_nodes.get(&NoTrace(*node)) {
