@@ -9,12 +9,17 @@
  * liability, trademark and document use rules apply.
  */
 
+dictionary FocusOptions {
+  boolean preventScroll = false;
+  // boolean focusVisible;
+};
+
 interface mixin HTMLOrSVGElement {
   // [SameObject] readonly attribute DOMStringMap dataset;
   attribute DOMString nonce; // intentionally no [CEReactions]
 
   [CEReactions] attribute boolean autofocus;
   // [CEReactions] attribute long tabIndex;
-  // undefined focus(optional FocusOptions options = {});
+  undefined focus(optional FocusOptions options = {});
   // undefined blur();
 };

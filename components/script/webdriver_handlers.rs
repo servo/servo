@@ -42,6 +42,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -1234,7 +1235,9 @@ pub(crate) fn handle_will_send_keys(
                     // run the focusing steps for the element.
                     if let Some(html_element) = element.downcast::<HTMLElement>() {
                         if !element.is_active_element() {
-                            html_element.Focus(can_gc);
+                            // TODO: "Focusing steps" has a different meaning from the focus() method.
+                            // The actual focusing steps should be implemented
+                            html_element.Focus(&FocusOptions::default(), can_gc);
                         } else {
                             element_has_focus = element.focus_state();
                         }
@@ -1772,7 +1775,9 @@ fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), Er
     }
 
     // Step 3. Invoke the focusing steps for the element.
-    html_element.Focus(can_gc);
+    // TODO: "Focusing steps" has a different meaning from the focus() method.
+    // The actual focusing steps should be implemented
+    html_element.Focus(&FocusOptions::default(), can_gc);
 
     // Step 4. Run clear algorithm for element.
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
@@ -1920,7 +1925,11 @@ pub(crate) fn handle_element_click(
 
                         // Step 8.5
                         match container.downcast::<HTMLElement>() {
-                            Some(html_element) => html_element.Focus(can_gc),
+                            Some(html_element) => {
+                                // TODO: "Focusing steps" has a different meaning from the focus() method.
+                                // The actual focusing steps should be implemented
+                                html_element.Focus(&FocusOptions::default(), can_gc);
+                            },
                             None => return Err(ErrorStatus::UnknownError),
                         }
 
