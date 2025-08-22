@@ -26,7 +26,7 @@ use winapi::shared::minwindef::{BOOL, FALSE};
 
 use super::font_list::LocalFontIdentifier;
 use crate::{
-    FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTableTag, FontTemplateDescriptor,
+    FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
     FractionalPixel, GlyphId, PlatformFontMethods,
 };
 
@@ -282,12 +282,12 @@ impl PlatformFontMethods for PlatformFont {
         metrics
     }
 
-    fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
+    fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
         // dwrote (and presumably the Windows APIs) accept a reversed version of the table
         // tag bytes, which means that `u32::swap_bytes` must be called here in order to
         // use a byte order compatible with the rest of Servo.
         self.face
-            .font_table(u32::swap_bytes(tag))
+            .font_table(u32::from_be_bytes(tag.to_be_bytes()).swap_bytes())
             .ok()
             .flatten()
             .map(|bytes| FontTable { data: bytes })

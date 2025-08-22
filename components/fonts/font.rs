@@ -19,6 +19,7 @@ use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use read_fonts::tables::os2::{Os2, SelectionFlags};
+use read_fonts::types::Tag;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use style::computed_values::font_variant_caps;
@@ -38,22 +39,14 @@ use crate::{
     FontTemplateRefMethods, GlyphData, GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
 };
 
-#[macro_export]
-macro_rules! ot_tag {
-    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => {
-        (($t1 as u32) << 24) | (($t2 as u32) << 16) | (($t3 as u32) << 8) | ($t4 as u32)
-    };
-}
-
-pub type OpenTypeTableTag = u32;
-pub const GPOS: OpenTypeTableTag = ot_tag!('G', 'P', 'O', 'S');
-pub const GSUB: OpenTypeTableTag = ot_tag!('G', 'S', 'U', 'B');
-pub const KERN: OpenTypeTableTag = ot_tag!('k', 'e', 'r', 'n');
-pub const SBIX: OpenTypeTableTag = ot_tag!('s', 'b', 'i', 'x');
-pub const CBDT: OpenTypeTableTag = ot_tag!('C', 'B', 'D', 'T');
-pub const COLR: OpenTypeTableTag = ot_tag!('C', 'O', 'L', 'R');
-pub const BASE: OpenTypeTableTag = ot_tag!('B', 'A', 'S', 'E');
-pub const LIGA: OpenTypeTableTag = ot_tag!('l', 'i', 'g', 'a');
+pub const GPOS: Tag = Tag::new(b"GPOS");
+pub const GSUB: Tag = Tag::new(b"GSUB");
+pub const KERN: Tag = Tag::new(b"kern");
+pub const SBIX: Tag = Tag::new(b"sbix");
+pub const CBDT: Tag = Tag::new(b"CBDT");
+pub const COLR: Tag = Tag::new(b"COLR");
+pub const BASE: Tag = Tag::new(b"BASE");
+pub const LIGA: Tag = Tag::new(b"liga");
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -112,7 +105,7 @@ pub trait PlatformFontMethods: Sized {
     fn glyph_h_kerning(&self, glyph0: GlyphId, glyph1: GlyphId) -> FractionalPixel;
 
     fn metrics(&self) -> FontMetrics;
-    fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
+    fn table_for_tag(&self, _: Tag) -> Option<FontTable>;
     fn typographic_bounds(&self, _: GlyphId) -> Rect<f32>;
 
     /// Get the necessary [`FontInstanceFlags`]` for this font.
@@ -147,24 +140,6 @@ pub trait PlatformFontMethods: Sized {
 
 // Used to abstract over the shaper's choice of fixed int representation.
 pub type FractionalPixel = f64;
-
-pub type FontTableTag = u32;
-
-trait FontTableTagConversions {
-    fn tag_to_str(&self) -> String;
-}
-
-impl FontTableTagConversions for FontTableTag {
-    fn tag_to_str(&self) -> String {
-        let bytes = [
-            (self >> 24) as u8,
-            (self >> 16) as u8,
-            (self >> 8) as u8,
-            *self as u8,
-        ];
-        str::from_utf8(&bytes).unwrap().to_owned()
-    }
-}
 
 pub trait FontTableMethods {
     fn buffer(&self) -> &[u8];
@@ -533,7 +508,7 @@ impl Font {
         glyphs.finalize_changes();
     }
 
-    pub fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
+    pub fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
         let result = self.handle.table_for_tag(tag);
         let status = if result.is_some() {
             "Found"
@@ -544,7 +519,7 @@ impl Font {
         debug!(
             "{} font table[{}] in {:?},",
             status,
-            tag.tag_to_str(),
+            str::from_utf8(tag.as_ref()).unwrap(),
             self.identifier()
         );
         result
