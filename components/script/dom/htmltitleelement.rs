@@ -9,7 +9,6 @@ use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -71,7 +70,8 @@ impl HTMLTitleElementMethods<crate::DomTypeHolder> for HTMLTitleElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn SetText(&self, value: DOMString, can_gc: CanGc) {
-        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
+        self.upcast::<Node>()
+            .set_text_content_for_element(Some(value), can_gc)
     }
 }
 

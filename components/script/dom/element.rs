@@ -3876,8 +3876,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 .iter()
                 .any(|c| matches!(*c, b'&' | b'\0' | b'<' | b'\r'))
         {
-            Node::SetTextContent(&target, Some(value), can_gc);
-            return Ok(());
+            return Node::SetTextContent(&target, Some(value), can_gc);
         }
 
         // Step 3: Let fragment be the result of invoking the fragment parsing algorithm steps

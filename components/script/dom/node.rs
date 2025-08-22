@@ -3067,6 +3067,30 @@ impl Node {
         DOMString::from(content)
     }
 
+    /// <https://dom.spec.whatwg.org/#string-replace-all>
+    pub(crate) fn set_text_content_for_element(&self, value: Option<DOMString>, can_gc: CanGc) {
+        // This should only be called for elements and document fragments when setting the
+        // text content: https://dom.spec.whatwg.org/#set-text-content
+        assert!(matches!(
+            self.type_id(),
+            NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..)
+        ));
+        let value = value.unwrap_or_default();
+        let node = if value.is_empty() {
+            // Step 1. Let node be null.
+            None
+        } else {
+            // Step 2. If string is not the empty string, then set node to
+            // a new Text node whose data is string and node document is parent’s node document.
+            Some(DomRoot::upcast(
+                self.owner_doc().CreateTextNode(value, can_gc),
+            ))
+        };
+
+        // Step 3. Replace all with node within parent.
+        Self::replace_all(node.as_deref(), self, can_gc);
+    }
+
     pub(crate) fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
         match namespace {
             ns!() => None,
@@ -3372,34 +3396,23 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         }
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-node-textcontent>
-    fn SetTextContent(&self, value: Option<DOMString>, can_gc: CanGc) {
-        let value = value.unwrap_or_default();
+    /// <https://dom.spec.whatwg.org/#set-text-content>
+    fn SetTextContent(&self, value: Option<DOMString>, can_gc: CanGc) -> Fallible<()> {
         match self.type_id() {
             NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
-                // Step 1-2.
-                let node = if value.is_empty() {
-                    None
-                } else {
-                    Some(DomRoot::upcast(
-                        self.owner_doc().CreateTextNode(value, can_gc),
-                    ))
-                };
-
-                // Step 3.
-                Node::replace_all(node.as_deref(), self, can_gc);
+                self.set_text_content_for_element(value, can_gc);
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                // TODO(#36258): Propagate failure to callers
-                let _ = attr.SetValue(value, can_gc);
+                attr.SetValue(value.unwrap_or_default(), can_gc)?;
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
-                characterdata.SetData(value);
+                characterdata.SetData(value.unwrap_or_default());
             },
             NodeTypeId::DocumentType | NodeTypeId::Document(_) => {},
-        }
+        };
+        Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-insertbefore>

@@ -1523,7 +1523,8 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
         // Step 2: Set this's script text value to value.
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set text content with this and value.
-        self.upcast::<Node>().SetTextContent(Some(value), can_gc);
+        self.upcast::<Node>()
+            .set_text_content_for_element(Some(value), can_gc);
         Ok(())
     }
 

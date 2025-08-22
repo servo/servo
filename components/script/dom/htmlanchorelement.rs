@@ -132,7 +132,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn SetText(&self, value: DOMString, can_gc: CanGc) {
-        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
+        self.upcast::<Node>()
+            .set_text_content_for_element(Some(value), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel

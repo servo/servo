@@ -114,7 +114,7 @@ impl HTMLDetailsElement {
             HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
         fallback_summary
             .upcast::<Node>()
-            .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
+            .set_text_content_for_element(Some(DEFAULT_SUMMARY.into()), can_gc);
         summary
             .upcast::<Node>()
             .AppendChild(fallback_summary.upcast::<Node>(), can_gc)
