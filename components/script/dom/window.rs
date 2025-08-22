@@ -227,6 +227,11 @@ impl LayoutBlocker {
     }
 }
 
+/// An id used to cancel navigations; for now only used for planned form navigations.
+/// Loosely based on <https://html.spec.whatwg.org/multipage/#ongoing-navigation>.
+#[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf, PartialEq)]
+pub(crate) struct OngoingNavigation(u32);
+
 type PendingImageRasterizationKey = (PendingImageId, DeviceIntSize);
 
 #[dom_struct]
@@ -266,6 +271,10 @@ pub(crate) struct Window {
     local_storage: MutNullableDom<Storage>,
     status: DomRefCell<DOMString>,
     trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
+
+    /// The start of something resembling
+    /// <https://html.spec.whatwg.org/multipage/#ongoing-navigation>
+    ongoing_navigation: Cell<OngoingNavigation>,
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
@@ -713,6 +722,49 @@ impl Window {
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
         &self.font_context
     }
+
+    pub(crate) fn ongoing_navigation(&self) -> OngoingNavigation {
+        self.ongoing_navigation.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#set-the-ongoing-navigation>
+    pub(crate) fn set_ongoing_navigation(&self) -> OngoingNavigation {
+        // Note: since this value, for now, is only used in a single `ScriptThread`,
+        // we just increment it (it is not a uuid), which implies not
+        // using a `newValue` variable.
+        let new_value = self.ongoing_navigation.get().0.wrapping_add(1);
+
+        // 1. If navigable's ongoing navigation is equal to newValue, then return.
+        // Note: cannot happen in the way it is currently used.
+
+        // TODO: 2. Inform the navigation API about aborting navigation given navigable.
+
+        // 3. Set navigable's ongoing navigation to newValue.
+        self.ongoing_navigation.set(OngoingNavigation(new_value));
+
+        // Note: Return the ongoing navigation for the caller to use.
+        OngoingNavigation(new_value)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nav-stop>
+    fn stop_loading(&self, can_gc: CanGc) {
+        // 1. Let document be navigable's active document.
+        let doc = self.Document();
+
+        // 2. If document's unload counter is 0,
+        // and navigable's ongoing navigation is a navigation ID,
+        // then set the ongoing navigation for navigable to null.
+        //
+        // Note: since the concept of `navigable` is nascent in Servo,
+        // for now we do two things:
+        // - increment the `ongoing_navigation`(preventing planned form navigations).
+        // - Send a `AbortLoadUrl` message(in case the navigation
+        // already started at the constellation).
+        self.set_ongoing_navigation();
+
+        // 3. Abort a document and its descendants given document.
+        doc.abort(can_gc);
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -868,9 +920,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-stop
     fn Stop(&self, can_gc: CanGc) {
-        // TODO: Cancel ongoing navigation.
-        let doc = self.Document();
-        doc.abort(can_gc);
+        // 1. If this's navigable is null, then return.
+        // Note: Servo doesn't have a concept of navigable yet.
+
+        // 2. Stop loading this's navigable.
+        self.stop_loading(can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-focus>
@@ -3097,6 +3151,7 @@ impl Window {
                 inherited_secure_context,
                 unminify_js,
             ),
+            ongoing_navigation: Default::default(),
             script_chan,
             layout: RefCell::new(layout),
             font_context,
