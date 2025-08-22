@@ -12,6 +12,7 @@ use std::ops::Range;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use serde::{Deserialize, Serialize};
 use webrender_api::ImageFormat;
+use webrender_api::euclid::default::Size2D;
 use wgpu_core::device::HostMap;
 pub use wgpu_core::id::markers::{
     ComputePassEncoder as ComputePass, RenderPassEncoder as RenderPass,
@@ -22,7 +23,7 @@ pub use wgpu_core::id::{
 use wgpu_core::id::{ComputePipelineId, DeviceId, QueueId, RenderPipelineId};
 use wgpu_core::instance::FailedLimit;
 use wgpu_core::pipeline::CreateShaderModuleError;
-use wgpu_types::{AdapterInfo, DeviceDescriptor, Features, Limits, TextureFormat};
+use wgpu_types::{AdapterInfo, DeviceDescriptor, Features, Limits};
 
 pub use crate::error::*;
 pub use crate::ids::*;
@@ -60,19 +61,9 @@ pub struct Adapter {
 pub struct ContextConfiguration {
     pub device_id: DeviceId,
     pub queue_id: QueueId,
-    pub format: TextureFormat,
+    pub format: ImageFormat,
     pub is_opaque: bool,
-}
-
-impl ContextConfiguration {
-    pub fn format(&self) -> ImageFormat {
-        match self.format {
-            TextureFormat::Rgba8Unorm => ImageFormat::RGBA8,
-            TextureFormat::Bgra8Unorm => ImageFormat::BGRA8,
-            // TODO: wgt::TextureFormat::Rgba16Float
-            _ => unreachable!("Unsupported canvas context format in configuration"),
-        }
-    }
+    pub size: Size2D<u32>,
 }
 
 /// <https://gpuweb.github.io/gpuweb/#enumdef-gpudevicelostreason>

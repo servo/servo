@@ -165,7 +165,7 @@ use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 #[cfg(feature = "webgpu")]
-use webgpu::swapchain::WGPUImageMap;
+use webgpu::canvas_context::WGPUImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
 use webrender::RenderApiSender;
