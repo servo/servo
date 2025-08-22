@@ -1092,9 +1092,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViews(sender))
             .unwrap();
-        let webviews = wait_for_ipc_response(receiver).unwrap();
-
-        webviews
+        wait_for_ipc_response(receiver).unwrap()
     }
 
     /// <https://w3c.github.io/webdriver/#find-element>
