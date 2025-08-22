@@ -74,7 +74,7 @@ xml-rs = "0.8"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.11.4"
-truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }
+winapi = { workspace = true }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ohos_mock)'] }

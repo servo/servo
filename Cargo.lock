@@ -2708,11 +2708,11 @@ dependencies = [
  "stylo",
  "stylo_atoms",
  "tracing",
- "truetype",
  "unicode-properties",
  "unicode-script",
  "url",
  "webrender_api",
+ "winapi",
  "xml-rs",
  "yeslogic-fontconfig-sys",
 ]
@@ -8989,15 +8989,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce607aae8ab0ab3abf3a2723a9ab6f09bb8639ed83fdd888d857b8e556c868d8"
 
 [[package]]
-name = "truetype"
-version = "0.47.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05ce9543b570c6e8a392274b67e1001816bce953aa89724e52a4639db02a10e0"
-dependencies = [
- "typeface",
-]
-
-[[package]]
 name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9036,12 +9027,6 @@ name = "typed-arena"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
-
-[[package]]
-name = "typeface"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "191ea6762cbcd705fbed8f58573fd6c654453ff3da60adb293d9f255bc92af8e"
 
 [[package]]
 name = "typeid"

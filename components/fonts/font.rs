@@ -18,6 +18,7 @@ use euclid::num::Zero;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
+use read_fonts::tables::os2::{Os2, SelectionFlags};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use style::computed_values::font_variant_caps;
@@ -119,6 +120,29 @@ pub trait PlatformFontMethods: Sized {
 
     /// Return all the variation values that the font was instantiated with.
     fn variations(&self) -> &[FontVariation];
+
+    fn descriptor_from_os2_table(os2: &Os2) -> FontTemplateDescriptor {
+        let mut style = FontStyle::NORMAL;
+        if os2.fs_selection().contains(SelectionFlags::ITALIC) {
+            style = FontStyle::ITALIC;
+        }
+
+        let weight = FontWeight::from_float(os2.us_weight_class() as f32);
+        let stretch = match os2.us_width_class() {
+            1 => FontStretch::ULTRA_CONDENSED,
+            2 => FontStretch::EXTRA_CONDENSED,
+            3 => FontStretch::CONDENSED,
+            4 => FontStretch::SEMI_CONDENSED,
+            5 => FontStretch::NORMAL,
+            6 => FontStretch::SEMI_EXPANDED,
+            7 => FontStretch::EXPANDED,
+            8 => FontStretch::EXTRA_EXPANDED,
+            9 => FontStretch::ULTRA_EXPANDED,
+            _ => FontStretch::NORMAL,
+        };
+
+        FontTemplateDescriptor::new(weight, stretch, style)
+    }
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.

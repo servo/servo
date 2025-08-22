@@ -15,14 +15,10 @@ use freetype_sys::{
 use log::debug;
 use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
-use read_fonts::tables::os2::SelectionFlags;
 use read_fonts::types::Tag;
 use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
 use style::Zero;
-use style::computed_values::font_stretch::T as FontStretch;
-use style::computed_values::font_weight::T as FontWeight;
-use style::values::computed::font::FontStyle;
 use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::LocalFontIdentifier;
@@ -135,31 +131,10 @@ impl PlatformFontMethods for PlatformFont {
         let Ok(font_ref) = self.table_provider_data.font_ref() else {
             return FontTemplateDescriptor::default();
         };
-
         let Ok(os2) = font_ref.os2() else {
             return FontTemplateDescriptor::default();
         };
-
-        let mut style = FontStyle::NORMAL;
-        if os2.fs_selection().contains(SelectionFlags::ITALIC) {
-            style = FontStyle::ITALIC;
-        }
-
-        let weight = FontWeight::from_float(os2.us_weight_class() as f32);
-        let stretch = match os2.us_width_class() {
-            1 => FontStretch::ULTRA_CONDENSED,
-            2 => FontStretch::EXTRA_CONDENSED,
-            3 => FontStretch::CONDENSED,
-            4 => FontStretch::SEMI_CONDENSED,
-            5 => FontStretch::NORMAL,
-            6 => FontStretch::SEMI_EXPANDED,
-            7 => FontStretch::EXPANDED,
-            8 => FontStretch::EXTRA_EXPANDED,
-            9 => FontStretch::ULTRA_EXPANDED,
-            _ => FontStretch::NORMAL,
-        };
-
-        FontTemplateDescriptor::new(weight, stretch, style)
+        Self::descriptor_from_os2_table(&os2)
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
