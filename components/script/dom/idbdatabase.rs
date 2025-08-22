@@ -244,8 +244,8 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             name.clone(),
             Some(options),
             CanGc::note(),
+            &upgrade_transaction,
         );
-        object_store.set_transaction(&upgrade_transaction);
 
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
