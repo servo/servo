@@ -67,9 +67,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
-use layout_api::{
-    LayoutConfig, LayoutFactory, ReflowPhasesRun, RestyleReason, ScriptThreadFactory,
-};
+use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
@@ -1119,7 +1117,7 @@ impl ScriptThread {
         // steps per doc in docs. Currently `<iframe>` resizing depends on a parent being able to
         // queue resize events on a child and have those run in the same call to this method, so
         // that needs to be sorted out to fix this.
-        let mut built_any_display_lists = false;
+        let mut should_generate_frame = false;
         for pipeline_id in documents_in_order.iter() {
             let document = self
                 .documents
@@ -1202,19 +1200,21 @@ impl ScriptThread {
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            built_any_display_lists = document
-                .update_the_rendering()
-                .contains(ReflowPhasesRun::BuiltDisplayList) ||
-                built_any_display_lists;
+            should_generate_frame =
+                document.update_the_rendering().needs_frame() || should_generate_frame;
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
 
+        if should_generate_frame {
+            self.compositor_api.generate_frame();
+        }
+
         // Perform a microtask checkpoint as the specifications says that *update the rendering*
         // should be run in a task and a microtask checkpoint is always done when running tasks.
         self.perform_a_microtask_checkpoint(can_gc);
-        built_any_display_lists
+        should_generate_frame
     }
 
     /// Schedule a rendering update ("update the rendering"), if necessary. This
