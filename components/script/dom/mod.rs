@@ -262,6 +262,8 @@ pub(crate) mod constantsourcenode;
 pub(crate) mod cookiestore;
 pub(crate) mod countqueuingstrategy;
 mod create;
+pub(crate) mod credential;
+pub(crate) mod credentialscontainer;
 pub(crate) mod crypto;
 pub(crate) mod cryptokey;
 pub(crate) mod csp;
@@ -488,6 +490,7 @@ pub(crate) mod paintrenderingcontext2d;
 pub(crate) mod paintsize;
 pub(crate) mod paintworkletglobalscope;
 pub(crate) mod pannernode;
+pub(crate) mod passwordcredential;
 pub(crate) mod path2d;
 pub(crate) mod performance;
 #[allow(dead_code)]
