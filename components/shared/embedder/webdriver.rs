@@ -21,7 +21,7 @@ use style_traits::CSSPixel;
 use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
-use crate::{FocusId, JSValue, MouseButton, MouseButtonAction, TraversalId};
+use crate::{FocusId, InputEvent, JSValue, MouseButton, MouseButtonAction, TraversalId};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
@@ -169,6 +169,7 @@ pub enum WebDriverCommandMsg {
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),
+    RetryInputEvents(WebViewId, Vec<InputEvent>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -268,8 +269,9 @@ pub enum WebDriverFrameId {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct WebDriverCommandResponse {
-    pub id: WebDriverMessageId,
+pub enum WebDriverCommandResponse {
+    DispatchSucceed(WebDriverMessageId),
+    DispatchFailed(InputEvent),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
