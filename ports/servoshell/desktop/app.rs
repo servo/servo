@@ -16,7 +16,6 @@ use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
-use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
@@ -486,24 +485,11 @@ impl App {
                     }
                 },
                 // Key events don't need hit test so can be forwarded to constellation for now
-                WebDriverCommandMsg::SendKeys(webview_id, webdriver_input_events) => {
-                    let Some(webview) = running_state.webview_by_id(webview_id) else {
-                        continue;
-                    };
-
-                    for event in webdriver_input_events {
-                        match event {
-                            WebDriverInputEvent::Keyboard(event) => {
-                                webview.notify_input_event(InputEvent::Keyboard(
-                                    KeyboardEvent::new(event),
-                                ));
-                            },
-                            WebDriverInputEvent::Composition(event) => {
-                                webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                                    event,
-                                )));
-                            },
-                        }
+                WebDriverCommandMsg::DispatchComposition(webview_id, composition_event) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            composition_event,
+                        )));
                     }
                 },
                 WebDriverCommandMsg::KeyboardAction(webview_id, key_event, msg_id) => {

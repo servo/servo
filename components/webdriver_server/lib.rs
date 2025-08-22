@@ -36,8 +36,9 @@ use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use keyboard_types::webdriver::send_keys;
-use log::{debug, info};
+use keyboard_types::webdriver::{Event as DispatchStringEvent, KeyInputState, send_keys};
+use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, NamedKey};
+use log::{debug, error, info};
 use pixels::PixelFormat;
 use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
@@ -50,8 +51,9 @@ use style_traits::CSSPixel;
 use time::OffsetDateTime;
 use uuid::Uuid;
 use webdriver::actions::{
-    ActionSequence, ActionsType, PointerAction, PointerActionItem, PointerActionParameters,
-    PointerDownAction, PointerMoveAction, PointerOrigin, PointerType, PointerUpAction,
+    ActionSequence, ActionsType, KeyAction, KeyActionItem, KeyDownAction, KeyUpAction,
+    PointerAction, PointerActionItem, PointerActionParameters, PointerDownAction,
+    PointerMoveAction, PointerOrigin, PointerType, PointerUpAction,
 };
 use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{
@@ -2073,7 +2075,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-element-send-keys>
     fn handle_element_send_keys(
-        &self,
+        &mut self,
         element: &WebElement,
         keys: &SendKeysParameters,
     ) -> WebDriverResult<WebDriverResponse> {
@@ -2099,14 +2101,54 @@ impl Handler {
             return Ok(WebDriverResponse::Void);
         }
 
-        let input_events = send_keys(&keys.text);
-
         // TODO: there's a race condition caused by the focus command and the
         // send keys command being two separate messages,
         // so the constellation may have changed state between them.
-        // TODO: We should use `dispatch_action` to send the keys.
-        let cmd_msg = WebDriverCommandMsg::SendKeys(self.webview_id()?, input_events);
-        self.send_message_to_embedder(cmd_msg)?;
+
+        // Step 10. Let input id be a the result of generating a UUID.
+        let id = Uuid::new_v4().to_string();
+
+        // Step 12. Add an input source
+        self.session_mut()?
+            .input_state_table_mut()
+            .insert(id.clone(), InputSourceState::Key(KeyInputState::new()));
+
+        // Step 13. dispatch actions for a string
+        // https://w3c.github.io/webdriver/#dfn-dispatch-actions-for-a-string
+        let input_events = send_keys(&keys.text);
+
+        for event in input_events {
+            match event {
+                DispatchStringEvent::Keyboard(event) => {
+                    let raw_string = convert_keyboard_event_to_string(&event);
+                    let key_action = match event.state {
+                        KeyState::Down => KeyAction::Down(KeyDownAction { value: raw_string }),
+                        KeyState::Up => KeyAction::Up(KeyUpAction { value: raw_string }),
+                    };
+                    let action_sequence = ActionSequence {
+                        id: id.clone(),
+                        actions: ActionsType::Key {
+                            actions: vec![KeyActionItem::Key(key_action)],
+                        },
+                    };
+
+                    let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
+                    if let Err(e) =
+                        self.dispatch_actions(actions_by_tick, self.browsing_context_id()?)
+                    {
+                        log::error!("handle_element_send_keys: dispatch_actions failed: {:?}", e);
+                    }
+                },
+                DispatchStringEvent::Composition(event) => {
+                    let cmd_msg =
+                        WebDriverCommandMsg::DispatchComposition(self.webview_id()?, event);
+                    self.send_message_to_embedder(cmd_msg)?;
+                },
+            }
+        }
+
+        // Step 14. Remove an input source with input state and input id.
+        self.session_mut()?.input_state_table_mut().remove(&id);
 
         Ok(WebDriverResponse::Void)
     }
@@ -2589,5 +2631,81 @@ fn unwrap_first_element_response(res: WebDriverResponse) -> WebDriverResult<WebD
         }
     } else {
         unreachable!()
+    }
+}
+
+fn convert_keyboard_event_to_string(event: &KeyboardEvent) -> String {
+    let key = &event.key;
+    let named_key = match key {
+        Key::Character(s) => return s.to_string(),
+        Key::Named(named_key) => named_key,
+    };
+
+    match event.location {
+        Location::Left | Location::Standard => match named_key {
+            NamedKey::Unidentified => '\u{E000}'.to_string(),
+            NamedKey::Cancel => '\u{E001}'.to_string(),
+            NamedKey::Help => '\u{E002}'.to_string(),
+            NamedKey::Backspace => '\u{E003}'.to_string(),
+            NamedKey::Tab => '\u{E004}'.to_string(),
+            NamedKey::Clear => '\u{E005}'.to_string(),
+            NamedKey::Enter => match event.code {
+                Code::NumpadEnter => '\u{E007}'.to_string(),
+                _ => '\u{E006}'.to_string(),
+            },
+            NamedKey::Shift => '\u{E008}'.to_string(),
+            NamedKey::Control => '\u{E009}'.to_string(),
+            NamedKey::Alt => '\u{E00A}'.to_string(),
+            NamedKey::Pause => '\u{E00B}'.to_string(),
+            NamedKey::Escape => '\u{E00C}'.to_string(),
+            NamedKey::PageUp => '\u{E00E}'.to_string(),
+            NamedKey::PageDown => '\u{E00F}'.to_string(),
+            NamedKey::End => '\u{E010}'.to_string(),
+            NamedKey::Home => '\u{E011}'.to_string(),
+            NamedKey::ArrowLeft => '\u{E012}'.to_string(),
+            NamedKey::ArrowUp => '\u{E013}'.to_string(),
+            NamedKey::ArrowRight => '\u{E014}'.to_string(),
+            NamedKey::ArrowDown => '\u{E015}'.to_string(),
+            NamedKey::Insert => '\u{E016}'.to_string(),
+            NamedKey::Delete => '\u{E017}'.to_string(),
+            NamedKey::F1 => '\u{E031}'.to_string(),
+            NamedKey::F2 => '\u{E032}'.to_string(),
+            NamedKey::F3 => '\u{E033}'.to_string(),
+            NamedKey::F4 => '\u{E034}'.to_string(),
+            NamedKey::F5 => '\u{E035}'.to_string(),
+            NamedKey::F6 => '\u{E036}'.to_string(),
+            NamedKey::F7 => '\u{E037}'.to_string(),
+            NamedKey::F8 => '\u{E038}'.to_string(),
+            NamedKey::F9 => '\u{E039}'.to_string(),
+            NamedKey::F10 => '\u{E03A}'.to_string(),
+            NamedKey::F11 => '\u{E03B}'.to_string(),
+            NamedKey::F12 => '\u{E03C}'.to_string(),
+            NamedKey::Meta => '\u{E03D}'.to_string(),
+            NamedKey::ZenkakuHankaku => '\u{E040}'.to_string(),
+            _ => {
+                error!("Unexpected NamedKey on send_keys");
+                '\u{E000}'.to_string()
+            },
+        },
+        Location::Right | Location::Numpad => match named_key {
+            NamedKey::Shift => '\u{E050}'.to_string(),
+            NamedKey::Control => '\u{E051}'.to_string(),
+            NamedKey::Alt => '\u{E052}'.to_string(),
+            NamedKey::Meta => '\u{E053}'.to_string(),
+            NamedKey::PageUp => '\u{E054}'.to_string(),
+            NamedKey::PageDown => '\u{E055}'.to_string(),
+            NamedKey::End => '\u{E056}'.to_string(),
+            NamedKey::Home => '\u{E057}'.to_string(),
+            NamedKey::ArrowLeft => '\u{E058}'.to_string(),
+            NamedKey::ArrowUp => '\u{E059}'.to_string(),
+            NamedKey::ArrowRight => '\u{E05A}'.to_string(),
+            NamedKey::ArrowDown => '\u{E05B}'.to_string(),
+            NamedKey::Insert => '\u{E05C}'.to_string(),
+            NamedKey::Delete => '\u{E05D}'.to_string(),
+            _ => {
+                error!("Unexpected NamedKey on send_keys");
+                '\u{E000}'.to_string()
+            },
+        },
     }
 }
