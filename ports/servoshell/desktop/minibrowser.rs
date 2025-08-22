@@ -231,6 +231,11 @@ impl Minibrowser {
             visuals.widgets.active.expansion = 0.0;
             visuals.widgets.hovered.expansion = 0.0;
 
+            if webview.has_pending_load() {
+                // Show a spinner while the tab is loading.
+                tab_frame.content_ui.spinner();
+            }
+
             if let Some(favicon) = favicon_texture {
                 tab_frame.content_ui.add(
                     egui::Image::from_texture(favicon)
