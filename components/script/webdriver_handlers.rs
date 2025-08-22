@@ -1904,7 +1904,7 @@ pub(crate) fn handle_element_click(
                 // `paint_tree` is guaranteed not empty as element is "in view".
                 if !container
                     .upcast::<Node>()
-                    .Contains(Some(paint_tree[0].upcast::<Node>()))
+                    .is_shadow_including_inclusive_ancestor_of(paint_tree[0].upcast::<Node>())
                 {
                     return Err(ErrorStatus::ElementClickIntercepted);
                 }
