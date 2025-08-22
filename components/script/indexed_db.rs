@@ -22,11 +22,13 @@ use script_bindings::conversions::{SafeToJSValConvertible, root_from_object};
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 use serde::{Deserialize, Serialize};
-
+use script_bindings::codegen::GenericBindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
+use crate::dom::bindings::conversions::root_from_handleobject;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::structuredclone;
+use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
@@ -261,7 +263,19 @@ pub fn evaluate_key_path_on_value(
                             // The blob object is special since its properties are available
                             // only through getters but we still want to support them for key
                             // extraction. So they need to be handled manually.
-                            unimplemented!("Blob tokens are not yet supported");
+                            if let Ok(blob) = root_from_handleobject::<Blob>(target_object.handle(), *cx) {
+                                if token == "size" {
+                                    let size = blob.Size();
+                                    size.safe_to_jsval(cx, intermediate.handle_mut());
+                                    has_prop = true;
+                                } else if token == "type" {
+                                    let mime_type = blob.Type();
+                                    mime_type.safe_to_jsval(cx, intermediate.handle_mut());
+                                    has_prop = true;
+                                } else {
+                                    todo!("Blob properties other than size and type are not supported in keyPath evaluation");
+                                }
+                            }
                         }
                     }
 
