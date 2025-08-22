@@ -10,7 +10,7 @@
 // https://w3c.github.io/IndexedDB/#idbobjectstore
 [Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBObjectStore {
-  attribute DOMString name;
+  [SetterThrows] attribute DOMString name;
   // readonly attribute any keyPath;
   // readonly attribute DOMStringList indexNames;
   [SameObject] readonly attribute IDBTransaction transaction;

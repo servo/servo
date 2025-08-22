@@ -10,11 +10,14 @@ use net_traits::indexeddb_thread::{
     IndexedDBThreadMsg, SyncOperation,
 };
 use profile_traits::ipc;
+use script_bindings::error::ErrorResult;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreParameters;
 use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding::IDBObjectStoreMethods;
-use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
+use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
+    IDBTransactionMethods, IDBTransactionMode,
+};
 // We need to alias this name, otherwise test-tidy complains at &String reference.
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -171,6 +174,14 @@ impl IDBObjectStore {
         self.key_path.is_some()
     }
 
+    fn verify_not_deleted(&self) -> ErrorResult {
+        let db = self.transaction.Db();
+        if !db.object_store_exists(&self.name.borrow()) {
+            return Err(Error::InvalidState);
+        }
+        Ok(())
+    }
+
     /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
     fn check_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
@@ -191,9 +202,7 @@ impl IDBObjectStore {
         let transaction = &self.transaction;
 
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
-        if !transaction.is_active() {
-            return Err(Error::TransactionInactive);
-        }
+        self.check_transaction_active()?;
 
         if let IDBTransactionMode::Readonly = transaction.get_mode() {
             return Err(Error::ReadOnly);
@@ -210,14 +219,14 @@ impl IDBObjectStore {
         overwrite: bool,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_readwrite_transaction_active()
+        // Step 1. Let transaction be handle’s transaction.
         // Step 2: Let store be this object store handle's object store.
         // This is resolved in the `execute_async` function.
-
         // Step 3: If store has been deleted, throw an "InvalidStateError" DOMException.
-        // FIXME:(rasviitanen)
+        self.verify_not_deleted()?;
 
-        // Steps 4-5
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        // Step 5. If transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
         self.check_readwrite_transaction_active()?;
 
         // Step 6: If store uses in-line keys and key was given, throw a "DataError" DOMException.
@@ -253,10 +262,13 @@ impl IDBObjectStore {
             }
         }
 
+        // Step 10. Let clone be a clone of value in targetRealm during transaction. Rethrow any exceptions.
         let serialized_value = structuredclone::write(cx, value, None)?;
 
         let (sender, receiver) = indexed_db::create_channel(self.global());
 
+        // Step 12. Let operation be an algorithm to run store a record into an object store with store, clone, key, and no-overwrite flag.
+        // Step 13. Return the result (an IDBRequest) of running asynchronously execute a request with handle and operation.
         IDBRequest::execute_async(
             self,
             AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
@@ -295,15 +307,20 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_readwrite_transaction_active()
-        // TODO: Step 2
-        // TODO: Step 3
-        // Steps 4-5
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. Let store be this's object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        // Step 5. If transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
         self.check_readwrite_transaction_active()?;
+
         // Step 6
         // TODO: Convert to key range instead
         let serialized_query = convert_value_to_key(cx, query, None);
-        // Step 7
+        // Step 7. Let operation be an algorithm to run delete records from an object store with store and range.
+        // Stpe 8. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
@@ -318,11 +335,17 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear
     fn Clear(&self) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_readwrite_transaction_active()
-        // TODO: Step 2
-        // TODO: Step 3
-        // Steps 4-5
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. Let store be this's object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        // Step 5. If transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
         self.check_readwrite_transaction_active()?;
+
+        // Step 6. Let operation be an algorithm to run clear an object store with store.
+        // Stpe 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         let (sender, receiver) = indexed_db::create_channel(self.global());
 
         IDBRequest::execute_async(
@@ -336,14 +359,19 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_transaction_active()
-        // TODO: Step 2
-        // TODO: Step 3
-        // Step 4
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. Let store be this's object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
-        // Step 5
+
+        // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
         let serialized_query = convert_value_to_key_range(cx, query, None);
-        // Step 6
+
+        // Step 6. Let operation be an algorithm to run retrieve a value from an object store with the current Realm record, store, and range.
+        // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
@@ -361,14 +389,20 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey
     fn GetKey(&self, cx: SafeJSContext, query: HandleValue) -> Result<DomRoot<IDBRequest>, Error> {
-        // Step 1: Unneeded, handled by self.check_transaction_active()
-        // TODO: Step 2
-        // TODO: Step 3
-        // Step 4
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. Let store be this's object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
-        // Step 5
+
+        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
         let serialized_query = convert_value_to_key_range(cx, query, None);
-        // Step 6
+
+        // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
+        // The steps are run with this object store handle as source and the steps to retrieve a key from an object
+        // store as operation, using store and range.
         let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
@@ -406,16 +440,19 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count
     fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_transaction_active()
-        // TODO: Step 2
-        // TODO: Step 3
-        // Steps 4
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. Let store be this's object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
 
-        // Step 5
+        // Step 5. Let range be the result of converting a value to a key range with query. Rethrow any exceptions.
         let serialized_query = convert_value_to_key_range(cx, query, None);
 
-        // Step 6
+        // Step 6. Let operation be an algorithm to run count the records in a range with store and range.
+        // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
@@ -437,8 +474,23 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-setname
-    fn SetName(&self, value: DOMString) {
+    fn SetName(&self, value: DOMString) -> ErrorResult {
+        // Step 2. Let transaction be this’s transaction.
+        let transaction = &self.transaction;
+
+        // Step 3. Let store be this's object store.
+        // Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 5. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
+        if transaction.Mode() != IDBTransactionMode::Versionchange {
+            return Err(Error::InvalidState);
+        }
+        // Step 6. If transaction’s state is not active, throw a "TransactionInactiveError" DOMException.
+        self.check_transaction_active()?;
+
         *self.name.borrow_mut() = value;
+        Ok(())
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath
