@@ -71,7 +71,7 @@ use crate::script_runtime::CanGc;
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
 /// containing the values from
 /// <https://html.spec.whatwg.org/multipage/#globaleventhandlers>
-static CONTENT_EVENT_HANDLER_NAMES: [&str; 83] = [
+static CONTENT_EVENT_HANDLER_NAMES: [&str; 85] = [
     "onabort",
     "onauxclick",
     "onbeforeinput",
@@ -149,8 +149,10 @@ static CONTENT_EVENT_HANDLER_NAMES: [&str; 83] = [
     "onwebkittransitionend",
     "onwheel",
     // https://drafts.csswg.org/css-animations/#interface-globaleventhandlers-idl
-    "onanimationend",
+    "onanimationstart",
     "onanimationiteration",
+    "onanimationend",
+    "onanimationcancel",
     // https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
     "ontransitionrun",
     "ontransitionend",
