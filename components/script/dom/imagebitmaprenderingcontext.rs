@@ -150,6 +150,8 @@ impl CanvasContext for ImageBitmapRenderingContext {
             .as_ref()
             .map_or_else(|| self.canvas.size(), |bitmap| bitmap.size())
     }
+
+    fn mark_as_dirty(&self) {}
 }
 
 impl ImageBitmapRenderingContextMethods<crate::DomTypeHolder> for ImageBitmapRenderingContext {

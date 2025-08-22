@@ -206,8 +206,12 @@ impl HTMLCanvasElement {
         let window = self.owner_window();
         let size = self.get_size();
         let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size, can_gc)?;
-        *self.context_mode.borrow_mut() =
-            Some(RenderingContext::Context2d(Dom::from_ref(&*context)));
+
+        self.context_mode
+            .borrow_mut()
+            .replace(RenderingContext::Context2d(Dom::from_ref(&*context)));
+        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+
         Some(context)
     }
 
@@ -235,8 +239,10 @@ impl HTMLCanvasElement {
         );
 
         // Step 2. Set this's context mode to bitmaprenderer.
-        *self.context_mode.borrow_mut() =
-            Some(RenderingContext::BitmapRenderer(Dom::from_ref(&*context)));
+        self.context_mode
+            .borrow_mut()
+            .replace(RenderingContext::BitmapRenderer(Dom::from_ref(&*context)));
+        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
 
         // Step 3. Return context.
         Some(context)
@@ -266,7 +272,12 @@ impl HTMLCanvasElement {
             attrs,
             can_gc,
         )?;
-        *self.context_mode.borrow_mut() = Some(RenderingContext::WebGL(Dom::from_ref(&*context)));
+
+        self.context_mode
+            .borrow_mut()
+            .replace(RenderingContext::WebGL(Dom::from_ref(&*context)));
+        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+
         Some(context)
     }
 
@@ -291,7 +302,12 @@ impl HTMLCanvasElement {
         let attrs = Self::get_gl_attributes(cx, options)?;
         let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs, can_gc)?;
-        *self.context_mode.borrow_mut() = Some(RenderingContext::WebGL2(Dom::from_ref(&*context)));
+
+        self.context_mode
+            .borrow_mut()
+            .replace(RenderingContext::WebGL2(Dom::from_ref(&*context)));
+        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+
         Some(context)
     }
 
@@ -318,8 +334,12 @@ impl HTMLCanvasElement {
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
                 let context = GPUCanvasContext::new(&global_scope, self, channel, can_gc);
-                *self.context_mode.borrow_mut() =
-                    Some(RenderingContext::WebGPU(Dom::from_ref(&*context)));
+
+                self.context_mode
+                    .borrow_mut()
+                    .replace(RenderingContext::WebGPU(Dom::from_ref(&*context)));
+                self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+
                 context
             })
     }
