@@ -18,6 +18,7 @@ use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use libc::c_uint;
 use script_bindings::conversions::SafeToJSValConvertible;
 pub(crate) use script_bindings::error::*;
+use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::JSContext;
 use script_bindings::str::DOMString;
 
@@ -57,26 +58,25 @@ pub(crate) fn throw_dom_exception(
         });
     }
 
-    let code = match error_to_dom_error_name(cx, global, result, can_gc) {
+    let exception = match create_dom_exception_from_error(cx, global, result, can_gc) {
         Some(value) => value,
         None => return,
     };
 
     unsafe {
         assert!(!JS_IsExceptionPending(*cx));
-        let exception = DOMException::new(global, code, can_gc);
         rooted!(in(*cx) let mut thrown = UndefinedValue());
         exception.safe_to_jsval(cx, thrown.handle_mut());
         JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
     }
 }
 
-pub fn error_to_dom_error_name(
+pub fn create_dom_exception_from_error(
     cx: JSContext,
     global: &GlobalScope,
     result: Error,
     can_gc: CanGc,
-) -> Option<DOMErrorName> {
+) -> Option<DomRoot<DOMException>> {
     let code = match result {
         Error::IndexSize => DOMErrorName::IndexSizeError,
         Error::NotFound => DOMErrorName::NotFoundError,
@@ -146,7 +146,7 @@ pub fn error_to_dom_error_name(
             return None;
         },
     };
-    Some(code)
+    Some(DOMException::new(global, code, can_gc))
 }
 
 /// A struct encapsulating information about a runtime script error.

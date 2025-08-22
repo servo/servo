@@ -23,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
     IDBRequestMethods, IDBRequestReadyState,
 };
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
-use crate::dom::bindings::error::{Error, Fallible, error_to_dom_error_name};
+use crate::dom::bindings::error::{Error, Fallible, create_dom_exception_from_error};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -253,9 +253,10 @@ impl IDBRequest {
 
     pub fn set_error(&self, cx: SafeJSContext, error: Option<Error>, can_gc: CanGc) {
         if let Some(error) = error {
-            if let Some(error_name) = error_to_dom_error_name(cx, &self.global(), error, can_gc) {
-                self.error
-                    .set(Some(&DOMException::new(&self.global(), error_name, can_gc)));
+            if let Some(exception) =
+                create_dom_exception_from_error(cx, &self.global(), error, can_gc)
+            {
+                self.error.set(Some(&exception));
             }
         } else {
             self.error.set(None);
