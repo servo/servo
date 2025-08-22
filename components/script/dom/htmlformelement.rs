@@ -15,6 +15,7 @@ use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
+use script_bindings::codegen::GenericBindings::HTMLOrSVGElementBinding::FocusOptions;
 use servo_rand::random;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
@@ -1101,7 +1102,7 @@ impl HTMLFormElement {
             }
             if first {
                 if let Some(html_elem) = elem.downcast::<HTMLElement>() {
-                    html_elem.Focus(can_gc);
+                    html_elem.Focus(&FocusOptions::default(), can_gc);
                     first = false;
                 }
             }

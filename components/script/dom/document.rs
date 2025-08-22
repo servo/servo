@@ -47,6 +47,7 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
+use script_bindings::codegen::GenericBindings::HTMLOrSVGElementBinding::FocusOptions;
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::script_runtime::JSContext;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
@@ -264,6 +265,8 @@ struct FocusTransaction {
     element: Option<Dom<Element>>,
     /// See [`Document::has_focus`].
     has_focus: bool,
+    /// Focus options for the transaction
+    focus_options: FocusOptions,
 }
 
 /// Information about a declarative refresh
@@ -548,6 +551,10 @@ pub(crate) struct Document {
     adopted_stylesheets_frozen_types: CachedFrozenArray,
     /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-event-targets>
     pending_scroll_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
+    /// <https://drafts.csswg.org/cssom-view/#document-pending-scrollend-event-targets>
+    pending_scrollend_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
+    /// Flag to prevent reentrant calls to handle_scroll_complete_event
+    processing_scrollend_events: Cell<bool>,
     /// When a `ResizeObserver` starts observing a target, this becomes true, which in turn is a
     /// signal to the [`ScriptThread`] that a rendering update should happen.
     resize_observer_started_observing_target: Cell<bool>,
@@ -1140,6 +1147,7 @@ impl Document {
         *self.focus_transaction.borrow_mut() = Some(FocusTransaction {
             element: self.focused.get().as_deref().map(Dom::from_ref),
             has_focus: self.has_focus.get(),
+            focus_options: FocusOptions::default(),
         });
     }
 
@@ -1169,15 +1177,26 @@ impl Document {
         }
     }
 
+    /// Requesting for giving element calling `request_focus_with_options` with default options.
+    pub(crate) fn request_focus(
+        &self,
+        elem: Option<&Element>,
+        focus_initiator: FocusInitiator,
+        can_gc: CanGc,
+    ) {
+        self.request_focus_with_options(elem, focus_initiator, FocusOptions::default(), can_gc);
+    }
+
     /// Request that the given element receive focus once the current
     /// transaction is complete. `None` specifies to focus the document.
     ///
     /// If there's no ongoing transaction, this method automatically starts and
     /// commits an implicit transaction.
-    pub(crate) fn request_focus(
+    pub(crate) fn request_focus_with_options(
         &self,
         elem: Option<&Element>,
         focus_initiator: FocusInitiator,
+        focus_options: FocusOptions,
         can_gc: CanGc,
     ) {
         // If an element is specified, and it's non-focusable, ignore the
@@ -1197,6 +1216,7 @@ impl Document {
             let focus_transaction = focus_transaction.as_mut().unwrap();
             focus_transaction.element = elem.map(Dom::from_ref);
             focus_transaction.has_focus = true;
+            focus_transaction.focus_options = focus_options;
         }
 
         if implicit_transaction {
@@ -1236,7 +1256,7 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
     pub(crate) fn commit_focus_transaction(&self, focus_initiator: FocusInitiator, can_gc: CanGc) {
-        let (mut new_focused, new_focus_state) = {
+        let (mut new_focused, new_focus_state, prevent_scroll) = {
             let focus_transaction = self.focus_transaction.borrow();
             let focus_transaction = focus_transaction
                 .as_ref()
@@ -1247,6 +1267,7 @@ impl Document {
                     .as_ref()
                     .map(|e| DomRoot::from_ref(&**e)),
                 focus_transaction.has_focus,
+                focus_transaction.focus_options.preventScroll,
             )
         };
         *self.focus_transaction.borrow_mut() = None;
@@ -1363,16 +1384,19 @@ impl Document {
                 }
                 // Scroll operation to happen after element gets focus.
                 // This is needed to ensure that the focused element is visible.
-                elem.ScrollIntoView(BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
-                    ScrollIntoViewOptions {
-                        parent: ScrollOptions {
-                            behavior: ScrollBehavior::Smooth,
+                // Only scroll if preventScroll was not specified
+                if !prevent_scroll {
+                    elem.ScrollIntoView(BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
+                        ScrollIntoViewOptions {
+                            parent: ScrollOptions {
+                                behavior: ScrollBehavior::Smooth,
+                            },
+                            block: ScrollLogicalPosition::Center,
+                            inline: ScrollLogicalPosition::Center,
+                            container: ScrollIntoViewContainer::All,
                         },
-                        block: ScrollLogicalPosition::Center,
-                        inline: ScrollLogicalPosition::Center,
-                        container: ScrollIntoViewContainer::All,
-                    },
-                ));
+                    ));
+                }
             }
         }
 
@@ -1600,6 +1624,101 @@ impl Document {
         // Step 4.
         // > Append the element to doc’s pending scroll event targets.
         self.pending_scroll_event_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+    }
+
+    /// Whenever scrolling is completed, the user agent must run these steps:
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    ///
+    /// Note: This function should be called when all scrolling operations are complete.
+    /// For each scrolling box, the corresponding handle_viewport_scrollend_event or
+    /// handle_element_scrollend_event should have been called beforehand to populate
+    /// the pending_scrollend_event_targets list.
+    pub(crate) fn handle_scroll_complete_event(&self, can_gc: CanGc) {
+        // Prevent reentrant calls - if we're already processing scrollend events, return early
+        if self.processing_scrollend_events.get() {
+            return;
+        }
+
+        // Early return if no pending scrollend events to process
+        if self.pending_scrollend_event_targets.borrow().is_empty() {
+            return;
+        }
+
+        // Set the processing flag to prevent reentrant calls
+        self.processing_scrollend_events.set(true);
+
+        rooted_vec!(let notify_list <- self.pending_scrollend_event_targets.take().into_iter());
+        for target in notify_list.iter() {
+            if target.downcast::<Document>().is_some() {
+                // Step 3.1: If target is a Document, fire an event named scrollend that bubbles at target.
+                target.fire_bubbling_event(Atom::from("scrollend"), can_gc);
+            } else {
+                // Step 3.2: Otherwise, fire an event named scrollend at target.
+                target.fire_event(Atom::from("scrollend"), can_gc);
+            }
+        }
+
+        // Step 4: Empty doc's pending scrollend event targets.
+        // This was already done by taking the content above.
+
+        // Clear the processing flag
+        self.processing_scrollend_events.set(false);
+
+        // Check if new targets were added during processing and recursively process them
+        if !self.pending_scrollend_event_targets.borrow().is_empty() {
+            self.handle_scroll_complete_event(can_gc);
+        }
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    pub(crate) fn handle_viewport_scrollend_event(&self) {
+        // For viewport scrolling, target is the document
+        let target = self.upcast::<EventTarget>();
+        let doc = self;
+
+        // Step 1.2: If box belongs to a snap container, snapcontainer, run the update
+        // scrollsnapchange targets steps for snapcontainer.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 1.3: If target is already in doc's pending scrollend event targets, abort these steps.
+        if doc
+            .pending_scrollend_event_targets
+            .borrow()
+            .iter()
+            .any(|other_target| *other_target == target)
+        {
+            return;
+        }
+
+        // Step 1.4: Append target to doc's pending scrollend event targets.
+        doc.pending_scrollend_event_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    pub(crate) fn handle_element_scrollend_event(&self, element: &Element) {
+        let target = element.upcast::<EventTarget>();
+        let doc = self;
+
+        // Step 1.2: If box belongs to a snap container, snapcontainer, run the update
+        // scrollsnapchange targets steps for snapcontainer.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 1.3: If target is already in doc's pending scrollend event targets, abort these steps.
+        if doc
+            .pending_scrollend_event_targets
+            .borrow()
+            .iter()
+            .any(|other_target| *other_target == target)
+        {
+            return;
+        }
+
+        // Step 1.4: Append target to doc's pending scrollend event targets.
+        doc.pending_scrollend_event_targets
             .borrow_mut()
             .push(Dom::from_ref(target));
     }
@@ -3357,6 +3476,8 @@ impl Document {
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_event_targets: Default::default(),
+            pending_scrollend_event_targets: Default::default(),
+            processing_scrollend_events: Cell::new(false),
             resize_observer_started_observing_target: Cell::new(false),
         }
     }
