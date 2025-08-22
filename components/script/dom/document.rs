@@ -4982,7 +4982,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None => return,
         };
 
-        let elem = if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
+        let node = if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
             let elem = root.upcast::<Node>().child_elements().find(|node| {
                 node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
             });
@@ -5036,7 +5036,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return;
         };
 
-        elem.SetTextContent(Some(title), can_gc);
+        node.set_text_content_for_element(Some(title), can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-head

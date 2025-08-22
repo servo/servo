@@ -294,7 +294,7 @@ impl HTMLSelectElement {
         );
         chevron_container
             .upcast::<Node>()
-            .SetTextContent(Some("▾".into()), can_gc);
+            .set_text_content_for_element(Some("▾".into()), can_gc);
         select_box
             .upcast::<Node>()
             .AppendChild(chevron_container.upcast::<Node>(), can_gc)

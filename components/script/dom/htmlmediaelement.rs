@@ -2055,7 +2055,7 @@ impl HTMLMediaElement {
         *self.media_controls_id.borrow_mut() = Some(id);
         script
             .upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(media_controls_script)), can_gc);
+            .set_text_content_for_element(Some(DOMString::from(media_controls_script)), can_gc);
         if let Err(e) = shadow_root
             .upcast::<Node>()
             .AppendChild(script.upcast::<Node>(), can_gc)
@@ -2074,7 +2074,7 @@ impl HTMLMediaElement {
         );
         style
             .upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(MEDIA_CONTROL_CSS)), can_gc);
+            .set_text_content_for_element(Some(DOMString::from(MEDIA_CONTROL_CSS)), can_gc);
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
