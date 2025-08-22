@@ -1085,14 +1085,14 @@ impl Handler {
         self.get_all_webview_ids()
             .into_iter()
             .map(|id| id.to_string())
-            .collect::<Vec<_>>()
+            .collect()
     }
 
     fn get_all_webview_ids(&self) -> Vec<WebViewId> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViews(sender))
             .unwrap();
-        wait_for_ipc_response(receiver).unwrap()
+        wait_for_ipc_response(receiver).unwrap_or_default()
     }
 
     /// <https://w3c.github.io/webdriver/#find-element>
