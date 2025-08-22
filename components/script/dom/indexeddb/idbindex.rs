@@ -36,7 +36,6 @@ impl IDBIndex {
         }
     }
 
-    #[expect(dead_code)]
     pub fn new(
         global: &GlobalScope,
         object_store: DomRoot<IDBObjectStore>,
