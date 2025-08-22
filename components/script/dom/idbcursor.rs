@@ -161,6 +161,8 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbcursor-request>
     fn Request(&self) -> DomRoot<IDBRequest> {
-        self.request.get().unwrap()
+        self.request
+            .get()
+            .expect("IDBCursor.request should be set when cursor is opened")
     }
 }
