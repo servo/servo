@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
 use net_traits::indexeddb_thread::{IndexedDBKeyRange, IndexedDBKeyType};
 
@@ -147,8 +147,11 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbcursor-key>
-    fn Key(&self, cx: SafeJSContext, value: MutableHandleValue) {
-        key_type_to_jsval(cx, self.key.borrow().as_ref().unwrap(), value);
+    fn Key(&self, cx: SafeJSContext, mut value: MutableHandleValue) {
+        match self.key.borrow().as_ref() {
+            Some(key) => key_type_to_jsval(cx, key, value),
+            None => value.set(UndefinedValue()),
+        }
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbcursor-primarykey>
