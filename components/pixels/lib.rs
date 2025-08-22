@@ -311,18 +311,21 @@ impl RasterImage {
         self.frames.len() > 1
     }
 
-    pub fn frames(&self) -> impl Iterator<Item = ImageFrameView<'_>> {
-        self.frames.iter().map(|frame| ImageFrameView {
+    fn frame_view<'image>(&'image self, frame: &ImageFrame) -> ImageFrameView<'image> {
+        ImageFrameView {
             delay: frame.delay,
             bytes: self.bytes.get(frame.byte_range.clone()).unwrap(),
             width: frame.width,
             height: frame.height,
-        })
+        }
+    }
+
+    pub fn frame(&self, index: usize) -> Option<ImageFrameView<'_>> {
+        self.frames.get(index).map(|frame| self.frame_view(frame))
     }
 
     pub fn first_frame(&self) -> ImageFrameView<'_> {
-        self.frames()
-            .next()
+        self.frame(0)
             .expect("All images should have at least one frame")
     }
 }
