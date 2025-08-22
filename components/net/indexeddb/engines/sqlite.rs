@@ -125,10 +125,11 @@ impl SqliteEngine {
         // From https://w3c.github.io/IndexedDB/#database-version:
         // "When a database is first created, its version is 0 (zero)."
         connection.execute(
-            "INSERT INTO database (name, origin, version) VALUES (?, ?, 0)",
+            "INSERT INTO database (name, origin, version) VALUES (?, ?, ?)",
             params![
                 db_info.name.to_owned(),
                 db_info.origin.to_owned().ascii_serialization(),
+                i64::from_ne_bytes(0_u64.to_ne_bytes())
             ],
         )?;
         Ok(connection)
