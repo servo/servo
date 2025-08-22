@@ -234,7 +234,7 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // Step 1.3.7. Increase i by 1.
-                i = i + 1;
+                i += 1;
             }
 
             // Step 1.4. Return result.
