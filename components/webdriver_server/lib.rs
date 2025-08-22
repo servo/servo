@@ -1067,11 +1067,6 @@ impl Handler {
         let mut handles = self.get_window_handles()?;
         handles.sort();
 
-        let handles = handles
-            .into_iter()
-            .map(serde_json::to_value)
-            .collect::<Result<Vec<_>, _>>()?;
-
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(handles)?,
         )))
