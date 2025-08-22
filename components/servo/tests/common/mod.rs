@@ -57,6 +57,8 @@ pub(crate) fn run_test(
 
 pub struct ServoTest {
     servo: Servo,
+    #[allow(dead_code)]
+    pub rendering_context: Rc<dyn RenderingContext>,
 }
 
 impl Drop for ServoTest {
@@ -100,7 +102,10 @@ impl ServoTest {
             .event_loop_waker(Box::new(EventLoopWakerImpl(user_event_triggered)));
         let builder = customize(builder);
         let servo = builder.build();
-        Self { servo }
+        Self {
+            servo,
+            rendering_context,
+        }
     }
 
     pub fn servo(&self) -> &Servo {
@@ -136,17 +141,30 @@ impl ServoTest {
 #[derive(Default)]
 pub(crate) struct WebViewDelegateImpl {
     pub(crate) url_changed: Cell<bool>,
+    pub(crate) cursor_changed: Cell<bool>,
+    pub(crate) new_frame_ready: Cell<bool>,
 }
 
 impl WebViewDelegateImpl {
     pub(crate) fn reset(&self) {
         self.url_changed.set(false);
+        self.cursor_changed.set(false);
+        self.new_frame_ready.set(false);
     }
 }
 
 impl WebViewDelegate for WebViewDelegateImpl {
     fn notify_url_changed(&self, _webview: servo::WebView, _url: url::Url) {
         self.url_changed.set(true);
+    }
+
+    fn notify_cursor_changed(&self, _webview: WebView, _: servo::Cursor) {
+        self.cursor_changed.set(true);
+    }
+
+    fn notify_new_frame_ready(&self, webview: WebView) {
+        self.new_frame_ready.set(true);
+        webview.paint();
     }
 }
 

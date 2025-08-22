@@ -136,8 +136,8 @@ use embedder_traits::{
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
     WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
 };
+use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
-use euclid::{Point2D, Size2D};
 use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -164,7 +164,6 @@ use servo_config::prefs::{self, PrefValue};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
@@ -1465,8 +1464,8 @@ where
             EmbedderToConstellationMessage::ForwardInputEvent(webview_id, event, hit_test) => {
                 self.forward_input_event(webview_id, event, hit_test);
             },
-            EmbedderToConstellationMessage::RefreshCursor(pipeline_id, point) => {
-                self.handle_refresh_cursor(pipeline_id, point)
+            EmbedderToConstellationMessage::RefreshCursor(pipeline_id) => {
+                self.handle_refresh_cursor(pipeline_id)
             },
             EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration) => {
                 for background_monitor_control_sender in &self.background_monitor_control_senders {
@@ -3440,14 +3439,14 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_refresh_cursor(&self, pipeline_id: PipelineId, point: Point2D<f32, CSSPixel>) {
+    fn handle_refresh_cursor(&self, pipeline_id: PipelineId) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             return;
         };
 
         if let Err(error) = pipeline
             .event_loop
-            .send(ScriptThreadMessage::RefreshCursor(pipeline_id, point))
+            .send(ScriptThreadMessage::RefreshCursor(pipeline_id))
         {
             warn!("Could not send RefreshCursor message to pipeline: {error:?}");
         }

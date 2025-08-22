@@ -98,45 +98,46 @@ impl ConstellationWebView {
             return;
         };
 
-        let mut update_hovered_browsing_context = |newly_hovered_browsing_context_id| {
-            let old_hovered_context_id = std::mem::replace(
-                &mut self.hovered_browsing_context_id,
-                newly_hovered_browsing_context_id,
-            );
-            if old_hovered_context_id == newly_hovered_browsing_context_id {
-                return;
-            }
-            let Some(old_hovered_context_id) = old_hovered_context_id else {
-                return;
-            };
-            let Some(pipeline) = browsing_contexts
-                .get(&old_hovered_context_id)
-                .and_then(|browsing_context| pipelines.get(&browsing_context.pipeline_id))
-            else {
-                return;
-            };
+        let mut update_hovered_browsing_context =
+            |newly_hovered_browsing_context_id, focus_moving_to_another_iframe: bool| {
+                let old_hovered_context_id = std::mem::replace(
+                    &mut self.hovered_browsing_context_id,
+                    newly_hovered_browsing_context_id,
+                );
+                if old_hovered_context_id == newly_hovered_browsing_context_id {
+                    return;
+                }
+                let Some(old_hovered_context_id) = old_hovered_context_id else {
+                    return;
+                };
+                let Some(pipeline) = browsing_contexts
+                    .get(&old_hovered_context_id)
+                    .and_then(|browsing_context| pipelines.get(&browsing_context.pipeline_id))
+                else {
+                    return;
+                };
 
-            let mut synthetic_mouse_leave_event = event.clone();
-            synthetic_mouse_leave_event.event =
-                InputEvent::MouseLeftViewport(MouseLeftViewportEvent {
-                    focus_moving_to_another_iframe: true,
-                });
+                let mut synthetic_mouse_leave_event = event.clone();
+                synthetic_mouse_leave_event.event =
+                    InputEvent::MouseLeftViewport(MouseLeftViewportEvent {
+                        focus_moving_to_another_iframe,
+                    });
 
-            let _ = pipeline
-                .event_loop
-                .send(ScriptThreadMessage::SendInputEvent(
-                    pipeline.id,
-                    synthetic_mouse_leave_event,
-                ));
-        };
+                let _ = pipeline
+                    .event_loop
+                    .send(ScriptThreadMessage::SendInputEvent(
+                        pipeline.id,
+                        synthetic_mouse_leave_event,
+                    ));
+            };
 
         if let InputEvent::MouseLeftViewport(_) = &event.event {
-            update_hovered_browsing_context(None);
+            update_hovered_browsing_context(None, false);
             return;
         }
 
         if let InputEvent::MouseMove(_) = &event.event {
-            update_hovered_browsing_context(Some(pipeline.browsing_context_id));
+            update_hovered_browsing_context(Some(pipeline.browsing_context_id), true);
             self.last_mouse_move_point = event
                 .hit_test_result
                 .as_ref()

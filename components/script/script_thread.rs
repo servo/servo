@@ -91,7 +91,6 @@ use script_traits::{
 use servo_config::{opts, prefs};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
-use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
@@ -1884,8 +1883,8 @@ impl ScriptThread {
                     );
                 }
             },
-            ScriptThreadMessage::RefreshCursor(pipeline_id, cursor_position) => {
-                self.handle_refresh_cursor(pipeline_id, cursor_position);
+            ScriptThreadMessage::RefreshCursor(pipeline_id) => {
+                self.handle_refresh_cursor(pipeline_id);
             },
             ScriptThreadMessage::PreferencesUpdated(updates) => {
                 let mut current_preferences = prefs::get().clone();
@@ -3996,15 +3995,11 @@ impl ScriptThread {
         ));
     }
 
-    fn handle_refresh_cursor(
-        &self,
-        pipeline_id: PipelineId,
-        cursor_position: Point2D<f32, CSSPixel>,
-    ) {
-        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+    fn handle_refresh_cursor(&self, pipeline_id: PipelineId) {
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             return;
         };
-        window.handle_refresh_cursor(cursor_position);
+        document.event_handler().handle_refresh_cursor();
     }
 }
 
