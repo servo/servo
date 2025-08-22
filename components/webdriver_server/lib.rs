@@ -574,9 +574,9 @@ impl Handler {
                 webview_id
             },
         };
-        self.session_mut()?.set_webview_id(Some(webview_id));
+        self.session_mut()?.set_webview_id(webview_id);
         self.session_mut()?
-            .set_browsing_context_id(Some(BrowsingContextId::from(webview_id)));
+            .set_browsing_context_id(BrowsingContextId::from(webview_id));
 
         // Step 9. Set the request queue to a new queue.
         // Skip here because the requests are handled in the external crate.
@@ -674,7 +674,7 @@ impl Handler {
 
         // Step 8.3. Set current browsing context with session and current top browsing context
         self.session_mut()?
-            .set_browsing_context_id(Some(BrowsingContextId::from(webview_id)));
+            .set_browsing_context_id(BrowsingContextId::from(webview_id));
 
         Ok(WebDriverResponse::Void)
     }
@@ -1016,7 +1016,7 @@ impl Handler {
 
         // Step 5. Set current browsing context with session and current top browsing context.
         self.session_mut()?
-            .set_browsing_context_id(Some(BrowsingContextId::from(webview_id)));
+            .set_browsing_context_id(BrowsingContextId::from(webview_id));
 
         Ok(WebDriverResponse::Void)
     }
@@ -1066,7 +1066,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#get-window-handles>
     fn handle_window_handles(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let mut handles = self.get_window_handles()?;
+        let mut handles = self.get_window_handles();
         handles.sort();
 
         Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1074,35 +1074,27 @@ impl Handler {
         )))
     }
 
-    fn get_window_handle(&mut self, webview_id: WebViewId) -> WebDriverResult<String> {
-        self.get_window_handles()?
+    fn get_window_handle(&mut self, webview_id: WebViewId) -> Option<String> {
+        self.get_window_handles()
             .iter()
             .find(|id| id == &&webview_id.to_string())
             .cloned()
-            .ok_or_else(|| {
-                WebDriverError::new(
-                    ErrorStatus::UnknownError,
-                    "No such window while getting window handle",
-                )
-            })
     }
 
-    fn get_window_handles(&self) -> WebDriverResult<Vec<String>> {
-        let handles = self
-            .get_all_webview_ids()?
+    fn get_window_handles(&self) -> Vec<String> {
+        self.get_all_webview_ids()
             .into_iter()
             .map(|id| id.to_string())
-            .collect::<Vec<_>>();
-
-        Ok(handles)
+            .collect::<Vec<_>>()
     }
 
-    fn get_all_webview_ids(&self) -> WebDriverResult<Vec<WebViewId>> {
+    fn get_all_webview_ids(&self) -> Vec<WebViewId> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViews(sender))?;
-        let webviews = wait_for_ipc_response(receiver)?;
+        self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViews(sender))
+            .unwrap();
+        let webviews = wait_for_ipc_response(receiver).unwrap();
 
-        Ok(webviews)
+        webviews
     }
 
     /// <https://w3c.github.io/webdriver/#find-element>
@@ -1136,7 +1128,7 @@ impl Handler {
         wait_for_ipc_response(receiver)?;
 
         // Step 4. If there are no more open top-level browsing contexts, try to close the session.
-        let window_handles = self.get_window_handles()?;
+        let window_handles = self.get_window_handles();
 
         if window_handles.is_empty() {
             self.session = None;
@@ -1172,7 +1164,9 @@ impl Handler {
 
         if let Ok(webview_id) = receiver.recv() {
             let _ = self.wait_for_document_ready_state();
-            let handle = self.get_window_handle(webview_id)?;
+            let handle = self
+                .get_window_handle(webview_id)
+                .expect("Failed to get window handle of an existing webview");
 
             Ok(WebDriverResponse::NewWindow(NewWindowResponse {
                 handle,
@@ -1204,7 +1198,7 @@ impl Handler {
                 // Step 3. Set the current browsing context with session and
                 // session's current top-level browsing context.
                 self.session_mut()?
-                    .set_browsing_context_id(Some(BrowsingContextId::from(webview_id)));
+                    .set_browsing_context_id(BrowsingContextId::from(webview_id));
                 return Ok(WebDriverResponse::Void);
             },
             // id is a Number object
@@ -1248,7 +1242,7 @@ impl Handler {
         match wait_for_ipc_response(receiver)? {
             Ok(browsing_context_id) => {
                 self.session_mut()?
-                    .set_browsing_context_id(Some(browsing_context_id));
+                    .set_browsing_context_id(browsing_context_id);
                 Ok(WebDriverResponse::Void)
             },
             Err(error) => Err(WebDriverError::new(error, "")),
@@ -1260,9 +1254,9 @@ impl Handler {
         &mut self,
         parameters: &SwitchToWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let window_handles = self.get_all_webview_ids()?;
-        let Some(webview_id) = window_handles
-            .iter()
+        let Some(webview_id) = self
+            .get_all_webview_ids()
+            .into_iter()
             .find(|id| id.to_string() == parameters.handle)
         else {
             return Err(WebDriverError::new(
@@ -1272,8 +1266,8 @@ impl Handler {
         };
 
         let session = self.session_mut()?;
-        session.set_webview_id(Some(*webview_id));
-        session.set_browsing_context_id(Some(BrowsingContextId::from(*webview_id)));
+        session.set_webview_id(webview_id);
+        session.set_browsing_context_id(BrowsingContextId::from(webview_id));
         Ok(WebDriverResponse::Void)
     }
 
@@ -1289,7 +1283,7 @@ impl Handler {
         match wait_for_ipc_response(receiver)? {
             Ok(browsing_context_id) => {
                 self.session_mut()?
-                    .set_browsing_context_id(Some(browsing_context_id));
+                    .set_browsing_context_id(browsing_context_id);
                 Ok(WebDriverResponse::Void)
             },
             Err(error) => Err(WebDriverError::new(error, "")),

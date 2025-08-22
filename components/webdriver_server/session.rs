@@ -60,6 +60,7 @@ pub struct WebDriverSession {
 
     strict_file_interactability: bool,
 
+    /// <https://w3c.github.io/webdriver/#dfn-user-prompt-handler>
     user_prompt_handler: UserPromptHandler,
 
     /// <https://w3c.github.io/webdriver/#dfn-input-state-map>
@@ -84,12 +85,12 @@ impl WebDriverSession {
         }
     }
 
-    pub fn set_webview_id(&mut self, webview_id: Option<WebViewId>) {
-        self.webview_id = webview_id;
+    pub fn set_webview_id(&mut self, webview_id: WebViewId) {
+        self.webview_id = Some(webview_id);
     }
 
-    pub fn set_browsing_context_id(&mut self, browsing_context_id: Option<BrowsingContextId>) {
-        self.browsing_context_id = browsing_context_id;
+    pub fn set_browsing_context_id(&mut self, browsing_context_id: BrowsingContextId) {
+        self.browsing_context_id = Some(browsing_context_id);
     }
 
     pub fn current_webview_id(&self) -> Option<WebViewId> {
