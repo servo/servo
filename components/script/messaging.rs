@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::PipelineId;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -371,7 +371,7 @@ pub(crate) struct ScriptThreadSenders {
 pub(crate) struct ScriptThreadReceivers {
     /// A [`Receiver`] that receives messages from the constellation.
     #[no_trace]
-    pub(crate) constellation_receiver: Receiver<ScriptThreadMessage>,
+    pub(crate) constellation_receiver: RoutedReceiver<ScriptThreadMessage>,
 
     /// The [`Receiver`] which receives incoming messages from the `ImageCache`.
     #[no_trace]
@@ -405,7 +405,7 @@ impl ScriptThreadReceivers {
                     .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
                 MixedMessage::FromScript(event)
             },
-            recv(self.constellation_receiver) -> msg => MixedMessage::FromConstellation(msg.unwrap()),
+            recv(self.constellation_receiver) -> msg => MixedMessage::FromConstellation(msg.unwrap().unwrap()),
             recv(self.devtools_server_receiver) -> msg => MixedMessage::FromDevtools(msg.unwrap()),
             recv(self.image_cache_receiver) -> msg => MixedMessage::FromImageCache(msg.unwrap()),
             recv(timer_scheduler.wait_channel()) -> _ => MixedMessage::TimerFired,
@@ -438,6 +438,14 @@ impl ScriptThreadReceivers {
         task_queue: &TaskQueue<MainThreadScriptMsg>,
     ) -> Option<MixedMessage> {
         if let Ok(message) = self.constellation_receiver.try_recv() {
+            let message = message
+                .inspect_err(|e| {
+                    log::warn!(
+                        "ScriptThreadReceivers IPC error on constellation_receiver: {:?}",
+                        e
+                    );
+                })
+                .ok()?;
             return MixedMessage::FromConstellation(message).into();
         }
         if let Ok(message) = task_queue.take_tasks_and_recv() {

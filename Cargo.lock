@@ -9710,6 +9710,7 @@ dependencies = [
 name = "webgl"
 version = "0.0.1"
 dependencies = [
+ "base",
  "bitflags 2.9.3",
  "byteorder",
  "canvas_traits",

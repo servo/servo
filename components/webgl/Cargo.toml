@@ -16,6 +16,7 @@ webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 webxr = ["dep:webxr", "dep:webxr-api"]
 
 [dependencies]
+base = { path = "../shared/base" }
 bitflags = { workspace = true }
 byteorder = { workspace = true }
 canvas_traits = { workspace = true }

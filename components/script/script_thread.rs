@@ -870,7 +870,7 @@ impl ScriptThread {
             JS_AddInterruptCallback(cx, Some(interrupt_callback));
         }
 
-        let constellation_receiver = state.constellation_receiver.into_inner();
+        let constellation_receiver = state.constellation_receiver.route_preserving_errors();
 
         // Ask the router to proxy IPC messages from the devtools to us.
         let devtools_server_sender = state.devtools_server_sender;
