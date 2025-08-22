@@ -10,6 +10,8 @@ use base::Epoch;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self};
 use pixels::Snapshot;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::inheritance::Castable;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPUContextId, WebGPURequest,
     WebGPUTexture,
@@ -38,7 +40,8 @@ use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::document::WebGPUContextsMap;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
-use crate::dom::node::NodeTraits;
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::types::Window;
 use crate::script_runtime::CanGc;
 
 /// <https://gpuweb.github.io/gpuweb/#supported-context-formats>
@@ -330,6 +333,18 @@ impl CanvasContext for GPUCanvasContext {
 
     fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
         Some(self.canvas.clone())
+    }
+
+    fn mark_as_dirty(&self) {
+        // TODO: This should probably add the context to a list of dirty contexts on the Document.
+        if let Some(window) = self.global().downcast::<Window>() {
+            window.Document().set_has_pending_dirty_webgpu_canvas();
+        }
+
+        if let Some(HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas)) = &self.canvas()
+        {
+            canvas.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+        }
     }
 }
 

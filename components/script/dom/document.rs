@@ -488,6 +488,11 @@ pub(crate) struct Document {
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// Whether or not animated images need to have their contents updated.
     has_pending_animated_image_update: Cell<bool>,
+    /// Whether or not there is a dirty WebGPU canvas in this [`Document`].
+    ///
+    /// TODO: This should ideally be a collection of dirty WebGPU canvases, but it
+    /// seems that WebGPU does not yet track when it dirties the canvas.
+    has_pending_dirty_webgpu_canvas: Cell<bool>,
     /// List of all WebGPU contexts.
     #[cfg(feature = "webgpu")]
     #[ignore_malloc_size_of = "Rc are hard"]
@@ -2658,7 +2663,11 @@ impl Document {
         if self.window().has_unhandled_resize_event() {
             return true;
         }
-        if self.has_pending_animated_image_update.get() {
+        if self.has_pending_animated_image_update.get() ||
+            !self.dirty_2d_contexts.borrow().is_empty() ||
+            !self.dirty_webgl_contexts.borrow().is_empty() ||
+            self.has_pending_dirty_webgpu_canvas.get()
+        {
             return true;
         }
 
@@ -2673,11 +2682,14 @@ impl Document {
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
     pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
+        let mut results = ReflowPhasesRun::empty();
+
         if self.has_pending_animated_image_update.get() {
             self.image_animation_manager
                 .borrow()
                 .update_active_frames(&self.window, self.current_animation_timeline_value());
             self.has_pending_animated_image_update.set(false);
+            results.insert(ReflowPhasesRun::UpdatedImageData);
         }
 
         // All dirty canvases are flushed before updating the rendering.
@@ -2692,7 +2704,10 @@ impl Document {
                 .iter()
                 .filter_map(|(_, context)| context.root())
                 .filter(|context| context.update_rendering(Some(canvas_epoch)))
-                .map(|context| context.image_key()),
+                .map(|context| {
+                    results.insert(ReflowPhasesRun::UpdatedImageData);
+                    context.image_key()
+                })
         );
 
         image_keys.extend(
@@ -2700,7 +2715,10 @@ impl Document {
                 .borrow_mut()
                 .drain()
                 .filter(|(_, context)| context.update_rendering(Some(canvas_epoch)))
-                .map(|(_, context)| context.image_key()),
+                .map(|(_, context)| {
+                    results.insert(ReflowPhasesRun::UpdatedImageData);
+                    context.image_key()
+                })
         );
 
         let dirty_webgl_context_ids: Vec<_> = self
@@ -2715,6 +2733,7 @@ impl Document {
             .collect();
 
         if !dirty_webgl_context_ids.is_empty() {
+            results.insert(ReflowPhasesRun::UpdatedImageData);
             self.window
                 .webgl_chan()
                 .expect("Where's the WebGL channel?")
@@ -2737,7 +2756,7 @@ impl Document {
             );
         }
 
-        self.window().reflow(ReflowGoal::UpdateTheRendering)
+        results.union(self.window().reflow(ReflowGoal::UpdateTheRendering))
     }
 
     pub(crate) fn handle_no_longer_waiting_on_asynchronous_image_updates(&self) {
@@ -3406,6 +3425,7 @@ impl Document {
             dirty_2d_contexts: DomRefCell::new(HashMapTracedValues::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             has_pending_animated_image_update: Cell::new(false),
+            has_pending_dirty_webgpu_canvas: Cell::new(false),
             #[cfg(feature = "webgpu")]
             webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
             selection: MutNullableDom::new(None),
@@ -4244,6 +4264,10 @@ impl Document {
 
     pub(crate) fn set_has_pending_animated_image_update(&self) {
         self.has_pending_animated_image_update.set(true);
+    }
+
+    pub(crate) fn set_has_pending_dirty_webgpu_canvas(&self) {
+        self.has_pending_dirty_webgpu_canvas.set(true);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
