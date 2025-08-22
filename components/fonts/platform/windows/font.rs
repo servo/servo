@@ -12,7 +12,9 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use app_units::Au;
-use dwrote::{FontCollection, FontFace, FontFile};
+use dwrote::{
+    DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_NONE, FontCollection, FontFace, FontFile,
+};
 use euclid::default::{Point2D, Rect, Size2D};
 use log::{debug, warn};
 use style::Zero;
@@ -67,6 +69,7 @@ pub struct PlatformFont {
     em_size: f32,
     du_to_px: f32,
     scaled_du_to_px: f32,
+    variations: Vec<FontVariation>,
 }
 
 // Based on information from the Skia codebase, it seems that DirectWrite APIs from
@@ -92,7 +95,11 @@ impl<T> Deref for Nondebug<T> {
 }
 
 impl PlatformFont {
-    fn new(font_face: FontFace, pt_size: Option<Au>) -> Result<Self, &'static str> {
+    fn new(
+        font_face: FontFace,
+        pt_size: Option<Au>,
+        variations: Vec<FontVariation>,
+    ) -> Result<Self, &'static str> {
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
         let du_per_em = font_face.metrics().metrics0().designUnitsPerEm as f32;
 
@@ -107,7 +114,50 @@ impl PlatformFont {
             em_size,
             du_to_px: design_units_to_pixels,
             scaled_du_to_px: scaled_design_units_to_pixels,
+            variations,
         })
+    }
+
+    fn new_with_variations(
+        font_face: FontFace,
+        pt_size: Option<Au>,
+        variations: &[FontVariation],
+    ) -> Result<Self, &'static str> {
+        if variations.is_empty() {
+            return Self::new(font_face, pt_size, vec![]);
+        }
+
+        // On FreeType and CoreText platforms, the platform layer is able to read the minimum, maxmimum,
+        // and default values of each axis. This doesn't seem possible here and it seems that Gecko
+        // also just sets the value of the axis based on the values from the style as well.
+        //
+        // dwrote (and presumably the Windows APIs) accept a reversed version of the table
+        // tag bytes, which means that `u32::swap_bytes` must be called here in order to
+        // use a byte order compatible with the rest of Servo.
+        let variations: Vec<_> = variations
+            .into_iter()
+            .map(|variation| DWRITE_FONT_AXIS_VALUE {
+                axisTag: variation.tag.swap_bytes(),
+                value: variation.value,
+            })
+            .collect();
+
+        let Some(font_face) =
+            font_face.create_font_face_with_variations(DWRITE_FONT_SIMULATIONS_NONE, &variations)
+        else {
+            return Err("Could not adapt FontFace to given variations");
+        };
+
+        let variations = font_face.variations().unwrap_or_default();
+        let variations = variations
+            .iter()
+            .map(|dwrote_variation| FontVariation {
+                tag: dwrote_variation.axisTag.swap_bytes(),
+                value: dwrote_variation.value,
+            })
+            .collect();
+
+        Self::new(font_face, pt_size, variations)
     }
 }
 
@@ -116,22 +166,19 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
-        _variations: &[FontVariation],
+        variations: &[FontVariation],
     ) -> Result<Self, &'static str> {
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
-            .create_face(
-                0, /* face_index */
-                dwrote::DWRITE_FONT_SIMULATIONS_NONE,
-            )
+            .create_face(0 /* face_index */, DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
-        Self::new(font_face, pt_size)
+        Self::new_with_variations(font_face, pt_size, variations)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
-        _variations: &[FontVariation],
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
         let font_face = FontCollection::system()
             .font_from_descriptor(&font_identifier.font_descriptor)
@@ -139,7 +186,7 @@ impl PlatformFontMethods for PlatformFont {
             .flatten()
             .ok_or("Could not create Font from descriptor")?
             .create_font_face();
-        Self::new(font_face, pt_size)
+        Self::new_with_variations(font_face, pt_size, variations)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
@@ -324,7 +371,6 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn variations(&self) -> &[FontVariation] {
-        // FIXME: implement this for windows
-        &[]
+        &self.variations
     }
 }
