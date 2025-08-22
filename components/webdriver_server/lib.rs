@@ -2115,8 +2115,7 @@ impl Handler {
 
         // Step 12. Add an input source
         self.session_mut()?
-            .input_state_table
-            .borrow_mut()
+            .input_state_table_mut()
             .insert(id.clone(), InputSourceState::Key(KeyInputState::new()));
 
         // Step 13. dispatch actions for a string
@@ -2155,8 +2154,7 @@ impl Handler {
 
         // Step 14. Remove an input source with input state and input id.
         self.session_mut()?
-            .input_state_table
-            .borrow_mut()
+            .input_state_table_mut()
             .remove(&id);
 
         Ok(WebDriverResponse::Void)
