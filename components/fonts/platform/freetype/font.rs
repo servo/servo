@@ -24,9 +24,7 @@ use webrender_api::{FontInstanceFlags, FontVariation};
 use super::LocalFontIdentifier;
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::FontData;
-use crate::font::{
-    FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
-};
+use crate::font::{FontMetrics, FontTableMethods, FractionalPixel, PlatformFontMethods};
 use crate::font_template::FontTemplateDescriptor;
 use crate::glyph::GlyphId;
 use crate::platform::freetype::freetype_face::FreeTypeFace;
@@ -324,8 +322,7 @@ impl PlatformFontMethods for PlatformFont {
         }
     }
 
-    fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
-        let tag = Tag::from_u32(tag);
+    fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
         let font_ref = self.table_provider_data.font_ref().ok()?;
         let _table_data = font_ref.table_data(tag)?;
         Some(FontTable {

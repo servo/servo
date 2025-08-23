@@ -26,16 +26,17 @@ use harfbuzz_sys::{
     hb_variation_t,
 };
 use num_traits::Zero;
+use read_fonts::types::Tag;
 
 use super::{HarfBuzzShapedGlyphData, ShapedGlyphEntry, unicode_script_to_iso15924_tag};
 use crate::platform::font::FontTable;
 use crate::{
-    BASE, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphId, GlyphStore, KERN, LIGA,
-    OpenTypeTableTag, ShapingFlags, ShapingOptions, fixed_to_float, float_to_fixed, ot_tag,
+    BASE, Font, FontBaseline, FontTableMethods, GlyphId, GlyphStore, KERN, LIGA, ShapingFlags,
+    ShapingOptions, fixed_to_float, float_to_fixed,
 };
 
-const HB_OT_TAG_DEFAULT_SCRIPT: OpenTypeTableTag = ot_tag!('D', 'F', 'L', 'T');
-const HB_OT_TAG_DEFAULT_LANGUAGE: OpenTypeTableTag = ot_tag!('d', 'f', 'l', 't');
+const HB_OT_TAG_DEFAULT_SCRIPT: hb_tag_t = u32::from_be_bytes(Tag::new(b"DFLT").to_be_bytes());
+const HB_OT_TAG_DEFAULT_LANGUAGE: hb_tag_t = u32::from_be_bytes(Tag::new(b"dflt").to_be_bytes());
 
 pub struct ShapedGlyphData {
     count: usize,
@@ -238,7 +239,7 @@ impl Shaper {
                 .contains(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG)
             {
                 features.push(hb_feature_t {
-                    tag: LIGA,
+                    tag: u32::from_be_bytes(LIGA.to_be_bytes()),
                     value: 0,
                     start: 0,
                     end: hb_buffer_get_length(hb_buffer),
@@ -249,7 +250,7 @@ impl Shaper {
                 .contains(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
             {
                 features.push(hb_feature_t {
-                    tag: KERN,
+                    tag: u32::from_be_bytes(KERN.to_be_bytes()),
                     value: 0,
                     start: 0,
                     end: hb_buffer_get_length(hb_buffer),
@@ -391,7 +392,7 @@ extern "C" fn font_table_func(
     assert!(!font.is_null());
 
     // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
-    let Some(font_table) = (unsafe { (*font).table_for_tag(tag as FontTableTag) }) else {
+    let Some(font_table) = (unsafe { (*font).table_for_tag(Tag::from_u32(tag)) }) else {
         return ptr::null_mut();
     };
 
