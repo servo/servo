@@ -77,8 +77,12 @@ impl TrustedTypePolicyFactory {
             .get_csp_list()
             .is_trusted_type_policy_creation_allowed(
                 global,
-                policy_name.clone(),
-                self.policy_names.borrow().clone(),
+                &policy_name,
+                self.policy_names
+                    .borrow()
+                    .iter()
+                    .map(String::as_ref)
+                    .collect(),
             );
 
         // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.

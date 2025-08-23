@@ -258,5 +258,5 @@ codegen-units = 1
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
 #
-# [patch."https://github.com/servo/rust-content-security-policy"]
-# content-security-policy = { path = "../rust-content-security-policy" }
+[patch."https://github.com/servo/rust-content-security-policy"]
+content-security-policy = { git = "https://github.com/TimvdLippe/rust-content-security-policy", branch = "fix-checking-of-policy-name" }
