@@ -1266,6 +1266,12 @@ impl Handler {
         let session = self.session_mut()?;
         session.set_webview_id(webview_id);
         session.set_browsing_context_id(BrowsingContextId::from(webview_id));
+
+        // Step 5. Update any implementation-specific state that would result
+        // from the user selecting session's current browsing context for interaction,
+        // without altering OS-level focus.
+        self.focus_webview(webview_id)?;
+
         Ok(WebDriverResponse::Void)
     }
 
