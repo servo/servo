@@ -2477,7 +2477,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::FocusWebView(webview_id, sender))?;
         if wait_for_ipc_response(receiver)? {
-            debug!("Focus new webview successfully");
+            debug!("Focus new webview {} successfully", webview_id);
         } else {
             debug!("Focus new webview failed, it may not exist anymore");
         }

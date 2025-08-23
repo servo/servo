@@ -58,8 +58,7 @@ impl ::servo::WebViewDelegate for AppState {
             .hidpi_scale_factor(Scale::new(self.window.scale_factor() as f32))
             .delegate(parent_webview.delegate())
             .build();
-        webview.focus();
-        webview.raise_to_top(true);
+        webview.focus_and_raise_to_top(true);
 
         self.webviews.borrow_mut().push(webview.clone());
         Some(webview)
@@ -117,8 +116,7 @@ impl ApplicationHandler<WakerEvent> for App {
                 .delegate(app_state.clone())
                 .build();
 
-            webview.focus();
-            webview.raise_to_top(true);
+            webview.focus_and_raise_to_top(true);
 
             app_state.webviews.borrow_mut().push(webview);
             *self = Self::Running(app_state);

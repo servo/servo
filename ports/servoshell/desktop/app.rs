@@ -376,7 +376,7 @@ impl App {
                 },
                 WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        let focus_id = webview.focus();
+                        let focus_id = webview.focus_and_raise_to_top(true);
                         running_state.set_pending_focus(focus_id, response_sender);
                     }
                 },
