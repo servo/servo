@@ -101,7 +101,7 @@ mach2 = "0.4"
 malloc_size_of = { package = "servo_malloc_size_of", path = "components/malloc_size_of" }
 malloc_size_of_derive = "0.1"
 markup5ever = "0.35"
-memmap2 = "0.9.7"
+memmap2 = "0.9.8"
 mime = "0.3.13"
 mime_guess = "2.0.5"
 mozangle = "0.5.3"

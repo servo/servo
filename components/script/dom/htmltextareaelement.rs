@@ -311,7 +311,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
-        self.upcast::<Node>().SetTextContent(Some(value), can_gc);
+        self.upcast::<Node>()
+            .set_text_content_for_element(Some(value), can_gc);
 
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute

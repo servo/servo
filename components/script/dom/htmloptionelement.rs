@@ -176,7 +176,9 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();
 
         if !text.is_empty() {
-            option.upcast::<Node>().SetTextContent(Some(text), can_gc)
+            option
+                .upcast::<Node>()
+                .set_text_content_for_element(Some(text), can_gc)
         }
 
         if let Some(val) = value {
@@ -224,7 +226,8 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
     fn SetText(&self, value: DOMString, can_gc: CanGc) {
-        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
+        self.upcast::<Node>()
+            .set_text_content_for_element(Some(value), can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-form>

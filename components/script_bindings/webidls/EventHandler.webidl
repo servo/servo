@@ -107,8 +107,10 @@ interface mixin GlobalEventHandlers {
 
 // https://drafts.csswg.org/css-animations/#interface-globaleventhandlers-idl
 partial interface mixin GlobalEventHandlers {
-           attribute EventHandler onanimationend;
+           attribute EventHandler onanimationstart;
            attribute EventHandler onanimationiteration;
+           attribute EventHandler onanimationend;
+           attribute EventHandler onanimationcancel;
 };
 
 // https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl

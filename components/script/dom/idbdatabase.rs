@@ -92,6 +92,13 @@ impl IDBDatabase {
         )
     }
 
+    pub(crate) fn object_store_exists(&self, name: &DOMString) -> bool {
+        self.object_store_names
+            .borrow()
+            .iter()
+            .any(|store_name| store_name == name)
+    }
+
     pub fn version(&self) -> u64 {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let operation = SyncOperation::Version(

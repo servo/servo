@@ -154,39 +154,16 @@ class MachCommands(CommandBase):
         status = self.run_cargo_build_like_command("rustc", opts, env=env, verbose=verbose, **kwargs)
 
         if status == 0:
-            built_binary = self.get_binary_path(build_type, sanitizer=sanitizer)
-
             if not no_package and self.target.needs_packaging():
-                rv = Registrar.dispatch(
+                return_value = Registrar.dispatch(
                     "package", context=self.context, build_type=build_type, flavor=flavor, sanitizer=sanitizer
                 )
-                if rv:
-                    return rv
+                if return_value:
+                    return return_value
 
-            if "windows" in target_triple:
-                if not copy_windows_dlls_to_build_directory(built_binary, self.target):
-                    status = 1
-
-            elif "darwin" in target_triple:
-                servo_bin_dir = os.path.dirname(built_binary)
-                assert os.path.exists(servo_bin_dir)
-
-                if self.enable_media:
-                    library_target_directory = path.join(path.dirname(built_binary), "lib/")
-                    if not package_gstreamer_dylibs(built_binary, library_target_directory, self.target):
-                        return 1
-
-                # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
-                # like Instruments.app.
-                try:
-                    import Cocoa  # pyrefly: ignore[import-error]
-
-                    icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
-                    icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
-                    if icon is not None:
-                        Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon, built_binary, 0)
-                except ImportError:
-                    pass
+            return_value = self.run_post_build_tasks(build_type, sanitizer)
+            if return_value:
+                return return_value
 
         # Print how long the build took
         elapsed = time() - build_start
@@ -195,6 +172,49 @@ class MachCommands(CommandBase):
         print(build_message)
         assert isinstance(status, int)
         return status
+
+    @Command("run-post-build-tasks", description="Run only the post-build tasks", category="build")
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
+    def run_post_build_tasks_cmd(
+        self,
+        build_type: BuildType,
+        sanitizer: SanitizerKind = SanitizerKind.NONE,
+        **_kwargs: Any,
+    ) -> int:
+        return self.run_post_build_tasks(build_type, sanitizer)
+
+    def run_post_build_tasks(self, build_type: BuildType, sanitizer: SanitizerKind = SanitizerKind.NONE) -> int:
+        target_triple = self.target.triple()
+
+        built_binary = self.get_binary_path(build_type, sanitizer=sanitizer)
+        binary_dir = os.path.dirname(built_binary)
+        assert os.path.exists(binary_dir)
+
+        if "windows" in target_triple:
+            if not copy_windows_dlls_to_build_directory(built_binary, self.target):
+                return 1
+
+        elif "darwin" in target_triple:
+            servo_bin_dir = os.path.dirname(built_binary)
+            assert os.path.exists(servo_bin_dir)
+
+            if self.enable_media:
+                library_target_directory = path.join(path.dirname(built_binary), "lib/")
+                if not package_gstreamer_dylibs(built_binary, library_target_directory, self.target):
+                    return 1
+
+            # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
+            # like Instruments.app.
+            try:
+                import Cocoa  # pyrefly: ignore[import-error]
+
+                icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
+                icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
+                if icon is not None:
+                    Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon, built_binary, 0)
+            except ImportError:
+                pass
+        return 0
 
     @Command("clean", description="Clean the target/ and Python virtual environment directories", category="build")
     @CommandArgument("--manifest-path", default=None, help="Path to the manifest to the package to clean")
