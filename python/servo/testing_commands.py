@@ -113,15 +113,19 @@ def format_with_rustfmt(check_only: bool = True) -> int:
     )
 
 
-def pretty_print_json_decode_error(e: json.decoder.JSONDecodeError) -> None:
-    print(f"json decode error: {e}")
+def pretty_print_json_decode_error(error: json.decoder.JSONDecodeError) -> None:
+    print(f"json decode error: {error}")
     # Print section around that character that raised the json decode error.
-    start, stop = max(0, e.pos - 25), e.pos + 25
-    snippet = e.doc[start:stop]
+    snippet_radius = 25
+    start, stop = max(0, error.pos - snippet_radius), error.pos + snippet_radius
+    snippet = error.doc[start:stop]
     print("```")
-    print("... " if start != 0 else "", snippet, " ..." if stop < len(e.doc) else "", sep="")
+    prefix = "... " if start != 0 else ""
+    suffix = " ..." if stop < len(error.doc) else ""
+    print(prefix, snippet, suffix, sep="")
     # If the snippet is multiline, this won't work as expected, but it's a best effort.
-    print("^ Offending character".rjust(26 if not start else 30))
+    right_justification = snippet_radius + 1 + len(suffix)
+    print("^ Offending character".rjust(right_justification))
     print("```")
 
 
