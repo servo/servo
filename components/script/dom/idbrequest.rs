@@ -253,8 +253,7 @@ impl IDBRequest {
 
     pub fn set_error(&self, cx: SafeJSContext, error: Option<Error>, can_gc: CanGc) {
         if let Some(error) = error {
-            if let Some(exception) =
-                create_dom_exception_from_error(cx, &self.global(), error, can_gc)
+            if let Some(exception) = create_dom_exception_from_error(&self.global(), error, can_gc)
             {
                 self.error.set(Some(&exception));
             }
