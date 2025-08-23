@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use dom_struct::dom_struct;
 use js::gc::MutableHandleValue;
-use js::jsval::{NullValue, UndefinedValue};
+use js::jsval::NullValue;
 use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
@@ -517,17 +517,13 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath
     fn KeyPath(&self, cx: SafeJSContext, mut ret_val: MutableHandleValue) {
-        if let Some(key_path) = self.key_path.clone() {
+        if let Some(key_path) = &self.key_path {
             match key_path {
                 KeyPath::String(path) => {
-                    rooted!(in(*cx) let mut rooted_path = UndefinedValue());
-                    path.safe_to_jsval(cx, rooted_path.handle_mut());
-                    ret_val.set(*rooted_path)
+                    path.safe_to_jsval(cx, ret_val);
                 },
                 KeyPath::StringSequence(paths) => {
-                    rooted!(in(*cx) let mut rooted_sequence = UndefinedValue());
-                    paths.safe_to_jsval(cx, rooted_sequence.handle_mut());
-                    ret_val.set(*rooted_sequence);
+                    paths.safe_to_jsval(cx, ret_val);
                 },
             }
         } else {
