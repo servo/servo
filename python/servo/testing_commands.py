@@ -713,6 +713,10 @@ class MachCommands(CommandBase):
                 sleep(2)
                 whole_file = read_log_file(hdc_path)
                 break
+        else:
+            print("Error failed to find console logs in log file")
+            print(f"log-file contents: `{whole_file}`")
+            exit(1)
         start_index: int = whole_file.index("[INFO script::dom::console]") + len("[INFO script::dom::console]") + 1
         json_string = whole_file[start_index:]
         try:
