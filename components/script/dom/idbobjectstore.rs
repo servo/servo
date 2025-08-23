@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use dom_struct::dom_struct;
 use js::gc::MutableHandleValue;
 use js::jsval::NullValue;
@@ -517,17 +518,10 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath
     fn KeyPath(&self, cx: SafeJSContext, mut ret_val: MutableHandleValue) {
-        if let Some(key_path) = &self.key_path {
-            match key_path {
-                KeyPath::String(path) => {
-                    path.safe_to_jsval(cx, ret_val);
-                },
-                KeyPath::StringSequence(paths) => {
-                    paths.safe_to_jsval(cx, ret_val);
-                },
-            }
-        } else {
-            ret_val.set(NullValue());
+        match &self.key_path {
+            Some(KeyPath::String(path)) =>  path.safe_to_jsval(cx, ret_val),
+            Some(KeyPath::StringSequence(paths)) => paths.safe_to_jsval(cx, ret_val),
+            None => ret_val.set(NullValue()),
         }
     }
 
