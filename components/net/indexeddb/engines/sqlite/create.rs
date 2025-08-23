@@ -83,7 +83,7 @@ pub(crate) fn create_tables(conn: &rusqlite::Connection) -> Result<(), rusqlite:
             PRIMARY KEY (index_id, value),
             FOREIGN KEY (index_id) REFERENCES object_store_index(id),
             FOREIGN KEY (object_store_id, object_data_key)
-            REFERENCES object_data(object_store_id, key),
+            REFERENCES object_data(object_store_id, key)
         ) WITHOUT ROWID;"#,
         [],
     )?;
