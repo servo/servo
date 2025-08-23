@@ -576,7 +576,6 @@ mod tests {
                 name: "test_db".to_string(),
                 origin: test_origin(),
             },
-            1,
             thread_pool.clone(),
         )
         .unwrap();
@@ -587,12 +586,11 @@ mod tests {
                 name: "test_db".to_string(),
                 origin: test_origin(),
             },
-            1,
             thread_pool.clone(),
         )
         .unwrap();
         let version = db.version().expect("Failed to get version");
-        assert_eq!(version, 1);
+        assert_eq!(version, 0);
         db.set_version(5).unwrap();
         let new_version = db.version().expect("Failed to get new version");
         assert_eq!(new_version, 5);
@@ -609,7 +607,6 @@ mod tests {
                 name: "test_db".to_string(),
                 origin: test_origin(),
             },
-            1,
             thread_pool,
         )
         .unwrap();
@@ -637,7 +634,6 @@ mod tests {
                 name: "test_db".to_string(),
                 origin: test_origin(),
             },
-            1,
             thread_pool,
         )
         .unwrap();
@@ -664,7 +660,6 @@ mod tests {
                 name: "test_db".to_string(),
                 origin: test_origin(),
             },
-            1,
             thread_pool,
         )
         .unwrap();
@@ -692,7 +687,6 @@ mod tests {
                 name: "test_db".to_string(),
                 origin: test_origin(),
             },
-            1,
             thread_pool,
         )
         .unwrap();
