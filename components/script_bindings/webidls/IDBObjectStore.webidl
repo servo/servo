@@ -13,7 +13,7 @@ interface IDBObjectStore {
   [SetterThrows] attribute DOMString name;
   readonly attribute any keyPath;
   readonly attribute DOMStringList indexNames;
-  [SameObject] readonly attribute IDBTransaction? transaction;
+  [SameObject] readonly attribute IDBTransaction transaction;
   readonly attribute boolean autoIncrement;
 
   [NewObject, Throws] IDBRequest put(any value, optional any key);
