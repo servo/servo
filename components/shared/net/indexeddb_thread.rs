@@ -266,6 +266,17 @@ pub enum AsyncReadOnlyOperation {
         key_range: IndexedDBKeyRange,
     },
 
+    GetAllKeys {
+        sender: IpcSender<BackendResult<Vec<IndexedDBKeyType>>>,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    },
+    GetAllItems {
+        sender: IpcSender<BackendResult<Vec<Vec<u8>>>>,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    },
+
     Count {
         sender: IpcSender<BackendResult<u64>>,
         key_range: IndexedDBKeyRange,
