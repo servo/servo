@@ -580,7 +580,7 @@ dependencies = [
  "rustls-pki-types",
  "tokio",
  "tokio-rustls",
- "tungstenite",
+ "tungstenite 0.26.2",
  "webpki-roots 0.26.11",
 ]
 
@@ -5516,7 +5516,7 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tower-service",
- "tungstenite",
+ "tungstenite 0.26.2",
  "url",
  "uuid",
  "webpki-roots 1.0.2",
@@ -9005,6 +9005,25 @@ dependencies = [
 
 [[package]]
 name = "tungstenite"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e3dac10fd62eaf6617d3a904ae222845979aec67c615d1c842b4002c7666fb9"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "data-encoding",
+ "http 0.2.12",
+ "httparse",
+ "log",
+ "rand 0.8.5",
+ "sha1",
+ "thiserror 1.0.69",
+ "url",
+ "utf-8",
+]
+
+[[package]]
+name = "tungstenite"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4793cb5e56680ecbb1d843515b23b6de9a75eb04b66643e256a396d43be33c13"
@@ -9702,6 +9721,7 @@ dependencies = [
  "servo_url",
  "stylo_traits",
  "time",
+ "tungstenite 0.20.1",
  "uuid",
  "webdriver",
 ]

@@ -609,6 +609,12 @@ impl App {
                 WebDriverCommandMsg::TakeScreenshot(..) => {
                     running_state.servo().execute_webdriver_command(msg);
                 },
+                WebDriverCommandMsg::StartVideoStream(..) => {
+                    running_state.servo().execute_webdriver_command(msg);
+                },
+                WebDriverCommandMsg::StopVideoStream(..) => {
+                    running_state.servo().execute_webdriver_command(msg);
+                },
             };
         }
     }

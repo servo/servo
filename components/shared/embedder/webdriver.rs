@@ -11,7 +11,7 @@ use cookie::Cookie;
 use euclid::default::Rect as UntypedRect;
 use euclid::{Rect, Size2D};
 use hyper_serde::Serde;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use pixels::RasterImage;
 use serde::{Deserialize, Serialize};
@@ -22,6 +22,25 @@ use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
 use crate::{FocusId, JSValue, MouseButton, MouseButtonAction, TraversalId};
+
+/// A video frame buffer with zero-copy shared memory for pixel data
+#[derive(Debug, Deserialize, Serialize)]
+pub struct VideoFrameBuffer {
+    pub width: u32,
+    pub height: u32,
+    pub timestamp: u64,
+    pub pixels: IpcSharedMemory, // Zero-copy shared memory
+}
+
+/// Information about an active video stream using IPC
+#[derive(Debug, Deserialize, Serialize)]
+pub struct VideoStreamInfo {
+    pub stream_id: String,
+    pub width: u32,
+    pub height: u32,
+    pub fps: u32,
+    pub frame_receiver: IpcReceiver<VideoFrameBuffer>, // Frames via IPC
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
@@ -143,6 +162,18 @@ pub enum WebDriverCommandMsg {
         WebViewId,
         Option<Rect<f32, CSSPixel>>,
         IpcSender<Option<RasterImage>>,
+    ),
+    /// Start a video stream of the viewport using IPC shared memory.
+    StartVideoStream(
+        WebViewId,
+        Option<Rect<f32, CSSPixel>>,
+        u32, // target fps
+        IpcSender<Result<VideoStreamInfo, String>>, // stream info or error
+    ),
+    /// Stop a video stream.
+    StopVideoStream(
+        String, // stream_id
+        IpcSender<Result<(), String>>,
     ),
     /// Create a new webview that loads about:blank. The embedder will use
     /// the provided channels to return the top level browsing context id

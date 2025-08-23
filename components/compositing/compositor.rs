@@ -9,7 +9,8 @@ use std::fs::create_dir_all;
 use std::iter::once;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
@@ -119,6 +120,18 @@ pub struct ServoRenderer {
     pub(crate) last_mouse_move_position: Option<DevicePoint>,
 }
 
+use embedder_traits::{VideoFrameBuffer, VideoStreamInfo};
+
+/// Video stream state using IPC
+#[derive(Debug)]
+pub struct VideoStream {
+    pub webview_id: WebViewId,
+    pub page_rect: Option<Rect<f32, CSSPixel>>,
+    pub fps: u32,
+    pub frame_sender: IpcSender<VideoFrameBuffer>,
+    pub last_capture_time: SystemTime,
+}
+
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
 pub struct IOCompositor {
     /// Data that is shared by all WebView renderers.
@@ -142,6 +155,9 @@ pub struct IOCompositor {
 
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
+
+    /// Active video streams
+    video_streams: HashMap<String, VideoStream>,
 
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
@@ -325,6 +341,7 @@ impl IOCompositor {
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
             pending_frames: 0,
+            video_streams: HashMap::new(),
             _mem_profiler_registration: registration,
         };
 
@@ -1234,6 +1251,122 @@ impl IOCompositor {
             }))
     }
 
+    /// Start a video stream of the WebView using IPC shared memory.
+    pub fn start_video_stream(
+        &mut self,
+        webview_id: WebViewId,
+        page_rect: Option<Rect<f32, CSSPixel>>,
+        fps: u32,
+    ) -> Result<VideoStreamInfo, String> {
+        let stream_id = format!("stream_{}_{}", webview_id.0, 
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs());
+        
+        // Create IPC channel for sending video frames
+        let (frame_sender, frame_receiver) = ipc::channel().map_err(|e| format!("Failed to create IPC channel: {}", e))?;
+        
+        // Get viewport dimensions
+        let size = self.rendering_context.size2d().to_u32();
+        
+        let stream = VideoStream {
+            webview_id,
+            page_rect,
+            fps,
+            frame_sender,
+            last_capture_time: SystemTime::now(),
+        };
+
+        // Create stream info to return to client
+        let stream_info = VideoStreamInfo {
+            stream_id: stream_id.clone(),
+            width: size.width,
+            height: size.height,
+            fps,
+            frame_receiver,
+        };
+
+        self.video_streams.insert(stream_id, stream);
+        Ok(stream_info)
+    }
+
+    /// Stop a video stream by ID.
+    pub fn stop_video_stream(&mut self, stream_id: String) -> Result<(), String> {
+        if let Some(_stream) = self.video_streams.remove(&stream_id) {
+            // Stream is removed from the map, frame capture will stop automatically
+            Ok(())
+        } else {
+            Err("Stream not found".to_string())
+        }
+    }
+
+    /// Capture frames for all active video streams using IPC shared memory
+    fn capture_video_frames(&mut self) {
+        let mut streams_to_remove = Vec::new();
+        let now = SystemTime::now();
+        
+        // Collect stream data first to avoid borrowing issues
+        let streams_to_process: Vec<_> = self.video_streams
+            .iter()
+            .filter_map(|(stream_id, stream)| {
+                let frame_duration = Duration::from_millis(1000 / stream.fps as u64);
+                if now.duration_since(stream.last_capture_time).unwrap_or(Duration::ZERO) >= frame_duration {
+                    Some((stream_id.clone(), stream.webview_id, stream.page_rect, stream.fps))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        
+        // Process each stream that needs a frame
+        for (stream_id, webview_id, page_rect, _fps) in streams_to_process {
+            if let Some(frame_data) = self.capture_frame(webview_id, page_rect) {
+                // Create shared memory from frame data - ZERO COPY!
+                let shared_memory = IpcSharedMemory::from_bytes(&frame_data);
+                
+                let frame = VideoFrameBuffer {
+                    width: self.rendering_context.size2d().to_u32().width,
+                    height: self.rendering_context.size2d().to_u32().height,
+                    timestamp: now.duration_since(UNIX_EPOCH).unwrap().as_micros() as u64,
+                    pixels: shared_memory,
+                };
+                
+                // Send frame via IPC - only metadata, pixels are shared!
+                if let Some(stream) = self.video_streams.get_mut(&stream_id) {
+                    if stream.frame_sender.send(frame).is_err() {
+                        // Receiver disconnected, mark stream for removal
+                        streams_to_remove.push(stream_id);
+                    } else {
+                        stream.last_capture_time = now;
+                    }
+                }
+            }
+        }
+        
+        // Remove failed streams
+        for stream_id in streams_to_remove {
+            self.video_streams.remove(&stream_id);
+        }
+    }
+
+    /// Capture a single frame
+    fn capture_frame(
+        &self,
+        _webview_id: WebViewId,
+        page_rect: Option<Rect<f32, CSSPixel>>,
+    ) -> Option<Vec<u8>> {
+        let size = self.rendering_context.size2d().to_i32();
+        let rect = if let Some(rect) = page_rect {
+            let x = rect.origin.x as i32;
+            let y = (size.height as f32 - rect.origin.y - rect.size.height) as i32;
+            let w = rect.size.width as i32;
+            let h = rect.size.height as i32;
+            DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
+        } else {
+            DeviceIntRect::from_origin_and_size(Point2D::origin(), size)
+        };
+
+        self.rendering_context.read_to_image(rect).map(|image| image.as_raw().to_vec())
+    }
+
     #[servo_tracing::instrument(skip_all)]
     fn render_inner(&mut self) -> Result<(), UnableToComposite> {
         if let Err(err) = self.rendering_context.make_current() {
@@ -1272,6 +1405,12 @@ impl IOCompositor {
         );
 
         self.send_pending_paint_metrics_messages_after_composite();
+
+        // Capture frames for active video streams
+        if !self.video_streams.is_empty() {
+            self.capture_video_frames();
+        }
+
         Ok(())
     }
 

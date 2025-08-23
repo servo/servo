@@ -31,5 +31,6 @@ servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 stylo_traits = { workspace = true }
 time = { workspace = true }
+tungstenite = { version = "0.20" }
 uuid = { workspace = true }
 webdriver = { workspace = true }
