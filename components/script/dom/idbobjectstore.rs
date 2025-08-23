@@ -417,24 +417,78 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getall
-    // fn GetAll(
-    //     &self,
-    //     _cx: SafeJSContext,
-    //     _query: HandleValue,
-    //     _count: Option<u32>,
-    // ) -> DomRoot<IDBRequest> {
-    //     unimplemented!();
-    // }
+    fn GetAll(
+        &self,
+        cx: SafeJSContext,
+        query: HandleValue,
+        count: Option<u32>,
+    ) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. Let store be this's object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        self.check_transaction_active()?;
+
+        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        let serialized_query = convert_value_to_key_range(cx, query, None);
+
+        // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
+        // The steps are run with this object store handle as source and the steps to retrieve a key from an object
+        // store as operation, using store and range.
+        let (sender, receiver) = indexed_db::create_channel(self.global());
+        serialized_query.and_then(|q| {
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                    sender,
+                    key_range: q,
+                    count,
+                }),
+                receiver,
+                None,
+                CanGc::note(),
+            )
+        })
+    }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getallkeys
-    // fn GetAllKeys(
-    //     &self,
-    //     _cx: SafeJSContext,
-    //     _query: HandleValue,
-    //     _count: Option<u32>,
-    // ) -> DomRoot<IDBRequest> {
-    //     unimplemented!();
-    // }
+    fn GetAllKeys(
+        &self,
+        cx: SafeJSContext,
+        query: HandleValue,
+        count: Option<u32>,
+    ) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. Let store be this's object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        self.check_transaction_active()?;
+
+        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        let serialized_query = convert_value_to_key_range(cx, query, None);
+
+        // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
+        // The steps are run with this object store handle as source and the steps to retrieve a key from an object
+        // store as operation, using store and range.
+        let (sender, receiver) = indexed_db::create_channel(self.global());
+        serialized_query.and_then(|q| {
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllKeys {
+                    sender,
+                    key_range: q,
+                    count,
+                }),
+                receiver,
+                None,
+                CanGc::note(),
+            )
+        })
+    }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count
     fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {

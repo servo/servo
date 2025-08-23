@@ -176,6 +176,55 @@ impl SqliteEngine {
         Self::get(connection, store, key_range).map(|opt| opt.map(|model| model.data))
     }
 
+    fn get_all(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<object_data_model::Model>, Error> {
+        let query = range_to_query(key_range);
+        let mut sql_query = sea_query::Query::select();
+        sql_query
+            .from(object_data_model::Column::Table)
+            .columns(vec![
+                object_data_model::Column::ObjectStoreId,
+                object_data_model::Column::Key,
+                object_data_model::Column::Data,
+            ])
+            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)));
+        if let Some(count) = count {
+            sql_query.limit(count as u64);
+        }
+        let (sql, values) = sql_query.build_rusqlite(SqliteQueryBuilder);
+        let mut stmt = connection.prepare(&sql)?;
+        let models = stmt
+            .query_and_then(&*values.as_params(), |row| {
+                object_data_model::Model::try_from(row)
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(models)
+    }
+
+    fn get_all_keys(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<Vec<u8>>, Error> {
+        Self::get_all(connection, store, key_range, count)
+            .map(|models| models.into_iter().map(|m| m.data).collect())
+    }
+
+    fn get_all_items(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<Vec<u8>>, Error> {
+        Self::get_all(connection, store, key_range, count)
+            .map(|models| models.into_iter().map(|m| m.data).collect())
+    }
+
     fn put_item(
         connection: &Connection,
         store: object_store_model::Model,
@@ -398,6 +447,37 @@ impl KvsEngine for SqliteEngine {
                         };
                         let _ = sender.send(
                             Self::get_item(&connection, object_store, key_range)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllKeys {
+                        sender,
+                        key_range,
+                        count,
+                    }) => {
+                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                            continue;
+                        };
+                        let _ = sender.send(
+                            Self::get_all_keys(&connection, object_store, key_range, count)
+                                .map(|keys| {
+                                    keys.into_iter()
+                                        .map(|k| bincode::deserialize(&k).unwrap())
+                                        .collect()
+                                })
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                        sender,
+                        key_range,
+                        count,
+                    }) => {
+                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                            continue;
+                        };
+                        let _ = sender.send(
+                            Self::get_all_items(&connection, object_store, key_range, count)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
