@@ -143,7 +143,7 @@ impl RequestListener {
             request.set_result(answer.handle());
 
             // Substep 3.2: Set the error of request to undefined
-            request.set_error(cx, None, CanGc::note());
+            request.set_error(None, CanGc::note());
 
             // Substep 3.3: Fire a success event at request.
             // TODO: follow spec here
@@ -185,7 +185,7 @@ impl RequestListener {
         request.set_result(undefined.handle());
 
         // Substep 2: Set the error of request to result.
-        request.set_error(cx, Some(error), CanGc::note());
+        request.set_error(Some(error), CanGc::note());
 
         // Substep 3: Fire an error event at request.
         // TODO: follow the spec here
@@ -251,7 +251,7 @@ impl IDBRequest {
         self.result.set(result.get());
     }
 
-    pub fn set_error(&self, cx: SafeJSContext, error: Option<Error>, can_gc: CanGc) {
+    pub fn set_error(&self, error: Option<Error>, can_gc: CanGc) {
         if let Some(error) = error {
             if let Some(exception) = create_dom_exception_from_error(&self.global(), error, can_gc)
             {
