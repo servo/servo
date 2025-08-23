@@ -283,7 +283,7 @@ impl IDBObjectStore {
 }
 
 impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put>
     fn Put(
         &self,
         cx: SafeJSContext,
@@ -293,7 +293,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.put(cx, value, key, true, CanGc::note())
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-add
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-add>
     fn Add(
         &self,
         cx: SafeJSContext,
@@ -303,7 +303,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.put(cx, value, key, false, CanGc::note())
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete>
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -331,7 +331,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear>
     fn Clear(&self) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -355,7 +355,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         )
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get>
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -385,7 +385,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey>
     fn GetKey(&self, cx: SafeJSContext, query: HandleValue) -> Result<DomRoot<IDBRequest>, Error> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -416,7 +416,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getall
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getall>
     fn GetAll(
         &self,
         cx: SafeJSContext,
@@ -453,7 +453,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getallkeys
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getallkeys>
     fn GetAllKeys(
         &self,
         cx: SafeJSContext,
@@ -490,7 +490,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count>
     fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -520,12 +520,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-name
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-name>
     fn Name(&self) -> DOMString {
         self.name.borrow().clone()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-setname
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-setname>
     fn SetName(&self, value: DOMString) -> ErrorResult {
         // Step 2. Let transaction be this’s transaction.
         let transaction = &self.transaction;
@@ -555,12 +555,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     //     unimplemented!();
     // }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction>
     fn Transaction(&self) -> DomRoot<IDBTransaction> {
         self.transaction()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-autoincrement
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-autoincrement>
     fn AutoIncrement(&self) -> bool {
         self.has_key_generator()
     }
