@@ -212,7 +212,7 @@ impl SqliteEngine {
         count: Option<u32>,
     ) -> Result<Vec<Vec<u8>>, Error> {
         Self::get_all(connection, store, key_range, count)
-            .map(|models| models.into_iter().map(|m| m.data).collect())
+            .map(|models| models.into_iter().map(|m| m.key).collect())
     }
 
     fn get_all_items(
