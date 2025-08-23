@@ -51,8 +51,8 @@ pub(crate) trait CspReporting {
     fn is_trusted_type_policy_creation_allowed(
         &self,
         global: &GlobalScope,
-        policy_name: String,
-        created_policy_names: Vec<String>,
+        policy_name: &str,
+        created_policy_names: &[&str],
     ) -> bool;
     fn does_sink_type_require_trusted_types(
         &self,
@@ -173,8 +173,8 @@ impl CspReporting for Option<CspList> {
     fn is_trusted_type_policy_creation_allowed(
         &self,
         global: &GlobalScope,
-        policy_name: String,
-        created_policy_names: Vec<String>,
+        policy_name: &str,
+        created_policy_names: &[&str],
     ) -> bool {
         let Some(csp_list) = self else {
             return true;
