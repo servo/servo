@@ -113,6 +113,18 @@ def format_with_rustfmt(check_only: bool = True) -> int:
     )
 
 
+def pretty_print_json_decode_error(e: json.decoder.JSONDecodeError) -> None:
+    print(f"json decode error: {e}")
+    # Print section around that character that raised the json decode error.
+    start, stop = max(0, e.pos - 25), e.pos + 25
+    snippet = e.doc[start:stop]
+    print("```")
+    print("... " if start != 0 else "", snippet, " ..." if stop < len(e.doc) else "", sep="")
+    # If the snippet is multiline, this won't work as expected, but it's a best effort.
+    print("^ Offending character".rjust(26 if not start else 30))
+    print("```")
+
+
 @CommandProvider
 class MachCommands(CommandBase):
     DEFAULT_RENDER_MODE = "cpu"
@@ -617,19 +629,25 @@ class MachCommands(CommandBase):
             json.dump(output, f, indent=4)
 
     def speedometer_runner(self, binary: str, bmf_output: str | None) -> None:
-        speedometer = json.loads(
-            subprocess.check_output(
-                [
-                    binary,
-                    "https://servospeedometer.netlify.app?headless=1",
-                    "--pref",
-                    "dom_allow_scripts_to_close_windows",
-                    "--window-size=1100x900",
-                    "--headless",
-                ],
-                timeout=120,
-            ).decode()
+        output = subprocess.check_output(
+            [
+                binary,
+                "https://servospeedometer.netlify.app?headless=1",
+                "--pref",
+                "dom_allow_scripts_to_close_windows",
+                "--window-size=1100x900",
+                "--headless",
+            ],
+            encoding="utf-8",
+            timeout=120,
         )
+        try:
+            speedometer = json.loads(output)
+        except json.decoder.JSONDecodeError as e:
+            pretty_print_json_decode_error(e)
+            print("Error: Failed to parse speedometer results")
+            print("This can happen if other log messages are printed while running servo...")
+            exit(1)
 
         print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
 
@@ -646,13 +664,13 @@ class MachCommands(CommandBase):
             hdc_path = path.join(ohos_sdk_native, "../", "toolchains", "hdc")
 
         def read_log_file(hdc_path: str) -> str:
-            subprocess.call([hdc_path, "file", "recv", log_path])
+            subprocess.call([hdc_path, "file", "recv", log_path, "servo.log"])
             file = ""
             try:
-                file = open("servo.log")
+                with open("servo.log") as file:
+                    return file.read()
             except OSError:
                 return ""
-            return file.read()
 
         subprocess.call([hdc_path, "shell", "aa", "force-stop", "org.servo.servo"])
 
@@ -681,9 +699,6 @@ class MachCommands(CommandBase):
 
         # A current (2025-06-23) run took 3m 49s = 229s. We keep a safety margin
         # but we will exit earlier if we see "{"
-        # Currently ohos has a bug where the event loop gets stuck. We produce a
-        # touch event every minute to prevent this
-        # See https://github.com/servo/servo/issues/37727
         whole_file: str = ""
         for i in range(10):
             sleep(30)
@@ -696,7 +711,15 @@ class MachCommands(CommandBase):
                 break
         start_index: int = whole_file.index("[INFO script::dom::console]") + len("[INFO script::dom::console]") + 1
         json_string = whole_file[start_index:]
-        speedometer = json.loads(json_string)
+        try:
+            speedometer = json.loads(json_string)
+        except json.decoder.JSONDecodeError as e:
+            print(f"Error: Failed to convert log output to JSON: {e}")
+            pretty_print_json_decode_error(e)
+            print("Error: Failed to parse speedometer results")
+            print("This can happen if other log messages are printed while running servo...")
+            exit(1)
+
         print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
         if bmf_output:
             self.speedometer_to_bmf(speedometer, bmf_output, profile)
