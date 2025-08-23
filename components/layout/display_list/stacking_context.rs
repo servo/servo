@@ -1480,14 +1480,18 @@ impl BoxFragment {
             sensitivity,
         );
 
-        stacking_context_tree
-            .hit_test_items
-            .push(ScrollFrameHitTestItem {
-                scroll_node_id: *parent_scroll_node_id,
-                clip_id,
-                rect: scroll_frame_rect,
-                external_scroll_id,
-            });
+        use style::computed_values::pointer_events::T as PointerEvents;
+
+        if self.style.get_inherited_ui().pointer_events != PointerEvents::None {
+            stacking_context_tree
+                .hit_test_items
+                .push(ScrollFrameHitTestItem {
+                    scroll_node_id: *parent_scroll_node_id,
+                    clip_id,
+                    rect: scroll_frame_rect,
+                    external_scroll_id,
+                });
+        }
 
         Some(OverflowFrameData {
             clip_id,
