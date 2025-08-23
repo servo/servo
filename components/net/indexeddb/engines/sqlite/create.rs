@@ -10,7 +10,7 @@ pub(crate) fn create_tables(conn: &rusqlite::Connection) -> Result<(), rusqlite:
         primary key,
     origin  varchar          not null,
     version bigint default 0 not null
-);"#,
+) WITHOUT ROWID;"#,
         [],
     )?;
 
@@ -36,7 +36,7 @@ pub(crate) fn create_tables(conn: &rusqlite::Connection) -> Result<(), rusqlite:
     data            blob    not null,
     constraint "pk-object_data"
         primary key (object_store_id, key)
-);"#,
+) WITHOUT ROWID;"#,
         [],
     )?;
 
@@ -53,6 +53,38 @@ pub(crate) fn create_tables(conn: &rusqlite::Connection) -> Result<(), rusqlite:
                 unique_index      boolean        not null,
                 multi_entry_index boolean        not null
             );"#,
+        [],
+    )?;
+
+    conn.execute(
+        r#"CREATE TABLE index_data
+        (
+            index_id INTEGER NOT NULL,
+            value BLOB NOT NULL,
+            object_data_key BLOB NOT NULL,
+            object_store_id INTEGER NOT NULL,
+            value_locale BLOB,
+            PRIMARY KEY (index_id, value, object_data_key)
+            FOREIGN KEY (index_id) REFERENCES object_store_index(id),
+            FOREIGN KEY (object_store_id, object_data_key)
+            REFERENCES object_data(object_store_id, key)
+        ) WITHOUT ROWID;"#,
+        [],
+    )?;
+
+    conn.execute(
+        r#"CREATE TABLE unique_index_data
+        (
+            index_id INTEGER NOT NULL,
+            value BLOB NOT NULL,
+            object_store_id INTEGER NOT NULL,
+            object_data_key BLOB NOT NULL,
+            value_locale BLOB,
+            PRIMARY KEY (index_id, value),
+            FOREIGN KEY (index_id) REFERENCES object_store_index(id),
+            FOREIGN KEY (object_store_id, object_data_key)
+            REFERENCES object_data(object_store_id, key),
+        ) WITHOUT ROWID;"#,
         [],
     )?;
     Ok(())
