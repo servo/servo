@@ -347,7 +347,7 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
-        let tag_u32 = u32::from_be_bytes(tag.into_bytes());
+        let tag_u32 = u32::from_be_bytes(tag.to_be_bytes());
         let result: Option<CFData> = self.ctfont.get_font_table(tag_u32);
         result.map(FontTable::wrap)
     }
