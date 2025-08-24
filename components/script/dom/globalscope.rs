@@ -27,6 +27,7 @@ use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError};
+use fonts::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -383,6 +384,13 @@ pub(crate) struct GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#resolved-module-set>
     resolved_module_set: DomRefCell<HashSet<ResolvedModule>>,
+
+    /// The [`FontContext`] for this [`GlobalScope`] if it has one. This is used for
+    /// canvas and layout, so if this [`GlobalScope`] doesn't need to use either, this
+    /// might be `None`.
+    #[conditional_malloc_size_of]
+    #[no_trace]
+    font_context: Option<Arc<FontContext>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -741,6 +749,7 @@ impl GlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
+        font_context: Option<Arc<FontContext>>,
     ) -> Self {
         Self {
             task_manager: Default::default(),
@@ -789,6 +798,7 @@ impl GlobalScope {
             notification_permission_request_callback_map: Default::default(),
             import_map: Default::default(),
             resolved_module_set: Default::default(),
+            font_context,
         }
     }
 
@@ -813,6 +823,10 @@ impl GlobalScope {
 
     fn timers(&self) -> &OneshotTimers {
         self.timers.get_or_init(|| OneshotTimers::new(self))
+    }
+
+    pub(crate) fn font_context(&self) -> Option<&Arc<FontContext>> {
+        self.font_context.as_ref()
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>

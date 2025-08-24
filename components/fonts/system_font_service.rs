@@ -11,17 +11,15 @@ use app_units::Au;
 use compositing_traits::CrossProcessCompositorApi;
 use fonts_traits::{
     FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, LowercaseFontFamilyName,
+    SystemFontServiceMessage, SystemFontServiceProxySender,
 };
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use log::debug;
+use ipc_channel::ipc::{self, IpcReceiver};
 use malloc_size_of::MallocSizeOf as MallocSizeOfTrait;
 use malloc_size_of_derive::MallocSizeOf;
-use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{
     ProcessReports, ProfilerChan, Report, ReportKind, ReportsChan, perform_memory_report,
 };
 use profile_traits::path;
-use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
@@ -30,28 +28,6 @@ use crate::font_store::FontStore;
 use crate::platform::font_list::{
     default_system_generic_font_family, for_each_available_family, for_each_variation,
 };
-
-/// Commands that the `FontContext` sends to the `SystemFontService`.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum SystemFontServiceMessage {
-    GetFontTemplates(
-        Option<FontDescriptor>,
-        SingleFontFamily,
-        IpcSender<Vec<FontTemplate>>,
-    ),
-    GetFontInstance(
-        FontIdentifier,
-        Au,
-        FontInstanceFlags,
-        Vec<FontVariation>,
-        IpcSender<FontInstanceKey>,
-    ),
-    GetFontKey(IpcSender<FontKey>),
-    GetFontInstanceKey(IpcSender<FontInstanceKey>),
-    CollectMemoryReport(ReportsChan),
-    Exit(IpcSender<()>),
-    Ping,
-}
 
 #[derive(Default, MallocSizeOf)]
 struct ResolvedGenericFontFamilies {
@@ -87,18 +63,6 @@ pub struct SystemFontService {
     /// instance key for the instance. Once the free keys are exhausted, the
     /// [`SystemFontService`] will fetch a new batch.
     free_font_instance_keys: Vec<FontInstanceKey>,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub struct SystemFontServiceProxySender(pub IpcSender<SystemFontServiceMessage>);
-
-impl SystemFontServiceProxySender {
-    pub fn to_proxy(&self) -> SystemFontServiceProxy {
-        SystemFontServiceProxy {
-            sender: Mutex::new(self.0.clone()),
-            templates: Default::default(),
-        }
-    }
 }
 
 impl SystemFontService {
@@ -340,142 +304,5 @@ impl SystemFontService {
                 default_system_generic_font_family(*generic)
             })
             .clone()
-    }
-}
-
-#[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
-struct FontTemplateCacheKey {
-    font_descriptor: Option<FontDescriptor>,
-    family_descriptor: SingleFontFamily,
-}
-
-/// The public interface to the [`SystemFontService`], used by per-Document
-/// `FontContext` instances.
-#[derive(Debug, MallocSizeOf)]
-pub struct SystemFontServiceProxy {
-    sender: Mutex<IpcSender<SystemFontServiceMessage>>,
-    templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
-}
-
-impl SystemFontServiceProxy {
-    pub fn exit(&self) {
-        let (response_chan, response_port) = ipc::channel().unwrap();
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::Exit(response_chan))
-            .expect("Couldn't send SystemFontService exit message");
-        response_port
-            .recv()
-            .expect("Couldn't receive SystemFontService reply");
-    }
-
-    pub fn to_sender(&self) -> SystemFontServiceProxySender {
-        SystemFontServiceProxySender(self.sender.lock().clone())
-    }
-
-    pub(crate) fn get_system_font_instance(
-        &self,
-        identifier: FontIdentifier,
-        size: Au,
-        flags: FontInstanceFlags,
-        variations: Vec<FontVariation>,
-    ) -> FontInstanceKey {
-        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::GetFontInstance(
-                identifier,
-                size,
-                flags,
-                variations,
-                response_chan,
-            ))
-            .expect("failed to send message to system font service");
-
-        let instance_key = response_port.recv();
-        if instance_key.is_err() {
-            let font_thread_has_closed = self
-                .sender
-                .lock()
-                .send(SystemFontServiceMessage::Ping)
-                .is_err();
-            assert!(
-                font_thread_has_closed,
-                "Failed to receive a response from live font cache"
-            );
-            panic!("SystemFontService has already exited.");
-        }
-        instance_key.unwrap()
-    }
-
-    pub(crate) fn find_matching_font_templates(
-        &self,
-        descriptor_to_match: Option<&FontDescriptor>,
-        family_descriptor: &SingleFontFamily,
-    ) -> Vec<FontTemplateRef> {
-        let cache_key = FontTemplateCacheKey {
-            font_descriptor: descriptor_to_match.cloned(),
-            family_descriptor: family_descriptor.clone(),
-        };
-        if let Some(templates) = self.templates.read().get(&cache_key).cloned() {
-            return templates;
-        }
-
-        debug!(
-            "SystemFontServiceProxy: cache miss for template_descriptor={:?} family_descriptor={:?}",
-            descriptor_to_match, family_descriptor
-        );
-
-        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::GetFontTemplates(
-                descriptor_to_match.cloned(),
-                family_descriptor.clone(),
-                response_chan,
-            ))
-            .expect("failed to send message to system font service");
-
-        let Ok(templates) = response_port.recv() else {
-            let font_thread_has_closed = self
-                .sender
-                .lock()
-                .send(SystemFontServiceMessage::Ping)
-                .is_err();
-            assert!(
-                font_thread_has_closed,
-                "Failed to receive a response from live font cache"
-            );
-            panic!("SystemFontService has already exited.");
-        };
-
-        let templates: Vec<_> = templates.into_iter().map(FontTemplateRef::new).collect();
-        self.templates.write().insert(cache_key, templates.clone());
-
-        templates
-    }
-
-    pub(crate) fn generate_font_key(&self) -> FontKey {
-        let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::GetFontKey(result_sender))
-            .expect("failed to send message to system font service");
-        result_receiver
-            .recv()
-            .expect("Failed to communicate with system font service.")
-    }
-
-    pub(crate) fn generate_font_instance_key(&self) -> FontInstanceKey {
-        let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::GetFontInstanceKey(result_sender))
-            .expect("failed to send message to system font service");
-        result_receiver
-            .recv()
-            .expect("Failed to communicate with system font service.")
     }
 }

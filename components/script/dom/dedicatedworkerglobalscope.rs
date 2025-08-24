@@ -11,6 +11,7 @@ use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
+use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
@@ -283,6 +284,7 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        font_context: Option<Arc<FontContext>>,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -296,6 +298,7 @@ impl DedicatedWorkerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 insecure_requests_policy,
+                font_context,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -324,6 +327,7 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        font_context: Option<Arc<FontContext>>,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
             init,
@@ -342,6 +346,7 @@ impl DedicatedWorkerGlobalScope {
             gpu_id_hub,
             control_receiver,
             insecure_requests_policy,
+            font_context,
         ));
         DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
             GlobalScope::get_cx(),
@@ -370,6 +375,7 @@ impl DedicatedWorkerGlobalScope {
         context_sender: Sender<ThreadSafeJSContext>,
         insecure_requests_policy: InsecureRequestsPolicy,
         policy_container: PolicyContainer,
+        font_context: Option<Arc<FontContext>>,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
         let webview_id = WebViewId::installed();
@@ -485,6 +491,7 @@ impl DedicatedWorkerGlobalScope {
                     gpu_id_hub,
                     control_receiver,
                     insecure_requests_policy,
+                    font_context,
                 );
                 debugger_global.fire_add_debuggee(
                     CanGc::note(),

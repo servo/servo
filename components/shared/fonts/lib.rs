@@ -7,6 +7,7 @@
 mod font_descriptor;
 mod font_identifier;
 mod font_template;
+mod system_font_service_proxy;
 
 use std::sync::Arc;
 
@@ -17,6 +18,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
 use range::{RangeIndex, int_range_index};
 use serde::{Deserialize, Serialize};
+pub use system_font_service_proxy::*;
 
 int_range_index! {
     #[derive(Deserialize, MallocSizeOf, Serialize)]

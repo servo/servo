@@ -109,6 +109,7 @@ impl WorkletGlobalScope {
                 init.gpu_id_hub.clone(),
                 init.inherited_secure_context,
                 false,
+                None, // font_context
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
