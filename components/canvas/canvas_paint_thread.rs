@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(clippy::too_many_arguments)]
-#![allow(unreachable_patterns)]
-
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -349,7 +346,6 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.image_key(),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.image_key(),
-            _ => unreachable!(),
         }
     }
 
@@ -361,10 +357,10 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.pop_clips(clips),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.pop_clips(clips),
-            _ => unreachable!(),
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn fill_text(
         &mut self,
         text: String,
@@ -418,7 +414,6 @@ impl Canvas {
                 composition_options,
                 transform,
             ),
-            _ => unreachable!(),
         }
     }
 
@@ -443,7 +438,6 @@ impl Canvas {
             Canvas::VelloCPU(canvas_data) => {
                 canvas_data.fill_rect(rect, style, shadow_options, composition_options, transform)
             },
-            _ => unreachable!(),
         }
     }
 
@@ -484,7 +478,6 @@ impl Canvas {
                 composition_options,
                 transform,
             ),
-            _ => unreachable!(),
         }
     }
 
@@ -525,7 +518,6 @@ impl Canvas {
                 composition_options,
                 transform,
             ),
-            _ => unreachable!(),
         }
     }
 
@@ -566,7 +558,6 @@ impl Canvas {
                 composition_options,
                 transform,
             ),
-            _ => unreachable!(),
         }
     }
 
@@ -578,10 +569,10 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.clear_rect(rect, transform),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.clear_rect(rect, transform),
-            _ => unreachable!(),
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_image(
         &mut self,
         snapshot: Snapshot,
@@ -623,7 +614,6 @@ impl Canvas {
                 composition_options,
                 transform,
             ),
-            _ => unreachable!(),
         }
     }
 
@@ -635,7 +625,6 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.read_pixels(read_rect),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.read_pixels(read_rect),
-            _ => unreachable!(),
         }
     }
 
@@ -647,7 +636,6 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.measure_text(text, text_options),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.measure_text(text, text_options),
-            _ => unreachable!(),
         }
     }
 
@@ -659,7 +647,6 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.clip_path(path, fill_rule, transform),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.clip_path(path, fill_rule, transform),
-            _ => unreachable!(),
         }
     }
 
@@ -671,7 +658,6 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.put_image_data(snapshot, rect),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.put_image_data(snapshot, rect),
-            _ => unreachable!(),
         }
     }
 
@@ -683,7 +669,6 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.update_image_rendering(),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.update_image_rendering(),
-            _ => unreachable!(),
         }
     }
 
@@ -695,7 +680,6 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.recreate(size),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.recreate(size),
-            _ => unreachable!(),
         }
     }
 }
