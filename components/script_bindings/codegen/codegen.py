@@ -3312,7 +3312,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
                 Argument(f"Box<{descriptor.concreteType}>", 'object')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
-                                  pub=True, unsafe=True,
+                                  pub=True,
                                   extra_decorators=['#[cfg_attr(crown, allow(crown::unrooted_must_root))]'],
                                   templateArgs=['D: DomTypes'])
         self.properties = properties
@@ -3328,35 +3328,37 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         membersStr = "\n".join(members)
 
         return CGGeneric(f"""
-let raw = Root::new(MaybeUnreflectedDom::from_box(object));
-let origin = (*raw.as_ptr()).upcast::<D::GlobalScope>().origin();
+unsafe {{
+    let raw = Root::new(MaybeUnreflectedDom::from_box(object));
+    let origin = (*raw.as_ptr()).upcast::<D::GlobalScope>().origin();
 
-rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
-create_global_object::<D>(
-    cx,
-    &Class.get().base,
-    raw.as_ptr() as *const libc::c_void,
-    {TRACE_HOOK_NAME}::<D>,
-    obj.handle_mut(),
-    origin,
-    {"true" if self.descriptor.useSystemCompartment else "false"});
-assert!(!obj.is_null());
+    rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
+    create_global_object::<D>(
+        cx,
+        &Class.get().base,
+        raw.as_ptr() as *const libc::c_void,
+        {TRACE_HOOK_NAME}::<D>,
+        obj.handle_mut(),
+        origin,
+        {"true" if self.descriptor.useSystemCompartment else "false"});
+    assert!(!obj.is_null());
 
-let root = raw.reflect_with(obj.get());
+    let root = raw.reflect_with(obj.get());
 
-let _ac = JSAutoRealm::new(*cx, obj.get());
-rooted!(in(*cx) let mut canonical_proto = ptr::null_mut::<JSObject>());
-GetProtoObject::<D>(cx, obj.handle(), canonical_proto.handle_mut());
-assert!(JS_SetPrototype(*cx, obj.handle(), canonical_proto.handle()));
-let mut immutable = false;
-assert!(JS_SetImmutablePrototype(*cx, obj.handle(), &mut immutable));
-assert!(immutable);
+    let _ac = JSAutoRealm::new(*cx, obj.get());
+    rooted!(in(*cx) let mut canonical_proto = ptr::null_mut::<JSObject>());
+    GetProtoObject::<D>(cx, obj.handle(), canonical_proto.handle_mut());
+    assert!(JS_SetPrototype(*cx, obj.handle(), canonical_proto.handle()));
+    let mut immutable = false;
+    assert!(JS_SetImmutablePrototype(*cx, obj.handle(), &mut immutable));
+    assert!(immutable);
 
-{membersStr}
+    {membersStr}
 
-{CopyLegacyUnforgeablePropertiesToInstance(self.descriptor)}
+    {CopyLegacyUnforgeablePropertiesToInstance(self.descriptor)}
 
-DomRoot::from_ref(&*root)\
+    DomRoot::from_ref(&*root)
+}}
 """)
 
 
