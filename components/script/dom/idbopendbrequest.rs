@@ -41,6 +41,7 @@ impl OpenRequestListener {
         name: String,
         request_version: Option<u64>,
         db_version: u64,
+        object_stores: Vec<String>,
         can_gc: CanGc,
     ) -> (Fallible<DomRoot<IDBDatabase>>, bool) {
         // Step 5-6
@@ -67,6 +68,7 @@ impl OpenRequestListener {
             &global,
             DOMString::from_string(name.clone()),
             request_version,
+            object_stores.into_iter().map(DOMString::from).collect(),
             can_gc,
         );
 
@@ -255,8 +257,9 @@ impl IDBOpenDBRequest {
 
                 task_source.queue(
                     task!(set_request_result_to_database: move || {
+                        let (db_version, object_stores) = message.unwrap();
                         let (result, did_upgrade) =
-                            response_listener.handle_open_db(name, version, message.unwrap(), CanGc::note());
+                            response_listener.handle_open_db(name, version, db_version, object_stores, CanGc::note());
                         // If an upgrade event was created, it will be responsible for
                         // dispatching the success event
                         if did_upgrade {
