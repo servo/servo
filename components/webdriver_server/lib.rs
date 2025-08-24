@@ -1067,7 +1067,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#get-window-handles>
     fn handle_window_handles(&mut self) -> WebDriverResult<WebDriverResponse> {
         let mut handles = self.get_window_handles();
-        handles.sort();
+        handles.sort_unstable();
 
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(handles)?,
