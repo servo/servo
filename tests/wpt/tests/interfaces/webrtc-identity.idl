@@ -19,7 +19,7 @@ dictionary RTCIdentityProvider {
 };
 
 callback GenerateAssertionCallback = Promise<RTCIdentityAssertionResult>
-(DOMString contents, DOMString origin, RTCIdentityProviderOptions options);
+(DOMString contents, DOMString origin, optional RTCIdentityProviderOptions options = {});
 
 callback ValidateAssertionCallback = Promise<RTCIdentityValidationResult>
 (DOMString assertion, DOMString origin);

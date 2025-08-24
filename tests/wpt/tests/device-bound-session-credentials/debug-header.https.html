@@ -20,7 +20,7 @@
     await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
 
     // Configure server to fail to refresh
-    configureServer({ refreshEndpointUnavailable: true });
+    await configureServer({ refreshEndpointUnavailable: true });
 
     // Expire the cookie. The server will attempt a refresh, but fail.
     expireCookie(expectedCookieAndAttributes);
@@ -47,7 +47,7 @@
     await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
 
     // Configure server to fail to refresh
-    configureServer({ refreshEndpointUnavailable: true });
+    await configureServer({ refreshEndpointUnavailable: true });
 
     // Expire the cookie. The server will attempt a refresh, but fail.
     expireCookie(expectedCookieAndAttributes);
@@ -85,7 +85,7 @@
     addCookieAndSessionCleanup(t);
 
     // Configure server to configure cookies for next two created sessions.
-    configureServer({
+    await configureServer({
       cookieDetailsForNextRegisteredSessions: [[{ nameAndValue: expectedCookieAndValue1 }], [{ nameAndValue: expectedCookieAndValue2 }]]
     });
 
@@ -96,7 +96,7 @@
     await waitForCookie(expectedCookieAndValue2, /*expectCookie=*/true);
 
     // Configure server to fail to refresh
-    configureServer({ refreshEndpointUnavailable: true });
+    await configureServer({ refreshEndpointUnavailable: true });
 
     // Expire the cookie. The server will attempt a refresh, but fail.
     expireCookie(expectedCookieAndAttributes1);

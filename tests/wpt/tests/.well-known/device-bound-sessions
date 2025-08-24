@@ -1,0 +1,8 @@
+import json
+
+def main(request, response):
+    response_body = {
+        "registering_origins": ['https://www.' + request.headers.get('host').decode("utf-8")],
+    }
+    return (200, [('Content-Type', 'application/json'), ('Set-Cookie', 'well_known_fetched=true; Path=/device-bound-session-credentials')],
+            json.dumps(response_body))

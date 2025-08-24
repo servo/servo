@@ -60,9 +60,22 @@ function testFourColorsDecodeBuffer(buffer, mimeType, options = {}) {
     if (options.tolerance === undefined)
       options.tolerance = 0;
 
+    if (options.colorSpace !== undefined) {
+      assert_equals(
+          result.image.colorSpace.primaries, options.colorSpace.primaries);
+      assert_equals(
+          result.image.colorSpace.transfer, options.colorSpace.transfer);
+      assert_equals(result.image.colorSpace.matrix, options.colorSpace.matrix);
+      assert_equals(
+          result.image.colorSpace.fullRange, options.colorSpace.fullRange);
+    }
+
     let canvas = new OffscreenCanvas(
         result.image.displayWidth, result.image.displayHeight);
     let ctx = canvas.getContext('2d');
+    if (ctx.globalHDRHeadroom !== undefined) {
+      ctx.globalHDRHeadroom = Infinity;
+    }
     ctx.drawImage(result.image, 0, 0);
 
     let top_left = ctx.getImageData(0, 0, 1, 1);

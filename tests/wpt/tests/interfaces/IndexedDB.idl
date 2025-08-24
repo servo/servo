@@ -108,10 +108,11 @@ interface IDBObjectStore {
   [NewObject] IDBRequest clear();
   [NewObject] IDBRequest get(any query);
   [NewObject] IDBRequest getKey(any query);
-  [NewObject] IDBRequest getAll(optional any query,
+  [NewObject] IDBRequest getAll(optional any queryOrOptions,
                                 optional [EnforceRange] unsigned long count);
-  [NewObject] IDBRequest getAllKeys(optional any query,
+  [NewObject] IDBRequest getAllKeys(optional any queryOrOptions,
                                     optional [EnforceRange] unsigned long count);
+  [NewObject] IDBRequest getAllRecords(optional IDBGetAllOptions options = {});
   [NewObject] IDBRequest count(optional any query);
 
   [NewObject] IDBRequest openCursor(optional any query,
@@ -132,6 +133,12 @@ dictionary IDBIndexParameters {
   boolean multiEntry = false;
 };
 
+dictionary IDBGetAllOptions {
+  any query = null;
+  [EnforceRange] unsigned long count;
+  IDBCursorDirection direction = "next";
+};
+
 [Exposed=(Window,Worker)]
 interface IDBIndex {
   attribute DOMString name;
@@ -142,10 +149,11 @@ interface IDBIndex {
 
   [NewObject] IDBRequest get(any query);
   [NewObject] IDBRequest getKey(any query);
-  [NewObject] IDBRequest getAll(optional any query,
+  [NewObject] IDBRequest getAll(optional any queryOrOptions,
                                 optional [EnforceRange] unsigned long count);
-  [NewObject] IDBRequest getAllKeys(optional any query,
+  [NewObject] IDBRequest getAllKeys(optional any queryOrOptions,
                                     optional [EnforceRange] unsigned long count);
+  [NewObject] IDBRequest getAllRecords(optional IDBGetAllOptions options = {});
   [NewObject] IDBRequest count(optional any query);
 
   [NewObject] IDBRequest openCursor(optional any query,
@@ -171,6 +179,13 @@ interface IDBKeyRange {
                                        optional boolean upperOpen = false);
 
   boolean includes(any key);
+};
+
+[Exposed=(Window,Worker)]
+interface IDBRecord {
+  readonly attribute any key;
+  readonly attribute any primaryKey;
+  readonly attribute any value;
 };
 
 [Exposed=(Window,Worker)]

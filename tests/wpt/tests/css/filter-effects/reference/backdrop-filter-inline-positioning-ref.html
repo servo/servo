@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter positioning for inline elements - Reference</title>
+
+<style>
+body {
+  background: #ffa500; /* orange in hex for cross-browser consistency */
+}
+div {
+  margin-bottom: 120px;
+}
+.inline-backdrop-filter {
+  padding: 50px;
+  border: 1px solid blue;
+  display: inline;
+  background: #005aff; /* invert(100%) applied to orange #ffa500*/
+}
+</style>
+<body>
+  <div>
+    <p>Expected: Orange background with inline elements showing inverted blue areas where backdrop-filter is applied.</p>
+  </div>
+  <div>
+    <span class="inline-backdrop-filter">1</span>
+  </div>
+  <div>
+    <span class="inline-backdrop-filter">2</span>
+  </div>
+  <div>
+    AB<span class="inline-backdrop-filter">3</span>
+  </div>
+  <div class="inline-backdrop-filter">4</div>
+</body>

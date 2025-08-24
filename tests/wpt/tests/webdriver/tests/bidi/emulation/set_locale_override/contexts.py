@@ -1,4 +1,5 @@
 import pytest
+from webdriver.bidi.modules.script import ContextTarget
 
 pytestmark = pytest.mark.asyncio
 
@@ -90,3 +91,48 @@ async def test_iframe(
 
     # Assert locale is emulated in the iframe context.
     assert await get_current_locale(iframe) == another_locale
+
+
+async def test_locale_override_applies_to_new_sandbox(
+    bidi_session, new_tab, some_locale
+):
+    await bidi_session.emulation.set_locale_override(
+        contexts=[new_tab["context"]], locale=some_locale
+    )
+
+    result = await bidi_session.script.evaluate(
+        expression="new Intl.DateTimeFormat().resolvedOptions().locale",
+        target=ContextTarget(new_tab["context"], sandbox="test"),
+        await_promise=False,
+    )
+
+    # Make sure the override got applied to the newly created sandbox.
+    assert result["value"] == some_locale
+
+
+async def test_locale_override_applies_to_existing_sandbox(
+    bidi_session, new_tab, default_locale, another_locale
+):
+    sandbox_name = "test"
+
+    # Create a sandbox.
+    result = await bidi_session.script.evaluate(
+        expression="new Intl.DateTimeFormat().resolvedOptions().locale",
+        target=ContextTarget(new_tab["context"], sandbox=sandbox_name),
+        await_promise=False,
+    )
+
+    assert result["value"] == default_locale
+
+    await bidi_session.emulation.set_locale_override(
+        contexts=[new_tab["context"]], locale=another_locale
+    )
+
+    result = await bidi_session.script.evaluate(
+        expression="new Intl.DateTimeFormat().resolvedOptions().locale",
+        target=ContextTarget(new_tab["context"], sandbox=sandbox_name),
+        await_promise=False,
+    )
+
+    # Make sure the override got applied to the existing sandbox.
+    assert result["value"] == another_locale

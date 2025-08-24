@@ -1,4 +1,9 @@
 features:
+- name: attr-contents
+  files:
+  - attr-case-sensitivity-001.html
+  - attr-case-sensitivity-002.html
+  - attr-case-sensitivity-003.html
 - name: quotes
   files:
   - quotes-*

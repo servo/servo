@@ -5,7 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/invoker-utils.js"></script>
-
+<body>
 <script>
   test(function (t) {
     const host = document.createElement("div");
@@ -35,3 +35,4 @@
     assert_equals(eventSource, host, "source is host");
   }, "cross shadow CommandEvent retargets source to host element");
 </script>
+</body>

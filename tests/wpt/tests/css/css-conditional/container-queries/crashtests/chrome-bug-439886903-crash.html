@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Chrome crash issue 439886903</title>
+<link rel="help" href="https://crbug.com/439886903">
+<html class="test-wait">
+<div id="container" style="container-type:inline-size">
+  <div id="target"></div>
+  <object id="svg" data='data:image/svg+xml,<?xml version="1.0"?><svg></svg>'></object>
+</div>
+<script type="module">
+  await new Promise(r => svg.addEventListener("load", r, { once: true }));
+  document.body.offsetTop;
+  container.style.width = "100px";
+  target.style.backgroundColor = "red";
+  document.body.offsetTop;
+  document.documentElement.classList.remove("test-wait");
+</script>

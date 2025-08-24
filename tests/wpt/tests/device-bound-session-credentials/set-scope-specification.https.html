@@ -14,7 +14,7 @@
     addCookieAndSessionCleanup(t);
 
     // Configure server to set scope specification.
-    configureServer({ scopeSpecificationItems: [{
+    await configureServer({ scopeSpecificationItems: [{
       "type": "include",
       "domain": location.hostname,
       "path": "/device-bound-session-credentials/excludeInScopeSpecification/excluded_verify_authenticated.py"

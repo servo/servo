@@ -14,7 +14,7 @@
     addCookieAndSessionCleanup(t);
 
     // Configure server to use the absolute URL for refresh instead of a relative URL.
-    configureServer({ refreshUrl });
+    await configureServer({ refreshUrl });
 
     // Configure registration to use absolute URL instead of relative.
     // Prompt starting a session, and wait until registration completes.

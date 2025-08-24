@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: Invalidation after CSSOM changes</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins/#cssom">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+       @mixin --m1() {
+         color: red;
+         & {
+           --foo: bar;
+         }
+       }
+       @mixin --m2() {
+         color: red;
+       }
+       #target1 {
+         @apply --m1;
+       }
+     </style>
+    <style>
+       #target2 {
+         @apply --m2;
+       }
+     </style>
+     <style>
+       @mixin --m3() {
+         color: green;
+       }
+       #target3 {
+         color: red;
+       }
+     </style>
+   </head>
+   <body>
+     <div id="target1">Some text.</div>
+     <div id="target2">Some text.</div>
+     <div id="target3">Some text.</div>
+     <script>
+        test(() => {
+          let ss = document.styleSheets[0];
+          assert_equals(ss.cssRules[0].name, '--m1');
+          assert_equals(ss.cssRules[0].cssRules.length, 2);
+          let target = document.getElementById('target1');
+
+          assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
+          ss.cssRules[0].cssRules[1].style.color = 'green';
+          assert_equals(ss.cssRules[0].cssText,
+`@mixin --m1() {
+  color: red;
+  & { --foo: bar; color: green; }
+}`);
+          assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+        }, 'invalidation of @mixin from same stylesheet');
+
+        test(() => {
+          let ss = document.styleSheets[0];
+          assert_equals(ss.cssRules[1].name, '--m2');
+          let target = document.getElementById('target2');
+
+          assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
+          ss.cssRules[1].cssRules[0].style.color = 'green';
+          assert_equals(ss.cssRules[1].cssText,
+`@mixin --m2() {
+  color: green;
+}`);
+          assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+        }, 'invalidation of @mixin from different stylesheet');
+
+        test(() => {
+          let ss = document.styleSheets[2];
+          let target = document.getElementById('target3');
+
+          assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
+          ss.cssRules[1].insertRule('@apply --m3;');
+          assert_equals(ss.cssRules[1].cssText,
+`#target3 {
+  color: red;
+  @apply --m3;
+}`);
+          assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+        }, 'invalidation on adding @apply rule');
+     </script>
+  </body>
+</html>

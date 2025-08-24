@@ -117,7 +117,6 @@ dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
 dictionary RTCSentRtpStreamStats : RTCRtpStreamStats {
             unsigned long long packetsSent;
             unsigned long long bytesSent;
-            unsigned long long packetsSentWithEct1;
 };
 
 dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
@@ -154,6 +153,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              boolean              powerEfficientEncoder;
              boolean              active;
              DOMString            scalabilityMode;
+             unsigned long long   packetsSentWithEct1;
 };
 
 enum RTCQualityLimitationReason {

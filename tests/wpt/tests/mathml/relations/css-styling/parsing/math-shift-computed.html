@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MathML Core: parsing math-shift with computed values</title>
+<link rel="author" title="Eri Pazos" href="mailto:eri@igalia.com">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-math-shift">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<math id="target"></math>
+<script>
+  test_computed_value("math-shift", "normal");
+  test_computed_value("math-shift", "compact");
+</script>
+</body>
+</html>

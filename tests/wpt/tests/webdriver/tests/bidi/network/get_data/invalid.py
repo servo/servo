@@ -58,6 +58,20 @@ async def test_params_collector_non_existent(
         )
 
 
+async def test_params_collector_not_in_collected_data(
+    bidi_session, url, add_data_collector, setup_collected_response
+):
+    too_small_collector = await add_data_collector(
+        data_types=["response"], max_encoded_data_size=1
+    )
+    [request, _] = await setup_collected_response(fetch_url=url(PAGE_EMPTY_TEXT))
+
+    with pytest.raises(error.NoSuchNetworkDataException):
+        await bidi_session.network.get_data(
+            request=request, data_type="response", collector=too_small_collector
+        )
+
+
 @pytest.mark.parametrize("value", ["", "true", "false", 42, {}, []])
 async def test_params_disown_invalid_type(
     bidi_session, url, setup_collected_response, value

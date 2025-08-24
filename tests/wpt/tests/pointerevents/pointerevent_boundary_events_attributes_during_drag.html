@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Attributes of boundary events during dragging mouse</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<style>
+div.target {
+  margin: 0;
+  width: 100%;
+  height: 16px;
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    const body = document.body;
+    for (let i = 0; i < 6; i++) {
+      const div = document.createElement("div");
+      div.setAttribute("class", "target");
+      div.setAttribute("id", `div${i}`);
+      body.appendChild(div);
+    }
+    body.firstElementChild.getBoundingClientRect();
+
+    let record = false;
+    const mouseEvents = [], pointerEvents = [];
+    function recordEvent(event) {
+      if (!record || !event.target.id) {
+        return;
+      }
+      const e = {
+        type: event.type,
+        target: `<${event.target.localName} id="${event.target.id}">`,
+        button: event.button,
+        buttons: event.buttons,
+        pointerId: event.pointerId,
+        pointerType: event.pointerType,
+      };
+      if (event.pointerId != undefined) {
+        pointerEvents.push(e);
+      } else {
+        mouseEvents.push(e);
+      }
+    }
+    for (const type of ["mouseover", "mouseout", "mouseenter", "mouseleave",
+                        "pointerover", "pointerout", "pointerenter", "pointerleave"]) {
+      body.addEventListener(type, recordEvent, {capture: true});
+    }
+    let pointerId = 0;
+    body.addEventListener("pointerdown", event => {
+      record = true;
+      pointerId = event.pointerId;
+    }, {once: true, capture: true});
+    body.addEventListener("pointerup", event => {
+      record = false;
+    }, {once: true, capture: true});
+    body.addEventListener("dragstart", event => {
+      // We want to check the boundary events during a drag so that we want
+      // a native drag session.
+      event.preventDefault();
+    }, {once: true, capture: true});
+
+    document.getElementById("div3").addEventListener("pointerenter", event => {
+      requestAnimationFrame(() => {
+        // Remove div3 causes moving div4 underneath the cursor
+        event.target.remove();
+        document.getElementById("div4").getBoundingClientRect();
+      });
+    }, {once: true, capture: true});
+    document.getElementById("div4").addEventListener("pointerenter", event => {
+      requestAnimationFrame(() => {
+        // Remove div4 causes moving div5 underneath the cursor
+        event.target.remove();
+        document.getElementById("div5").getBoundingClientRect();
+      });
+    }, {once: true, capture: true});
+
+    await new test_driver.Actions()
+      .pointerMove(0, 0, { origin: document.getElementById("div0") })
+      .pointerDown()
+      .pointerMove(0, 0, { origin: document.getElementById("div1") })
+      .pointerMove(0, 0, { origin: document.getElementById("div2") })
+      .pointerMove(0, 0, { origin: document.getElementById("div3") })
+      .pause(500)
+      .pointerUp()
+      .send();
+
+    function stringifyEvent(event) {
+      return event.pointerId != undefined
+        ? `{ type: "${event.type}", target: ${event.target}, button: ${event.button}, buttons: ${
+            event.buttons
+          }, pointerId: ${event.pointerId}, pointerType: "${event.pointerType}"}`
+        : `{ type: "${event.type}", target: ${event.target}, button: ${event.button}, buttons: ${
+            event.buttons
+          }`;
+    }
+    function stringifyEvents(events) {
+      let str = "[";
+      for (const event of events) {
+        if (str != "[") {
+          str += ", ";
+        }
+        str += stringifyEvent(event);
+      }
+      return str + "]";
+    }
+
+    test(() => {
+      assert_equals(
+        stringifyEvents(mouseEvents),
+        stringifyEvents([
+          { type: "mouseout",   target: '<div id="div0">', buttons: 1, button: 0 },
+          { type: "mouseleave", target: '<div id="div0">', buttons: 1, button: 0 },
+          { type: "mouseover",  target: '<div id="div1">', buttons: 1, button: 0 },
+          { type: "mouseenter", target: '<div id="div1">', buttons: 1, button: 0 },
+          { type: "mouseout",   target: '<div id="div1">', buttons: 1, button: 0 },
+          { type: "mouseleave", target: '<div id="div1">', buttons: 1, button: 0 },
+          { type: "mouseover",  target: '<div id="div2">', buttons: 1, button: 0 },
+          { type: "mouseenter", target: '<div id="div2">', buttons: 1, button: 0 },
+          { type: "mouseout",   target: '<div id="div2">', buttons: 1, button: 0 },
+          { type: "mouseleave", target: '<div id="div2">', buttons: 1, button: 0 },
+          { type: "mouseover",  target: '<div id="div3">', buttons: 1, button: 0 },
+          { type: "mouseenter", target: '<div id="div3">', buttons: 1, button: 0 },
+          { type: "mouseover",  target: '<div id="div4">', buttons: 1, button: 0 },
+          { type: "mouseenter", target: '<div id="div4">', buttons: 1, button: 0 },
+          { type: "mouseover",  target: '<div id="div5">', buttons: 1, button: 0 },
+          { type: "mouseenter", target: '<div id="div5">', buttons: 1, button: 0 },
+        ]),
+        "Mouse boundary events should have the state of primary button pressed"
+      );
+    });
+    assert_equals(
+      stringifyEvents(pointerEvents),
+      stringifyEvents([
+        { type: "pointerout",   target: '<div id="div0">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerleave", target: '<div id="div0">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerover",  target: '<div id="div1">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerenter", target: '<div id="div1">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerout",   target: '<div id="div1">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerleave", target: '<div id="div1">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerover",  target: '<div id="div2">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerenter", target: '<div id="div2">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerout",   target: '<div id="div2">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerleave", target: '<div id="div2">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerover",  target: '<div id="div3">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerenter", target: '<div id="div3">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerover",  target: '<div id="div4">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerenter", target: '<div id="div4">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerover",  target: '<div id="div5">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+        { type: "pointerenter", target: '<div id="div5">', buttons: 1, button: -1, pointerId, pointerType: "mouse" },
+      ]),
+      "Pointer boundary events should have the state of primary button pressed"
+    );
+  });
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

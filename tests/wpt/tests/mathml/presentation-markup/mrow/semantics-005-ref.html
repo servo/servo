@@ -1,11 +1,22 @@
 <!DOCTYPE html>
 <title>&lt;semantics&gt - mozilla bug 21479 (reference)</title>
 <meta charset="utf-8"/>
+<style>
+@font-face {
+  font-family: operators;
+  src: url("/fonts/math/operators.woff");
+}
+math, math * {
+  font-family: operators;
+  font-size: 32px;
+  color: purple;
+}
+</style>
 <p>
   <math xmlns="http://www.w3.org/1998/Math/MathML">
     <mover>
-      <mspace width="300px" height="10px" mathbackground="black"></mspace>
-      <mo>&#xaf;</mo>
+      <mspace width="300px" height="10px" mathbackground="blue"></mspace>
+      <mo>&#x21AC;<!-- Rightwards Arrow With Loop --></mo>
     </mover>
   </math>
 </p>

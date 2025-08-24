@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<title>columns shorthand interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol/#propdef-columns">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-columns">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<style>
+  .parent {
+    columns: 50px / 100px;
+  }
+  .target {
+    columns: 200px / 100px;
+  }
+</style>
+<body>
+</body>
+<script>
+test_interpolation({
+  property: 'columns',
+  from: '200px 10',
+  to: '100px 20',
+}, [
+  {at: -1, expect: '300px 1'},
+  {at: -0.5, expect: '250px 5'},
+  {at: 0, expect: '200px 10'},
+  {at: 0.5, expect: '150px 15'},
+  {at: 1, expect: '100px 20'},
+]);
+
+test_interpolation({
+  property: 'columns',
+  from: neutralKeyframe,
+  to: '100px / 200px',
+}, [
+  {at: -1, expect: '300px / 0px'},
+  {at: -0.5, expect: '250px / 50px'},
+  {at: 0, expect: '200px / 100px'},
+  {at: 0.5, expect: '150px / 150px'},
+  {at: 1, expect: '100px / 200px'},
+]);
+
+test_interpolation({
+  property: 'columns',
+  from: '1000px / 500px',
+  to: '100px / 200px',
+}, [
+  {at: -1, expect: '1900px / 800px'},
+  {at: -0.5, expect: '1450px / 650px'},
+  {at: 0, expect: '1000px / 500px'},
+  {at: 0.5, expect: '550px / 350px'},
+  {at: 1, expect: '100px / 200px'},
+]);
+
+test_interpolation({
+  property: 'columns',
+  from: '10 / 100px',
+  to: '20 / 200px',
+}, [
+  {at: -0.5, expect: '5 / 50px'},
+  {at: 0, expect: '10 / 100px'},
+  {at: 0.5, expect: '15 / 150px'},
+  {at: 1, expect: '20 / 200px'},
+]);
+
+test_interpolation({
+  property: 'columns',
+  from: '10 100px',
+  to: '20 200px',
+}, [
+  {at: -0.5, expect: '5 50px'},
+  {at: 0, expect: '10 100px'},
+  {at: 0.5, expect: '15 150px'},
+  {at: 1, expect: '20 200px'},
+]);
+
+test_interpolation({
+  property: 'columns',
+  from: '10 100px / auto',
+  to: '20 200px / auto',
+}, [
+  {at: -0.5, expect: '5 50px'},
+  {at: 0, expect: '10 100px'},
+  {at: 0.5, expect: '15 150px'},
+  {at: 1, expect: '20 200px'},
+]);
+
+test_interpolation({
+  property: 'columns',
+  from: 'inherit',
+  to: '200px / 900px',
+}, [
+  {at: -0.5, expect: '0px / 0px'},
+  {at: -0.2, expect: '20px / 0px'},
+  {at: -0.1, expect: '35px / 20px'},
+  {at: 0, expect: '50px / 100px'},
+  {at: 0.5, expect: '125px / 500px'},
+  {at: 1, expect: '200px / 900px'},
+]);
+
+test_no_interpolation({
+  property: 'columns',
+  from: 'initial',
+  to: '100px / 200px',
+});
+
+test_no_interpolation({
+  property: 'columns',
+  from: 'initial',
+  to: '100px',
+});
+
+test_no_interpolation({
+  property: 'columns',
+  from: 'initial',
+  to: '10',
+});
+
+test_no_interpolation({
+  property: 'columns',
+  from: 'auto',
+  to: '100px / 200px',
+});
+
+test_no_interpolation({
+  property: 'columns',
+  from: '100px / 200px',
+  to: 'auto',
+});
+
+test_no_interpolation({
+  property: 'columns',
+  from: 'inherit',
+  to: 'auto',
+});
+</script>

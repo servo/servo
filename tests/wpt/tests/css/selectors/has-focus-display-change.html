@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>:has(:focus) doesn't cause focusability to be lost</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://bugzil.la/1983421">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+.submenu {
+  display: none;
+}
+#container:has(:focus) > .submenu {
+  display: block;
+}
+</style>
+<div id="container">
+  <button id="first">A</button>
+  <div class="submenu">
+    <button id="second">B</button>
+  </div>
+</div>
+<script>
+  promise_test(async t => {
+    let first = document.getElementById("first");
+    let second = document.getElementById("second");
+
+    assert_equals(second.getBoundingClientRect().height, 0, "#second has no box");
+
+    first.focus();
+    assert_equals(document.activeElement, first, "#first is focused");
+    assert_not_equals(second.getBoundingClientRect().height, 0, "#second is displayed");
+    const kTab = '\uE004';
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .send();
+    assert_equals(document.activeElement, second, "Focus can move to #second");
+  });
+</script>

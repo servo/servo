@@ -381,6 +381,12 @@ scheme host and port.""")
         help=("Reuse a window across `testharness.js` tests where possible, "
               "which can speed up testing. Also useful for ensuring that the "
               "renderer process has a stable PID for a debugger to attach to."))
+    chrome_group.add_argument(
+        "--trace-categories",
+        metavar="CATEGORIES",
+        nargs="?",
+        const="blink,blink.bindings",
+        help="Record traces under the given categories for each test.")
 
     sauce_group = parser.add_argument_group("Sauce Labs-specific")
     sauce_group.add_argument("--sauce-browser", help="Sauce Labs browser name")

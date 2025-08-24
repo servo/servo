@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: @apply is invalid at top level</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#apply-rule">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      .cls {
+        color: green;
+      }
+      @mixin --m1() {
+        .cls {
+          color: red;
+        }
+      }
+      @apply --m1;
+    </style>
+  </head>
+  <body>
+    <div><div class="cls" id="target">This text should be green.</div></div>
+    <script>
+      test(() => {
+        let target = document.getElementById('target');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      });
+    </script>
+  </body>
+</html>

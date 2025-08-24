@@ -29,6 +29,7 @@
     t.add_cleanup(async () => {
       await test_driver.set_permission({name: 'storage-access'}, 'prompt');
     });
+    await SetFirstPartyCookie(location.origin, "initial-cookie=unpartitioned;Secure;SameSite=None;Path=/");
     await test_driver.set_permission({name: 'storage-access'}, 'granted');
     await MaybeSetStorageAccess('*', '*', 'blocked');
     await document.requestStorageAccess();
@@ -45,6 +46,7 @@
     t.add_cleanup(async () => {
       await test_driver.set_permission({name: 'storage-access'}, 'prompt');
     });
+    await SetFirstPartyCookie(location.origin, "initial-cookie=unpartitioned;Secure;SameSite=None;Path=/");
     await test_driver.set_permission({name: 'storage-access'}, 'granted');
     await MaybeSetStorageAccess('*', '*', 'blocked');
 
