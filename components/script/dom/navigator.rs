@@ -36,7 +36,7 @@ use crate::dom::bluetooth::Bluetooth;
 use crate::dom::clipboard::Clipboard;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::gamepad::Gamepad;
-use crate::dom::gamepadevent::GamepadEventType;
+use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mediasession::MediaSession;

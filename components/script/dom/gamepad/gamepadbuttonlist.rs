@@ -7,7 +7,7 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
-use crate::dom::gamepadbutton::GamepadButton;
+use crate::dom::gamepad::gamepadbutton::GamepadButton;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
