@@ -21,6 +21,7 @@ interface Notification : EventTarget {
   readonly attribute NotificationDirection dir;
   readonly attribute DOMString lang;
   readonly attribute DOMString body;
+  readonly attribute USVString navigate;
   readonly attribute DOMString tag;
   readonly attribute USVString image;
   readonly attribute USVString icon;
@@ -40,6 +41,7 @@ dictionary NotificationOptions {
   NotificationDirection dir = "auto";
   DOMString lang = "";
   DOMString body = "";
+  USVString navigate;
   DOMString tag = "";
   USVString image;
   USVString icon;
@@ -68,6 +70,7 @@ enum NotificationDirection {
 dictionary NotificationAction {
   required DOMString action;
   required DOMString title;
+  USVString navigate;
   USVString icon;
 };
 

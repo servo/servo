@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HTML5 Drag and Drop: insertFromDrop Input Event Test</title>
+    <meta
+      content="text/html; charset=UTF-8"
+      http-equiv="Content-Type"
+    />
+    <link
+      rel="author"
+      title="Microsoft"
+      href="http://www.microsoft.com/"
+    />
+    <link
+      rel="help"
+      href="https://w3c.github.io/input-events/#overview"
+    />
+    <meta
+      name="assert"
+      content="Test insertFromDrop input events and dataTransfer objects"
+    />
+    <style>
+      .drag-source {
+        border: 2px solid blue;
+        width: 200px;
+        height: 60px;
+        margin: 10px;
+        padding: 10px;
+        cursor: move;
+      }
+      .drop-target {
+        border: 2px dashed red;
+        width: 200px;
+        height: 60px;
+        margin: 10px;
+        padding: 10px;
+      }
+      .test-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin: 20px 0;
+      }
+      .result {
+        margin: 5px 0;
+        padding: 5px;
+        border: 1px solid #ccc;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      textarea,
+      input {
+        width: 180px;
+        height: 40px;
+      }
+    </style>
+    <script type="text/javascript">
+      function logResult(test, pass, details) {
+        const div = document.getElementById("results");
+        const resultDiv = document.createElement("div");
+        resultDiv.className = "result";
+        resultDiv.style.color = pass ? "green" : "red";
+        resultDiv.innerHTML = `<strong>${test}:</strong> ${
+          pass ? "PASS" : "FAIL"
+        } - ${details}`;
+        div.appendChild(resultDiv);
+      }
+      function setupDropTarget(element, testName, isContentEditable) {
+        element.addEventListener("input", function (e) {
+          if (e.inputType === "insertFromDrop") {
+            if (isContentEditable) {
+              // For contenteditable div: expect dataTransfer populated, data as null
+              const hasDataTransfer =
+                e.dataTransfer !== null && e.dataTransfer !== undefined;
+              const dataIsNull = e.data === null;
+
+              if (hasDataTransfer && dataIsNull) {
+                logResult(
+                  testName,
+                  true,
+                  `DataTransfer: ${
+                    e.dataTransfer.types
+                      ? Array.from(e.dataTransfer.types).join(", ")
+                      : "none"
+                  }, Data: null (correct)`
+                );
+              } else {
+                logResult(
+                  testName,
+                  false,
+                  `Expected dataTransfer populated and data null. Got dataTransfer: ${hasDataTransfer}, data: ${e.data}`
+                );
+              }
+            } else {
+              // For input/textarea: expect dataTransfer null, data as text
+              const dataTransferIsNull = e.dataTransfer === null;
+              const hasData = e.data !== null && e.data !== undefined;
+
+              if (dataTransferIsNull && hasData) {
+                logResult(
+                  testName,
+                  true,
+                  `Data: "${e.data}", DataTransfer: null (correct)`
+                );
+              } else {
+                logResult(
+                  testName,
+                  false,
+                  `Expected dataTransfer null and data populated. Got dataTransfer: ${e.dataTransfer}, data: ${e.data}`
+                );
+              }
+            }
+          }
+        });
+      }
+      window.onload = function () {
+        // Make all divs contenteditable
+        document
+          .querySelectorAll("div.drag-source, div.drop-target")
+          .forEach((el) => (el.contentEditable = true));
+
+        // Setup input event listeners
+        setupDropTarget(
+          document.getElementById("div-target1"),
+          "Div to ContentEditable Div",
+          true
+        );
+        setupDropTarget(
+          document.getElementById("textarea-target1"),
+          "Div to Textarea",
+          false
+        );
+        setupDropTarget(
+          document.getElementById("input-target1"),
+          "Div to Input",
+          false
+        );
+        setupDropTarget(
+          document.getElementById("div-target2"),
+          "Textarea to ContentEditable Div",
+          true
+        );
+        setupDropTarget(
+          document.getElementById("textarea-target2"),
+          "Textarea to Textarea",
+          false
+        );
+        setupDropTarget(
+          document.getElementById("input-target2"),
+          "Textarea to Input",
+          false
+        );
+        setupDropTarget(
+          document.getElementById("input-target3"),
+          "Input to Input",
+          false
+        );
+        setupDropTarget(
+          document.getElementById("textarea-target3"),
+          "Input to Textarea",
+          false
+        );
+      };
+    </script>
+  </head>
+  <body>
+    <h1>insertFromDrop Input Event Test</h1>
+    <p>
+      Test insertFromDrop input events and their dataTransfer objects
+      during drag and drop operations.
+    </p>
+
+    <div class="test-container">
+      <!-- Div to ContentEditable Div -->
+      <div>
+        <h4>Div to ContentEditable Div</h4>
+        <div id="div1" class="drag-source">Drag this div text</div>
+        <div id="div-target1" class="drop-target">
+          Drop here (contenteditable)
+        </div>
+      </div>
+
+      <!-- Div to Textarea -->
+      <div>
+        <h4>Div to Textarea</h4>
+        <div id="div2" class="drag-source">Drag this div text</div>
+        <textarea
+          id="textarea-target1"
+          class="drop-target"
+          placeholder="Drop here"
+        ></textarea>
+      </div>
+
+      <!-- Div to Input -->
+      <div>
+        <h4>Div to Input</h4>
+        <div id="div3" class="drag-source">Drag this div text</div>
+        <input
+          id="input-target1"
+          class="drop-target"
+          placeholder="Drop here"
+        />
+      </div>
+
+      <!-- Textarea to ContentEditable Div -->
+      <div>
+        <h4>Textarea to ContentEditable Div</h4>
+        <textarea id="textarea1" class="drag-source">
+Drag this textarea</textarea
+        >
+        <div id="div-target2" class="drop-target">
+          Drop here (contenteditable)
+        </div>
+      </div>
+
+      <!-- Textarea to Textarea -->
+      <div>
+        <h4>Textarea to Textarea</h4>
+        <textarea id="textarea2" class="drag-source">
+Drag this textarea</textarea
+        >
+        <textarea
+          id="textarea-target2"
+          class="drop-target"
+          placeholder="Drop here"
+        ></textarea>
+      </div>
+
+      <!-- Textarea to Input -->
+      <div>
+        <h4>Textarea to Input</h4>
+        <textarea id="textarea3" class="drag-source">
+Drag this textarea</textarea
+        >
+        <input
+          id="input-target2"
+          class="drop-target"
+          placeholder="Drop here"
+        />
+      </div>
+
+      <!-- Input to Input -->
+      <div>
+        <h4>Input to Input</h4>
+        <input
+          id="input1"
+          class="drag-source"
+          value="Drag this input"
+        />
+        <input
+          id="input-target3"
+          class="drop-target"
+          placeholder="Drop here"
+        />
+      </div>
+
+      <!-- Input to Textarea -->
+      <div>
+        <h4>Input to Textarea</h4>
+        <input
+          id="input2"
+          class="drag-source"
+          value="Drag this input"
+        />
+        <textarea
+          id="textarea-target3"
+          class="drop-target"
+          placeholder="Drop here"
+        ></textarea>
+      </div>
+    </div>
+    <h3>insertFromDrop Results:</h3>
+    <div id="results">
+      Perform drag and drop operations above to see PASS/FAIL results...
+    </div>
+  </body>
+</html>

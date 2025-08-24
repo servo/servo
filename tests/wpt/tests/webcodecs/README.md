@@ -69,6 +69,16 @@ avifenc -r l -d 8 -y 444 -s 0 four-colors.png four-colors-limited-range-444-8bpc
 avifenc -r f -d 10 -y 444 -s 0 --nclx 9/16/9 four-colors.png four-colors-full-range-bt2020-pq-444-10bpc.avif
 ```
 
+### four-colors-full-range-(420|422|444)-hlg-(10|12)bpc.avif
+```
+avifenc -r f -d 10 -y 420 -s 0 --nclx 9/18/9 four-colors.png four-colors-full-range-hlg-420-10bpc.avif
+avifenc -r f -d 10 -y 422 -s 0 --nclx 9/18/9 four-colors.png four-colors-full-range-hlg-422-10bpc.avif
+avifenc -r f -d 10 -y 444 -s 0 --nclx 9/18/9 four-colors.png four-colors-full-range-hlg-444-10bpc.avif
+avifenc -r f -d 12 -y 420 -s 0 --nclx 9/18/9 four-colors.png four-colors-full-range-hlg-420-12bpc.avif
+avifenc -r f -d 12 -y 422 -s 0 --nclx 9/18/9 four-colors.png four-colors-full-range-hlg-422-12bpc.avif
+avifenc -r f -d 12 -y 444 -s 0 --nclx 9/18/9 four-colors.png four-colors-full-range-hlg-444-12bpc.avif
+```
+
 ### four-colors.jpg
 Used [Sqoosh.app](https://squoosh.app/) with MozJPEG compression and RGB
 channels. exiftool was then used to add an orientation marker.

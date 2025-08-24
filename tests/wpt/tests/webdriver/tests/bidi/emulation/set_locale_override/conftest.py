@@ -31,15 +31,15 @@ async def default_locale(get_current_locale, top_context):
 @pytest.fixture
 def some_locale(default_locale):
     """
-    Returns some locale which is not equal to `default_locale` nor to
-    `another_locale`.
+    Returns some locale which is not equal to `default_locale`.
     """
     for locale in LOCALES:
         if locale != default_locale:
             return locale
 
     raise Exception(
-        f"Unexpectedly could not find locale different from the default {default_locale}")
+        f"Unexpectedly could not find locale different from the default {default_locale}"
+    )
 
 
 @pytest.fixture
@@ -49,8 +49,9 @@ def another_locale(default_locale, some_locale):
     `some_locale`.
     """
     for locale in LOCALES:
-        if locale != default_locale and locale != another_locale:
+        if locale != default_locale and locale != some_locale:
             return locale
 
     raise Exception(
-        f"Unexpectedly could not find locale different from the default {default_locale}")
+        f"Unexpectedly could not find locale different from the default {default_locale} and {some_locale}"
+    )

@@ -24,7 +24,7 @@ fedcm_test(async t => {
   options = request_options_with_mediation_required('manifest_with_continue_on.json');
   options.mediation = 'silent';
   await select_manifest(t, options);
-  const cred_promise = fedcm_get_and_select_first_account(t, options);
+  const cred_promise = navigator.credentials.get(options);
   return promise_rejects_dom(t, 'NetworkError', cred_promise);
 }, "continue_on with mediation:silent should fail");
 

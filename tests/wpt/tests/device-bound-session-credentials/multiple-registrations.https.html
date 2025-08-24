@@ -16,7 +16,7 @@
     addCookieAndSessionCleanup(t);
 
     // Configure server to configure cookies for next two created sessions.
-    configureServer({
+    await configureServer({
       cookieDetailsForNextRegisteredSessions: [[{ nameAndValue: expectedCookieAndValue1 }], [{ nameAndValue: expectedCookieAndValue2 }]]
     });
 

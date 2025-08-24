@@ -86,6 +86,15 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
         # fail to create a session if they don't recognize this capability.
         chrome_options["quitGracefully"] = True
 
+    if trace_categories := kwargs.get("trace_categories"):
+        executor_kwargs["enable_tracing"] = True
+        capabilities["goog:loggingPrefs"] = {
+            "performance": "INFO",
+        }
+        chrome_options["perfLoggingPrefs"] = {
+            "traceCategories": trace_categories,
+        }
+
     # Here we set a few Chrome flags that are always passed.
     # ChromeDriver's "acceptInsecureCerts" capability only controls the current
     # browsing context, whereas the CLI flag works for workers, too.

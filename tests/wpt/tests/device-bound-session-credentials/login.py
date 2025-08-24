@@ -28,8 +28,18 @@ def main(request, response):
     for i in range(num_sessions):
         registrations.append(('Sec-Session-Registration', f'(RS256);challenge="login_challenge_value";path="{registration_url}"{authorization_header}'))
 
+    headers = []
+    if request.headers.get(b"origin") is not None:
+        # Some tests (e.g. subdomain-registration.https.html) login
+        # across origins. Allow cookies so that we can get the
+        # session_manager for the request.
+        headers = [
+            ("Access-Control-Allow-Origin", request.headers.get(b"origin")),
+            ("Access-Control-Allow-Credentials", "true"),
+        ]
+
     if use_single_header:
         combined_registrations = [("Sec-Session-Registration", ", ".join([registration[1] for registration in registrations]))]
-        return (200, combined_registrations, "")
+        return (200, headers + combined_registrations, "")
     else:
-        return (200, registrations, "")
+        return (200, headers + registrations, "")

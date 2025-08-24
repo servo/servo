@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Union
+from typing import Any, Dict, List, Literal, Mapping, MutableMapping, Optional, \
+    Union
 
 from ._module import BidiModule, command
 from ..undefined import UNDEFINED, Undefined
@@ -69,6 +70,19 @@ class Emulation(BidiModule):
             params["userContexts"] = user_contexts
 
         return params
+
+    @command
+    def set_scripting_enabled(
+            self,
+            enabled: Literal[False, None],
+            contexts: Union[List[str], Undefined] = UNDEFINED,
+            user_contexts: Union[List[str], Undefined] = UNDEFINED,
+    ) -> Mapping[str, Any]:
+        return {
+            "enabled": enabled,
+            "contexts": contexts,
+            "userContexts": user_contexts,
+        }
 
     @command
     def set_screen_orientation_override(

@@ -116,3 +116,16 @@ enum ResponseType { "basic", "cors", "default", "error", "opaque", "opaqueredire
 partial interface mixin WindowOrWorkerGlobalScope {
   [NewObject] Promise<Response> fetch(RequestInfo input, optional RequestInit init = {});
 };
+
+dictionary DeferredRequestInit : RequestInit {
+  DOMHighResTimeStamp activateAfter;
+};
+
+[Exposed=Window]
+interface FetchLaterResult {
+  readonly attribute boolean activated;
+};
+
+partial interface Window {
+  [NewObject] FetchLaterResult fetchLater(RequestInfo input, optional DeferredRequestInit init = {});
+};

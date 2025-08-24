@@ -18,15 +18,14 @@ function RestoreAndWrite(chunk, transformer) {
     chunk.value.data = chunk.value.data.slice(0, chunk.value.data.byteLength - 1);
     let frameData = chunk.value.data;
     transformer.writer.write(chunk.value);
-    if (lastByte === modification && !chunk.value.getMetadata().rtpTimestamp && frameData.byteLength == 0) {
+    if (lastByte === modification && frameData.byteLength == 0) {
         self.postMessage("got expected");
     }
     else {
         self.postMessage("unexpected value: lastByte (got " + lastByte +
             ", expected " + modification +
             "),  frame data length (got " + frameData.byteLength +
-            ", expected 0), rtpTimestamp (got " +
-             chunk.value.getMetadata().rtpTimestamp + ", expected null)");
+            ", expected 0))");
     }
 }
 onrtctransform = (event) => {

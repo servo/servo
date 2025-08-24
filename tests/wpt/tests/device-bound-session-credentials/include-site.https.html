@@ -13,7 +13,7 @@
     const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
     addCookieAndSessionCleanup(t);
 
-    configureServer({ includeSite });
+    await configureServer({ includeSite });
 
     // Prompt starting a session, and wait until registration completes.
     const loginResponse = await fetch('login.py');

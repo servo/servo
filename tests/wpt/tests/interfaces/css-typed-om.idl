@@ -45,7 +45,7 @@ interface CSSUnparsedValue : CSSStyleValue {
     iterable<CSSUnparsedSegment>;
     readonly attribute unsigned long length;
     getter CSSUnparsedSegment (unsigned long index);
-    setter CSSUnparsedSegment (unsigned long index, CSSUnparsedSegment val);
+    setter undefined (unsigned long index, CSSUnparsedSegment val);
 };
 
 typedef (USVString or CSSVariableReferenceValue) CSSUnparsedSegment;
@@ -263,7 +263,7 @@ interface CSSTransformValue : CSSStyleValue {
     iterable<CSSTransformComponent>;
     readonly attribute unsigned long length;
     getter CSSTransformComponent (unsigned long index);
-    setter CSSTransformComponent (unsigned long index, CSSTransformComponent val);
+    setter undefined (unsigned long index, CSSTransformComponent val);
 
     readonly attribute boolean is2D;
     DOMMatrix toMatrix();

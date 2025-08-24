@@ -73,6 +73,21 @@ test(function() {
        {start: 7, end:   4, contents: ""}]
     ],
 
+    // Test double start/end values
+    [
+      ["abcd"],
+      [{start: 0.5, contents: "abcd"},
+       {start: 1.5, contents: "cd"},
+       {start: 2.5, contents: "cd"},
+       {start: 3.5, contents: ""},
+       {start: 0,   end: 0.5, contents: ""},
+       {start: 0,   end: 1.5, contents: "ab"},
+       {start: 0,   end: 2.5, contents: "ab"},
+       {start: 0,   end: 3.5, contents: "abcd"},
+       {start: 1.5, end: 2.5, contents: ""},
+       {start: 1.5, end: 3.5, contents: "cd"}]
+    ],
+
     // Test 3 strings
     [
       ["foo", "bar", "baz"],

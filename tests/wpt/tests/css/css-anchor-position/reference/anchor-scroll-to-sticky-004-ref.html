@@ -16,6 +16,7 @@ div {
 #anchor {
   height: 20px;
   background: orange;
+  position: relative;
 }
 
 #anchored {
@@ -27,12 +28,12 @@ div {
 
 </style>
 
+<div id="anchored"></div>
 <div id="scroller">
   <div style="height: 250px"></div>
   <div id="anchor"></div>
   <div style="height: 180px"></div>
 </div>
-<div id="anchored"></div>
 
 <script>
 scroller.scrollTop = 200;

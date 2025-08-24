@@ -239,14 +239,6 @@ function assert_array_equals_exact(actual, expected, message) {
  * @param {!Array<number>} array The array to be checked.
  * @param {number} constantValue The constant value to compare against.
  * @param {string} message Description used for assertion failures.
- * Asserts that not all values in the given array are equal to the
- * specified constant. This is useful for verifying that an output
- * signal is not silent or uniform.
- *
- * @param {!Array<number>} array - The array of numbers to check.
- * @param {number} constantValue - The value that not all array elements
- * should match.
- * @param {string} message - Description used for assertion failure messages.
  */
 function assert_not_constant_value(array, constantValue, message) {
   const notAllSame = array.some(value => value !== constantValue);

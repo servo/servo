@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/content-security-policy/support/testharness-helper.js"></script>
+<body>
+<script>
+  async_test(t => {
+    let iframe = document.createElement("iframe");
+    iframe.src = "/content-security-policy/xslt/support/xml-with-stylesheet.xml";
+    document.body.append(iframe);
+
+    iframe.contentWindow.addEventListener("securitypolicyviolation", t.step_func_done(e => {
+        assert_true(e.blockedURI.endsWith("xslt/support/empty.xml"), "Blocked empty.xml request")
+    }));
+  }, "XSL document() function is blocked by CSP");
+</script>
+</body>

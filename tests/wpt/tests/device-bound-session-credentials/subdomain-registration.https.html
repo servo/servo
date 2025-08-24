@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/device-bound-session-credentials/helper.js" type="module"></script>
+
+<script type="module">
+  import {
+    addCookieAndSessionCleanup,
+    configureServer,
+    documentHasCookie,
+    expireCookie,
+    setupShardedServerState,
+    waitForCookie
+  } from "/device-bound-session-credentials/helper.js";
+
+  async function runTest(t, subdomain, expectRegistration) {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAttributes = `Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};${expectedCookieAttributes}`;
+    addCookieAndSessionCleanup(t);
+
+    // Configure the server with the parent domain's origin + cookie
+    // details instead of the subdomain's.
+    await configureServer({
+      "scopeOrigin": location.origin,
+      "cookieDetails": [
+        {
+          "nameAndValue": expectedCookieAndValue,
+          "attributes": expectedCookieAttributes
+        }
+      ]
+    });
+
+    // .well-known/device-bound-sessions hardcodes www as allowed, but not www1.
+    const loginUrl = new URL("/device-bound-session-credentials/login.py", location);
+    loginUrl.hostname = `${subdomain}.${location.hostname}`;
+
+    const loginResponse = await fetch(loginUrl.toString(), {credentials: "include"});
+    assert_equals(loginResponse.status, 200);
+    // The registration request happens, which sets the auth_cookie. Then the
+    // .well-known is fetched, which may cause registration to fail
+    // (depending on `expectRegistration`).
+    await waitForCookie('well_known_fetched=true', /*expectCookie=*/ true);
+
+    // Expire the cookie, and check whether a refresh has occurred.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    const authResponseBody = await authResponseAfterExpiry.text();
+    if (expectRegistration) {
+      assert_equals(authResponseAfterExpiry.status, 200, "(response body: " + authResponseBody + ")");
+      assert_true(documentHasCookie(expectedCookieAndValue));
+    } else {
+      assert_equals(authResponseAfterExpiry.status, 401, "(response body: " + authResponseBody + ")");
+      assert_false(documentHasCookie(expectedCookieAndValue));
+    }
+  }
+
+  promise_test(async t => {
+    await runTest(t, /*subdomain=*/"www1", /*expectRegistration=*/false);
+  }, "Registration fails without a .well-known");
+
+  promise_test(async t => {
+    await runTest(t, /*subdomain=*/"www", /*expectRegistration=*/true);
+  }, "Registration succeeds with a .well-known");
+</script>

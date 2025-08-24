@@ -73,13 +73,15 @@ partial interface ServiceWorkerGlobalScope {
 interface PushEvent : ExtendableEvent {
   constructor(DOMString type, optional PushEventInit eventInitDict = {});
   readonly attribute PushMessageData? data;
+  readonly attribute Notification? notification;
+};
+
+dictionary PushEventInit : ExtendableEventInit {
+  PushMessageDataInit? data = null;
+  Notification? notification = null;
 };
 
 typedef (BufferSource or USVString) PushMessageDataInit;
-
-dictionary PushEventInit : ExtendableEventInit {
-  PushMessageDataInit data;
-};
 
 [Exposed=ServiceWorker, SecureContext]
 interface PushSubscriptionChangeEvent : ExtendableEvent {
