@@ -4,8 +4,15 @@
 
 #![deny(unsafe_code)]
 
+mod font_descriptor;
+mod font_identifier;
+mod font_template;
+
 use std::sync::Arc;
 
+pub use font_descriptor::*;
+pub use font_identifier::*;
+pub use font_template::*;
 use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
 use range::{RangeIndex, int_range_index};

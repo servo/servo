@@ -12,8 +12,18 @@ name = "fonts_traits"
 path = "lib.rs"
 
 [dependencies]
+atomic_refcell = { workspace = true }
 ipc-channel = { workspace = true }
+log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+memmap2 = { workspace = true }
 range = { path = "../../range" }
+read-fonts = { workspace = true }
 serde = { workspace = true }
+servo_url = { path = "../../url" }
+stylo = { workspace = true }
+webrender_api = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+dwrote = { workspace = true }

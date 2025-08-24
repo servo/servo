@@ -17,16 +17,16 @@ use core_text::font_descriptor::{
     CTFontTraits, SymbolicTraitAccessors, TraitAccessors, kCTFontDefaultOrientation,
 };
 use euclid::default::{Point2D, Rect, Size2D};
+use fonts_traits::{FontIdentifier, LocalFontIdentifier};
 use log::debug;
 use skrifa::Tag;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::core_text_font_cache::CoreTextFontCache;
-use super::font_list::LocalFontIdentifier;
 use crate::{
-    CBDT, COLR, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
-    FractionalPixel, GlyphId, KERN, PlatformFontMethods, SBIX, map_platform_values_to_style_values,
+    CBDT, COLR, FontData, FontMetrics, FontTableMethods, FontTemplateDescriptor, FractionalPixel,
+    GlyphId, KERN, PlatformFontMethods, SBIX, map_platform_values_to_style_values,
 };
 
 const KERN_PAIR_LEN: usize = 6;

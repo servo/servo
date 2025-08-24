@@ -2669,7 +2669,6 @@ name = "fonts"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "atomic_refcell",
  "base",
  "bitflags 2.9.3",
  "byteorder",
@@ -2721,11 +2720,19 @@ dependencies = [
 name = "fonts_traits"
 version = "0.0.1"
 dependencies = [
+ "atomic_refcell",
+ "dwrote",
  "ipc-channel",
+ "log",
  "malloc_size_of_derive",
+ "memmap2",
  "range",
+ "read-fonts",
  "serde",
  "servo_malloc_size_of",
+ "servo_url",
+ "stylo",
+ "webrender_api",
 ]
 
 [[package]]

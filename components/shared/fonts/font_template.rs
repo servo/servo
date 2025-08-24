@@ -14,10 +14,7 @@ use style::computed_values::font_style::T as FontStyle;
 use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::font::FontWeight;
 
-use crate::font::FontDescriptor;
-use crate::system_font_service::{
-    CSSFontFaceDescriptors, ComputedFontStyleDescriptor, FontIdentifier,
-};
+use crate::{CSSFontFaceDescriptors, ComputedFontStyleDescriptor, FontDescriptor, FontIdentifier};
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
 #[derive(Clone, Debug, MallocSizeOf)]
@@ -120,7 +117,7 @@ impl FontTemplateDescriptor {
             self.stretch.1 >= descriptor_to_match.stretch
     }
 
-    pub(crate) fn override_values_with_css_font_template_descriptors(
+    pub fn override_values_with_css_font_template_descriptors(
         &mut self,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
     ) {
@@ -512,7 +509,7 @@ impl FontMatchDistanceMethod for FontStyle {
     }
 }
 
-pub(crate) trait IsOblique {
+pub trait IsOblique {
     fn is_oblique(&self) -> bool;
 }
 

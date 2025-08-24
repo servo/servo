@@ -18,7 +18,6 @@ tracing = ["dep:tracing"]
 
 [dependencies]
 app_units = { workspace = true }
-atomic_refcell = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
 compositing_traits = { workspace = true }
@@ -73,7 +72,7 @@ fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 xml-rs = "0.8"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = "0.11.4"
+dwrote = { workspace = true }
 winapi = { workspace = true }
 
 [lints.rust]
