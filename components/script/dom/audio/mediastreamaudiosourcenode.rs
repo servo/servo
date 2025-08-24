@@ -7,8 +7,8 @@ use js::rust::HandleObject;
 use servo_media::audio::node::AudioNodeInit;
 use servo_media::streams::MediaStreamType;
 
-use crate::dom::audiocontext::AudioContext;
-use crate::dom::audionode::AudioNode;
+use crate::dom::audio::audiocontext::AudioContext;
+use crate::dom::audio::audionode::AudioNode;
 use crate::dom::bindings::codegen::Bindings::MediaStreamAudioSourceNodeBinding::{
     MediaStreamAudioSourceNodeMethods, MediaStreamAudioSourceOptions,
 };

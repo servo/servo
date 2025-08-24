@@ -12,9 +12,10 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 
-use crate::dom::audiobuffer::{AudioBuffer, MAX_SAMPLE_RATE, MIN_SAMPLE_RATE};
-use crate::dom::audionode::MAX_CHANNEL_COUNT;
-use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
+use crate::dom::audio::audiobuffer::{AudioBuffer, MAX_SAMPLE_RATE, MIN_SAMPLE_RATE};
+use crate::dom::audio::audionode::MAX_CHANNEL_COUNT;
+use crate::dom::audio::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
+use crate::dom::audio::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContext_Binding::BaseAudioContextMethods;
 use crate::dom::bindings::codegen::Bindings::OfflineAudioContextBinding::{
@@ -27,7 +28,6 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::realms::InRealm;

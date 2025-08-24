@@ -45,8 +45,8 @@ use webrender_api::{
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
-use crate::dom::audiotrack::AudioTrack;
-use crate::dom::audiotracklist::AudioTrackList;
+use crate::dom::audio::audiotrack::AudioTrack;
+use crate::dom::audio::audiotracklist::AudioTrackList;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{

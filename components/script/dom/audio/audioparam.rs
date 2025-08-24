@@ -11,7 +11,7 @@ use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::{ParamRate, ParamType, RampKind, UserAutomationEvent};
 
 use crate::conversions::Convert;
-use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
     AudioParamMethods, AutomationRate,
 };

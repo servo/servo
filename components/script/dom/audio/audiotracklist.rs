@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 
-use crate::dom::audiotrack::AudioTrack;
+use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AudioTrackListBinding::AudioTrackListMethods;
 use crate::dom::bindings::inheritance::Castable;

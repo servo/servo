@@ -13,8 +13,8 @@ use servo_media::audio::iir_filter_node::{IIRFilterNode as IIRFilter, IIRFilterN
 use servo_media::audio::node::AudioNodeInit;
 
 use crate::conversions::Convert;
-use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper};
-use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };

@@ -10,7 +10,11 @@ use js::rust::HandleObject;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 
 use crate::conversions::Convert;
-use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
+use crate::dom::audio::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
+use crate::dom::audio::mediaelementaudiosourcenode::MediaElementAudioSourceNode;
+use crate::dom::audio::mediastreamaudiodestinationnode::MediaStreamAudioDestinationNode;
+use crate::dom::audio::mediastreamaudiosourcenode::MediaStreamAudioSourceNode;
+use crate::dom::audio::mediastreamtrackaudiosourcenode::MediaStreamTrackAudioSourceNode;
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
     AudioContextLatencyCategory, AudioContextMethods, AudioContextOptions, AudioTimestamp,
 };
@@ -25,12 +29,8 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
-use crate::dom::mediaelementaudiosourcenode::MediaElementAudioSourceNode;
 use crate::dom::mediastream::MediaStream;
-use crate::dom::mediastreamaudiodestinationnode::MediaStreamAudioDestinationNode;
-use crate::dom::mediastreamaudiosourcenode::MediaStreamAudioSourceNode;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
-use crate::dom::mediastreamtrackaudiosourcenode::MediaStreamTrackAudioSourceNode;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::realms::InRealm;

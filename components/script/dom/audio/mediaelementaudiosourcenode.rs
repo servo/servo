@@ -9,8 +9,8 @@ use js::rust::HandleObject;
 use servo_media::audio::media_element_source_node::MediaElementSourceNodeMessage;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 
-use crate::dom::audiocontext::AudioContext;
-use crate::dom::audionode::AudioNode;
+use crate::dom::audio::audiocontext::AudioContext;
+use crate::dom::audio::audionode::AudioNode;
 use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding::{
     MediaElementAudioSourceNodeMethods, MediaElementAudioSourceOptions,
 };

@@ -14,10 +14,10 @@ use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
-use crate::dom::audiobuffer::AudioBuffer;
-use crate::dom::audioparam::AudioParam;
-use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
-use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::audio::audiobuffer::AudioBuffer;
+use crate::dom::audio::audioparam::AudioParam;
+use crate::dom::audio::audioscheduledsourcenode::AudioScheduledSourceNode;
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::{
     AudioBufferSourceNodeMethods, AudioBufferSourceOptions,
 };
