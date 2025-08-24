@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use stylo_atoms::Atom;
 
+use super::gamepad::Gamepad;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding::GamepadEventMethods;
@@ -15,7 +16,6 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
-use crate::dom::gamepad::Gamepad;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

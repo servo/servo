@@ -44,15 +44,15 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::{FireMouseEventType, FocusInitiator, TouchEventResult};
 use crate::dom::event::{EventBubbles, EventCancelable, EventDefault};
-use crate::dom::gamepad::contains_user_gesture;
-use crate::dom::gamepadevent::GamepadEventType;
+use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
+use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::node::{self, Node, ShadowIncluding};
 use crate::dom::pointerevent::PointerId;
 use crate::dom::types::{
-    ClipboardEvent, CompositionEvent, DataTransfer, Element, Event, EventTarget, Gamepad,
-    GlobalScope, HTMLAnchorElement, KeyboardEvent, MouseEvent, PointerEvent, Touch, TouchEvent,
-    TouchList, WheelEvent, Window,
+    ClipboardEvent, CompositionEvent, DataTransfer, Element, Event, EventTarget, GlobalScope,
+    HTMLAnchorElement, KeyboardEvent, MouseEvent, PointerEvent, Touch, TouchEvent, TouchList,
+    WheelEvent, Window,
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::realms::enter_realm;
