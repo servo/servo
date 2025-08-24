@@ -8,8 +8,8 @@ use dom_struct::dom_struct;
 use servo_media::audio::node::AudioNodeType;
 use servo_media::audio::param::{ParamDir, ParamType};
 
-use crate::dom::audioparam::AudioParam;
-use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::audio::audioparam::AudioParam;
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioListenerBinding::AudioListenerMethods;
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
     AudioParamMethods, AutomationRate,

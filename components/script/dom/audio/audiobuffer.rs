@@ -9,8 +9,8 @@ use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 
-use super::bindings::buffer_source::HeapBufferSource;
-use crate::dom::audionode::MAX_CHANNEL_COUNT;
+use crate::dom::audio::audionode::MAX_CHANNEL_COUNT;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
     AudioBufferMethods, AudioBufferOptions,

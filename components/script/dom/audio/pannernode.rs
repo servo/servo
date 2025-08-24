@@ -14,9 +14,9 @@ use servo_media::audio::panner_node::{
 use servo_media::audio::param::{ParamDir, ParamType};
 
 use crate::conversions::Convert;
-use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper};
-use crate::dom::audioparam::AudioParam;
-use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
+use crate::dom::audio::audioparam::AudioParam;
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };

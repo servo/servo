@@ -9,8 +9,8 @@ use servo_media::audio::node::{
     AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage, OnEndedCallback,
 };
 
-use crate::dom::audionode::{AudioNode, UnwrappedAudioNodeOptions};
-use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::audio::audionode::{AudioNode, UnwrappedAudioNodeOptions};
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;

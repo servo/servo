@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use stylo_atoms::Atom;
 
-use crate::dom::audiobuffer::AudioBuffer;
+use crate::dom::audio::audiobuffer::AudioBuffer;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::OfflineAudioCompletionEventBinding::{
     OfflineAudioCompletionEventInit, OfflineAudioCompletionEventMethods,

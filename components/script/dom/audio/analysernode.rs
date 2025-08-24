@@ -11,8 +11,8 @@ use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::block::Block;
 use servo_media::audio::node::AudioNodeInit;
 
-use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper};
-use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::{
     AnalyserNodeMethods, AnalyserOptions,

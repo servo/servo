@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use stylo_atoms::Atom;
 
-use crate::dom::audiotrack::AudioTrack;
+use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::TrackEventBinding;
 use crate::dom::bindings::codegen::Bindings::TrackEventBinding::TrackEventMethods;
