@@ -19,6 +19,7 @@ use fontconfig_sys::{
     FcObjectSetCreate, FcObjectSetDestroy, FcPattern, FcPatternAddString, FcPatternCreate,
     FcPatternDestroy, FcPatternGetInteger, FcPatternGetString, FcResultMatch, FcSetSystem,
 };
+use fonts_traits::{FontTemplate, FontTemplateDescriptor, LocalFontIdentifier};
 use libc::{c_char, c_int};
 use log::debug;
 use style::Atom;
@@ -26,9 +27,7 @@ use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
 
-use super::LocalFontIdentifier;
 use crate::font::map_platform_values_to_style_values;
-use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::add_noto_fallback_families;
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier,

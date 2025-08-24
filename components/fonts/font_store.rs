@@ -6,15 +6,15 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
+use fonts_traits::{
+    FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, FontTemplateRefMethods,
+    IsOblique, LowercaseFontFamilyName,
+};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::{FontStyle, FontWeight};
-
-use crate::font::FontDescriptor;
-use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods, IsOblique};
-use crate::system_font_service::{FontIdentifier, LowercaseFontFamilyName};
 
 #[derive(Default, MallocSizeOf)]
 pub struct FontStore {

@@ -15,6 +15,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
 use euclid::num::Zero;
+use fonts_traits::FontDescriptor;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
@@ -186,44 +187,6 @@ impl FontMetrics {
             zero_horizontal_advance: None,
             ic_horizontal_advance: None,
             space_advance: Au::zero(),
-        }
-    }
-}
-
-/// `FontDescriptor` describes the parameters of a `Font`. It represents rendering a given font
-/// template at a particular size, with a particular font-variant-caps applied, etc. This contrasts
-/// with `FontTemplateDescriptor` in that the latter represents only the parameters inherent in the
-/// font data (weight, stretch, etc.).
-#[derive(Clone, Debug, Deserialize, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct FontDescriptor {
-    pub weight: FontWeight,
-    pub stretch: FontStretch,
-    pub style: FontStyle,
-    pub variant: font_variant_caps::T,
-    pub pt_size: Au,
-    pub variation_settings: Vec<FontVariation>,
-}
-
-impl Eq for FontDescriptor {}
-
-impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
-    fn from(style: &'a FontStyleStruct) -> Self {
-        let variation_settings = style
-            .clone_font_variation_settings()
-            .0
-            .into_iter()
-            .map(|setting| FontVariation {
-                tag: setting.tag.0,
-                value: setting.value,
-            })
-            .collect();
-        FontDescriptor {
-            weight: style.font_weight,
-            stretch: style.font_stretch,
-            style: style.font_style,
-            variant: style.font_variant_caps,
-            pt_size: Au::from_f32_px(style.font_size.computed_size().px()),
-            variation_settings,
         }
     }
 }

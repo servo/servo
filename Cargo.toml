@@ -55,6 +55,7 @@ ctr = "0.9.2"
 data-url = "0.3"
 devtools_traits = { path = "components/shared/devtools" }
 dpi = "0.1"
+dwrote = "0.11.4"
 embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
 env_logger = "0.11"

@@ -13,12 +13,12 @@ use core_foundation::string::{CFString, CFStringRef};
 use core_foundation::url::{CFURL, kCFURLPOSIXPathStyle};
 use core_graphics::display::CFDictionary;
 use core_text::font_descriptor::{kCTFontURLAttribute, kCTFontVariationAttribute};
+use fonts_traits::FontIdentifier;
 use parking_lot::RwLock;
 use webrender_api::FontVariation;
 
 use crate::FontData;
 use crate::platform::font::PlatformFont;
-use crate::system_font_service::FontIdentifier;
 
 /// A cache of `CTFont` to avoid having to create `CTFont` instances over and over. It is
 /// always possible to create a `CTFont` using a `FontTemplate` even if it isn't in this

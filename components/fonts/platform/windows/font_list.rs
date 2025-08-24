@@ -2,21 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::hash::Hash;
 use std::sync::Arc;
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
-use dwrote::{Font, FontCollection, FontDescriptor, FontStretch, FontStyle};
-use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Serialize};
+use dwrote::{Font, FontCollection, FontStretch, FontStyle};
+use fonts_traits::LocalFontIdentifier;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
 use style::values::specified::font::FontStretchKeyword;
-use webrender_api::NativeFontHandle;
 
 use crate::{
-    EmojiPresentationPreference, FallbackFontSelectionOptions, FontData, FontDataAndIndex,
-    FontIdentifier, FontTemplate, FontTemplateDescriptor, LowercaseFontFamilyName,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
+    FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
 pub fn for_each_available_family<F>(mut callback: F)
@@ -31,71 +28,6 @@ where
     }
 }
 
-/// An identifier for a local font on a Windows system.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct LocalFontIdentifier {
-    /// The FontDescriptor of this font.
-    #[ignore_malloc_size_of = "dwrote does not support MallocSizeOf"]
-    pub font_descriptor: Arc<FontDescriptor>,
-}
-
-impl LocalFontIdentifier {
-    pub fn index(&self) -> u32 {
-        FontCollection::system()
-            .font_from_descriptor(&self.font_descriptor)
-            .ok()
-            .flatten()
-            .map_or(0, |font| font.create_font_face().get_index())
-    }
-
-    pub(crate) fn native_font_handle(&self) -> NativeFontHandle {
-        let face = FontCollection::system()
-            .font_from_descriptor(&self.font_descriptor)
-            .ok()
-            .flatten()
-            .expect("Could not create Font from FontDescriptor")
-            .create_font_face();
-        let path = face
-            .files()
-            .ok()
-            .and_then(|files| files.first().cloned())
-            .expect("Could not get FontFace files")
-            .font_file_path()
-            .ok()
-            .expect("Could not get FontFace files path");
-        NativeFontHandle {
-            path,
-            index: face.get_index(),
-        }
-    }
-
-    pub(crate) fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
-        let font = FontCollection::system()
-            .font_from_descriptor(&self.font_descriptor)
-            .ok()??;
-        let face = font.create_font_face();
-        let index = face.get_index();
-        let files = face.files().ok()?;
-        assert!(!files.is_empty());
-
-        let data = files[0].font_file_bytes().ok()?;
-        let data = FontData::from_bytes(&data);
-
-        Some(FontDataAndIndex { data, index })
-    }
-}
-
-impl Eq for LocalFontIdentifier {}
-
-impl Hash for LocalFontIdentifier {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.font_descriptor.family_name.hash(state);
-        self.font_descriptor.weight.to_u32().hash(state);
-        self.font_descriptor.stretch.to_u32().hash(state);
-        self.font_descriptor.style.to_u32().hash(state);
-    }
-}
-
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
     F: FnMut(FontTemplate),
@@ -107,7 +39,7 @@ where
             let Ok(font) = family.font(i) else {
                 continue;
             };
-            let template_descriptor = (&font).into();
+            let template_descriptor = font_template_descriptor_from_font(&font);
             let local_font_identifier = LocalFontIdentifier {
                 font_descriptor: Arc::new(font.to_descriptor()),
             };
@@ -383,29 +315,27 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     families
 }
 
-impl From<&Font> for FontTemplateDescriptor {
-    fn from(font: &Font) -> Self {
-        let style = match font.style() {
-            FontStyle::Normal => StyleFontStyle::NORMAL,
-            FontStyle::Oblique => StyleFontStyle::OBLIQUE,
-            FontStyle::Italic => StyleFontStyle::ITALIC,
-        };
-        let weight = StyleFontWeight::from_float(font.weight().to_u32() as f32);
-        let stretch = match font.stretch() {
-            FontStretch::Undefined => FontStretchKeyword::Normal,
-            FontStretch::UltraCondensed => FontStretchKeyword::UltraCondensed,
-            FontStretch::ExtraCondensed => FontStretchKeyword::ExtraCondensed,
-            FontStretch::Condensed => FontStretchKeyword::Condensed,
-            FontStretch::SemiCondensed => FontStretchKeyword::SemiCondensed,
-            FontStretch::Normal => FontStretchKeyword::Normal,
-            FontStretch::SemiExpanded => FontStretchKeyword::SemiExpanded,
-            FontStretch::Expanded => FontStretchKeyword::Expanded,
-            FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
-            FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
-        }
-        .compute();
-        FontTemplateDescriptor::new(weight, stretch, style)
+fn font_template_descriptor_from_font(font: &Font) -> FontTemplateDescriptor {
+    let style = match font.style() {
+        FontStyle::Normal => StyleFontStyle::NORMAL,
+        FontStyle::Oblique => StyleFontStyle::OBLIQUE,
+        FontStyle::Italic => StyleFontStyle::ITALIC,
+    };
+    let weight = StyleFontWeight::from_float(font.weight().to_u32() as f32);
+    let stretch = match font.stretch() {
+        FontStretch::Undefined => FontStretchKeyword::Normal,
+        FontStretch::UltraCondensed => FontStretchKeyword::UltraCondensed,
+        FontStretch::ExtraCondensed => FontStretchKeyword::ExtraCondensed,
+        FontStretch::Condensed => FontStretchKeyword::Condensed,
+        FontStretch::SemiCondensed => FontStretchKeyword::SemiCondensed,
+        FontStretch::Normal => FontStretchKeyword::Normal,
+        FontStretch::SemiExpanded => FontStretchKeyword::SemiExpanded,
+        FontStretch::Expanded => FontStretchKeyword::Expanded,
+        FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
+        FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
     }
+    .compute();
+    FontTemplateDescriptor::new(weight, stretch, style)
 }
 
 pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {

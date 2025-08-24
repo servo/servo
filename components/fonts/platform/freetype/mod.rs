@@ -2,19 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::convert::TryInto;
-use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::str;
-
-use malloc_size_of_derive::MallocSizeOf;
-use memmap2::Mmap;
-use serde::{Deserialize, Serialize};
-use style::Atom;
-use webrender_api::NativeFontHandle;
-
-use crate::{FontData, FontDataAndIndex};
-
 pub mod font;
 mod freetype_face;
 
@@ -37,36 +24,3 @@ mod ohos {
 pub use self::ohos::font_list;
 
 mod library_handle;
-
-/// An identifier for a local font on systems using Freetype.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct LocalFontIdentifier {
-    /// The path to the font.
-    pub path: Atom,
-    /// The variation index within the font.
-    pub variation_index: i32,
-}
-
-impl LocalFontIdentifier {
-    pub(crate) fn index(&self) -> u32 {
-        self.variation_index.try_into().unwrap()
-    }
-
-    pub(crate) fn native_font_handle(&self) -> NativeFontHandle {
-        NativeFontHandle {
-            path: PathBuf::from(&*self.path),
-            index: self.variation_index as u32,
-        }
-    }
-
-    pub(crate) fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
-        let file = File::open(Path::new(&*self.path)).ok()?;
-        let mmap = unsafe { Mmap::map(&file).ok()? };
-        let data = FontData::from_bytes(&mmap);
-
-        Some(FontDataAndIndex {
-            data,
-            index: self.variation_index as u32,
-        })
-    }
-}

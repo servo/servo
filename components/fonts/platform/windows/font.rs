@@ -17,6 +17,7 @@ use dwrote::{
     DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_NONE, FontCollection, FontFace, FontFile,
 };
 use euclid::default::{Point2D, Rect, Size2D};
+use fonts_traits::LocalFontIdentifier;
 use log::debug;
 use read_fonts::TableProvider;
 use skrifa::Tag;
@@ -24,7 +25,6 @@ use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
 use winapi::shared::minwindef::{BOOL, FALSE};
 
-use super::font_list::LocalFontIdentifier;
 use crate::{
     FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
     FractionalPixel, GlyphId, PlatformFontMethods,

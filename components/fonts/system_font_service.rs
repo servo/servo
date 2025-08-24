@@ -5,11 +5,13 @@
 use std::borrow::ToOwned;
 use std::cell::OnceCell;
 use std::collections::HashMap;
-use std::ops::{Deref, RangeInclusive};
-use std::{fmt, thread};
+use std::thread;
 
 use app_units::Au;
 use compositing_traits::CrossProcessCompositorApi;
+use fonts_traits::{
+    FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, LowercaseFontFamilyName,
+};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::debug;
 use malloc_size_of::MallocSizeOf as MallocSizeOfTrait;
@@ -21,37 +23,13 @@ use profile_traits::mem::{
 use profile_traits::path;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
-use servo_url::ServoUrl;
-use style::font_face::{FontFaceRuleData, FontStyle as FontFaceStyle};
-use style::values::computed::font::{
-    FixedPoint, FontStyleFixedPoint, GenericFontFamily, SingleFontFamily,
-};
-use style::values::computed::{FontStretch, FontWeight};
-use style::values::specified::FontStretch as SpecifiedFontStretch;
+use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
-use crate::font::FontDescriptor;
 use crate::font_store::FontStore;
-use crate::font_template::{FontTemplate, FontTemplateRef};
-use crate::platform::LocalFontIdentifier;
 use crate::platform::font_list::{
     default_system_generic_font_family, for_each_available_family, for_each_variation,
 };
-
-#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub enum FontIdentifier {
-    Local(LocalFontIdentifier),
-    Web(ServoUrl),
-}
-
-impl FontIdentifier {
-    pub fn index(&self) -> u32 {
-        match *self {
-            Self::Local(ref local_font_identifier) => local_font_identifier.index(),
-            Self::Web(_) => 0,
-        }
-    }
-}
 
 /// Commands that the `FontContext` sends to the `SystemFontService`.
 #[derive(Debug, Deserialize, Serialize)]
@@ -379,89 +357,6 @@ pub struct SystemFontServiceProxy {
     templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
 }
 
-/// A version of `FontStyle` from Stylo that is serializable. Normally this is not
-/// because the specified version of `FontStyle` contains floats.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ComputedFontStyleDescriptor {
-    Italic,
-    Oblique(FontStyleFixedPoint, FontStyleFixedPoint),
-}
-
-/// This data structure represents the various optional descriptors that can be
-/// applied to a `@font-face` rule in CSS. These are used to create a [`FontTemplate`]
-/// from the given font data used as the source of the `@font-face` rule. If values
-/// like weight, stretch, and style are not specified they are initialized based
-/// on the contents of the font itself.
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct CSSFontFaceDescriptors {
-    pub family_name: LowercaseFontFamilyName,
-    pub weight: Option<(FontWeight, FontWeight)>,
-    pub stretch: Option<(FontStretch, FontStretch)>,
-    pub style: Option<ComputedFontStyleDescriptor>,
-    pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
-}
-
-impl CSSFontFaceDescriptors {
-    pub fn new(family_name: &str) -> Self {
-        CSSFontFaceDescriptors {
-            family_name: family_name.into(),
-            ..Default::default()
-        }
-    }
-}
-
-impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
-    fn from(rule_data: &FontFaceRuleData) -> Self {
-        let family_name = rule_data
-            .family
-            .as_ref()
-            .expect("Expected rule to contain a font family.")
-            .name
-            .clone();
-        let weight = rule_data
-            .weight
-            .as_ref()
-            .map(|weight_range| (weight_range.0.compute(), weight_range.1.compute()));
-
-        let stretch_to_computed = |specified: SpecifiedFontStretch| match specified {
-            SpecifiedFontStretch::Stretch(percentage) => {
-                FontStretch::from_percentage(percentage.compute().0)
-            },
-            SpecifiedFontStretch::Keyword(keyword) => keyword.compute(),
-            SpecifiedFontStretch::System(_) => FontStretch::NORMAL,
-        };
-        let stretch = rule_data.stretch.as_ref().map(|stretch_range| {
-            (
-                stretch_to_computed(stretch_range.0),
-                stretch_to_computed(stretch_range.1),
-            )
-        });
-
-        fn style_to_computed(specified: &FontFaceStyle) -> ComputedFontStyleDescriptor {
-            match specified {
-                FontFaceStyle::Italic => ComputedFontStyleDescriptor::Italic,
-                FontFaceStyle::Oblique(angle_a, angle_b) => ComputedFontStyleDescriptor::Oblique(
-                    FixedPoint::from_float(angle_a.degrees()),
-                    FixedPoint::from_float(angle_b.degrees()),
-                ),
-            }
-        }
-        let style = rule_data.style.as_ref().map(style_to_computed);
-        let unicode_range = rule_data
-            .unicode_range
-            .as_ref()
-            .map(|ranges| ranges.iter().map(|range| range.start..=range.end).collect());
-
-        CSSFontFaceDescriptors {
-            family_name: family_name.into(),
-            weight,
-            stretch,
-            style,
-            unicode_range,
-        }
-    }
-}
-
 impl SystemFontServiceProxy {
     pub fn exit(&self) {
         let (response_chan, response_port) = ipc::channel().unwrap();
@@ -582,33 +477,5 @@ impl SystemFontServiceProxy {
         result_receiver
             .recv()
             .expect("Failed to communicate with system font service.")
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct LowercaseFontFamilyName {
-    inner: String,
-}
-
-impl<T: AsRef<str>> From<T> for LowercaseFontFamilyName {
-    fn from(value: T) -> Self {
-        LowercaseFontFamilyName {
-            inner: value.as_ref().to_lowercase(),
-        }
-    }
-}
-
-impl Deref for LowercaseFontFamilyName {
-    type Target = str;
-
-    #[inline]
-    fn deref(&self) -> &str {
-        &self.inner
-    }
-}
-
-impl fmt::Display for LowercaseFontFamilyName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.inner.fmt(f)
     }
 }

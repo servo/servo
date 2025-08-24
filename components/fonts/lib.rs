@@ -7,7 +7,6 @@
 mod font;
 mod font_context;
 mod font_store;
-mod font_template;
 mod glyph;
 #[allow(unsafe_code)]
 pub mod platform;
@@ -17,10 +16,8 @@ mod system_font_service;
 pub use font::*;
 pub use font_context::*;
 pub use font_store::*;
-pub use font_template::*;
-pub use fonts_traits::*;
+pub use fonts_traits::{LocalFontIdentifier, *};
 pub use glyph::*;
-pub use platform::LocalFontIdentifier;
 pub use shapers::*;
 pub use system_font_service::*;
 use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};

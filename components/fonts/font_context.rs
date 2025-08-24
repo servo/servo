@@ -13,7 +13,10 @@ use app_units::Au;
 use base::id::WebViewId;
 use compositing_traits::CrossProcessCompositorApi;
 use fnv::FnvHasher;
-use fonts_traits::StylesheetWebFontLoadFinishedCallback;
+use fonts_traits::{
+    CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
+    FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
+};
 use log::{debug, trace};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::request::{Destination, Referrer, RequestBuilder};
@@ -35,13 +38,9 @@ use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFont
 use url::Url;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
-use crate::font::{
-    Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope,
-};
+use crate::font::{Font, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope};
 use crate::font_store::CrossThreadFontStore;
-use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::PlatformFont;
-use crate::system_font_service::{CSSFontFaceDescriptors, FontIdentifier};
 use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontServiceProxy};
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
