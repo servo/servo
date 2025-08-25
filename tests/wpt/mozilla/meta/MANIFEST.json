@@ -32,6 +32,13 @@
       {}
      ]
     ],
+    "form-navigate-loop-crash.html": [
+     "81a83916032922c1c5cce886433d5a6a2313d185",
+     [
+      null,
+      {}
+     ]
+    ],
     "form_reset-crash.html": [
      "b23cbf6aefdef8231e2cc4cb0e6416195d5bdf71",
      [
@@ -55,13 +62,6 @@
     ],
     "location-set-crash.html": [
      "0b1695df79b0437fb644bfcb3ef09bc0eb906f1e",
-     [
-      null,
-      {}
-     ]
-    ],
-    "navigate-loop-crash.html": [
-     "626ca5d87cc9ebb3b5bcb0b8c478ed9a1a0e0c66",
      [
       null,
       {}
