@@ -259,12 +259,12 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             // 6.1. Let parsed be the result of parsing options["url"] with settings’s API base URL.
             let parsed_url = ServoUrl::parse_with_base(Some(&global.api_base_url()), get_url);
 
-            // 6.2. If this’s relevant global object is a Window object and parsed does not equal url,
+            // 6.2. If this’s relevant global object is a Window object and parsed does not equal url with exclude fragments set to true,
             // then return a promise rejected with a TypeError.
             if let Some(_window) = DomRoot::downcast::<Window>(self.global()) {
                 if parsed_url
                     .as_ref()
-                    .is_ok_and(|parsed| parsed.as_url() != creation_url.as_url())
+                    .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(creation_url))
                 {
                     p.reject_error(
                         Error::Type("URL does not match context".to_string()),
@@ -354,7 +354,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 2. Let origin be settings’s origin.
         let origin = global.origin();
 
-        // 7. Let p be a new promise.
+        // 6. Let p be a new promise.
         let p = Promise::new(&global, can_gc);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
@@ -366,26 +366,19 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 4. Let url be settings’s creation URL.
         let creation_url = global.creation_url();
 
-        // 5. If options is empty, then return a promise rejected with a TypeError.
-        // "is empty" is not strictly defined anywhere in the spec but the only value we require here is "url"
-        if options.url.is_none() && options.name.is_none() {
-            p.reject_error(Error::Type("Options cannot be empty".to_string()), can_gc);
-            return p;
-        }
-
         let mut final_url = creation_url.clone();
 
-        // 6. If options["url"] is present, then run these steps:
+        // 5. If options["url"] is present, then run these steps:
         if let Some(get_url) = &options.url {
-            // 6.1. Let parsed be the result of parsing options["url"] with settings’s API base URL.
+            // 5.1. Let parsed be the result of parsing options["url"] with settings’s API base URL.
             let parsed_url = ServoUrl::parse_with_base(Some(&global.api_base_url()), get_url);
 
-            // 6.2. If this’s relevant global object is a Window object and parsed does not equal url,
+            // If this’s relevant global object is a Window object and parsed does not equal url with exclude fragments set to true,
             // then return a promise rejected with a TypeError.
             if let Some(_window) = DomRoot::downcast::<Window>(self.global()) {
                 if parsed_url
                     .as_ref()
-                    .is_ok_and(|parsed| parsed.as_url() != creation_url.as_url())
+                    .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(creation_url))
                 {
                     p.reject_error(
                         Error::Type("URL does not match context".to_string()),
@@ -395,7 +388,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 }
             }
 
-            // 6.3. If parsed’s origin and url’s origin are not the same origin,
+            // 5.3. If parsed’s origin and url’s origin are not the same origin,
             // then return a promise rejected with a TypeError.
             if parsed_url
                 .as_ref()
@@ -405,13 +398,13 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 return p;
             }
 
-            // 6.4. Set url to parsed.
+            // 5.4. Set url to parsed.
             if let Ok(url) = parsed_url {
                 final_url = url;
             }
         }
 
-        // 6. Run the following steps in parallel:
+        // 7. Run the following steps in parallel:
         let res =
             self.global()
                 .resource_threads()
