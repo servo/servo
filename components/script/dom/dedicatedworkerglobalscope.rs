@@ -325,7 +325,6 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
-        let cx = runtime.cx();
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
             init,
             worker_name,
@@ -344,12 +343,10 @@ impl DedicatedWorkerGlobalScope {
             control_receiver,
             insecure_requests_policy,
         ));
-        unsafe {
-            DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-                SafeJSContext::from_ptr(cx),
-                scope,
-            )
-        }
+        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+            GlobalScope::get_cx(),
+            scope,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -430,7 +427,6 @@ impl DedicatedWorkerGlobalScope {
                     Runtime::new_with_parent(Some(parent), Some(task_source))
                 };
                 let debugger_global = DebuggerGlobalScope::new(
-                    &runtime,
                     pipeline_id,
                     init.to_devtools_sender.clone(),
                     init.from_devtools_sender

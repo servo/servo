@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use base::id::PipelineId;
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
-use js::rust::Runtime;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -15,9 +14,9 @@ use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
-use crate::script_runtime::JSContext;
 
 // check-tidy: no specs after this line
 
@@ -32,7 +31,6 @@ pub(crate) struct TestWorkletGlobalScope {
 impl TestWorkletGlobalScope {
     #[allow(unsafe_code)]
     pub(crate) fn new(
-        runtime: &Runtime,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         executor: WorkletExecutor,
@@ -51,12 +49,7 @@ impl TestWorkletGlobalScope {
             ),
             lookup_table: Default::default(),
         });
-        unsafe {
-            TestWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-                JSContext::from_ptr(runtime.cx()),
-                global,
-            )
-        }
+        TestWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), global)
     }
 
     pub(crate) fn perform_a_worklet_task(&self, task: TestWorkletTask) {

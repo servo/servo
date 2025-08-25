@@ -12,7 +12,6 @@ use embedder_traits::JavaScriptEvaluationError;
 use embedder_traits::resources::{self, Resource};
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
-use js::rust::Runtime;
 use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
@@ -61,7 +60,6 @@ impl DebuggerGlobalScope {
     ///   those threads can’t generate pipeline ids, and they only contain one debuggee from one pipeline
     #[allow(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn new(
-        runtime: &Runtime,
         debugger_pipeline_id: PipelineId,
         script_to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         devtools_to_script_sender: IpcSender<DevtoolScriptControlMsg>,
@@ -93,12 +91,8 @@ impl DebuggerGlobalScope {
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
         });
-        let global = unsafe {
-            DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-                JSContext::from_ptr(runtime.cx()),
-                global,
-            )
-        };
+        let global =
+            DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), global);
 
         let realm = enter_realm(&*global);
         define_all_exposed_interfaces(global.upcast(), InRealm::entered(&realm), can_gc);
