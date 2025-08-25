@@ -91,6 +91,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     false,
                     Some(doc.insecure_requests_policy()),
                     doc.has_trustworthy_ancestor_or_current_origin(),
+                    doc.custom_element_reaction_stack(),
                     can_gc,
                 );
                 ServoParser::parse_html_document(&document, Some(s), url, can_gc);
@@ -116,6 +117,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     false,
                     Some(doc.insecure_requests_policy()),
                     doc.has_trustworthy_ancestor_or_current_origin(),
+                    doc.custom_element_reaction_stack(),
                     can_gc,
                 );
                 ServoParser::parse_xml_document(&document, Some(s), url, can_gc);

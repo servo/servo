@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashSet;
+
 use crossbeam_channel::{Receiver, select};
 use devtools_traits::DevtoolScriptControlMsg;
 
@@ -53,7 +55,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     let event = select! {
         recv(worker_scope.control_receiver()) -> msg => T::from_control_msg(msg.unwrap()),
         recv(task_queue.select()) -> msg => {
-            task_queue.take_tasks(msg.unwrap());
+            task_queue.take_tasks(msg.unwrap(), HashSet::new());
             T::from_worker_msg(task_queue.recv().unwrap())
         },
         recv(devtools_receiver) -> msg => T::from_devtools_msg(msg.unwrap()),
@@ -72,7 +74,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     while !scope.is_closing() {
         // Batch all events that are ready.
         // The task queue will throttle non-priority tasks if necessary.
-        match task_queue.take_tasks_and_recv() {
+        match task_queue.take_tasks_and_recv(HashSet::new()) {
             Err(_) => match devtools_receiver.try_recv() {
                 Ok(message) => sequential.push(T::from_devtools_msg(message)),
                 Err(_) => break,
