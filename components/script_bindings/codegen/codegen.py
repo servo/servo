@@ -13,7 +13,7 @@ from WebIDL import IDLSequenceType
 from collections import defaultdict
 from itertools import groupby
 from typing import cast, Optional, Any, Generic, TypeVar
-from collections.abc import Generator, Callable, Iterator
+from collections.abc import Generator, Callable, Iterator, Iterable
 from abc import abstractmethod
 
 import operator
@@ -49,6 +49,10 @@ from WebIDL import (
     IDLInterfaceOrNamespace,
     IDLValue,
     IDLMethod,
+    IDLEnum,
+    IDLNamespace,
+    IDLCallbackType,
+    IDLUnresolvedIdentifier,
 )
 
 from configuration import (
@@ -234,7 +238,7 @@ def innerContainerType(type: IDLType) -> IDLType:
     return type.inner.inner if type.nullable() else type.inner
 
 
-def wrapInNativeContainerType(type: IDLType, inner: CGThing | None) -> CGThing:
+def wrapInNativeContainerType(type: IDLType, inner: CGThing) -> CGThing:
     if type.isSequence():
         return CGWrapper(inner, pre="Vec<", post=">")
     elif type.isRecord():
@@ -774,7 +778,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
     # Helper functions for dealing with failures due to the JS value being the
     # wrong type of value.
-    def onFailureNotAnObject(failureCode: str | None) -> CGThing:
+    def onFailureNotAnObject(failureCode: str | None) -> CGWrapper:
         return CGWrapper(
             CGGeneric(
                 failureCode
@@ -782,7 +786,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                     f'{exceptionCode}')),
             post="\n")
 
-    def onFailureNotCallable(failureCode: str | None) -> CGThing:
+    def onFailureNotCallable(failureCode: str | None) -> CGGeneric:
         return CGGeneric(
             failureCode
             or (f'throw_type_error(*cx, \"{firstCap(sourceDescription)} is not callable.\");\n'
@@ -845,6 +849,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                                                 descriptorProvider,
                                                 isMember="Sequence",
                                                 isAutoRooted=isAutoRooted)
+        assert innerInfo.declType is not None
         declType = wrapInNativeContainerType(type, innerInfo.declType)
         config = getConversionConfigForType(type, innerContainerType(type).hasEnforceRange(), isClamp, treatNullAs)
 
@@ -1392,6 +1397,7 @@ class CGArgumentConverter(CGThing):
                                                CGGeneric(template)).define()
                 else:
                     assert not default
+                    assert declType is not None
                     declType = CGWrapper(declType, pre="Option<", post=">")
                     template = CGIfElseWrapper(condition,
                                                CGGeneric("None"),
@@ -2208,12 +2214,12 @@ class CGIndenter(CGThing):
     A class that takes another CGThing and generates code that indents that
     CGThing by some number of spaces.  The default indent is two spaces.
     """
-    def __init__(self, child, indentLevel=4):
+    def __init__(self, child: CGThing, indentLevel: int = 4) -> None:
         CGThing.__init__(self)
         self.child = child
         self.indent = " " * indentLevel
 
-    def define(self):
+    def define(self) -> str:
         defn = self.child.define()
         if defn != "":
             return re.sub(lineStartDetector, self.indent, defn)
@@ -2230,14 +2236,14 @@ class CGWrapper(CGThing):
     post: str
     reindent: bool
 
-    def __init__(self, child, pre: str = "", post: str= "", reindent: bool = False):
+    def __init__(self, child: CGThing, pre: str = "", post: str= "", reindent: bool = False) -> None:
         CGThing.__init__(self)
         self.child = child
         self.pre = pre
         self.post = post
         self.reindent = reindent
 
-    def define(self):
+    def define(self) -> str:
         defn = self.child.define()
         if self.reindent:
             # We don't use lineStartDetector because we don't want to
@@ -2251,13 +2257,13 @@ class CGRecord(CGThing):
     """
     CGThing that wraps value CGThing in record with key type equal to keyType parameter
     """
-    def __init__(self, keyType, value):
+    def __init__(self, keyType: IDLType, value: CGThing) -> None:
         CGThing.__init__(self)
         assert keyType.isString()
         self.keyType = keyType
         self.value = value
 
-    def define(self):
+    def define(self) -> str:
         if self.keyType.isByteString():
             keyDef = "ByteString"
         elif self.keyType.isDOMString():
@@ -2275,30 +2281,44 @@ class CGImports(CGWrapper):
     """
     Generates the appropriate import/use statements.
     """
-    def __init__(self, child, descriptors, callbacks, dictionaries, enums, typedefs, imports, config):
+    def __init__(
+            self,
+            child: CGThing,
+            descriptors: list[Descriptor],
+            callbacks: list[IDLCallbackType],
+            dictionaries: list[IDLDictionary],
+            enums: list[IDLEnum],
+            typedefs: list[IDLTypedef],
+            imports: list[str],
+            config: Configuration,
+    ) -> None:
         """
         Adds a set of imports.
         """
 
-        def componentTypes(type):
+        def componentTypes(type: IDLType) -> list[IDLType]:
             if type.isType() and type.nullable():
                 type = type.unroll()
             if type.isUnion():
+                assert isinstance(type, IDLUnionType)
+                assert type.flatMemberTypes is not None
                 return type.flatMemberTypes
             if type.isDictionary():
-                return [type] + getTypesFromDictionary(type)
+                assert isinstance(type, (IDLDictionary, IDLWrapperType))
+                return [cast(IDLType, type)] + getTypesFromDictionary(type)
             if type.isSequence():
+                assert isinstance(type, IDLSequenceType)
                 return componentTypes(type.inner)
             return [type]
 
-        def isImportable(type):
+        def isImportable(type: IDLType) -> bool:
             if not type.isType():
                 assert (type.isInterface() or type.isDictionary()
                         or type.isEnum() or type.isNamespace())
                 return True
             return not (type.builtin or type.isSequence() or type.isUnion())
 
-        def relatedTypesForSignatures(method):
+        def relatedTypesForSignatures(method: IDLMethod) -> list[IDLType]:
             types = []
             for (returnType, arguments) in method.signatures():
                 types += componentTypes(returnType)
@@ -2307,20 +2327,25 @@ class CGImports(CGWrapper):
 
             return types
 
-        def getIdentifier(t):
+        def getIdentifier(t: IDLType) -> IDLUnresolvedIdentifier:
             if t.isType():
                 if t.nullable():
+                    assert isinstance(t, IDLNullableType)
                     t = t.inner
                 if t.isCallback():
+                    assert isinstance(t, IDLCallbackType)
                     return t.callback.identifier
+                # pyrefly: ignore  # missing-attribute
                 return t.identifier
             assert t.isInterface() or t.isDictionary() or t.isEnum() or t.isNamespace()
+            assert isinstance(t, (IDLInterface, IDLDictionary, IDLEnum, IDLNamespace))
             return t.identifier
 
-        def removeWrapperAndNullableTypes(types):
+        def removeWrapperAndNullableTypes(types: list[IDLType]) -> list[IDLType]:
             normalized = []
             for t in types:
                 while (t.isType() and t.nullable()) or isinstance(t, IDLWrapperType):
+                    assert isinstance(t, (IDLNullableType, IDLWrapperType))
                     t = t.inner
                 if isImportable(t):
                     normalized += [t]
@@ -2356,11 +2381,11 @@ class CGImports(CGWrapper):
 
         # Import the type names used in the callbacks that are being defined.
         for c in callbacks:
-            types += relatedTypesForSignatures(c)
+            types += relatedTypesForSignatures(cast(IDLMethod, c))
 
         # Import the type names used in the dictionaries that are being defined.
         for d in dictionaries:
-            types += componentTypes(d)
+            types += componentTypes(cast(IDLType, d))
 
         # Import the type names used in the typedefs that are being defined.
         for t in typedefs:
@@ -2375,6 +2400,7 @@ class CGImports(CGWrapper):
         for t in types:
             # Importing these callbacks in the same module that defines them is an error.
             if t.isCallback():
+                # pyrefly: ignore  # missing-attribute
                 if getIdentifier(t) in [c.identifier for c in callbacks]:
                     continue
             # Importing these types in the same module that defines them is an error.
@@ -2406,7 +2432,7 @@ class CGImports(CGWrapper):
 
 
 class CGIfWrapper(CGWrapper):
-    def __init__(self, condition, child):
+    def __init__(self, condition: str, child: CGThing) -> None:
         pre = CGWrapper(CGGeneric(condition), pre="if ", post=" {\n",
                         reindent=True)
         CGWrapper.__init__(self, CGIndenter(child), pre=pre.define(),
@@ -2414,19 +2440,19 @@ class CGIfWrapper(CGWrapper):
 
 
 class CGTemplatedType(CGWrapper):
-    def __init__(self, templateName, child):
+    def __init__(self, templateName: str, child: CGThing) -> None:
         CGWrapper.__init__(self, child, pre=f"{templateName}<", post=">")
 
 
 class CGNamespace(CGWrapper):
-    def __init__(self, namespace, child, public=False):
+    def __init__(self, namespace: str, child: CGThing, public: bool = False) -> None:
         pub = "pub " if public else ""
         pre = f"{pub}mod {namespace} {{\n"
         post = f"}} // mod {namespace}"
         CGWrapper.__init__(self, child, pre=pre, post=post)
 
     @staticmethod
-    def build(namespaces, child, public=False):
+    def build(namespaces: list[str], child: CGThing, public: bool = False) -> CGThing:
         """
         Static helper method to build multiple wrapped namespaces.
         """
@@ -2479,11 +2505,11 @@ class CGDOMJSClass(CGThing):
     """
     Generate a DOMJSClass for a given descriptor
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         parentName = self.descriptor.getParentName()
         if not parentName:
             parentName = "Reflector"
@@ -2557,11 +2583,11 @@ class CGAssertInheritance(CGThing):
     """
     Generate a type assertion for inheritance
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         parent = self.descriptor.interface.parent
         parentName = ""
         if parent:
@@ -2605,11 +2631,11 @@ def str_to_cstr_ptr(s: str) -> str:
 
 
 class CGPrototypeJSClass(CGThing):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         name = str_to_cstr_ptr(f"{self.descriptor.interface.identifier.name}Prototype")
         slotCount = 0
         if self.descriptor.hasLegacyUnforgeableMembers:
@@ -2630,12 +2656,12 @@ static PrototypeClass: JSClass = JSClass {{
 
 
 class CGInterfaceObjectJSClass(CGThing):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         assert descriptor.interface.hasInterfaceObject() and not descriptor.interface.isCallback()
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         if self.descriptor.interface.isNamespace():
             classString = self.descriptor.interface.getExtendedAttribute("ClassString")
             if classString:
@@ -2672,7 +2698,7 @@ class CGList(CGThing):
     Generate code for a list of GCThings.  Just concatenates them together, with
     an optional joiner string.  "\n" is a common joiner.
     """
-    def __init__(self, children, joiner: str = "") -> None :
+    def __init__(self, children: Iterable[CGThing], joiner: str = "") -> None:
         CGThing.__init__(self)
         # Make a copy of the kids into a list, because if someone passes in a
         # generator we won't be able to both declare and define ourselves, or
@@ -2680,24 +2706,25 @@ class CGList(CGThing):
         self.children = list(children)
         self.joiner = joiner
 
-    def append(self, child):
-        self.children.append(child)
+    def append(self, child: CGThing | None) -> None:
+        if child is not None:
+            self.children.append(child)
 
-    def prepend(self, child):
+    def prepend(self, child: CGThing) -> None:
         self.children.insert(0, child)
 
-    def join(self, iterable):
+    def join(self, iterable: Generator[str, None, None]) -> str:
         return self.joiner.join(s for s in iterable if len(s) > 0)
 
     def define(self) -> str:
         return self.join(child.define() for child in self.children if child is not None)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.children)
 
 
 class CGIfElseWrapper(CGList):
-    def __init__(self, condition, ifTrue, ifFalse):
+    def __init__(self, condition: str, ifTrue: CGGeneric | CGWrapper, ifFalse: CGGeneric) -> None:
         if ifFalse.text.strip().startswith("if"):
             elseBranch = CGWrapper(ifFalse, pre=" else ")
         else:
@@ -2765,7 +2792,7 @@ def UnionTypes(
     callbacks: list[IDLCallback],
     typedefs: list[IDLTypedef],
     config: Configuration
-):
+) -> CGThing:
     """
     Returns a CGList containing CGUnionStructs for every union.
     """
@@ -2780,7 +2807,7 @@ def UnionTypes(
 
     # Now find all the things we'll need as arguments and return values because
     # we need to wrap or unwrap them.
-    unionStructs = dict()
+    unionStructs: dict[str, Any] = dict()
     for (t, descriptor) in getAllTypes(descriptors, dictionaries, callbacks, typedefs):
         t = t.unroll()
         if not t.isUnion():
@@ -2803,9 +2830,9 @@ def UnionTypes(
             ])
 
     # Sort unionStructs by key, retrieve value
-    unionStructs = (i[1] for i in sorted(list(unionStructs.items()), key=operator.itemgetter(0)))
+    unionStructsCG = list(i[1] for i in sorted(list(unionStructs.items()), key=operator.itemgetter(0)))
 
-    return CGImports(CGList(unionStructs, "\n\n"), descriptors=[], callbacks=[], dictionaries=[], enums=[],
+    return CGImports(CGList(unionStructsCG, "\n\n"), descriptors=[], callbacks=[], dictionaries=[], enums=[],
                      typedefs=[], imports=imports, config=config)
 
 
@@ -2954,13 +2981,13 @@ class Argument():
     """
     A class for outputting the type and name of an argument
     """
-    def __init__(self, argType, name, default=None, mutable=False):
+    def __init__(self, argType: str | None, name: str, default: str | None = None, mutable: bool = False) -> None:
         self.argType = argType
         self.name = name
         self.default = default
         self.mutable = mutable
 
-    def declare(self):
+    def declare(self) -> str:
         mut = 'mut ' if self.mutable else ''
         argType = f': {self.argType}' if self.argType else ''
         string = f"{mut}{self.name}{argType}"
@@ -2969,7 +2996,7 @@ class Argument():
         #     string += " = " + self.default
         return string
 
-    def define(self):
+    def define(self) -> str:
         return f'{self.argType} {self.name}'
 
 
@@ -3001,11 +3028,12 @@ class CGAbstractMethod(CGThing):
     unsafe is used to add the decorator 'unsafe' to a function, giving as a result
     an 'unsafe fn()' declaration.
     """
-    def __init__(self, descriptor, name, returnType, args, inline=False,
-                 alwaysInline=False, extern=False, unsafe=False, pub=False,
-                 templateArgs=None, docs=None, doesNotPanic=False, extra_decorators=[]):
+    def __init__(self, descriptor: Descriptor | None, name: str, returnType: str, args: list[Argument], inline: bool = False,
+                 alwaysInline: bool = False, extern: bool = False, unsafe: bool = False, pub: bool = False,
+                 templateArgs: list[str] | None = None, docs: str | None = None, doesNotPanic: bool = False,
+                 extra_decorators: list[str] = []) -> None:
         CGThing.__init__(self)
-        self.descriptor = descriptor
+        self._descriptor = descriptor
         self.name = name
         self.returnType = returnType
         self.args = args
@@ -3018,22 +3046,32 @@ class CGAbstractMethod(CGThing):
         self.catchPanic = self.extern and not doesNotPanic
         self.extra_decorators = extra_decorators
 
-    def _argstring(self):
+    @property
+    def descriptor(self) -> Descriptor:
+        if self._descriptor is None:
+            raise RuntimeError("descriptor must be set by subclass")
+        return self._descriptor
+
+    @descriptor.setter
+    def descriptor(self, value: Descriptor) -> None:
+        self._descriptor = value
+
+    def _argstring(self) -> str:
         return ', '.join([a.declare() for a in self.args])
 
-    def _template(self):
+    def _template(self) -> str:
         if self.templateArgs is None:
             return ''
         return f'<{", ".join(self.templateArgs)}>\n'
 
-    def _docs(self):
+    def _docs(self) -> str:
         if self.docs is None:
             return ''
 
         lines = self.docs.splitlines()
         return ''.join(f'/// {line}\n' for line in lines)
 
-    def _decorators(self):
+    def _decorators(self) -> str:
         decorators = []
         if self.alwaysInline:
             decorators.append('#[inline]')
@@ -3053,10 +3091,10 @@ class CGAbstractMethod(CGThing):
             return ''
         return f'{" ".join(decorators)} '
 
-    def _returnType(self):
+    def _returnType(self) -> str:
         return f" -> {self.returnType}" if self.returnType != "void" else ""
 
-    def define(self):
+    def define(self) -> str:
         body = self.definition_body()
 
         if self.catchPanic:
@@ -3087,11 +3125,11 @@ class CGAbstractMethod(CGThing):
                          pre=self.definition_prologue(),
                          post=self.definition_epilogue()).define()
 
-    def definition_prologue(self):
+    def definition_prologue(self) -> str:
         return (f"{self._docs()}{self._decorators()}"
                 f"fn {self.name}{self._template()}({self._argstring()}){self._returnType()}{{\n")
 
-    def definition_epilogue(self):
+    def definition_epilogue(self) -> str:
         return "\n}\n"
 
     def definition_body(self) -> CGThing:
@@ -3104,7 +3142,7 @@ class CGConstructorEnabled(CGAbstractMethod):
     This can perform various tests depending on what conditions are specified
     on the interface.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
                                   [Argument("SafeJSContext", "aCx"),
@@ -3112,7 +3150,7 @@ class CGConstructorEnabled(CGAbstractMethod):
                                   templateArgs=['D: DomTypes'],
                                   pub=True)
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         conditions = []
         iface = self.descriptor.interface
 
@@ -3140,7 +3178,7 @@ unsafe {
 }
 """)
 
-        return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
+        return CGList(list(CGGeneric(cond) for cond in conditions), " &&\n")
 
 
 def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: PropertyArrays) -> CGThing:
@@ -3208,7 +3246,7 @@ class CGWrapMethod(CGAbstractMethod):
     Class that generates the Foo_Binding::Wrap function for non-callback
     interfaces.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         assert not descriptor.interface.isCallback()
         assert not descriptor.isGlobal()
         args = [Argument('SafeJSContext', 'cx'),
@@ -3222,7 +3260,7 @@ class CGWrapMethod(CGAbstractMethod):
                                   extra_decorators=['#[cfg_attr(crown, allow(crown::unrooted_must_root))]'],
                                   templateArgs=['D: DomTypes'])
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         unforgeable = CopyLegacyUnforgeablePropertiesToInstance(self.descriptor)
         if self.descriptor.proxy:
             if self.descriptor.isMaybeCrossOriginObject():
@@ -3305,7 +3343,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     """
     Class that generates the Foo_Binding::Wrap function for global interfaces.
     """
-    def __init__(self, descriptor, properties):
+    def __init__(self, descriptor: Descriptor, properties: PropertyArrays) -> None:
         assert not descriptor.interface.isCallback()
         assert descriptor.isGlobal()
         args = [Argument('SafeJSContext', 'cx'),
@@ -3317,7 +3355,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
                                   templateArgs=['D: DomTypes'])
         self.properties = properties
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         pairs = [
             ("define_guarded_properties", self.properties.attrs),
             ("define_guarded_methods", self.properties.methods),
@@ -3370,11 +3408,11 @@ class CGIDLInterface(CGThing):
     """
     Class for codegen of an implementation of the IDLInterface trait.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         interface = self.descriptor.interface
         name = interface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
@@ -3400,12 +3438,13 @@ class CGIteratorDerives(CGThing):
     """
     Class for codegen of an implementation of the IteratorDerives trait.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         iterableInterface = self.descriptor.interface.iterableInterface
+        assert iterableInterface is not None
         name = iterableInterface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::Bindings::{toBindingPath(self.descriptor)}"
         return f"""
@@ -3422,11 +3461,11 @@ class CGDomObjectWrap(CGThing):
     """
     Class for codegen of an implementation of the DomObjectWrap trait.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         ifaceName = self.descriptor.interface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
         return f"""
@@ -3446,13 +3485,15 @@ class CGDomObjectIteratorWrap(CGThing):
     """
     Class for codegen of an implementation of the DomObjectIteratorWrap trait.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         assert self.descriptor.interface.isIteratorInterface()
-        name = self.descriptor.interface.iterableInterface.identifier.name
+        iterableInterface = self.descriptor.interface.iterableInterface
+        assert iterableInterface is not None
+        name = iterableInterface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
         return f"""
 impl DomObjectIteratorWrap<crate::DomTypeHolder> for {name} {{
@@ -3472,7 +3513,14 @@ class CGAbstractExternMethod(CGAbstractMethod):
     Abstract base class for codegen of implementation-only (no
     declaration) static methods.
     """
-    def __init__(self, descriptor, name, returnType, args, doesNotPanic=False, templateArgs=None):
+    def __init__(self,
+                 descriptor: Descriptor,
+                 name: str,
+                 returnType: str,
+                 args: list[Argument],
+                 doesNotPanic: bool = False,
+                 templateArgs: list[str] | None = None
+                 ) -> None:
         CGAbstractMethod.__init__(self, descriptor, name, returnType, args,
                                   inline=False, extern=True, doesNotPanic=doesNotPanic, templateArgs=templateArgs)
 
@@ -3715,8 +3763,9 @@ assert!((*cache)[PrototypeList::ID::{proto_properties['id']} as usize].is_null()
 
         if self.descriptor.interface.hasInterfaceObject():
             properties["name"] = str_to_cstr(name)
-            if self.descriptor.interface.ctor():
-                properties["length"] = methodLength(self.descriptor.interface.ctor())
+            ctor = self.descriptor.interface.ctor()
+            if ctor:
+                properties["length"] = methodLength(ctor)
             else:
                 properties["length"] = 0
             parentName = self.descriptor.getParentName()
@@ -3755,11 +3804,11 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
 
         aliasedMembers = [m for m in self.descriptor.interface.members if m.isMethod() and m.aliases]
         if aliasedMembers:
-            def defineAlias(alias):
+            def defineAlias(alias) -> CGThing:
                 if alias == "@@iterator":
                     symbolJSID = "RUST_SYMBOL_TO_JSID(GetWellKnownSymbol(*cx, SymbolCode::iterator), \
                                   iteratorId.handle_mut())"
-                    getSymbolJSID = CGGeneric(fill("rooted!(in(*cx) let mut iteratorId: jsid);\n${symbolJSID};\n",
+                    getSymbolJSID: CGThing | None = CGGeneric(fill("rooted!(in(*cx) let mut iteratorId: jsid);\n${symbolJSID};\n",
                                                    symbolJSID=symbolJSID))
                     defineFn = "JS_DefinePropertyById2"
                     prop = "iteratorId.handle()"
@@ -3774,7 +3823,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                 if enumFlags != "0":
                     enumFlags = f"{enumFlags} as u32"
                 return CGList([
-                    getSymbolJSID,
+                    *filter(None, [getSymbolJSID]),
                     # XXX If we ever create non-enumerable properties that can
                     #     be aliased, we should consider making the aliases
                     #     match the enumerability of the property being aliased.
@@ -3787,7 +3836,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                         enumFlags=enumFlags))
                 ], "\n")
 
-            def defineAliasesFor(m):
+            def defineAliasesFor(m) -> CGThing:
                 return CGList([
                     CGGeneric(fill(
                         """
@@ -5404,13 +5453,13 @@ class CGUnionConversionStruct(CGThing):
         names = []
         conversions = []
 
-        def get_name(memberType):
+        def get_name(memberType) -> str:
             if self.type.isGeckoInterface():
                 return memberType.inner.identifier.name
 
             return memberType.name
 
-        def get_match(name):
+        def get_match(name) -> str:
             generic = "::<D>" if containsDomInterface(self.type) else ""
             return (
                 f"match {self.type}{generic}::TryConvertTo{name}(SafeJSContext::from_ptr(cx), value) {{\n"
@@ -5422,7 +5471,7 @@ class CGUnionConversionStruct(CGThing):
         interfaceMemberTypes = [t for t in memberTypes if t.isNonCallbackInterface()]
         if len(interfaceMemberTypes) > 0:
             typeNames = [get_name(memberType) for memberType in interfaceMemberTypes]
-            interfaceObject = CGList(CGGeneric(get_match(typeName)) for typeName in typeNames)
+            interfaceObject = CGList(list(CGGeneric(get_match(typeName)) for typeName in typeNames))
             names.extend(typeNames)
         else:
             interfaceObject = None
@@ -5431,7 +5480,7 @@ class CGUnionConversionStruct(CGThing):
         if len(arrayObjectMemberTypes) > 0:
             assert len(arrayObjectMemberTypes) == 1
             typeName = arrayObjectMemberTypes[0].name
-            arrayObject = CGGeneric(get_match(typeName))
+            arrayObject: CGThing | None = CGGeneric(get_match(typeName))
             names.append(typeName)
         else:
             arrayObject = None
@@ -5440,7 +5489,7 @@ class CGUnionConversionStruct(CGThing):
         if len(callbackMemberTypes) > 0:
             assert len(callbackMemberTypes) == 1
             typeName = callbackMemberTypes[0].name
-            callbackObject = CGGeneric(get_match(typeName))
+            callbackObject: CGThing | None = CGGeneric(get_match(typeName))
         else:
             callbackObject = None
 
@@ -8020,6 +8069,7 @@ def argument_type(descriptorProvider: DescriptorProvider, ty: IDLType, optional:
         ty, descriptorProvider, isArgument=True,
         isAutoRooted=type_needs_auto_root(ty))
     declType = info.declType
+    assert declType is not None
     if variadic:
         if ty.isGeckoInterface():
             declType = CGWrapper(declType, pre="&[", post="]")
@@ -8376,20 +8426,20 @@ class CallbackMember(CGNativeMember):
         # just have way to many members they like to clobber, so I can't find a
         # safe member name to store it in.
         arglist = self.originalSig[1]
-        argConversions = [self.getArgConversion(i, arg) for (i, arg)
+        argConversions: list[str] = [self.getArgConversion(i, arg) for (i, arg)
                           in enumerate(arglist)]
         # Do them back to front, so our argc modifications will work
         # correctly, because we examine trailing arguments first.
         argConversions.reverse()
-        argConversions = [CGGeneric(c) for c in argConversions]
+        argConversionsCG = [CGGeneric(c) for c in argConversions]
         # If arg count is only 1 but it's optional and not default value,
         # argc should be mutable.
         if self.argCount == 1 and not (arglist[0].optional and not arglist[0].defaultValue):
-            argConversions.insert(0, self.getArgcDecl(True))
+            argConversionsCG.insert(0, self.getArgcDecl(True))
         elif self.argCount > 0:
-            argConversions.insert(0, self.getArgcDecl(False))
+            argConversionsCG.insert(0, self.getArgcDecl(False))
         # And slap them together.
-        return CGList(argConversions, "\n\n").define() + "\n\n"
+        return CGList(argConversionsCG, "\n\n").define() + "\n\n"
 
     def getArgConversion(self, i, arg):
         argval = arg.identifier.name

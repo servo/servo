@@ -543,7 +543,7 @@ def getTypesFromDescriptor(descriptor: Descriptor) -> list[IDLType]:
     return types
 
 
-def getTypesFromDictionary(dictionary: IDLDictionary) -> list[IDLType]:
+def getTypesFromDictionary(dictionary: IDLWrapperType | IDLDictionary) -> list[IDLType]:
     """
     Get all member types for this dictionary
     """
