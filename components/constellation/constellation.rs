@@ -99,7 +99,7 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
     PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest, WebViewId,
@@ -284,8 +284,8 @@ pub struct Constellation<STF, SWF> {
     /// An ipc-sender/threaded-receiver pair
     /// to facilitate installing pipeline namespaces in threads
     /// via a per-process installer.
-    namespace_receiver: Receiver<Result<PipelineNamespaceRequest, IpcError>>,
-    namespace_ipc_sender: IpcSender<PipelineNamespaceRequest>,
+    namespace_receiver: RoutedReceiver<PipelineNamespaceRequest>,
+    namespace_ipc_sender: GenericSender<PipelineNamespaceRequest>,
 
     /// An IPC channel for script threads to send messages to the constellation.
     /// This is the script threads' view of `script_receiver`.
@@ -293,7 +293,7 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
-    script_receiver: generic_channel::RoutedReceiver<(PipelineId, ScriptToConstellationMessage)>,
+    script_receiver: RoutedReceiver<(PipelineId, ScriptToConstellationMessage)>,
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
@@ -610,11 +610,8 @@ where
                 let script_receiver = script_ipc_receiver.route_preserving_errors();
 
                 let (namespace_ipc_sender, namespace_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-                let namespace_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        namespace_ipc_receiver,
-                    );
+                    generic_channel::channel().expect("ipc channel failure");
+                let namespace_receiver = namespace_ipc_receiver.route_preserving_errors();
 
                 let (background_hang_monitor_ipc_sender, background_hang_monitor_ipc_receiver) =
                     ipc::channel().expect("ipc channel failure");

@@ -19,6 +19,8 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
 
+use crate::generic_channel::GenericSender;
+
 /// Asserts the size of a type at compile time.
 macro_rules! size_of_test {
     ($t: ty, $expected_size: expr) => {
@@ -119,7 +121,7 @@ pub struct PipelineNamespaceRequest(pub IpcSender<PipelineNamespaceId>);
 
 /// A per-process installer of pipeline-namespaces.
 pub struct PipelineNamespaceInstaller {
-    request_sender: Option<IpcSender<PipelineNamespaceRequest>>,
+    request_sender: Option<GenericSender<PipelineNamespaceRequest>>,
     namespace_sender: IpcSender<PipelineNamespaceId>,
     namespace_receiver: IpcReceiver<PipelineNamespaceId>,
 }
@@ -138,7 +140,7 @@ impl Default for PipelineNamespaceInstaller {
 
 impl PipelineNamespaceInstaller {
     /// Provide a request sender to send requests to the constellation.
-    pub fn set_sender(&mut self, sender: IpcSender<PipelineNamespaceRequest>) {
+    pub fn set_sender(&mut self, sender: GenericSender<PipelineNamespaceRequest>) {
         self.request_sender = Some(sender);
     }
 
@@ -207,7 +209,7 @@ impl PipelineNamespace {
 
     /// Setup the pipeline-namespace-installer, by providing it with a sender to the constellation.
     /// Idempotent in single-process mode.
-    pub fn set_installer_sender(sender: IpcSender<PipelineNamespaceRequest>) {
+    pub fn set_installer_sender(sender: GenericSender<PipelineNamespaceRequest>) {
         PIPELINE_NAMESPACE_INSTALLER.lock().set_sender(sender);
     }
 
