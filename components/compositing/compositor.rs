@@ -12,6 +12,7 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
 use base::{Epoch, generic_channel};
 use bitflags::bitflags;
@@ -26,7 +27,7 @@ use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{CompositorHitTestResult, InputEvent, ShutdownState, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
@@ -798,7 +799,7 @@ impl IOCompositor {
         &self,
         number_of_font_keys: usize,
         number_of_font_instance_keys: usize,
-        result_sender: IpcSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
+        result_sender: GenericSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
     ) {
         let font_keys = (0..number_of_font_keys)
             .map(|_| self.global.borrow().webrender_api.generate_font_key())
