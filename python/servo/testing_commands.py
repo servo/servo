@@ -217,8 +217,10 @@ class MachCommands(CommandBase):
             "net_traits",
             "pixels",
             "script_traits",
+            "selectors",
             "servo_config",
             "servoshell",
+            "stylo_config",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
@@ -239,7 +241,7 @@ class MachCommands(CommandBase):
             return 0
 
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
-        args: list[str] = ["--timings", "--all"]
+        args: list[str] = ["--timings"]
 
         if build_type.is_release():
             args += ["--release"]
