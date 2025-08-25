@@ -2981,6 +2981,7 @@ impl Element {
     }
 
     /// Step 4 of <https://html.spec.whatwg.org/multipage/#dom-element-insertadjacenthtml>
+    /// and step 6. of <https://html.spec.whatwg.org/multipage/#dom-range-createcontextualfragment>
     pub(crate) fn fragment_parsing_context(
         owner_doc: &Document,
         element: Option<&Self>,

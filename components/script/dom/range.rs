@@ -19,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::{RangeConstants, RangeMethods};
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
@@ -36,6 +37,7 @@ use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding, UnbindContext};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
+use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -1106,18 +1108,33 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         s
     }
 
-    /// <https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface>
+    /// <https://html.spec.whatwg.org/multipage/#dom-range-createcontextualfragment>
     fn CreateContextualFragment(
         &self,
-        fragment: DOMString,
+        fragment: TrustedHTMLOrString,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<DocumentFragment>> {
-        // Step 1.
+        // Step 2. Let node be this's start node.
+        //
+        // Required to obtain the global, so we do this first. Shouldn't be an
+        // observable difference.
         let node = self.start_container();
+        // Step 1. Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, string, "Range createContextualFragment", and "script".
+        let fragment = TrustedHTML::get_trusted_script_compliant_string(
+            node.owner_window().upcast(),
+            fragment,
+            "Range createContextualFragment",
+            can_gc,
+        )?;
         let owner_doc = node.owner_doc();
         let element = match node.type_id() {
+            // Step 3. Let element be null.
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) => None,
+            // Step 4. If node implements Element, set element to node.
             NodeTypeId::Element(_) => Some(DomRoot::downcast::<Element>(node).unwrap()),
+            // Step 5. Otherwise, if node implements Text or Comment, set element to node's parent element.
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => node.GetParentElement(),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
@@ -1125,24 +1142,26 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             NodeTypeId::Attr => unreachable!(),
         };
 
-        // Step 2.
+        // Step 6. If element is null or all of the following are true:
         let element = Element::fragment_parsing_context(&owner_doc, element.as_deref(), can_gc);
 
-        // Step 3.
+        // Step 7. Let fragment node be the result of invoking the fragment parsing algorithm steps with element and compliantString.
         let fragment_node = element.parse_fragment(fragment, can_gc)?;
 
-        // Step 4.
+        // Step 8. For each script of fragment node's script element descendants:
         for node in fragment_node
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
         {
             if let Some(script) = node.downcast::<HTMLScriptElement>() {
+                // Step 8.1. Set script's already started to false.
                 script.set_already_started(false);
+                // Step 8.2. Set script's parser document to null.
                 script.set_parser_inserted(false);
             }
         }
 
-        // Step 5.
+        // Step 9. Return fragment node.
         Ok(fragment_node)
     }
 
