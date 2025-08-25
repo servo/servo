@@ -1242,7 +1242,7 @@ pub(crate) fn handle_will_send_keys(
                         if !element.is_active_element() {
                             // TODO: "Focusing steps" has a different meaning from the focus() method.
                             // The actual focusing steps should be implemented
-                            html_element.Focus(&FocusOptions::default(), can_gc);
+                            html_element.Focus(&FocusOptions{ preventScroll: true }, can_gc);
                         } else {
                             element_has_focus = element.focus_state();
                         }
@@ -1784,7 +1784,7 @@ fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), Er
     // Step 3. Invoke the focusing steps for the element.
     // TODO: "Focusing steps" has a different meaning from the focus() method.
     // The actual focusing steps should be implemented
-    html_element.Focus(&FocusOptions::default(), can_gc);
+    html_element.Focus(&FocusOptions{ preventScroll: true }, can_gc);
 
     // Step 4. Run clear algorithm for element.
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
@@ -1937,7 +1937,7 @@ pub(crate) fn handle_element_click(
                             Some(html_element) => {
                                 // TODO: "Focusing steps" has a different meaning from the focus() method.
                                 // The actual focusing steps should be implemented
-                                html_element.Focus(&FocusOptions::default(), can_gc);
+                                html_element.Focus(&FocusOptions{ preventScroll: true }, can_gc);
                             },
                             None => return Err(ErrorStatus::UnknownError),
                         }
