@@ -49,8 +49,8 @@ impl IndexedDBThreadFactory for IpcSender<IndexedDBThreadMsg> {
 
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct IndexedDBDescription {
-    pub(super) origin: ImmutableOrigin,
-    pub(super) name: String,
+    pub origin: ImmutableOrigin,
+    pub name: String,
 }
 
 impl IndexedDBDescription {

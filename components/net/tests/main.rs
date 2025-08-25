@@ -15,6 +15,7 @@ mod hsts;
 mod http_cache;
 mod http_loader;
 mod resource_thread;
+mod sqlite;
 mod subresource_integrity;
 
 use core::convert::Infallible;
