@@ -1,12 +1,10 @@
 <!DOCTYPE html>
-<title>Test for one part of #36747:
-  When a form is submitted and the window is stopped,
-  the form navigation should be cancelled and an infinite navigation loop prevented.
-</title>
 <script>
   window.addEventListener("load", _ => {
     form.submit();
     window.frames.stop();
+    iframe.src = "data:text/html,";
   });
 </script>
 <form id="form">
+<iframe id="iframe"></iframe>
