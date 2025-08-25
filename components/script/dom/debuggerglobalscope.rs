@@ -28,6 +28,7 @@ use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::debuggerpauseevent::DebuggerPauseEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerGetPossibleBreakpointsEvent, Event};
 #[cfg(feature = "testbinding")]
@@ -183,6 +184,20 @@ impl DebuggerGlobalScope {
         assert!(
             DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerGetPossibleBreakpointsEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_pause(
+        &self,
+        can_gc: CanGc,
+    ) {
+        let event = DomRoot::upcast::<Event>(DebuggerPauseEvent::new(
+            self.upcast(),
+            can_gc,
+        ));
+        assert!(
+            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerPauseEvent::new"
         );
     }
 }
