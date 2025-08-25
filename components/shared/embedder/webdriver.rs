@@ -6,6 +6,7 @@
 
 use std::collections::HashMap;
 
+use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, WebViewId};
 use cookie::Cookie;
 use euclid::default::Rect as UntypedRect;
@@ -81,13 +82,13 @@ pub enum WebDriverCommandMsg {
     /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
-    LoadUrl(WebViewId, ServoUrl, IpcSender<WebDriverLoadStatus>),
+    LoadUrl(WebViewId, ServoUrl, GenericSender<WebDriverLoadStatus>),
     /// Refresh the top-level browsing context with the given ID.
-    Refresh(WebViewId, IpcSender<WebDriverLoadStatus>),
+    Refresh(WebViewId, GenericSender<WebDriverLoadStatus>),
     /// Navigate the webview with the given ID to the previous page in the browsing context's history.
-    GoBack(WebViewId, IpcSender<WebDriverLoadStatus>),
+    GoBack(WebViewId, GenericSender<WebDriverLoadStatus>),
     /// Navigate the webview with the given ID to the next page in the browsing context's history.
-    GoForward(WebViewId, IpcSender<WebDriverLoadStatus>),
+    GoForward(WebViewId, GenericSender<WebDriverLoadStatus>),
     /// Pass a webdriver command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
@@ -147,7 +148,10 @@ pub enum WebDriverCommandMsg {
     /// Create a new webview that loads about:blank. The embedder will use
     /// the provided channels to return the top level browsing context id
     /// associated with the new webview, and sets a "load status sender" if provided.
-    NewWebView(IpcSender<WebViewId>, Option<IpcSender<WebDriverLoadStatus>>),
+    NewWebView(
+        IpcSender<WebViewId>,
+        Option<GenericSender<WebDriverLoadStatus>>,
+    ),
     /// Close the webview associated with the provided id.
     CloseWebView(WebViewId, IpcSender<()>),
     /// Focus the webview associated with the provided id.
@@ -243,7 +247,7 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
     /// Deal with the case of input element for Element Send Keys, which does not send keys.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
-    AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
+    AddLoadStatusSender(WebViewId, GenericSender<WebDriverLoadStatus>),
     RemoveLoadStatusSender(WebViewId),
 }
 
@@ -289,8 +293,8 @@ pub enum WebDriverLoadStatus {
 /// to a WebDriver server with information about application state.
 #[derive(Clone, Default)]
 pub struct WebDriverSenders {
-    pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
+    pub load_status_senders: HashMap<WebViewId, GenericSender<WebDriverLoadStatus>>,
     pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
-    pub pending_traversals: HashMap<TraversalId, IpcSender<WebDriverLoadStatus>>,
+    pub pending_traversals: HashMap<TraversalId, GenericSender<WebDriverLoadStatus>>,
     pub pending_focus: HashMap<FocusId, IpcSender<bool>>,
 }

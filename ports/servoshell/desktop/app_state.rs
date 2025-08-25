@@ -13,6 +13,7 @@ use embedder_traits::webdriver::WebDriverSenders;
 use euclid::Vector2D;
 use keyboard_types::{Key, Modifiers, NamedKey, ShortcutMatcher};
 use log::{error, info};
+use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
@@ -456,7 +457,7 @@ impl RunningAppState {
     pub(crate) fn set_pending_traversal(
         &self,
         traversal_id: TraversalId,
-        sender: IpcSender<WebDriverLoadStatus>,
+        sender: GenericSender<WebDriverLoadStatus>,
     ) {
         self.webdriver_senders
             .borrow_mut()
@@ -467,7 +468,7 @@ impl RunningAppState {
     pub(crate) fn set_load_status_sender(
         &self,
         webview_id: WebViewId,
-        sender: IpcSender<WebDriverLoadStatus>,
+        sender: GenericSender<WebDriverLoadStatus>,
     ) {
         self.webdriver_senders
             .borrow_mut()

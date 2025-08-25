@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
 
+use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use embedder_traits::{
@@ -2066,7 +2067,7 @@ pub(crate) fn handle_is_selected(
 pub(crate) fn handle_add_load_status_sender(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<WebDriverLoadStatus>,
+    reply: GenericSender<WebDriverLoadStatus>,
 ) {
     if let Some(document) = documents.find_document(pipeline) {
         let window = document.window();
