@@ -15,3 +15,11 @@
 
 # Reviewers for Minibrowser related code
 /ports/servoshell/desktop @atbrakhi
+
+# Reviewers for 2D canvas related code
+/components/canvas @sagudev
+/components/shared/canvas @sagudev
+
+# Reviewers for WebGPU related code
+/components/webgpu @sagudev
+/components/script/dom/webgpu @sagudev
