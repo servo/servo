@@ -2107,11 +2107,22 @@ impl Window {
         _behavior: ScrollBehavior,
         element: Option<&Element>,
     ) {
-        // TODO Step 1
+        // Step 1.
+        // > Abort any ongoing smooth scroll for box.
+        // Step 2.
+        // > If the user agent honors the scroll-behavior property and one of the following are true
+        // > - behavior is "auto" and element is not null and its computed value of the scroll-behavior
+        // > - property is smooth
+        // > ...then perform a smooth scroll of box to position.
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
+
+        // > Otherwise, perform an instant scroll of box to position.
         let reflow_phases_run =
             self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
+
+        // > After an instant scroll emit the scrollend event.
+        // TODO(#31665): Implement scrollend event.
 
         // > If the scroll position did not change as a result of the user interaction or programmatic
         // > invocation, where no translations were applied as a result, then no scrollend event fires
