@@ -22,6 +22,7 @@ use embedder_traits::{
 use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
+use malloc_size_of::MallocSizeOf;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
@@ -1000,6 +1001,16 @@ impl WebViewRenderer {
                     .clamp_zoom(viewport_description.initial_scale.get()),
             ));
         self.viewport_description = Some(viewport_description);
+    }
+
+    pub(crate) fn scroll_trees_memory_usage(
+        &self,
+        ops: &mut malloc_size_of::MallocSizeOfOps,
+    ) -> usize {
+        self.pipelines
+            .values()
+            .map(|pipeline| pipeline.scroll_tree.size_of(ops))
+            .sum::<usize>()
     }
 }
 

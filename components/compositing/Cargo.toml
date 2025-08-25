@@ -48,6 +48,7 @@ webrender = { workspace = true }
 webrender_api = { workspace = true }
 webxr = { path = "../webxr", optional = true }
 wr_malloc_size_of = { workspace = true }
+malloc_size_of = { workspace = true }
 
 [dev-dependencies]
 surfman = { workspace = true }
