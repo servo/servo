@@ -326,7 +326,7 @@ pub(crate) struct Window {
 
     /// A channel to notify webdriver if there is a navigation
     #[no_trace]
-    webdriver_load_status_sender: RefCell<Option<IpcSender<WebDriverLoadStatus>>>,
+    webdriver_load_status_sender: RefCell<Option<GenericSender<WebDriverLoadStatus>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -2863,7 +2863,7 @@ impl Window {
 
     pub(crate) fn set_webdriver_load_status_sender(
         &self,
-        sender: Option<IpcSender<WebDriverLoadStatus>>,
+        sender: Option<GenericSender<WebDriverLoadStatus>>,
     ) {
         *self.webdriver_load_status_sender.borrow_mut() = sender;
     }
