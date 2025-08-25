@@ -301,9 +301,7 @@ impl App {
                         warn!("failed to parse location");
                         break;
                     };
-                    if let Some(focused_webview) = state.focused_webview() {
-                        focused_webview.load(url.into_url());
-                    }
+                    state.load_focused_webview(url.into_url());
                 },
                 MinibrowserEvent::Back => {
                     if let Some(focused_webview) = state.focused_webview() {

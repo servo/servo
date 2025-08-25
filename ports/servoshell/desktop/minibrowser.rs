@@ -228,6 +228,10 @@ impl Minibrowser {
         visuals.widgets.inactive.corner_radius = corner_radius;
 
         let selected = webview.focused();
+        if webview.has_pending_load() {
+            // Show a spinner while the tab is loading.
+            ui.spinner();
+        }
         let tab = ui.add(Button::selectable(
             selected,
             truncate_with_ellipsis(&label, 20),
