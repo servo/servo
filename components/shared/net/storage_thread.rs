@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel::GenericSender;
 use base::id::WebViewId;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
@@ -31,7 +32,7 @@ pub enum StorageThreadMsg {
     ),
 
     /// Gets the available keys in the associated storage data
-    Keys(IpcSender<Vec<String>>, StorageType, WebViewId, ServoUrl),
+    Keys(GenericSender<Vec<String>>, StorageType, WebViewId, ServoUrl),
 
     /// gets the value associated with the given key in the associated storage data
     GetItem(

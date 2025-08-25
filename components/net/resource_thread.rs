@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex, RwLock, Weak};
 use std::thread;
 use std::time::Duration;
 
+use base::generic_channel::GenericSender;
 use base::id::CookieStoreId;
 use cookie::Cookie;
 use crossbeam_channel::Sender;
@@ -112,7 +113,7 @@ pub fn new_resource_threads(
         protocols,
     );
     let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
-    let storage: IpcSender<StorageThreadMsg> =
+    let storage: GenericSender<StorageThreadMsg> =
         StorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
         ResourceThreads::new(public_core, storage.clone(), idb.clone()),

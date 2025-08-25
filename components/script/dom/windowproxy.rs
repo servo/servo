@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::ptr;
 
+use base::generic_channel::GenericSend;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
@@ -32,7 +33,6 @@ use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use net_traits::IpcSend;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::StorageThreadMsg;
 use script_traits::NewLayoutInfo;
@@ -356,7 +356,7 @@ impl WindowProxy {
                 dest: response.new_webview_id,
             };
 
-            document.global().resource_threads().send(msg).unwrap();
+            GenericSend::send(document.global().resource_threads(), msg).unwrap();
             receiver.recv().unwrap();
         }
         Some(new_window_proxy)

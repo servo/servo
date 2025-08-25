@@ -7,8 +7,9 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::thread;
 
+use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::WebViewId;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use malloc_size_of::MallocSizeOf;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::mem::{
@@ -25,13 +26,13 @@ pub trait StorageThreadFactory {
     fn new(config_dir: Option<PathBuf>, mem_profiler_chan: MemProfilerChan) -> Self;
 }
 
-impl StorageThreadFactory for IpcSender<StorageThreadMsg> {
+impl StorageThreadFactory for GenericSender<StorageThreadMsg> {
     /// Create a storage thread
     fn new(
         config_dir: Option<PathBuf>,
         mem_profiler_chan: MemProfilerChan,
-    ) -> IpcSender<StorageThreadMsg> {
-        let (chan, port) = ipc::channel().unwrap();
+    ) -> GenericSender<StorageThreadMsg> {
+        let (chan, port) = generic_channel::channel().unwrap();
         let chan2 = chan.clone();
         thread::Builder::new()
             .name("StorageManager".to_owned())
@@ -51,14 +52,14 @@ impl StorageThreadFactory for IpcSender<StorageThreadMsg> {
 type OriginEntry = (usize, BTreeMap<String, String>);
 
 struct StorageManager {
-    port: IpcReceiver<StorageThreadMsg>,
+    port: GenericReceiver<StorageThreadMsg>,
     session_data: HashMap<WebViewId, HashMap<String, OriginEntry>>,
     local_data: HashMap<String, OriginEntry>,
     config_dir: Option<PathBuf>,
 }
 
 impl StorageManager {
-    fn new(port: IpcReceiver<StorageThreadMsg>, config_dir: Option<PathBuf>) -> StorageManager {
+    fn new(port: GenericReceiver<StorageThreadMsg>, config_dir: Option<PathBuf>) -> StorageManager {
         let mut local_data = HashMap::new();
         if let Some(ref config_dir) = config_dir {
             resource_thread::read_json_from_file(&mut local_data, config_dir, "local_data.json");
@@ -224,7 +225,7 @@ impl StorageManager {
 
     fn keys(
         &self,
-        sender: IpcSender<Vec<String>>,
+        sender: GenericSender<Vec<String>>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
