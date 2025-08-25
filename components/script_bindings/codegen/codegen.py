@@ -3028,12 +3028,12 @@ class CGAbstractMethod(CGThing):
     unsafe is used to add the decorator 'unsafe' to a function, giving as a result
     an 'unsafe fn()' declaration.
     """
-    def __init__(self, descriptor, name: str, returnType, args: list[Argument], inline: bool = False,
+    def __init__(self, descriptor: Descriptor | None, name: str, returnType: str, args: list[Argument], inline: bool = False,
                  alwaysInline: bool = False, extern: bool = False, unsafe: bool = False, pub: bool = False,
                  templateArgs: list[str] | None = None, docs: str | None = None, doesNotPanic: bool = False,
                  extra_decorators: list[str] = []) -> None:
         CGThing.__init__(self)
-        self.descriptor = descriptor
+        self._descriptor = descriptor
         self.name = name
         self.returnType = returnType
         self.args = args
@@ -3045,6 +3045,16 @@ class CGAbstractMethod(CGThing):
         self.docs = docs
         self.catchPanic = self.extern and not doesNotPanic
         self.extra_decorators = extra_decorators
+
+    @property
+    def descriptor(self) -> Descriptor:
+        if self._descriptor is None:
+            raise RuntimeError("descriptor must be set by subclass")
+        return self._descriptor
+
+    @descriptor.setter
+    def descriptor(self, value: Descriptor) -> None:
+        self._descriptor = value
 
     def _argstring(self) -> str:
         return ', '.join([a.declare() for a in self.args])
@@ -3132,7 +3142,7 @@ class CGConstructorEnabled(CGAbstractMethod):
     This can perform various tests depending on what conditions are specified
     on the interface.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
                                   [Argument("SafeJSContext", "aCx"),
@@ -3140,7 +3150,7 @@ class CGConstructorEnabled(CGAbstractMethod):
                                   templateArgs=['D: DomTypes'],
                                   pub=True)
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         conditions = []
         iface = self.descriptor.interface
 
@@ -3236,7 +3246,7 @@ class CGWrapMethod(CGAbstractMethod):
     Class that generates the Foo_Binding::Wrap function for non-callback
     interfaces.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         assert not descriptor.interface.isCallback()
         assert not descriptor.isGlobal()
         args = [Argument('SafeJSContext', 'cx'),
@@ -3250,7 +3260,7 @@ class CGWrapMethod(CGAbstractMethod):
                                   extra_decorators=['#[cfg_attr(crown, allow(crown::unrooted_must_root))]'],
                                   templateArgs=['D: DomTypes'])
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         unforgeable = CopyLegacyUnforgeablePropertiesToInstance(self.descriptor)
         if self.descriptor.proxy:
             if self.descriptor.isMaybeCrossOriginObject():
@@ -3333,7 +3343,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     """
     Class that generates the Foo_Binding::Wrap function for global interfaces.
     """
-    def __init__(self, descriptor, properties):
+    def __init__(self, descriptor: Descriptor, properties: PropertyArrays) -> None:
         assert not descriptor.interface.isCallback()
         assert descriptor.isGlobal()
         args = [Argument('SafeJSContext', 'cx'),
@@ -3345,7 +3355,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
                                   templateArgs=['D: DomTypes'])
         self.properties = properties
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         pairs = [
             ("define_guarded_properties", self.properties.attrs),
             ("define_guarded_methods", self.properties.methods),
@@ -3398,11 +3408,11 @@ class CGIDLInterface(CGThing):
     """
     Class for codegen of an implementation of the IDLInterface trait.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         interface = self.descriptor.interface
         name = interface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
@@ -3428,12 +3438,13 @@ class CGIteratorDerives(CGThing):
     """
     Class for codegen of an implementation of the IteratorDerives trait.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         iterableInterface = self.descriptor.interface.iterableInterface
+        assert iterableInterface is not None
         name = iterableInterface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::Bindings::{toBindingPath(self.descriptor)}"
         return f"""
@@ -3450,11 +3461,11 @@ class CGDomObjectWrap(CGThing):
     """
     Class for codegen of an implementation of the DomObjectWrap trait.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         ifaceName = self.descriptor.interface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
         return f"""
@@ -3474,13 +3485,15 @@ class CGDomObjectIteratorWrap(CGThing):
     """
     Class for codegen of an implementation of the DomObjectIteratorWrap trait.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
-    def define(self):
+    def define(self) -> str:
         assert self.descriptor.interface.isIteratorInterface()
-        name = self.descriptor.interface.iterableInterface.identifier.name
+        iterableInterface = self.descriptor.interface.iterableInterface
+        assert iterableInterface is not None
+        name = iterableInterface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
         return f"""
 impl DomObjectIteratorWrap<crate::DomTypeHolder> for {name} {{
@@ -3500,7 +3513,14 @@ class CGAbstractExternMethod(CGAbstractMethod):
     Abstract base class for codegen of implementation-only (no
     declaration) static methods.
     """
-    def __init__(self, descriptor, name, returnType, args, doesNotPanic=False, templateArgs=None):
+    def __init__(self,
+                 descriptor: Descriptor,
+                 name: str,
+                 returnType: str,
+                 args: list[Argument],
+                 doesNotPanic: bool = False,
+                 templateArgs: list[str] | None = None
+                 ) -> None:
         CGAbstractMethod.__init__(self, descriptor, name, returnType, args,
                                   inline=False, extern=True, doesNotPanic=doesNotPanic, templateArgs=templateArgs)
 
@@ -3743,8 +3763,9 @@ assert!((*cache)[PrototypeList::ID::{proto_properties['id']} as usize].is_null()
 
         if self.descriptor.interface.hasInterfaceObject():
             properties["name"] = str_to_cstr(name)
-            if self.descriptor.interface.ctor():
-                properties["length"] = methodLength(self.descriptor.interface.ctor())
+            ctor = self.descriptor.interface.ctor()
+            if ctor:
+                properties["length"] = methodLength(ctor)
             else:
                 properties["length"] = 0
             parentName = self.descriptor.getParentName()
