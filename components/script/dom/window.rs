@@ -2112,6 +2112,9 @@ impl Window {
         // properly process ScrollBehavior here.
         let reflow_phases_run =
             self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
+        if reflow_phases_run.needs_frame() {
+            self.compositor_api().generate_frame();
+        }
 
         // > If the scroll position did not change as a result of the user interaction or programmatic
         // > invocation, where no translations were applied as a result, then no scrollend event fires
@@ -2352,7 +2355,9 @@ impl Window {
         // iframe size updates.
         //
         // See <https://github.com/servo/servo/issues/14719>
-        self.Document().update_the_rendering();
+        if self.Document().update_the_rendering().needs_frame() {
+            self.compositor_api().generate_frame();
+        }
     }
 
     pub(crate) fn layout_blocked(&self) -> bool {
