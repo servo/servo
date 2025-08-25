@@ -2253,16 +2253,16 @@ impl GlobalScope {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
         assert!(!obj.is_null());
-        let global = GetNonCCWObjectGlobal(obj);
-        global_scope_from_global_static(global)
+        let global = unsafe { GetNonCCWObjectGlobal(obj) };
+        unsafe { global_scope_from_global_static(global) }
     }
 
     /// Returns the global scope for the given JSContext
     #[allow(unsafe_code)]
     pub(crate) unsafe fn from_context(cx: *mut JSContext, _realm: InRealm) -> DomRoot<Self> {
-        let global = CurrentGlobalOrNull(cx);
+        let global = unsafe { CurrentGlobalOrNull(cx) };
         assert!(!global.is_null());
-        global_scope_from_global(global, cx)
+        unsafe { global_scope_from_global(global, cx) }
     }
 
     /// Returns the global scope for the given SafeJSContext
@@ -2278,11 +2278,13 @@ impl GlobalScope {
         mut obj: *mut JSObject,
         cx: *mut JSContext,
     ) -> DomRoot<Self> {
-        if IsWrapper(obj) {
-            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
-            assert!(!obj.is_null());
+        unsafe {
+            if IsWrapper(obj) {
+                obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
+                assert!(!obj.is_null());
+            }
+            GlobalScope::from_object(obj)
         }
-        GlobalScope::from_object(obj)
     }
 
     pub(crate) fn add_uncaught_rejection(&self, rejection: HandleObject) {
@@ -3457,31 +3459,37 @@ unsafe fn global_scope_from_global(
     global: *mut JSObject,
     cx: *mut JSContext,
 ) -> DomRoot<GlobalScope> {
-    assert!(!global.is_null());
-    let clasp = get_object_class(global);
-    assert_ne!(
-        ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
-        0
-    );
-    root_from_object(global, cx).unwrap()
+    unsafe {
+        assert!(!global.is_null());
+        let clasp = get_object_class(global);
+        assert_ne!(
+            ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
+            0
+        );
+        root_from_object(global, cx).unwrap()
+    }
 }
 
 /// Returns the Rust global scope from a JS global object.
 #[allow(unsafe_code)]
 unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<GlobalScope> {
     assert!(!global.is_null());
-    let clasp = get_object_class(global);
-    assert_ne!(
-        ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
-        0
-    );
+    let clasp = unsafe { get_object_class(global) };
+
+    unsafe {
+        assert_ne!(
+            ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
+            0
+        );
+    }
+
     root_from_object_static(global).unwrap()
 }
 
 #[allow(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
-        GlobalScope::from_context(cx, realm)
+        unsafe { GlobalScope::from_context(cx, realm) }
     }
 
     fn get_cx() -> SafeJSContext {
