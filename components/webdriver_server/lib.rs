@@ -21,11 +21,12 @@ use std::net::{SocketAddr, SocketAddrV4};
 use std::time::Duration;
 use std::{env, fmt, process, thread};
 
+use base::generic_channel::{self, GenericSender, RoutedReceiver};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};
-use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
+use crossbeam_channel::{Sender, after, select};
 use embedder_traits::{
     EventLoopWaker, JSValue, MouseButton, WebDriverCommandMsg, WebDriverCommandResponse,
     WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus, WebDriverMessageId,
@@ -34,8 +35,7 @@ use embedder_traits::{
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
+use ipc_channel::ipc::{self, IpcReceiver};
 use keyboard_types::webdriver::{Event as DispatchStringEvent, KeyInputState, send_keys};
 use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, NamedKey};
 use log::{debug, error, info};
@@ -166,11 +166,11 @@ struct Handler {
     /// The threaded receiver on which we can block for a load-status.
     /// It will receive messages sent on the load_status_sender,
     /// and forwarded by the IPC router.
-    load_status_receiver: Receiver<WebDriverLoadStatus>,
+    load_status_receiver: RoutedReceiver<WebDriverLoadStatus>,
     /// The IPC sender which we can clone and pass along to the constellation,
     /// for it to send us a load-status. Messages sent on it
     /// will be forwarded to the load_status_receiver.
-    load_status_sender: IpcSender<WebDriverLoadStatus>,
+    load_status_sender: GenericSender<WebDriverLoadStatus>,
 
     session: Option<WebDriverSession>,
 
@@ -415,9 +415,8 @@ impl Handler {
         // and keep a threaded receiver to block on an incoming load-status.
         // Pass the others to the IPC router so that IPC messages are forwarded to the threaded receiver.
         // We need to use the router because IPC does not come with a timeout on receive/select.
-        let (load_status_sender, receiver) = ipc::channel().unwrap();
-        let (sender, load_status_receiver) = unbounded();
-        ROUTER.route_ipc_receiver_to_crossbeam_sender(receiver, sender);
+        let (load_status_sender, receiver) = generic_channel::channel().unwrap();
+        let load_status_receiver = receiver.route_preserving_errors();
 
         Handler {
             load_status_sender,
@@ -708,7 +707,7 @@ impl Handler {
             recv(self.load_status_receiver) -> res => {
                 match res {
                     // If the navigation is navigation to IFrame, no document state event is fired.
-                    Ok(WebDriverLoadStatus::Blocked) => {
+                    Ok(Ok(WebDriverLoadStatus::Blocked)) => {
                         // TODO: evaluate the correctness later
                         // Load status is block means an user prompt is shown.
                         // Alot of tests expect this to return success
@@ -717,8 +716,8 @@ impl Handler {
                         // an error anyway.
                         Ok(WebDriverResponse::Void)
                     },
-                    Ok(WebDriverLoadStatus::Complete) |
-                    Ok(WebDriverLoadStatus::NavigationStop) =>
+                    Ok(Ok(WebDriverLoadStatus::Complete)) |
+                    Ok(Ok(WebDriverLoadStatus::NavigationStop)) =>
                         Ok(WebDriverResponse::Void)
                     ,
                     _ => Err(WebDriverError::new(
@@ -738,7 +737,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-wait-for-navigation-to-complete>
     fn wait_for_navigation(&self) -> WebDriverResult<WebDriverResponse> {
         let navigation_status = match self.load_status_receiver.try_recv() {
-            Ok(status) => status,
+            Ok(Ok(status)) => status,
             // Empty channel means no navigation started. Nothing to wait for.
             Err(crossbeam_channel::TryRecvError::Empty) => {
                 return Ok(WebDriverResponse::Void);
@@ -747,6 +746,12 @@ impl Handler {
                 return Err(WebDriverError::new(
                     ErrorStatus::UnknownError,
                     "Load status channel disconnected",
+                ));
+            },
+            Ok(Err(ipc_error)) => {
+                return Err(WebDriverError::new(
+                    ErrorStatus::UnknownError,
+                    format!("Load status channel ipc error: {ipc_error}"),
                 ));
             },
         };

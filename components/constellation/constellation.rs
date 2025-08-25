@@ -418,7 +418,7 @@ pub struct Constellation<STF, SWF> {
     next_pipeline_namespace_id: PipelineNamespaceId,
 
     /// An [`IpcSender`] to notify navigation events to webdriver.
-    webdriver_load_status_sender: Option<(IpcSender<WebDriverLoadStatus>, PipelineId)>,
+    webdriver_load_status_sender: Option<(GenericSender<WebDriverLoadStatus>, PipelineId)>,
 
     /// An [`IpcSender`] to forward responses from the `ScriptThread` to the WebDriver server.
     webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
