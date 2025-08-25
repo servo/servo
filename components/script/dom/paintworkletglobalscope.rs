@@ -19,8 +19,8 @@ use js::jsapi::{
     JS_IsExceptionPending, JSAutoRealm, JSObject, NewArrayObject, Value,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::rust::HandleValue;
 use js::rust::wrappers::{Call, Construct1};
-use js::rust::{HandleValue, Runtime};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
@@ -43,12 +43,13 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylevalue::CSSStyleValue;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::stylepropertymapreadonly::StylePropertyMapReadOnly;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit, WorkletTask};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
@@ -86,7 +87,6 @@ pub(crate) struct PaintWorkletGlobalScope {
 impl PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
     pub(crate) fn new(
-        runtime: &Runtime,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         executor: WorkletExecutor,
@@ -119,12 +119,7 @@ impl PaintWorkletGlobalScope {
                 missing_image_urls: Vec::new(),
             }),
         });
-        unsafe {
-            PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-                JSContext::from_ptr(runtime.cx()),
-                global,
-            )
-        }
+        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), global)
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
