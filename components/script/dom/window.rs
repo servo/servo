@@ -246,11 +246,6 @@ pub(crate) struct Window {
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
     layout: RefCell<Box<dyn Layout>>,
-    /// A [`FontContext`] which is used to store and match against fonts for this `Window` and to
-    /// trigger the download of web fonts.
-    #[no_trace]
-    #[conditional_malloc_size_of]
-    font_context: Arc<FontContext>,
     navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -722,7 +717,9 @@ impl Window {
     }
 
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
-        &self.font_context
+        self.as_global_scope()
+            .font_context()
+            .expect("A `Window` should always have a `FontContext`")
     }
 
     pub(crate) fn ongoing_navigation(&self) -> OngoingNavigation {
@@ -2275,7 +2272,7 @@ impl Window {
             return;
         }
 
-        if self.font_context.web_fonts_still_loading() != 0 {
+        if self.font_context().web_fonts_still_loading() != 0 {
             return;
         }
 
@@ -3136,11 +3133,11 @@ impl Window {
                 gpu_id_hub,
                 inherited_secure_context,
                 unminify_js,
+                Some(font_context.clone()),
             ),
             ongoing_navigation: Default::default(),
             script_chan,
             layout: RefCell::new(layout),
-            font_context,
             image_cache_sender,
             image_cache,
             navigator: Default::default(),
