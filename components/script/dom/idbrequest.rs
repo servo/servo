@@ -308,7 +308,6 @@ impl IDBRequest {
         transaction
             .global()
             .resource_threads()
-            .sender()
             .send(IndexedDBThreadMsg::Async(
                 global.origin().immutable().clone(),
                 transaction.get_db_name().to_string(),

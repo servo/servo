@@ -356,12 +356,7 @@ impl WindowProxy {
                 dest: response.new_webview_id,
             };
 
-            document
-                .global()
-                .resource_threads()
-                .sender()
-                .send(msg)
-                .unwrap();
+            document.global().resource_threads().send(msg).unwrap();
             receiver.recv().unwrap();
         }
         Some(new_window_proxy)

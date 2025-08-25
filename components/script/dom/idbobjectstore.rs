@@ -128,7 +128,6 @@ impl IDBObjectStore {
 
         self.global()
             .resource_threads()
-            .sender()
             .send(IndexedDBThreadMsg::Sync(operation))
             .unwrap();
 

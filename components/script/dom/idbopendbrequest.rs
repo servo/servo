@@ -288,7 +288,6 @@ impl IDBOpenDBRequest {
 
         global
             .resource_threads()
-            .sender()
             .send(IndexedDBThreadMsg::Sync(open_operation))
             .unwrap();
     }
@@ -320,7 +319,6 @@ impl IDBOpenDBRequest {
 
         global
             .resource_threads()
-            .sender()
             .send(IndexedDBThreadMsg::Sync(delete_operation))
             .unwrap();
     }

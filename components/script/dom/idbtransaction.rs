@@ -105,7 +105,6 @@ impl IDBTransaction {
 
         global
             .resource_threads()
-            .sender()
             .send(IndexedDBThreadMsg::Sync(SyncOperation::RegisterNewTxn(
                 sender,
                 global.origin().immutable().clone(),
