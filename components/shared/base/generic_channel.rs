@@ -22,7 +22,7 @@ pub struct GenericSender<T: Serialize>(GenericSenderVariants<T>);
 
 /// The actual GenericSender variant.
 ///
-/// This enum is public, so that outside code can't construct a GenericSender itself.
+/// This enum is private, so that outside code can't construct a GenericSender itself.
 /// This ensures that users can't construct a crossbeam variant in multiprocess mode.
 enum GenericSenderVariants<T: Serialize> {
     Ipc(ipc_channel::ipc::IpcSender<T>),
@@ -38,7 +38,6 @@ enum GenericSenderVariants<T: Serialize> {
 
 impl<T: Serialize> Serialize for GenericSender<T> {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        use serde::ser::Error;
         match &self.0 {
             GenericSenderVariants::Ipc(sender) => {
                 s.serialize_newtype_variant("GenericSender", 0, "Ipc", sender)
@@ -48,14 +47,14 @@ impl<T: Serialize> Serialize for GenericSender<T> {
             // In single-process mode, we can also send GenericSenders over other GenericSenders
             // just fine, since no serialization is required.
             // The only reason we need / want serialization is to support sending GenericSenders
-            // over existing ipc_channels **in single process mode**. This allows us to
+            // over existing IPC channels **in single process mode**. This allows us to
             // incrementally port channels to the GenericChannel, without needing to follow a
-            // Top-to-bottom approach.
+            // top-to-bottom approach.
             // Long-term we can remove this branch in the code again and replace it with
-            // unreachable, since likely all IPC-channels would be GenericChannels.
+            // unreachable, since likely all IPC channels would be GenericChannels.
             GenericSenderVariants::Crossbeam(sender) => {
                 if opts::get().multiprocess {
-                    return Err(S::Error::custom(
+                    return Err(serde::ser::Error::custom(
                         "Crossbeam channel found in multiprocess mode!",
                     ));
                 } // We know everything is in one address-space, so we can "serialize" the sender by
@@ -75,7 +74,7 @@ impl<'de, T: Serialize + Deserialize<'de>> serde::de::Visitor<'de> for GenericSe
     type Value = GenericSender<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("enum GenericSender")
+        formatter.write_str("a GenericSender variant")
     }
 
     fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
@@ -95,9 +94,8 @@ impl<'de, T: Serialize + Deserialize<'de>> serde::de::Visitor<'de> for GenericSe
                 .newtype_variant::<ipc_channel::ipc::IpcSender<T>>()
                 .map(|sender| GenericSender(GenericSenderVariants::Ipc(sender))),
             GenericSenderVariantNames::Crossbeam => {
-                use serde::de::Error;
                 if opts::get().multiprocess {
-                    return Err(A::Error::custom(
+                    return Err(serde::de::Error::custom(
                         "Crossbeam channel found in multiprocess mode!",
                     ));
                 }
@@ -312,20 +310,19 @@ where
     T: for<'de> Deserialize<'de> + Serialize,
 {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        use serde::ser::Error;
         match &self.0 {
-            GenericReceiverVariants::Ipc(sender) => {
-                s.serialize_newtype_variant("GenericReceiver", 0, "Ipc", sender)
+            GenericReceiverVariants::Ipc(receiver) => {
+                s.serialize_newtype_variant("GenericReceiver", 0, "Ipc", receiver)
             },
-            GenericReceiverVariants::Crossbeam(sender) => {
+            GenericReceiverVariants::Crossbeam(receiver) => {
                 if opts::get().multiprocess {
-                    return Err(S::Error::custom(
+                    return Err(serde::ser::Error::custom(
                         "Crossbeam channel found in multiprocess mode!",
                     ));
-                } // We know everything is in one address-space, so we can "serialize" the sender by
+                } // We know everything is in one address-space, so we can "serialize" the receiver by
                 // sending a leaked Box pointer.
-                let sender_clone_addr = Box::leak(Box::new(sender.clone())) as *mut _ as usize;
-                s.serialize_newtype_variant("GenericReceiver", 1, "Crossbeam", &sender_clone_addr)
+                let receiver_clone_addr = Box::leak(Box::new(receiver.clone())) as *mut _ as usize;
+                s.serialize_newtype_variant("GenericReceiver", 1, "Crossbeam", &receiver_clone_addr)
             },
         }
     }
@@ -341,7 +338,7 @@ where
     type Value = GenericReceiver<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("enum GenericReceiver")
+        formatter.write_str("a GenericReceiver variant")
     }
 
     fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
@@ -361,9 +358,8 @@ where
                 .newtype_variant::<ipc_channel::ipc::IpcReceiver<T>>()
                 .map(|receiver| GenericReceiver(GenericReceiverVariants::Ipc(receiver))),
             GenericReceiverVariantNames::Crossbeam => {
-                use serde::de::Error;
                 if opts::get().multiprocess {
-                    return Err(A::Error::custom(
+                    return Err(serde::de::Error::custom(
                         "Crossbeam channel found in multiprocess mode!",
                     ));
                 }
