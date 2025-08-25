@@ -33,6 +33,7 @@ use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use base::generic_channel;
 pub use base::id::WebViewId;
 use base::id::{PipelineNamespace, PipelineNamespaceId};
 #[cfg(feature = "bluetooth")]
@@ -82,7 +83,6 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 pub use gleam::gl;
 use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use javascript_evaluator::JavaScriptEvaluator;
 pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
@@ -543,7 +543,7 @@ impl Servo {
             let mut compositor = self.compositor.borrow_mut();
             let mut messages = Vec::new();
             while let Ok(message) = compositor.receiver().try_recv() {
-                messages.push(message);
+                messages.push(message.expect("IPC serialization error"));
             }
             compositor.handle_messages(messages);
         }
@@ -1094,28 +1094,23 @@ fn create_embedder_channel(
 
 fn create_compositor_channel(
     event_loop_waker: Box<dyn EventLoopWaker>,
-) -> (CompositorProxy, Receiver<CompositorMsg>) {
-    let (sender, receiver) = unbounded();
+) -> (
+    CompositorProxy,
+    generic_channel::RoutedReceiver<CompositorMsg>,
+) {
+    let routed_channel =
+        generic_channel::routed_channel_with_local_sender().expect("Create channel failure");
 
-    let (compositor_ipc_sender, compositor_ipc_receiver) =
-        ipc::channel().expect("ipc channel failure");
+    let cross_process_compositor_api =
+        CrossProcessCompositorApi(routed_channel.generic_sender.clone());
 
-    let cross_process_compositor_api = CrossProcessCompositorApi(compositor_ipc_sender);
-    let compositor_proxy = CompositorProxy {
-        sender,
+    let compositor_proxy = CompositorProxy::new(
+        routed_channel.local_sender,
         cross_process_compositor_api,
         event_loop_waker,
-    };
-
-    let compositor_proxy_clone = compositor_proxy.clone();
-    ROUTER.add_typed_route(
-        compositor_ipc_receiver,
-        Box::new(move |message| {
-            compositor_proxy_clone.send(message.expect("Could not convert Compositor message"));
-        }),
     );
 
-    (compositor_proxy, receiver)
+    (compositor_proxy, routed_channel.local_receiver)
 }
 
 #[allow(clippy::too_many_arguments)]
