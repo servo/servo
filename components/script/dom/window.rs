@@ -646,8 +646,10 @@ impl Window {
             Entry::Occupied(nodes) => nodes,
             Entry::Vacant(_) => return,
         };
-        for node in nodes.get() {
-            node.dirty(NodeDamage::Other);
+        if matches!(response.response, ImageResponse::Loaded(_, _)) {
+            for node in nodes.get() {
+                node.dirty(NodeDamage::Other);
+            }
         }
         match response.response {
             ImageResponse::MetadataLoaded(_) => {},

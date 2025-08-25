@@ -559,8 +559,6 @@ impl HTMLImageElement {
             self.upcast::<EventTarget>()
                 .fire_event(atom!("loadend"), can_gc);
         }
-
-        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     fn process_image_response_for_environment_change(
