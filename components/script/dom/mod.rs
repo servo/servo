@@ -293,6 +293,7 @@ pub(crate) mod debuggeradddebuggeeevent;
 pub(crate) mod debuggergetpossiblebreakpointsevent;
 pub(crate) mod debuggerglobalscope;
 pub(crate) mod debuggersetbreakpointevent;
+pub(crate) mod debuggerpauseevent;
 pub(crate) mod dedicatedworkerglobalscope;
 pub(crate) mod defaultteereadrequest;
 pub(crate) mod defaultteeunderlyingsource;
