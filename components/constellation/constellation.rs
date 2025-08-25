@@ -1414,7 +1414,7 @@ where
             },
             // Close a top level browsing context.
             EmbedderToConstellationMessage::CloseWebView(webview_id) => {
-                self.handle_close_top_level_browsing_context(webview_id);
+                self.handle_close_top_level_browsing_context(webview_id, false);
             },
             // Panic a top level browsing context.
             EmbedderToConstellationMessage::SendError(webview_id, error) => {
@@ -1707,7 +1707,7 @@ where
                 self.handle_discard_document(webview_id, source_pipeline_id);
             },
             ScriptToConstellationMessage::DiscardTopLevelBrowsingContext => {
-                self.handle_close_top_level_browsing_context(webview_id);
+                self.handle_close_top_level_browsing_context(webview_id, true);
             },
             ScriptToConstellationMessage::ScriptLoadedURLInIFrame(load_info) => {
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
@@ -3058,19 +3058,32 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_close_top_level_browsing_context(&mut self, webview_id: WebViewId) {
-        debug!("{webview_id}: Closing");
+    fn handle_close_top_level_browsing_context(
+        &mut self,
+        webview_id: WebViewId,
+        notify_embedder: bool,
+    ) {
+        if notify_embedder {
+            debug!("{webview_id}: Closing by script");
+        } else {
+            debug!("{webview_id}: Closing by embedder)");
+        }
         let browsing_context_id = BrowsingContextId::from(webview_id);
         let browsing_context =
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
-        if self.webviews.focused_webview().map(|(id, _)| id) == Some(webview_id) {
+
+        if notify_embedder && self.webviews.focused_webview().map(|(id, _)| id) == Some(webview_id)
+        {
             self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
         }
+
         self.webviews.remove(webview_id);
         self.compositor_proxy
             .send(CompositorMsg::RemoveWebView(webview_id));
-        self.embedder_proxy
-            .send(EmbedderMsg::WebViewClosed(webview_id));
+        if notify_embedder {
+            self.embedder_proxy
+                .send(EmbedderMsg::WebViewClosed(webview_id));
+        }
 
         let Some(browsing_context) = browsing_context else {
             return warn!(
