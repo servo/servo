@@ -63,7 +63,7 @@ use crate::indexeddb::idb_thread::IndexedDBThreadFactory;
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
 use crate::storage_thread::StorageThreadFactory;
-use crate::websocket_loader;
+use crate::websocket_loader::create_request;
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
 fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore> {
@@ -377,12 +377,19 @@ impl ResourceChannelManager {
                 FetchChannels::WebSocket {
                     event_sender,
                     action_receiver,
-                } => self.resource_manager.websocket_connect(
-                    request_builder,
-                    event_sender,
-                    action_receiver,
-                    http_state,
-                ),
+                } => {
+                    let cancellation_listener =
+                        self.get_or_create_cancellation_listener(request_builder.id);
+
+                    self.resource_manager.websocket_connect(
+                        request_builder,
+                        event_sender,
+                        action_receiver,
+                        http_state,
+                        cancellation_listener,
+                        protocols,
+                    )
+                },
                 FetchChannels::Prefetch => self.resource_manager.fetch(
                     request_builder,
                     None,
@@ -847,6 +854,9 @@ impl CoreResourceManager {
             _ => (FileTokenCheck::NotRequired, None),
         };
 
+        let ca_certificates = self.ca_certificates.clone();
+        let ignore_certificate_errors = self.ignore_certificate_errors;
+
         spawn_task(async move {
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
@@ -862,6 +872,9 @@ impl CoreResourceManager {
                 cancellation_listener,
                 timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
                 protocols,
+                websocket_chan: None,
+                ca_certificates,
+                ignore_certificate_errors,
             };
 
             match res_init_ {
@@ -898,18 +911,62 @@ impl CoreResourceManager {
 
     fn websocket_connect(
         &self,
-        request: RequestBuilder,
+        mut request: RequestBuilder,
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
+        cancellation_listener: Arc<CancellationListener>,
+        protocols: Arc<ProtocolRegistry>,
     ) {
-        websocket_loader::init(
-            request,
-            event_sender,
-            action_receiver,
-            http_state.clone(),
-            self.ca_certificates.clone(),
-            self.ignore_certificate_errors,
-        );
+        let http_state = http_state.clone();
+        let filemanager = self.filemanager.clone();
+        let request_interceptor = self.request_interceptor.clone();
+
+        let ca_certificates = self.ca_certificates.clone();
+        let ignore_certificate_errors = self.ignore_certificate_errors;
+
+        spawn_task(async move {
+            let context = FetchContext {
+                state: http_state.clone(),
+                user_agent: servo_config::pref!(user_agent),
+                devtools_chan: None,
+                filemanager: Arc::new(Mutex::new(filemanager)),
+                file_token: FileTokenCheck::NotRequired, // FIXME(pylbrecht)
+                request_interceptor: Arc::new(Mutex::new(request_interceptor)),
+                cancellation_listener,
+                timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
+                    ResourceTimingType::None, // FIXME(pylbrecht)
+                ))),
+                protocols: protocols.clone(),
+                websocket_chan: Some(Arc::new(Mutex::new((
+                    event_sender.clone(),
+                    Some(action_receiver),
+                )))),
+                ca_certificates,
+                ignore_certificate_errors,
+            };
+
+            let mut event_sender = event_sender;
+
+            let mut url = request.url;
+            if url.scheme() == "wss" {
+                url.as_mut_url()
+                    .set_scheme("https")
+                    .expect("Can't set scheme from wss to https");
+            } else {
+                url.as_mut_url()
+                    .set_scheme("http")
+                    .expect("Can't set scheme from ws to http");
+            };
+            request.url = url;
+
+            match create_request(request, http_state) {
+                Ok(request) => fetch(request, &mut event_sender, &context).await,
+                Err(e) => {
+                    trace!("unable to create websocket handshake request {:?}", e);
+                    let _ = event_sender.send(WebSocketNetworkEvent::Fail);
+                },
+            }
+        });
     }
 }
