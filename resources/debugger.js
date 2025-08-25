@@ -71,3 +71,12 @@ addEventListener("setBreakpoint", event => {
     getPossibleBreakpointsRecursive(script);
     setBreakpointResult(event, true)
 });
+
+addEventListener("pause", event => {
+     dbg.onEnterFrame = function(frame) {
+        dbg.onEnterFrame = undefined;
+        console.log(frame.script.displayName);
+        console.log(frame.type);
+
+    };
+})

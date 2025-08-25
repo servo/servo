@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::DevtoolScriptControlMsg;
+use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -62,13 +64,15 @@ struct InterruptAck {
 pub struct ThreadActor {
     pub name: String,
     pub source_manager: SourceManager,
+    script_sender: IpcSender<DevtoolScriptControlMsg>,
 }
 
 impl ThreadActor {
-    pub fn new(name: String) -> ThreadActor {
+    pub fn new(name: String, script_sender: IpcSender<DevtoolScriptControlMsg>,) -> ThreadActor {
         ThreadActor {
             name: name.clone(),
             source_manager: SourceManager::new(),
+            script_sender,
         }
     }
 }
@@ -115,6 +119,10 @@ impl Actor for ThreadActor {
             },
 
             "interrupt" => {
+                self.script_sender
+                    .send(DevtoolScriptControlMsg::Pause())
+                    .map_err(|_| ActorError::Internal)?;
+
                 // Next step:
                 // investigate crash on "pause" click
                 let pause_actor = registry.new_name("pause");
