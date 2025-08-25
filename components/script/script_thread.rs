@@ -939,7 +939,6 @@ impl ScriptThread {
             pipeline_id,
         };
         let debugger_global = DebuggerGlobalScope::new(
-            &js_runtime.clone(),
             PipelineId::new(),
             senders.devtools_server_sender.clone(),
             senders.devtools_client_to_script_thread_sender.clone(),

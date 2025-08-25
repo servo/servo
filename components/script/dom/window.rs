@@ -3202,9 +3202,7 @@ impl Window {
             endpoints_list: Default::default(),
         });
 
-        unsafe {
-            WindowBinding::Wrap::<crate::DomTypeHolder>(JSContext::from_ptr(runtime.cx()), win)
-        }
+        WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {

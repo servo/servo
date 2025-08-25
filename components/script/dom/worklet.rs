@@ -629,7 +629,6 @@ impl WorkletThread {
                 let executor = WorkletExecutor::new(worklet_id, self.primary_sender.clone());
                 let result = WorkletGlobalScope::new(
                     global_type,
-                    &self.runtime,
                     pipeline_id,
                     base_url,
                     executor,

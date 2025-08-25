@@ -265,7 +265,6 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
-        let cx = runtime.cx();
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
             init,
             worker_url,
@@ -279,12 +278,7 @@ impl ServiceWorkerGlobalScope {
             control_receiver,
             closing,
         ));
-        unsafe {
-            ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-                SafeJSContext::from_ptr(cx),
-                scope,
-            )
-        }
+        ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), scope)
     }
 
     /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>
