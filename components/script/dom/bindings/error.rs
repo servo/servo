@@ -18,6 +18,7 @@ use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use libc::c_uint;
 use script_bindings::conversions::SafeToJSValConvertible;
 pub(crate) use script_bindings::error::*;
+use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 
 #[cfg(feature = "js_backtrace")]
@@ -133,6 +134,49 @@ pub(crate) fn throw_dom_exception(
         exception.safe_to_jsval(cx, thrown.handle_mut());
         JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
     }
+}
+
+pub(crate) fn create_dom_exception_from_error(
+    global: &GlobalScope,
+    error: Error,
+    can_gc: CanGc,
+) -> Option<DomRoot<DOMException>> {
+    let code = match error {
+        Error::IndexSize => DOMErrorName::IndexSizeError,
+        Error::NotFound => DOMErrorName::NotFoundError,
+        Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
+        Error::WrongDocument => DOMErrorName::WrongDocumentError,
+        Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
+        Error::NotSupported => DOMErrorName::NotSupportedError,
+        Error::InUseAttribute => DOMErrorName::InUseAttributeError,
+        Error::InvalidState => DOMErrorName::InvalidStateError,
+        Error::Syntax => DOMErrorName::SyntaxError,
+        Error::Namespace => DOMErrorName::NamespaceError,
+        Error::InvalidAccess => DOMErrorName::InvalidAccessError,
+        Error::Security => DOMErrorName::SecurityError,
+        Error::Network => DOMErrorName::NetworkError,
+        Error::Abort => DOMErrorName::AbortError,
+        Error::Timeout => DOMErrorName::TimeoutError,
+        Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
+        Error::DataClone(_) => DOMErrorName::DataCloneError,
+        Error::Data => DOMErrorName::DataError,
+        Error::TransactionInactive => DOMErrorName::TransactionInactiveError,
+        Error::ReadOnly => DOMErrorName::ReadOnlyError,
+        Error::Version => DOMErrorName::VersionError,
+        Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
+        Error::QuotaExceeded { .. } => DOMErrorName::QuotaExceededError,
+        Error::TypeMismatch => DOMErrorName::TypeMismatchError,
+        Error::InvalidModification => DOMErrorName::InvalidModificationError,
+        Error::NotReadable => DOMErrorName::NotReadableError,
+        Error::Operation => DOMErrorName::OperationError,
+        Error::NotAllowed => DOMErrorName::NotAllowedError,
+        Error::Encoding => DOMErrorName::EncodingError,
+        Error::Constraint => DOMErrorName::ConstraintError,
+        Error::Type(_) => return None,
+        Error::Range(_) => return None,
+        Error::JSFailed => return None,
+    };
+    Some(DOMException::new(global, code, can_gc))
 }
 
 /// A struct encapsulating information about a runtime script error.
