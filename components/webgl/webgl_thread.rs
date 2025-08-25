@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{slice, thread};
 
+use base::generic_channel::RoutedReceiver;
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
@@ -217,7 +218,7 @@ pub(crate) struct WebGLThread {
     /// We use it to get an unique ID for new WebGLContexts.
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     /// The receiver that will be used for processing WebGL messages.
-    receiver: crossbeam_channel::Receiver<WebGLMsg>,
+    receiver: RoutedReceiver<WebGLMsg>,
     /// The receiver that should be used to send WebGL messages for processing.
     sender: WebGLSender<WebGLMsg>,
     /// The swap chains used by webrender
@@ -275,7 +276,7 @@ impl WebGLThread {
             bound_context_id: None,
             external_images,
             sender,
-            receiver: receiver.into_inner(),
+            receiver: receiver.route_preserving_errors(),
             webrender_swap_chains,
             api_type,
             #[cfg(feature = "webxr")]
@@ -297,7 +298,7 @@ impl WebGLThread {
 
     fn process(&mut self) {
         let webgl_chan = WebGLChan(self.sender.clone());
-        while let Ok(msg) = self.receiver.recv() {
+        while let Ok(Ok(msg)) = self.receiver.recv() {
             let exit = self.handle_msg(msg, &webgl_chan);
             if exit {
                 break;
