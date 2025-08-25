@@ -50,3 +50,12 @@ addEventListener("getPossibleBreakpoints", event => {
     }
     getPossibleBreakpointsResult(event, getPossibleBreakpointsRecursive(script));
 });
+
+addEventListener("pause", event => {
+    // This method should return a resumption value specifying how the debuggee’s execution should proceed.
+    // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.html#onenterframe-frame>
+     dbg.onEnterFrame = function(frame) {
+        // resumption value: <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
+        dbg.onEnterFrame = undefined;
+    };
+})
