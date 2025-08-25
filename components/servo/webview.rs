@@ -408,6 +408,12 @@ impl WebView {
             .expect("BUG: invalid WebView instance");
     }
 
+    pub fn focus_and_raise_to_top(&self, hide_others: bool) -> FocusId {
+        let focus_id = self.focus();
+        self.raise_to_top(hide_others);
+        focus_id
+    }
+
     pub fn notify_theme_change(&self, theme: Theme) {
         self.inner()
             .constellation_proxy
