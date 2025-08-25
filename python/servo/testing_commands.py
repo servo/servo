@@ -21,6 +21,7 @@ import sys
 import textwrap
 from time import sleep
 from typing import Any
+from pathlib import Path
 
 import tidy
 import wpt
@@ -439,6 +440,37 @@ class MachCommands(CommandBase):
             print("Are you sure you don't want a patch?")
             return 1
         return wpt.update.update_tests(**kwargs)
+
+    @Command("test-ohos-wpt", description="Run a single WPT test on OHOS device using WebDriver", category="testing")
+    @CommandArgument("--test", required=True, help="Path to WPT test (relative to tests/wpt/tests/)")
+    @CommandArgument("--webdriver-port", type=int, default=7000, help="WebDriver server port on OHOS device")
+    @CommandArgument("--wpt-server-port", type=int, default=8000, help="WPT server port on desktop")
+    @CommandArgument("--verbose", action="store_true", help="Enable verbose logging")
+    def test_ohos_wpt(self, **kwargs: Any) -> int:
+        """Run a single WPT test on OHOS device."""
+        script_path = Path(__file__).parent.parent / "wpt" / "ohos_webdriver_test.py"
+
+        cmd = [
+            sys.executable,
+            str(script_path),
+            "--test",
+            kwargs["test"],
+            "--webdriver-port",
+            str(kwargs["webdriver_port"]),
+            "--wpt-server-port",
+            str(kwargs["wpt_server_port"]),
+        ]
+
+        if kwargs.get("verbose"):
+            cmd.append("--verbose")
+
+        print(f"Running OHOS WPT test: {kwargs['test']}")
+        print("Make sure:")
+        print("1. OHOS device is connected and running Servo with WebDriver enabled")
+        print("2. WPT server is running on desktop")
+        print("3. HDC is available in PATH")
+
+        return subprocess.call(cmd)
 
     @Command("test-jquery", description="Run the jQuery test suite", category="testing")
     @CommandBase.common_command_arguments(binary_selection=True)
