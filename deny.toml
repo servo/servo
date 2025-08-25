@@ -86,7 +86,6 @@ skip = [
     "cookie",
     "futures",
     "redox_syscall",
-    "wayland-sys",
 
     # Duplicated by aws-lc-rs
     "bindgen",
@@ -117,9 +116,6 @@ skip = [
     "windows_x86_64_msvc",
 
     # wgpu has the latest and greatest.
-    "foreign-types",
-    "foreign-types-shared",
-    "metal",
     "windows-core",
 
     # wgpu-hal depends on 0.5.0.
