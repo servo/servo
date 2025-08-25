@@ -165,12 +165,18 @@ impl ServoParser {
         self.can_write()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#parse-html-from-a-string>
     pub(crate) fn parse_html_document(
         document: &Document,
         input: Option<DOMString>,
         url: ServoUrl,
         can_gc: CanGc,
     ) {
+        // Step 1. Set document's type to "html".
+        //
+        // Set by callers of this function and asserted here
+        assert!(document.is_html_document());
+        // Step 2. Create an HTML parser parser, associated with document.
         let parser = if pref!(dom_servoparser_async_html_tokenizer_enabled) {
             ServoParser::new(
                 document,
@@ -191,7 +197,10 @@ impl ServoParser {
                 can_gc,
             )
         };
-
+        // Step 3. Place html into the input stream for parser. The encoding confidence is irrelevant.
+        // Step 4. Start parser and let it run until it has consumed all the
+        // characters just inserted into the input stream.
+        //
         // Set as the document's current parser and initialize with `input`, if given.
         if let Some(input) = input {
             parser.parse_complete_string_chunk(String::from(input), can_gc);

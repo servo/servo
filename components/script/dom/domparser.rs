@@ -14,12 +14,13 @@ use crate::dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{
 };
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::servoparser::ServoParser;
+use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -60,10 +61,19 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
     /// <https://html.spec.whatwg.org/multipage/#dom-domparser-parsefromstring>
     fn ParseFromString(
         &self,
-        s: DOMString,
+        s: TrustedHTMLOrString,
         ty: DOMParserBinding::SupportedType,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
+        // Step 1. Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, string, "DOMParser parseFromString", and "script".
+        let compliant_string = TrustedHTML::get_trusted_script_compliant_string(
+            self.window.as_global_scope(),
+            s,
+            "DOMParser parseFromString",
+            can_gc,
+        )?;
         let url = self.window.get_url();
         let content_type = ty
             .as_str()
@@ -71,8 +81,11 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
             .expect("Supported type is not a MIME type");
         let doc = self.window.Document();
         let loader = DocumentLoader::new(&doc.loader());
-        match ty {
+        // Step 3. Switch on type:
+        let document = match ty {
             Text_html => {
+                // Step 2. Let document be a new Document, whose content type is type
+                // and URL is this's relevant global object's associated Document's URL.
                 let document = Document::new(
                     &self.window,
                     HasBrowsingContext::No,
@@ -93,11 +106,13 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.has_trustworthy_ancestor_or_current_origin(),
                     can_gc,
                 );
-                ServoParser::parse_html_document(&document, Some(s), url, can_gc);
-                document.set_ready_state(DocumentReadyState::Complete, can_gc);
-                Ok(document)
+                // Step switch-1. Parse HTML from a string given document and compliantString.
+                ServoParser::parse_html_document(&document, Some(compliant_string), url, can_gc);
+                document
             },
             Text_xml | Application_xml | Application_xhtml_xml | Image_svg_xml => {
+                // Step 2. Let document be a new Document, whose content type is type
+                // and URL is this's relevant global object's associated Document's URL.
                 let document = Document::new(
                     &self.window,
                     HasBrowsingContext::No,
@@ -118,10 +133,14 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.has_trustworthy_ancestor_or_current_origin(),
                     can_gc,
                 );
-                ServoParser::parse_xml_document(&document, Some(s), url, can_gc);
-                document.set_ready_state(DocumentReadyState::Complete, can_gc);
-                Ok(document)
+                // Step switch-1. Create an XML parser parser, associated with document,
+                // and with XML scripting support disabled.
+                ServoParser::parse_xml_document(&document, Some(compliant_string), url, can_gc);
+                document
             },
-        }
+        };
+        // Step 4. Return document.
+        document.set_ready_state(DocumentReadyState::Complete, can_gc);
+        Ok(document)
     }
 }
