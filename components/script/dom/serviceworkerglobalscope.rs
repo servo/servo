@@ -14,6 +14,7 @@ use constellation_traits::{
 use crossbeam_channel::{Receiver, Sender, after, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
+use fonts::FontContext;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
@@ -227,6 +228,7 @@ impl ServiceWorkerGlobalScope {
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
+        font_context: Arc<FontContext>,
     ) -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -239,8 +241,9 @@ impl ServiceWorkerGlobalScope {
                 closing,
                 #[cfg(feature = "webgpu")]
                 Arc::new(IdentityHub::default()),
-                InsecureRequestsPolicy::DoNotUpgrade, // FIXME: investigate what environment this value comes from for
-                                                      // service workers.
+                // FIXME: investigate what environment this value comes from for service workers.
+                InsecureRequestsPolicy::DoNotUpgrade,
+                Some(font_context),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -264,6 +267,7 @@ impl ServiceWorkerGlobalScope {
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
+        font_context: Arc<FontContext>,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
             init,
@@ -277,6 +281,7 @@ impl ServiceWorkerGlobalScope {
             scope_url,
             control_receiver,
             closing,
+            font_context,
         ));
         ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), scope)
     }
@@ -293,6 +298,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
         closing: Arc<AtomicBool>,
+        font_context: Arc<FontContext>,
     ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
@@ -342,6 +348,7 @@ impl ServiceWorkerGlobalScope {
                     scope_url,
                     control_receiver,
                     closing,
+                    font_context,
                 );
 
                 let scope = global.upcast::<WorkerGlobalScope>();

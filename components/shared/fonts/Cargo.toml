@@ -18,6 +18,8 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 memmap2 = { workspace = true }
+parking_lot = { workspace = true }
+profile_traits = { workspace = true }
 range = { path = "../../range" }
 read-fonts = { workspace = true }
 serde = { workspace = true }

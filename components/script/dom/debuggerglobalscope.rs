@@ -87,6 +87,7 @@ impl DebuggerGlobalScope {
                 gpu_id_hub,
                 None,
                 false,
+                None, // font_context
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),

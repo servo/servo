@@ -16,6 +16,7 @@ use content_security_policy::CspList;
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
+use fonts::FontContext;
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
@@ -167,6 +168,7 @@ impl WorkerGlobalScope {
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        font_context: Option<Arc<FontContext>>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
@@ -192,6 +194,7 @@ impl WorkerGlobalScope {
                 gpu_id_hub,
                 init.inherited_secure_context,
                 false,
+                font_context,
             ),
             worker_id: init.worker_id,
             worker_name,

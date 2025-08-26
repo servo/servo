@@ -2443,9 +2443,11 @@ where
 
                 let sw_senders = SWManagerSenders {
                     swmanager_sender: self.swmanager_ipc_sender.clone(),
-                    resource_sender: self.public_resource_threads.sender(),
+                    resource_threads: self.public_resource_threads.clone(),
                     own_sender: own_sender.clone(),
                     receiver,
+                    compositor_api: self.compositor_proxy.cross_process_compositor_api.clone(),
+                    system_font_service_sender: self.system_font_service.to_sender(),
                 };
 
                 if opts::get().multiprocess {

@@ -255,6 +255,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             context_sender,
             global.insecure_requests_policy(),
             global.policy_container(),
+            global.font_context().cloned(),
         );
 
         let context = context_receiver
