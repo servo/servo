@@ -15,6 +15,7 @@ use std::hash::Hasher;
 use std::net::IpAddr;
 use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 use std::path::Path;
+use std::str::FromStr;
 
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -305,5 +306,14 @@ impl From<Url> for ServoUrl {
 impl From<Arc<Url>> for ServoUrl {
     fn from(url: Arc<Url>) -> Self {
         ServoUrl(url)
+    }
+}
+
+impl FromStr for ServoUrl {
+    type Err = <Url as FromStr>::Err;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let url = Url::from_str(value)?;
+        Ok(url.into())
     }
 }
