@@ -28,9 +28,9 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
-    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, OffsetParentResponse,
-    PropertyRegistration, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowResult, RegisterPropertyError, TrustedNodeAddress,
+    BoxAreaType, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory,
+    OffsetParentResponse, PropertyRegistration, QueryMsg, ReflowGoal, ReflowPhasesRun,
+    ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError, TrustedNodeAddress,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -90,8 +90,8 @@ use webrender_api::units::{DevicePixel, LayoutVector2D};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, StackingContextTree};
 use crate::query::{
-    get_the_text_steps, process_client_rect_request, process_content_box_request,
-    process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
+    get_the_text_steps, process_box_area_request, process_box_areas_request,
+    process_client_rect_request, process_node_scroll_area_request, process_offset_parent_query,
     process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
@@ -262,14 +262,17 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
-    /// Return the union of this node's content boxes in the coordinate space of the Document.
-    /// to implement `getBoundingClientRect()`.
+    /// Return the union of this node's areas in the coordinate space of the Document. This is used
+    /// to implement `getBoundingClientRect()` and support many other API where the such query is
+    /// required.
     ///
-    /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>
-    /// TODO(stevennovaryo): Rename and parameterize the function, allowing padding area
-    ///                      query and possibly, query without consideration of transform.
+    /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>.
     #[servo_tracing::instrument(skip_all)]
-    fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
+    fn query_box_area(
+        &self,
+        node: TrustedNodeAddress,
+        area: BoxAreaType,
+    ) -> Option<UntypedRect<Au>> {
         // If we have not built a fragment tree yet, there is no way we have layout information for
         // this query, which can be run without forcing a layout (for IntersectionObserver).
         if self.fragment_tree.borrow().is_none() {
@@ -280,16 +283,16 @@ impl Layout for LayoutThread {
         let stacking_context_tree = self.stacking_context_tree.borrow();
         let stacking_context_tree = stacking_context_tree
             .as_ref()
-            .expect("Should always have a StackingContextTree for content box queries");
-        process_content_box_request(stacking_context_tree, node.to_threadsafe())
+            .expect("Should always have a StackingContextTree for box area queries");
+        process_box_area_request(stacking_context_tree, node.to_threadsafe(), area)
     }
 
-    /// Get a `Vec` of bounding boxes of this node's `Fragement`s in the coordinate space of the
-    /// Document. This is used to implement `getClientRects()`.
+    /// Get a `Vec` of bounding boxes of this node's `Fragment`s specific area in the coordinate space of
+    /// the Document. This is used to implement `getClientRects()`.
     ///
     /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
-    fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<UntypedRect<Au>> {
         // If we have not built a fragment tree yet, there is no way we have layout information for
         // this query, which can be run without forcing a layout (for IntersectionObserver).
         if self.fragment_tree.borrow().is_none() {
@@ -300,8 +303,8 @@ impl Layout for LayoutThread {
         let stacking_context_tree = self.stacking_context_tree.borrow();
         let stacking_context_tree = stacking_context_tree
             .as_ref()
-            .expect("Should always have a StackingContextTree for content box queries");
-        process_content_boxes_request(stacking_context_tree, node.to_threadsafe())
+            .expect("Should always have a StackingContextTree for box area queries");
+        process_box_areas_request(stacking_context_tree, node.to_threadsafe(), area)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1597,8 +1600,8 @@ impl ReflowPhases {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
-                QueryMsg::ContentBox |
-                QueryMsg::ContentBoxes |
+                QueryMsg::BoxArea |
+                QueryMsg::BoxAreas |
                 QueryMsg::ResolvedStyleQuery |
                 QueryMsg::ScrollingAreaOrOffsetQuery |
                 QueryMsg::ElementsFromPoint => Self::StackingContextTreeConstruction,

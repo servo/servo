@@ -12,9 +12,11 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::{Rect, SideOffsets2D, Size2D};
 use js::rust::{HandleObject, MutableHandleValue};
+use layout_api::BoxAreaType;
 use style::context::QuirksMode;
 use style::parser::{Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
+use style::values::computed::Overflow;
 use style::values::specified::intersection_observer::IntersectionObserverMargin;
 use style_traits::{ParsingMode, ToCss};
 use url::Url;
@@ -413,14 +415,22 @@ impl IntersectionObserver {
             // Handle if root is an element.
             Some(ElementOrDocument::Element(element)) => {
                 // TODO: recheck scrollbar approach and clip-path clipping from Chromium implementation.
-
-                // > Otherwise, if the intersection root has a content clip,
-                // > it’s the element’s padding area.
-                // TODO(stevennovaryo): check for content clip
-
-                // > Otherwise, it’s the result of getting the bounding box for the intersection root.
-                // TODO: replace this once getBoundingBox() is implemented correctly.
-                window.content_box_query_without_reflow(&DomRoot::upcast::<Node>(element.clone()))
+                if element.style().is_some_and(|style| {
+                    style.clone_overflow_x() != Overflow::Visible ||
+                        style.clone_overflow_y() != Overflow::Visible
+                }) {
+                    // > Otherwise, if the intersection root has a content clip, it’s the element’s padding area.
+                    window.box_area_query_without_reflow(
+                        &DomRoot::upcast::<Node>(element.clone()),
+                        BoxAreaType::Padding,
+                    )
+                } else {
+                    // > Otherwise, it’s the result of getting the bounding box for the intersection root.
+                    window.box_area_query_without_reflow(
+                        &DomRoot::upcast::<Node>(element.clone()),
+                        BoxAreaType::Border,
+                    )
+                }
             },
             // Handle if root is a Document, which includes implicit root and explicit Document root.
             _ => {
@@ -498,20 +508,15 @@ impl IntersectionObserver {
 
         // Step 7
         // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
-        // This is what we are currently using for getBoundingBox(). However, it is not correct,
-        // mainly because it is not considering transform and scroll offset.
-        // TODO: replace this once getBoundingBox() is implemented correctly.
         let maybe_target_rect = document
             .window()
-            .content_box_query_without_reflow(target.upcast::<Node>());
+            .box_area_query_without_reflow(target.upcast::<Node>(), BoxAreaType::Border);
 
         // Following the implementation of Gecko, we will skip further processing if these
         // information not available. This would also handle display none element.
-        if maybe_root_bounds.is_none() || maybe_target_rect.is_none() {
+        let (Some(root_bounds), Some(target_rect)) = (maybe_root_bounds, maybe_target_rect) else {
             return IntersectionObservationOutput::default_skipped();
-        }
-        let root_bounds = maybe_root_bounds.unwrap();
-        let target_rect = maybe_target_rect.unwrap();
+        };
 
         // TODO(stevennovaryo): we should probably also consider adding visibity check, ideally
         //                      it would require new query from LayoutThread.

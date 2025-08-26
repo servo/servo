@@ -11,7 +11,7 @@ use euclid::default::{Point2D, Rect};
 use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use layout_api::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
+use layout_api::{BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse};
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
@@ -67,14 +67,15 @@ fn root_transform_for_layout_node(
     Some(scroll_tree.cumulative_node_to_root_transform(&scroll_tree_node_id))
 }
 
-pub(crate) fn process_content_box_request(
+pub(crate) fn process_box_area_request(
     stacking_context_tree: &StackingContextTree,
     node: ServoThreadSafeLayoutNode<'_>,
+    area: BoxAreaType,
 ) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
         .iter()
-        .filter_map(Fragment::cumulative_border_box_rect)
+        .filter_map(|node| node.cumulative_box_area_rect(area))
         .collect();
     if rects.is_empty() {
         return None;
@@ -92,23 +93,24 @@ pub(crate) fn process_content_box_request(
     transform_au_rectangle(rect_union, transform)
 }
 
-pub(crate) fn process_content_boxes_request(
+pub(crate) fn process_box_areas_request(
     stacking_context_tree: &StackingContextTree,
     node: ServoThreadSafeLayoutNode<'_>,
+    area: BoxAreaType,
 ) -> Vec<Rect<Au>> {
     let fragments = node.fragments_for_pseudo(None);
-    let content_boxes = fragments
+    let box_areas = fragments
         .iter()
-        .filter_map(Fragment::cumulative_border_box_rect)
+        .filter_map(|node| node.cumulative_box_area_rect(area))
         .map(|rect| rect.to_untyped());
 
     let Some(transform) =
         root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
     else {
-        return content_boxes.collect();
+        return box_areas.collect();
     };
 
-    content_boxes
+    box_areas
         .filter_map(|rect| transform_au_rectangle(rect, transform))
         .collect()
 }
@@ -575,7 +577,7 @@ pub fn process_offset_parent_query(node: ServoLayoutNode<'_>) -> Option<OffsetPa
         .fragments_for_pseudo(None)
         .first()
         .cloned()?;
-    let mut border_box = fragment.cumulative_border_box_rect()?;
+    let mut border_box = fragment.cumulative_box_area_rect(BoxAreaType::Border)?;
 
     // 2.  If the offsetParent of the element is null return the x-coordinate of the left
     //     border edge of the first CSS layout box associated with the element, relative to

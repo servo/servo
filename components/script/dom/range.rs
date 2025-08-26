@@ -334,13 +334,13 @@ impl Range {
         // rect of the selected part, not the whole text node.
         let start = self.start_container();
         let end = self.end_container();
-        let document = start.owner_doc();
+        let document: script_bindings::root::Root<Dom<Document>> = start.owner_doc();
         let end_clone = end.clone();
         start
             .following_nodes(document.upcast::<Node>())
             .take_while(move |node| node != &end)
             .chain(iter::once(end_clone))
-            .flat_map(move |node| node.content_boxes())
+            .flat_map(move |node| node.border_boxes())
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>

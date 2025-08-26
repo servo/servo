@@ -377,7 +377,7 @@ impl HTMLSelectElement {
             })
             .collect();
 
-        let rect = self.upcast::<Node>().content_box().unwrap_or_default();
+        let rect = self.upcast::<Node>().border_box().unwrap_or_default();
         let rect = Rect::new(
             Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
             Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),

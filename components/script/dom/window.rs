@@ -53,9 +53,9 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout, PendingImage,
-    PendingImageState, PendingRasterizationImage, QueryMsg, ReflowGoal, ReflowPhasesRun,
-    ReflowRequest, ReflowRequestRestyle, RestyleReason, TrustedNodeAddress,
+    BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout,
+    PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg, ReflowGoal,
+    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason, TrustedNodeAddress,
     combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
@@ -2345,26 +2345,30 @@ impl Window {
         )
     }
 
-    /// Do the same kind of query as `Self::content_box_query`, but do not force a reflow.
+    /// Do the same kind of query as `Self::box_area_query`, but do not force a reflow.
     /// This is used for things like `IntersectionObserver` which should observe the value
     /// from the most recent reflow, but do not need it to reflect the current state of
     /// the DOM / style.
-    pub(crate) fn content_box_query_without_reflow(&self, node: &Node) -> Option<UntypedRect<Au>> {
+    pub(crate) fn box_area_query_without_reflow(
+        &self,
+        node: &Node,
+        area: BoxAreaType,
+    ) -> Option<UntypedRect<Au>> {
         let layout = self.layout.borrow();
         layout.ensure_stacking_context_tree(self.viewport_details.get());
-        layout.query_content_box(node.to_trusted_node_address())
+        layout.query_box_area(node.to_trusted_node_address(), area)
     }
 
-    pub(crate) fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
-        self.layout_reflow(QueryMsg::ContentBox);
-        self.content_box_query_without_reflow(node)
+    pub(crate) fn box_area_query(&self, node: &Node, area: BoxAreaType) -> Option<UntypedRect<Au>> {
+        self.layout_reflow(QueryMsg::BoxArea);
+        self.box_area_query_without_reflow(node, area)
     }
 
-    pub(crate) fn content_boxes_query(&self, node: &Node) -> Vec<UntypedRect<Au>> {
-        self.layout_reflow(QueryMsg::ContentBoxes);
+    pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> Vec<UntypedRect<Au>> {
+        self.layout_reflow(QueryMsg::BoxAreas);
         self.layout
             .borrow()
-            .query_content_boxes(node.to_trusted_node_address())
+            .query_box_areas(node.to_trusted_node_address(), area)
     }
 
     pub(crate) fn client_rect_query(&self, node: &Node) -> UntypedRect<i32> {

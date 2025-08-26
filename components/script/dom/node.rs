@@ -26,8 +26,8 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
-    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
-    SVGElementData, StyleData, TrustedNodeAddress,
+    BoxAreaType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType,
+    LayoutNodeType, QueryMsg, SVGElementData, StyleData, TrustedNodeAddress,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -943,11 +943,18 @@ impl Node {
     }
 
     pub(crate) fn content_box(&self) -> Option<Rect<Au>> {
-        self.owner_window().content_box_query(self)
+        self.owner_window()
+            .box_area_query(self, BoxAreaType::Content)
     }
 
-    pub(crate) fn content_boxes(&self) -> Vec<Rect<Au>> {
-        self.owner_window().content_boxes_query(self)
+    pub(crate) fn border_box(&self) -> Option<Rect<Au>> {
+        self.owner_window()
+            .box_area_query(self, BoxAreaType::Border)
+    }
+
+    pub(crate) fn border_boxes(&self) -> Vec<Rect<Au>> {
+        self.owner_window()
+            .box_areas_query(self, BoxAreaType::Border)
     }
 
     pub(crate) fn client_rect(&self) -> Rect<i32> {
