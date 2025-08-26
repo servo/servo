@@ -5671,11 +5671,11 @@ class ClassBase(ClassItem):
 
 class ClassMethod(ClassItem):
     body: str | None
-    def __init__(self, name, returnType, args, inline=False, static=False,
-                 virtual=False, const=False, bodyInHeader=False,
-                 templateArgs=None, visibility='public', body=None,
-                 breakAfterReturnDecl="\n", unsafe=False,
-                 breakAfterSelf="\n", override=False):
+    def __init__(self, name: str, returnType: str, args: list[Argument], inline: bool = False, static: bool = False,
+                 virtual: bool = False, const: bool = False, bodyInHeader: bool = False,
+                 templateArgs: list[str] | None = None, visibility: str = 'public', body: str | None = None,
+                 breakAfterReturnDecl: str = "\n", unsafe: bool = False,
+                 breakAfterSelf: str = "\n", override: bool = False) -> None:
         """
         override indicates whether to flag the method as MOZ_OVERRIDE
         """
@@ -5696,7 +5696,7 @@ class ClassMethod(ClassItem):
         self.unsafe = unsafe
         ClassItem.__init__(self, name, visibility)
 
-    def getDecorators(self, declaring):
+    def getDecorators(self, declaring) -> str:
         decorators = []
         if self.inline:
             decorators.append('inline')
@@ -5709,12 +5709,12 @@ class ClassMethod(ClassItem):
             return f'{" ".join(decorators)} '
         return ''
 
-    def getBody(self):
+    def getBody(self) -> str:
         # Override me or pass a string to constructor
         assert self.body is not None
         return self.body
 
-    def declare(self, cgClass):
+    def declare(self, cgClass: CGClass) -> str:
 
         templateClause = f"<{', '.join(self.templateArgs)}>" if self.bodyInHeader and self.templateArgs else '<>'
         args = ', '.join([a.declare() for a in self.args])
@@ -8131,9 +8131,9 @@ def return_type(descriptorProvider: DescriptorProvider, rettype: IDLType, infall
 
 
 class CGNativeMember(ClassMethod):
-    def __init__(self, descriptorProvider, member, name, signature, extendedAttrs,
-                 breakAfter=True, passJSBitsAsNeeded=True, visibility="public",
-                 unsafe=False):
+    def __init__(self, descriptorProvider: DescriptorProvider, member: IDLMethod, name: str, signature: tuple[IDLType, list[IDLArgument]], extendedAttrs: dict[str, Any],
+                 breakAfter: bool = True, passJSBitsAsNeeded: bool = True, visibility: str = "public",
+                 unsafe: bool = False) -> None:
         """
         If passJSBitsAsNeeded is false, we don't automatically pass in a
         JSContext* or a JSObject* based on the return and argument types.
@@ -8155,12 +8155,12 @@ class CGNativeMember(ClassMethod):
                              unsafe=unsafe,
                              visibility=visibility)
 
-    def getReturnType(self, type):
+    def getReturnType(self, type: IDLType) -> str:
         infallible = 'infallible' in self.extendedAttrs
         typeDecl = return_type(self.descriptorProvider, type, infallible)
         return typeDecl
 
-    def getArgs(self, returnType, argList):
+    def getArgs(self, returnType: IDLType, argList: list[IDLArgument]) -> list[Argument]:
         return [Argument(arg[1], arg[0]) for arg in method_arguments(self.descriptorProvider,
                                                                      returnType,
                                                                      argList,
@@ -8334,7 +8334,7 @@ class FakeMember():
 
 
 class CallbackMember(CGNativeMember):
-    def __init__(self, sig, name, descriptorProvider, needThisHandling):
+    def __init__(self, sig: tuple[IDLType, list[IDLArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool) -> None:
         """
         needThisHandling is True if we need to be able to accept a specified
         thisObj, False otherwise.
@@ -8521,11 +8521,11 @@ class CallbackMember(CGNativeMember):
 
 
 class CallbackMethod(CallbackMember):
-    def __init__(self, sig, name, descriptorProvider, needThisHandling):
+    def __init__(self, sig: tuple[IDLType, list[IDLArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool) -> None:
         CallbackMember.__init__(self, sig, name, descriptorProvider,
                                 needThisHandling)
 
-    def getRvalDecl(self):
+    def getRvalDecl(self) -> str:
         if self.usingOutparam:
             return ""
         else:
@@ -8543,7 +8543,7 @@ class CallbackMethod(CallbackMember):
     def getCallGuard(self) -> str:
         raise NotImplementedError
 
-    def getCall(self):
+    def getCall(self) -> str:
         if self.argCount > 0:
             argv = "argv.as_ptr() as *const JSVal"
             argc = "argc"
@@ -8566,18 +8566,18 @@ class CallbackMethod(CallbackMember):
 
 
 class CallCallback(CallbackMethod):
-    def __init__(self, callback, descriptorProvider):
+    def __init__(self, callback: IDLCallback, descriptorProvider: DescriptorProvider) -> None:
         self.callback = callback
         CallbackMethod.__init__(self, callback.signatures()[0], "Call",
                                 descriptorProvider, needThisHandling=True)
 
-    def getThisObj(self):
+    def getThisObj(self) -> str:
         return "aThisObj.get()"
 
-    def getCallableDecl(self):
+    def getCallableDecl(self) -> str:
         return "rooted!(in(*cx) let callable = ObjectValue(self.callback()));\n"
 
-    def getCallGuard(self):
+    def getCallGuard(self) -> str:
         if self.callback._treatNonObjectAsNull:
             return "!IsCallable(self.callback()) || "
         return ""
@@ -8587,12 +8587,12 @@ class CallbackOperationBase(CallbackMethod):
     """
     Common class for implementing various callback operations.
     """
-    def __init__(self, signature, jsName, nativeName, descriptor, singleOperation):
+    def __init__(self, signature: tuple[IDLType, list[IDLArgument]], jsName: str, nativeName: str, descriptor: Descriptor, singleOperation: bool) -> None:
         self.singleOperation = singleOperation
         self.methodName = jsName
         CallbackMethod.__init__(self, signature, nativeName, descriptor, singleOperation)
 
-    def getThisObj(self):
+    def getThisObj(self) -> str:
         if not self.singleOperation:
             return "ObjectValue(self.callback())"
         # This relies on getCallableDecl declaring a boolean
@@ -8600,7 +8600,7 @@ class CallbackOperationBase(CallbackMethod):
         # interface.
         return "if isCallable { aThisObj.get() } else { ObjectValue(self.callback()) }"
 
-    def getCallableDecl(self):
+    def getCallableDecl(self) -> str:
         getCallableFromProp = f'self.parent.get_callable_property(cx, "{self.methodName}")?'
         if not self.singleOperation:
             return f'rooted!(in(*cx) let callable =\n{getCallableFromProp});\n'
@@ -8611,7 +8611,7 @@ class CallbackOperationBase(CallbackMethod):
                 'rooted!(in(*cx) let callable =\n'
                 f"{callable});\n")
 
-    def getCallGuard(self):
+    def getCallGuard(self) -> str:
         return ""
 
 
