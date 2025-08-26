@@ -107,6 +107,7 @@ use servo_geometry::{
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
+use style::global_style_data::StyleThreadPool;
 use webgl::WebGLComm;
 #[cfg(feature = "webgpu")]
 pub use webgpu;
@@ -1280,6 +1281,8 @@ pub fn run_content_process(token: String) {
             join_handle
                 .join()
                 .expect("Failed to join on the BHM background thread.");
+
+            StyleThreadPool::shutdown();
 
             // Shut down the fetch thread started above.
             exit_fetch_thread();

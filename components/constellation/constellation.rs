@@ -165,6 +165,7 @@ use servo_config::prefs::{self, PrefValue};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
@@ -754,6 +755,10 @@ where
             self.handle_request();
         }
         self.handle_shutdown();
+
+        if !opts::get().multiprocess {
+            StyleThreadPool::shutdown();
+        }
 
         // Shut down the fetch thread started above.
         exit_fetch_thread();
