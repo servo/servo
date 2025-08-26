@@ -18,11 +18,11 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
     self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
-    JS_IsExceptionPending, JSAutoRealm, JSContext, JSType, PropertyDescriptor,
+    JS_IsExceptionPending, JSAutoRealm, JSContext, JSObject, JSType, PropertyDescriptor,
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
-use js::rust::{HandleObject, HandleValue, IdVector, ToString};
+use js::rust::{Handle, HandleObject, HandleValue, IdVector, ToString};
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{
     DeleteCookie, DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl,
@@ -88,6 +88,7 @@ use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
+/// <https://w3c.github.io/webdriver/#dfn-is-stale>
 fn is_stale(element: &Element) -> bool {
     // An element is stale if its node document is not the active document
     // or if it is not connected.
@@ -339,7 +340,7 @@ impl From<HandleValue<'_>> for HashableJSVal {
 }
 
 #[allow(unsafe_code)]
-/// <https://w3c.github.io/webdriver/#dfn-json-deserialize>
+/// <https://w3c.github.io/webdriver/#dfn-json-clone>
 pub(crate) fn jsval_to_webdriver(
     cx: SafeJSContext,
     global_scope: &GlobalScope,
@@ -357,6 +358,7 @@ pub(crate) fn jsval_to_webdriver(
 }
 
 #[allow(unsafe_code)]
+/// <https://w3c.github.io/webdriver/#dfn-internal-json-clone>
 unsafe fn jsval_to_webdriver_inner(
     cx: *mut JSContext,
     global_scope: &GlobalScope,
@@ -387,85 +389,33 @@ unsafe fn jsval_to_webdriver_inner(
                 _ => unreachable!(),
             };
         Ok(JSValue::String(String::from(string)))
-    }
-    // https://w3c.github.io/webdriver/#dfn-clone-an-object
-    else if val.get().is_object() {
-        let hashable = val.into();
-        // Step 1. If value is in `seen`, return error with error code javascript error.
-        if seen.contains(&hashable) {
-            return Err(WebDriverJSError::JSError);
-        }
-        // Step 2. Append value to `seen`.
-        seen.insert(hashable.clone());
-
+    } else if val.get().is_object() {
         rooted!(in(cx) let object = match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
             ConversionResult::Success(object) => object,
             _ => unreachable!(),
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
-            is_arguments_object(cx, val)
-        {
-            let mut result: Vec<JSValue> = Vec::new();
-
-            let length = match get_property::<u32>(
-                cx,
-                object.handle(),
-                "length",
-                ConversionBehavior::Default,
-            ) {
-                Ok(length) => match length {
-                    Some(length) => length,
-                    _ => return Err(WebDriverJSError::UnknownType),
-                },
-                Err(error) => {
-                    throw_dom_exception(
-                        SafeJSContext::from_ptr(cx),
-                        global_scope,
-                        error,
-                        CanGc::note(),
-                    );
-                    return Err(WebDriverJSError::JSError);
-                },
-            };
-            // Step 4. For each enumerable property in value, run the following substeps:
-            for i in 0..length {
-                rooted!(in(cx) let mut item = UndefinedValue());
-                match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
-                    Ok(_) => {
-                        match jsval_to_webdriver_inner(cx, global_scope, item.handle(), seen) {
-                            Ok(converted_item) => result.push(converted_item),
-                            err @ Err(_) => return err,
-                        }
-                    },
-                    Err(error) => {
-                        throw_dom_exception(
-                            SafeJSContext::from_ptr(cx),
-                            global_scope,
-                            error,
-                            CanGc::note(),
-                        );
-                        return Err(WebDriverJSError::JSError);
-                    },
-                }
+        // TODO: special handling for ShadowRoot
+        if let Ok(element) = root_from_object::<Element>(*object, cx) {
+            // If the element is stale, return error with error code stale element reference.
+            if is_stale(&element) {
+                Err(WebDriverJSError::StaleElementReference)
+            } else {
+                Ok(JSValue::Element(element.upcast::<Node>().unique_id(
+                    element.owner_document().window().pipeline_id(),
+                )))
             }
-            Ok(JSValue::Array(result))
-        } else if let Ok(element) = root_from_object::<Element>(*object, cx) {
-            Ok(JSValue::Element(element.upcast::<Node>().unique_id(
-                element.owner_document().window().pipeline_id(),
-            )))
         } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
-                return Err(WebDriverJSError::StaleElementReference);
+                Err(WebDriverJSError::StaleElementReference)
             } else {
-                let pipeline = window.pipeline_id();
                 if window_proxy.browsing_context_id() == window_proxy.webview_id() {
                     Ok(JSValue::Window(window.webview_id().to_string()))
                 } else {
                     Ok(JSValue::Frame(
-                        window.Document().upcast::<Node>().unique_id(pipeline),
+                        window_proxy.browsing_context_id().to_string(),
                     ))
                 }
             }
@@ -492,67 +442,130 @@ unsafe fn jsval_to_webdriver_inner(
                     Error::JSFailed,
                     CanGc::note(),
                 );
-                return Err(WebDriverJSError::JSError);
+                Err(WebDriverJSError::JSError)
             }
         } else {
-            let mut result = HashMap::new();
-
-            let mut ids = IdVector::new(cx);
-            if !GetPropertyKeys(
-                cx,
-                object.handle().into(),
-                jsapi::JSITER_OWNONLY,
-                ids.handle_mut(),
-            ) {
-                return Err(WebDriverJSError::JSError);
-            }
-            for id in ids.iter() {
-                rooted!(in(cx) let id = *id);
-                rooted!(in(cx) let mut desc = PropertyDescriptor::default());
-
-                let mut is_none = false;
-                if !JS_GetOwnPropertyDescriptorById(
-                    cx,
-                    object.handle().into(),
-                    id.handle().into(),
-                    desc.handle_mut().into(),
-                    &mut is_none,
-                ) {
-                    return Err(WebDriverJSError::JSError);
-                }
-
-                rooted!(in(cx) let mut property = UndefinedValue());
-                if !JS_GetPropertyById(
-                    cx,
-                    object.handle().into(),
-                    id.handle().into(),
-                    property.handle_mut().into(),
-                ) {
-                    return Err(WebDriverJSError::JSError);
-                }
-                if !property.is_undefined() {
-                    let Some(name) = jsid_to_string(cx, id.handle()) else {
-                        return Err(WebDriverJSError::JSError);
-                    };
-
-                    if let Ok(value) =
-                        jsval_to_webdriver_inner(cx, global_scope, property.handle(), seen)
-                    {
-                        result.insert(name.into(), value);
-                    } else {
-                        return Err(WebDriverJSError::JSError);
-                    }
-                }
-            }
-            Ok(JSValue::Object(result))
-        };
-        // Step 5. Remove the last element of `seen`.
-        seen.remove(&hashable);
-        // Step 6. Return success with data `result`.
-        return_val
+            clone_an_object(cx, global_scope, val, seen, object.handle())
+        }
     } else {
         Err(WebDriverJSError::UnknownType)
     }
+}
+
+#[allow(unsafe_code)]
+/// <https://w3c.github.io/webdriver/#dfn-clone-an-object>
+unsafe fn clone_an_object(
+    cx: *mut JSContext,
+    global_scope: &GlobalScope,
+    val: HandleValue,
+    seen: &mut HashSet<HashableJSVal>,
+    object_handle: Handle<'_, *mut JSObject>,
+) -> WebDriverJSResult {
+    let hashable = val.into();
+    // Step 1. If value is in `seen`, return error with error code javascript error.
+    if seen.contains(&hashable) {
+        return Err(WebDriverJSError::JSError);
+    }
+    // Step 2. Append value to `seen`.
+    seen.insert(hashable.clone());
+
+    let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
+        is_arguments_object(cx, val)
+    {
+        let mut result: Vec<JSValue> = Vec::new();
+
+        let length =
+            match get_property::<u32>(cx, object_handle, "length", ConversionBehavior::Default) {
+                Ok(length) => match length {
+                    Some(length) => length,
+                    _ => return Err(WebDriverJSError::UnknownType),
+                },
+                Err(error) => {
+                    throw_dom_exception(
+                        SafeJSContext::from_ptr(cx),
+                        global_scope,
+                        error,
+                        CanGc::note(),
+                    );
+                    return Err(WebDriverJSError::JSError);
+                },
+            };
+        // Step 4. For each enumerable property in value, run the following substeps:
+        for i in 0..length {
+            rooted!(in(cx) let mut item = UndefinedValue());
+            match get_property_jsval(cx, object_handle, &i.to_string(), item.handle_mut()) {
+                Ok(_) => match jsval_to_webdriver_inner(cx, global_scope, item.handle(), seen) {
+                    Ok(converted_item) => result.push(converted_item),
+                    err @ Err(_) => return err,
+                },
+                Err(error) => {
+                    throw_dom_exception(
+                        SafeJSContext::from_ptr(cx),
+                        global_scope,
+                        error,
+                        CanGc::note(),
+                    );
+                    return Err(WebDriverJSError::JSError);
+                },
+            }
+        }
+        Ok(JSValue::Array(result))
+    } else {
+        let mut result = HashMap::new();
+
+        let mut ids = IdVector::new(cx);
+        if !GetPropertyKeys(
+            cx,
+            object_handle.into(),
+            jsapi::JSITER_OWNONLY,
+            ids.handle_mut(),
+        ) {
+            return Err(WebDriverJSError::JSError);
+        }
+        for id in ids.iter() {
+            rooted!(in(cx) let id = *id);
+            rooted!(in(cx) let mut desc = PropertyDescriptor::default());
+
+            let mut is_none = false;
+            if !JS_GetOwnPropertyDescriptorById(
+                cx,
+                object_handle.into(),
+                id.handle().into(),
+                desc.handle_mut().into(),
+                &mut is_none,
+            ) {
+                return Err(WebDriverJSError::JSError);
+            }
+
+            rooted!(in(cx) let mut property = UndefinedValue());
+            if !JS_GetPropertyById(
+                cx,
+                object_handle.into(),
+                id.handle().into(),
+                property.handle_mut().into(),
+            ) {
+                return Err(WebDriverJSError::JSError);
+            }
+            if !property.is_undefined() {
+                let Some(name) = jsid_to_string(cx, id.handle()) else {
+                    return Err(WebDriverJSError::JSError);
+                };
+
+                if let Ok(value) =
+                    jsval_to_webdriver_inner(cx, global_scope, property.handle(), seen)
+                {
+                    result.insert(name.into(), value);
+                } else {
+                    return Err(WebDriverJSError::JSError);
+                }
+            }
+        }
+        Ok(JSValue::Object(result))
+    };
+    // Step 5. Remove the last element of `seen`.
+    seen.remove(&hashable);
+    // Step 6. Return success with data `result`.
+    return_val
 }
 
 #[allow(unsafe_code)]
@@ -583,18 +596,15 @@ pub(crate) fn handle_execute_script(
                 Err(_) => Err(WebDriverJSError::JSError),
             };
 
-            if reply.send(result).is_err() {
-                error!("Webdriver might already be released by embedder before reply is sent");
-            };
+            reply.send(result).unwrap_or_else(|err| {
+                error!("ExecuteScript Failed to send reply: {err}");
+            });
         },
-        None => {
-            if reply
-                .send(Err(WebDriverJSError::BrowsingContextNotFound))
-                .is_err()
-            {
-                error!("Webdriver might already be released by embedder before reply is sent");
-            };
-        },
+        None => reply
+            .send(Err(WebDriverJSError::BrowsingContextNotFound))
+            .unwrap_or_else(|err| {
+                error!("ExecuteScript Failed to send reply: {err}");
+            }),
     }
 }
 
@@ -623,13 +633,19 @@ pub(crate) fn handle_execute_async_script(
                 )
                 .is_err()
             {
-                reply_sender.send(Err(WebDriverJSError::JSError)).unwrap();
+                reply_sender
+                    .send(Err(WebDriverJSError::JSError))
+                    .unwrap_or_else(|err| {
+                        error!("ExecuteAsyncScript Failed to send reply: {err}");
+                    });
             }
         },
         None => {
             reply
                 .send(Err(WebDriverJSError::BrowsingContextNotFound))
-                .unwrap();
+                .unwrap_or_else(|err| {
+                    error!("ExecuteAsyncScript Failed to send reply: {err}");
+                });
         },
     }
 }
