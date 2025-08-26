@@ -5,6 +5,7 @@ use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
 
@@ -16,6 +17,7 @@ use net_traits::indexeddb_thread::{
 };
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
+use uuid::Uuid;
 
 use crate::indexeddb::engines::{
     KvsEngine, KvsOperation, KvsTransaction, SanitizedName, SqliteEngine,
@@ -54,15 +56,23 @@ pub struct IndexedDBDescription {
 }
 
 impl IndexedDBDescription {
+    // randomly generated namespace for our purposes
+    const NAMESPACE_SERVO_IDB: &uuid::Uuid = &Uuid::from_bytes([
+        0x37, 0x9e, 0x56, 0xb0, 0x1a, 0x76, 0x44, 0xc2, 0xa0, 0xdb, 0xe2, 0x18, 0xc5, 0xc8, 0xa3,
+        0x5d,
+    ]);
     // Converts the database description to a folder name where all
     // data for this database is stored
     pub(super) fn as_path(&self) -> PathBuf {
         let mut path = PathBuf::new();
 
-        let sanitized_origin = SanitizedName::new(self.origin.ascii_serialization());
-        let sanitized_name = SanitizedName::new(self.name.clone());
-        path.push(sanitized_origin.to_string());
-        path.push(sanitized_name.to_string());
+        let origin_uuid = Uuid::new_v5(
+            Self::NAMESPACE_SERVO_IDB,
+            self.origin.ascii_serialization().as_bytes(),
+        );
+        let db_name_uuid = Uuid::new_v5(Self::NAMESPACE_SERVO_IDB, self.name.as_bytes());
+        path.push(origin_uuid.to_string());
+        path.push(db_name_uuid.to_string());
 
         path
     }
