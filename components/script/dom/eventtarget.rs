@@ -70,8 +70,10 @@ use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
 /// containing the values from
-/// <https://html.spec.whatwg.org/multipage/#globaleventhandlers>
-static CONTENT_EVENT_HANDLER_NAMES: [&str; 85] = [
+/// <https://html.spec.whatwg.org/multipage/#globaleventhandlers> and
+/// <https://html.spec.whatwg.org/multipage/#windoweventhandlers> as well as
+/// specific attributes for elements
+static CONTENT_EVENT_HANDLER_NAMES: [&str; 108] = [
     "onabort",
     "onauxclick",
     "onbeforeinput",
@@ -160,6 +162,32 @@ static CONTENT_EVENT_HANDLER_NAMES: [&str; 85] = [
     // https://w3c.github.io/selection-api/#extensions-to-globaleventhandlers-interface
     "onselectstart",
     "onselectionchange",
+    // https://html.spec.whatwg.org/multipage/#windoweventhandlers
+    "onafterprint",
+    "onbeforeprint",
+    "onbeforeunload",
+    "onhashchange",
+    "onlanguagechange",
+    "onmessage",
+    "onmessageerror",
+    "onoffline",
+    "ononline",
+    "onpagehide",
+    "onpagereveal",
+    "onpageshow",
+    "onpageswap",
+    "onpopstate",
+    "onrejectionhandled",
+    "onstorage",
+    "onunhandledrejection",
+    "onunload",
+    // https://w3c.github.io/encrypted-media/#attributes-3
+    "onencrypted",
+    "onwaitingforkey",
+    // https://svgwg.org/svg2-draft/interact.html#AnimationEvents
+    "onbegin",
+    "onend",
+    "onrepeat",
 ];
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
