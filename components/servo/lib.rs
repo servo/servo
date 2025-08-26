@@ -88,7 +88,6 @@ pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
 };
 use layout::LayoutFactoryImpl;
-use layout_api::shutdown_style_threads;
 use log::{Log, Metadata, Record, debug, error, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
@@ -108,6 +107,7 @@ use servo_geometry::{
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
+use style::global_style_data::StyleThreadPool;
 use webgl::WebGLComm;
 #[cfg(feature = "webgpu")]
 pub use webgpu;
@@ -1282,7 +1282,7 @@ pub fn run_content_process(token: String) {
                 .join()
                 .expect("Failed to join on the BHM background thread.");
 
-            shutdown_style_threads();
+            StyleThreadPool::shutdown();
 
             // Shut down the fetch thread started above.
             exit_fetch_thread();
