@@ -35,6 +35,7 @@ gleam = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 servo_allocator = { path = "../allocator" }
@@ -48,7 +49,6 @@ webrender = { workspace = true }
 webrender_api = { workspace = true }
 webxr = { path = "../webxr", optional = true }
 wr_malloc_size_of = { workspace = true }
-malloc_size_of = { workspace = true }
 
 [dev-dependencies]
 surfman = { workspace = true }
