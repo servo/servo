@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 use std::thread::JoinHandle;
+use std::time::Duration;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
@@ -578,7 +579,7 @@ pub struct ImageAnimationState {
     #[ignore_malloc_size_of = "Arc is hard"]
     pub image: Arc<RasterImage>,
     pub active_frame: usize,
-    last_update_time: f64,
+    frame_start_time: f64,
 }
 
 impl ImageAnimationState {
@@ -586,7 +587,7 @@ impl ImageAnimationState {
         Self {
             image,
             active_frame: 0,
-            last_update_time,
+            frame_start_time: last_update_time,
         }
     }
 
@@ -594,15 +595,18 @@ impl ImageAnimationState {
         self.image.id
     }
 
-    pub fn time_to_next_frame(&self, now: f64) -> f64 {
+    pub fn duration_to_next_frame(&self, now: f64) -> Duration {
         let frame_delay = self
             .image
             .frames
             .get(self.active_frame)
             .expect("Image frame should always be valid")
             .delay
-            .map_or(0., |delay| delay.as_secs_f64());
-        (frame_delay - now + self.last_update_time).max(0.0)
+            .unwrap_or_default();
+
+        let time_since_frame_start = (now - self.frame_start_time).max(0.0) * 1000.0;
+        let time_since_frame_start = Duration::from_secs_f64(time_since_frame_start);
+        frame_delay - time_since_frame_start.min(frame_delay)
     }
 
     /// check whether image active frame need to be updated given current time,
@@ -613,7 +617,7 @@ impl ImageAnimationState {
             return false;
         }
         let image = &self.image;
-        let time_interval_since_last_update = now - self.last_update_time;
+        let time_interval_since_last_update = now - self.frame_start_time;
         let mut remain_time_interval = time_interval_since_last_update -
             image
                 .frames
@@ -637,7 +641,7 @@ impl ImageAnimationState {
             return false;
         }
         self.active_frame = next_active_frame_id;
-        self.last_update_time = now;
+        self.frame_start_time = now;
         true
     }
 }
@@ -698,18 +702,18 @@ mod test {
         let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
 
         assert_eq!(image_animation_state.active_frame, 0);
-        assert_eq!(image_animation_state.last_update_time, 0.0);
+        assert_eq!(image_animation_state.frame_start_time, 0.0);
         assert_eq!(
             image_animation_state.update_frame_for_animation_timeline_value(0.101),
             true
         );
         assert_eq!(image_animation_state.active_frame, 1);
-        assert_eq!(image_animation_state.last_update_time, 0.101);
+        assert_eq!(image_animation_state.frame_start_time, 0.101);
         assert_eq!(
             image_animation_state.update_frame_for_animation_timeline_value(0.116),
             false
         );
         assert_eq!(image_animation_state.active_frame, 1);
-        assert_eq!(image_animation_state.last_update_time, 0.101);
+        assert_eq!(image_animation_state.frame_start_time, 0.101);
     }
 }

@@ -29,7 +29,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{AsHandleValue, Dom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
-use crate::dom::document::{ImageAnimationUpdateCallback, RefreshRedirectDue};
+use crate::dom::document::RefreshRedirectDue;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "testbinding")]
@@ -88,7 +88,6 @@ pub(crate) enum OneshotTimerCallback {
     #[cfg(feature = "testbinding")]
     TestBindingCallback(TestBindingCallback),
     RefreshRedirectDue(RefreshRedirectDue),
-    ImageAnimationUpdate(ImageAnimationUpdateCallback),
 }
 
 impl OneshotTimerCallback {
@@ -100,7 +99,6 @@ impl OneshotTimerCallback {
             #[cfg(feature = "testbinding")]
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
             OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(can_gc),
-            OneshotTimerCallback::ImageAnimationUpdate(callback) => callback.invoke(can_gc),
         }
     }
 }
