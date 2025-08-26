@@ -290,11 +290,11 @@ pub struct Constellation<STF, SWF> {
 
     /// An IPC channel for script threads to send messages to the constellation.
     /// This is the script threads' view of `script_receiver`.
-    script_sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+    script_sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
 
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
-    script_receiver: RoutedReceiver<(PipelineId, ScriptToConstellationMessage)>,
+    script_receiver: Receiver<Result<(PipelineId, ScriptToConstellationMessage), IpcError>>,
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
@@ -607,8 +607,11 @@ where
             .name("Constellation".to_owned())
             .spawn(move || {
                 let (script_ipc_sender, script_ipc_receiver) =
-                    generic_channel::channel().expect("ipc channel failure");
-                let script_receiver = script_ipc_receiver.route_preserving_errors();
+                    ipc::channel().expect("ipc channel failure");
+                let script_receiver =
+                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
+                        script_ipc_receiver,
+                    );
 
                 let (namespace_ipc_sender, namespace_ipc_receiver) =
                     generic_channel::channel().expect("ipc channel failure");
@@ -1243,7 +1246,7 @@ where
 
         let request = match request {
             Ok(request) => request,
-            Err(err) => return error!("Deserialization failed ({err:?})."),
+            Err(err) => return error!("Deserialization failed ({}).", err),
         };
 
         match request {

@@ -4,7 +4,6 @@
 
 use std::sync::Arc;
 
-use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
@@ -196,7 +195,7 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to devtools
     pub(crate) devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
-    pub(crate) to_constellation_sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+    pub(crate) to_constellation_sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
     /// The image cache
     pub(crate) image_cache: Arc<dyn ImageCache>,
     /// Identity manager for WebGPU resources

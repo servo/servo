@@ -23,7 +23,6 @@ pub mod viewport_description;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::GenericSender;
 use bitflags::bitflags;
 use display_list::CompositorDisplayListInfo;
 use embedder_traits::ScreenGeometry;
@@ -45,31 +44,12 @@ use crate::viewport_description::ViewportDescription;
 /// Sends messages to the compositor.
 #[derive(Clone)]
 pub struct CompositorProxy {
-    /// A sender optimised for sending in the local process.
-    /// The type is a Result to match the API of ipc_channel after routing,
-    /// which contains a Result to propagate deserialization errors to the
-    /// recipient.
-    /// The field is private to hide the inner `Result` type.
-    sender: Sender<Result<CompositorMsg, ipc_channel::Error>>,
+    pub sender: Sender<CompositorMsg>,
     /// Access to [`Self::sender`] that is possible to send across an IPC
     /// channel. These messages are routed via the router thread to
     /// [`Self::sender`].
     pub cross_process_compositor_api: CrossProcessCompositorApi,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
-}
-
-impl CompositorProxy {
-    pub fn new(
-        local_process_sender: Sender<Result<CompositorMsg, ipc_channel::Error>>,
-        cross_process_compositor_api: CrossProcessCompositorApi,
-        event_loop_waker: Box<dyn EventLoopWaker>,
-    ) -> Self {
-        Self {
-            sender: local_process_sender,
-            cross_process_compositor_api,
-            event_loop_waker,
-        }
-    }
 }
 
 impl OpaqueSender<CompositorMsg> for CompositorProxy {
@@ -80,7 +60,7 @@ impl OpaqueSender<CompositorMsg> for CompositorProxy {
 
 impl CompositorProxy {
     pub fn send(&self, msg: CompositorMsg) {
-        if let Err(err) = self.sender.send(Ok(msg)) {
+        if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }
         self.event_loop_waker.wake();
@@ -190,18 +170,18 @@ pub struct CompositionPipeline {
 
 /// A mechanism to send messages from ScriptThread to the parent process' WebRender instance.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct CrossProcessCompositorApi(pub GenericSender<CompositorMsg>);
+pub struct CrossProcessCompositorApi(pub IpcSender<CompositorMsg>);
 
 impl CrossProcessCompositorApi {
     /// Create a new [`CrossProcessCompositorApi`] struct that does not have a listener on the other
     /// end to use for unit testing.
     pub fn dummy() -> Self {
-        let (sender, _) = base::generic_channel::channel().unwrap();
+        let (sender, _) = ipc::channel().unwrap();
         Self(sender)
     }
 
     /// Get the sender for this proxy.
-    pub fn sender(&self) -> &GenericSender<CompositorMsg> {
+    pub fn sender(&self) -> &IpcSender<CompositorMsg> {
         &self.0
     }
 

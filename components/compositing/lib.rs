@@ -7,11 +7,10 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::generic_channel;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{CompositorMsg, CompositorProxy};
 use constellation_traits::EmbedderToConstellationMessage;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::{EventLoopWaker, ShutdownState};
 use profile_traits::{mem, time};
 use webrender::RenderApi;
@@ -33,7 +32,7 @@ pub struct InitialCompositorState {
     /// A channel to the compositor.
     pub sender: CompositorProxy,
     /// A port on which messages inbound to the compositor can be received.
-    pub receiver: generic_channel::RoutedReceiver<CompositorMsg>,
+    pub receiver: Receiver<CompositorMsg>,
     /// A channel to the constellation.
     pub constellation_chan: Sender<EmbedderToConstellationMessage>,
     /// A channel to the time profiler thread.
