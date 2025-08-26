@@ -406,12 +406,8 @@ impl Window {
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::PageUp), || {
                 if let Some(index) = state.get_focused_webview_index() {
-                    let new_index = if index == 0 {
-                        state.webviews().len() - 1
-                    } else {
-                        index - 1
-                    };
-                    state.focus_webview_by_index(new_index)
+                    let len = state.webviews().len();
+                    state.focus_webview_by_index((index + len - 1) % len);
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {

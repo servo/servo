@@ -120,8 +120,7 @@ impl RunningAppState {
 
     pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) {
         let webview = self.create_toplevel_webview(url);
-        webview.focus();
-        webview.raise_to_top(true);
+        webview.focus_and_raise_to_top(true);
     }
 
     pub(crate) fn create_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
@@ -634,8 +633,7 @@ impl WebViewDelegate for RunningAppState {
         // as that is what the specification expects. Otherwise, we would like `window.open()`
         // to create a new foreground tab
         if self.servoshell_preferences.webdriver_port.is_none() {
-            webview.focus();
-            webview.raise_to_top(true);
+            webview.focus_and_raise_to_top(true);
         }
         self.add(webview.clone());
         Some(webview)
