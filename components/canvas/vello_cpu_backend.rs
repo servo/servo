@@ -8,20 +8,19 @@ use std::sync::Arc;
 
 use canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
-    LineOptions, Path, ShadowOptions,
+    LineOptions, Path, ShadowOptions, TextRun,
 };
 use compositing_traits::SerializableImageData;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
-use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods as _};
+use fonts::FontIdentifier;
 use ipc_channel::ipc::IpcSharedMemory;
 use kurbo::Shape;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
-use range::Range;
 use vello_cpu::{kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
 
 use crate::backend::{Convert, GenericDrawTarget};
-use crate::canvas_data::{Filter, TextRun};
+use crate::canvas_data::Filter;
 
 thread_local! {
     /// The shared font cache used by all canvases that render on a thread.
@@ -282,7 +281,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     fn fill_text(
         &mut self,
         text_runs: Vec<TextRun>,
-        start: Point2D<f32>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
@@ -291,46 +289,32 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         self.ctx.set_paint(paint(style, composition_options.alpha));
         self.ctx.set_transform(transform.cast().into());
         self.with_composition(composition_options.composition_operation, |self_| {
-            let mut advance = 0.;
-            for run in text_runs.iter() {
-                let glyphs = &run.glyphs;
-
-                let template = &run.font.template;
-
+            for text_run in text_runs.iter() {
                 SHARED_FONT_CACHE.with(|font_cache| {
-                    let identifier = template.identifier();
-                    if !font_cache.borrow().contains_key(&identifier) {
-                        let Ok(font) = run.font.font_data_and_index() else {
+                    let identifier = &text_run.font.identifier;
+                    if !font_cache.borrow().contains_key(identifier) {
+                        let Some(font_data_and_index) = text_run.font.font_data_and_index() else {
                             return;
                         };
-                        let font = font.clone().convert();
+                        let font = font_data_and_index.convert();
                         font_cache.borrow_mut().insert(identifier.clone(), font);
                     }
 
                     let font_cache = font_cache.borrow();
-                    let Some(font) = font_cache.get(&identifier) else {
+                    let Some(font) = font_cache.get(identifier) else {
                         return;
                     };
-
                     self_
                         .ctx
                         .glyph_run(font)
-                        .font_size(run.font.descriptor.pt_size.to_f32_px())
-                        .fill_glyphs(
-                            glyphs
-                                .iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), glyphs.len()))
-                                .map(|glyph| {
-                                    let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
-                                    let x = advance + start.x + glyph_offset.x.to_f32_px();
-                                    let y = start.y + glyph_offset.y.to_f32_px();
-                                    advance += glyph.advance().to_f32_px();
-                                    vello_cpu::Glyph {
-                                        id: glyph.id(),
-                                        x,
-                                        y,
-                                    }
-                                }),
-                        );
+                        .font_size(text_run.pt_size)
+                        .fill_glyphs(text_run.glyphs_and_positions.iter().map(
+                            |glyph_and_position| vello_cpu::Glyph {
+                                id: glyph_and_position.id,
+                                x: glyph_and_position.point.x,
+                                y: glyph_and_position.point.y,
+                            },
+                        ));
                 });
             }
         })

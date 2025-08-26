@@ -32,7 +32,7 @@ pub type StylesheetWebFontLoadFinishedCallback = Arc<dyn Fn(bool) + Send + Sync 
 /// A data structure to store data for fonts. Data is stored internally in an
 /// [`IpcSharedMemory`] handle, so that it can be sent without serialization
 /// across IPC channels.
-#[derive(Clone, MallocSizeOf)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct FontData(#[conditional_malloc_size_of] pub(crate) Arc<IpcSharedMemory>);
 
 impl FontData {
@@ -55,7 +55,7 @@ impl AsRef<[u8]> for FontData {
 ///
 /// If the font data is of a TTC (TrueType collection) file, then the index of a specific font within
 /// the collection. If the font data is for is single font then the index will always be 0.
-#[derive(Clone)]
+#[derive(Deserialize, Clone, Serialize)]
 pub struct FontDataAndIndex {
     /// The raw font file data (.ttf, .otf, .ttc, etc)
     pub data: FontData,

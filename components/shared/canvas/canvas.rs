@@ -8,6 +8,7 @@ use std::str::FromStr;
 use euclid::Angle;
 use euclid::approxeq::ApproxEq;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
+use fonts_traits::{FontDataAndIndex, FontIdentifier};
 use ipc_channel::ipc::IpcSender;
 use kurbo::{BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
 use malloc_size_of::MallocSizeOf;
@@ -16,8 +17,6 @@ use pixels::IpcSnapshot;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use style::color::AbsoluteColor;
-use style::properties::style_structs::Font as FontStyleStruct;
-use style::servo_arc::Arc as ServoArc;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Path(pub BezPath);
@@ -437,14 +436,6 @@ pub struct LineOptions {
     pub dash_offset: f64,
 }
 
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct TextOptions {
-    #[ignore_malloc_size_of = "Arc"]
-    pub font: Option<ServoArc<FontStyleStruct>>,
-    pub align: TextAlign,
-    pub baseline: TextBaseline,
-}
-
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CanvasMsg {
@@ -493,13 +484,9 @@ pub enum Canvas2dMsg {
         Transform2D<f64>,
     ),
     FillText(
-        String,
-        f64,
-        f64,
-        Option<f64>,
+        Rect<f64>,
+        Vec<TextRun>,
         FillOrStrokeStyle,
-        bool,
-        TextOptions,
         ShadowOptions,
         CompositionOptions,
         Transform2D<f64>,
@@ -512,7 +499,6 @@ pub enum Canvas2dMsg {
         Transform2D<f64>,
     ),
     GetImageData(Option<Rect<u32>>, IpcSender<IpcSnapshot>),
-    MeasureText(String, IpcSender<TextMetrics>, TextOptions),
     PutImageData(Rect<u32>, IpcSnapshot),
     StrokeRect(
         Rect<f32>,
@@ -777,80 +763,46 @@ impl FromStr for CompositionOrBlending {
     }
 }
 
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Deserialize,
-    Display,
-    EnumString,
-    MallocSizeOf,
-    PartialEq,
-    Serialize,
-)]
-pub enum TextAlign {
-    #[default]
-    Start,
-    End,
-    Left,
-    Right,
-    Center,
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GlyphAndPosition {
+    pub id: u32,
+    pub point: Point2D<f32>,
 }
 
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Deserialize,
-    Display,
-    EnumString,
-    MallocSizeOf,
-    PartialEq,
-    Serialize,
-)]
-pub enum TextBaseline {
-    Top,
-    Hanging,
-    Middle,
-    #[default]
-    Alphabetic,
-    Ideographic,
-    Bottom,
+#[derive(Deserialize, Serialize)]
+pub struct CanvasFont {
+    /// A [`FontIdentifier`] for this [`CanvasFont`], maybe either `Local` or `Web`.
+    pub identifier: FontIdentifier,
+    /// If this font is a web font, this field contains the data for the font. If
+    /// the font is a local font, it will be `None`.
+    pub data: Option<FontDataAndIndex>,
 }
 
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Deserialize,
-    Display,
-    EnumString,
-    MallocSizeOf,
-    PartialEq,
-    Serialize,
-)]
-pub enum Direction {
-    Ltr,
-    Rtl,
-    #[default]
-    Inherit,
+impl CanvasFont {
+    pub fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
+        self.data.clone().or_else(|| match &self.identifier {
+            FontIdentifier::Local(local_font_identifier) => {
+                local_font_identifier.font_data_and_index()
+            },
+            FontIdentifier::Web(_) => None,
+        })
+    }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
-pub struct TextMetrics {
-    pub width: f32,
-    pub actual_boundingbox_left: f32,
-    pub actual_boundingbox_right: f32,
-    pub actual_boundingbox_ascent: f32,
-    pub actual_boundingbox_descent: f32,
-    pub font_boundingbox_ascent: f32,
-    pub font_boundingbox_descent: f32,
-    pub em_height_ascent: f32,
-    pub em_height_descent: f32,
-    pub hanging_baseline: f32,
-    pub alphabetic_baseline: f32,
-    pub ideographic_baseline: f32,
+#[derive(Deserialize, Serialize)]
+pub struct TextRun {
+    pub font: CanvasFont,
+    pub pt_size: f32,
+    pub glyphs_and_positions: Vec<GlyphAndPosition>,
+    pub advance: f32,
+    pub bounds: Rect<f64>,
+}
+
+impl std::fmt::Debug for TextRun {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TextRun")
+            .field("glyphs_and_positions", &self.glyphs_and_positions)
+            .field("size", &self.bounds)
+            .finish()
+    }
 }

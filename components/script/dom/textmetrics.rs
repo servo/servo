@@ -99,6 +99,28 @@ impl TextMetrics {
             can_gc,
         )
     }
+
+    pub(crate) fn default(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(Self {
+                reflector_: Reflector::new(),
+                width: Default::default(),
+                actualBoundingBoxLeft: Default::default(),
+                actualBoundingBoxRight: Default::default(),
+                fontBoundingBoxAscent: Default::default(),
+                fontBoundingBoxDescent: Default::default(),
+                actualBoundingBoxAscent: Default::default(),
+                actualBoundingBoxDescent: Default::default(),
+                emHeightAscent: Default::default(),
+                emHeightDescent: Default::default(),
+                hangingBaseline: Default::default(),
+                alphabeticBaseline: Default::default(),
+                ideographicBaseline: Default::default(),
+            }),
+            global,
+            can_gc,
+        )
+    }
 }
 
 impl TextMetricsMethods<crate::DomTypeHolder> for TextMetrics {

@@ -5617,10 +5617,6 @@ where
     }
 
     fn create_canvas_paint_thread(&self) -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
-        CanvasPaintThread::start(
-            self.compositor_proxy.cross_process_compositor_api.clone(),
-            self.system_font_service.clone(),
-            self.public_resource_threads.clone(),
-        )
+        CanvasPaintThread::start(self.compositor_proxy.cross_process_compositor_api.clone())
     }
 }
