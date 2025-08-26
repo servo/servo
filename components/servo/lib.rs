@@ -792,9 +792,9 @@ impl Servo {
                     webview.set_cursor(cursor);
                 }
             },
-            EmbedderMsg::NewFavicon(webview_id, url) => {
+            EmbedderMsg::NewFavicon(webview_id, image) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_favicon_url(url.into_url());
+                    webview.set_favicon(image);
                 }
             },
             EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {

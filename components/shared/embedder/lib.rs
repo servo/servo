@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::hash::Hash;
+use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -24,7 +25,7 @@ use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Point2D, Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -358,6 +359,54 @@ impl TraversalId {
     }
 }
 
+#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum PixelFormat {
+    /// Luminance channel only
+    K8,
+    /// Luminance + alpha
+    KA8,
+    /// RGB, 8 bits per channel
+    RGB8,
+    /// RGB + alpha, 8 bits per channel
+    RGBA8,
+    /// BGR + alpha, 8 bits per channel
+    BGRA8,
+}
+
+/// A raster image buffer.
+#[derive(Clone, Deserialize, Serialize)]
+pub struct Image {
+    pub width: u32,
+    pub height: u32,
+    pub format: PixelFormat,
+    /// A shared memory block containing the data of one or more image frames.
+    data: IpcSharedMemory,
+    range: Range<usize>,
+}
+
+impl Image {
+    pub fn new(
+        width: u32,
+        height: u32,
+        data: IpcSharedMemory,
+        range: Range<usize>,
+        format: PixelFormat,
+    ) -> Self {
+        Self {
+            width,
+            height,
+            format,
+            data,
+            range,
+        }
+    }
+
+    /// Return the bytes belonging to the first image frame.
+    pub fn data(&self) -> &[u8] {
+        &self.data[self.range.clone()]
+    }
+}
+
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -411,7 +460,7 @@ pub enum EmbedderMsg {
     /// Changes the cursor.
     SetCursor(WebViewId, Cursor),
     /// A favicon was detected
-    NewFavicon(WebViewId, ServoUrl),
+    NewFavicon(WebViewId, Image),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
     /// A history traversal operation completed.

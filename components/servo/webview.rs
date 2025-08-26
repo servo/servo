@@ -13,7 +13,7 @@ use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, FocusId, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
+    Cursor, FocusId, Image, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
     MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
@@ -84,7 +84,7 @@ pub(crate) struct WebViewInner {
     url: Option<Url>,
     status_text: Option<String>,
     page_title: Option<String>,
-    favicon_url: Option<Url>,
+    favicon: Option<Image>,
     focused: bool,
     animating: bool,
     cursor: Cursor,
@@ -126,7 +126,7 @@ impl WebView {
             url: None,
             status_text: None,
             page_title: None,
-            favicon_url: None,
+            favicon: None,
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
@@ -264,21 +264,13 @@ impl WebView {
         self.delegate().notify_page_title_changed(self, new_value);
     }
 
-    pub fn favicon_url(&self) -> Option<Url> {
-        self.inner().favicon_url.clone()
+    pub fn favicon(&self) -> Option<Ref<'_, Image>> {
+        Ref::filter_map(self.inner(), |inner| inner.favicon.as_ref()).ok()
     }
 
-    pub(crate) fn set_favicon_url(self, new_value: Url) {
-        if self
-            .inner()
-            .favicon_url
-            .as_ref()
-            .is_some_and(|url| url == &new_value)
-        {
-            return;
-        }
-        self.inner_mut().favicon_url = Some(new_value.clone());
-        self.delegate().notify_favicon_url_changed(self, new_value);
+    pub(crate) fn set_favicon(self, new_value: Image) {
+        self.inner_mut().favicon = Some(new_value);
+        self.delegate().notify_favicon_changed(self);
     }
 
     pub fn focused(&self) -> bool {

@@ -11,8 +11,13 @@ use base::id::WebViewId;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use ipc_channel::ipc::IpcSender;
 use js::rust::HandleObject;
 use mime::Mime;
+use net_traits::image_cache::{
+    Image, ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId, UsePlaceholder,
+};
 use net_traits::mime_classifier::{MediaType, MimeClassifier};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -20,15 +25,17 @@ use net_traits::request::{
     RequestId,
 };
 use net_traits::{
-    FetchMetadata, FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType,
+    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
+    ResourceFetchTiming, ResourceTimingType,
 };
+use pixels::PixelFormat;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
+use webrender_api::units::DeviceIntSize;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -272,8 +279,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
 
                 if self.relations.get().contains(LinkRelations::ICON) {
-                    let sizes = get_attr(self.upcast(), &local_name!("sizes"));
-                    self.handle_favicon_url(&attr.value(), &sizes);
+                    self.handle_favicon_url();
                 }
 
                 // https://html.spec.whatwg.org/multipage/#link-type-prefetch
@@ -291,9 +297,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
-                if let Some(ref href) = get_attr(self.upcast(), &local_name!("href")) {
-                    self.handle_favicon_url(href, &Some(attr.value().to_string()));
-                }
+                self.handle_favicon_url();
             },
             local_name!("crossorigin") => {
                 // https://html.spec.whatwg.org/multipage/#link-type-prefetch
@@ -396,8 +400,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
 
                 if relations.contains(LinkRelations::ICON) {
-                    let sizes = get_attr(self.upcast(), &local_name!("sizes"));
-                    self.handle_favicon_url(&href, &sizes);
+                    self.handle_favicon_url();
                 }
 
                 if relations.contains(LinkRelations::PREFETCH) {
@@ -481,6 +484,48 @@ impl HTMLLinkElement {
 
         // Step 7. Return options.
         options
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource>
+    ///
+    /// This method does not implement Step 7 (fetching the request) and instead returns the [RequestBuilder],
+    /// as the fetch context that should be used depends on the link type.
+    fn default_fetch_and_process_the_linked_resource(&self) -> Option<RequestBuilder> {
+        // Step 1. Let options be the result of creating link options from el.
+        let options = self.processing_options();
+
+        // Step 2. Let request be the result of creating a link request given options.
+        let Some(request) = options.create_link_request(self.owner_window().webview_id()) else {
+            // Step 3. If request is null, then return.
+            return None;
+        };
+        // Step 4. Set request's synchronous flag.
+        let mut request = request.synchronous(true);
+
+        // Step 5. Run the linked resource fetch setup steps, given el and request. If the result is false, then return.
+        if !self.linked_resource_fetch_setup(&mut request) {
+            return None;
+        }
+
+        // TODO Step 6. Set request's initiator type to "css" if el's rel attribute
+        // contains the keyword stylesheet; "link" otherwise.
+
+        // Step 7. Fetch request with processResponseConsumeBody set to the following steps given response response and null,
+        // failure, or a byte sequence bodyBytes: [..]
+        Some(request)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#linked-resource-fetch-setup-steps>
+    fn linked_resource_fetch_setup(&self, request: &mut RequestBuilder) -> bool {
+        if self.relations.get().contains(LinkRelations::ICON) {
+            // Step 1. Set request's destination to "image".
+            request.destination = Destination::Image;
+
+            // Step 2. Return true.
+            return true;
+        }
+
+        true
     }
 
     /// The `fetch and process the linked resource` algorithm for [`rel="prefetch"`](https://html.spec.whatwg.org/multipage/#link-type-prefetch)
@@ -589,17 +634,162 @@ impl HTMLLinkElement {
         }
     }
 
-    fn handle_favicon_url(&self, href: &str, _sizes: &Option<String>) {
-        let document = self.owner_document();
-        match document.base_url().join(href) {
-            Ok(url) => {
-                let window = document.window();
-                if window.is_top_level() {
-                    let msg = EmbedderMsg::NewFavicon(document.webview_id(), url.clone());
-                    window.send_to_embedder(msg);
+    fn handle_favicon_url(&self) {
+        // The spec does not specify this, but we don't fetch favicons for iframes, as
+        // they won't be displayed anyways.
+        let window = self.owner_window();
+        if !window.is_top_level() {
+            return;
+        }
+        let Ok(href) = self.Href().parse() else {
+            return;
+        };
+
+        // Ignore all previous fetch operations
+        self.request_generation_id
+            .set(self.request_generation_id.get().increment());
+
+        let cache_result = window.image_cache().get_cached_image_status(
+            href,
+            window.origin().immutable().clone(),
+            cors_setting_for_element(self.upcast()),
+            UsePlaceholder::No,
+        );
+
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                image,
+                is_placeholder,
+                ..
+            }) => {
+                debug_assert!(!is_placeholder);
+
+                self.process_favicon_response(image);
+            },
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) |
+            ImageCacheResult::Pending(id) => {
+                let sender = self.register_image_cache_callback(id);
+                window.image_cache().add_listener(ImageLoadListener::new(
+                    sender,
+                    window.pipeline_id(),
+                    id,
+                ));
+            },
+            ImageCacheResult::ReadyForRequest(id) => {
+                let Some(request) = self.default_fetch_and_process_the_linked_resource() else {
+                    return;
+                };
+
+                let sender = self.register_image_cache_callback(id);
+                window.image_cache().add_listener(ImageLoadListener::new(
+                    sender,
+                    window.pipeline_id(),
+                    id,
+                ));
+
+                let document = self.upcast::<Node>().owner_doc();
+                let fetch_context = FaviconFetchContext {
+                    url: self.owner_document().base_url(),
+                    image_cache: window.image_cache(),
+                    id,
+                    link: Trusted::new(self),
+                    resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+                };
+                document.fetch_background(request, fetch_context);
+            },
+            ImageCacheResult::LoadError => {},
+        };
+    }
+
+    fn register_image_cache_callback(
+        &self,
+        id: PendingImageId,
+    ) -> IpcSender<ImageCacheResponseMessage> {
+        let trusted_node = Trusted::new(self);
+        let window = self.owner_window();
+        let request_generation_id = self.get_request_generation_id();
+        window.register_image_cache_listener(id, move |response| {
+            let trusted_node = trusted_node.clone();
+            let link_element = trusted_node.root();
+            let window = link_element.owner_window();
+
+            let ImageResponse::Loaded(image, _) = response.response else {
+                // We don't care about metadata and such for favicons.
+                return;
+            };
+
+            if request_generation_id != link_element.get_request_generation_id() {
+                // This load is no longer relevant.
+                return;
+            };
+
+            window
+                .as_global_scope()
+                .task_manager()
+                .networking_task_source()
+                .queue(task!(process_favicon_response: move || {
+                    let element = trusted_node.root();
+
+                    if request_generation_id != element.get_request_generation_id() {
+                        // This load is no longer relevant.
+                        return;
+                    };
+
+                    element.process_favicon_response(image);
+                }));
+        })
+    }
+
+    /// Rasterizes a loaded favicon file if necessary and notifies the embedder about it.
+    fn process_favicon_response(&self, image: Image) {
+        // TODO: Include the size attribute here
+        let window = self.owner_window();
+
+        let send_rasterized_favicon_to_embedder = |raster_image: &pixels::RasterImage| {
+            // Let's not worry about animated favicons...
+            let frame = raster_image.first_frame();
+
+            let format = match raster_image.format {
+                PixelFormat::K8 => embedder_traits::PixelFormat::K8,
+                PixelFormat::KA8 => embedder_traits::PixelFormat::KA8,
+                PixelFormat::RGB8 => embedder_traits::PixelFormat::RGB8,
+                PixelFormat::RGBA8 => embedder_traits::PixelFormat::RGBA8,
+                PixelFormat::BGRA8 => embedder_traits::PixelFormat::BGRA8,
+            };
+
+            let embedder_image = embedder_traits::Image::new(
+                frame.width,
+                frame.height,
+                raster_image.bytes.clone(),
+                raster_image.frames[0].byte_range.clone(),
+                format,
+            );
+            window.send_to_embedder(EmbedderMsg::NewFavicon(window.webview_id(), embedder_image));
+        };
+
+        match image {
+            Image::Raster(raster_image) => send_rasterized_favicon_to_embedder(&raster_image),
+            Image::Vector(vector_image) => {
+                // This size is completely arbitrary.
+                let size = DeviceIntSize::new(250, 250);
+
+                let image_cache = window.image_cache();
+                if let Some(raster_image) =
+                    image_cache.rasterize_vector_image(vector_image.id, size)
+                {
+                    send_rasterized_favicon_to_embedder(&raster_image);
+                } else {
+                    // The rasterization callback will end up calling "process_favicon_response" again,
+                    // but this time with a raster image.
+                    let image_cache_sender = self.register_image_cache_callback(vector_image.id);
+                    image_cache.add_rasterization_complete_listener(
+                        window.pipeline_id(),
+                        vector_image.id,
+                        size,
+                        image_cache_sender,
+                    );
                 }
             },
-            Err(e) => debug!("Parsing url {} failed: {}", href, e),
         }
     }
 
@@ -959,6 +1149,93 @@ fn translate_a_preload_destination(potential_destination: &str) -> Destination {
         "script" => Destination::Script,
         "track" => Destination::Track,
         _ => Destination::None,
+    }
+}
+
+struct FaviconFetchContext {
+    /// The `<link>` element that caused this fetch operation
+    link: Trusted<HTMLLinkElement>,
+    image_cache: std::sync::Arc<dyn ImageCache>,
+    id: PendingImageId,
+
+    /// The base url of the document that the `<link>` element belongs to.
+    url: ServoUrl,
+
+    resource_timing: ResourceFetchTiming,
+}
+
+impl FetchResponseListener for FaviconFetchContext {
+    fn process_request_body(&mut self, _: RequestId) {}
+
+    fn process_request_eof(&mut self, _: RequestId) {}
+
+    fn process_response(
+        &mut self,
+        request_id: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
+        );
+    }
+
+    fn process_response_chunk(&mut self, request_id: RequestId, chunk: Vec<u8>) {
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseChunk(request_id, chunk),
+        );
+    }
+
+    fn process_response_eof(
+        &mut self,
+        request_id: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+        );
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+        let global = &self.resource_timing_global();
+        let link = self.link.root();
+        let source_position = link
+            .upcast::<Element>()
+            .compute_source_position(link.line_number as u32);
+        global.report_csp_violations(violations, None, Some(source_position));
+    }
+}
+
+impl ResourceTimingListener for FaviconFetchContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (
+            InitiatorType::LocalName("link".to_string()),
+            self.url.clone(),
+        )
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.link.root().upcast::<Node>().owner_doc().global()
+    }
+}
+
+impl PreInvoke for FaviconFetchContext {
+    fn should_invoke(&self) -> bool {
+        true
     }
 }
 

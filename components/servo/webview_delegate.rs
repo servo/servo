@@ -432,9 +432,9 @@ pub trait WebViewDelegate {
     /// The [`Cursor`] of the currently loaded page in this [`WebView`] has changed. The new
     /// cursor can accessed via [`WebView::cursor`].
     fn notify_cursor_changed(&self, _webview: WebView, _: Cursor) {}
-    /// The favicon [`Url`] of the currently loaded page in this [`WebView`] has changed. The new
-    /// favicon [`Url`] can accessed via [`WebView::favicon_url`].
-    fn notify_favicon_url_changed(&self, _webview: WebView, _: Url) {}
+    /// The favicon of the currently loaded page in this [`WebView`] has changed. The new
+    /// favicon [`Image`] can accessed via [`WebView::favicon`].
+    fn notify_favicon_changed(&self, _webview: WebView) {}
 
     /// Notify the embedder that it needs to present a new frame.
     fn notify_new_frame_ready(&self, _webview: WebView) {}
