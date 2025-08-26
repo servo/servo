@@ -5,9 +5,8 @@
 use base::id::WebViewId;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
+use net_traits::{IpcSend, IpcSendResult};
 use profile_traits::ipc;
 use servo_url::ServoUrl;
 
@@ -58,8 +57,8 @@ impl Storage {
         self.global().get_url()
     }
 
-    fn get_storage_thread(&self) -> IpcSender<StorageThreadMsg> {
-        self.global().resource_threads().sender()
+    fn send_storage_msg(&self, msg: StorageThreadMsg) -> IpcSendResult {
+        self.global().resource_threads().send(msg)
     }
 }
 
@@ -68,14 +67,13 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
     fn Length(&self) -> u32 {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        self.get_storage_thread()
-            .send(StorageThreadMsg::Length(
-                sender,
-                self.storage_type,
-                self.webview_id(),
-                self.get_url(),
-            ))
-            .unwrap();
+        self.send_storage_msg(StorageThreadMsg::Length(
+            sender,
+            self.storage_type,
+            self.webview_id(),
+            self.get_url(),
+        ))
+        .unwrap();
         receiver.recv().unwrap() as u32
     }
 
@@ -83,15 +81,14 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
     fn Key(&self, index: u32) -> Option<DOMString> {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        self.get_storage_thread()
-            .send(StorageThreadMsg::Key(
-                sender,
-                self.storage_type,
-                self.webview_id(),
-                self.get_url(),
-                index,
-            ))
-            .unwrap();
+        self.send_storage_msg(StorageThreadMsg::Key(
+            sender,
+            self.storage_type,
+            self.webview_id(),
+            self.get_url(),
+            index,
+        ))
+        .unwrap();
         receiver.recv().unwrap().map(DOMString::from)
     }
 
@@ -107,7 +104,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             self.get_url(),
             name,
         );
-        self.get_storage_thread().send(msg).unwrap();
+        self.send_storage_msg(msg).unwrap();
         receiver.recv().unwrap().map(DOMString::from)
     }
 
@@ -125,7 +122,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             name.clone(),
             value.clone(),
         );
-        self.get_storage_thread().send(msg).unwrap();
+        self.send_storage_msg(msg).unwrap();
         match receiver.recv().unwrap() {
             Err(_) => Err(Error::QuotaExceeded {
                 quota: None,
@@ -152,7 +149,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             self.get_url(),
             name.clone(),
         );
-        self.get_storage_thread().send(msg).unwrap();
+        self.send_storage_msg(msg).unwrap();
         if let Some(old_value) = receiver.recv().unwrap() {
             self.broadcast_change_notification(Some(name), Some(old_value), None);
         }
@@ -162,14 +159,13 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
     fn Clear(&self) {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        self.get_storage_thread()
-            .send(StorageThreadMsg::Clear(
-                sender,
-                self.storage_type,
-                self.webview_id(),
-                self.get_url(),
-            ))
-            .unwrap();
+        self.send_storage_msg(StorageThreadMsg::Clear(
+            sender,
+            self.storage_type,
+            self.webview_id(),
+            self.get_url(),
+        ))
+        .unwrap();
         if receiver.recv().unwrap() {
             self.broadcast_change_notification(None, None, None);
         }
@@ -179,14 +175,13 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        self.get_storage_thread()
-            .send(StorageThreadMsg::Keys(
-                sender,
-                self.storage_type,
-                self.webview_id(),
-                self.get_url(),
-            ))
-            .unwrap();
+        self.send_storage_msg(StorageThreadMsg::Keys(
+            sender,
+            self.storage_type,
+            self.webview_id(),
+            self.get_url(),
+        ))
+        .unwrap();
         receiver
             .recv()
             .unwrap()
