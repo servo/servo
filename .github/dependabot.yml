@@ -7,7 +7,10 @@ updates:
     - "tests/wpt/**"
   schedule:
     interval: daily
-  open-pull-requests-limit: 10
+    # default timezone is UTC
+    # CI is usually busiest during european daytime.
+    time: "00:00"
+  open-pull-requests-limit: 7
   allow:
   - dependency-type: direct
   - dependency-type: indirect
