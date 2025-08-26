@@ -340,7 +340,7 @@ pub(crate) struct ScriptThreadSenders {
     /// particular pipelines.
     #[no_trace]
     pub(crate) pipeline_to_constellation_sender:
-        GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+        IpcSender<(PipelineId, ScriptToConstellationMessage)>,
 
     /// The shared [`IpcSender`] which is sent to the `ImageCache` when requesting an image. The
     /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which
