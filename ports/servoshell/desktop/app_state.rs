@@ -5,6 +5,7 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::mem;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -84,6 +85,10 @@ pub struct RunningAppStateInner {
     /// Whether or not Servo needs to repaint its display. Currently this is global
     /// because every `WebView` shares a `RenderingContext`.
     need_repaint: bool,
+
+    /// List of webviews that have favicon textures which are not yet uploaded
+    /// to the GPU by egui.
+    pending_favicon_loads: Vec<WebViewId>,
 }
 
 impl Drop for RunningAppState {
@@ -114,6 +119,7 @@ impl RunningAppState {
                 gamepad_support: GamepadSupport::maybe_new(),
                 need_update: false,
                 need_repaint: false,
+                pending_favicon_loads: Default::default(),
             }),
         }
     }
@@ -513,6 +519,11 @@ impl RunningAppState {
             .load_status_senders
             .remove(&webview_id);
     }
+
+    /// Return a list of all webviews that have favicons that have not yet been loaded by egui.
+    pub(crate) fn take_pending_favicon_loads(&self) -> Vec<WebViewId> {
+        mem::take(&mut self.inner_mut().pending_favicon_loads)
+    }
 }
 
 struct ServoShellServoDelegate;
@@ -799,5 +810,11 @@ impl WebViewDelegate for RunningAppState {
                 );
             },
         }
+    }
+
+    fn notify_favicon_changed(&self, webview: WebView) {
+        let mut inner = self.inner_mut();
+        inner.pending_favicon_loads.push(webview.id());
+        inner.need_repaint = true;
     }
 }
