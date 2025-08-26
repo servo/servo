@@ -4,9 +4,7 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use net::indexeddb::engines::{
-    KvsEngine, KvsOperation, KvsTransaction, SanitizedName, SqliteEngine,
-};
+use net::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
 use net::indexeddb::idb_thread::IndexedDBDescription;
 use net::resource_thread::CoreResourceThreadPool;
 use net_traits::indexeddb_thread::{
@@ -73,13 +71,13 @@ fn test_create_store() {
         thread_pool,
     )
     .unwrap();
-    let store_name = SanitizedName::new("test_store".to_string());
-    let result = db.create_store(store_name.clone(), None, true);
+    let store_name = "test_store";
+    let result = db.create_store(store_name, None, true);
     assert!(result.is_ok());
     let create_result = result.unwrap();
     assert_eq!(create_result, CreateObjectResult::Created);
     // Try to create the same store again
-    let result = db.create_store(store_name.clone(), None, false);
+    let result = db.create_store(store_name, None, false);
     assert!(result.is_ok());
     let create_result = result.unwrap();
     assert_eq!(create_result, CreateObjectResult::AlreadyExists);
@@ -100,12 +98,8 @@ fn test_key_path() {
         thread_pool,
     )
     .unwrap();
-    let store_name = SanitizedName::new("test_store".to_string());
-    let result = db.create_store(
-        store_name.clone(),
-        Some(KeyPath::String("test".to_string())),
-        true,
-    );
+    let store_name = "test_store";
+    let result = db.create_store(store_name, Some(KeyPath::String("test".to_string())), true);
     assert!(result.is_ok());
     assert_eq!(
         db.key_path(store_name),
@@ -126,16 +120,16 @@ fn test_delete_store() {
         thread_pool,
     )
     .unwrap();
-    db.create_store(SanitizedName::new("test_store".to_string()), None, false)
+    db.create_store("test_store", None, false)
         .expect("Failed to create store");
     // Delete the store
-    db.delete_store(SanitizedName::new("test_store".to_string()))
+    db.delete_store("test_store")
         .expect("Failed to delete store");
     // Try to delete the same store again
-    let result = db.delete_store(SanitizedName::new("test_store".into()));
+    let result = db.delete_store("test_store");
     assert!(result.is_err());
     // Try to delete a non-existing store
-    let result = db.delete_store(SanitizedName::new("test_store".into()));
+    let result = db.delete_store("test_store");
     // Should work as per spec
     assert!(result.is_err());
 }
@@ -153,8 +147,8 @@ fn test_async_operations() {
         thread_pool,
     )
     .unwrap();
-    let store_name = SanitizedName::new("test_store".to_string());
-    db.create_store(store_name.clone(), None, false)
+    let store_name = "test_store";
+    db.create_store(store_name, None, false)
         .expect("Failed to create store");
     let channel = ipc_channel::ipc::channel().unwrap();
     let channel2 = ipc_channel::ipc::channel().unwrap();
@@ -166,7 +160,7 @@ fn test_async_operations() {
         mode: IndexedDBTxnMode::Readwrite,
         requests: VecDeque::from(vec![
             KvsOperation {
-                store_name: store_name.clone(),
+                store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
                     sender: channel.0,
                     key: IndexedDBKeyType::Number(1.0),
@@ -175,35 +169,35 @@ fn test_async_operations() {
                 }),
             },
             KvsOperation {
-                store_name: store_name.clone(),
+                store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
                     sender: channel2.0,
                     key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
                 }),
             },
             KvsOperation {
-                store_name: store_name.clone(),
+                store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
                     sender: channel3.0,
                     key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
                 }),
             },
             KvsOperation {
-                store_name: store_name.clone(),
+                store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
                     sender: channel4.0,
                     key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
                 }),
             },
             KvsOperation {
-                store_name: store_name.clone(),
+                store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
                     sender: channel5.0,
                     key: IndexedDBKeyType::Number(1.0),
                 }),
             },
             KvsOperation {
-                store_name: store_name.clone(),
+                store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(channel6.0)),
             },
         ]),
