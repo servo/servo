@@ -443,7 +443,7 @@ impl IOCompositor {
 
                 perform_memory_report(|ops| {
                     reports.push(Report {
-                        path: path!["webrender", "scroll-tree"],
+                        path: path!["compositor", "scroll-tree"],
                         kind: ReportKind::ExplicitJemallocHeapSize,
                         size: self.webview_renderers.scroll_trees_memory_usage(ops),
                     });
