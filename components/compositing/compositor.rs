@@ -671,6 +671,11 @@ impl IOCompositor {
                 transaction
                     .set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
                 self.update_transaction_with_all_scroll_offsets(&mut transaction);
+                self.global.borrow_mut().send_transaction(transaction);
+            },
+
+            CompositorMsg::GenerateFrame => {
+                let mut transaction = Transaction::new();
                 self.generate_frame(&mut transaction, RenderReasons::SCENE);
                 self.global.borrow_mut().send_transaction(transaction);
             },

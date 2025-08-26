@@ -441,6 +441,15 @@ bitflags! {
         const BuiltStackingContextTree = 1 << 2;
         const BuiltDisplayList = 1 << 3;
         const UpdatedScrollNodeOffset = 1 << 4;
+        const UpdatedCanvasContents = 1 << 5;
+    }
+}
+
+impl ReflowPhasesRun {
+    pub fn needs_frame(&self) -> bool {
+        self.intersects(
+            Self::BuiltDisplayList | Self::UpdatedScrollNodeOffset | Self::UpdatedCanvasContents,
+        )
     }
 }
 
