@@ -53,7 +53,6 @@ from WebIDL import (
     IDLNamespace,
     IDLCallbackType,
     IDLUnresolvedIdentifier,
-    IDLObjectWithIdentifier,
 )
 
 from configuration import (
@@ -440,7 +439,7 @@ class CGMethodCall(CGThing):
 
         signatures = method.signatures()
 
-        def getPerSignatureCall(signature: tuple[IDLType, list[IDLArgument | FakeArgument]], argConversionStartsAt: int = 0) -> CGThing:
+        def getPerSignatureCall(signature: tuple[IDLType, list[IDLArgument]], argConversionStartsAt: int = 0) -> CGThing:
             signatureIndex = signatures.index(signature)
             return CGPerSignatureCall(signature[0], argsPre, signature[1],
                                       f"{nativeMethodName}{'_' * signatureIndex}",
@@ -1367,7 +1366,7 @@ class CGArgumentConverter(CGThing):
     unwrap the argument to the right native type.
     """
     converter: CGThing
-    def __init__(self, argument: IDLArgument | FakeArgument, index: int, args: str, argc: str, descriptorProvider: DescriptorProvider,
+    def __init__(self, argument: IDLArgument, index: int, args: str, argc: str, descriptorProvider: DescriptorProvider,
                  invalidEnumValueFatal: bool=True) -> None:
         CGThing.__init__(self)
         assert not argument.defaultValue or argument.optional
@@ -4078,7 +4077,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         )
 
 
-def needCx(returnType: IDLType | None, arguments: Iterable[IDLArgument | FakeArgument], considerTypes: bool) -> bool:
+def needCx(returnType: IDLType | None, arguments: Iterable[IDLArgument], considerTypes: bool) -> bool:
     return (considerTypes
             and (typeNeedsCx(returnType, True)
                  or any(typeNeedsCx(a.type) for a in arguments)))
@@ -4092,7 +4091,7 @@ class CGCallGenerator(CGThing):
     errorResult should be a string for the value to return in case of an
     exception from the native code, or None if no error reporting is needed.
     """
-    def __init__(self, errorResult: str | None, arguments: list[tuple[IDLArgument | FakeArgument, str]], argsPre: list[str], returnType: IDLType | None,
+    def __init__(self, errorResult: str | None, arguments: list[tuple[IDLArgument, str]], argsPre: list[str], returnType: IDLType | None,
                  extendedAttributes: list[str], descriptor: Descriptor, nativeMethodName: str,
                  static: bool, object: str = "this", hasCEReactions: bool = False) -> None:
         CGThing.__init__(self)
@@ -4202,7 +4201,7 @@ class CGPerSignatureCall(CGThing):
     # have ways of flagging things like JSContext* or optional_argc in
     # there.
 
-    def __init__(self, returnType: IDLType | None, argsPre: list[str], arguments: list[IDLArgument | FakeArgument], nativeMethodName: str, static: bool,
+    def __init__(self, returnType: IDLType | None, argsPre: list[str], arguments: list[IDLArgument], nativeMethodName: str, static: bool,
                  descriptor: Descriptor, idlNode: IDLMethod, argConversionStartsAt: int = 0,
                  getter: bool = False, setter: bool = False) -> None:
         CGThing.__init__(self)
@@ -4252,7 +4251,7 @@ class CGPerSignatureCall(CGThing):
     def getArgc(self) -> str:
         return "argc"
 
-    def getArguments(self) -> list[tuple[IDLArgument | FakeArgument, str]]:
+    def getArguments(self) -> list[tuple[IDLArgument, str]]:
         return [(a, process_arg(f"arg{i}", a)) for (i, a) in enumerate(self.arguments)]
 
     def isFallible(self) -> bool:
@@ -4334,7 +4333,7 @@ class CGGetterCall(CGPerSignatureCall):
                                     attr, getter=True)
 
 
-class FakeArgument(IDLObjectWithIdentifier):
+class FakeArgument():
     """
     A class that quacks like an IDLArgument.  This is used to make
     setters look like method calls or for special operations.
@@ -4355,17 +4354,18 @@ class CGSetterCall(CGPerSignatureCall):
     A class to generate a native object setter call for a particular IDL
     setter.
     """
-    def __init__(self, argsPre, argType, nativeMethodName, descriptor, attr):
+    def __init__(self, argsPre: list[str], argType: IDLType, nativeMethodName: str, descriptor: Descriptor, attr: IDLMethod) -> None:
         CGPerSignatureCall.__init__(self, None, argsPre,
+                                    # pyrefly: ignore  # bad-argument-type
                                     [FakeArgument(argType, attr, allowTreatNonObjectAsNull=True)],
                                     nativeMethodName, attr.isStatic(), descriptor, attr,
                                     setter=True)
 
-    def wrap_return_value(self):
+    def wrap_return_value(self) -> str:
         # We have no return value
         return "\ntrue"
 
-    def getArgc(self):
+    def getArgc(self) -> str:
         return "1"
 
 
@@ -4377,7 +4377,7 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
     function to do the rest of the work.  This function should return a
     CGThing which is already properly indented.
     """
-    def __init__(self, descriptor, name, templateArgs=None):
+    def __init__(self, descriptor: Descriptor, name: str, templateArgs: list[str] | None = None) -> None:
         args = [
             Argument('*mut JSContext', 'cx'),
             Argument('libc::c_uint', 'argc'),
@@ -4415,7 +4415,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
     A class for generating the C++ code for a specialized method that the JIT
     can call with lower overhead.
     """
-    def __init__(self, descriptor, method):
+    def __init__(self, descriptor: Descriptor, method: IDLMethod) -> None:
         self.method = method
         name = method.identifier.name
         args = [Argument('*mut JSContext', 'cx'),
@@ -4435,7 +4435,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                              "let argc = args.argc_;\n")
 
     @staticmethod
-    def makeNativeName(descriptor, method):
+    def makeNativeName(descriptor: Descriptor, method: IDLMethod) -> str:
         if method.underlyingAttr:
             return CGSpecializedGetter.makeNativeName(descriptor, method.underlyingAttr)
         name = method.identifier.name
@@ -4452,7 +4452,7 @@ class CGMethodPromiseWrapper(CGAbstractExternMethod):
     convert exceptions to promises.
     """
 
-    def __init__(self, descriptor, methodToWrap):
+    def __init__(self, descriptor: Descriptor, methodToWrap: IDLMethod) -> None:
         self.method = methodToWrap
         name = CGMethodPromiseWrapper.makeNativeName(descriptor, self.method)
         args = [Argument('*mut JSContext', 'cx'),
@@ -4461,7 +4461,7 @@ class CGMethodPromiseWrapper(CGAbstractExternMethod):
                 Argument('*const JSJitMethodCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         return CGGeneric(fill(
             """
             let ok = ${methodName}::<D>(${args});
@@ -4475,7 +4475,7 @@ class CGMethodPromiseWrapper(CGAbstractExternMethod):
         ))
 
     @staticmethod
-    def makeNativeName(descriptor, m):
+    def makeNativeName(descriptor: Descriptor, m: IDLMethod) -> str:
         return f"{m.identifier.name}_promise_wrapper"
 
 
@@ -4486,7 +4486,7 @@ class CGGetterPromiseWrapper(CGAbstractExternMethod):
     convert exceptions to promises.
     """
 
-    def __init__(self, descriptor, methodToWrap):
+    def __init__(self, descriptor: Descriptor, methodToWrap: IDLMethod) -> None:
         self.method = methodToWrap
         name = CGGetterPromiseWrapper.makeNativeName(descriptor, self.method)
         self.method_call = CGGetterPromiseWrapper.makeOrigName(descriptor, self.method)
@@ -4496,7 +4496,7 @@ class CGGetterPromiseWrapper(CGAbstractExternMethod):
                 Argument('JSJitGetterCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         return CGGeneric(fill(
             """
             let ok = ${methodName}::<D>(${args});
@@ -4510,20 +4510,20 @@ class CGGetterPromiseWrapper(CGAbstractExternMethod):
         ))
 
     @staticmethod
-    def makeOrigName(descriptor, m):
+    def makeOrigName(descriptor: Descriptor, m: IDLMethod) -> str:
         return f'get_{descriptor.internalNameFor(m.identifier.name)}'
 
     @staticmethod
-    def makeNativeName(descriptor, m):
+    def makeNativeName(descriptor: Descriptor, m: IDLMethod) -> str:
         return f"{CGGetterPromiseWrapper.makeOrigName(descriptor, m)}_promise_wrapper"
 
 
 class CGDefaultToJSONMethod(CGSpecializedMethod):
-    def __init__(self, descriptor, method):
+    def __init__(self, descriptor: Descriptor, method: IDLMethod) -> None:
         assert method.isDefaultToJSON()
         CGSpecializedMethod.__init__(self, descriptor, method)
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         ret = dedent("""
             use crate::inheritance::HasParent;
             rooted!(in(cx) let result = JS_NewPlainObject(cx));
@@ -4561,12 +4561,12 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     """
     A class for generating the Rust code for an IDL static method.
     """
-    def __init__(self, descriptor, method):
+    def __init__(self, descriptor: Descriptor, method: IDLMethod) -> None:
         self.method = method
         name = descriptor.binaryNameFor(method.identifier.name, True)
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
-    def generate_code(self):
+    def generate_code(self) -> CGThing:
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
         safeContext = CGGeneric("let cx = SafeJSContext::from_ptr(cx);\n")
@@ -8763,7 +8763,7 @@ def camel_to_upper_snake(s: str) -> str:
     return "_".join(m.group(0).upper() for m in re.finditer("[A-Z][a-z]*", s))
 
 
-def process_arg(expr: str, arg: IDLArgument | FakeArgument) -> str:
+def process_arg(expr: str, arg: IDLArgument) -> str:
     if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
         if arg.variadic or arg.type.isSequence():
             expr += ".r()"
