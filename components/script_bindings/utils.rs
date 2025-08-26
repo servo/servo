@@ -312,7 +312,11 @@ pub unsafe fn set_dictionary_property(
     Ok(())
 }
 
-/// Returns whether `proxy` has a property `id` on its prototype.
+/// Computes whether `proxy` has a property `id` on its prototype and stores
+/// the result in `found`.
+///
+/// Returns a boolean indicating whether the check succeeded.
+/// If `false` is returned then the value of `found` is unspecified.
 ///
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
