@@ -86,6 +86,33 @@ fn test_create_store() {
 }
 
 #[test]
+fn test_injection() {
+    let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let thread_pool = get_pool();
+    let db = SqliteEngine::new(
+        base_dir.path(),
+        &IndexedDBDescription {
+            name: "test_db".to_string(),
+            origin: test_origin(),
+        },
+        thread_pool,
+    )
+    .unwrap();
+    // Create a normal store
+    let store_name1 = "test_store";
+    let result = db.create_store(store_name1, None, true);
+    assert!(result.is_ok());
+    let create_result = result.unwrap();
+    assert_eq!(create_result, CreateObjectResult::Created);
+    // Injection
+    let store_name2 = "' OR 1=1 -- -";
+    let result = db.create_store(store_name2, None, false);
+    assert!(result.is_ok());
+    let create_result = result.unwrap();
+    assert_eq!(create_result, CreateObjectResult::Created);
+}
+
+#[test]
 fn test_key_path() {
     let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
     let thread_pool = get_pool();
