@@ -410,14 +410,12 @@ unsafe fn jsval_to_webdriver_inner(
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
                 Err(WebDriverJSError::StaleElementReference)
+            } else if window_proxy.browsing_context_id() == window_proxy.webview_id() {
+                Ok(JSValue::Window(window.webview_id().to_string()))
             } else {
-                if window_proxy.browsing_context_id() == window_proxy.webview_id() {
-                    Ok(JSValue::Window(window.webview_id().to_string()))
-                } else {
-                    Ok(JSValue::Frame(
-                        window_proxy.browsing_context_id().to_string(),
-                    ))
-                }
+                Ok(JSValue::Frame(
+                    window_proxy.browsing_context_id().to_string(),
+                ))
             }
         } else if object_has_to_json_property(cx, global_scope, object.handle()) {
             let name = CString::new("toJSON").unwrap();
