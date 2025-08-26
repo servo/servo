@@ -761,10 +761,9 @@ where
             .join()
             .expect("Failed to join on the fetch thread in the constellation");
 
-        // Note: the last thing the constellation does,
-        // is asking the embedder to shutdown.
-        // This helps ensure we've shutdown all our internal threads before
-        // de-initializing Servo(see the `thread_count` warning on MacOS).
+        // Note: the last thing the constellation does, is asking the embedder to
+        // shut down. This helps ensure we've shut down all our internal threads before
+        // de-initializing Servo (see the `thread_count` warning on MacOS).
         debug!("Asking embedding layer to complete shutdown.");
         self.embedder_proxy.send(EmbedderMsg::ShutdownComplete);
     }
