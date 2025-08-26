@@ -768,6 +768,12 @@ where
         join_handle
             .join()
             .expect("Failed to join on the fetch thread in the constellation");
+
+        // Note: the last thing the constellation does, is asking the embedder to
+        // shut down. This helps ensure we've shut down all our internal threads before
+        // de-initializing Servo (see the `thread_count` warning on MacOS).
+        debug!("Asking embedding layer to complete shutdown.");
+        self.embedder_proxy.send(EmbedderMsg::ShutdownComplete);
     }
 
     /// Generate a new pipeline id namespace.
@@ -2718,9 +2724,6 @@ where
                 warn!("Exit WebGL thread failed ({:?})", e);
             }
         }
-
-        debug!("Asking embedding layer to complete shutdown.");
-        self.embedder_proxy.send(EmbedderMsg::ShutdownComplete);
 
         debug!("Shutting-down IPC router thread in constellation.");
         ROUTER.shutdown();
