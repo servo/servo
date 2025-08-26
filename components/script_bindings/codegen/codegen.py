@@ -1459,7 +1459,7 @@ def wrapForType(jsvalRef: str, result: str = 'result', successCode: str = 'true'
     return wrap
 
 
-def typeNeedsCx(type: IDLType, retVal: bool = False) -> bool:
+def typeNeedsCx(type: IDLType | None, retVal: bool = False) -> bool:
     if type is None:
         return False
     if type.nullable():
@@ -1479,7 +1479,9 @@ def typeNeedsCx(type: IDLType, retVal: bool = False) -> bool:
     return type.isAny() or type.isObject()
 
 
-def returnTypeNeedsOutparam(type: IDLType) -> bool:
+def returnTypeNeedsOutparam(type: IDLType | None) -> bool:
+    if type is None:
+        return False
     if type.nullable():
         assert isinstance(type, IDLNullableType)
         type = type.inner
@@ -3526,7 +3528,7 @@ class CGAbstractExternMethod(CGAbstractMethod):
 
 
 class PropertyArrays():
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         self.static_methods = MethodDefiner(descriptor, "StaticMethods",
                                             static=True, unforgeable=False)
         self.static_attrs = AttrDefiner(descriptor, "StaticAttributes",
@@ -3541,7 +3543,7 @@ class PropertyArrays():
         pass
 
     @staticmethod
-    def arrayNames():
+    def arrayNames() -> list[str]:
         return [
             "static_methods",
             "static_attrs",
@@ -3552,13 +3554,13 @@ class PropertyArrays():
             "consts",
         ]
 
-    def variableNames(self):
+    def variableNames(self) -> dict[str, PropertyDefiner]:
         names = {}
         for array in self.arrayNames():
             names[array] = getattr(self, array).variableName()
         return names
 
-    def __str__(self):
+    def __str__(self) -> str:
         define = ""
         for array in self.arrayNames():
             define += str(getattr(self, array))
@@ -3566,13 +3568,13 @@ class PropertyArrays():
 
 
 class CGCrossOriginProperties(CGThing):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         self.methods = MethodDefiner(descriptor, "CrossOriginMethods", static=False,
                                      unforgeable=False, crossorigin=True)
         self.attributes = AttrDefiner(descriptor, "CrossOriginAttributes", static=False,
                                       unforgeable=False, crossorigin=True)
 
-    def define(self):
+    def define(self) -> str:
         return f"{self.methods}{self.attributes}" + dedent(
             """
             static CROSS_ORIGIN_PROPERTIES: ThreadUnsafeOnceLock<CrossOriginProperties> = ThreadUnsafeOnceLock::new();
@@ -3591,7 +3593,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
     """
     Generate the CollectJSONAttributes method for an interface descriptor
     """
-    def __init__(self, descriptor, toJSONMethod):
+    def __init__(self, descriptor: Descriptor, toJSONMethod: IDLType | None) -> None:
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('RawHandleObject', 'obj'),
                 Argument('*mut libc::c_void', 'this'),
@@ -3600,7 +3602,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                                   'bool', args, pub=True, unsafe=True, templateArgs=["D: DomTypes"])
         self.toJSONMethod = toJSONMethod
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         ret = """let incumbent_global = D::GlobalScope::incumbent().expect("no incumbent global");
 let global = incumbent_global.reflector().get_jsobject();\n"""
         interface = self.descriptor.interface
@@ -3640,7 +3642,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
     properties should be a PropertyArrays instance.
     """
-    def __init__(self, descriptor, properties, haveUnscopables, haveLegacyWindowAliases):
+    def __init__(self, descriptor: Descriptor, properties: PropertyArrays, haveUnscopables: bool, haveLegacyWindowAliases: bool) -> None:
         args = [Argument('SafeJSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
@@ -3649,7 +3651,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         self.haveUnscopables = haveUnscopables
         self.haveLegacyWindowAliases = haveLegacyWindowAliases
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         name = self.descriptor.interface.identifier.name
         if self.descriptor.interface.isNamespace():
             if self.descriptor.interface.getExtendedAttribute("ProtoObjectHack"):
@@ -3804,7 +3806,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
 
         aliasedMembers = [m for m in self.descriptor.interface.members if m.isMethod() and m.aliases]
         if aliasedMembers:
-            def defineAlias(alias) -> CGThing:
+            def defineAlias(alias: str) -> CGThing:
                 if alias == "@@iterator":
                     symbolJSID = "RUST_SYMBOL_TO_JSID(GetWellKnownSymbol(*cx, SymbolCode::iterator), \
                                   iteratorId.handle_mut())"
@@ -3836,7 +3838,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                         enumFlags=enumFlags))
                 ], "\n")
 
-            def defineAliasesFor(m) -> CGThing:
+            def defineAliasesFor(m: IDLMethod) -> CGThing:
                 return CGList([
                     CGGeneric(fill(
                         """
@@ -3906,7 +3908,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     A method for getting a per-interface object (a prototype object or interface
     constructor object).
     """
-    def __init__(self, descriptor, name, idPrefix="", pub=False):
+    def __init__(self, descriptor: Descriptor, name: str, idPrefix: str = "", pub: bool = False) -> None:
         args = [Argument('SafeJSContext', 'cx'),
                 Argument('HandleObject', 'global'),
                 Argument('MutableHandleObject', 'mut rval')]
@@ -3926,11 +3928,11 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
     """
     A method for getting the interface prototype object.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
                                          "PrototypeList::ID", pub=True)
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         return CGList([
             CGGeneric("""\
 /* Get the interface prototype object for this class.  This will create the
@@ -3943,12 +3945,12 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
     """
     A method for getting the interface constructor object.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetConstructorObject",
                                          "PrototypeList::Constructor",
                                          pub=True)
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         return CGList([
             CGGeneric("""\
 /* Get the interface object for this class.  This will create the object as
@@ -3961,16 +3963,16 @@ class CGDefineProxyHandler(CGAbstractMethod):
     """
     A method to create and cache the proxy trap for a given interface.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         assert descriptor.proxy
         CGAbstractMethod.__init__(self, descriptor, 'DefineProxyHandler',
                                   '*const libc::c_void', [],
                                   pub=True, unsafe=True, templateArgs=["D: DomTypes"])
 
-    def define(self):
+    def define(self) -> str:
         return CGAbstractMethod.define(self)
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         customDefineProperty = 'proxyhandler::define_property'
         if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['IndexedSetter'] or \
            self.descriptor.operations['NamedSetter']:
@@ -4049,7 +4051,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     A method for resolve hooks to try to lazily define the interface object for
     a given interface.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         assert descriptor.interface.hasInterfaceObject()
         args = [
             Argument('SafeJSContext', 'cx'),
@@ -4064,10 +4066,10 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         self.id = f"{idPrefix}::{MakeNativeName(self.descriptor.name)}"
         self.variant = self.id.split('::')[-2]
 
-    def define(self):
+    def define(self) -> str:
         return CGAbstractMethod.define(self)
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         return CGGeneric(
             "define_dom_interface"
             f"(cx, global, ProtoOrIfaceIndex::{self.variant}({self.id}),"
@@ -4075,7 +4077,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         )
 
 
-def needCx(returnType: IDLType, arguments, considerTypes: bool) -> bool:
+def needCx(returnType: IDLType | None, arguments: Iterable[IDLArgument], considerTypes: bool) -> bool:
     return (considerTypes
             and (typeNeedsCx(returnType, True)
                  or any(typeNeedsCx(a.type) for a in arguments)))
@@ -4089,9 +4091,9 @@ class CGCallGenerator(CGThing):
     errorResult should be a string for the value to return in case of an
     exception from the native code, or None if no error reporting is needed.
     """
-    def __init__(self, errorResult, arguments, argsPre, returnType,
-                 extendedAttributes, descriptor, nativeMethodName,
-                 static, object="this", hasCEReactions=False):
+    def __init__(self, errorResult: str | None, arguments: list[tuple[IDLArgument, str]], argsPre: list[str], returnType: IDLType | None,
+                 extendedAttributes: list[str], descriptor: Descriptor, nativeMethodName: str,
+                 static: bool, object: str = "this", hasCEReactions: bool = False) -> None:
         CGThing.__init__(self)
 
         assert errorResult is None or isinstance(errorResult, str)
@@ -4172,7 +4174,7 @@ class CGCallGenerator(CGThing):
                 "    },\n"
                 "};"))
 
-    def define(self):
+    def define(self) -> str:
         return self.cgRoot.define()
 
 
@@ -4199,9 +4201,9 @@ class CGPerSignatureCall(CGThing):
     # have ways of flagging things like JSContext* or optional_argc in
     # there.
 
-    def __init__(self, returnType, argsPre, arguments, nativeMethodName, static,
-                 descriptor, idlNode, argConversionStartsAt=0,
-                 getter=False, setter=False):
+    def __init__(self, returnType: IDLType | None, argsPre: list[str], arguments: list[IDLArgument] , nativeMethodName: str, static: bool,
+                 descriptor: Descriptor, idlNode: IDLMethod, argConversionStartsAt: int = 0,
+                 getter: bool = False, setter: bool = False) -> None:
         CGThing.__init__(self)
         self.returnType = returnType
         self.descriptor = descriptor
@@ -4223,6 +4225,7 @@ class CGPerSignatureCall(CGThing):
             errorResult = " false"
 
         if idlNode.isMethod() and idlNode.isMaplikeOrSetlikeOrIterableMethod():
+            assert idlNode.maplikeOrSetlikeOrIterable is not None
             if idlNode.maplikeOrSetlikeOrIterable.isMaplike() or \
                idlNode.maplikeOrSetlikeOrIterable.isSetlike():
                 cgThings.append(CGMaplikeOrSetlikeMethodGenerator(descriptor,
@@ -4233,7 +4236,7 @@ class CGPerSignatureCall(CGThing):
                                                           idlNode.maplikeOrSetlikeOrIterable,
                                                           idlNode.identifier.name))
         else:
-            hasCEReactions = idlNode.getExtendedAttribute("CEReactions")
+            hasCEReactions = idlNode.getExtendedAttribute("CEReactions") or False
             cgThings.append(CGCallGenerator(
                 errorResult,
                 self.getArguments(), self.argsPre, returnType,
@@ -4242,19 +4245,19 @@ class CGPerSignatureCall(CGThing):
 
         self.cgRoot = CGList(cgThings, "\n")
 
-    def getArgs(self):
+    def getArgs(self) -> str:
         return "args" if self.argCount > 0 else ""
 
     def getArgc(self) -> str:
         return "argc"
 
-    def getArguments(self):
+    def getArguments(self) -> list[tuple[IDLArgument, str]]:
         return [(a, process_arg(f"arg{i}", a)) for (i, a) in enumerate(self.arguments)]
 
-    def isFallible(self):
+    def isFallible(self) -> bool:
         return 'infallible' not in self.extendedAttributes
 
-    def wrap_return_value(self):
+    def wrap_return_value(self) -> str:
         resultName = "result"
         # Maplike methods have `any` return values in WebIDL, but our internal bindings
         # use stronger types so we need to exclude them from being handled like other
@@ -4268,7 +4271,7 @@ class CGPerSignatureCall(CGThing):
             successCode='return true;',
         )
 
-    def define(self):
+    def define(self) -> str:
         return f"{self.cgRoot.define()}\n{self.wrap_return_value()}"
 
 
@@ -4353,6 +4356,7 @@ class CGSetterCall(CGPerSignatureCall):
     """
     def __init__(self, argsPre, argType, nativeMethodName, descriptor, attr):
         CGPerSignatureCall.__init__(self, None, argsPre,
+                                    # pyrefly: ignore  # bad-argument-type
                                     [FakeArgument(argType, attr, allowTreatNonObjectAsNull=True)],
                                     nativeMethodName, attr.isStatic(), descriptor, attr,
                                     setter=True)
@@ -5987,7 +5991,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
 
         # We pass len(arguments) as the final argument so that the
         # CGPerSignatureCall won't do any argument conversion of its own.
-        CGPerSignatureCall.__init__(self, returnType, "", arguments, nativeName,
+        CGPerSignatureCall.__init__(self, returnType, [], arguments, nativeName,
                                     False, descriptor, operation,
                                     len(arguments))
 
