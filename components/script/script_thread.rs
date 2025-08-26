@@ -567,6 +567,12 @@ impl ScriptThread {
         self.timer_scheduler.borrow_mut().schedule_timer(request)
     }
 
+    /// Cancel a the [`TimerEventRequest`] for the given [`TimerId`] on this
+    /// [`ScriptThread`]'s [`TimerScheduler`].
+    pub(crate) fn cancel_timer(&self, timer_id: TimerId) {
+        self.timer_scheduler.borrow_mut().cancel_timer(timer_id)
+    }
+
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
     pub(crate) fn await_stable_state(task: Microtask) {
         with_script_thread(|script_thread| {

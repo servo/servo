@@ -202,7 +202,7 @@ use crate::mime::{APPLICATION, CHARSET, MimeExt};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
-use crate::script_thread::{ScriptThread, with_script_thread};
+use crate::script_thread::ScriptThread;
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
 use crate::task_source::TaskSourceName;
@@ -485,6 +485,8 @@ pub(crate) struct Document {
     /// List of all WebGL context IDs that need flushing.
     dirty_webgl_contexts:
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
+    /// Whether or not animated images need to have their contents updated.
+    has_pending_animated_image_update: Cell<bool>,
     /// List of all WebGPU contexts.
     #[cfg(feature = "webgpu")]
     #[ignore_malloc_size_of = "Rc are hard"]
@@ -2646,6 +2648,9 @@ impl Document {
         if self.window().has_unhandled_resize_event() {
             return true;
         }
+        if self.has_pending_animated_image_update.get() {
+            return true;
+        }
 
         false
     }
@@ -2658,7 +2663,12 @@ impl Document {
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
     pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
-        self.update_animating_images();
+        if self.has_pending_animated_image_update.get() {
+            self.image_animation_manager
+                .borrow()
+                .update_active_frames(&self.window, self.current_animation_timeline_value());
+            self.has_pending_animated_image_update.set(false);
+        }
 
         // All dirty canvases are flushed before updating the rendering.
         #[cfg(feature = "webgpu")]
@@ -3352,6 +3362,7 @@ impl Document {
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_2d_contexts: DomRefCell::new(HashMapTracedValues::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
+            has_pending_animated_image_update: Cell::new(false),
             #[cfg(feature = "webgpu")]
             webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
             selection: MutNullableDom::new(None),
@@ -4144,7 +4155,9 @@ impl Document {
         self.animations
             .borrow()
             .do_post_reflow_update(&self.window, self.current_animation_timeline_value());
-        self.image_animation_manager().update_rooted_dom_nodes();
+        self.image_animation_manager
+            .borrow()
+            .update_rooted_dom_nodes(&self.window, self.current_animation_timeline_value());
     }
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
@@ -4184,33 +4197,8 @@ impl Document {
         self.image_animation_manager.borrow()
     }
 
-    pub(crate) fn update_animating_images(&self) {
-        let image_animation_manager = self.image_animation_manager.borrow();
-        if !image_animation_manager.image_animations_present() {
-            return;
-        }
-        image_animation_manager
-            .update_active_frames(&self.window, self.current_animation_timeline_value());
-
-        if !self.animations().animations_present() {
-            let next_scheduled_time = image_animation_manager
-                .next_scheduled_time(self.current_animation_timeline_value());
-            // TODO: Once we have refresh signal from the compositor,
-            // we should get rid of timer for animated image update.
-            if let Some(next_scheduled_time) = next_scheduled_time {
-                self.schedule_image_animation_update(next_scheduled_time);
-            }
-        }
-    }
-
-    fn schedule_image_animation_update(&self, next_scheduled_time: f64) {
-        let callback = ImageAnimationUpdateCallback {
-            document: Trusted::new(self),
-        };
-        self.global().schedule_callback(
-            OneshotTimerCallback::ImageAnimationUpdate(callback),
-            Duration::from_secs_f64(next_scheduled_time),
-        );
+    pub(crate) fn set_has_pending_animated_image_update(&self) {
+        self.has_pending_animated_image_update.set(true);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
@@ -5917,24 +5905,6 @@ pub enum FocusInitiator {
 pub(crate) enum FocusEventType {
     Focus, // Element gained focus. Doesn't bubble.
     Blur,  // Element lost focus. Doesn't bubble.
-}
-
-/// This is a temporary workaround to update animated images,
-/// we should get rid of this after we have refresh driver #3406
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct ImageAnimationUpdateCallback {
-    /// The document.
-    #[ignore_malloc_size_of = "non-owning"]
-    document: Trusted<Document>,
-}
-
-impl ImageAnimationUpdateCallback {
-    pub(crate) fn invoke(self, can_gc: CanGc) {
-        with_script_thread(|script_thread| {
-            script_thread.set_needs_rendering_update();
-            script_thread.update_the_rendering(can_gc);
-        })
-    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
