@@ -87,7 +87,7 @@ icu_locid = "1.5.0"
 icu_segmenter = "1.5.0"
 image = "0.24"
 imsz = "0.2"
-indexmap = { version = "2.10.0", features = ["std"] }
+indexmap = { version = "2.11.0", features = ["std"] }
 ipc-channel = "0.20"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
