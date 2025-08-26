@@ -144,7 +144,7 @@ use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
-use layout_api::{LayoutFactory, ScriptThreadFactory};
+use layout_api::{LayoutFactory, ScriptThreadFactory, shutdown_style_threads};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
@@ -754,6 +754,10 @@ where
             self.handle_request();
         }
         self.handle_shutdown();
+
+        if !opts::get().multiprocess {
+            shutdown_style_threads();
+        }
 
         // Shut down the fetch thread started above.
         exit_fetch_thread();

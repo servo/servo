@@ -49,6 +49,7 @@ use style::animation::DocumentAnimationSet;
 use style::context::QuirksMode;
 use style::data::ElementData;
 use style::dom::OpaqueNode;
+use style::global_style_data::StyleThreadPool;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::Device;
 use style::properties::PropertyId;
@@ -58,6 +59,10 @@ use style::stylesheets::{Stylesheet, UrlExtraData};
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
+
+pub fn shutdown_style_threads() {
+    StyleThreadPool::shutdown();
+}
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
     fn as_any(&self) -> &dyn Any;

@@ -88,6 +88,7 @@ pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
 };
 use layout::LayoutFactoryImpl;
+use layout_api::shutdown_style_threads;
 use log::{Log, Metadata, Record, debug, error, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
@@ -1280,6 +1281,8 @@ pub fn run_content_process(token: String) {
             join_handle
                 .join()
                 .expect("Failed to join on the BHM background thread.");
+
+            shutdown_style_threads();
 
             // Shut down the fetch thread started above.
             exit_fetch_thread();
