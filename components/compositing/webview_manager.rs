@@ -7,7 +7,7 @@ use std::collections::hash_map::{Entry, Values, ValuesMut};
 
 use base::id::WebViewId;
 
-use crate::webview_renderer::UnknownWebView;
+use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
 
 #[derive(Debug)]
 pub struct WebViewManager<WebView> {
@@ -106,6 +106,17 @@ impl<WebView> WebViewManager<WebView> {
 
     pub fn iter_mut(&mut self) -> ValuesMut<'_, WebViewId, WebView> {
         self.webviews.values_mut()
+    }
+}
+
+impl WebViewManager<WebViewRenderer> {
+    pub(crate) fn scroll_trees_memory_usage(
+        &self,
+        ops: &mut malloc_size_of::MallocSizeOfOps,
+    ) -> usize {
+        self.iter()
+            .map(|renderer| renderer.scroll_trees_memory_usage(ops))
+            .sum::<usize>()
     }
 }
 

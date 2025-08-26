@@ -29,7 +29,9 @@ use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
-use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
+use profile_traits::mem::{
+    ProcessReports, ProfilerRegistration, Report, ReportKind, perform_memory_report,
+};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
 use servo_config::{opts, pref};
@@ -421,7 +423,7 @@ impl IOCompositor {
                 let ops =
                     wr_malloc_size_of::MallocSizeOfOps::new(servo_allocator::usable_size, None);
                 let report = self.global.borrow().webrender_api.report_memory(ops);
-                let reports = vec![
+                let mut reports = vec![
                     Report {
                         path: path!["webrender", "fonts"],
                         kind: ReportKind::ExplicitJemallocHeapSize,
@@ -438,6 +440,15 @@ impl IOCompositor {
                         size: report.display_list,
                     },
                 ];
+
+                perform_memory_report(|ops| {
+                    reports.push(Report {
+                        path: path!["compositor", "scroll-tree"],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: self.webview_renderers.scroll_trees_memory_usage(ops),
+                    });
+                });
+
                 sender.send(ProcessReports::new(reports));
             },
 
