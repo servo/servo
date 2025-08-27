@@ -2287,7 +2287,7 @@ class CGImports(CGWrapper):
             self,
             child: CGThing,
             descriptors: list[Descriptor],
-            callbacks: list[IDLCallbackType],
+            callbacks: list[IDLCallback],
             dictionaries: list[IDLDictionary],
             enums: list[IDLEnum],
             typedefs: list[IDLTypedef],
@@ -2337,7 +2337,7 @@ class CGImports(CGWrapper):
                 if t.isCallback():
                     assert isinstance(t, IDLCallbackType)
                     return t.callback.identifier
-                # pyrefly: ignore  # missing-attribute
+                assert isinstance(t, (IDLInterface, IDLDictionary, IDLEnum, IDLNamespace))
                 return t.identifier
             assert t.isInterface() or t.isDictionary() or t.isEnum() or t.isNamespace()
             assert isinstance(t, (IDLInterface, IDLDictionary, IDLEnum, IDLNamespace))
@@ -2402,7 +2402,6 @@ class CGImports(CGWrapper):
         for t in types:
             # Importing these callbacks in the same module that defines them is an error.
             if t.isCallback():
-                # pyrefly: ignore  # missing-attribute
                 if getIdentifier(t) in [c.identifier for c in callbacks]:
                     continue
             # Importing these types in the same module that defines them is an error.
