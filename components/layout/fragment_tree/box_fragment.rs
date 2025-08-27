@@ -302,6 +302,14 @@ impl BoxFragment {
         rect.translate(self.cumulative_containing_block_rect.origin.to_vector())
     }
 
+    pub(crate) fn cumulative_content_box_rect(&self) -> PhysicalRect<Au> {
+        self.offset_by_containing_block(&self.margin_rect())
+    }
+
+    pub(crate) fn cumulative_padding_box_rect(&self) -> PhysicalRect<Au> {
+        self.offset_by_containing_block(&self.padding_rect())
+    }
+
     pub(crate) fn cumulative_border_box_rect(&self) -> PhysicalRect<Au> {
         self.offset_by_containing_block(&self.border_rect())
     }

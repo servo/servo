@@ -291,8 +291,8 @@ pub trait Layout {
     /// Returns true if this layout needs to produce a new display list for rendering updates.
     fn needs_new_display_list(&self) -> bool;
 
-    fn query_content_box(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
-    fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;
+    fn query_box_area(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Option<Rect<Au>>;
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
@@ -336,6 +336,16 @@ pub trait ScriptThreadFactory {
         load_data: LoadData,
     ) -> JoinHandle<()>;
 }
+
+/// Type of the area of CSS box for query.
+/// See <https://www.w3.org/TR/css-box-3/#box-model>.
+#[derive(Copy, Clone)]
+pub enum BoxAreaType {
+    Content,
+    Padding,
+    Border,
+}
+
 #[derive(Clone, Default)]
 pub struct OffsetParentResponse {
     pub node_address: Option<UntrustedNodeAddress>,
@@ -344,9 +354,9 @@ pub struct OffsetParentResponse {
 
 #[derive(Debug, PartialEq)]
 pub enum QueryMsg {
+    BoxArea,
+    BoxAreas,
     ClientRectQuery,
-    ContentBox,
-    ContentBoxes,
     ElementInnerOuterTextQuery,
     ElementsFromPoint,
     InnerWindowDimensionsQuery,

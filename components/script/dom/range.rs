@@ -340,7 +340,7 @@ impl Range {
             .following_nodes(document.upcast::<Node>())
             .take_while(move |node| node != &end)
             .chain(iter::once(end_clone))
-            .flat_map(move |node| node.content_boxes())
+            .flat_map(move |node| node.border_boxes())
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>

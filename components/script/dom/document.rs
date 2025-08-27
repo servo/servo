@@ -1029,7 +1029,7 @@ impl Document {
                 // inside other scrollable containers. Ideally this should use an implementation of
                 // `scrollIntoView` when that is available:
                 // See https://github.com/servo/servo/issues/24059.
-                let rect = element.upcast::<Node>().content_box().unwrap_or_default();
+                let rect = element.upcast::<Node>().border_box().unwrap_or_default();
 
                 // In order to align with element edges, we snap to unscaled pixel boundaries, since
                 // the paint thread currently does the same for drawing elements. This is important
@@ -1348,7 +1348,7 @@ impl Document {
 
                 // Notify the embedder to display an input method.
                 if let Some(kind) = elem.input_method_type() {
-                    let rect = elem.upcast::<Node>().content_box().unwrap_or_default();
+                    let rect = elem.upcast::<Node>().border_box().unwrap_or_default();
                     let rect = Rect::new(
                         Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
                         Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),

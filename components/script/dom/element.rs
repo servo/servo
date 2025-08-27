@@ -1007,7 +1007,7 @@ impl Element {
         block: ScrollLogicalPosition,
         inline: ScrollLogicalPosition,
     ) -> ScrollPosition {
-        let target_bounding_box = self.upcast::<Node>().content_box().unwrap_or_default();
+        let target_bounding_box = self.upcast::<Node>().border_box().unwrap_or_default();
 
         let device_pixel_ratio = self
             .upcast::<Node>()
@@ -1073,7 +1073,7 @@ impl Element {
         } else {
             // Handle element-specific scrolling
             // Scrolling box bounds and current scroll position
-            let scrolling_box = scrolling_node.content_box().unwrap_or_default();
+            let scrolling_box = scrolling_node.border_box().unwrap_or_default();
             let scrolling_left = scrolling_box.origin.x.to_nearest_pixel(device_pixel_ratio) as f64;
             let scrolling_top = scrolling_box.origin.y.to_nearest_pixel(device_pixel_ratio) as f64;
             let scrolling_width = scrolling_box
@@ -1127,7 +1127,7 @@ impl Element {
                             if matches!(position, Position::Relative | Position::Absolute) {
                                 // If this element establishes a positioning context,
                                 // Get its bounding box to calculate the offset
-                                let positioning_box = node.content_box().unwrap_or_default();
+                                let positioning_box = node.border_box().unwrap_or_default();
                                 let positioning_left = positioning_box
                                     .origin
                                     .x
@@ -3449,7 +3449,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
     fn GetClientRects(&self, can_gc: CanGc) -> DomRoot<DOMRectList> {
         let win = self.owner_window();
-        let raw_rects = self.upcast::<Node>().content_boxes();
+        let raw_rects = self.upcast::<Node>().border_boxes();
         let rects: Vec<DomRoot<DOMRect>> = raw_rects
             .iter()
             .map(|rect| {
@@ -3469,7 +3469,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
         let win = self.owner_window();
-        let rect = self.upcast::<Node>().content_box().unwrap_or_default();
+        let rect = self.upcast::<Node>().border_box().unwrap_or_default();
         DOMRect::new(
             win.upcast(),
             rect.origin.x.to_f64_px(),
