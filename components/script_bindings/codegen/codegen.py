@@ -6686,16 +6686,16 @@ class CGAbstractClassHook(CGAbstractExternMethod):
     Meant for implementing JSClass hooks, like Finalize or Trace. Does very raw
     'this' unwrapping as it assumes that the unwrapped type is always known.
     """
-    def __init__(self, descriptor, name, returnType, args, doesNotPanic=False):
+    def __init__(self, descriptor: Descriptor, name: str, returnType: str, args: list[Argument], doesNotPanic: bool = False) -> None:
         CGAbstractExternMethod.__init__(self, descriptor, name, returnType,
                                         args, templateArgs=['D: DomTypes'])
 
-    def definition_body_prologue(self):
+    def definition_body_prologue(self) -> CGThing:
         return CGGeneric(f"""
 let this = native_from_object_static::<{self.descriptor.concreteType}>(obj).unwrap();
 """)
 
-    def definition_body(self):
+    def definition_body(self) -> CGThing:
         return CGList([
             self.definition_body_prologue(),
             self.generate_code(),
@@ -8168,7 +8168,7 @@ class CGNativeMember(ClassMethod):
 
 
 class CGCallback(CGClass):
-    def __init__(self, idlObject, descriptorProvider, baseName, methods):
+    def __init__(self, idlObject: IDLCallback, descriptorProvider: DescriptorProvider, baseName: str, methods: list[CallbackMethod]) -> None:
         self.baseName = baseName
         self._deps = idlObject.getDeps()
         name = idlObject.identifier.name
@@ -8193,7 +8193,7 @@ class CGCallback(CGClass):
                                     "#[cfg_attr(crown, allow(crown::unrooted_must_root))]\n"
                                     "#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]")
 
-    def getConstructors(self):
+    def getConstructors(self) -> list[ClassConstructor]:
         return [ClassConstructor(
             [Argument("SafeJSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
             bodyInHeader=True,
@@ -8203,7 +8203,7 @@ class CGCallback(CGClass):
                 f"{self.baseName.replace('<D>', '')}::new()"
             ])]
 
-    def getMethodImpls(self, method):
+    def getMethodImpls(self, method: CallbackMethod) -> list[ClassMethod]:
         assert method.needThisHandling
         args = list(method.args)
         # Strip out the JSContext*/JSObject* args
