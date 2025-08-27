@@ -17,6 +17,6 @@ enum SupportedType {
 [Exposed=Window]
 interface DOMParser {
   [Throws] constructor();
-  [Throws]
-  Document parseFromString(DOMString str, SupportedType type);
+  [NewObject, Throws]
+  Document parseFromString((TrustedHTML or DOMString) string, SupportedType type);
 };
