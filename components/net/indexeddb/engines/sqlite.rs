@@ -16,7 +16,7 @@ use sea_query_rusqlite::RusqliteBinder;
 use serde::Serialize;
 use tokio::sync::oneshot;
 
-use crate::indexeddb::engines::{KvsEngine, KvsTransaction, SanitizedName};
+use crate::indexeddb::engines::{KvsEngine, KvsTransaction};
 use crate::indexeddb::idb_thread::IndexedDBDescription;
 use crate::resource_thread::CoreResourceThreadPool;
 
@@ -244,7 +244,7 @@ impl KvsEngine for SqliteEngine {
 
     fn create_store(
         &self,
-        store_name: SanitizedName,
+        store_name: &str,
         key_path: Option<KeyPath>,
         auto_increment: bool,
     ) -> Result<CreateObjectResult, Self::Error> {
@@ -267,7 +267,7 @@ impl KvsEngine for SqliteEngine {
         Ok(CreateObjectResult::Created)
     }
 
-    fn delete_store(&self, store_name: SanitizedName) -> Result<(), Self::Error> {
+    fn delete_store(&self, store_name: &str) -> Result<(), Self::Error> {
         let result = self.connection.execute(
             "DELETE FROM object_store WHERE name = ?",
             params![store_name.to_string()],
@@ -281,7 +281,7 @@ impl KvsEngine for SqliteEngine {
         }
     }
 
-    fn close_store(&self, _store_name: SanitizedName) -> Result<(), Self::Error> {
+    fn close_store(&self, _store_name: &str) -> Result<(), Self::Error> {
         // TODO: do something
         Ok(())
     }
@@ -430,7 +430,7 @@ impl KvsEngine for SqliteEngine {
     }
 
     // TODO: we should be able to error out here, maybe change the trait definition?
-    fn has_key_generator(&self, store_name: SanitizedName) -> bool {
+    fn has_key_generator(&self, store_name: &str) -> bool {
         self.connection
             .prepare("SELECT * FROM object_store WHERE name = ?")
             .and_then(|mut stmt| {
@@ -445,7 +445,7 @@ impl KvsEngine for SqliteEngine {
             .unwrap_or_default()
     }
 
-    fn key_path(&self, store_name: SanitizedName) -> Option<KeyPath> {
+    fn key_path(&self, store_name: &str) -> Option<KeyPath> {
         self.connection
             .prepare("SELECT * FROM object_store WHERE name = ?")
             .and_then(|mut stmt| {
@@ -464,7 +464,7 @@ impl KvsEngine for SqliteEngine {
 
     fn create_index(
         &self,
-        store_name: SanitizedName,
+        store_name: &str,
         index_name: String,
         key_path: KeyPath,
         unique: bool,
@@ -499,11 +499,7 @@ impl KvsEngine for SqliteEngine {
         Ok(CreateObjectResult::Created)
     }
 
-    fn delete_index(
-        &self,
-        store_name: SanitizedName,
-        index_name: String,
-    ) -> Result<(), Self::Error> {
+    fn delete_index(&self, store_name: &str, index_name: String) -> Result<(), Self::Error> {
         let object_store = self.connection.query_row(
             "SELECT * FROM object_store WHERE name = ?",
             params![store_name.to_string()],

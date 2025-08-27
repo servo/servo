@@ -16,10 +16,9 @@ use net_traits::indexeddb_thread::{
 };
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
+use uuid::Uuid;
 
-use crate::indexeddb::engines::{
-    KvsEngine, KvsOperation, KvsTransaction, SanitizedName, SqliteEngine,
-};
+use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
 use crate::resource_thread::CoreResourceThreadPool;
 
 pub trait IndexedDBThreadFactory {
@@ -54,15 +53,24 @@ pub struct IndexedDBDescription {
 }
 
 impl IndexedDBDescription {
+    // randomly generated namespace for our purposes
+    const NAMESPACE_SERVO_IDB: &uuid::Uuid = &Uuid::from_bytes([
+        0x37, 0x9e, 0x56, 0xb0, 0x1a, 0x76, 0x44, 0xc2, 0xa0, 0xdb, 0xe2, 0x18, 0xc5, 0xc8, 0xa3,
+        0x5d,
+    ]);
     // Converts the database description to a folder name where all
     // data for this database is stored
     pub(super) fn as_path(&self) -> PathBuf {
         let mut path = PathBuf::new();
 
-        let sanitized_origin = SanitizedName::new(self.origin.ascii_serialization());
-        let sanitized_name = SanitizedName::new(self.name.clone());
-        path.push(sanitized_origin.to_string());
-        path.push(sanitized_name.to_string());
+        // uuid v5 is deterministic
+        let origin_uuid = Uuid::new_v5(
+            Self::NAMESPACE_SERVO_IDB,
+            self.origin.ascii_serialization().as_bytes(),
+        );
+        let db_name_uuid = Uuid::new_v5(Self::NAMESPACE_SERVO_IDB, self.name.as_bytes());
+        path.push(origin_uuid.to_string());
+        path.push(db_name_uuid.to_string());
 
         path
     }
@@ -85,7 +93,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     fn queue_operation(
         &mut self,
-        store_name: SanitizedName,
+        store_name: &str,
         serial_number: u64,
         mode: IndexedDBTxnMode,
         operation: AsyncOperation,
@@ -99,7 +107,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             .requests
             .push_back(KvsOperation {
                 operation,
-                store_name,
+                store_name: String::from(store_name),
             });
     }
 
@@ -120,17 +128,17 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         }
     }
 
-    fn has_key_generator(&self, store_name: SanitizedName) -> bool {
+    fn has_key_generator(&self, store_name: &str) -> bool {
         self.engine.has_key_generator(store_name)
     }
 
-    fn key_path(&self, store_name: SanitizedName) -> Option<KeyPath> {
+    fn key_path(&self, store_name: &str) -> Option<KeyPath> {
         self.engine.key_path(store_name)
     }
 
     fn create_index(
         &self,
-        store_name: SanitizedName,
+        store_name: &str,
         index_name: String,
         key_path: KeyPath,
         unique: bool,
@@ -141,7 +149,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             .map_err(|err| format!("{err:?}"))
     }
 
-    fn delete_index(&self, store_name: SanitizedName, index_name: String) -> DbResult<()> {
+    fn delete_index(&self, store_name: &str, index_name: String) -> DbResult<()> {
         self.engine
             .delete_index(store_name, index_name)
             .map_err(|err| format!("{err:?}"))
@@ -149,7 +157,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     fn create_object_store(
         &mut self,
-        store_name: SanitizedName,
+        store_name: &str,
         key_path: Option<KeyPath>,
         auto_increment: bool,
     ) -> DbResult<CreateObjectResult> {
@@ -158,7 +166,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             .map_err(|err| format!("{err:?}"))
     }
 
-    fn delete_object_store(&mut self, store_name: SanitizedName) -> DbResult<()> {
+    fn delete_object_store(&mut self, store_name: &str) -> DbResult<()> {
         let result = self.engine.delete_store(store_name);
         result.map_err(|err| format!("{err:?}"))
     }
@@ -239,10 +247,9 @@ impl IndexedDBManager {
                     self.handle_sync_operation(operation);
                 },
                 IndexedDBThreadMsg::Async(origin, db_name, store_name, txn, mode, operation) => {
-                    let store_name = SanitizedName::new(store_name);
                     if let Some(db) = self.get_database_mut(origin, db_name) {
                         // Queues an operation for a transaction without starting it
-                        db.queue_operation(store_name, txn, mode, operation);
+                        db.queue_operation(&store_name, txn, mode, operation);
                         // FIXME:(arihant2math) Schedule transactions properly
                         // while db.transactions.iter().any(|s| s.1.mode == IndexedDBTxnMode::Readwrite) {
                         //     std::hint::spin_loop();
@@ -335,17 +342,15 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::HasKeyGenerator(sender, origin, db_name, store_name) => {
-                let store_name = SanitizedName::new(store_name);
                 let result = self
                     .get_database(origin, db_name)
-                    .map(|db| db.has_key_generator(store_name));
+                    .map(|db| db.has_key_generator(&store_name));
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
             SyncOperation::KeyPath(sender, origin, db_name, store_name) => {
-                let store_name = SanitizedName::new(store_name);
                 let result = self
                     .get_database(origin, db_name)
-                    .map(|db| db.key_path(store_name));
+                    .map(|db| db.key_path(&store_name));
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
             SyncOperation::CreateIndex(
@@ -358,19 +363,17 @@ impl IndexedDBManager {
                 unique,
                 multi_entry,
             ) => {
-                let store_name = SanitizedName::new(store_name);
                 if let Some(db) = self.get_database(origin, db_name) {
                     let result =
-                        db.create_index(store_name, index_name, key_path, unique, multi_entry);
+                        db.create_index(&store_name, index_name, key_path, unique, multi_entry);
                     let _ = sender.send(result.map_err(BackendError::from));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
             SyncOperation::DeleteIndex(sender, origin, db_name, store_name, index_name) => {
-                let store_name = SanitizedName::new(store_name);
                 if let Some(db) = self.get_database(origin, db_name) {
-                    let result = db.delete_index(store_name, index_name);
+                    let result = db.delete_index(&store_name, index_name);
                     let _ = sender.send(result.map_err(BackendError::from));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
@@ -399,18 +402,16 @@ impl IndexedDBManager {
                 key_paths,
                 auto_increment,
             ) => {
-                let store_name = SanitizedName::new(store_name);
                 if let Some(db) = self.get_database_mut(origin, db_name) {
-                    let result = db.create_object_store(store_name, key_paths, auto_increment);
+                    let result = db.create_object_store(&store_name, key_paths, auto_increment);
                     let _ = sender.send(result.map_err(BackendError::from));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
             SyncOperation::DeleteObjectStore(sender, origin, db_name, store_name) => {
-                let store_name = SanitizedName::new(store_name);
                 if let Some(db) = self.get_database_mut(origin, db_name) {
-                    let result = db.delete_object_store(store_name);
+                    let result = db.delete_object_store(&store_name);
                     let _ = sender.send(result.map_err(BackendError::from));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
