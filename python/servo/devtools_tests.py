@@ -669,10 +669,11 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         )
 
     def test_source_breakable_lines_and_positions_with_functions(self):
-        self.start_web_server(test_dir=self.get_test_path("sources_breakable_lines_and_positions"))
-        self.run_servoshell(url=f"{self.base_urls[0]}/test_with_functions.html")
+        self.run_servoshell(url=f"{self.base_urls[0]}/sources_breakable_lines_and_positions/test_with_functions.html")
         self.assert_source_breakable_lines_and_positions(
-            Source("inlineScript", f"{self.base_urls[0]}/test_with_functions.html"),
+            Source(
+                "inlineScript", f"{self.base_urls[0]}/sources_breakable_lines_and_positions/test_with_functions.html"
+            ),
             [5, 6, 7, 8, 9, 10],
             {
                 "5": [8, 18],
