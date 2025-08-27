@@ -33,6 +33,7 @@ use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use base::generic_channel::RoutedReceiver;
 pub use base::id::WebViewId;
 use base::id::{PipelineNamespace, PipelineNamespaceId};
 #[cfg(feature = "bluetooth")]
@@ -544,7 +545,12 @@ impl Servo {
             let mut compositor = self.compositor.borrow_mut();
             let mut messages = Vec::new();
             while let Ok(message) = compositor.receiver().try_recv() {
-                messages.push(message);
+                match message {
+                    Ok(message) => messages.push(message),
+                    Err(error) => {
+                        warn!("Router deserialization error: {error}. Ignoring this CompositorMsg.")
+                    },
+                }
             }
             compositor.handle_messages(messages);
         }
@@ -1095,7 +1101,7 @@ fn create_embedder_channel(
 
 fn create_compositor_channel(
     event_loop_waker: Box<dyn EventLoopWaker>,
-) -> (CompositorProxy, Receiver<CompositorMsg>) {
+) -> (CompositorProxy, RoutedReceiver<CompositorMsg>) {
     let (sender, receiver) = unbounded();
 
     let (compositor_ipc_sender, compositor_ipc_receiver) =
@@ -1112,7 +1118,7 @@ fn create_compositor_channel(
     ROUTER.add_typed_route(
         compositor_ipc_receiver,
         Box::new(move |message| {
-            compositor_proxy_clone.send(message.expect("Could not convert Compositor message"));
+            compositor_proxy_clone.route_msg(message);
         }),
     );
 
