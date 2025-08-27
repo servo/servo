@@ -36,7 +36,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
-use compositing_traits::{CompositorMsg, CrossProcessCompositorApi, PipelineExitSource};
+use compositing_traits::{CrossProcessCompositorApi, PipelineExitSource};
 use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
     ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
@@ -2956,13 +2956,7 @@ impl ScriptThread {
             .ok();
 
         self.compositor_api
-            .sender()
-            .send(CompositorMsg::PipelineExited(
-                webview_id,
-                id,
-                PipelineExitSource::Script,
-            ))
-            .ok();
+            .pipeline_exited(webview_id, id, PipelineExitSource::Script);
 
         debug!("{id}: Finished pipeline exit");
     }

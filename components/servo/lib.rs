@@ -1101,7 +1101,7 @@ fn create_compositor_channel(
     let (compositor_ipc_sender, compositor_ipc_receiver) =
         ipc::channel().expect("ipc channel failure");
 
-    let cross_process_compositor_api = CrossProcessCompositorApi(compositor_ipc_sender);
+    let cross_process_compositor_api = CrossProcessCompositorApi::new(compositor_ipc_sender);
     let compositor_proxy = CompositorProxy {
         sender,
         cross_process_compositor_api,

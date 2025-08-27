@@ -4,7 +4,6 @@
 
 use std::str::FromStr;
 
-use compositing_traits::CompositorMsg;
 use compositing_traits::viewport_description::ViewportDescription;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -136,12 +135,7 @@ impl HTMLMetaElement {
         if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
             self.owner_window()
                 .compositor_api()
-                .sender()
-                .send(CompositorMsg::Viewport(
-                    self.owner_window().webview_id(),
-                    viewport,
-                ))
-                .unwrap();
+                .viewport(self.owner_window().webview_id(), viewport);
         }
     }
 
