@@ -14,7 +14,6 @@ path = "lib.rs"
 [features]
 vello = ["dep:vello", "dep:pollster", "dep:futures-intrusive", "dep:peniko"]
 vello_cpu = ["dep:vello_cpu", "dep:peniko"]
-raqote = ["dep:raqote", "dep:font-kit"]
 tracing = ["dep:tracing"]
 
 [dependencies]
@@ -25,7 +24,6 @@ compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
-font-kit = { version = "0.14", optional = true }
 fonts = { path = "../fonts" }
 ipc-channel = { workspace = true }
 kurbo = { workspace = true }
@@ -34,7 +32,6 @@ net_traits = { workspace = true }
 peniko = { workspace = true, optional = true }
 pixels = { path = "../pixels" }
 range = { path = "../range" }
-raqote = { version = "0.8.5", optional = true }
 servo_arc = { workspace = true }
 stylo = { workspace = true }
 unicode-script = { workspace = true }

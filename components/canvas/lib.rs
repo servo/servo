@@ -6,9 +6,6 @@
 
 mod backend;
 
-#[cfg(feature = "raqote")]
-mod raqote_backend;
-
 #[cfg(any(feature = "vello", feature = "vello_cpu"))]
 mod peniko_conversions;
 
