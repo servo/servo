@@ -439,7 +439,7 @@ class CGMethodCall(CGThing):
 
         signatures = method.signatures()
 
-        def getPerSignatureCall(signature: tuple[IDLType, list[IDLArgument]], argConversionStartsAt: int = 0) -> CGThing:
+        def getPerSignatureCall(signature: tuple[IDLType, list[IDLArgument | FakeArgument]], argConversionStartsAt: int = 0) -> CGThing:
             signatureIndex = signatures.index(signature)
             return CGPerSignatureCall(signature[0], argsPre, signature[1],
                                       f"{nativeMethodName}{'_' * signatureIndex}",
@@ -1366,7 +1366,7 @@ class CGArgumentConverter(CGThing):
     unwrap the argument to the right native type.
     """
     converter: CGThing
-    def __init__(self, argument: IDLArgument, index: int, args: str, argc: str, descriptorProvider: DescriptorProvider,
+    def __init__(self, argument: IDLArgument | FakeArgument, index: int, args: str, argc: str, descriptorProvider: DescriptorProvider,
                  invalidEnumValueFatal: bool=True) -> None:
         CGThing.__init__(self)
         assert not argument.defaultValue or argument.optional
@@ -4076,7 +4076,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         )
 
 
-def needCx(returnType: IDLType | None, arguments: Iterable[IDLArgument], considerTypes: bool) -> bool:
+def needCx(returnType: IDLType | None, arguments: Iterable[IDLArgument | FakeArgument], considerTypes: bool) -> bool:
     return (considerTypes
             and (typeNeedsCx(returnType, True)
                  or any(typeNeedsCx(a.type) for a in arguments)))
@@ -4090,7 +4090,7 @@ class CGCallGenerator(CGThing):
     errorResult should be a string for the value to return in case of an
     exception from the native code, or None if no error reporting is needed.
     """
-    def __init__(self, errorResult: str | None, arguments: list[tuple[IDLArgument, str]], argsPre: list[str], returnType: IDLType | None,
+    def __init__(self, errorResult: str | None, arguments: list[tuple[IDLArgument | FakeArgument, str]], argsPre: list[str], returnType: IDLType | None,
                  extendedAttributes: list[str], descriptor: Descriptor, nativeMethodName: str,
                  static: bool, object: str = "this", hasCEReactions: bool = False) -> None:
         CGThing.__init__(self)
@@ -4200,7 +4200,7 @@ class CGPerSignatureCall(CGThing):
     # have ways of flagging things like JSContext* or optional_argc in
     # there.
 
-    def __init__(self, returnType: IDLType | None, argsPre: list[str], arguments: list[IDLArgument], nativeMethodName: str, static: bool,
+    def __init__(self, returnType: IDLType | None, argsPre: list[str], arguments: list[IDLArgument | FakeArgument], nativeMethodName: str, static: bool,
                  descriptor: Descriptor, idlNode: IDLMethod, argConversionStartsAt: int = 0,
                  getter: bool = False, setter: bool = False) -> None:
         CGThing.__init__(self)
@@ -4250,7 +4250,7 @@ class CGPerSignatureCall(CGThing):
     def getArgc(self) -> str:
         return "argc"
 
-    def getArguments(self) -> list[tuple[IDLArgument, str]]:
+    def getArguments(self) -> list[tuple[IDLArgument | FakeArgument, str]]:
         return [(a, process_arg(f"arg{i}", a)) for (i, a) in enumerate(self.arguments)]
 
     def isFallible(self) -> bool:
@@ -4332,21 +4332,33 @@ class CGGetterCall(CGPerSignatureCall):
                                     attr, getter=True)
 
 
+class FakeArgument():
+    """
+    A class that quacks like an IDLArgument.  This is used to make
+    setters look like method calls or for special operations.
+    """
+    def __init__(self, type: IDLType, interfaceMember: IDLInterfaceMember, allowTreatNonObjectAsNull: bool = False) -> None:
+        self.type = type
+        self.optional = False
+        self.variadic = False
+        self.defaultValue = None
+        self._allowTreatNonObjectAsNull = allowTreatNonObjectAsNull
+
+    def allowTreatNonCallableAsNull(self) -> bool:
+        return self._allowTreatNonObjectAsNull
+
+    @property
+    def identifier(self):
+        raise NotImplementedError("FakeArgument identifier has not been implemented")
+
 class CGSetterCall(CGPerSignatureCall):
     """
     A class to generate a native object setter call for a particular IDL
     setter.
     """
     def __init__(self, argsPre: list[str], argType: IDLType, nativeMethodName: str, descriptor: Descriptor, attr: IDLMethod) -> None:
-        dummy_arg = IDLArgument.__new__(IDLArgument)
-        dummy_arg.type = argType
-        dummy_arg.optional = False
-        dummy_arg.variadic = False
-        dummy_arg.defaultValue = None
-        dummy_arg.allowTreatNonCallableAsNull = lambda: True
-
         CGPerSignatureCall.__init__(self, None, argsPre,
-                                    [dummy_arg],
+                                    [FakeArgument(argType, attr, allowTreatNonObjectAsNull=True)],
                                     nativeMethodName, attr.isStatic(), descriptor, attr,
                                     setter=True)
 
@@ -8752,7 +8764,7 @@ def camel_to_upper_snake(s: str) -> str:
     return "_".join(m.group(0).upper() for m in re.finditer("[A-Z][a-z]*", s))
 
 
-def process_arg(expr: str, arg: IDLArgument) -> str:
+def process_arg(expr: str, arg: IDLArgument | FakeArgument) -> str:
     if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
         if arg.variadic or arg.type.isSequence():
             expr += ".r()"
