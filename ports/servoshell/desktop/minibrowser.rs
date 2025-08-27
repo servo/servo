@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
@@ -21,7 +22,7 @@ use servo::base::id::WebViewId;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
-use servo::{LoadStatus, OffscreenRenderingContext, RenderingContext, WebView};
+use servo::{Image, LoadStatus, OffscreenRenderingContext, PixelFormat, RenderingContext, WebView};
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
@@ -49,6 +50,11 @@ pub struct Minibrowser {
     load_status: LoadStatus,
 
     status_text: Option<String>,
+
+    /// Handle to the GPU texture of the favicon.
+    ///
+    /// These need to be cached across egui draw calls.
+    favicon_textures: HashMap<WebViewId, (egui::TextureHandle, egui::load::SizedTexture)>,
 }
 
 pub enum MinibrowserEvent {
@@ -111,6 +117,7 @@ impl Minibrowser {
             location_dirty: false.into(),
             load_status: LoadStatus::Complete,
             status_text: None,
+            favicon_textures: Default::default(),
         }
     }
 
@@ -185,82 +192,81 @@ impl Minibrowser {
     /// Draws a browser tab, checking for clicks and queues appropriate `MinibrowserEvent`s.
     /// Using a custom widget here would've been nice, but it doesn't seem as though egui
     /// supports that, so we arrange multiple Widgets in a way that they look connected.
-    fn browser_tab(ui: &mut egui::Ui, webview: WebView, event_queue: &mut Vec<MinibrowserEvent>) {
+    fn browser_tab(
+        ui: &mut egui::Ui,
+        webview: WebView,
+        event_queue: &mut Vec<MinibrowserEvent>,
+        favicon_texture: Option<egui::load::SizedTexture>,
+    ) {
         let label = match (webview.page_title(), webview.url()) {
             (Some(title), _) if !title.is_empty() => title,
             (_, Some(url)) => url.to_string(),
             _ => "New Tab".into(),
         };
 
-        let old_item_spacing = ui.spacing().item_spacing;
-        let old_visuals = ui.visuals().clone();
-        let active_bg_color = old_visuals.widgets.active.weak_bg_fill;
-        let inactive_bg_color = old_visuals.window_fill;
-        ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
-
-        let visuals = ui.visuals_mut();
-        // Remove the stroke so we don't see the border between the close button and the label
-        visuals.widgets.active.bg_stroke.width = 0.0;
-        visuals.widgets.hovered.bg_stroke.width = 0.0;
-        // Now we make sure the fill color is always the same, irrespective of state, that way
-        // we can make sure that both the label and close button have the same background color
-        visuals.widgets.noninteractive.weak_bg_fill = inactive_bg_color;
-        visuals.widgets.inactive.weak_bg_fill = inactive_bg_color;
-        visuals.widgets.hovered.weak_bg_fill = active_bg_color;
-        visuals.widgets.active.weak_bg_fill = active_bg_color;
-        visuals.selection.bg_fill = active_bg_color;
-        visuals.selection.stroke.color = visuals.widgets.active.fg_stroke.color;
-        visuals.widgets.hovered.fg_stroke.color = visuals.widgets.active.fg_stroke.color;
-
-        // Expansion would also show that they are 2 separate widgets
-        visuals.widgets.active.expansion = 0.0;
-        visuals.widgets.hovered.expansion = 0.0;
-        // The rounding is changed so it looks as though the 2 widgets are a single widget
-        // with a uniform rounding
-        let corner_radius = egui::CornerRadius {
-            ne: 0,
-            nw: 4,
-            sw: 4,
-            se: 0,
-        };
-        visuals.widgets.active.corner_radius = corner_radius;
-        visuals.widgets.hovered.corner_radius = corner_radius;
-        visuals.widgets.inactive.corner_radius = corner_radius;
-
+        let inactive_bg_color = ui.visuals().window_fill;
+        let active_bg_color = ui.visuals().widgets.active.weak_bg_fill;
         let selected = webview.focused();
-        let tab = ui.add(Button::selectable(
-            selected,
-            truncate_with_ellipsis(&label, 20),
-        ));
-        let tab = tab.on_hover_ui(|ui| {
-            ui.label(label);
-        });
 
-        let corner_radius = egui::CornerRadius {
-            ne: 4,
-            nw: 0,
-            sw: 0,
-            se: 4,
-        };
-        let visuals = ui.visuals_mut();
-        visuals.widgets.active.corner_radius = corner_radius;
-        visuals.widgets.hovered.corner_radius = corner_radius;
-        visuals.widgets.inactive.corner_radius = corner_radius;
+        // Setup a tab frame that will contain the favicon, title and close button
+        let mut tab_frame = egui::Frame::NONE.corner_radius(4).begin(ui);
+        {
+            tab_frame.content_ui.add_space(5.0);
 
-        let fill_color = if selected || tab.hovered() {
+            let visuals = tab_frame.content_ui.visuals_mut();
+            // Remove the stroke so we don't see the border between the close button and the label
+            visuals.widgets.active.bg_stroke.width = 0.0;
+            visuals.widgets.hovered.bg_stroke.width = 0.0;
+            // Now we make sure the fill color is always the same, irrespective of state, that way
+            // we can make sure that both the label and close button have the same background color
+            visuals.widgets.noninteractive.weak_bg_fill = inactive_bg_color;
+            visuals.widgets.inactive.weak_bg_fill = inactive_bg_color;
+            visuals.widgets.hovered.weak_bg_fill = active_bg_color;
+            visuals.widgets.active.weak_bg_fill = active_bg_color;
+            visuals.selection.bg_fill = active_bg_color;
+            visuals.selection.stroke.color = visuals.widgets.active.fg_stroke.color;
+            visuals.widgets.hovered.fg_stroke.color = visuals.widgets.active.fg_stroke.color;
+
+            // Expansion would also show that they are 2 separate widgets
+            visuals.widgets.active.expansion = 0.0;
+            visuals.widgets.hovered.expansion = 0.0;
+
+            if let Some(favicon) = favicon_texture {
+                tab_frame.content_ui.add(
+                    egui::Image::from_texture(favicon)
+                        .fit_to_exact_size(egui::vec2(16.0, 16.0))
+                        .bg_fill(egui::Color32::TRANSPARENT),
+                );
+            }
+
+            let tab = tab_frame
+                .content_ui
+                .add(Button::selectable(
+                    selected,
+                    truncate_with_ellipsis(&label, 20),
+                ))
+                .on_hover_ui(|ui| {
+                    ui.label(&label);
+                });
+
+            let close_button = tab_frame
+                .content_ui
+                .add(egui::Button::new("X").fill(egui::Color32::TRANSPARENT));
+            if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
+                event_queue.push(MinibrowserEvent::CloseWebView(webview.id()))
+            } else if !selected && tab.clicked() {
+                webview.focus();
+            }
+        }
+
+        let response = tab_frame.allocate_space(ui);
+        let fill_color = if selected || response.hovered() {
             active_bg_color
         } else {
             inactive_bg_color
         };
-
-        ui.spacing_mut().item_spacing = old_item_spacing;
-        let close_button = ui.add(egui::Button::new("X").fill(fill_color));
-        *ui.visuals_mut() = old_visuals;
-        if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
-            event_queue.push(MinibrowserEvent::CloseWebView(webview.id()))
-        } else if !selected && tab.clicked() {
-            webview.focus();
-        }
+        tab_frame.frame.fill = fill_color;
+        tab_frame.end(ui);
     }
 
     /// Update the minibrowser, but don’t paint.
@@ -287,10 +293,13 @@ impl Minibrowser {
             last_update,
             location,
             location_dirty,
+            favicon_textures,
             ..
         } = self;
 
         let _duration = context.run(winit_window, |ctx| {
+            load_pending_favicons(ctx, state, favicon_textures);
+
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
             if winit_window.fullscreen().is_none() {
@@ -383,8 +392,12 @@ impl Minibrowser {
                     ui.available_size(),
                     egui::Layout::left_to_right(egui::Align::Center),
                     |ui| {
-                        for (_, webview) in state.webviews().into_iter() {
-                            Self::browser_tab(ui, webview, &mut event_queue.borrow_mut());
+                        for (id, webview) in state.webviews().into_iter() {
+                            let favicon = favicon_textures
+                                .get(&id)
+                                .map(|(_, favicon)| favicon)
+                                .copied();
+                            Self::browser_tab(ui, webview, &mut event_queue.borrow_mut(), favicon);
                         }
                         if ui.add(Minibrowser::toolbar_button("+")).clicked() {
                             event_queue.borrow_mut().push(MinibrowserEvent::NewWebView);
@@ -540,5 +553,63 @@ impl Minibrowser {
                 false
             },
         }
+    }
+}
+
+fn embedder_image_to_egui_image(image: &Image) -> egui::ColorImage {
+    let width = image.width as usize;
+    let height = image.height as usize;
+
+    match image.format {
+        PixelFormat::K8 => egui::ColorImage::from_gray([width, height], image.data()),
+        PixelFormat::KA8 => {
+            // Convert to rgba
+            let data: Vec<u8> = image
+                .data()
+                .chunks_exact(2)
+                .flat_map(|pixel| [pixel[0], pixel[0], pixel[0], pixel[1]])
+                .collect();
+            egui::ColorImage::from_rgba_unmultiplied([width, height], &data)
+        },
+        PixelFormat::RGB8 => egui::ColorImage::from_rgb([width, height], image.data()),
+        PixelFormat::RGBA8 => {
+            egui::ColorImage::from_rgba_unmultiplied([width, height], image.data())
+        },
+        PixelFormat::BGRA8 => {
+            // Convert from BGRA to RGBA
+            let data: Vec<u8> = image
+                .data()
+                .chunks_exact(4)
+                .flat_map(|chunk| [chunk[2], chunk[1], chunk[0], chunk[3]])
+                .collect();
+            egui::ColorImage::from_rgba_unmultiplied([width, height], &data)
+        },
+    }
+}
+
+/// Uploads all favicons that have not yet been processed to the GPU.
+fn load_pending_favicons(
+    ctx: &egui::Context,
+    state: &RunningAppState,
+    texture_cache: &mut HashMap<WebViewId, (egui::TextureHandle, egui::load::SizedTexture)>,
+) {
+    for id in state.take_pending_favicon_loads() {
+        let Some(webview) = state.webview_by_id(id) else {
+            continue;
+        };
+        let Some(favicon) = webview.favicon() else {
+            continue;
+        };
+
+        let egui_image = embedder_image_to_egui_image(&favicon);
+        let handle = ctx.load_texture(format!("favicon-{id:?}"), egui_image, Default::default());
+        let texture = egui::load::SizedTexture::new(
+            handle.id(),
+            egui::vec2(favicon.width as f32, favicon.height as f32),
+        );
+
+        // We don't need the handle anymore but we can't drop it either since that would cause
+        // the texture to be freed.
+        texture_cache.insert(id, (handle, texture));
     }
 }
