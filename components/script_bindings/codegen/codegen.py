@@ -4333,31 +4333,21 @@ class CGGetterCall(CGPerSignatureCall):
                                     attr, getter=True)
 
 
-class FakeArgument():
-    """
-    A class that quacks like an IDLArgument.  This is used to make
-    setters look like method calls or for special operations.
-    """
-    def __init__(self, type: IDLType, interfaceMember: IDLInterfaceMember, allowTreatNonObjectAsNull: bool = False) -> None:
-        self.type = type
-        self.optional = False
-        self.variadic = False
-        self.defaultValue = None
-        self._allowTreatNonObjectAsNull = allowTreatNonObjectAsNull
-
-    def allowTreatNonCallableAsNull(self) -> bool:
-        return self._allowTreatNonObjectAsNull
-
-
 class CGSetterCall(CGPerSignatureCall):
     """
     A class to generate a native object setter call for a particular IDL
     setter.
     """
     def __init__(self, argsPre: list[str], argType: IDLType, nativeMethodName: str, descriptor: Descriptor, attr: IDLMethod) -> None:
+        dummy_arg = IDLArgument.__new__(IDLArgument)
+        dummy_arg.type = argType
+        dummy_arg.optional = False
+        dummy_arg.variadic = False
+        dummy_arg.defaultValue = None
+        dummy_arg.allowTreatNonCallableAsNull = lambda: True
+
         CGPerSignatureCall.__init__(self, None, argsPre,
-                                    # pyrefly: ignore  # bad-argument-type
-                                    [FakeArgument(argType, attr, allowTreatNonObjectAsNull=True)],
+                                    [dummy_arg],
                                     nativeMethodName, attr.isStatic(), descriptor, attr,
                                     setter=True)
 
