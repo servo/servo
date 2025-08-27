@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(crate) use self::bluetooth::*;
+#[allow(clippy::module_inception, reason = "The interface name is Bluetooth")]
 pub(crate) mod bluetooth;
 pub(crate) mod bluetoothadvertisingevent;
 pub(crate) mod bluetoothcharacteristicproperties;

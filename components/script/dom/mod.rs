@@ -225,7 +225,6 @@ pub(crate) mod beforeunloadevent;
 pub(crate) mod bindings;
 pub(crate) mod blob;
 #[cfg(feature = "bluetooth")]
-#[allow(clippy::module_inception)]
 pub(crate) mod bluetooth;
 #[cfg(feature = "bluetooth")]
 pub(crate) use self::bluetooth::*;
