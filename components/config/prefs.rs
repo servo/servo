@@ -100,7 +100,6 @@ pub struct Preferences {
     ///
     /// Available values:
     /// - ` `/`auto`
-    /// - raqote
     /// - vello
     /// - vello_cpu
     pub dom_canvas_backend: String,

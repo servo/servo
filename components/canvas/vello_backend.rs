@@ -41,10 +41,7 @@ use crate::backend::{Convert as _, GenericDrawTarget};
 use crate::canvas_data::{Filter, TextRun};
 
 thread_local! {
-    /// The shared font cache used by all canvases that render on a thread. It would be nicer
-    /// to have a global cache, but it looks like font-kit uses a per-thread FreeType, so
-    /// in order to ensure that fonts are particular to a thread we have to make our own
-    /// cache thread local as well.
+    /// The shared font cache used by all canvases that render on a thread.
     static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::Font>> = RefCell::default();
 }
 

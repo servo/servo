@@ -18,7 +18,6 @@ tracing = ["dep:tracing", "canvas/tracing"]
 webgpu = ["script_traits/webgpu"]
 vello = ["canvas/vello"]
 vello_cpu = ["canvas/vello_cpu"]
-raqote = ["canvas/raqote"]
 
 [lints.clippy]
 unwrap_used = "deny"

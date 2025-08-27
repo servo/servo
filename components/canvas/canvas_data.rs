@@ -169,7 +169,6 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32),
             );
 
-            // TODO(pylbrecht) pass another closure for raqote
             self.draw_with_shadow(
                 &rect,
                 shadow_options,
@@ -411,8 +410,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         let mut current_text_run_start_index = 0;
 
         for (index, character) in text.char_indices() {
-            // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
-            // have support for color glyphs.
+            // TODO: This should ultimately handle emoji variation selectors.
             let script = Script::from(character);
             let font = font_group.find_by_codepoint(&self.font_context, character, None, None);
 
