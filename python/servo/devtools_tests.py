@@ -28,8 +28,6 @@ from threading import Thread
 from typing import Any, Optional
 import unittest
 
-from servo.command_base import BuildType
-
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False
 
@@ -118,7 +116,7 @@ class Devtools:
 class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # /path/to/servo/python/servo
     script_path = None
-    build_type: Optional[BuildType] = None
+    servo_binary: Optional[str] = None
     base_urls = None
     web_servers = None
     web_server_threads = None
@@ -728,9 +726,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         os.environ["RUST_LOG"] = "error,devtools=warn"
 
         # Run servoshell.
-        self.servoshell = subprocess.Popen(
-            [f"target/{self.build_type.directory_name()}/servo", "--headless", "--devtools=6080", url]
-        )
+        self.servoshell = subprocess.Popen([f"{DevtoolsTests.servo_binary}", "--headless", "--devtools=6080", url])
 
         sleep_per_try = 1 / 8  # seconds
         remaining_tries = 5 / sleep_per_try  # 5 seconds
@@ -900,9 +896,9 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         return os.path.join(DevtoolsTests.script_path, os.path.join("devtools_tests", path))
 
 
-def run_tests(script_path, build_type: BuildType, test_names: list[str]):
+def run_tests(script_path, servo_binary: str, test_names: list[str]):
     DevtoolsTests.script_path = script_path
-    DevtoolsTests.build_type = build_type
+    DevtoolsTests.servo_binary = servo_binary
     verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
     loader = unittest.TestLoader()
     if test_names:
