@@ -325,11 +325,7 @@ pub(crate) mod fontfaceset;
 pub(crate) mod formdata;
 pub(crate) mod formdataevent;
 pub(crate) mod gamepad;
-pub(crate) mod gamepadbutton;
-pub(crate) mod gamepadbuttonlist;
-pub(crate) mod gamepadevent;
-pub(crate) mod gamepadhapticactuator;
-pub(crate) mod gamepadpose;
+pub(crate) use self::gamepad::*;
 #[allow(dead_code)]
 pub(crate) mod globalscope;
 pub(crate) mod hashchangeevent;
