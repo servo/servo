@@ -45,7 +45,7 @@ use crate::viewport_description::ViewportDescription;
 /// Sends messages to the compositor.
 #[derive(Clone)]
 pub struct CompositorProxy {
-    pub sender: Sender<CompositorMsg>,
+    pub sender: Sender<Result<CompositorMsg, ipc_channel::Error>>,
     /// Access to [`Self::sender`] that is possible to send across an IPC
     /// channel. These messages are routed via the router thread to
     /// [`Self::sender`].
@@ -61,6 +61,14 @@ impl OpaqueSender<CompositorMsg> for CompositorProxy {
 
 impl CompositorProxy {
     pub fn send(&self, msg: CompositorMsg) {
+        self.route_msg(Ok(msg))
+    }
+
+    /// Helper method to route a deserialized IPC message to the receiver.
+    ///
+    /// This method is a temporary solution, and will be removed when migrating
+    /// to `GenericChannel`.
+    pub fn route_msg(&self, msg: Result<CompositorMsg, ipc_channel::Error>) {
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }

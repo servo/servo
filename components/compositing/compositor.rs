@@ -13,7 +13,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollTree, ScrollType};
@@ -23,7 +23,7 @@ use compositing_traits::{
     WebViewTrait,
 };
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{CompositorHitTestResult, InputEvent, ShutdownState, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
@@ -93,7 +93,7 @@ pub struct ServoRenderer {
     shutdown_state: Rc<Cell<ShutdownState>>,
 
     /// The port on which we receive messages.
-    compositor_receiver: Receiver<CompositorMsg>,
+    compositor_receiver: RoutedReceiver<CompositorMsg>,
 
     /// The channel on which messages can be sent to the constellation.
     pub(crate) constellation_sender: Sender<EmbedderToConstellationMessage>,
@@ -1394,7 +1394,7 @@ impl IOCompositor {
     }
 
     /// Get the message receiver for this [`IOCompositor`].
-    pub fn receiver(&self) -> Ref<'_, Receiver<CompositorMsg>> {
+    pub fn receiver(&self) -> Ref<'_, RoutedReceiver<CompositorMsg>> {
         Ref::map(self.global.borrow(), |global| &global.compositor_receiver)
     }
 
