@@ -318,6 +318,11 @@ pub trait Layout {
         point: LayoutPoint,
         flags: ElementsFromPointFlags,
     ) -> Vec<ElementsFromPointResult>;
+    fn query_containing_block_chain_batch(
+        &self,
+        target_node: TrustedNodeAddress,
+        ancestor_nodes: &[TrustedNodeAddress],
+    ) -> Vec<usize>;
     fn register_custom_property(
         &mut self,
         property_registration: PropertyRegistration,
@@ -367,6 +372,7 @@ pub enum QueryMsg {
     ScrollingAreaOrOffsetQuery,
     StyleQuery,
     TextIndexQuery,
+    ContainingBlockQuery,
 }
 
 /// The goal of a reflow request.

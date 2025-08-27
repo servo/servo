@@ -880,17 +880,82 @@ impl Element {
         inline: ScrollLogicalPosition,
         container: Option<&Element>,
     ) {
+        println!("DEBUG: scrollIntoView called: block={:?}, inline={:?}", block, inline);
         let target_document = self.upcast::<Node>().owner_doc();
 
-        // Step 1: For each ancestor element or viewport that establishes a scrolling box,
-        // in order of innermost to outermost scrolling box, but only those in the containing block chain
-        let mut out_of_bound = false;
-        self.upcast::<Node>()
+        // Collect all ancestors first, then batch query layout
+        // to filter them based on which is in containing block chain
+        let all_ancestors: Vec<_> = self
+            .upcast::<Node>()
             .inclusive_ancestors(ShadowIncluding::Yes)
             .skip(1) // Skip self
-            .filter(|node| {
-                self.establishes_scroll_box(node) && self.is_in_containing_block_chain(node)
-            })
+            .collect();
+
+        println!("DEBUG: scrollIntoView target: {:?}", self.local_name());
+        println!("DEBUG: all ancestors count: {}", all_ancestors.len());
+        for (i, ancestor) in all_ancestors.iter().enumerate() {
+            if let Some(element) = ancestor.downcast::<Element>() {
+                println!(
+                    "DEBUG: ancestor {}: {} (id: {:?})",
+                    i,
+                    element.local_name(),
+                    element.get_string_attribute(&local_name!("id"))
+                );
+            } else if ancestor.is::<Document>() {
+                println!("DEBUG: ancestor {}: Document", i);
+            }
+        }
+
+        if all_ancestors.is_empty() {
+            return;
+        }
+
+        let ancestor_addresses: Vec<_> = all_ancestors
+            .iter()
+            .map(|node| node.to_trusted_node_address())
+            .collect();
+
+        // Use the layout system to properly validate containing block chain
+        let valid_ancestor_indices = target_document
+            .window()
+            .layout()
+            .query_containing_block_chain_batch(
+                self.upcast::<Node>().to_trusted_node_address(),
+                &ancestor_addresses,
+            );
+
+        println!(
+            "DEBUG: valid ancestor indices: {:?}",
+            valid_ancestor_indices
+        );
+        // Filter ancestors to only include those that establish scroll boxes
+        // and are in the containing block chain
+        let scrolling_ancestors: Vec<_> = valid_ancestor_indices
+            .into_iter()
+            .map(|index| &all_ancestors[index])
+            .filter(|node| self.establishes_scroll_box(node))
+            .collect();
+        println!(
+            "DEBUG: scrolling ancestors count: {}",
+            scrolling_ancestors.len()
+        );
+        for (i, ancestor) in scrolling_ancestors.iter().enumerate() {
+            if let Some(element) = ancestor.downcast::<Element>() {
+                println!(
+                    "DEBUG: scrolling ancestor {}: {} (id: {:?})",
+                    i,
+                    element.local_name(),
+                    element.get_string_attribute(&local_name!("id"))
+                );
+            } else if ancestor.is::<Document>() {
+                println!("DEBUG: scrolling ancestor {}: Document", i);
+            }
+        }
+        // Step 1: For each valid ancestor element or viewport that establishes a scrolling box,
+        // in order of innermost to outermost scrolling box
+        let mut out_of_bound = false;
+        scrolling_ancestors
+            .into_iter()
             .map_while(|node| {
                 if out_of_bound {
                     return None;
@@ -971,10 +1036,12 @@ impl Element {
                             block,
                             inline,
                         );
+
                         // Step 1.3: Check if scroll is needed
                         let window = viewport.window();
                         let current_scroll_x = window.ScrollX() as f64;
                         let current_scroll_y = window.ScrollY() as f64;
+
                         if position.x != current_scroll_x || position.y != current_scroll_y {
                             // Step 1.3.2: Perform a scroll of the viewport to position, with root
                             // element as the associated element
@@ -1003,45 +1070,6 @@ impl Element {
         }
     }
 
-    /// Check if an element is in the containing block chain for scrollIntoView
-    /// Only elements in the containing block chain should be scrolled by scrollIntoView
-    fn is_in_containing_block_chain(&self, ancestor: &Node) -> bool {
-        if ancestor.is::<Document>() {
-            true // Document viewport is always in the containing block chain
-        } else if ancestor.is::<Element>() {
-            let ancestor = ancestor.downcast::<Element>().unwrap();
-            // Walk up the DOM from self to find if ancestor is in the containing block chain
-            let mut current_node = Some(DomRoot::from_ref(self.upcast::<Node>()));
-
-            while let Some(node) = current_node {
-                if let Some(element) = node.downcast::<Element>() {
-                    // If we reached the ancestor, it's in the containing block chain
-                    if std::ptr::eq(element, ancestor) {
-                        return true;
-                    }
-
-                    // Check if this element establishes a new containing block
-                    if let Some(style) = element.style() {
-                        let position = style.get_box().clone_position();
-
-                        // If this element is absolutely or fixed positioned,
-                        // it establishes a new containing block - stop here
-                        if position.is_absolutely_positioned() && !std::ptr::eq(element, self) {
-                            return false;
-                        }
-                    }
-                }
-
-                // Move to parent
-                current_node = node.GetParentElement().map(DomRoot::upcast);
-            }
-
-            false
-        } else {
-            false
-        }
-    }
-
     /// <https://drafts.csswg.org/cssom-view/#element-scrolling-members>
     fn determine_scroll_into_view_position(
         &self,
@@ -1050,24 +1078,27 @@ impl Element {
         inline: ScrollLogicalPosition,
     ) -> ScrollPosition {
         // Get the target element's stable position using offset properties
-        let target_bounding_box = if let Some(html_element) = self.downcast::<HTMLElement>() {
-            // Use HTMLElement's offset properties for stable positioning
-            let offset_left = html_element.OffsetLeft() as f32;
-            let offset_top = html_element.OffsetTop() as f32;
-            let offset_width = html_element.OffsetWidth() as f32;
-            let offset_height = html_element.OffsetHeight() as f32;
+        let target_bounding_box = self
+            .downcast::<HTMLElement>()
+            .map(|html_element| {
+                // Use HTMLElement's offset properties for stable positioning
+                let offset_left = html_element.OffsetLeft() as f32;
+                let offset_top = html_element.OffsetTop() as f32;
+                let offset_width = html_element.OffsetWidth() as f32;
+                let offset_height = html_element.OffsetHeight() as f32;
 
-            Rect::new(
-                Point2D::new(Au::from_f32_px(offset_left), Au::from_f32_px(offset_top)),
-                Size2D::new(
-                    Au::from_f32_px(offset_width),
-                    Au::from_f32_px(offset_height),
-                ),
-            )
-        } else {
-            // Fallback for non-HTML elements
-            self.upcast::<Node>().content_box().unwrap_or_default()
-        };
+                Rect::new(
+                    Point2D::new(Au::from_f32_px(offset_left), Au::from_f32_px(offset_top)),
+                    Size2D::new(
+                        Au::from_f32_px(offset_width),
+                        Au::from_f32_px(offset_height),
+                    ),
+                )
+            })
+            .unwrap_or_else(|| {
+                // Fallback for non-HTML elements
+                self.upcast::<Node>().content_box().unwrap_or_default()
+            });
 
         let device_pixel_ratio = self
             .upcast::<Node>()
@@ -1096,7 +1127,7 @@ impl Element {
         let element_right = element_left + element_width;
         let element_bottom = element_top + element_height;
 
-        let target_position = if scrolling_node.is::<Document>() {
+        if scrolling_node.is::<Document>() {
             // Handle document-specific scrolling
             // Viewport bounds and current scroll position
             let owner_doc = self.upcast::<Node>().owner_doc();
@@ -1106,6 +1137,42 @@ impl Element {
             let current_scroll_x = window.ScrollX() as f64;
             let current_scroll_y = window.ScrollY() as f64;
 
+            // Check if element is already fully visible in the viewport
+            let viewport_left = current_scroll_x;
+            let viewport_top = current_scroll_y;
+            let viewport_right = viewport_left + viewport_width;
+            let viewport_bottom = viewport_top + viewport_height;
+
+            let is_fully_visible = element_left >= viewport_left &&
+                element_top >= viewport_top &&
+                element_right <= viewport_right &&
+                element_bottom <= viewport_bottom;
+
+            // If element is already fully visible, don't scroll
+            if is_fully_visible {
+                return ScrollPosition {
+                    x: current_scroll_x,
+                    y: current_scroll_y,
+                };
+            }
+
+            // Get the directionality of the scrolling element for RTL handling
+            let is_rtl = if scrolling_node.is::<Document>() {
+                // For document, get the root element's directionality
+                scrolling_node
+                    .owner_doc()
+                    .GetDocumentElement()
+                    .and_then(|root| root.style())
+                    .map_or(false, |style| !style.writing_mode.is_bidi_ltr())
+            } else {
+                // For element scrolling containers, check the element's writing mode
+                let scrolling_element: &Element = scrolling_node.downcast::<Element>().unwrap();
+                scrolling_element
+                    .style()
+                    .map_or(false, |style| !style.writing_mode.is_bidi_ltr())
+            };
+            println!("DEBUG: scrollIntoView: is_rtl={}", is_rtl);
+
             ScrollPosition {
                 x: self.calculate_scroll_position_one_axis(
                     inline,
@@ -1114,6 +1181,7 @@ impl Element {
                     element_width,
                     viewport_width,
                     current_scroll_x,
+                    is_rtl,
                 ),
                 y: self.calculate_scroll_position_one_axis(
                     block,
@@ -1122,6 +1190,7 @@ impl Element {
                     element_height,
                     viewport_height,
                     current_scroll_y,
+                    false, // Block direction is never RTL in horizontal-tb writing mode
                 ),
             }
         } else {
@@ -1159,91 +1228,104 @@ impl Element {
 
             // Calculate element position in scroller's content coordinate system
             // We need to determine if the element's coordinates need to be adjusted relative to the scrolling container
-            let target_element = if let Some(html_element) = self.downcast::<HTMLElement>() {
-                html_element
-            } else {
-                // If target is not an HTMLElement, we can't reliably determine the coordinate relationship
-                // Fall back to subtracting scrolling container position
-                let content_element_left = element_left - scrolling_left;
-                let content_element_top = element_top - scrolling_top;
-                let content_element_right = element_right - scrolling_left;
-                let content_element_bottom = element_bottom - scrolling_top;
+            self.downcast::<HTMLElement>().map_or_else(
+                || {
+                    // If target is not an HTMLElement, we can't reliably determine the coordinate relationship
+                    // Fall back to subtracting scrolling container position
+                    let content_element_left = element_left - scrolling_left;
+                    let content_element_top = element_top - scrolling_top;
+                    let content_element_right = element_right - scrolling_left;
+                    let content_element_bottom = element_bottom - scrolling_top;
 
-                return ScrollPosition {
-                    x: self.calculate_scroll_position_one_axis(
-                        inline,
+                    // Get the directionality of the scrolling element for RTL handling
+                    let is_rtl = scrolling_element
+                        .style()
+                        .map_or(false, |style| !style.writing_mode.is_bidi_ltr());
+                    println!("DEBUG: scrollIntoView: is_rtl={}", is_rtl);
+
+                    ScrollPosition {
+                        x: self.calculate_scroll_position_one_axis(
+                            inline,
+                            content_element_left,
+                            content_element_right,
+                            element_width,
+                            scrolling_width,
+                            current_scroll_x,
+                            is_rtl,
+                        ),
+                        y: self.calculate_scroll_position_one_axis(
+                            block,
+                            content_element_top,
+                            content_element_bottom,
+                            element_height,
+                            scrolling_height,
+                            current_scroll_y,
+                            false, // Block direction is never RTL in horizontal-tb writing mode
+                        ),
+                    }
+                },
+                |target_element| {
+                    // Check if we should subtract the scrolling container's position
+                    // by examining the offset parent relationship
+                    let should_subtract_container =
+                        target_element
+                            .GetOffsetParent()
+                            .is_none_or(|target_offset_parent| {
+                                scrolling_element.downcast::<HTMLElement>().is_none_or(
+                                    |scrolling_html_element| {
+                                        // If target's offset parent is the same as the scrolling container, don't subtract
+                                        // If target's offset parent is different, we need to subtract to make coordinates relative
+                                        &*target_offset_parent !=
+                                            scrolling_html_element.upcast::<Element>()
+                                    },
+                                )
+                            });
+
+                    let (
                         content_element_left,
-                        content_element_right,
-                        element_width,
-                        scrolling_width,
-                        current_scroll_x,
-                    ),
-                    y: self.calculate_scroll_position_one_axis(
-                        block,
                         content_element_top,
+                        content_element_right,
                         content_element_bottom,
-                        element_height,
-                        scrolling_height,
-                        current_scroll_y,
-                    ),
-                };
-            };
+                    ) = if should_subtract_container {
+                        (
+                            element_left - scrolling_left,
+                            element_top - scrolling_top,
+                            element_right - scrolling_left,
+                            element_bottom - scrolling_top,
+                        )
+                    } else {
+                        (element_left, element_top, element_right, element_bottom)
+                    };
 
-            // Check if we should subtract the scrolling container's position
-            // by examining the offset parent relationship
-            let should_subtract_container = if let Some(target_offset_parent) =
-                target_element.GetOffsetParent()
-            {
-                if let Some(scrolling_html_element) = scrolling_element.downcast::<HTMLElement>() {
-                    // If target's offset parent is the same as the scrolling container, don't subtract
-                    // If target's offset parent is different, we need to subtract to make coordinates relative
-                    &*target_offset_parent != scrolling_html_element.upcast::<Element>()
-                } else {
-                    true // If scrolling element is not HTML, assume we need to subtract
-                }
-            } else {
-                // If target has no offset parent (e.g., positioned absolutely to document),
-                // we likely need to subtract the scrolling container position
-                true
-            };
+                    // Get the directionality of the scrolling element for RTL handling
+                    let is_rtl = scrolling_element
+                        .style()
+                        .map_or(false, |style| !style.writing_mode.is_bidi_ltr());
+                    println!("DEBUG: scrollIntoView: is_rtl={}", is_rtl);
 
-            let (
-                content_element_left,
-                content_element_top,
-                content_element_right,
-                content_element_bottom,
-            ) = if should_subtract_container {
-                (
-                    element_left - scrolling_left,
-                    element_top - scrolling_top,
-                    element_right - scrolling_left,
-                    element_bottom - scrolling_top,
-                )
-            } else {
-                (element_left, element_top, element_right, element_bottom)
-            };
-
-            ScrollPosition {
-                x: self.calculate_scroll_position_one_axis(
-                    inline,
-                    content_element_left,
-                    content_element_right,
-                    element_width,
-                    scrolling_width,
-                    current_scroll_x,
-                ),
-                y: self.calculate_scroll_position_one_axis(
-                    block,
-                    content_element_top,
-                    content_element_bottom,
-                    element_height,
-                    scrolling_height,
-                    current_scroll_y,
-                ),
-            }
-        };
-
-        target_position
+                    ScrollPosition {
+                        x: self.calculate_scroll_position_one_axis(
+                            inline,
+                            content_element_left,
+                            content_element_right,
+                            element_width,
+                            scrolling_width,
+                            current_scroll_x,
+                            is_rtl,
+                        ),
+                        y: self.calculate_scroll_position_one_axis(
+                            block,
+                            content_element_top,
+                            content_element_bottom,
+                            element_height,
+                            scrolling_height,
+                            current_scroll_y,
+                            false, // Block direction is never RTL in horizontal-tb writing mode
+                        ),
+                    }
+                },
+            )
+        }
     }
 
     fn calculate_scroll_position_one_axis(
@@ -1254,13 +1336,21 @@ impl Element {
         element_size: f64,
         container_size: f64,
         current_scroll_offset: f64,
+        is_rtl: bool,
     ) -> f64 {
+        // For RTL direction, we need to reverse the meaning of Start and End
+        let (start_pos, end_pos) = if is_rtl {
+            (element_end - container_size, element_start)
+        } else {
+            (element_start, element_end - container_size)
+        };
+
         match alignment {
             // Step 1 & 5: If inline is "start", then align element start edge with scrolling box start edge.
-            ScrollLogicalPosition::Start => element_start,
+            ScrollLogicalPosition::Start => start_pos,
             // Step 2 & 6: If inline is "end", then align element end edge with
             // scrolling box end edge.
-            ScrollLogicalPosition::End => element_end - container_size,
+            ScrollLogicalPosition::End => end_pos,
             // Step 3 & 7: If inline is "center", then align the center of target bounding
             // border box with the center of scrolling box in scrolling box’s inline base direction.
             ScrollLogicalPosition::Center => element_start + (element_size - container_size) / 2.0,
@@ -1276,7 +1366,7 @@ impl Element {
                 if (element_start < viewport_start && element_size <= container_size) ||
                     (element_end > viewport_end && element_size >= container_size)
                 {
-                    element_start
+                    start_pos
                 }
                 // Step 4.3 & 8.3: If element end edge is outside scrolling box start edge and element
                 // size is greater than scrolling box size or If element start edge is outside
@@ -1285,7 +1375,7 @@ impl Element {
                 else if (element_end > viewport_end && element_size < container_size) ||
                     (element_start < viewport_start && element_size > container_size)
                 {
-                    element_end - container_size
+                    end_pos
                 }
                 // Step 4.1 & 8.1: If element start edge and element end edge are both outside scrolling
                 // box start edge and scrolling box end edge or an invalid situation: Do nothing.

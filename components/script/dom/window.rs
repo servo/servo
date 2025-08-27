@@ -1621,17 +1621,17 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
     fn ScrollBy(&self, options: &ScrollToOptions) {
-        // Step 1
+        // Step 1.2: Normalize non-finite values for left and top dictionary members of options.
         let x = options.left.unwrap_or(0.0f64);
         let y = options.top.unwrap_or(0.0f64);
 
         let scroll_offset = self.scroll_offset();
-        // Step 3
+        // Step 3: Add the value of scrollLeft to the left dictionary member.
         let left = x + scroll_offset.x as f64;
-        // Step 4
+        // Step 4: Add the value of scrollTop to the top dictionary member.
         let top = y + scroll_offset.y as f64;
 
-        // Step 5
+        // Step 5: Act as if the scroll() method was invoked with options as the only argument.
         self.scroll(left, top, options.parent.behavior);
     }
 
