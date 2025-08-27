@@ -14,10 +14,9 @@ use euclid::default::{Point2D, Rect, Size2D};
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::imageops::{self, FilterType};
-use image::io::Limits;
 use image::{
     AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
-    ImageResult, Rgba,
+    ImageResult, Limits, Rgba,
 };
 use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
@@ -366,8 +365,10 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
             };
             match image_decoder {
                 GenericImageDecoder::Png(png_decoder) => {
-                    if png_decoder.is_apng() {
-                        let apng_decoder = png_decoder.apng();
+                    if png_decoder.is_apng().unwrap_or_default() {
+                        let Ok(apng_decoder) = png_decoder.apng() else {
+                            return None;
+                        };
                         decode_animated_image(cors_status, apng_decoder)
                     } else {
                         decode_static_image(cors_status, *png_decoder)
@@ -572,9 +573,9 @@ fn make_decoder(
     })
 }
 
-fn decode_static_image<'a>(
+fn decode_static_image(
     cors_status: CorsStatus,
-    image_decoder: impl ImageDecoder<'a>,
+    image_decoder: impl ImageDecoder,
 ) -> Option<RasterImage> {
     let Ok(dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
         debug!("Image decoding error");
