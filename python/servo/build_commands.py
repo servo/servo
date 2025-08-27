@@ -126,7 +126,6 @@ class MachCommands(CommandBase):
 
         if self.enable_code_coverage:
             # We don't want coverage for build-scripts and proc macros.
-            # Todo: this looks like it wont work  for `./mach test-unit`?
             kwargs["target_override"] = target_triple
 
         env = self.build_env()

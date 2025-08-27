@@ -505,11 +505,9 @@ class CommandBase(object):
 
         if self.enable_code_coverage:
             env["RUSTFLAGS"] += " " + "-Cinstrument-coverage=true"
-            self.config
-            # todo: target override here? RT needs it...
             target_file_pattern = f"{util.get_target_dir()}/code_coverage/default_%20m_%p.profraw"
             env.setdefault("LLVM_PROFILE_FILE", target_file_pattern)
-            print(f"Building with coverage enabled. Output pattern: {target_file_pattern}")
+            print(f"Building with coverage enabled. Output pattern: {env['LLVM_PROFILE_FILE']}")
 
         if not (self.config["build"]["ccache"] == ""):
             env["CCACHE"] = self.config["build"]["ccache"]
@@ -699,6 +697,7 @@ class CommandBase(object):
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:
+                        # Todo: Path target_override for code coverage into this logic?
                         kwargs["servo_binary"] = (
                             kwargs.get("bin")
                             or self.get_nightly_binary_path(kwargs.get("nightly"))
@@ -865,6 +864,8 @@ class CommandBase(object):
                     args += ["--lib", "--crate-type=cdylib"]
         elif target_override:
             args += ["--target", target_override]
+
+        assert "--target" in args, f"--target not in args. fishy! args: {args}"
 
         features = []
 
