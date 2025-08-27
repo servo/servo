@@ -14,6 +14,7 @@ mod font_context {
     use std::thread;
 
     use app_units::Au;
+    use base::generic_channel;
     use compositing_traits::CrossProcessCompositorApi;
     use fonts::platform::font::PlatformFont;
     use fonts::{
@@ -48,7 +49,7 @@ mod font_context {
         fn new() -> TestContext {
             let (system_font_service, system_font_service_proxy) = MockSystemFontService::spawn();
             let (core_sender, _) = ipc::channel().unwrap();
-            let (storage_sender, _) = ipc::channel().unwrap();
+            let (storage_sender, _) = generic_channel::channel().unwrap();
             let (indexeddb_sender, _) = ipc::channel().unwrap();
             let mock_resource_threads =
                 ResourceThreads::new(core_sender, storage_sender, indexeddb_sender);

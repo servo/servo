@@ -2631,10 +2631,10 @@ where
         }
 
         debug!("Exiting storage resource threads.");
-        if let Err(e) = self
-            .public_resource_threads
-            .send(StorageThreadMsg::Exit(storage_ipc_sender))
-        {
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.public_resource_threads,
+            StorageThreadMsg::Exit(storage_ipc_sender),
+        ) {
             warn!("Exit storage thread failed ({})", e);
         }
 

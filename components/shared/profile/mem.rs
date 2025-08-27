@@ -11,6 +11,7 @@ use std::collections::HashSet;
 use std::ffi::c_void;
 use std::marker::Send;
 
+use base::generic_channel::GenericSender;
 use crossbeam_channel::Sender;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -41,6 +42,20 @@ where
 {
     fn send(&self, message: T) {
         if let Err(e) = IpcSender::send(self, message) {
+            warn!(
+                "Error communicating with the target thread from the profiler: {}",
+                e
+            );
+        }
+    }
+}
+
+impl<T> OpaqueSender<T> for GenericSender<T>
+where
+    T: serde::Serialize,
+{
+    fn send(&self, message: T) {
+        if let Err(e) = GenericSender::send(self, message) {
             warn!(
                 "Error communicating with the target thread from the profiler: {}",
                 e

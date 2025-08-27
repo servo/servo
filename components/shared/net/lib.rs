@@ -10,6 +10,7 @@ use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::{GenericSend, GenericSender, SendResult};
 use base::id::{CookieStoreId, HistoryStateId};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
@@ -421,14 +422,14 @@ where
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResourceThreads {
     pub core_thread: CoreResourceThread,
-    storage_thread: IpcSender<StorageThreadMsg>,
+    storage_thread: GenericSender<StorageThreadMsg>,
     idb_thread: IpcSender<IndexedDBThreadMsg>,
 }
 
 impl ResourceThreads {
     pub fn new(
         c: CoreResourceThread,
-        s: IpcSender<StorageThreadMsg>,
+        s: GenericSender<StorageThreadMsg>,
         i: IpcSender<IndexedDBThreadMsg>,
     ) -> ResourceThreads {
         ResourceThreads {
@@ -463,12 +464,12 @@ impl IpcSend<IndexedDBThreadMsg> for ResourceThreads {
     }
 }
 
-impl IpcSend<StorageThreadMsg> for ResourceThreads {
-    fn send(&self, msg: StorageThreadMsg) -> IpcSendResult {
+impl GenericSend<StorageThreadMsg> for ResourceThreads {
+    fn send(&self, msg: StorageThreadMsg) -> SendResult {
         self.storage_thread.send(msg)
     }
 
-    fn sender(&self) -> IpcSender<StorageThreadMsg> {
+    fn sender(&self) -> GenericSender<StorageThreadMsg> {
         self.storage_thread.clone()
     }
 }

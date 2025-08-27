@@ -15,6 +15,18 @@ use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
 
+/// Abstraction of the ability to send a particular type of message cross-process.
+/// This can be used to ease the use of GenericSender sub-fields.
+pub trait GenericSend<T>
+where
+    T: serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    /// send message T
+    fn send(&self, _: T) -> SendResult;
+    /// get underlying sender
+    fn sender(&self) -> GenericSender<T>;
+}
+
 /// A GenericSender that sends messages to a [GenericReceiver].
 ///
 /// The sender supports sending messages cross-process, if servo is run in multiprocess mode.

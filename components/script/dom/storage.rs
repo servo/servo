@@ -1,13 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+use base::generic_channel::{GenericSend, SendResult};
 use base::id::WebViewId;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::{IpcSend, IpcSendResult};
-use profile_traits::ipc;
+use profile_traits::{generic_channel, ipc};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
@@ -57,8 +56,8 @@ impl Storage {
         self.global().get_url()
     }
 
-    fn send_storage_msg(&self, msg: StorageThreadMsg) -> IpcSendResult {
-        self.global().resource_threads().send(msg)
+    fn send_storage_msg(&self, msg: StorageThreadMsg) -> SendResult {
+        GenericSend::send(self.global().resource_threads(), msg)
     }
 }
 
@@ -173,7 +172,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
 
     // https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let time_profiler = self.global().time_profiler_chan().clone();
+        let (sender, receiver) = generic_channel::channel(time_profiler).unwrap();
 
         self.send_storage_msg(StorageThreadMsg::Keys(
             sender,
