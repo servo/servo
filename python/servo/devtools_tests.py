@@ -116,17 +116,18 @@ class Devtools:
 
 
 # TODO: Use new syntax in python 3.12
-# https://docs.python.org/3/reference/compound_stmts.html#generic-functions
-# https://docs.python.org/3/library/typing.html#user-defined-generic-types
+# <https://docs.python.org/3/reference/compound_stmts.html#generic-functions>
+# <https://docs.python.org/3/library/typing.html#user-defined-generic-types>
 T = TypeVar("T")
 FrozenMultiset = tuple[tuple[T, int], ...]
 
 
 def frozen_multiset(items: Iterable[T] = []) -> FrozenMultiset[T]:
     """
-    Simulate a frozen multiset using a tuple of tuples. Python does not have on yet
-    https://bugs.python.org/issue40411
-    https://peps.python.org/pep-0603/
+    Simulate a frozen multiset using a tuple of tuples.
+    Python does not have one yet:
+    <https://bugs.python.org/issue40411>
+    <https://peps.python.org/pep-0603/>
     """
     # First make a mutable multiset
     result = Counter(items)
@@ -175,8 +176,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                             Source("srcScript", f"{self.base_urls[0]}/sources/classic.js"),
                             Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"),
                             Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"),
-                            Source("importedModule", f"{self.base_urls[0]}/sources/module.js"),
                             Source("srcScript", f"{self.base_urls[1]}/sources/classic.js"),
+                            Source("importedModule", f"{self.base_urls[0]}/sources/module.js"),
                         ]
                     ),
                     frozen_multiset([Source("Worker", f"{self.base_urls[0]}/sources/classic_worker.js")]),
