@@ -35,7 +35,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use webrender_api::ImageKey;
 
-use crate::canvas_context::CanvasContext;
+use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
@@ -47,7 +47,8 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, Float32ArrayOrUnrestrictedFloatSequence,
-    HTMLCanvasElementOrOffscreenCanvas, Int32ArrayOrLongSequence,
+    HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas,
+    Int32ArrayOrLongSequence,
 };
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -216,9 +217,10 @@ pub(crate) struct WebGLRenderingContext {
 }
 
 impl WebGLRenderingContext {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         window: &Window,
-        canvas: &HTMLCanvasElementOrOffscreenCanvas,
+        canvas: HTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
@@ -248,7 +250,7 @@ impl WebGLRenderingContext {
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,
                 limits: ctx_data.limits,
-                canvas: canvas.clone(),
+                canvas,
                 last_error: Cell::new(None),
                 texture_packing_alignment: Cell::new(4),
                 texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
@@ -285,13 +287,19 @@ impl WebGLRenderingContext {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
-        canvas: &HTMLCanvasElementOrOffscreenCanvas,
+        canvas: HTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
         can_gc: CanGc,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
-        match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
+        match WebGLRenderingContext::new_inherited(
+            window,
+            canvas.clone(),
+            webgl_version,
+            size,
+            attrs,
+        ) {
             Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window, can_gc)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
@@ -1930,8 +1938,8 @@ impl CanvasContext for WebGLRenderingContext {
         self.webgl_sender.context_id()
     }
 
-    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
-        Some(self.canvas.clone())
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
+        Some(self.canvas.as_rooted())
     }
 
     fn resize(&self) {
@@ -2071,8 +2079,8 @@ impl Drop for WebGLRenderingContext {
 
 impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
-    fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
-        self.canvas.clone()
+    fn Canvas(&self) -> RootedHTMLCanvasElementOrOffscreenCanvas {
+        self.canvas.as_rooted()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11

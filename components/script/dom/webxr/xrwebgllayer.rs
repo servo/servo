@@ -10,14 +10,13 @@ use euclid::{Rect, Size2D};
 use js::rust::HandleObject;
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
-use crate::canvas_context::CanvasContext as _;
+use crate::canvas_context::CanvasContext;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
     XRWebGLLayerInit, XRWebGLLayerMethods, XRWebGLRenderingContext,
 };
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -125,14 +124,7 @@ impl XRWebGLLayer {
                 size.1.try_into().unwrap_or(0),
             )
         } else {
-            let size = match self.context().Canvas() {
-                HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => canvas.get_size(),
-                HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
-                    let size = canvas.get_size();
-                    Size2D::new(size.width, size.height)
-                },
-            };
-            Size2D::from_untyped(size)
+            Size2D::from_untyped(self.context().size())
         }
     }
 

@@ -35,7 +35,6 @@ use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -230,7 +229,7 @@ impl HTMLCanvasElement {
         // options.
         let context = ImageBitmapRenderingContext::new(
             &self.owner_global(),
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self)),
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(self)),
             can_gc,
         );
 
@@ -257,10 +256,9 @@ impl HTMLCanvasElement {
         let window = self.owner_window();
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
-        let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let context = WebGLRenderingContext::new(
             &window,
-            &canvas,
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(self)),
             WebGLVersion::WebGL1,
             size,
             attrs,
@@ -289,8 +287,13 @@ impl HTMLCanvasElement {
         let window = self.owner_window();
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
-        let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
-        let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs, can_gc)?;
+        let context = WebGL2RenderingContext::new(
+            &window,
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(self)),
+            size,
+            attrs,
+            can_gc,
+        )?;
         *self.context_mode.borrow_mut() = Some(RenderingContext::WebGL2(Dom::from_ref(&*context)));
         Some(context)
     }
