@@ -546,9 +546,9 @@ impl Servo {
             let mut messages = Vec::new();
             while let Ok(message) = compositor.receiver().try_recv() {
                 match message {
-                    Ok(msg) => messages.push(msg),
-                    Err(e) => {
-                        warn!("Router deserialization error: {e}. Ignoring this CompositorMsg.")
+                    Ok(message) => messages.push(message),
+                    Err(error) => {
+                        warn!("Router deserialization error: {error}. Ignoring this CompositorMsg.")
                     },
                 }
             }
