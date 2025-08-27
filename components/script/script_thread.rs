@@ -630,15 +630,9 @@ impl ScriptThread {
                     .clone();
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
-                    if let Some(window) = trusted_global.root().downcast::<Window>() {
+                    if trusted_global.root().is::<Window>() {
                         let global = &trusted_global.root();
-                        // Step 5: If the result of should navigation request of type be blocked by
-                        // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-                        if global.get_csp_list().should_navigation_request_be_blocked(global, &load_data, None) {
-                            return;
-                        }
-                        if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
-                            ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data, CanGc::note());
+                        if Self::navigate_to_javascript_url(global, global, &mut load_data, None, CanGc::note()) {
                             sender
                                 .send((pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
                                 .unwrap();
@@ -661,6 +655,36 @@ impl ScriptThread {
                     .expect("Sending a LoadUrl message to the constellation failed");
             }
         });
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url>
+    pub(crate) fn navigate_to_javascript_url(
+        global: &GlobalScope,
+        containing_global: &GlobalScope,
+        load_data: &mut LoadData,
+        container: Option<&Element>,
+        can_gc: CanGc,
+    ) -> bool {
+        // Step 3. If initiatorOrigin is not same origin-domain with targetNavigable's active document's origin, then return.
+        //
+        // Important re security. See https://github.com/servo/servo/issues/23373
+        if !Self::check_load_origin(&load_data.load_origin, &global.get_url().origin()) {
+            return false;
+        }
+
+        // Step 5: If the result of should navigation request of type be blocked by
+        // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
+        if global
+            .get_csp_list()
+            .should_navigation_request_be_blocked(global, load_data, container, can_gc)
+        {
+            return false;
+        }
+
+        // Step 6. Let newDocument be the result of evaluating a javascript: URL given targetNavigable,
+        // url, initiatorOrigin, and userInvolvement.
+        Self::eval_js_url(containing_global, load_data, can_gc);
+        true
     }
 
     pub(crate) fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
