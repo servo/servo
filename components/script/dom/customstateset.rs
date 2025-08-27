@@ -100,6 +100,7 @@ impl Setlike for CustomStateSet {
 }
 
 impl CustomStateSetMethods<crate::DomTypeHolder> for CustomStateSet {
+    /// <https://html.spec.whatwg.org/multipage/#customstateset>
     fn Size(&self) -> u32 {
         self.internal.size()
     }
