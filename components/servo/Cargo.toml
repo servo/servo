@@ -21,7 +21,7 @@ bluetooth = [
     "script/bluetooth",
     "script_traits/bluetooth",
 ]
-default = ["clipboard", "raqote"]
+default = ["clipboard", "vello_cpu"]
 clipboard = ["dep:arboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
