@@ -149,51 +149,51 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source("srcScript", f"{self.base_urls[0]}/sources/classic.js"),
                             Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"),
                             Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"),
-                            Source("srcScript", f"{self.base_urls[1]}/sources/classic.js"),
                             Source("importedModule", f"{self.base_urls[0]}/sources/module.js"),
+                            Source("srcScript", f"{self.base_urls[1]}/sources/classic.js"),
                         ]
                     ),
-                    tuple([Source("Worker", f"{self.base_urls[0]}/sources/classic_worker.js")]),
+                    frozenset([Source("Worker", f"{self.base_urls[0]}/sources/classic_worker.js")]),
                 ]
             ),
         )
 
     def test_sources_list_with_data_no_scripts(self):
         self.run_servoshell(url="data:text/html,")
-        self.assert_sources_list(set([tuple()]))
+        self.assert_sources_list(set([frozenset()]))
 
     # Sources list for `introductionType` = `inlineScript` and `srcScript`
 
     def test_sources_list_with_data_empty_inline_classic_script(self):
         self.run_servoshell(url="data:text/html,<script></script>")
-        self.assert_sources_list(set([tuple()]))
+        self.assert_sources_list(set([frozenset()]))
 
     def test_sources_list_with_data_inline_classic_script(self):
         self.run_servoshell(url="data:text/html,<script>;</script>")
-        self.assert_sources_list(set([tuple([Source("inlineScript", "data:text/html,<script>;</script>")])]))
+        self.assert_sources_list(set([frozenset([Source("inlineScript", "data:text/html,<script>;</script>")])]))
 
     def test_sources_list_with_data_external_classic_script(self):
         self.run_servoshell(url=f'data:text/html,<script src="{self.base_urls[0]}/sources/classic.js"></script>')
-        self.assert_sources_list(set([tuple([Source("srcScript", f"{self.base_urls[0]}/sources/classic.js")])]))
+        self.assert_sources_list(set([frozenset([Source("srcScript", f"{self.base_urls[0]}/sources/classic.js")])]))
 
     def test_sources_list_with_data_empty_inline_module_script(self):
         self.run_servoshell(url="data:text/html,<script type=module></script>")
-        self.assert_sources_list(set([tuple()]))
+        self.assert_sources_list(set([frozenset()]))
 
     def test_sources_list_with_data_inline_module_script(self):
         self.run_servoshell(url="data:text/html,<script type=module>;</script>")
         self.assert_sources_list(
-            set([tuple([Source("inlineScript", "data:text/html,<script type=module>;</script>")])])
+            set([frozenset([Source("inlineScript", "data:text/html,<script type=module>;</script>")])])
         )
 
     def test_sources_list_with_data_external_module_script(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_data_external_module_script.html")
-        self.assert_sources_list(set([tuple([Source("srcScript", f"{self.base_urls[0]}/sources/module.js")])]))
+        self.assert_sources_list(set([frozenset([Source("srcScript", f"{self.base_urls[0]}/sources/module.js")])]))
 
     # Sources list for `introductionType` = `importedModule`
 
@@ -202,7 +202,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript",
@@ -220,7 +220,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript",
@@ -240,7 +240,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript",
@@ -248,7 +248,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                             ),
                         ]
                     ),
-                    tuple(
+                    frozenset(
                         [
                             Source("Worker", f"{self.base_urls[0]}/sources/classic_worker.js"),
                         ]
@@ -262,14 +262,14 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript", f"{self.base_urls[0]}/sources/test_sources_list_with_module_worker.html"
                             ),
                         ]
                     ),
-                    tuple(
+                    frozenset(
                         [
                             Source("Worker", f"{self.base_urls[0]}/sources/module_worker.js"),
                         ]
@@ -287,7 +287,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript",
@@ -305,7 +305,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript",
@@ -323,7 +323,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript",
@@ -342,7 +342,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript",
@@ -359,7 +359,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript", 'data:text/html,<script>eval("//%23 sourceURL=http://test")</script>'
@@ -373,7 +373,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def test_sources_list_with_eval_but_no_display_url(self):
         self.run_servoshell(url='data:text/html,<script>eval("1")</script>')
-        self.assert_sources_list(set([tuple([Source("inlineScript", 'data:text/html,<script>eval("1")</script>')])]))
+        self.assert_sources_list(set([frozenset([Source("inlineScript", 'data:text/html,<script>eval("1")</script>')])]))
 
     def test_sources_list_with_debugger_eval_and_display_url(self):
         self.run_servoshell(url="data:text/html,")
@@ -389,7 +389,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             )
             console.evaluate_js_async("//# sourceURL=http://test")
             evaluation_result.result(1)
-            self.assert_sources_list(set([tuple([Source("debugger eval", "http://test/")])]), devtools=devtools)
+            self.assert_sources_list(set([frozenset([Source("debugger eval", "http://test/")])]), devtools=devtools)
 
     def test_sources_list_with_debugger_eval_but_no_display_url(self):
         self.run_servoshell(url="data:text/html,")
@@ -405,14 +405,14 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             )
             console.evaluate_js_async("1")
             evaluation_result.result(1)
-            self.assert_sources_list(set([tuple([])]), devtools=devtools)
+            self.assert_sources_list(set([frozenset([])]), devtools=devtools)
 
     def test_sources_list_with_function_and_display_url(self):
         self.run_servoshell(url='data:text/html,<script>new Function("//%23 sourceURL=http://test")</script>')
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript",
@@ -430,7 +430,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source("inlineScript", 'data:text/html,<script>new Function("1")</script>'),
                         ]
@@ -447,7 +447,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source(
                                 "inlineScript",
@@ -462,7 +462,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def test_sources_list_with_javascript_url_but_no_display_url(self):
         self.run_servoshell(url='data:text/html,<a href="javascript:1"></a>')
-        self.assert_sources_list(set([tuple([])]))
+        self.assert_sources_list(set([frozenset([])]))
 
     @unittest.expectedFailure
     def test_sources_list_with_event_handler_and_display_url(self):
@@ -470,7 +470,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source("eventHandler", "http://test/"),
                         ]
@@ -481,7 +481,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def test_sources_list_with_event_handler_but_no_display_url(self):
         self.run_servoshell(url='data:text/html,<a onclick="1"></a>')
-        self.assert_sources_list(set([tuple([])]))
+        self.assert_sources_list(set([frozenset([])]))
 
     @unittest.expectedFailure
     def test_sources_list_with_dom_timer_and_display_url(self):
@@ -489,7 +489,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source("domTimer", "http://test/"),
                         ]
@@ -501,7 +501,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     @unittest.expectedFailure
     def test_sources_list_with_dom_timer_but_no_display_url(self):
         self.run_servoshell(url='data:text/html,<script>setTimeout("1",0)</script>')
-        self.assert_sources_list(set([tuple([])]))
+        self.assert_sources_list(set([frozenset([])]))
 
     # Sources list for scripts with `displayURL` (`//# sourceURL`), despite not being required by `introductionType`
 
@@ -510,7 +510,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source("inlineScript", "http://test/"),
                         ]
@@ -525,7 +525,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source("inlineScript", "data:text/html,<script>//%23 sourceURL=test</script>"),
                         ]
@@ -539,7 +539,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source("inlineScript", "data:text/html,<script>1</script>"),
                         ]
@@ -556,7 +556,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source("inlineScript", "http://test/"),
                         ]
@@ -571,7 +571,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             # FIXME: it’s not really gonna be 0
                             Source("inlineScript", "about:srcdoc#0"),
@@ -589,7 +589,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(
             set(
                 [
-                    tuple(
+                    frozenset(
                         [
                             Source("inlineScript", "http://test/"),
                             # FIXME: it’s not really gonna be 0
@@ -767,7 +767,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             cls.base_urls = None
 
     def assert_sources_list(
-        self, expected_sources_by_target: set[tuple[Source]], *, devtools: Optional[Devtools] = None
+        self, expected_sources_by_target: set[frozenset[Source]], *, devtools: Optional[Devtools] = None
     ):
         expected_targets = len(expected_sources_by_target)
         if devtools is None:
@@ -776,13 +776,13 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             done = Future()
             # NOTE: breaks if two targets have the same list of source urls.
             # This should really be a multiset, but Python does not have multisets.
-            actual_sources_by_target: set[tuple[Source]] = set()
+            actual_sources_by_target: set[frozenset[Source]] = set()
 
             def on_source_resource(data):
                 for [resource_type, sources] in data["array"]:
                     try:
                         self.assertEqual(resource_type, "source")
-                        source_urls = tuple([Source(source["introductionType"], source["url"]) for source in sources])
+                        source_urls = frozenset([Source(source["introductionType"], source["url"]) for source in sources])
                         self.assertFalse(source_urls in actual_sources_by_target)  # See NOTE above
                         actual_sources_by_target.add(source_urls)
                         if len(actual_sources_by_target) == expected_targets:
