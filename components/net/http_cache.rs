@@ -146,7 +146,8 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
             directive.max_age().is_some() ||
             directive.no_cache()
         {
-            is_cacheable = true;
+            // If cache-control is understood, we can use it and ignore pragma.
+            return true;
         }
     }
     if let Some(pragma) = headers.typed_get::<Pragma>() {
