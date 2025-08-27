@@ -173,19 +173,19 @@ pub struct CompositionPipeline {
 
 /// A mechanism to send messages from ScriptThread to the parent process' WebRender instance.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct CrossProcessCompositorApi(pub IpcSender<CompositorMsg>);
+pub struct CrossProcessCompositorApi(IpcSender<CompositorMsg>);
 
 impl CrossProcessCompositorApi {
+    /// Create a new [`CrossProcessCompositorApi`] struct.
+    pub fn new(sender: IpcSender<CompositorMsg>) -> Self {
+        CrossProcessCompositorApi(sender)
+    }
+
     /// Create a new [`CrossProcessCompositorApi`] struct that does not have a listener on the other
     /// end to use for unit testing.
     pub fn dummy() -> Self {
         let (sender, _) = ipc::channel().unwrap();
         Self(sender)
-    }
-
-    /// Get the sender for this proxy.
-    pub fn sender(&self) -> &IpcSender<CompositorMsg> {
-        &self.0
     }
 
     /// Inform WebRender of the existence of this pipeline.
@@ -350,6 +350,25 @@ impl CrossProcessCompositorApi {
             sender,
         ));
         receiver.recv().unwrap()
+    }
+
+    pub fn send_viewport(&self, webview_id: WebViewId, description: ViewportDescription) {
+        let _ = self
+            .0
+            .send(CompositorMsg::Viewport(webview_id, description));
+    }
+
+    pub fn notify_pipeline_exit(
+        &self,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        source: PipelineExitSource,
+    ) {
+        let _ = self.0.send(CompositorMsg::PipelineExited(
+            webview_id,
+            pipeline_id,
+            source,
+        ));
     }
 }
 
