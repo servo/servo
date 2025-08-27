@@ -18,6 +18,7 @@ use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use libc::c_uint;
 use script_bindings::conversions::SafeToJSValConvertible;
 pub(crate) use script_bindings::error::*;
+use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 
 #[cfg(feature = "js_backtrace")]
@@ -39,6 +40,16 @@ thread_local! {
     static LAST_EXCEPTION_BACKTRACE: DomRefCell<Option<(Option<String>, String)>> = DomRefCell::new(None);
 }
 
+/// Error values that have no equivalent DOMException representation.
+enum JsEngineError {
+    /// An EMCAScript TypeError.
+    Type(String),
+    /// An ECMAScript RangeError.
+    Range(String),
+    /// The JS engine reported a thrown exception.
+    JSFailed,
+}
+
 /// Set a pending exception for the given `result` on `cx`.
 pub(crate) fn throw_dom_exception(
     cx: SafeJSContext,
@@ -56,6 +67,38 @@ pub(crate) fn throw_dom_exception(
         });
     }
 
+    match create_dom_exception(global, result, can_gc) {
+        Ok(exception) => unsafe {
+            assert!(!JS_IsExceptionPending(*cx));
+            rooted!(in(*cx) let mut thrown = UndefinedValue());
+            exception.safe_to_jsval(cx, thrown.handle_mut());
+            JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
+        },
+
+        Err(JsEngineError::Type(message)) => unsafe {
+            assert!(!JS_IsExceptionPending(*cx));
+            throw_type_error(*cx, &message);
+        },
+
+        Err(JsEngineError::Range(message)) => unsafe {
+            assert!(!JS_IsExceptionPending(*cx));
+            throw_range_error(*cx, &message);
+        },
+
+        Err(JsEngineError::JSFailed) => unsafe {
+            assert!(JS_IsExceptionPending(*cx));
+        },
+    }
+}
+
+/// If possible, create a new DOMException representing the provided error.
+/// If no such DOMException exists, return a subset of the original error values
+/// that may need additional handling.
+fn create_dom_exception(
+    global: &GlobalScope,
+    result: Error,
+    can_gc: CanGc,
+) -> Result<DomRoot<DOMException>, JsEngineError> {
     let code = match result {
         Error::IndexSize => DOMErrorName::IndexSizeError,
         Error::NotFound => DOMErrorName::NotFoundError,
@@ -73,35 +116,28 @@ pub(crate) fn throw_dom_exception(
         Error::Abort => DOMErrorName::AbortError,
         Error::Timeout => DOMErrorName::TimeoutError,
         Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
-        Error::DataClone(message) => match message {
-            Some(custom_message) => unsafe {
-                assert!(!JS_IsExceptionPending(*cx));
-                let exception = DOMException::new_with_custom_message(
-                    global,
-                    DOMErrorName::DataCloneError,
-                    custom_message,
-                    can_gc,
-                );
-                rooted!(in(*cx) let mut thrown = UndefinedValue());
-                exception.safe_to_jsval(cx, thrown.handle_mut());
-                JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
-                return;
-            },
-            None => DOMErrorName::DataCloneError,
+        Error::DataClone(Some(custom_message)) => {
+            return Ok(DOMException::new_with_custom_message(
+                global,
+                DOMErrorName::DataCloneError,
+                custom_message,
+                can_gc,
+            ));
         },
+        Error::DataClone(None) => DOMErrorName::DataCloneError,
         Error::Data => DOMErrorName::DataError,
         Error::TransactionInactive => DOMErrorName::TransactionInactiveError,
         Error::ReadOnly => DOMErrorName::ReadOnlyError,
         Error::Version => DOMErrorName::VersionError,
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
-        Error::QuotaExceeded { quota, requested } => unsafe {
-            assert!(!JS_IsExceptionPending(*cx));
-            let exception =
-                QuotaExceededError::new(global, DOMString::new(), quota, requested, can_gc);
-            rooted!(in(*cx) let mut thrown = UndefinedValue());
-            exception.safe_to_jsval(cx, thrown.handle_mut());
-            JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
-            return;
+        Error::QuotaExceeded { quota, requested } => {
+            return Ok(DomRoot::upcast(QuotaExceededError::new(
+                global,
+                DOMString::new(),
+                quota,
+                requested,
+                can_gc,
+            )));
         },
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
         Error::InvalidModification => DOMErrorName::InvalidModificationError,
@@ -110,29 +146,11 @@ pub(crate) fn throw_dom_exception(
         Error::NotAllowed => DOMErrorName::NotAllowedError,
         Error::Encoding => DOMErrorName::EncodingError,
         Error::Constraint => DOMErrorName::ConstraintError,
-        Error::Type(message) => unsafe {
-            assert!(!JS_IsExceptionPending(*cx));
-            throw_type_error(*cx, &message);
-            return;
-        },
-        Error::Range(message) => unsafe {
-            assert!(!JS_IsExceptionPending(*cx));
-            throw_range_error(*cx, &message);
-            return;
-        },
-        Error::JSFailed => unsafe {
-            assert!(JS_IsExceptionPending(*cx));
-            return;
-        },
+        Error::Type(message) => return Err(JsEngineError::Type(message)),
+        Error::Range(message) => return Err(JsEngineError::Range(message)),
+        Error::JSFailed => return Err(JsEngineError::JSFailed),
     };
-
-    unsafe {
-        assert!(!JS_IsExceptionPending(*cx));
-        let exception = DOMException::new(global, code, can_gc);
-        rooted!(in(*cx) let mut thrown = UndefinedValue());
-        exception.safe_to_jsval(cx, thrown.handle_mut());
-        JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
-    }
+    Ok(DOMException::new(global, code, can_gc))
 }
 
 /// A struct encapsulating information about a runtime script error.
