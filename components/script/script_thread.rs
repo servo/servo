@@ -2956,7 +2956,7 @@ impl ScriptThread {
             .ok();
 
         self.compositor_api
-            .notify_pipeline_exit(webview_id, id, PipelineExitSource::Script);
+            .pipeline_exited(webview_id, id, PipelineExitSource::Script);
 
         debug!("{id}: Finished pipeline exit");
     }

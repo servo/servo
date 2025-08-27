@@ -352,13 +352,13 @@ impl CrossProcessCompositorApi {
         receiver.recv().unwrap()
     }
 
-    pub fn send_viewport(&self, webview_id: WebViewId, description: ViewportDescription) {
+    pub fn viewport(&self, webview_id: WebViewId, description: ViewportDescription) {
         let _ = self
             .0
             .send(CompositorMsg::Viewport(webview_id, description));
     }
 
-    pub fn notify_pipeline_exit(
+    pub fn pipeline_exited(
         &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
