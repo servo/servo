@@ -101,6 +101,7 @@ class MachCommands(CommandBase):
         very_verbose: bool = False,
         sanitizer: SanitizerKind = SanitizerKind.NONE,
         flavor: str | None = None,
+        with_coverage: bool = False,
         **kwargs: Any,
     ) -> int:
         opts = params or []
@@ -120,12 +121,17 @@ class MachCommands(CommandBase):
             opts += ["-vv"]
         self.config["build"]["sanitizer"] = sanitizer
 
+        host = servo.platform.host_triple()
+        target_triple = self.target.triple()
+
+        if self.enable_code_coverage:
+            # We don't want coverage for build-scripts and proc macros.
+            # Todo: this looks like it wont work  for `./mach test-unit`?
+            kwargs["target_override"] = target_triple
+
         env = self.build_env()
         self.ensure_bootstrapped()
         self.ensure_clobbered()
-
-        host = servo.platform.host_triple()
-        target_triple = self.target.triple()
 
         if sanitizer.is_some():
             self.build_sanitizer_env(env, opts, kwargs, target_triple, sanitizer)

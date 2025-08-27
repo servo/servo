@@ -258,6 +258,7 @@ class CommandBase(object):
     def __init__(self, context: Any) -> None:
         self.context = context
         self.enable_media = False
+        self.enable_code_coverage = False
         self.features = []
 
         # Default to native build target. This will later be overriden
@@ -502,6 +503,14 @@ class CommandBase(object):
         if self.config["build"]["rustflags"]:
             env["RUSTFLAGS"] += " " + self.config["build"]["rustflags"]
 
+        if self.enable_code_coverage:
+            env["RUSTFLAGS"] += " " + "-Cinstrument-coverage=true"
+            self.config
+            # todo: target override here? RT needs it...
+            target_file_pattern = f"{util.get_target_dir()}/code_coverage/default_%20m_%p.profraw"
+            env.setdefault("LLVM_PROFILE_FILE", target_file_pattern)
+            print(f"Building with coverage enabled. Output pattern: {target_file_pattern}")
+
         if not (self.config["build"]["ccache"] == ""):
             env["CCACHE"] = self.config["build"]["ccache"]
 
@@ -638,6 +647,13 @@ class CommandBase(object):
                     help="Build with frame pointer enabled, used by the background hang monitor.",
                 ),
                 CommandArgument(
+                    "--with-coverage",
+                    default=False,
+                    group="Feature Selection",
+                    action="store_true",
+                    help="Build with code coverage",
+                ),
+                CommandArgument(
                     "--use-crown", default=False, action="store_true", help="Enable Servo's `crown` linter tool"
                 ),
             ]
@@ -679,6 +695,7 @@ class CommandBase(object):
                     self.configure_build_target(kwargs)
                     self.features = kwargs.get("features", None) or []
                     self.enable_media = self.is_media_enabled(kwargs["media_stack"])
+                    self.enable_code_coverage = kwargs.get("with_coverage", False)
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:

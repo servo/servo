@@ -259,7 +259,12 @@ class MachCommands(CommandBase):
         if nocapture:
             args += ["--", "--nocapture"]
 
+        if self.enable_code_coverage:
+            kwargs["target_override"] = self.target.triple()
+
         env = self.build_env()
+        assert "LLVM_PROFILE_FILE" in env, "fishy!"
+
         result = call(["cargo", "bench" if bench else "test"], cwd="support/crown")
         if result != 0:
             return result
