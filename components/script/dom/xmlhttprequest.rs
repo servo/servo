@@ -1530,6 +1530,7 @@ impl XMLHttpRequest {
             None,
             Default::default(),
             false,
+            None,
             false,
             Some(doc.insecure_requests_policy()),
             doc.has_trustworthy_ancestor_origin(),
