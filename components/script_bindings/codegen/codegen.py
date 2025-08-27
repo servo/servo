@@ -2298,8 +2298,9 @@ class CGImports(CGWrapper):
         Adds a set of imports.
         """
 
-        def componentTypes(type: IDLType) -> list[IDLType]:
+        def componentTypes(type: IDLObject) -> list[IDLObject]:
             if type.isType() and type.nullable():
+                assert isinstance(type, IDLType)
                 type = type.unroll()
             if type.isUnion():
                 assert isinstance(type, IDLUnionType)
@@ -2307,20 +2308,21 @@ class CGImports(CGWrapper):
                 return type.flatMemberTypes
             if type.isDictionary():
                 assert isinstance(type, (IDLDictionary, IDLWrapperType))
-                return [cast(IDLType, type)] + getTypesFromDictionary(type)
-            if type.isSequence():
+                return [type] + getTypesFromDictionary(type)
+            if isinstance(type, IDLType) and type.isSequence():
                 assert isinstance(type, IDLSequenceType)
                 return componentTypes(type.inner)
             return [type]
 
-        def isImportable(type: IDLType) -> bool:
+        def isImportable(type: IDLObject) -> bool:
             if not type.isType():
                 assert (type.isInterface() or type.isDictionary()
                         or type.isEnum() or type.isNamespace())
                 return True
+            assert isinstance(type, IDLType)
             return not (type.builtin or type.isSequence() or type.isUnion())
 
-        def relatedTypesForSignatures(method: IDLMethod) -> list[IDLType]:
+        def relatedTypesForSignatures(method: IDLMethod | IDLCallback) -> list[IDLType]:
             types = []
             for (returnType, arguments) in method.signatures():
                 types += componentTypes(returnType)
@@ -2329,8 +2331,9 @@ class CGImports(CGWrapper):
 
             return types
 
-        def getIdentifier(t: IDLType) -> IDLUnresolvedIdentifier:
+        def getIdentifier(t: IDLObject) -> IDLUnresolvedIdentifier:
             if t.isType():
+                assert isinstance(t, IDLType)
                 if t.nullable():
                     assert isinstance(t, IDLNullableType)
                     t = t.inner
@@ -2383,11 +2386,11 @@ class CGImports(CGWrapper):
 
         # Import the type names used in the callbacks that are being defined.
         for c in callbacks:
-            types += relatedTypesForSignatures(cast(IDLMethod, c))
+            types += relatedTypesForSignatures(c)
 
         # Import the type names used in the dictionaries that are being defined.
         for d in dictionaries:
-            types += componentTypes(cast(IDLType, d))
+            types += componentTypes(d)
 
         # Import the type names used in the typedefs that are being defined.
         for t in typedefs:
@@ -2699,7 +2702,7 @@ class CGList(CGThing):
     Generate code for a list of GCThings.  Just concatenates them together, with
     an optional joiner string.  "\n" is a common joiner.
     """
-    def __init__(self, children: Iterable[CGThing], joiner: str = "") -> None:
+    def __init__(self, children: Iterable[CGThing | None], joiner: str = "") -> None:
         CGThing.__init__(self)
         # Make a copy of the kids into a list, because if someone passes in a
         # generator we won't be able to both declare and define ourselves, or
@@ -2714,7 +2717,7 @@ class CGList(CGThing):
     def prepend(self, child: CGThing) -> None:
         self.children.insert(0, child)
 
-    def join(self, iterable: Generator[str, None, None]) -> str:
+    def join(self, iterable: Iterable[str]) -> str:
         return self.joiner.join(s for s in iterable if len(s) > 0)
 
     def define(self) -> str:
@@ -2757,7 +2760,7 @@ def getAllTypes(
     dictionaries: list[IDLDictionary],
     callbacks: list[IDLCallback],
     typedefs: list[IDLTypedef]
-) -> Generator[tuple[IDLType, Optional[Descriptor]], None, None]:
+) -> Generator[tuple[IDLObject, Optional[Descriptor]], None, None]:
     """
     Generate all the types we're dealing with.  For each type, a tuple
     containing type, descriptor, dictionary is yielded.  The
@@ -2771,6 +2774,7 @@ def getAllTypes(
             yield (t, d)
     for dictionary in dictionaries:
         for t in getTypesFromDictionary(dictionary):
+            # pyrefly: ignore  # missing-attribute
             if t.isRecord():
                 # pyrefly: ignore  # missing-attribute
                 yield (t.inner, None)
@@ -2810,6 +2814,7 @@ def UnionTypes(
     # we need to wrap or unwrap them.
     unionStructs: dict[str, Any] = dict()
     for (t, descriptor) in getAllTypes(descriptors, dictionaries, callbacks, typedefs):
+        # pyrefly: ignore  # missing-attribute
         t = t.unroll()
         if not t.isUnion():
             continue
@@ -2831,7 +2836,7 @@ def UnionTypes(
             ])
 
     # Sort unionStructs by key, retrieve value
-    unionStructsCG = list(i[1] for i in sorted(list(unionStructs.items()), key=operator.itemgetter(0)))
+    unionStructsCG = (i[1] for i in sorted(list(unionStructs.items()), key=operator.itemgetter(0)))
 
     return CGImports(CGList(unionStructsCG, "\n\n"), descriptors=[], callbacks=[], dictionaries=[], enums=[],
                      typedefs=[], imports=imports, config=config)
@@ -3029,12 +3034,12 @@ class CGAbstractMethod(CGThing):
     unsafe is used to add the decorator 'unsafe' to a function, giving as a result
     an 'unsafe fn()' declaration.
     """
-    def __init__(self, descriptor: Descriptor | None, name: str, returnType: str, args: list[Argument], inline: bool = False,
+    def __init__(self, descriptor: Descriptor, name: str, returnType: str, args: list[Argument], inline: bool = False,
                  alwaysInline: bool = False, extern: bool = False, unsafe: bool = False, pub: bool = False,
                  templateArgs: list[str] | None = None, docs: str | None = None, doesNotPanic: bool = False,
                  extra_decorators: list[str] = []) -> None:
         CGThing.__init__(self)
-        self._descriptor = descriptor
+        self.descriptor = descriptor
         self.name = name
         self.returnType = returnType
         self.args = args
@@ -3046,16 +3051,6 @@ class CGAbstractMethod(CGThing):
         self.docs = docs
         self.catchPanic = self.extern and not doesNotPanic
         self.extra_decorators = extra_decorators
-
-    @property
-    def descriptor(self) -> Descriptor:
-        if self._descriptor is None:
-            raise RuntimeError("descriptor must be set by subclass")
-        return self._descriptor
-
-    @descriptor.setter
-    def descriptor(self, value: Descriptor) -> None:
-        self._descriptor = value
 
     def _argstring(self) -> str:
         return ', '.join([a.declare() for a in self.args])
@@ -3179,7 +3174,7 @@ unsafe {
 }
 """)
 
-        return CGList(list(CGGeneric(cond) for cond in conditions), " &&\n")
+        return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
 
 def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: PropertyArrays) -> CGThing:
@@ -3824,7 +3819,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                 if enumFlags != "0":
                     enumFlags = f"{enumFlags} as u32"
                 return CGList([
-                    *filter(None, [getSymbolJSID]),
+                    getSymbolJSID,
                     # XXX If we ever create non-enumerable properties that can
                     #     be aliased, we should consider making the aliases
                     #     match the enumerability of the property being aliased.
@@ -4090,9 +4085,18 @@ class CGCallGenerator(CGThing):
     errorResult should be a string for the value to return in case of an
     exception from the native code, or None if no error reporting is needed.
     """
-    def __init__(self, errorResult: str | None, arguments: list[tuple[IDLArgument | FakeArgument, str]], argsPre: list[str], returnType: IDLType | None,
-                 extendedAttributes: list[str], descriptor: Descriptor, nativeMethodName: str,
-                 static: bool, object: str = "this", hasCEReactions: bool = False) -> None:
+    def __init__(self,
+                 errorResult: str | None,
+                 arguments: list[tuple[IDLArgument | FakeArgument, str]],
+                 argsPre: list[str],
+                 returnType: IDLType | None,
+                 extendedAttributes: list[str],
+                 descriptor: Descriptor,
+                 nativeMethodName: str,
+                 static: bool,
+                 object: str = "this",
+                 hasCEReactions: bool = False
+                 ) -> None:
         CGThing.__init__(self)
 
         assert errorResult is None or isinstance(errorResult, str)
@@ -5476,7 +5480,7 @@ class CGUnionConversionStruct(CGThing):
         interfaceMemberTypes = [t for t in memberTypes if t.isNonCallbackInterface()]
         if len(interfaceMemberTypes) > 0:
             typeNames = [get_name(memberType) for memberType in interfaceMemberTypes]
-            interfaceObject = CGList(list(CGGeneric(get_match(typeName)) for typeName in typeNames))
+            interfaceObject = CGList((CGGeneric(get_match(typeName)) for typeName in typeNames))
             names.extend(typeNames)
         else:
             interfaceObject = None
@@ -5672,11 +5676,23 @@ class ClassBase(ClassItem):
 
 class ClassMethod(ClassItem):
     body: str | None
-    def __init__(self, name: str, returnType: str, args: list[Argument], inline: bool = False, static: bool = False,
-                 virtual: bool = False, const: bool = False, bodyInHeader: bool = False,
-                 templateArgs: list[str] | None = None, visibility: str = 'public', body: str | None = None,
-                 breakAfterReturnDecl: str = "\n", unsafe: bool = False,
-                 breakAfterSelf: str = "\n", override: bool = False) -> None:
+    def __init__(self,
+                 name: str,
+                 returnType: str,
+                 args: list[Argument],
+                 inline: bool = False,
+                 static: bool = False,
+                 virtual: bool = False,
+                 const: bool = False,
+                 bodyInHeader: bool = False,
+                 templateArgs: list[str] | None = None,
+                 visibility: str = 'public',
+                 body: str | None = None,
+                 breakAfterReturnDecl: str = "\n",
+                 unsafe: bool = False,
+                 breakAfterSelf: str = "\n",
+                 override: bool = False
+                 ) -> None:
         """
         override indicates whether to flag the method as MOZ_OVERRIDE
         """
@@ -5697,7 +5713,7 @@ class ClassMethod(ClassItem):
         self.unsafe = unsafe
         ClassItem.__init__(self, name, visibility)
 
-    def getDecorators(self, declaring) -> str:
+    def getDecorators(self, declaring: bool) -> str:
         decorators = []
         if self.inline:
             decorators.append('inline')
@@ -7688,6 +7704,8 @@ class CGInitAllStatics(CGAbstractMethod):
         docs = "Initialize the static data used by the SpiderMonkey DOM bindings to implement JS interfaces."
         descriptors = (config.getDescriptors(isCallback=False, register=True)
                        + config.getDescriptors(isCallback=True, hasInterfaceObject=True, register=True))
+        # FIXME: pass in a valid descriptor somehow
+        # pyrefly: ignore  # bad-argument-type
         CGAbstractMethod.__init__(self, None, 'InitAllStatics', 'void', [],
                                   pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
@@ -7703,6 +7721,8 @@ class CGInitAllStatics(CGAbstractMethod):
 class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
+        # FIXME: pass in a valid descriptor somehow
+        # pyrefly: ignore  # bad-argument-type
         CGAbstractMethod.__init__(self, None, 'RegisterProxyHandlers', 'void', [],
                                   pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
@@ -9041,6 +9061,7 @@ impl Clone for TopTypeId {
             config.getDescriptors(), config.getDictionaries(), config.getCallbacks(), config.typedefs
         )
         for (t, descriptor) in allTypes:
+            # pyrefly: ignore  # missing-attribute
             t = t.unroll()
             name = str(t)
             if not t.isUnion() or name in unions:

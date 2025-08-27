@@ -22,6 +22,7 @@ from WebIDL import (
     IDLCallback,
     IDLAttribute,
     IDLMethod,
+    IDLArgument,
 )
 
 
@@ -543,7 +544,7 @@ def getTypesFromDescriptor(descriptor: Descriptor) -> list[IDLType]:
     return types
 
 
-def getTypesFromDictionary(dictionary: IDLWrapperType | IDLDictionary) -> list[IDLType]:
+def getTypesFromDictionary(dictionary: IDLWrapperType | IDLDictionary) -> list[IDLObject]:
     """
     Get all member types for this dictionary
     """
@@ -568,7 +569,7 @@ def getTypesFromCallback(callback: IDLCallback) -> list[IDLType]:
     return types
 
 
-def getUnwrappedType(type: IDLType) -> IDLType:
+def getUnwrappedType(type: IDLArgument) -> IDLArgument:
     while isinstance(type, IDLSequenceType):
         type = type.inner
     return type
