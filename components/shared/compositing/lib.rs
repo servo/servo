@@ -23,6 +23,7 @@ pub mod viewport_description;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use base::generic_channel::{self, GenericSender};
 use bitflags::bitflags;
 use display_list::CompositorDisplayListInfo;
 use embedder_traits::ScreenGeometry;
@@ -128,7 +129,7 @@ pub enum CompositorMsg {
     GenerateFontKeys(
         usize,
         usize,
-        IpcSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
+        GenericSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
     ),
     /// Add a font with the given data and font key.
     AddFont(FontKey, Arc<IpcSharedMemory>, u32),
@@ -343,7 +344,7 @@ impl CrossProcessCompositorApi {
         number_of_font_keys: usize,
         number_of_font_instance_keys: usize,
     ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
-        let (sender, receiver) = ipc_channel::ipc::channel().expect("Could not create IPC channel");
+        let (sender, receiver) = generic_channel::channel().expect("Could not create IPC channel");
         let _ = self.0.send(CompositorMsg::GenerateFontKeys(
             number_of_font_keys,
             number_of_font_instance_keys,
