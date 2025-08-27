@@ -117,6 +117,13 @@ impl ServoUrl {
             scheme == "wss"
     }
 
+    /// <https://url.spec.whatwg.org/#url-equivalence>
+    /// In the future this may be removed if the helper is added upstream in rust-url
+    /// see <https://github.com/servo/rust-url/issues/1063> for details
+    pub fn is_equal_excluding_fragments(&self, other: &ServoUrl) -> bool {
+        self.0[..Position::AfterQuery] == other.0[..Position::AfterQuery]
+    }
+
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
