@@ -24,7 +24,7 @@ use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;
 
-pub(crate) use crate::canvas_context::*;
+use crate::canvas_context::{CanvasContext, LayoutCanvasRenderingContextHelpers, RenderingContext};
 use crate::conversions::Convert;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -34,7 +34,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -156,6 +156,10 @@ impl HTMLCanvasElement {
     }
 }
 
+pub(crate) trait LayoutHTMLCanvasElementHelpers {
+    fn data(self) -> HTMLCanvasData;
+}
+
 impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(self) -> HTMLCanvasData {
@@ -227,11 +231,10 @@ impl HTMLCanvasElement {
         // Step 1. Let context be the result of running the
         // ImageBitmapRenderingContext creation algorithm given this and
         // options.
-        let context = ImageBitmapRenderingContext::new(
-            &self.owner_global(),
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self)),
-            can_gc,
-        );
+        let canvas =
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
+
+        let context = ImageBitmapRenderingContext::new(&self.owner_global(), &canvas, can_gc);
 
         // Step 2. Set this's context mode to bitmaprenderer.
         *self.context_mode.borrow_mut() =
@@ -254,9 +257,10 @@ impl HTMLCanvasElement {
             };
         }
         let window = self.owner_window();
+        let canvas =
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
-        let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let context = WebGLRenderingContext::new(
             &window,
             &canvas,
@@ -286,9 +290,10 @@ impl HTMLCanvasElement {
             };
         }
         let window = self.owner_window();
+        let canvas =
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
-        let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs, can_gc)?;
         *self.context_mode.borrow_mut() = Some(RenderingContext::WebGL2(Dom::from_ref(&*context)));
         Some(context)

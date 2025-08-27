@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     ImageEncodeOptions, OffscreenCanvasMethods,
     OffscreenRenderingContext as RootedOffscreenRenderingContext,
 };
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
@@ -135,7 +135,8 @@ impl OffscreenCanvas {
                 _ => None,
             };
         }
-        let context = OffscreenCanvasRenderingContext2D::new(&self.global(), self, can_gc)?;
+        let context =
+            OffscreenCanvasRenderingContext2D::new(&self.global(), self, self.get_size(), can_gc)?;
         *self.context.borrow_mut() = Some(OffscreenRenderingContext::Context2d(Dom::from_ref(
             &*context,
         )));
@@ -159,11 +160,10 @@ impl OffscreenCanvas {
         // Step 1. Let context be the result of running the
         // ImageBitmapRenderingContext creation algorithm given this and
         // options.
-        let context = ImageBitmapRenderingContext::new(
-            &self.global(),
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(DomRoot::from_ref(self)),
-            can_gc,
-        );
+        let canvas =
+            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(DomRoot::from_ref(self));
+
+        let context = ImageBitmapRenderingContext::new(&self.global(), &canvas, can_gc);
 
         // Step 2. Set this's context mode to bitmaprenderer.
         *self.context.borrow_mut() = Some(OffscreenRenderingContext::BitmapRenderer(

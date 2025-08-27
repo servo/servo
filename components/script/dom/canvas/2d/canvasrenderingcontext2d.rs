@@ -13,19 +13,23 @@ use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 
 use super::canvas_state::CanvasState;
-use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};
+use crate::canvas_context::{
+    CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas,
+    LayoutCanvasRenderingContextHelpers,
+};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
     CanvasRenderingContext2DMethods, CanvasTextAlign, CanvasTextBaseline,
 };
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::codegen::UnionTypes::{
-    HTMLCanvasElementOrOffscreenCanvas, StringOrCanvasGradientOrCanvasPattern,
+    HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas,
+    StringOrCanvasGradientOrCanvasPattern,
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
@@ -62,19 +66,18 @@ impl CanvasRenderingContext2D {
         })
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         canvas: &HTMLCanvasElement,
         size: Size2D<u32>,
         can_gc: CanGc,
     ) -> Option<DomRoot<CanvasRenderingContext2D>> {
-        let boxed = Box::new(CanvasRenderingContext2D::new_inherited(
+        CanvasRenderingContext2D::new_inherited(
             global,
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(canvas)),
             size,
-        )?);
-        Some(reflect_dom_object(boxed, global, can_gc))
+        )
+        .map(|context| reflect_dom_object(Box::new(context), global, can_gc))
     }
 
     // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
@@ -119,8 +122,8 @@ impl CanvasContext for CanvasRenderingContext2D {
         self.canvas_state.get_canvas_id()
     }
 
-    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
-        Some(self.canvas.clone())
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
+        Some(RootedHTMLCanvasElementOrOffscreenCanvas::from(&self.canvas))
     }
 
     fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
@@ -178,7 +181,7 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-canvas
     fn Canvas(&self) -> DomRoot<HTMLCanvasElement> {
         match &self.canvas {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => canvas.clone(),
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => canvas.as_rooted(),
             _ => panic!("Should not be called from offscreen canvas"),
         }
     }

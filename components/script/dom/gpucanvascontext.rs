@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::Epoch;
 use dom_struct::dom_struct;
 use webrender_api::ImageKey;
 
+use crate::canvas_context::LayoutCanvasRenderingContextHelpers;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
-use crate::dom::bindings::codegen::UnionTypes;
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::html::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 
 #[dom_struct]
 pub(crate) struct GPUCanvasContext {
@@ -26,7 +25,7 @@ impl GPUCanvasContext {
 
 impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
-    fn Canvas(&self) -> UnionTypes::HTMLCanvasElementOrOffscreenCanvas {
+    fn Canvas(&self) -> RootedHTMLCanvasElementOrOffscreenCanvas {
         unimplemented!()
     }
 }
