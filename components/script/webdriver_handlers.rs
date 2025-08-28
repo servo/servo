@@ -95,6 +95,13 @@ fn is_stale(element: &Element) -> bool {
     !element.owner_document().is_active() || !element.is_connected()
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-is-detached>
+fn is_detached(shadow_root: &ShadowRoot) -> bool {
+    // A shadow root is detached if its node document is not the active document
+    // or if the element node referred to as its host is stale.
+    !shadow_root.owner_document().is_active() || is_stale(&shadow_root.Host())
+}
+
 /// <https://w3c.github.io/webdriver/#dfn-disabled>
 fn is_disabled(element: &Element) -> bool {
     // Step 1. If element is an option element or element is an optgroup element
@@ -173,12 +180,7 @@ fn get_known_shadow_root(
     // A shadow root is detached if its node document is not the active document
     // or if the element node referred to as its host is stale.
     let shadow_root = DomRoot::downcast::<ShadowRoot>(node).unwrap();
-    if !shadow_root.owner_document().is_active() {
-        return Err(ErrorStatus::DetachedShadowRoot);
-    }
-
-    let host = shadow_root.Host();
-    if is_stale(&host) {
+    if is_detached(&shadow_root) {
         return Err(ErrorStatus::DetachedShadowRoot);
     }
     // Step 5. Return success with data node.
@@ -396,7 +398,6 @@ unsafe fn jsval_to_webdriver_inner(
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        // TODO: special handling for ShadowRoot
         if let Ok(element) = root_from_object::<Element>(*object, cx) {
             // If the element is stale, return error with error code stale element reference.
             if is_stale(&element) {
@@ -404,6 +405,15 @@ unsafe fn jsval_to_webdriver_inner(
             } else {
                 Ok(JSValue::Element(element.upcast::<Node>().unique_id(
                     element.owner_document().window().pipeline_id(),
+                )))
+            }
+        } else if let Ok(shadow_root) = root_from_object::<ShadowRoot>(*object, cx) {
+            // If the shadow root is detached, return error with error code detached shadow root.
+            if is_detached(&shadow_root) {
+                Err(WebDriverJSError::DetachedShadowRoot)
+            } else {
+                Ok(JSValue::ShadowRoot(shadow_root.upcast::<Node>().unique_id(
+                    shadow_root.owner_document().window().pipeline_id(),
                 )))
             }
         } else if let Ok(window) = root_from_object::<Window>(*object, cx) {

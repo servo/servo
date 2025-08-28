@@ -1047,6 +1047,7 @@ pub enum JSValue {
     Number(f64),
     String(String),
     Element(String),
+    ShadowRoot(String),
     Frame(String),
     Window(String),
     Array(Vec<JSValue>),
