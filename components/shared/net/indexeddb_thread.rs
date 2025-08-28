@@ -248,7 +248,7 @@ fn test_as_singleton() {
     assert!(full_range.as_singleton().is_none());
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum PutItemResult {
     Success,
     CannotOverwrite,
