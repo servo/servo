@@ -617,7 +617,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Note: the element can pass this check without yet being a custom
         // element, as long as there is a registered definition
         // that could upgrade it to one later.
-        let registry = self.owner_document().window().CustomElements();
+        let registry = self.owner_window().CustomElements();
         let definition = registry.lookup_definition(self.as_element().local_name(), None);
 
         // Step 3: If definition is null, then throw an "NotSupportedError" DOMException

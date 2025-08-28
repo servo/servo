@@ -403,18 +403,22 @@ unsafe fn jsval_to_webdriver_inner(
             if is_stale(&element) {
                 Err(WebDriverJSError::StaleElementReference)
             } else {
-                Ok(JSValue::Element(element.upcast::<Node>().unique_id(
-                    element.owner_document().window().pipeline_id(),
-                )))
+                Ok(JSValue::Element(
+                    element
+                        .upcast::<Node>()
+                        .unique_id(element.owner_window().pipeline_id()),
+                ))
             }
         } else if let Ok(shadow_root) = root_from_object::<ShadowRoot>(*object, cx) {
             // If the shadow root is detached, return error with error code detached shadow root.
             if is_detached(&shadow_root) {
                 Err(WebDriverJSError::DetachedShadowRoot)
             } else {
-                Ok(JSValue::ShadowRoot(shadow_root.upcast::<Node>().unique_id(
-                    shadow_root.owner_document().window().pipeline_id(),
-                )))
+                Ok(JSValue::ShadowRoot(
+                    shadow_root
+                        .upcast::<Node>()
+                        .unique_id(shadow_root.owner_window().pipeline_id()),
+                ))
             }
         } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
             let window_proxy = window.window_proxy();
