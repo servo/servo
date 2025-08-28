@@ -3,11 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::VecDeque;
 use std::sync::Arc;
-use serde::{Deserialize, Serialize};
+
 use net::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
 use net::indexeddb::idb_thread::IndexedDBDescription;
 use net::resource_thread::CoreResourceThreadPool;
-use net_traits::indexeddb_thread::{AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath, PutItemResult};
+use net_traits::indexeddb_thread::{
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
+    IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath, PutItemResult,
+};
+use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
 use url::Host;
 
@@ -180,8 +184,12 @@ fn test_delete_store() {
 
 #[test]
 fn test_async_operations() {
-    fn get_channel<T>() -> (ipc_channel::ipc::IpcSender<T>, ipc_channel::ipc::IpcReceiver<T>)
-    where T: for<'de> Deserialize<'de> + Serialize,
+    fn get_channel<T>() -> (
+        ipc_channel::ipc::IpcSender<T>,
+        ipc_channel::ipc::IpcReceiver<T>,
+    )
+    where
+        T: for<'de> Deserialize<'de> + Serialize,
     {
         ipc_channel::ipc::channel().unwrap()
     }
@@ -237,7 +245,7 @@ fn test_async_operations() {
                     sender: put3.0,
                     key: Some(IndexedDBKeyType::Array(vec![
                         IndexedDBKeyType::String("3".to_string()),
-                        IndexedDBKeyType::Number(0.0)
+                        IndexedDBKeyType::Number(0.0),
                     ])),
                     value: vec![7, 8, 9],
                     should_overwrite: false,
