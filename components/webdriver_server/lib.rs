@@ -260,6 +260,7 @@ impl Serialize for SendableJSValue {
             JSValue::Number(x) => serializer.serialize_f64(x),
             JSValue::String(ref x) => serializer.serialize_str(x),
             JSValue::Element(ref x) => WebElement(x.clone()).serialize(serializer),
+            JSValue::ShadowRoot(ref x) => ShadowRoot(x.clone()).serialize(serializer),
             JSValue::Frame(ref x) => WebFrame(x.clone()).serialize(serializer),
             JSValue::Window(ref x) => WebWindow(x.clone()).serialize(serializer),
             JSValue::Array(ref x) => x
@@ -2065,6 +2066,10 @@ impl Handler {
             Err(WebDriverJSError::StaleElementReference) => Err(WebDriverError::new(
                 ErrorStatus::StaleElementReference,
                 "Stale element",
+            )),
+            Err(WebDriverJSError::DetachedShadowRoot) => Err(WebDriverError::new(
+                ErrorStatus::DetachedShadowRoot,
+                "Detached shadow root",
             )),
             Err(WebDriverJSError::Timeout) => {
                 Err(WebDriverError::new(ErrorStatus::ScriptTimeout, ""))
