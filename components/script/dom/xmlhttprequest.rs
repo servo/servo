@@ -739,7 +739,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                                     .collect();
 
                                 let new_mime = format!(
-                                    "{}/{}; charset={}{}{}",
+                                    "{}/{};charset={}{}{}",
                                     mime.type_,
                                     mime.subtype,
                                     encoding,
@@ -750,9 +750,11 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                                         .collect::<Vec<String>>()
                                         .join("; ")
                                 );
-                                request
-                                    .headers
-                                    .typed_insert(ContentType::from_str(&new_mime).unwrap())
+
+                                request.headers.insert(
+                                    header::CONTENT_TYPE,
+                                    HeaderValue::from_str(&new_mime).unwrap(),
+                                );
                             }
                         }
                     }
