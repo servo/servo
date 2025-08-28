@@ -8,23 +8,31 @@ from __future__ import annotations
 
 import functools
 import os
-from typing import Any
+from typing import Any, TypeVar
 
 from WebIDL import (
     IDLExternalInterface,
     IDLSequenceType,
     IDLWrapperType,
     WebIDLError,
+    IDLEnum,
     IDLObject,
+    IDLObjectWithIdentifier,
     IDLType,
-    IDLInterface,
+    IDLTypedef,
+    IDLInterfaceOrNamespace,
     IDLDictionary,
     IDLCallback,
     IDLAttribute,
     IDLMethod,
 )
 
+TargetType = TypeVar('TargetType')
+def assert_type(object: Any, cls: type[TargetType]) -> TargetType:
+    assert isinstance(object, cls)
+    return object
 
+FilterItemsType = TypeVar('FilterItemsType', bound=IDLObjectWithIdentifier)
 class Configuration:
     """
     Represents global configuration state based on IDL parse data and
@@ -35,9 +43,13 @@ class Configuration:
     dictConfig: dict[str, Any]
     unionConfig: dict[str, Any]
     descriptors: list[Descriptor]
-    interfaces: dict[str, IDLInterface]
+    interfaces: dict[str, IDLInterfaceOrNamespace]
+    enums: list[IDLEnum]
+    typedefs: list[IDLTypedef]
+    dictionaries: list[IDLDictionary]
+    callbacks: list[IDLCallback]
 
-    def __init__(self, filename: str, parseData: list[IDLInterface]) -> None:
+    def __init__(self, filename: str, parseData: list[IDLObjectWithIdentifier]) -> None:
         # Read the configuration file.
         glbl = {}
         exec(compile(open(filename).read(), filename, 'exec'), glbl)
@@ -64,6 +76,7 @@ class Configuration:
                 continue
 
             iface = thing
+            assert isinstance(iface, IDLInterfaceOrNamespace)
             self.interfaces[iface.identifier.name] = iface
             if iface.identifier.name not in config:
                 entry = {}
@@ -83,10 +96,10 @@ class Configuration:
                                 if d.interface.identifier.name == interfaceName]
             descriptor.uniqueImplementation = len(otherDescriptors) == 1
 
-        self.enums = [e for e in parseData if e.isEnum()]
-        self.typedefs = [e for e in parseData if e.isTypedef()]
-        self.dictionaries = [d for d in parseData if d.isDictionary()]
-        self.callbacks = [c for c in parseData if
+        self.enums = [assert_type(e, IDLEnum) for e in parseData if e.isEnum()]
+        self.typedefs = [assert_type(e, IDLTypedef) for e in parseData if e.isTypedef()]
+        self.dictionaries = [assert_type(d, IDLDictionary) for d in parseData if d.isDictionary()]
+        self.callbacks = [assert_type(c, IDLCallback) for c in parseData if
                           c.isCallback() and not c.isInterface()]
 
         # Keep the descriptor list sorted for determinism.
@@ -94,10 +107,10 @@ class Configuration:
             return (x > y) - (x < y)
         self.descriptors.sort(key=functools.cmp_to_key(lambda x, y: cmp(x.name, y.name)))
 
-    def getInterface(self, ifname: str) -> IDLInterface:
+    def getInterface(self, ifname: str) -> IDLInterfaceOrNamespace:
         return self.interfaces[ifname]
 
-    def getDescriptors(self, **filters: IDLInterface) -> list[Descriptor]:
+    def getDescriptors(self, **filters: IDLInterfaceOrNamespace) -> list[Descriptor]:
         """Gets the descriptors that match the given filters."""
         curr = self.descriptors
         for key, val in filters.items():
@@ -134,17 +147,17 @@ class Configuration:
             curr = [x for x in curr if getter(x) == val]
         return curr
 
-    def getEnums(self, webIDLFile: str) -> list[IDLInterface]:
+    def getEnums(self, webIDLFile: str) -> list[IDLEnum]:
         return [e for e in self.enums if e.filename == webIDLFile]
 
     def getEnumConfig(self, name: str) -> dict[str, Any]:
         return self.enumConfig.get(name, {})
 
-    def getTypedefs(self, webIDLFile: str) -> list[IDLInterface]:
+    def getTypedefs(self, webIDLFile: str) -> list[IDLTypedef]:
         return [e for e in self.typedefs if e.filename == webIDLFile]
 
     @staticmethod
-    def _filterForFile(items: list[IDLInterface], webIDLFile: str = "") -> list[IDLInterface]:
+    def _filterForFile(items: list[FilterItemsType], webIDLFile: str = "") -> list[FilterItemsType]:
         """Gets the items that match the given filters."""
         if not webIDLFile:
             return items
@@ -154,13 +167,13 @@ class Configuration:
     def getUnionConfig(self, name: str) -> dict[str, Any]:
         return self.unionConfig.get(name, {})
 
-    def getDictionaries(self, webIDLFile: str = "") -> list[IDLInterface]:
+    def getDictionaries(self, webIDLFile: str = "") -> list[IDLDictionary]:
         return self._filterForFile(self.dictionaries, webIDLFile=webIDLFile)
 
     def getDictConfig(self, name: str) -> dict[str, Any]:
         return self.dictConfig.get(name, {})
 
-    def getCallbacks(self, webIDLFile: str = "") -> list[IDLInterface]:
+    def getCallbacks(self, webIDLFile: str = "") -> list[IDLCallback]:
         return self._filterForFile(self.callbacks, webIDLFile=webIDLFile)
 
     def getDescriptor(self, interfaceName: str) -> Descriptor:
@@ -214,10 +227,10 @@ class Descriptor(DescriptorProvider):
     """
     Represents a single descriptor for an interface. See Bindings.conf.
     """
-    interface: IDLInterface
+    interface: IDLInterfaceOrNamespace
     uniqueImplementation: bool
 
-    def __init__(self, config: Configuration, interface: IDLInterface, desc: dict[str, Any]) -> None:
+    def __init__(self, config: Configuration, interface: IDLInterfaceOrNamespace, desc: dict[str, Any]) -> None:
         DescriptorProvider.__init__(self, config)
         self.interface = interface
 
@@ -318,7 +331,7 @@ class Descriptor(DescriptorProvider):
                 self.hasDefaultToJSON = True
 
         if self.concrete:
-            iface: IDLInterface | None = self.interface
+            iface: IDLInterfaceOrNamespace | None = self.interface
             while iface:
                 for m in iface.members:
                     if not m.isMethod():
@@ -374,7 +387,7 @@ class Descriptor(DescriptorProvider):
             else:
                 assert isinstance(config, str)
                 if config == '*':
-                    iface: IDLInterface | None = self.interface
+                    iface: IDLInterfaceOrNamespace | None = self.interface
                     while iface:
                         add('all', [m.name for m in iface.members], attribute)
                         iface = iface.parent
@@ -401,7 +414,7 @@ class Descriptor(DescriptorProvider):
 
         # Build the prototype chain.
         self.prototypeChain = []
-        parent: IDLInterface | None = interface
+        parent: IDLInterfaceOrNamespace | None = interface
         while parent:
             self.prototypeChain.insert(0, parent.identifier.name)
             parent = parent.parent
@@ -543,7 +556,7 @@ def getTypesFromDescriptor(descriptor: Descriptor) -> list[IDLType]:
     return types
 
 
-def getTypesFromDictionary(dictionary: IDLWrapperType | IDLDictionary) -> list[IDLObject]:
+def getTypesFromDictionary(dictionary: IDLWrapperType | IDLDictionary) -> list[IDLType]:
     """
     Get all member types for this dictionary
     """

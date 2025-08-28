@@ -12,7 +12,7 @@ from WebIDL import IDLUnionType
 from WebIDL import IDLSequenceType
 from collections import defaultdict
 from itertools import groupby
-from typing import cast, Optional, Any, Generic, TypeVar
+from typing import cast, Optional, Any, Generic, TypeVar, TypeGuard
 from collections.abc import Generator, Callable, Iterator, Iterable
 from abc import abstractmethod
 
@@ -50,7 +50,6 @@ from WebIDL import (
     IDLValue,
     IDLMethod,
     IDLEnum,
-    IDLNamespace,
     IDLCallbackType,
     IDLUnresolvedIdentifier,
 )
@@ -151,6 +150,11 @@ RUST_KEYWORDS = {
     "yield",
 }
 
+def isIDLType(obj: IDLObject) -> TypeGuard[IDLType]:
+    if obj.isType():
+        assert isinstance(obj, IDLType)
+        return True
+    return False
 
 def genericsForType(t: IDLObject) -> tuple[str, str]:
     if containsDomInterface(t):
@@ -2279,6 +2283,9 @@ class CGRecord(CGThing):
         return f"Record<{defn}>"
 
 
+TopLevelType = IDLInterfaceOrNamespace | IDLDictionary | IDLEnum | IDLType
+
+
 class CGImports(CGWrapper):
     """
     Generates the appropriate import/use statements.
@@ -2298,9 +2305,8 @@ class CGImports(CGWrapper):
         Adds a set of imports.
         """
 
-        def componentTypes(type: IDLObject) -> list[IDLObject]:
-            if type.isType() and type.nullable():
-                assert isinstance(type, IDLType)
+        def componentTypes(type: IDLType | IDLDictionary) -> list[IDLType | IDLDictionary]:
+            if isIDLType(type) and type.nullable():
                 type = type.unroll()
             if type.isUnion():
                 assert isinstance(type, IDLUnionType)
@@ -2314,7 +2320,7 @@ class CGImports(CGWrapper):
                 return componentTypes(type.inner)
             return [type]
 
-        def isImportable(type: IDLObject) -> bool:
+        def isImportable(type: TopLevelType) -> bool:
             if not type.isType():
                 assert (type.isInterface() or type.isDictionary()
                         or type.isEnum() or type.isNamespace())
@@ -2328,28 +2334,24 @@ class CGImports(CGWrapper):
                 types += componentTypes(returnType)
                 for arg in arguments:
                     types += componentTypes(arg.type)
-
             return types
 
         def getIdentifier(t: IDLObject) -> IDLUnresolvedIdentifier:
-            if t.isType():
-                assert isinstance(t, IDLType)
-                if t.nullable():
-                    assert isinstance(t, IDLNullableType)
-                    t = t.inner
+            if isIDLType(t):
                 if t.isCallback():
                     assert isinstance(t, IDLCallbackType)
                     return t.callback.identifier
-                assert isinstance(t, (IDLInterface, IDLDictionary, IDLEnum, IDLNamespace))
-                return t.identifier
+                raise Exception(f"Don't know how to handle type without identifier: {t}")
             assert t.isInterface() or t.isDictionary() or t.isEnum() or t.isNamespace()
-            assert isinstance(t, (IDLInterface, IDLDictionary, IDLEnum, IDLNamespace))
+            assert isinstance(t, (IDLInterfaceOrNamespace, IDLDictionary, IDLEnum))
             return t.identifier
 
-        def removeWrapperAndNullableTypes(types: list[IDLType]) -> list[IDLType]:
+        def removeWrapperAndNullableTypes(
+            types: list[IDLType | IDLDictionary | IDLInterfaceOrNamespace]
+        ) -> list[TopLevelType]:
             normalized = []
             for t in types:
-                while (t.isType() and t.nullable()) or isinstance(t, IDLWrapperType):
+                while isIDLType(t) and (t.nullable() or isinstance(t, IDLWrapperType)):
                     assert isinstance(t, (IDLNullableType, IDLWrapperType))
                     t = t.inner
                 if isImportable(t):
@@ -2418,7 +2420,7 @@ class CGImports(CGWrapper):
                     descriptor = descriptorProvider.getDescriptor(parentName)
                     extras += [descriptor.bindingPath]
                     parentName = descriptor.getParentName()
-            elif t.isType() and t.isRecord():
+            elif isIDLType(t) and t.isRecord():
                 extras += ['crate::record::Record']
             elif isinstance(t, IDLPromiseType):
                 pass
@@ -2759,7 +2761,7 @@ def getAllTypes(
     dictionaries: list[IDLDictionary],
     callbacks: list[IDLCallback],
     typedefs: list[IDLTypedef]
-) -> Generator[tuple[IDLObject, Optional[Descriptor]], None, None]:
+) -> Generator[tuple[IDLType, Optional[Descriptor]], None, None]:
     """
     Generate all the types we're dealing with.  For each type, a tuple
     containing type, descriptor, dictionary is yielded.  The
@@ -9060,7 +9062,6 @@ impl Clone for TopTypeId {
             config.getDescriptors(), config.getDictionaries(), config.getCallbacks(), config.typedefs
         )
         for (t, descriptor) in allTypes:
-            # pyrefly: ignore  # missing-attribute
             t = t.unroll()
             name = str(t)
             if not t.isUnion() or name in unions:
