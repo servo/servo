@@ -129,7 +129,11 @@ impl Shaper {
 }
 
 impl Shaper {
-    fn shaped_glyph_data(&self, text: &str, options: &crate::ShapingOptions) -> ShapedGlyphData {
+    pub(crate) fn shaped_glyph_data(
+        &self,
+        text: &str,
+        options: &crate::ShapingOptions,
+    ) -> ShapedGlyphData {
         let mut buffer = UnicodeBuffer::new();
 
         // Set direction
@@ -179,7 +183,7 @@ impl Shaper {
     }
 
     #[allow(unsafe_code)]
-    fn font(&self) -> &Font {
+    pub(crate) fn font(&self) -> &Font {
         // SAFETY: the font actually owns this shaper so it cannot have been dropped
         unsafe { &(*self.font) }
     }

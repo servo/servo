@@ -16,12 +16,24 @@ use crate::{Font, GlyphData, GlyphId, GlyphStore, ShapingOptions, advance_for_sh
 #[cfg(feature = "harfbuzz")]
 mod harfbuzz;
 #[cfg(feature = "harfbuzz")]
-pub(crate) use harfbuzz::Shaper;
+pub(crate) use harfbuzz::Shaper as HarfBuzzShaper;
 
 #[cfg(feature = "harfrust")]
 mod harfrust;
-#[cfg(all(feature = "harfrust", not(feature = "harfbuzz")))]
-pub(crate) use harfrust::Shaper;
+#[cfg(feature = "harfrust")]
+pub(crate) use harfrust::Shaper as HarfRustShaper;
+
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+mod both;
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+pub(crate) use BothShaper as Shaper;
+// Configure default shaper (actually used)
+#[cfg(all(feature = "harfbuzz", not(feature = "harfrust")))]
+pub(crate) use HarfBuzzShaper as Shaper;
+#[cfg(all(not(feature = "harfbuzz"), feature = "harfrust"))]
+pub(crate) use HarfRustShaper as Shaper;
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+pub(crate) use both::Shaper as BothShaper;
 
 const NO_GLYPH: i32 = -1;
 
@@ -39,6 +51,7 @@ fn unicode_script_to_iso15924_tag(script: unicode_script::Script) -> u32 {
     u32::from_be_bytes(bytes)
 }
 
+#[derive(PartialEq)]
 struct ShapedGlyphEntry {
     codepoint: GlyphId,
     advance: Au,
