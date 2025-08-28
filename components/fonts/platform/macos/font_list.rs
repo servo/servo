@@ -182,7 +182,7 @@ pub fn default_system_generic_font_family(generic: GenericFontFamily) -> Lowerca
         GenericFontFamily::Monospace => "Menlo",
         GenericFontFamily::Cursive => "Apple Chancery",
         GenericFontFamily::Fantasy => "Papyrus",
-        GenericFontFamily::SystemUi => "Menlo",
+        GenericFontFamily::SystemUi => "Helvetica",
     }
     .into()
 }
