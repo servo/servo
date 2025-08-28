@@ -337,7 +337,7 @@ class CommandBase(object):
 
     def get_binary_path(self, build_type: BuildType, sanitizer: SanitizerKind = SanitizerKind.NONE) -> str:
         base_path = util.get_target_dir()
-        if sanitizer.is_some() or self.target.is_cross_build():
+        if sanitizer.is_some() or self.target.is_cross_build() or self.enable_code_coverage:
             base_path = path.join(base_path, self.target.triple())
         binary_name = self.target.binary_name()
         binary_path = path.join(base_path, build_type.directory_name(), binary_name)
@@ -507,7 +507,7 @@ class CommandBase(object):
             env["RUSTFLAGS"] += " " + "-Cinstrument-coverage=true"
             target_file_pattern = f"{util.get_target_dir()}/code_coverage/default_%20m_%p.profraw"
             env.setdefault("LLVM_PROFILE_FILE", target_file_pattern)
-            print(f"Building with coverage enabled. Output pattern: {env['LLVM_PROFILE_FILE']}")
+            print(f"Code coverage enabled. Output pattern: {env['LLVM_PROFILE_FILE']}")
 
         if not (self.config["build"]["ccache"] == ""):
             env["CCACHE"] = self.config["build"]["ccache"]
@@ -645,13 +645,6 @@ class CommandBase(object):
                     help="Build with frame pointer enabled, used by the background hang monitor.",
                 ),
                 CommandArgument(
-                    "--with-coverage",
-                    default=False,
-                    group="Feature Selection",
-                    action="store_true",
-                    help="Build with code coverage",
-                ),
-                CommandArgument(
                     "--use-crown", default=False, action="store_true", help="Enable Servo's `crown` linter tool"
                 ),
             ]
@@ -671,6 +664,15 @@ class CommandBase(object):
                 CommandArgumentGroup("Binary selection"),
                 CommandArgument("--bin", default=None, help="Launch with specific binary"),
                 CommandArgument("--nightly", "-n", default=None, help="Specify a YYYY-MM-DD nightly build to run"),
+            ]
+        if build_configuration or binary_selection:
+            decorators += [
+                CommandArgument(
+                    "--with-coverage",
+                    default=False,
+                    action="store_true",
+                    help="Build with code coverage",
+                ),
             ]
 
         def decorator_function(original_function: Callable) -> Callable:
@@ -693,11 +695,12 @@ class CommandBase(object):
                     self.configure_build_target(kwargs)
                     self.features = kwargs.get("features", None) or []
                     self.enable_media = self.is_media_enabled(kwargs["media_stack"])
-                    self.enable_code_coverage = kwargs.get("with_coverage", False)
+
+                if build_configuration or binary_selection:
+                    self.enable_code_coverage = kwargs.pop("with_coverage", False)
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:
-                        # Todo: Path target_override for code coverage into this logic?
                         kwargs["servo_binary"] = (
                             kwargs.get("bin")
                             or self.get_nightly_binary_path(kwargs.get("nightly"))
