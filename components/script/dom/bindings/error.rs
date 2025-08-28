@@ -41,7 +41,7 @@ thread_local! {
 }
 
 /// Error values that have no equivalent DOMException representation.
-enum JsEngineError {
+pub(crate) enum JsEngineError {
     /// An EMCAScript TypeError.
     Type(String),
     /// An ECMAScript RangeError.
