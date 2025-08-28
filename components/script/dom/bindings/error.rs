@@ -41,7 +41,7 @@ thread_local! {
 }
 
 /// Error values that have no equivalent DOMException representation.
-enum JsEngineError {
+pub(crate) enum JsEngineError {
     /// An EMCAScript TypeError.
     Type(String),
     /// An ECMAScript RangeError.
@@ -94,7 +94,7 @@ pub(crate) fn throw_dom_exception(
 /// If possible, create a new DOMException representing the provided error.
 /// If no such DOMException exists, return a subset of the original error values
 /// that may need additional handling.
-fn create_dom_exception(
+pub(crate) fn create_dom_exception(
     global: &GlobalScope,
     result: Error,
     can_gc: CanGc,

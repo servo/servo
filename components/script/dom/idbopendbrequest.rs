@@ -220,7 +220,7 @@ impl IDBOpenDBRequest {
         self.idbrequest.set_result(result);
     }
 
-    pub fn set_error(&self, error: Error, can_gc: CanGc) {
+    pub fn set_error(&self, error: Option<Error>, can_gc: CanGc) {
         self.idbrequest.set_error(error, can_gc);
     }
 
@@ -270,7 +270,7 @@ impl IDBOpenDBRequest {
                             },
                             Err(dom_exception) => {
                                 request.set_result(HandleValue::undefined());
-                                request.set_error(dom_exception, CanGc::note());
+                                request.set_error(Some(dom_exception), CanGc::note());
                                 let event = Event::new(
                                     &global,
                                     Atom::from("error"),
