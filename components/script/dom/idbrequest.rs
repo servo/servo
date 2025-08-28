@@ -253,8 +253,7 @@ impl IDBRequest {
 
     pub fn set_error(&self, error: Option<Error>, can_gc: CanGc) {
         if let Some(error) = error {
-            if let Ok(exception) = create_dom_exception(&self.global(), error, can_gc)
-            {
+            if let Ok(exception) = create_dom_exception(&self.global(), error, can_gc) {
                 self.error.set(Some(&exception));
             }
         } else {
