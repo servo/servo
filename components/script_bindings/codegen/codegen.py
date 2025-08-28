@@ -4352,7 +4352,7 @@ class FakeArgument():
         return self._allowTreatNonObjectAsNull
 
     @property
-    def identifier(self):
+    def identifier(self) -> None:
         raise NotImplementedError("FakeArgument identifier has not been implemented")
 
 class CGSetterCall(CGPerSignatureCall):
