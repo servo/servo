@@ -22,7 +22,6 @@ from WebIDL import (
     IDLCallback,
     IDLAttribute,
     IDLMethod,
-    IDLArgument,
 )
 
 
@@ -569,7 +568,7 @@ def getTypesFromCallback(callback: IDLCallback) -> list[IDLType]:
     return types
 
 
-def getUnwrappedType(type: IDLArgument) -> IDLArgument:
+def getUnwrappedType(type: IDLType) -> IDLType:
     while isinstance(type, IDLSequenceType):
         type = type.inner
     return type

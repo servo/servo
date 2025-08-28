@@ -2711,10 +2711,9 @@ class CGList(CGThing):
         self.joiner = joiner
 
     def append(self, child: CGThing | None) -> None:
-        if child is not None:
-            self.children.append(child)
+        self.children.append(child)
 
-    def prepend(self, child: CGThing) -> None:
+    def prepend(self, child: CGThing | None) -> None:
         self.children.insert(0, child)
 
     def join(self, iterable: Iterable[str]) -> str:
