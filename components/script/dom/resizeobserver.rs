@@ -315,7 +315,16 @@ fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions)
                 .pop()
                 .unwrap_or_else(Rect::zero)
         },
-        // TODO(#31182): add support for border box, and device pixel size, calculations.
+        ResizeObserverBoxOptions::Border_box => {
+            // Note: only taking first fragment,
+            // but the spec will expand to cover all fragments.
+            target
+                .upcast::<Node>()
+                .border_boxes()
+                .pop()
+                .unwrap_or_else(Rect::zero)
+        },
+        // TODO(#31182): add support for device pixel size calculations.
         _ => Rect::zero(),
     }
 }
