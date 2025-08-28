@@ -9,7 +9,6 @@ use std::thread;
 
 use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::WebViewId;
-use ipc_channel::ipc::IpcSender;
 use malloc_size_of::MallocSizeOf;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::mem::{
@@ -195,7 +194,7 @@ impl StorageManager {
 
     fn length(
         &self,
-        sender: IpcSender<usize>,
+        sender: GenericSender<usize>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
@@ -209,7 +208,7 @@ impl StorageManager {
 
     fn key(
         &self,
-        sender: IpcSender<Option<String>>,
+        sender: GenericSender<Option<String>>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
@@ -243,7 +242,7 @@ impl StorageManager {
     /// exceeding the quota limit
     fn set_item(
         &mut self,
-        sender: IpcSender<Result<(bool, Option<String>), ()>>,
+        sender: GenericSender<Result<(bool, Option<String>), ()>>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
@@ -292,7 +291,7 @@ impl StorageManager {
 
     fn request_item(
         &self,
-        sender: IpcSender<Option<String>>,
+        sender: GenericSender<Option<String>>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
@@ -308,7 +307,7 @@ impl StorageManager {
     /// Sends Some(old_value) in case there was a previous value with the key name, otherwise sends None
     fn remove_item(
         &mut self,
-        sender: IpcSender<Option<String>>,
+        sender: GenericSender<Option<String>>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
@@ -326,7 +325,7 @@ impl StorageManager {
 
     fn clear(
         &mut self,
-        sender: IpcSender<bool>,
+        sender: GenericSender<bool>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,

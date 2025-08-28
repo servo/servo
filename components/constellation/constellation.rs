@@ -2611,7 +2611,7 @@ where
         let (core_ipc_sender, core_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
         let (storage_ipc_sender, storage_ipc_receiver) =
-            ipc::channel().expect("Failed to create IPC channel!");
+            generic_channel::channel().expect("Failed to create IPC channel!");
         let mut webgl_threads_receiver = None;
 
         debug!("Exiting core resource threads.");

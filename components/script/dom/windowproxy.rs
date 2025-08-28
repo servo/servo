@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::ptr;
 
+use base::generic_channel;
 use base::generic_channel::GenericSend;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{
@@ -348,7 +349,7 @@ impl WindowProxy {
             // the session storage is copied over.
             // See https://html.spec.whatwg.org/multipage/#the-sessionstorage-attribute
 
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = generic_channel::channel().unwrap();
 
             let msg = StorageThreadMsg::Clone {
                 sender,
