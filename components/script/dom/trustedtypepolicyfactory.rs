@@ -71,19 +71,20 @@ impl TrustedTypePolicyFactory {
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
-        // Step 1: Let allowedByCSP be the result of executing Should Trusted Type policy creation be blocked by
-        // Content Security Policy? algorithm with global, policyName and factory’s created policy names value.
-        let allowed_by_csp = global
-            .get_csp_list()
-            .is_trusted_type_policy_creation_allowed(
-                global,
-                policy_name.clone(),
-                self.policy_names.borrow().clone(),
-            );
+        // Avoid double borrow on policy_names
+        {
+            // Step 1: Let allowedByCSP be the result of executing Should Trusted Type policy creation be blocked by
+            // Content Security Policy? algorithm with global, policyName and factory’s created policy names value.
+            let policy_names = self.policy_names.borrow();
+            let policy_names: Vec<&str> = policy_names.iter().map(String::as_ref).collect();
+            let allowed_by_csp = global
+                .get_csp_list()
+                .is_trusted_type_policy_creation_allowed(global, &policy_name, &policy_names);
 
-        // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
-        if !allowed_by_csp {
-            return Err(Error::Type("Not allowed by CSP".to_string()));
+            // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
+            if !allowed_by_csp {
+                return Err(Error::Type("Not allowed by CSP".to_string()));
+            }
         }
 
         // Step 3: If policyName is default and the factory’s default policy value is not null, throw a TypeError
