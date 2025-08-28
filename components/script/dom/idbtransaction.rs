@@ -212,7 +212,8 @@ impl IDBTransaction {
     ) -> Option<IDBObjectStoreParameters> {
         let global = self.global();
         let idb_sender = global.resource_threads().sender();
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            ipc::channel(global.time_profiler_chan().clone()).expect("failed to create channel");
 
         let origin = global.origin().immutable().clone();
         let db_name = self.db.get_name().to_string();
@@ -225,20 +226,16 @@ impl IDBTransaction {
             object_store_name.clone(),
         );
 
-        idb_sender
-            .send(IndexedDBThreadMsg::Sync(operation))
-            .unwrap();
+        let _ = idb_sender.send(IndexedDBThreadMsg::Sync(operation));
 
         // First unwrap for ipc
         // Second unwrap will never happen unless this db gets manually deleted somehow
-        let auto_increment = receiver.recv().unwrap().ok()?;
+        let auto_increment = receiver.recv().ok()?.ok()?;
 
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).ok()?;
         let operation = SyncOperation::KeyPath(sender, origin, db_name, object_store_name);
 
-        idb_sender
-            .send(IndexedDBThreadMsg::Sync(operation))
-            .unwrap();
+        let _ = idb_sender.send(IndexedDBThreadMsg::Sync(operation));
 
         // First unwrap for ipc
         // Second unwrap will never happen unless this db gets manually deleted somehow
