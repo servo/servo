@@ -3,14 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::VecDeque;
 use std::sync::Arc;
-
+use serde::{Deserialize, Serialize};
 use net::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
 use net::indexeddb::idb_thread::IndexedDBDescription;
 use net::resource_thread::CoreResourceThreadPool;
-use net_traits::indexeddb_thread::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
-    IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath,
-};
+use net_traits::indexeddb_thread::{AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath, PutItemResult};
 use servo_url::ImmutableOrigin;
 use url::Host;
 
@@ -183,6 +180,12 @@ fn test_delete_store() {
 
 #[test]
 fn test_async_operations() {
+    fn get_channel<T>() -> (ipc_channel::ipc::IpcSender<T>, ipc_channel::ipc::IpcReceiver<T>)
+    where T: for<'de> Deserialize<'de> + Serialize,
+    {
+        ipc_channel::ipc::channel().unwrap()
+    }
+
     let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
     let thread_pool = get_pool();
     let db = SqliteEngine::new(
@@ -197,19 +200,23 @@ fn test_async_operations() {
     let store_name = "test_store";
     db.create_store(store_name, None, false)
         .expect("Failed to create store");
-    let channel = ipc_channel::ipc::channel().unwrap();
-    let channel2 = ipc_channel::ipc::channel().unwrap();
-    let channel3 = ipc_channel::ipc::channel().unwrap();
-    let channel4 = ipc_channel::ipc::channel().unwrap();
-    let channel5 = ipc_channel::ipc::channel().unwrap();
-    let channel6 = ipc_channel::ipc::channel().unwrap();
+    let put = get_channel();
+    let put2 = get_channel();
+    let put3 = get_channel();
+    let put_dup = get_channel();
+    let get_item_some = get_channel();
+    let get_item_none = get_channel();
+    let get_all_items = get_channel();
+    let count = get_channel();
+    let remove = get_channel();
+    let clear = get_channel();
     let rx = db.process_transaction(KvsTransaction {
         mode: IndexedDBTxnMode::Readwrite,
         requests: VecDeque::from(vec![
             KvsOperation {
                 store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                    sender: channel.0,
+                    sender: put.0,
                     key: Some(IndexedDBKeyType::Number(1.0)),
                     value: vec![1, 2, 3],
                     should_overwrite: false,
@@ -217,48 +224,97 @@ fn test_async_operations() {
             },
             KvsOperation {
                 store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                    sender: put2.0,
+                    key: Some(IndexedDBKeyType::String("2.0".to_string())),
+                    value: vec![4, 5, 6],
+                    should_overwrite: false,
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                    sender: put3.0,
+                    key: Some(IndexedDBKeyType::Array(vec![
+                        IndexedDBKeyType::String("3".to_string()),
+                        IndexedDBKeyType::Number(0.0)
+                    ])),
+                    value: vec![7, 8, 9],
+                    should_overwrite: false,
+                }),
+            },
+            // Try to put a duplicate key without overwrite
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                    sender: put_dup.0,
+                    key: Some(IndexedDBKeyType::Number(1.0)),
+                    value: vec![10, 11, 12],
+                    should_overwrite: false,
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                    sender: channel2.0,
+                    sender: get_item_some.0,
                     key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
                 }),
             },
             KvsOperation {
                 store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                    sender: channel3.0,
+                    sender: get_item_none.0,
                     key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
                 }),
             },
             KvsOperation {
                 store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                    sender: get_all_items.0,
+                    key_range: IndexedDBKeyRange::lower_bound(IndexedDBKeyType::Number(0.0), false),
+                    count: None,
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
-                    sender: channel4.0,
+                    sender: count.0,
                     key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
                 }),
             },
             KvsOperation {
                 store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
-                    sender: channel5.0,
+                    sender: remove.0,
                     key: IndexedDBKeyType::Number(1.0),
                 }),
             },
             KvsOperation {
                 store_name: store_name.to_owned(),
-                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(channel6.0)),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(clear.0)),
             },
         ]),
     });
     let _ = rx.blocking_recv().unwrap();
-    channel.1.recv().unwrap().unwrap();
-    let get_result = channel2.1.recv().unwrap();
+    put.1.recv().unwrap().unwrap();
+    put2.1.recv().unwrap().unwrap();
+    put3.1.recv().unwrap().unwrap();
+    let err = put_dup.1.recv().unwrap().unwrap();
+    assert_eq!(err, PutItemResult::CannotOverwrite);
+    let get_result = get_item_some.1.recv().unwrap();
     let value = get_result.unwrap();
     assert_eq!(value, Some(vec![1, 2, 3]));
-    let get_result = channel3.1.recv().unwrap();
+    let get_result = get_item_none.1.recv().unwrap();
     let value = get_result.unwrap();
     assert_eq!(value, None);
-    let amount = channel4.1.recv().unwrap().unwrap();
+    let all_items = get_all_items.1.recv().unwrap().unwrap();
+    assert_eq!(all_items.len(), 3);
+    // Check that all three items are present
+    assert!(all_items.contains(&vec![1, 2, 3]));
+    assert!(all_items.contains(&vec![4, 5, 6]));
+    assert!(all_items.contains(&vec![7, 8, 9]));
+    let amount = count.1.recv().unwrap().unwrap();
     assert_eq!(amount, 1);
-    channel5.1.recv().unwrap().unwrap();
-    channel6.1.recv().unwrap().unwrap();
+    remove.1.recv().unwrap().unwrap();
+    clear.1.recv().unwrap().unwrap();
 }
