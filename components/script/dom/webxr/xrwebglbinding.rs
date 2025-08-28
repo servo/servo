@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::UnionTypes::WebGLRenderingContextOrWebGL2Rend
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::window::Window;
 use crate::dom::xrcompositionlayer::XRCompositionLayer;
 use crate::dom::xrcubelayer::XRCubeLayer;
