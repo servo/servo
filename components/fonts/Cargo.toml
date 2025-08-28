@@ -14,7 +14,7 @@ test = true
 doctest = false
 
 [features]
-default = ["harfrust"]
+default = ["harfrust", "harfbuzz"]
 harfbuzz = ["dep:harfbuzz-sys"]
 harfrust = ["dep:harfrust"]
 tracing = ["dep:tracing"]
