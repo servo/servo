@@ -7,22 +7,28 @@ use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use app_units::Au;
 use canvas_traits::canvas::{
-    Canvas2dMsg, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending, Direction,
-    FillOrStrokeStyle, FillRule, LineCapStyle, LineJoinStyle, LineOptions, LinearGradientStyle,
-    Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextAlign, TextBaseline,
-    TextMetrics as CanvasTextMetrics, TextOptions,
+    Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
+    FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
+    LinearGradientStyle, Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextRun,
 };
 use constellation_traits::ScriptToConstellationMessage;
 use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
-use euclid::vec2;
+use euclid::{Vector2D, vec2};
+use fonts::{
+    ByteIndex, FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
+    LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
+};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use profile_traits::ipc as profiled_ipc;
+use range::Range;
+use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::context::QuirksMode;
@@ -34,6 +40,7 @@ use style::values::computed::font::FontStyle;
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
 use style_traits::{CssWriter, ParsingMode};
+use unicode_script::Script;
 use url::Url;
 use webrender_api::ImageKey;
 
@@ -67,6 +74,9 @@ use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
+
+const HANGING_BASELINE_DEFAULT: f64 = 0.8;
+const IDEOGRAPHIC_BASELINE_DEFAULT: f64 = 0.5;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -112,13 +122,11 @@ pub(crate) struct CanvasContextState {
     #[no_trace]
     shadow_color: AbsoluteColor,
     #[no_trace]
-    font_style: Option<Font>,
-    #[no_trace]
-    text_align: TextAlign,
-    #[no_trace]
-    text_baseline: TextBaseline,
-    #[no_trace]
-    direction: Direction,
+    #[conditional_malloc_size_of]
+    font_style: Option<ServoArc<Font>>,
+    text_align: CanvasTextAlign,
+    text_baseline: CanvasTextBaseline,
+    direction: CanvasDirection,
     /// The number of clips pushed onto the context while in this state.
     /// When restoring old state, same number of clips will be popped to restore state.
     clips_pushed: usize,
@@ -144,23 +152,12 @@ impl CanvasContextState {
             shadow_blur: 0.0,
             shadow_color: AbsoluteColor::TRANSPARENT_BLACK,
             font_style: None,
-            text_align: Default::default(),
-            text_baseline: Default::default(),
-            direction: Default::default(),
+            text_align: CanvasTextAlign::Start,
+            text_baseline: CanvasTextBaseline::Alphabetic,
+            direction: CanvasDirection::Inherit,
             line_dash: Vec::new(),
             line_dash_offset: 0.0,
             clips_pushed: 0,
-        }
-    }
-
-    fn text_options(&self) -> TextOptions {
-        TextOptions {
-            font: self
-                .font_style
-                .as_ref()
-                .map(|font| servo_arc::Arc::new(font.clone())),
-            align: self.text_align,
-            baseline: self.text_baseline,
         }
     }
 
@@ -1378,6 +1375,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     pub(crate) fn fill_text(
         &self,
+        global_scope: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
         text: DOMString,
         x: f64,
@@ -1390,32 +1388,26 @@ impl CanvasState {
         if max_width.is_some_and(|max_width| !max_width.is_finite() || max_width <= 0.) {
             return;
         }
+
         if self.state.borrow().font_style.is_none() {
             self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
         }
+        // This may be `None` if if this is offscreen canvas, in which case just use
+        // the initial values for the text style.
+        let size = self.font_style().font_size.computed_size().px() as f64;
 
-        let is_rtl = match self.state.borrow().direction {
-            Direction::Ltr => false,
-            Direction::Rtl => true,
-            Direction::Inherit => false, // TODO: resolve direction wrt to canvas element
-        };
-
-        let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
-        self.send_canvas_2d_msg(Canvas2dMsg::FillText(
-            text.into(),
-            x,
-            y,
+        self.fill_text_with_size(
+            global_scope,
+            text.str(),
+            Point2D::new(x, y),
+            size,
             max_width,
-            style,
-            is_rtl,
-            self.state.borrow().text_options(),
-            self.state.borrow().shadow_options(),
-            self.state.borrow().composition_options(),
-            self.state.borrow().transform,
-        ));
+        );
     }
 
-    // https://html.spec.whatwg.org/multipage/#textmetrics
+    /// <https://html.spec.whatwg.org/multipage/#text-preparation-algorithm>
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-measuretext>
+    /// <https://html.spec.whatwg.org/multipage/#textmetrics>
     pub(crate) fn measure_text(
         &self,
         global: &GlobalScope,
@@ -1423,40 +1415,86 @@ impl CanvasState {
         text: DOMString,
         can_gc: CanGc,
     ) -> DomRoot<TextMetrics> {
+        // > Step 1: If maxWidth was provided but is less than or equal to zero or equal to NaN, then return an empty array.0
+        // Max width is not provided for `measureText()`.
+
+        // > Step 2: Replace all ASCII whitespace in text with U+0020 SPACE characters.
+        let text = replace_ascii_whitespace(text.str());
+
+        // > Step 3: Let font be the current font of target, as given by that object's font
+        // > attribute.
         if self.state.borrow().font_style.is_none() {
             self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into());
         }
 
-        let metrics = {
-            if !self.is_paintable() {
-                CanvasTextMetrics::default()
-            } else {
-                let (sender, receiver) = ipc::channel::<CanvasTextMetrics>().unwrap();
-                self.send_canvas_2d_msg(Canvas2dMsg::MeasureText(
-                    text.into(),
-                    sender,
-                    self.state.borrow().text_options(),
-                ));
-                receiver
-                    .recv()
-                    .expect("Failed to receive response from canvas paint thread")
-            }
+        let Some(font_context) = global.font_context() else {
+            warn!("Tried to paint to a canvas of GlobalScope without a FontContext.");
+            return TextMetrics::default(global, can_gc);
+        };
+
+        let font_style = self.font_style();
+        let font_group = font_context.font_group(font_style.clone());
+        let mut font_group = font_group.write();
+        let font = font_group.first(font_context).expect("couldn't find font");
+        let ascent = font.metrics.ascent.to_f64_px();
+        let descent = font.metrics.descent.to_f64_px();
+        let runs = self.build_unshaped_text_runs(font_context, &text, &mut font_group);
+
+        let mut total_advance = 0.0;
+        let shaped_runs: Vec<_> = runs
+            .into_iter()
+            .filter_map(|unshaped_text_run| {
+                let text_run = unshaped_text_run.into_shaped_text_run(total_advance)?;
+                total_advance += text_run.advance;
+                Some(text_run)
+            })
+            .collect();
+
+        let bounding_box = shaped_runs
+            .iter()
+            .map(|text_run| text_run.bounds)
+            .reduce(|a, b| a.union(&b))
+            .unwrap_or_default();
+
+        let baseline = font.baseline().unwrap_or_else(|| FontBaseline {
+            hanging_baseline: (ascent * HANGING_BASELINE_DEFAULT) as f32,
+            ideographic_baseline: (-descent * IDEOGRAPHIC_BASELINE_DEFAULT) as f32,
+            alphabetic_baseline: 0.,
+        });
+        let ideographic_baseline = baseline.ideographic_baseline as f64;
+        let alphabetic_baseline = baseline.alphabetic_baseline as f64;
+        let hanging_baseline = baseline.hanging_baseline as f64;
+
+        let state = self.state.borrow();
+        let anchor_x = match state.text_align {
+            CanvasTextAlign::End => total_advance,
+            CanvasTextAlign::Center => total_advance / 2.,
+            CanvasTextAlign::Right => total_advance,
+            _ => 0.,
+        } as f64;
+        let anchor_y = match state.text_baseline {
+            CanvasTextBaseline::Top => ascent,
+            CanvasTextBaseline::Hanging => hanging_baseline,
+            CanvasTextBaseline::Ideographic => ideographic_baseline,
+            CanvasTextBaseline::Middle => (ascent - descent) / 2.,
+            CanvasTextBaseline::Alphabetic => alphabetic_baseline,
+            CanvasTextBaseline::Bottom => -descent,
         };
 
         TextMetrics::new(
             global,
-            metrics.width.into(),
-            metrics.actual_boundingbox_left.into(),
-            metrics.actual_boundingbox_right.into(),
-            metrics.font_boundingbox_ascent.into(),
-            metrics.font_boundingbox_descent.into(),
-            metrics.actual_boundingbox_ascent.into(),
-            metrics.actual_boundingbox_descent.into(),
-            metrics.em_height_ascent.into(),
-            metrics.em_height_descent.into(),
-            metrics.hanging_baseline.into(),
-            metrics.alphabetic_baseline.into(),
-            metrics.ideographic_baseline.into(),
+            total_advance as f64,
+            anchor_x - bounding_box.min_x(),
+            bounding_box.max_x() - anchor_x,
+            bounding_box.max_y() - anchor_y,
+            anchor_y - bounding_box.min_y(),
+            ascent - anchor_y,
+            descent + anchor_y,
+            ascent - anchor_y,
+            descent + anchor_y,
+            hanging_baseline - anchor_y,
+            alphabetic_baseline - anchor_y,
+            ideographic_baseline - anchor_y,
             can_gc,
         )
     }
@@ -1469,11 +1507,21 @@ impl CanvasState {
         };
         let node = canvas.upcast::<Node>();
         let window = canvas.owner_window();
-        let resolved_font_style = match window.resolved_font_style_query(node, value.to_string()) {
-            Some(value) => value,
-            None => return, // syntax error
+
+        let Some(resolved_font_style) = window.resolved_font_style_query(node, value.to_string())
+        else {
+            // This will happen when there is a syntax error.
+            return;
         };
-        self.state.borrow_mut().font_style = Some((*resolved_font_style).clone());
+        self.state.borrow_mut().font_style = Some(resolved_font_style);
+    }
+
+    fn font_style(&self) -> ServoArc<Font> {
+        self.state
+            .borrow()
+            .font_style
+            .clone()
+            .unwrap_or_else(|| ServoArc::new(Font::initial_values()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
@@ -1490,67 +1538,30 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
     pub(crate) fn text_align(&self) -> CanvasTextAlign {
-        match self.state.borrow().text_align {
-            TextAlign::Start => CanvasTextAlign::Start,
-            TextAlign::End => CanvasTextAlign::End,
-            TextAlign::Left => CanvasTextAlign::Left,
-            TextAlign::Right => CanvasTextAlign::Right,
-            TextAlign::Center => CanvasTextAlign::Center,
-        }
+        self.state.borrow().text_align
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
     pub(crate) fn set_text_align(&self, value: CanvasTextAlign) {
-        let text_align = match value {
-            CanvasTextAlign::Start => TextAlign::Start,
-            CanvasTextAlign::End => TextAlign::End,
-            CanvasTextAlign::Left => TextAlign::Left,
-            CanvasTextAlign::Right => TextAlign::Right,
-            CanvasTextAlign::Center => TextAlign::Center,
-        };
-        self.state.borrow_mut().text_align = text_align;
+        self.state.borrow_mut().text_align = value;
     }
 
     pub(crate) fn text_baseline(&self) -> CanvasTextBaseline {
-        match self.state.borrow().text_baseline {
-            TextBaseline::Top => CanvasTextBaseline::Top,
-            TextBaseline::Hanging => CanvasTextBaseline::Hanging,
-            TextBaseline::Middle => CanvasTextBaseline::Middle,
-            TextBaseline::Alphabetic => CanvasTextBaseline::Alphabetic,
-            TextBaseline::Ideographic => CanvasTextBaseline::Ideographic,
-            TextBaseline::Bottom => CanvasTextBaseline::Bottom,
-        }
+        self.state.borrow().text_baseline
     }
 
     pub(crate) fn set_text_baseline(&self, value: CanvasTextBaseline) {
-        let text_baseline = match value {
-            CanvasTextBaseline::Top => TextBaseline::Top,
-            CanvasTextBaseline::Hanging => TextBaseline::Hanging,
-            CanvasTextBaseline::Middle => TextBaseline::Middle,
-            CanvasTextBaseline::Alphabetic => TextBaseline::Alphabetic,
-            CanvasTextBaseline::Ideographic => TextBaseline::Ideographic,
-            CanvasTextBaseline::Bottom => TextBaseline::Bottom,
-        };
-        self.state.borrow_mut().text_baseline = text_baseline;
+        self.state.borrow_mut().text_baseline = value;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
     pub(crate) fn direction(&self) -> CanvasDirection {
-        match self.state.borrow().direction {
-            Direction::Ltr => CanvasDirection::Ltr,
-            Direction::Rtl => CanvasDirection::Rtl,
-            Direction::Inherit => CanvasDirection::Inherit,
-        }
+        self.state.borrow().direction
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
     pub(crate) fn set_direction(&self, value: CanvasDirection) {
-        let direction = match value {
-            CanvasDirection::Ltr => Direction::Ltr,
-            CanvasDirection::Rtl => Direction::Rtl,
-            CanvasDirection::Inherit => Direction::Inherit,
-        };
-        self.state.borrow_mut().direction = direction;
+        self.state.borrow_mut().direction = value;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
@@ -2177,6 +2188,175 @@ impl CanvasState {
             .ellipse(x, y, rx, ry, rotation, start, end, ccw)
             .map_err(|_| Error::IndexSize)
     }
+
+    fn fill_text_with_size(
+        &self,
+        global_scope: &GlobalScope,
+        text: &str,
+        origin: Point2D<f64>,
+        size: f64,
+        max_width: Option<f64>,
+    ) {
+        let Some(font_context) = global_scope.font_context() else {
+            warn!("Tried to paint to a canvas of GlobalScope without a FontContext.");
+            return;
+        };
+
+        // > Step 2: Replace all ASCII whitespace in text with U+0020 SPACE characters.
+        let text = replace_ascii_whitespace(text);
+
+        // > Step 3: Let font be the current font of target, as given by that object's font
+        // > attribute.
+        let font_style = self.font_style();
+        let font_group = font_context.font_group_with_size(font_style, Au::from_f64_px(size));
+        let mut font_group = font_group.write();
+        let Some(first_font) = font_group.first(font_context) else {
+            warn!("Could not render canvas text, because there was no first font.");
+            return;
+        };
+
+        let runs = self.build_unshaped_text_runs(font_context, &text, &mut font_group);
+
+        // TODO: This doesn't do any kind of line layout at all. In particular, there needs
+        // to be some alignment along a baseline and also support for bidi text.
+        let mut total_advance = 0.0;
+        let mut shaped_runs: Vec<_> = runs
+            .into_iter()
+            .filter_map(|unshaped_text_run| {
+                let text_run = unshaped_text_run.into_shaped_text_run(total_advance)?;
+                total_advance += text_run.advance;
+                Some(text_run)
+            })
+            .collect();
+
+        // > Step 6: If maxWidth was provided and the hypothetical width of the inline box in the
+        // > hypothetical line box is greater than maxWidth CSS pixels, then change font to have a
+        // > more condensed font (if one is available or if a reasonably readable one can be
+        // > synthesized by applying a horizontal scale factor to the font) or a smaller font, and
+        // > return to the previous step.
+        //
+        // TODO: We only try decreasing the font size here. Eventually it would make sense to use
+        // other methods to try to decrease the size, such as finding a narrower font or decreasing
+        // spacing.
+        let total_advance = total_advance as f64;
+        if let Some(max_width) = max_width {
+            let new_size = (max_width / total_advance * size).floor().max(5.);
+            if total_advance > max_width && new_size != size {
+                self.fill_text_with_size(global_scope, &text, origin, new_size, Some(max_width));
+                return;
+            }
+        }
+
+        // > Step 7: Find the anchor point for the line of text.
+        let start =
+            self.find_anchor_point_for_line_of_text(origin, &first_font.metrics, total_advance);
+
+        // > Step 8: Let result be an array constructed by iterating over each glyph in the inline box
+        // > from left to right (if any), adding to the array, for each glyph, the shape of the glyph
+        // > as it is in the inline box, positioned on a coordinate space using CSS pixels with its
+        // > origin is at the anchor point.
+        let mut bounds = None;
+        for text_run in shaped_runs.iter_mut() {
+            for glyph_and_position in text_run.glyphs_and_positions.iter_mut() {
+                glyph_and_position.point += Vector2D::new(start.x as f32, start.y as f32);
+            }
+            bounds
+                .get_or_insert(text_run.bounds)
+                .union(&text_run.bounds);
+        }
+
+        println!("bounds: {bounds:?}");
+
+        self.send_canvas_2d_msg(Canvas2dMsg::FillText(
+            bounds
+                .unwrap_or_default()
+                .translate(start.to_vector().cast_unit()),
+            shaped_runs,
+            self.state.borrow().fill_style.to_fill_or_stroke_style(),
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
+        ));
+    }
+
+    fn build_unshaped_text_runs<'text>(
+        &self,
+        font_context: &FontContext,
+        text: &'text str,
+        font_group: &mut FontGroup,
+    ) -> Vec<UnshapedTextRun<'text>> {
+        let mut runs = Vec::new();
+        let mut current_text_run = UnshapedTextRun::default();
+        let mut current_text_run_start_index = 0;
+
+        for (index, character) in text.char_indices() {
+            // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
+            // have support for color glyphs.
+            let script = Script::from(character);
+            let font = font_group.find_by_codepoint(font_context, character, None, None);
+
+            if !current_text_run.script_and_font_compatible(script, &font) {
+                let previous_text_run = std::mem::replace(
+                    &mut current_text_run,
+                    UnshapedTextRun {
+                        font: font.clone(),
+                        script,
+                        ..Default::default()
+                    },
+                );
+                current_text_run_start_index = index;
+                runs.push(previous_text_run)
+            }
+
+            current_text_run.string =
+                &text[current_text_run_start_index..index + character.len_utf8()];
+        }
+
+        runs.push(current_text_run);
+        runs
+    }
+
+    /// Find the *anchor_point* for the given parameters of a line of text.
+    /// See <https://html.spec.whatwg.org/multipage/#text-preparation-algorithm>.
+    fn find_anchor_point_for_line_of_text(
+        &self,
+        origin: Point2D<f64>,
+        metrics: &FontMetrics,
+        width: f64,
+    ) -> Point2D<f64> {
+        let state = self.state.borrow();
+        let is_rtl = match state.direction {
+            CanvasDirection::Ltr => false,
+            CanvasDirection::Rtl => true,
+            CanvasDirection::Inherit => false, // TODO: resolve direction wrt to canvas element
+        };
+
+        let text_align = match self.text_align() {
+            CanvasTextAlign::Start if is_rtl => CanvasTextAlign::Right,
+            CanvasTextAlign::Start => CanvasTextAlign::Left,
+            CanvasTextAlign::End if is_rtl => CanvasTextAlign::Left,
+            CanvasTextAlign::End => CanvasTextAlign::Right,
+            text_align => text_align,
+        };
+        let anchor_x = match text_align {
+            CanvasTextAlign::Center => -width / 2.,
+            CanvasTextAlign::Right => -width,
+            _ => 0.,
+        };
+
+        let ascent = metrics.ascent.to_f64_px();
+        let descent = metrics.descent.to_f64_px();
+        let anchor_y = match self.text_baseline() {
+            CanvasTextBaseline::Top => ascent,
+            CanvasTextBaseline::Hanging => ascent * HANGING_BASELINE_DEFAULT,
+            CanvasTextBaseline::Ideographic => -descent * IDEOGRAPHIC_BASELINE_DEFAULT,
+            CanvasTextBaseline::Middle => (ascent - descent) / 2.,
+            CanvasTextBaseline::Alphabetic => 0.,
+            CanvasTextBaseline::Bottom => -descent,
+        };
+
+        origin + Vector2D::new(anchor_x, anchor_y)
+    }
 }
 
 impl Drop for CanvasState {
@@ -2184,6 +2364,89 @@ impl Drop for CanvasState {
         if let Err(err) = self.ipc_renderer.send(CanvasMsg::Close(self.canvas_id)) {
             warn!("Could not close canvas: {}", err)
         }
+    }
+}
+
+#[derive(Default)]
+struct UnshapedTextRun<'a> {
+    font: Option<FontRef>,
+    script: Script,
+    string: &'a str,
+}
+
+impl UnshapedTextRun<'_> {
+    fn script_and_font_compatible(&self, script: Script, other_font: &Option<FontRef>) -> bool {
+        if self.script != script {
+            return false;
+        }
+
+        match (&self.font, other_font) {
+            (Some(font_a), Some(font_b)) => font_a.identifier() == font_b.identifier(),
+            (None, None) => true,
+            _ => false,
+        }
+    }
+
+    fn into_shaped_text_run(self, previous_advance: f32) -> Option<TextRun> {
+        let font = self.font?;
+        if self.string.is_empty() {
+            return None;
+        }
+
+        let word_spacing = Au::from_f64_px(
+            font.glyph_index(' ')
+                .map(|glyph_id| font.glyph_h_advance(glyph_id))
+                .unwrap_or(LAST_RESORT_GLYPH_ADVANCE),
+        );
+        let options = ShapingOptions {
+            letter_spacing: None,
+            word_spacing,
+            script: self.script,
+            flags: ShapingFlags::empty(),
+        };
+
+        let glyphs = font.shape_text(self.string, &options);
+
+        let mut advance = 0.0;
+        let mut bounds = None;
+        let glyphs_and_positions = glyphs
+            .iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), glyphs.len()))
+            .map(|glyph| {
+                let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
+                let glyph_and_position = GlyphAndPosition {
+                    id: glyph.id(),
+                    point: Point2D::new(previous_advance + advance, glyph_offset.y.to_f32_px()),
+                };
+
+                let glyph_bounds = font
+                    .typographic_bounds(glyph.id())
+                    .translate(Vector2D::new(advance + previous_advance, 0.0));
+                bounds = Some(bounds.get_or_insert(glyph_bounds).union(&glyph_bounds));
+
+                advance += glyph.advance().to_f32_px();
+
+                glyph_and_position
+            })
+            .collect();
+
+        let identifier = font.identifier();
+        let font_data = match &identifier {
+            FontIdentifier::Local(_) => None,
+            FontIdentifier::Web(_) => Some(font.font_data_and_index().ok()?),
+        }
+        .cloned();
+        let canvas_font = CanvasFont {
+            identifier,
+            data: font_data,
+        };
+
+        Some(TextRun {
+            font: canvas_font,
+            pt_size: font.descriptor.pt_size.to_f32_px(),
+            glyphs_and_positions,
+            advance,
+            bounds: bounds.unwrap_or_default().cast(),
+        })
     }
 }
 
@@ -2333,4 +2596,13 @@ impl Convert<FillRule> for CanvasFillRule {
             CanvasFillRule::Evenodd => FillRule::Evenodd,
         }
     }
+}
+
+fn replace_ascii_whitespace(text: &str) -> String {
+    text.chars()
+        .map(|c| match c {
+            ' ' | '\t' | '\n' | '\r' | '\x0C' => '\x20',
+            _ => c,
+        })
+        .collect()
 }

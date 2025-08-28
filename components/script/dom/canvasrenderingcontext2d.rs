@@ -328,8 +328,14 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        self.canvas_state
-            .fill_text(self.canvas.canvas().as_deref(), text, x, y, max_width);
+        self.canvas_state.fill_text(
+            &self.global(),
+            self.canvas.canvas().as_deref(),
+            text,
+            x,
+            y,
+            max_width,
+        );
         self.mark_as_dirty();
     }
 
