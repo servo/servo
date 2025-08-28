@@ -10,7 +10,7 @@ use pixels::Snapshot;
 use script_bindings::root::{Dom, DomRoot};
 use webrender_api::ImageKey;
 
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::node::{Node, NodeDamage};
@@ -30,12 +30,34 @@ pub(crate) trait LayoutHTMLCanvasElementHelpers {
     fn data(self) -> HTMLCanvasData;
 }
 
+/// Non rooted variant of [`crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas`]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub(crate) enum HTMLCanvasElementOrOffscreenCanvas {
+    HTMLCanvasElement(Dom<HTMLCanvasElement>),
+    OffscreenCanvas(Dom<OffscreenCanvas>),
+}
+
+impl HTMLCanvasElementOrOffscreenCanvas {
+    /// Returns a rooted version suitable for use on the stack.
+    pub fn as_rooted(&self) -> RootedHTMLCanvasElementOrOffscreenCanvas {
+        match self {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas.as_rooted())
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
+                RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas.as_rooted())
+            },
+        }
+    }
+}
+
 pub(crate) trait CanvasContext {
     type ID;
 
     fn context_id(&self) -> Self::ID;
 
-    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas>;
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas>;
 
     fn resize(&self);
 
@@ -60,7 +82,8 @@ pub(crate) trait CanvasContext {
     }
 
     fn mark_as_dirty(&self) {
-        if let Some(HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas)) = &self.canvas()
+        if let Some(RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas)) =
+            self.canvas()
         {
             canvas.upcast::<Node>().dirty(NodeDamage::Other);
         }
@@ -74,12 +97,12 @@ pub(crate) trait CanvasContext {
         };
 
         match canvas {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
                 canvas.upcast::<Node>().is_connected()
             },
             // FIXME(34628): Offscreen canvases should be considered offscreen if a placeholder is set.
             // <https://www.w3.org/TR/webgpu/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
+            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
         }
     }
 }
@@ -101,8 +124,32 @@ impl CanvasHelpers for HTMLCanvasElementOrOffscreenCanvas {
 
     fn canvas(&self) -> Option<DomRoot<HTMLCanvasElement>> {
         match self {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => Some(canvas.clone()),
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                Some(canvas.as_rooted())
+            },
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.placeholder(),
+        }
+    }
+}
+
+impl CanvasHelpers for RootedHTMLCanvasElementOrOffscreenCanvas {
+    fn size(&self) -> Size2D<u32> {
+        match self {
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                canvas.get_size().cast()
+            },
+            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
+        }
+    }
+
+    fn canvas(&self) -> Option<DomRoot<HTMLCanvasElement>> {
+        match self {
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                Some(canvas.clone())
+            },
+            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
+                canvas.placeholder()
+            },
         }
     }
 }
@@ -125,7 +172,7 @@ impl CanvasContext for RenderingContext {
 
     fn context_id(&self) -> Self::ID {}
 
-    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
         match self {
             RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas.context()?.canvas(),
             RenderingContext::Context2d(context) => context.canvas(),
@@ -277,7 +324,7 @@ impl CanvasContext for OffscreenRenderingContext {
 
     fn context_id(&self) -> Self::ID {}
 
-    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.canvas(),
             OffscreenRenderingContext::BitmapRenderer(context) => context.canvas(),

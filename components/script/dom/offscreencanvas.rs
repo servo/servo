@@ -14,13 +14,14 @@ use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
 use script_bindings::weakref::WeakRef;
 
-use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
+use crate::canvas_context::{
+    CanvasContext, HTMLCanvasElementOrOffscreenCanvas, OffscreenRenderingContext,
+};
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     ImageEncodeOptions, OffscreenCanvasMethods,
     OffscreenRenderingContext as RootedOffscreenRenderingContext,
 };
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
@@ -161,7 +162,7 @@ impl OffscreenCanvas {
         // options.
         let context = ImageBitmapRenderingContext::new(
             &self.global(),
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(DomRoot::from_ref(self)),
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(Dom::from_ref(self)),
             can_gc,
         );
 

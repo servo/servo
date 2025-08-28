@@ -2,27 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::GenericBindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2D_Binding::CanvasRenderingContext2DMethods;
-use crate::canvas_context::CanvasContext;
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use canvas_traits::canvas::Canvas2dMsg;
 use dom_struct::dom_struct;
 use pixels::Snapshot;
 
+use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
-    CanvasTextAlign, CanvasTextBaseline,
+    CanvasRenderingContext2DMethods, CanvasTextAlign, CanvasTextBaseline,
 };
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::OffscreenCanvasRenderingContext2DMethods;
-use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
+use crate::dom::bindings::codegen::UnionTypes::{
+    HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas,
+    StringOrCanvasGradientOrCanvasPattern,
+};
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
+use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::imagedata::ImageData;
@@ -30,8 +32,6 @@ use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
-
-use super::canvasrenderingcontext2d::CanvasRenderingContext2D;
 
 #[dom_struct]
 pub(crate) struct OffscreenCanvasRenderingContext2D {
@@ -48,7 +48,7 @@ impl OffscreenCanvasRenderingContext2D {
         Some(OffscreenCanvasRenderingContext2D {
             context: CanvasRenderingContext2D::new_inherited(
                 global,
-                HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(DomRoot::from_ref(canvas)),
+                HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(Dom::from_ref(canvas)),
                 size,
             )?,
         })
@@ -78,7 +78,7 @@ impl CanvasContext for OffscreenCanvasRenderingContext2D {
         self.context.context_id()
     }
 
-    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
         self.context.canvas()
     }
 
@@ -105,7 +105,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     // https://html.spec.whatwg.org/multipage/offscreencontext2d-canvas
     fn Canvas(&self) -> DomRoot<OffscreenCanvas> {
         match self.context.canvas() {
-            Some(HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas)) => canvas,
+            Some(RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas)) => canvas,
             _ => panic!("Should not be called from onscreen canvas"),
         }
     }

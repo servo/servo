@@ -19,7 +19,7 @@ use wgpu_core::id;
 
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
-use crate::canvas_context::{CanvasContext, CanvasHelpers};
+use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
@@ -28,10 +28,10 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUObjectDescriptorBase, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
     GPUTextureUsageConstants,
 };
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::document::WebGPUContextsMap;
@@ -90,6 +90,7 @@ pub(crate) struct GPUCanvasContext {
 }
 
 impl GPUCanvasContext {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         global: &GlobalScope,
         canvas: HTMLCanvasElementOrOffscreenCanvas,
@@ -138,7 +139,7 @@ impl GPUCanvasContext {
         let this = reflect_dom_object(
             Box::new(GPUCanvasContext::new_inherited(
                 global,
-                HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
+                HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(canvas)),
                 channel,
                 document.webgpu_contexts(),
             )),
@@ -298,8 +299,8 @@ impl CanvasContext for GPUCanvasContext {
         })
     }
 
-    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
-        Some(self.canvas.clone())
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
+        Some(self.canvas.as_rooted())
     }
 }
 
@@ -311,8 +312,8 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
 
 impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
-    fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
-        self.canvas.clone()
+    fn Canvas(&self) -> RootedHTMLCanvasElementOrOffscreenCanvas {
+        self.canvas.as_rooted()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure>
