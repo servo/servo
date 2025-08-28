@@ -684,6 +684,7 @@ impl EventTarget {
                     element.upcast(),
                     InlineCheckType::ScriptAttribute,
                     source,
+                    line as u32,
                 )
             {
                 return;
