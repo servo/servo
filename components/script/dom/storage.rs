@@ -6,7 +6,7 @@ use base::id::WebViewId;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use profile_traits::{generic_channel, ipc};
+use profile_traits::generic_channel;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
@@ -64,7 +64,8 @@ impl Storage {
 impl StorageMethods<crate::DomTypeHolder> for Storage {
     // https://html.spec.whatwg.org/multipage/#dom-storage-length
     fn Length(&self) -> u32 {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
 
         self.send_storage_msg(StorageThreadMsg::Length(
             sender,
@@ -78,7 +79,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-key
     fn Key(&self, index: u32) -> Option<DOMString> {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
 
         self.send_storage_msg(StorageThreadMsg::Key(
             sender,
@@ -93,7 +95,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-getitem
     fn GetItem(&self, name: DOMString) -> Option<DOMString> {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
 
         let msg = StorageThreadMsg::GetItem(
@@ -109,7 +112,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-setitem
     fn SetItem(&self, name: DOMString, value: DOMString) -> ErrorResult {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
         let value = String::from(value);
 
@@ -138,7 +142,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-removeitem
     fn RemoveItem(&self, name: DOMString) {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
 
         let msg = StorageThreadMsg::RemoveItem(
@@ -156,7 +161,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-clear
     fn Clear(&self) {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
 
         self.send_storage_msg(StorageThreadMsg::Clear(
             sender,
