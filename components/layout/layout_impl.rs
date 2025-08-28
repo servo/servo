@@ -825,7 +825,7 @@ impl LayoutThread {
             pending_images: Mutex::default(),
             pending_rasterization_images: Mutex::default(),
             pending_svg_elements_for_serialization: Mutex::default(),
-            node_to_animating_image_map: reflow_request.node_to_animating_image_map.clone(),
+            animating_images: reflow_request.animating_images.clone(),
             animation_timeline_value: reflow_request.animation_timeline_value,
         });
 

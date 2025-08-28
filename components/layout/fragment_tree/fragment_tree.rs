@@ -59,12 +59,10 @@ impl FragmentTree {
         // them. Create a set of all elements that used to be animating.
         let mut animations = layout_context.style_context.animations.sets.write();
         let mut invalid_animating_nodes: FxHashSet<_> = animations.keys().cloned().collect();
-        let mut image_animations = layout_context
-            .image_resolver
-            .node_to_animating_image_map
-            .write()
-            .to_owned();
-        let mut invalid_image_animating_nodes: FxHashSet<_> = image_animations
+
+        let mut animating_images = layout_context.image_resolver.animating_images.write();
+        let mut invalid_image_animating_nodes: FxHashSet<_> = animating_images
+            .node_to_state_map
             .keys()
             .cloned()
             .map(|node| AnimationSetKey::new(node, None))
@@ -95,7 +93,7 @@ impl FragmentTree {
             }
         }
         for node in &invalid_image_animating_nodes {
-            image_animations.remove(&node.node);
+            animating_images.remove(node.node);
         }
 
         fragment_tree

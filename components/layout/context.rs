@@ -11,7 +11,7 @@ use euclid::Size2D;
 use fonts::FontContext;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{
-    IFrameSizes, ImageAnimationState, LayoutImageDestination, PendingImage, PendingImageState,
+    AnimatingImages, IFrameSizes, LayoutImageDestination, PendingImage, PendingImageState,
     PendingRasterizationImage,
 };
 use net_traits::image_cache::{
@@ -20,7 +20,6 @@ use net_traits::image_cache::{
 };
 use parking_lot::{Mutex, RwLock};
 use pixels::RasterImage;
-use rustc_hash::FxHashMap;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
@@ -101,7 +100,7 @@ pub(crate) struct ImageResolver {
     /// A shared reference to script's map of DOM nodes with animated images. This is used
     /// to manage image animations in script and inform the script about newly animating
     /// nodes.
-    pub node_to_animating_image_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+    pub animating_images: Arc<RwLock<AnimatingImages>>,
 
     // A cache that maps image resources used in CSS (e.g as the `url()` value
     // for `background-image` or `content` property) to the final resolved image data.
@@ -176,20 +175,11 @@ impl ImageResolver {
     }
 
     pub(crate) fn handle_animated_image(&self, node: OpaqueNode, image: Arc<RasterImage>) {
-        let mut map = self.node_to_animating_image_map.write();
+        let mut animating_images = self.animating_images.write();
         if !image.should_animate() {
-            map.remove(&node);
-            return;
-        }
-        let new_image_animation_state =
-            || ImageAnimationState::new(image.clone(), self.animation_timeline_value);
-
-        let entry = map.entry(node).or_insert_with(new_image_animation_state);
-
-        // If the entry exists, but it is for a different image id, replace it as the image
-        // has changed during this layout.
-        if entry.image.id != image.id {
-            *entry = new_image_animation_state();
+            animating_images.remove(node);
+        } else {
+            animating_images.maybe_insert_or_update(node, image, self.animation_timeline_value);
         }
     }
 

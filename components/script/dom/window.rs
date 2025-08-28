@@ -2325,7 +2325,7 @@ impl Window {
             dom_count: document.dom_count(),
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
-            node_to_animating_image_map: document.image_animation_manager().node_to_image_map(),
+            animating_images: document.image_animation_manager().animating_images(),
             theme: self.theme.get(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
         };
