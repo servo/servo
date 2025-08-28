@@ -83,6 +83,16 @@ fn test_evaluate_javascript_basic(servo_test: &ServoTest) -> Result<(), anyhow::
     let result = evaluate_javascript(
         servo_test,
         webview.clone(),
+        "document.body.attachShadow({mode: 'open'})",
+    );
+    ensure!(matches!(result, Ok(JSValue::ShadowRoot(..))));
+
+    let result = evaluate_javascript(servo_test, webview.clone(), "document.body.shadowRoot");
+    ensure!(matches!(result, Ok(JSValue::ShadowRoot(..))));
+
+    let result = evaluate_javascript(
+        servo_test,
+        webview.clone(),
         "document.body.innerHTML += '<iframe>'; frames[0]",
     );
     ensure!(matches!(result, Ok(JSValue::Frame(..))));
