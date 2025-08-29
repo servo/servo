@@ -20,7 +20,7 @@ pub struct Model {
     pub id: i32,
     pub name: String,
     pub key_path: Option<Vec<u8>>,
-    pub auto_increment: bool,
+    pub auto_increment: i32,
 }
 
 impl TryFrom<&Row<'_>> for Model {

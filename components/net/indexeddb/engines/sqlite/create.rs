@@ -22,7 +22,7 @@ pub(crate) fn create_tables(conn: &rusqlite::Connection) -> Result<(), rusqlite:
     name           varchar               not null
         unique,
     key_path       varbinary_blob,
-    auto_increment boolean default FALSE not null
+    auto_increment integer default FALSE not null
 );"#,
         [],
     )?;
