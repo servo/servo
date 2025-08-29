@@ -25,7 +25,7 @@ use crate::dom::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext, notify_about_rejected_promises};
-use crate::script_thread::ScriptThread;
+use crate::script_thread::{ScriptThread, with_script_thread};
 
 /// A collection of microtasks in FIFO order.
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -115,13 +115,14 @@ impl MicrotaskQueue {
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
-                            let was_interacting = ScriptThread::is_user_interacting();
-                            ScriptThread::set_user_interacting(job.is_user_interacting);
-                            let _realm = enter_realm(&*target);
-                            let _ = job
-                                .callback
-                                .Call_(&*target, ExceptionHandling::Report, can_gc);
-                            ScriptThread::set_user_interacting(was_interacting);
+                            let _ = ScriptThread::is_user_interacting();
+                            with_script_thread(|script_thread| {
+                                let _ = script_thread.get_user_iteracting_guard();
+                                let _realm = enter_realm(&*target);
+                                let _ =
+                                    job.callback
+                                        .Call_(&*target, ExceptionHandling::Report, can_gc);
+                            });
                         }
                     },
                     Microtask::User(ref job) => {

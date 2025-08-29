@@ -4,6 +4,7 @@
 
 use std::borrow::Cow;
 use std::cell::Cell;
+use std::rc::Rc;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
@@ -57,6 +58,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation, parse_csp_list_from_metadata};
+use crate::dom::customelementregistry::CustomElementReactionStack;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
@@ -244,6 +246,7 @@ impl ServoParser {
             allow_declarative_shadow_roots,
             Some(context_document.insecure_requests_policy()),
             context_document.has_trustworthy_ancestor_or_current_origin(),
+            context_document.custom_element_reaction_stack(),
             can_gc,
         );
 
@@ -1156,6 +1159,7 @@ fn insert(
     reference_child: Option<&Node>,
     child: NodeOrText<Dom<Node>>,
     parsing_algorithm: ParsingAlgorithm,
+    custom_element_reaction_stack: &CustomElementReactionStack,
     can_gc: CanGc,
 ) {
     match child {
@@ -1166,11 +1170,11 @@ fn insert(
             let element_in_non_fragment =
                 parsing_algorithm != ParsingAlgorithm::Fragment && n.is::<Element>();
             if element_in_non_fragment {
-                ScriptThread::push_new_element_queue();
+                custom_element_reaction_stack.push_new_element_queue();
             }
             parent.InsertBefore(&n, reference_child, can_gc).unwrap();
             if element_in_non_fragment {
-                ScriptThread::pop_current_element_queue(can_gc);
+                custom_element_reaction_stack.pop_current_element_queue(can_gc);
             }
         },
         NodeOrText::AppendText(t) => {
@@ -1201,6 +1205,8 @@ pub(crate) struct Sink {
     current_line: Cell<u64>,
     script: MutNullableDom<HTMLScriptElement>,
     parsing_algorithm: ParsingAlgorithm,
+    #[conditional_malloc_size_of]
+    custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 }
 
 impl Sink {
@@ -1278,6 +1284,7 @@ impl TreeSink for Sink {
             &self.document,
             ElementCreator::ParserCreated(self.current_line.get()),
             parsing_algorithm,
+            &self.custom_element_reaction_stack,
             CanGc::note(),
         );
         Dom::from_ref(element.upcast())
@@ -1347,6 +1354,7 @@ impl TreeSink for Sink {
             Some(sibling),
             new_node,
             self.parsing_algorithm,
+            &self.custom_element_reaction_stack,
             CanGc::note(),
         );
     }
@@ -1366,7 +1374,14 @@ impl TreeSink for Sink {
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn append(&self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
-        insert(parent, None, child, self.parsing_algorithm, CanGc::note());
+        insert(
+            parent,
+            None,
+            child,
+            self.parsing_algorithm,
+            &self.custom_element_reaction_stack,
+            CanGc::note(),
+        );
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -1479,6 +1494,7 @@ fn create_element_for_token(
     document: &Document,
     creator: ElementCreator,
     parsing_algorithm: ParsingAlgorithm,
+    custom_element_reaction_stack: &CustomElementReactionStack,
     can_gc: CanGc,
 ) -> DomRoot<Element> {
     // Step 3.
@@ -1506,7 +1522,7 @@ fn create_element_for_token(
                 .perform_a_microtask_checkpoint(can_gc);
         }
         // Step 6.3
-        ScriptThread::push_new_element_queue()
+        custom_element_reaction_stack.push_new_element_queue()
     }
 
     // Step 7.
@@ -1544,7 +1560,7 @@ fn create_element_for_token(
     // Step 9.
     if will_execute_script {
         // Steps 9.1 - 9.2.
-        ScriptThread::pop_current_element_queue(can_gc);
+        custom_element_reaction_stack.pop_current_element_queue(can_gc);
         // Step 9.3.
         document.decrement_throw_on_dynamic_markup_insertion_counter();
     }
