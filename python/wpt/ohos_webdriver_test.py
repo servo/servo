@@ -23,31 +23,24 @@ class OHOSWebDriverController:
         self.webdriver_port = webdriver_port
         self.wpt_server_port = wpt_server_port
         self.session_id: Optional[str] = None
-        self.hdc_process: Optional[subprocess.Popen] = None
         self.wpt_server_process: Optional[subprocess.Popen] = None
-        self.wpt_reverse_port_process: Optional[subprocess.Popen] = None
 
     def setup_wpt_server_access(self) -> bool:
         """Set up access to WPT server for OHOS device."""
         try:
             cmd = ["hdc", "rport", f"tcp:{self.wpt_server_port}", f"tcp:{self.wpt_server_port}"]
             logging.info(f"Setting up HDC reverse port forwarding for WPT: {' '.join(cmd)}")
-            self.wpt_reverse_port_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            time.sleep(2)
-
-            if self.wpt_reverse_port_process.poll() is not None:
-                stdout, stderr = self.wpt_reverse_port_process.communicate()
-                if self.wpt_reverse_port_process.returncode != 0:
-                    logging.warning(f"HDC reverse port forwarding failed: {stderr.decode()}")
-                    self.wpt_reverse_port_process = None
-                    return False
+            subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
             logging.info(f"HDC reverse port forwarding established for WPT server on port {self.wpt_server_port}")
             return True
 
         except FileNotFoundError:
             logging.error("HDC command not found. Please install HDC and add it to PATH")
+            return False
+        except subprocess.TimeoutExpired:
+            logging.error("HDC reverse port forwarding command timed out")
             return False
         except Exception as e:
             logging.error(f"Failed to set up WPT server access: {e}")
@@ -58,19 +51,17 @@ class OHOSWebDriverController:
         try:
             cmd = ["hdc", "fport", f"tcp:{self.webdriver_port}", f"tcp:{self.webdriver_port}"]
             logging.info(f"Setting up HDC port forwarding: {' '.join(cmd)}")
-            self.hdc_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            time.sleep(2)
 
-            if self.hdc_process.poll() is not None:
-                stdout, stderr = self.hdc_process.communicate()
-                if self.hdc_process.returncode != 0:
-                    raise RuntimeError(f"HDC forwarding failed: {stderr.decode()}")
+            subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
             logging.info(f"HDC port forwarding established on port {self.webdriver_port}")
             return True
 
         except FileNotFoundError:
             logging.error("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH")
+            return False
+        except subprocess.TimeoutExpired:
+            logging.error("HDC port forwarding command timed out")
             return False
         except Exception as e:
             logging.error(f"Failed to set up HDC forwarding: {e}")
@@ -105,7 +96,6 @@ class OHOSWebDriverController:
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 response_data = response.read().decode("utf-8")
-                logging.debug(f"WebDriver response: {response_data}")
                 return json.loads(response_data) if response_data else {}
         except urllib.error.HTTPError as e:
             error_response = e.read().decode("utf-8") if e.fp else "No response body"
@@ -127,46 +117,6 @@ class OHOSWebDriverController:
         except Exception as e:
             logging.error(f"Failed to delete session {session_id}: {e}")
             return False
-
-    def ensure_clean_session(self) -> bool:
-        """Ensure we have a clean WebDriver session, deleting existing ones if needed."""
-        try:
-            return self.create_session()
-        except Exception as e:
-            error_str = str(e)
-            logging.debug(f"Session creation failed: {error_str}")
-
-            if "session already created" in error_str.lower() or "Session already created" in error_str:
-                logging.info("Session already exists, attempting to find and reuse it...")
-
-                # Try to find the existing session by trying common session IDs
-                potential_session_ids = ["1", "default", "session-1", "0"]
-
-                for session_id in potential_session_ids:
-                    try:
-                        response = self.webdriver_request("GET", f"/session/{session_id}/window/handles")
-                        if response:
-                            logging.info(f"Found existing session: {session_id}")
-                            self.session_id = session_id
-                            return True
-                    except Exception as test_e:
-                        logging.debug(f"Session {session_id} not valid: {test_e}")
-
-                # If we can't find and reuse a session, try to force delete and recreate
-                logging.info("Could not find existing session, attempting force cleanup...")
-                for session_id in potential_session_ids:
-                    try:
-                        self.delete_session(session_id)
-                        logging.debug(f"Deleted potential session: {session_id}")
-                    except Exception as del_e:
-                        logging.debug(f"Could not delete session {session_id}: {del_e}")
-
-                self.session_id = None
-                logging.info("Attempting to create new session after cleanup...")
-                return self.create_session()
-            else:
-                logging.error(f"Session creation failed with different error: {error_str}")
-                raise
 
     def create_session(self) -> bool:
         """Create a new WebDriver session."""
@@ -191,18 +141,8 @@ class OHOSWebDriverController:
 
             logging.debug(f"HTTP error during session creation: {e.code} - {error_response}")
 
-            if (
-                "Session already created" in error_response
-                or "session already created" in error_response
-                or "session not created" in error_response
-            ):
-                raise RuntimeError(f"Session already created: {error_response}")
-            elif "no such window" in error_response:
-                # This might indicate the session was created but no window exists
-                # Use a default session ID and let the calling code handle window creation
-                logging.info("Session created but no window found, trying to continue...")
-                self.session_id = "1"
-                return True
+            if "session not created" in error_response:
+                raise RuntimeError(f"Session not created. Please restart the WebDriver server: {error_response}")
             else:
                 raise
         except Exception as e:
@@ -248,44 +188,26 @@ class OHOSWebDriverController:
 
     def navigate_to_url(self, url: str, timeout: int = 10) -> bool:
         """Navigate to a URL with OHOS-specific handling."""
+        if not self.session_id:
+            raise RuntimeError("No WebDriver session")
+
+        logging.info(f"Attempting to navigate to: {url}")
+        data = {"url": url}
+
         try:
-            if not self.session_id:
-                raise RuntimeError("No WebDriver session")
-
-            logging.info(f"Attempting to navigate to: {url}")
-            data = {"url": url}
-
-            try:
-                navigation_success = self.webdriver_request("POST", f"/session/{self.session_id}/url", data, timeout=3)
-                logging.info(f"Navigation request sent successfully {navigation_success}")
-            except Exception as nav_error:
-                logging.debug(f"Navigation request failed/timed out: {nav_error}")
-
-            logging.info("Waiting for navigation to complete on device...")
-            time.sleep(2)
-
-            # Check page title for validation
-            try:
-                title_response = self.webdriver_request("GET", f"/session/{self.session_id}/title", timeout=3)
-                title = title_response.get("value", "")
-                logging.info(f"Navigation verified - page title: {title}")
-                return True
-            except Exception as verify_error:
-                logging.debug(f"Navigation verification failed: {verify_error}")
-                if navigation_success:
-                    logging.info("Navigation verification failed, but assuming success for OHOS")
-                    return True
-                else:
-                    return False
-
-        except Exception as e:
-            logging.error(f"Failed to navigate to URL: {e}")
+            navigation_success = self.webdriver_request(
+                "POST", f"/session/{self.session_id}/url", data, timeout=timeout
+            )
+            logging.info(f"Navigation completed successfully: {navigation_success}")
+            return True
+        except Exception as nav_error:
+            logging.debug(f"Navigation request failed: {nav_error}")
             return False
 
     def run_test(self, test_path: str) -> Dict[str, Any]:
         """Run a single WPT test."""
         try:
-            if not self.ensure_clean_session():
+            if not self.create_session():
                 return {
                     "status": "ERROR",
                     "title": "",
@@ -340,53 +262,48 @@ class OHOSWebDriverController:
                 logging.info(f"Waiting... ({(i + 1) * 5}/{timeout}s)")
 
                 try:
-                    title_response = self.webdriver_request("GET", f"/session/{self.session_id}/title", timeout=1)
-                    title = title_response.get("value", "")
-                    if title and title != "about:blank":
-                        logging.info(f"Got page title: {title}")
-                        try:
-                            script_path = os.path.join(os.path.dirname(__file__), "ohos_test_parser.js")
-                            with open(script_path, "r", encoding="utf-8") as f:
-                                script = f.read()
+                    script_path = os.path.join(os.path.dirname(__file__), "ohos_test_parser.js")
+                    with open(script_path, "r", encoding="utf-8") as f:
+                        script = f.read()
 
-                            script_data = {"script": script, "args": []}
-                            script_response = self.webdriver_request(
-                                "POST", f"/session/{self.session_id}/execute/sync", script_data, timeout=2
+                        script_data = {"script": script, "args": []}
+                        script_response = self.webdriver_request(
+                            "POST", f"/session/{self.session_id}/execute/sync", script_data, timeout=2
+                        )
+                        result = script_response.get("value", {})
+
+                        if result.get("status") in ["PASS", "FAIL"]:
+                            return {
+                                "status": result.get("status"),
+                                "title": result.get("title", ""),
+                                "details": result.get("bodyText", "")[:200] + "..."
+                                if len(result.get("bodyText", "")) > 200
+                                else result.get("bodyText", ""),
+                                "passCount": result.get("passCount", 0),
+                                "failCount": result.get("failCount", 0),
+                                "failingTests": result.get("failingTests", []),
+                            }
+                        else:
+                            logging.info(
+                                f"Test still running, status: {result.get('status')}, body preview: {result.get('bodyText', '')[:100]}..."
                             )
-                            result = script_response.get("value", {})
-
-                            if result.get("status") in ["PASS", "FAIL"]:
-                                return {
-                                    "status": result.get("status"),
-                                    "title": result.get("title", ""),
-                                    "details": result.get("bodyText", "")[:200] + "..."
-                                    if len(result.get("bodyText", "")) > 200
-                                    else result.get("bodyText", ""),
-                                    "passCount": result.get("passCount", 0),
-                                    "failCount": result.get("failCount", 0),
-                                    "failingTests": result.get("failingTests", []),
-                                }
-                            else:
-                                logging.info(
-                                    f"Test still running, status: {result.get('status')}, body preview: {result.get('bodyText', '')[:100]}..."
-                                )
-
-                        except Exception as script_error:
-                            logging.debug(f"Script execution failed: {script_error}")
-
                 except Exception as api_error:
                     logging.debug(f"API request failed: {api_error}")
 
             # If we get here, either test timed out or API is completely unresponsive
             logging.warning("WebDriver API appears to be unresponsive - this is a known OHOS limitation")
 
+            # Take screenshot for debugging
+            screenshot_path = f"test_output/servo_ohos_screenshot_{int(time.time())}.jpeg"
+            self.take_screenshot(screenshot_path)
+
             return {
                 "status": "INDETERMINATE",
                 "title": "OHOS WebDriver Limitation",
                 "details": (
                     "Test was successfully loaded on OHOS device, but WebDriver API became "
-                    "unresponsive. Please check the test result manually on the device screen. "
-                    "This is a known limitation of the current OHOS WebDriver implementation."
+                    "unresponsive. Please check the test result manually on the device screen,"
+                    "or refer to the screenshot at of Desktop at: " + screenshot_path
                 ),
                 "passCount": 0,
                 "failCount": 0,
@@ -395,6 +312,11 @@ class OHOSWebDriverController:
 
         except Exception as e:
             logging.error(f"Error in OHOS test completion handling: {e}")
+
+            # Take screenshot for debugging on error
+            screenshot_path = f"test_output/servo_ohos_error_screenshot_{int(time.time())}.jpeg"
+            self.take_screenshot(screenshot_path)
+
             return {
                 "status": "ERROR",
                 "title": "",
@@ -403,6 +325,32 @@ class OHOSWebDriverController:
                 "failCount": 0,
                 "failingTests": [],
             }
+
+    def take_screenshot(self, output_path: str) -> bool:
+        """Take a screenshot from OHOS device for debugging."""
+        try:
+            output_dir = os.path.dirname(output_path)
+            os.makedirs(output_dir, exist_ok=True)
+            snapshot_cmd = ["hdc", "shell", "snapshot_display", "-f", "/data/local/tmp/servo.jpeg"]
+            result = subprocess.run(snapshot_cmd, capture_output=True, text=True, timeout=10)
+
+            if "fail" in result.stdout.lower() or "error" in result.stdout.lower():
+                logging.warning(f"Screenshot capture failed: {result.stdout.strip()}")
+                return False
+
+            recv_cmd = ["hdc", "file", "recv", "/data/local/tmp/servo.jpeg", output_path]
+            result = subprocess.run(recv_cmd, capture_output=True, text=True, timeout=10)
+
+            if "fail" in result.stdout.lower() or "error" in result.stdout.lower():
+                logging.warning(f"Screenshot transfer failed: {result.stdout.strip()}")
+                return False
+
+            logging.info(f"Screenshot saved to: {output_path}")
+            return True
+
+        except Exception as e:
+            logging.warning(f"Failed to take screenshot: {e}")
+            return False
 
     def cleanup(self) -> None:
         """Clean up resources."""
@@ -424,28 +372,6 @@ class OHOSWebDriverController:
                     pass
             self.wpt_server_process = None
 
-        if self.hdc_process:
-            try:
-                self.hdc_process.terminate()
-                self.hdc_process.wait(timeout=5)
-            except Exception:
-                try:
-                    self.hdc_process.kill()
-                except Exception:
-                    pass
-            self.hdc_process = None
-
-        if self.wpt_reverse_port_process:
-            try:
-                self.wpt_reverse_port_process.terminate()
-                self.wpt_reverse_port_process.wait(timeout=5)
-            except Exception:
-                try:
-                    self.wpt_reverse_port_process.kill()
-                except Exception:
-                    pass
-            self.wpt_reverse_port_process = None
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a single WPT test on OHOS device")
@@ -462,6 +388,35 @@ def main() -> int:
     controller = OHOSWebDriverController(args.webdriver_port, args.wpt_server_port)
 
     try:
+        logging.info("Killing any existing servo instances and starting fresh...")
+
+        try:
+            subprocess.run(["hdc", "shell", "killall org.servo.servo"], capture_output=True, text=True, timeout=10)
+            logging.info("Killed existing servo processes")
+        except Exception as e:
+            logging.debug(f"killall command failed (may be expected): {e}")
+
+        try:
+            subprocess.run(
+                ["hdc", "shell", "aa force-stop org.servo.servo"], capture_output=True, text=True, timeout=10
+            )
+            logging.info("Force stopped servo application")
+        except Exception as e:
+            logging.debug(f"force-stop command failed (may be expected): {e}")
+
+        try:
+            subprocess.run(
+                ["hdc", "shell", "aa start -a EntryAbility -b org.servo.servo"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            logging.info("Started servo application")
+            time.sleep(3)
+        except Exception as e:
+            logging.error(f"Failed to start servo application: {e}")
+            return 1
+
         logging.info("Setting up test infrastructure...")
 
         if not controller.setup_hdc_forwarding():
@@ -518,6 +473,21 @@ def main() -> int:
         return 1
     finally:
         controller.cleanup()
+
+        logging.info("Cleaning up servo instances...")
+        try:
+            subprocess.run(["hdc", "shell", "killall org.servo.servo"], capture_output=True, text=True, timeout=10)
+            logging.info("Killed servo processes")
+        except Exception as e:
+            logging.debug(f"killall command failed during cleanup: {e}")
+
+        try:
+            subprocess.run(
+                ["hdc", "shell", "aa force-stop org.servo.servo"], capture_output=True, text=True, timeout=10
+            )
+            logging.info("Force stopped servo application")
+        except Exception as e:
+            logging.debug(f"force-stop command failed during cleanup: {e}")
 
     # This should never be reached
     return 1
