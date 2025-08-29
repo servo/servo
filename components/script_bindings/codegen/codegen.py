@@ -5108,7 +5108,7 @@ class CGStaticMethodJitinfo(CGGeneric):
     A class for generating the JITInfo for a promise-returning static method.
     """
 
-    def __init__(self, method):
+    def __init__(self, method: IDLMethod) -> None:
         CGGeneric.__init__(
             self,
             f"""
@@ -5166,7 +5166,7 @@ def getEnumValueName(value: str) -> str:
 
 
 class CGEnum(CGThing):
-    def __init__(self, enum, config):
+    def __init__(self, enum: IDLEnum, config: Configuration) -> None:
         CGThing.__init__(self)
 
         ident = enum.identifier.name
@@ -5273,7 +5273,7 @@ def convertConstIDLValueToRust(value: IDLConst) -> str:
 
 
 class CGConstant(CGThing):
-    def __init__(self, constant):
+    def __init__(self, constant: IDLConst) -> None:
         CGThing.__init__(self)
         self.constant = constant
 
@@ -5365,7 +5365,7 @@ def traitRequiresManualImpl(name: str, ty: IDLObject) -> bool:
 
 
 class CGUnionStruct(CGThing):
-    def __init__(self, type, descriptorProvider, config):
+    def __init__(self, type: IDLUnionType, descriptorProvider: DescriptorProvider, config: Configuration) -> None:
         assert not type.nullable()
         assert not type.hasNullableType
 
@@ -5378,13 +5378,14 @@ class CGUnionStruct(CGThing):
 
         self.generic, self.genericSuffix = genericsForType(self.type)
 
-    def membersNeedTracing(self):
+    def membersNeedTracing(self) -> bool:
+        assert self.type.flatMemberTypes is not None
         for t in self.type.flatMemberTypes:
             if type_needs_tracing(t):
                 return True
         return False
 
-    def manualImplClone(self, templateVars):
+    def manualImplClone(self, templateVars: list[tuple[dict[str, Any], str]]) -> str:
         arms = [f"            {self.type}::{v['name']}(inner) => "
                 f"{self.type}::{v['name']}(inner.clone()),"
                 for (v, _) in templateVars]
@@ -5400,18 +5401,20 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
 }}
         """
 
-    def manualImpl(self, t, templateVars):
+    def manualImpl(self, t: str, templateVars: list[tuple[dict[str, Any], str]]) -> str:
         if t == "Clone":
             return self.manualImplClone(templateVars)
         raise ValueError(f"Don't know how to impl {t} for union")
 
-    def define(self):
-        def getTypeWrapper(t):
+    def define(self) -> str:
+        def getTypeWrapper(t: IDLObject) -> str:
             if type_needs_tracing(t):
                 return "RootedTraceableBox"
             if t.isCallback():
                 return "Rc"
             return ""
+
+        assert self.type.flatMemberTypes is not None
 
         templateVars = [(getUnionTypeTemplateVars(t, self.descriptorProvider),
                          getTypeWrapper(t)) for t in self.type.flatMemberTypes]
@@ -5446,7 +5449,7 @@ impl{self.generic} ToJSValConvertible for {self.type}{self.genericSuffix} {{
 
 
 class CGUnionConversionStruct(CGThing):
-    def __init__(self, type, descriptorProvider):
+    def __init__(self, type: IDLUnionType, descriptorProvider: DescriptorProvider) -> None:
         assert not type.nullable()
         assert not type.hasNullableType
 
@@ -5454,19 +5457,21 @@ class CGUnionConversionStruct(CGThing):
         self.type = type
         self.descriptorProvider = descriptorProvider
 
-    def membersNeedTracing(self):
+    def membersNeedTracing(self) -> bool:
+        assert self.type.flatMemberTypes is not None
         for t in self.type.flatMemberTypes:
             if type_needs_tracing(t):
                 return True
         return False
 
-    def from_jsval(self):
-        memberTypes = self.type.flatMemberTypes
+    def from_jsval(self) -> CGWrapper:
+        memberTypes = cast(list[IDLType], self.type.flatMemberTypes)
         names = []
         conversions = []
 
-        def get_name(memberType) -> str:
+        def get_name(memberType: IDLType) -> str:
             if self.type.isGeckoInterface():
+                # pyrefly: ignore  # missing-attribute
                 return memberType.inner.identifier.name
 
             return memberType.name
@@ -5567,7 +5572,7 @@ class CGUnionConversionStruct(CGThing):
             assert len(booleanTypes) <= 1
             assert numUndefinedVariants <= 1
 
-            def getStringOrPrimitiveConversion(memberType):
+            def getStringOrPrimitiveConversion(memberType: IDLType) -> CGGeneric:
                 typename = get_name(memberType)
                 return CGGeneric(get_match(typename))
 
@@ -5618,7 +5623,7 @@ class CGUnionConversionStruct(CGThing):
             pre=f"impl{generic} FromJSValConvertible for {self.type}{genericSuffix} {{\n",
             post="\n}")
 
-    def try_method(self, t):
+    def try_method(self, t: IDLType) -> CGGeneric | CGWrapper:
         if t.isUndefined():
             # undefined does not require a conversion method, so we don't generate one
             return CGGeneric("")
@@ -5639,6 +5644,7 @@ class CGUnionConversionStruct(CGThing):
 
     def define(self):
         from_jsval = self.from_jsval()
+        assert self.type.flatMemberTypes is not None
         methods = CGIndenter(CGList([
             self.try_method(t) for t in self.type.flatMemberTypes
         ], "\n\n"))
@@ -5654,25 +5660,25 @@ impl{generic} {self.type}{genericSuffix} {{
 
 class ClassItem:
     """ Use with CGClass """
-    def __init__(self, name, visibility):
+    def __init__(self, name: str | None, visibility: str) -> None:
         self.name = name
         self.visibility = visibility
 
-    def declare(self, cgClass) -> str | None:
+    def declare(self, cgClass: CGClass) -> str | None:
         assert False
 
-    def define(self, cgClass) -> str | None:
+    def define(self, cgClass: CGClass) -> str | None:
         assert False
 
 
 class ClassBase(ClassItem):
-    def __init__(self, name, visibility='pub'):
+    def __init__(self, name: str, visibility: str = 'pub') -> None:
         ClassItem.__init__(self, name, visibility)
 
-    def declare(self, cgClass):
+    def declare(self, cgClass: CGClass) -> str:
         return f'{self.visibility} {self.name}'
 
-    def define(self, cgClass) -> str | None:
+    def define(self, cgClass: CGClass) -> str | None:
         # Only in the header
         return ''
 
@@ -5754,7 +5760,7 @@ class ClassMethod(ClassItem):
             f"{returnType}{const}{override}{body}{self.breakAfterSelf}"
         )
 
-    def define(self, cgClass):
+    def define(self, cgClass: CGClass) -> None:
         pass
 
 
@@ -5780,9 +5786,9 @@ class ClassConstructor(ClassItem):
 
     body contains a string with the code for the constructor, defaults to empty.
     """
-    def __init__(self, args, inline=False, bodyInHeader=False,
-                 visibility="priv", explicit=False, baseConstructors=None,
-                 body=""):
+    def __init__(self, args: list[Argument], inline: bool = False, bodyInHeader: bool = False,
+                 visibility: str = "priv", explicit: bool = False, baseConstructors: list[str] | None = None,
+                 body: str = "") -> None:
         self.args = args
         self.inline = False
         self.bodyInHeader = bodyInHeader
@@ -5801,7 +5807,7 @@ class ClassConstructor(ClassItem):
             return f'{" ".join(decorators)} '
         return ''
 
-    def getInitializationList(self, cgClass):
+    def getInitializationList(self, cgClass: CGClass) -> str:
         items = [str(c) for c in self.baseConstructors]
         for m in cgClass.members:
             if not m.static:
@@ -5814,7 +5820,7 @@ class ClassConstructor(ClassItem):
             return f'\n  : {joinedItems}'
         return ''
 
-    def getBody(self, cgClass):
+    def getBody(self, cgClass: CGClass) -> str:
         initializers = [f"    parent: {self.baseConstructors[0]}"]
         joinedInitializers = '\n'.join(initializers)
         return (
@@ -5830,7 +5836,7 @@ class ClassConstructor(ClassItem):
             "ret"
         )
 
-    def declare(self, cgClass):
+    def declare(self, cgClass: CGClass) -> str:
         args = ', '.join([a.declare() for a in self.args])
         body = f'    {self.getBody(cgClass)}'
         body = stripTrailingWhitespace(body.replace('\n', '\n    '))
@@ -5843,7 +5849,7 @@ class ClassConstructor(ClassItem):
 pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
 """
 
-    def define(self, cgClass):
+    def define(self, cgClass: CGClass) -> str:
         if self.bodyInHeader:
             return ''
 
@@ -5864,17 +5870,17 @@ pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
 
 
 class ClassMember(ClassItem):
-    def __init__(self, name, type, visibility="priv", static=False,
-                 body=None):
+    def __init__(self, name: str | None, type: str, visibility: str = "priv", static: bool = False,
+                 body: str | None=None) -> None:
         self.type = type
         self.static = static
         self.body = body
         ClassItem.__init__(self, name, visibility)
 
-    def declare(self, cgClass):
+    def declare(self, cgClass: CGClass) -> str:
         return f'{self.visibility} {self.name}: {self.type},\n'
 
-    def define(self, cgClass):
+    def define(self, cgClass: CGClass) -> str:
         if not self.static:
             return ''
         if self.body:
@@ -5885,13 +5891,21 @@ class ClassMember(ClassItem):
 
 
 class CGClass(CGThing):
-    def __init__(self, name, bases=[], members=[], constructors=[],
-                 destructor=None, methods=[],
-                 typedefs=[], enums=[], unions=[], templateArgs=[],
-                 templateSpecialization=[],
-                 disallowCopyConstruction=False, indent='',
-                 decorators='',
-                 extradeclarations=''):
+    def __init__(self, name: str,
+                 bases: list[ClassBase] = [],
+                 members: list[ClassMember] = [],
+                 constructors: list[ClassConstructor] = [],
+                 destructor: list[CallbackOperation] | None = None,
+                 methods: list[ClassMethod] = [],
+                 typedefs: list[IDLTypedef] = [],
+                 enums: list[IDLEnum] = [],
+                 unions: list[IDLUnionType] =[],
+                 templateArgs: list[Argument] | None = [],
+                 templateSpecialization: list[str] = [],
+                 disallowCopyConstruction: bool = False,
+                 indent: str = '',
+                 decorators: str = '',
+                 extradeclarations: str = '') -> None:
         CGThing.__init__(self)
         self.name = name
         self.bases = bases
@@ -5911,7 +5925,7 @@ class CGClass(CGThing):
         self.decorators = decorators
         self.extradeclarations = extradeclarations
 
-    def getNameString(self):
+    def getNameString(self) -> str:
         className = self.name
         if self.templateSpecialization:
             className = f"{className}<{', '.join([str(a) for a in self.templateSpecialization])}>"
@@ -5940,12 +5954,12 @@ class CGClass(CGThing):
         result += ' {\n'
 
         if self.bases:
-            self.members = [ClassMember("parent", self.bases[0].name, "pub")] + self.members
+            self.members = [ClassMember("parent", self.bases[0].name or "", "pub")] + self.members
 
         result += CGIndenter(CGGeneric(self.extradeclarations),
                              len(self.indent)).define()
 
-        def declareMembers(cgClass, memberList):
+        def declareMembers(cgClass: CGClass, memberList: list) -> str:
             result = ''
 
             for member in memberList:
@@ -5959,7 +5973,7 @@ class CGClass(CGThing):
                 def __init__(self):
                     self.visibility = "private"
 
-                def declare(self, cgClass):
+                def declare(self, cgClass: CGClass) -> str:
                     name = cgClass.getNameString()
                     return (f"{name}(const {name}&) MOZ_DELETE;\n"
                             f"void operator=(const {name}) MOZ_DELETE;\n")
@@ -5999,23 +6013,24 @@ class CGProxySpecialOperation(CGPerSignatureCall):
     (don't use this directly, use the derived classes below).
     """
     templateValues: dict[str, Any] | None
-    def __init__(self, descriptor, operation):
+    def __init__(self, descriptor: Descriptor, operation: str) -> None:
         nativeName = MakeNativeName(descriptor.binaryNameFor(operation, False))
-        operation = descriptor.operations[operation]
-        assert len(operation.signatures()) == 1
-        signature = operation.signatures()[0]
+        currentOperation = descriptor.operations[operation]
+        assert isinstance(currentOperation, IDLMethod)
+        assert len(currentOperation.signatures()) == 1
+        signature = currentOperation.signatures()[0]
 
         (returnType, arguments) = signature
-        if operation.isGetter() and not returnType.nullable():
+        if currentOperation.isGetter() and not returnType.nullable():
             returnType = IDLNullableType(returnType.location, returnType)
 
         # We pass len(arguments) as the final argument so that the
         # CGPerSignatureCall won't do any argument conversion of its own.
         CGPerSignatureCall.__init__(self, returnType, [], arguments, nativeName,
-                                    False, descriptor, operation,
+                                    False, descriptor, currentOperation,
                                     len(arguments))
 
-        if operation.isSetter():
+        if currentOperation.isSetter():
             # arguments[0] is the index or name of the item that we're setting.
             argument = arguments[1]
             info = getJSToNativeConversionInfo(
@@ -6049,7 +6064,7 @@ class CGProxyIndexedGetter(CGProxySpecialOperation):
     Class to generate a call to an indexed getter. If templateValues is not None
     the returned value will be wrapped with wrapForType using templateValues.
     """
-    def __init__(self, descriptor, templateValues=None):
+    def __init__(self, descriptor: Descriptor, templateValues: dict[str, Any] | None = None) -> None:
         self.templateValues = templateValues
         CGProxySpecialOperation.__init__(self, descriptor, 'IndexedGetter')
 
@@ -6058,7 +6073,7 @@ class CGProxyIndexedSetter(CGProxySpecialOperation):
     """
     Class to generate a call to an indexed setter.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGProxySpecialOperation.__init__(self, descriptor, 'IndexedSetter')
 
 
@@ -6066,7 +6081,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     """
     Class to generate a call to a named operation.
     """
-    def __init__(self, descriptor, name):
+    def __init__(self, descriptor: Descriptor, name: str) -> None:
         CGProxySpecialOperation.__init__(self, descriptor, name)
 
     def define(self):
@@ -6083,7 +6098,7 @@ class CGProxyNamedGetter(CGProxyNamedOperation):
     Class to generate a call to an named getter. If templateValues is not None
     the returned value will be wrapped with wrapForType using templateValues.
     """
-    def __init__(self, descriptor, templateValues=None):
+    def __init__(self, descriptor: Descriptor, templateValues: dict[str, Any] | None = None) -> None:
         self.templateValues = templateValues
         CGProxySpecialOperation.__init__(self, descriptor, 'NamedGetter')
 
@@ -6093,7 +6108,7 @@ class CGProxyNamedPresenceChecker(CGProxyNamedGetter):
     Class to generate a call that checks whether a named property exists.
     For now, we just delegate to CGProxyNamedGetter
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGProxyNamedGetter.__init__(self, descriptor)
 
 
@@ -6101,7 +6116,7 @@ class CGProxyNamedSetter(CGProxyNamedOperation):
     """
     Class to generate a call to a named setter.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGProxySpecialOperation.__init__(self, descriptor, 'NamedSetter')
 
 
@@ -6109,7 +6124,7 @@ class CGProxyNamedDeleter(CGProxyNamedOperation):
     """
     Class to generate a call to a named deleter.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGProxySpecialOperation.__init__(self, descriptor, 'NamedDeleter')
 
     def define(self):
@@ -6130,7 +6145,7 @@ class CGProxyNamedDeleter(CGProxyNamedOperation):
 
 
 class CGProxyUnwrap(CGAbstractMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('RawHandleObject', 'obj')]
         CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy",
                                   f'*const {descriptor.concreteType}', args,
@@ -6146,7 +6161,7 @@ return box_;""")
 
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'),
                 Argument('RawMutableHandle<PropertyDescriptor>', 'mut desc'),
@@ -6272,7 +6287,7 @@ true"""
 
 
 class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'),
                 Argument('RawHandle<PropertyDescriptor>', 'desc'),
@@ -6332,7 +6347,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 
 
 class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'),
                 Argument('*mut ObjectOpResult', 'res')]
@@ -6366,7 +6381,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
 
 
 class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('RawHandleObject', 'proxy'),
                 Argument('RawMutableHandleIdVector', 'props')]
@@ -6436,7 +6451,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
 
 
 class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         assert (descriptor.operations["IndexedGetter"]
                 and descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties")
                 or descriptor.isMaybeCrossOriginObject())
@@ -6495,7 +6510,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
 
 
 class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'), Argument('*mut bool', 'bp')]
         CGAbstractExternMethod.__init__(self, descriptor, "hasOwn", "bool", args, templateArgs=['D: DomTypes'])
@@ -6569,7 +6584,7 @@ true"""
 
 
 class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleValue', 'receiver'), Argument('RawHandleId', 'id'),
                 Argument('RawMutableHandleValue', 'vp')]
@@ -6670,7 +6685,7 @@ true"""
 
 
 class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawMutableHandleObject', 'proto')]
         CGAbstractExternMethod.__init__(self, descriptor, "getPrototype", "bool", args, templateArgs=["D: DomTypes"])
@@ -6689,7 +6704,7 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
 
 
 class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', '_proxy')]
         CGAbstractExternMethod.__init__(self, descriptor, "className", "*const libc::c_char", args, doesNotPanic=True)
         self.descriptor = descriptor
@@ -6739,7 +6754,7 @@ class CGClassTraceHook(CGAbstractClassHook):
     """
     A hook to trace through our native object; used for GC and CC
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut JSTracer', 'trc'), Argument('*mut JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, TRACE_HOOK_NAME, 'void',
                                      args, doesNotPanic=True)
@@ -6757,7 +6772,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
     """
     JS-visible constructor for our objects
     """
-    def __init__(self, descriptor, constructor=None):
+    def __init__(self, descriptor: Descriptor, constructor=None) -> None:
         args = [Argument('*mut JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
         name = CONSTRUCT_HOOK_NAME
         if constructor:
@@ -6826,7 +6841,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
     """
     A hook for finalize, used to release our native object.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         args = [Argument('*mut GCContext', '_cx'), Argument('*mut JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME,
                                      'void', args)
@@ -6836,7 +6851,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
 
 
 class CGDOMJSProxyHandlerDOMClass(CGThing):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
 
@@ -7020,7 +7035,7 @@ class CGInterfaceTrait(CGThing):
 
 
 class CGWeakReferenceableTrait(CGThing):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
         assert descriptor.weakReferenceable
         self.code = f"impl WeakReferenceable for {descriptor.interface.identifier.name} {{}}"
@@ -7030,7 +7045,7 @@ class CGWeakReferenceableTrait(CGThing):
 
 
 class CGInitStatics(CGThing):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
 
         def internal(method):
@@ -7114,19 +7129,19 @@ class CGInitStatics(CGThing):
         }}
         """
 
-    def define(self):
+    def define(self) -> str:
         return self.code
 
 
 class CGDescriptor(CGThing):
-    def __init__(self, descriptor, config, soleDescriptor):
+    def __init__(self, descriptor: Descriptor, config: Configuration, soleDescriptor: bool) -> None:
         CGThing.__init__(self)
 
         assert not descriptor.concrete or not descriptor.interface.isCallback()
 
         reexports = []
 
-        def reexportedName(name):
+        def reexportedName(name: str):
             if name.startswith(descriptor.name):
                 return name
             if not soleDescriptor:
@@ -7323,7 +7338,7 @@ class CGDescriptor(CGThing):
 
         self.cgRoot = cgThings
 
-    def define(self):
+    def define(self) -> str:
         return self.cgRoot.define()
 
 
@@ -7362,7 +7377,7 @@ class CGNonNamespacedEnum(CGThing):
 
 
 class CGDictionary(CGThing):
-    def __init__(self, dictionary, descriptorProvider, config):
+    def __init__(self, dictionary, descriptorProvider: DescriptorProvider, config: Configuration) -> None:
         self.dictionary = dictionary
         derivesList = config.getDictConfig(dictionary.identifier.name).get('derives', [])
         self.manualImpls = list(filter(lambda t: traitRequiresManualImpl(t, self.dictionary), derivesList))
@@ -7703,7 +7718,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
 
 
 class CGInitAllStatics(CGAbstractMethod):
-    def __init__(self, config):
+    def __init__(self, config: Configuration) -> None:
         docs = "Initialize the static data used by the SpiderMonkey DOM bindings to implement JS interfaces."
         descriptors = (config.getDescriptors(isCallback=False, register=True)
                        + config.getDescriptors(isCallback=True, hasInterfaceObject=True, register=True))
@@ -7722,7 +7737,7 @@ class CGInitAllStatics(CGAbstractMethod):
 
 
 class CGRegisterProxyHandlersMethod(CGAbstractMethod):
-    def __init__(self, descriptors):
+    def __init__(self, descriptors: list[Descriptor]) -> None:
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
         # FIXME: pass in a valid descriptor somehow
         # pyrefly: ignore  # bad-argument-type
@@ -7745,7 +7760,7 @@ class CGRegisterProxyHandlersMethod(CGAbstractMethod):
 
 
 class CGRegisterProxyHandlers(CGThing):
-    def __init__(self, config):
+    def __init__(self, config: Configuration) -> None:
         descriptors = config.getDescriptors(proxy=True)
         body = "".join(
             f"    pub(crate) static {desc.name}: std::sync::atomic::AtomicPtr<libc::c_void> =\n"
@@ -7769,7 +7784,7 @@ class CGStructuredCloneMarker(CGThing):
     """
     Generate a type assertion for inheritance
     """
-    def __init__(self, descriptor, marker):
+    def __init__(self, descriptor: Descriptor, marker) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.marker = marker
@@ -8811,7 +8826,7 @@ class GlobalGenRoots():
     """
 
     @staticmethod
-    def Globals(config):
+    def Globals(config: Configuration) -> CGThing:
         global_descriptors = config.getDescriptors(isGlobal=True)
         flags = [("EMPTY", 0)]
         flags.extend(
@@ -8830,7 +8845,7 @@ class GlobalGenRoots():
         ])
 
     @staticmethod
-    def InterfaceObjectMap(config):
+    def InterfaceObjectMap(config: Configuration) -> CGThing:
         mods = [
             "crate::dom::bindings::codegen",
             "script_bindings::interfaces::Interface",
@@ -8845,8 +8860,8 @@ class GlobalGenRoots():
         ])
 
     @staticmethod
-    def InterfaceObjectMapData(config):
-        pairs = []
+    def InterfaceObjectMapData(config: Configuration) -> CGThing:
+        pairs: list[tuple[str,  str, str]] = []
         for d in config.getDescriptors(hasInterfaceObject=True, isInline=False):
             binding_mod = toBindingModuleFileFromDescriptor(d)
             binding_ns = toBindingNamespace(d.name)
@@ -8857,7 +8872,7 @@ class GlobalGenRoots():
                 pairs.append((ctor.identifier.name, binding_mod, binding_ns))
         pairs.sort(key=operator.itemgetter(0))
 
-        def bindingPath(pair):
+        def bindingPath(pair: tuple[str,  str, str]) -> str:
             return f'codegen::Bindings::{pair[1]}::{pair[2]}'
 
         mappings = [
@@ -8871,7 +8886,7 @@ class GlobalGenRoots():
             post="\n}\n")
 
     @staticmethod
-    def PrototypeList(config):
+    def PrototypeList(config: Configuration) -> CGThing:
         # Prototype ID enum.
         interfaces = config.getDescriptors(isCallback=False, isNamespace=False)
         protos = [d.name for d in interfaces]
@@ -8899,7 +8914,7 @@ class GlobalGenRoots():
         ])
 
     @staticmethod
-    def RegisterBindings(config):
+    def RegisterBindings(config: Configuration) -> CGThing:
         # TODO - Generate the methods we want
         code = CGList([
             CGRegisterProxyHandlers(config),
@@ -8912,7 +8927,7 @@ class GlobalGenRoots():
         ], config=config)
 
     @staticmethod
-    def InterfaceTypes(config):
+    def InterfaceTypes(config: Configuration) -> CGThing:
         descriptors = sorted([MakeNativeName(d.name)
                               for d in config.getDescriptors(register=True,
                                                              isCallback=False,
@@ -8923,9 +8938,9 @@ class GlobalGenRoots():
         return curr
 
     @staticmethod
-    def Bindings(config):
+    def Bindings(config: Configuration) -> CGThing:
 
-        def leafModule(d):
+        def leafModule(d: IDLObject) -> str:
             return getModuleFromObject(d).split('::')[-1]
 
         descriptors = config.getDescriptors(register=True, isIteratorInterface=False)
@@ -8940,7 +8955,7 @@ class GlobalGenRoots():
         return curr
 
     @staticmethod
-    def ConcreteInheritTypes(config):
+    def ConcreteInheritTypes(config: Configuration) -> CGThing:
         descriptors = config.getDescriptors(register=True, isCallback=False)
         imports = [CGGeneric("use crate::dom::types::*;\n"),
                    CGGeneric("use script_bindings::codegen::InheritTypes::*;\n"),
@@ -8973,6 +8988,7 @@ class GlobalGenRoots():
                 allprotos.append(CGGeneric("\n"))
 
             if downcast:
+                assert descriptor.interface.parent is not None
                 hierarchy[descriptor.interface.parent.identifier.name].append(name)
 
         typeIdCode = []
@@ -8999,7 +9015,7 @@ impl {base} {{
         return curr
 
     @staticmethod
-    def InheritTypes(config):
+    def InheritTypes(config: Configuration) -> CGThing:
         descriptors = config.getDescriptors(register=True, isCallback=False)
         topTypes = []
         hierarchy = defaultdict(list)
@@ -9012,6 +9028,7 @@ impl {base} {{
                 topTypes.append(name)
 
             if downcast:
+                assert descriptor.interface.parent is not None
                 hierarchy[descriptor.interface.parent.identifier.name].append(name)
 
         typeIdCode: list = []
@@ -9036,7 +9053,7 @@ impl Clone for TopTypeId {
 
 """))
 
-        def type_id_variant(name):
+        def type_id_variant(name: str) -> str:
             # If `name` is present in the hierarchy keys', that means some other interfaces
             # derive from it and this enum variant should have an argument with its own
             # TypeId enum.
@@ -9057,7 +9074,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def ConcreteUnionTypes(config):
+    def ConcreteUnionTypes(config: Configuration) -> CGThing:
         unions = set()
         cgthings = []
         allTypes = getAllTypes(
@@ -9077,7 +9094,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def UnionTypes(config):
+    def UnionTypes(config: Configuration) -> CGThing:
 
         curr = UnionTypes(config.getDescriptors(),
                           config.getDictionaries(),
@@ -9092,7 +9109,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def DomTypes(config):
+    def DomTypes(config) -> CGThing:
         curr = DomTypes(config.getDescriptors(),
                         config.getDescriptorProvider(),
                         config.getDictionaries(),
@@ -9107,7 +9124,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def DomTypeHolder(config):
+    def DomTypeHolder(config) -> CGThing:
         curr = DomTypeHolder(config.getDescriptors(),
                              config.getDescriptorProvider(),
                              config.getDictionaries(),
@@ -9122,7 +9139,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def SupportedDomApis(config):
+    def SupportedDomApis(config: Configuration) -> CGThing:
         descriptors = config.getDescriptors(isExposedConditionally=False)
 
         base_path = os.path.dirname(__file__)
