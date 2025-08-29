@@ -26,6 +26,9 @@ mod database_model;
 mod object_data_model;
 mod object_store_index_model;
 mod object_store_model;
+pub mod serialization;
+
+use serialization::{deserialize, serialize};
 
 // These pragmas need to be set once
 const DB_INIT_PRAGMAS: [&str; 2] = ["PRAGMA journal_mode = WAL;", "PRAGMA encoding = 'UTF-16';"];
@@ -41,14 +44,14 @@ const DB_PRAGMAS: [&str; 4] = [
 fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     // Special case for optimization
     if let Some(singleton) = range.as_singleton() {
-        let encoded = bincode::serialize(singleton).unwrap();
+        let encoded = serialize(singleton);
         return Expr::column(object_data_model::Column::Key)
             .eq(encoded)
             .into_condition();
     }
     let mut parts = vec![];
     if let Some(upper) = range.upper.as_ref() {
-        let upper_bytes = bincode::serialize(upper).unwrap();
+        let upper_bytes = serialize(upper);
         let query = if range.upper_open {
             Expr::column(object_data_model::Column::Key).lt(upper_bytes)
         } else {
@@ -57,7 +60,7 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
         parts.push(query);
     }
     if let Some(lower) = range.lower.as_ref() {
-        let lower_bytes = bincode::serialize(lower).unwrap();
+        let lower_bytes = serialize(lower);
         let query = if range.upper_open {
             Expr::column(object_data_model::Column::Key).gt(lower_bytes)
         } else {
@@ -426,7 +429,7 @@ impl KvsEngine for SqliteEngine {
                                 continue;
                             },
                         };
-                        let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
+                        let serialized_key: Vec<u8> = serialize(&key);
                         let _ = sender.send(
                             Self::put_item(
                                 &connection,
@@ -488,7 +491,7 @@ impl KvsEngine for SqliteEngine {
                         let Ok(object_store) = process_object_store(object_store, &sender) else {
                             continue;
                         };
-                        let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
+                        let serialized_key: Vec<u8> = serialize(&key);
                         let _ = sender.send(
                             Self::delete_item(&connection, object_store, serialized_key)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -525,7 +528,7 @@ impl KvsEngine for SqliteEngine {
                         };
                         let _ = sender.send(
                             Self::get_key(&connection, object_store, key_range)
-                                .map(|key| key.map(|k| bincode::deserialize(&k).unwrap()))
+                                .map(|key| key.map(|k| deserialize(&k).unwrap()))
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
