@@ -131,41 +131,39 @@ fn create_html_element(
 ) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(html));
 
-    // Step 2. Let definition be the result of looking up a custom element
+    // Step 3. Let definition be the result of looking up a custom element
     // definition given document, namespace, localName, and is.
     let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
 
-    // Step 3. If definition is non-null...
+    // Step 4. If definition is non-null...
     if let Some(definition) = definition {
         // ...and definition’s name is not equal to its local name
         // (i.e., definition represents a customized built-in element):
         if !definition.is_autonomous() {
-            // Step 3.1. Let interface be the element interface for localName and the HTML namespace.
-            // Step 3.2. Set result to a new element that implements interface, with no attributes,
-            // namespace set to the HTML namespace, namespace prefix set to prefix,
-            // local name set to localName, custom element state set to "undefined",
-            // custom element definition set to null, is value set to is,
-            // and node document set to document.
+            // Step 4.1. Let interface be the element interface for localName and the HTML namespace.
+            // Step 4.2. Set result to the result of creating an element internal given document,
+            // interface, localName, the HTML namespace, prefix, "undefined", is, and registry.
             let element = create_native_html_element(name, prefix, document, creator, proto);
             element.set_is(definition.name.clone());
             element.set_custom_element_state(CustomElementState::Undefined);
+
             match mode {
-                // Step 3.3. If synchronousCustomElements is true, then run this step while catching any exceptions:
+                // Step 4.3. If synchronousCustomElements is true, then run this step while catching any exceptions:
                 CustomElementCreationMode::Synchronous => {
-                    // Step 3.3.1. Upgrade result using definition.
+                    // Step 4.3.1. Upgrade result using definition.
                     upgrade_element(definition, &element, can_gc);
                     // TODO: "If this step threw an exception exception:" steps.
                 },
-                // Step 3.4. Otherwise, enqueue a custom element upgrade reaction given result and definition.
+                // Step 4.4. Otherwise, enqueue a custom element upgrade reaction given result and definition.
                 CustomElementCreationMode::Asynchronous => {
                     ScriptThread::enqueue_upgrade_reaction(&element, definition)
                 },
             }
             return element;
         } else {
-            // Step 4. Otherwise, if definition is non-null:
+            // Step 5. Otherwise, if definition is non-null:
             match mode {
-                // Step 4.1. If synchronousCustomElements is true, then run these
+                // Step 5.1. If synchronousCustomElements is true, then run these
                 // steps while catching any exceptions:
                 CustomElementCreationMode::Synchronous => {
                     let local_name = name.local.clone();
