@@ -27,7 +27,6 @@ use super::gpusupportedlimits::GPUSupportedLimits;
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
-use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
@@ -38,10 +37,13 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -195,18 +197,30 @@ impl GPUDevice {
         }
     }
 
-    pub(crate) fn fire_uncaptured_error(&self, error: webgpu_traits::Error, can_gc: CanGc) {
-        let error = GPUError::from_error(&self.global(), error, can_gc);
-        let ev = GPUUncapturedErrorEvent::new(
-            &self.global(),
-            DOMString::from("uncapturederror"),
-            &GPUUncapturedErrorEventInit {
-                error,
-                parent: EventInit::empty(),
-            },
-            can_gc,
+    /// <https://gpuweb.github.io/gpuweb/#eventdef-gpudevice-uncapturederror>
+    pub(crate) fn fire_uncaptured_error(&self, error: webgpu_traits::Error) {
+        let this = Trusted::new(self);
+
+        // Queue a global task, using the webgpu task source, to fire an event named
+        // uncapturederror at a GPUDevice using GPUUncapturedErrorEvent.
+        self.global().task_manager().webgpu_task_source().queue(
+            task!(fire_uncaptured_error: move || {
+                let this = this.root();
+                let error = GPUError::from_error(&this.global(), error, CanGc::note());
+
+                let event = GPUUncapturedErrorEvent::new(
+                    &this.global(),
+                    DOMString::from("uncapturederror"),
+                    &GPUUncapturedErrorEventInit {
+                        error,
+                        parent: EventInit::empty(),
+                    },
+                    CanGc::note(),
+                );
+
+                event.upcast::<Event>().fire(this.upcast(), CanGc::note());
+            }),
         );
-        let _ = self.eventtarget.DispatchEvent(ev.event(), can_gc);
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-texture-format-required-features>
@@ -370,11 +384,20 @@ impl GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
-    pub(crate) fn lose(&self, reason: GPUDeviceLostReason, msg: String, can_gc: CanGc) {
-        let lost_promise = &(*self.lost_promise.borrow());
-        let global = &self.global();
-        let lost = GPUDeviceLostInfo::new(global, msg.into(), reason, can_gc);
-        lost_promise.resolve_native(&*lost, can_gc);
+    pub(crate) fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
+        let this = Trusted::new(self);
+
+        // Queue a global task, using the webgpu task source, to resolve device.lost
+        // promise with a new GPUDeviceLostInfo with reason and message.
+        self.global().task_manager().webgpu_task_source().queue(
+            task!(resolve_device_lost: move || {
+                let this = this.root();
+
+                let lost_promise = &(*this.lost_promise.borrow());
+                let lost = GPUDeviceLostInfo::new(&this.global(), msg.into(), reason, CanGc::note());
+                lost_promise.resolve_native(&*lost, CanGc::note());
+            }),
+        );
     }
 }
 
