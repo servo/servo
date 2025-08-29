@@ -97,6 +97,8 @@ impl CanvasContext for OffscreenCanvasRenderingContext2D {
     fn origin_is_clean(&self) -> bool {
         self.context.origin_is_clean()
     }
+
+    fn mark_as_dirty(&self) {}
 }
 
 impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
