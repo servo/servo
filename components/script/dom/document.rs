@@ -570,10 +570,6 @@ pub(crate) struct Document {
 
 #[allow(non_snake_case)]
 impl Document {
-    pub(crate) fn waiting_on_canvas_image_updates(&self) -> bool {
-        self.waiting_on_canvas_image_updates.get()
-    }
-
     pub(crate) fn note_node_with_dirty_descendants(&self, node: &Node) {
         debug_assert!(*node.owner_doc() == *self);
         if !node.is_connected() {
@@ -2746,6 +2742,10 @@ impl Document {
 
     pub(crate) fn handle_no_longer_waiting_on_asynchronous_image_updates(&self) {
         self.waiting_on_canvas_image_updates.set(false);
+    }
+
+    pub(crate) fn waiting_on_canvas_image_updates(&self) -> bool {
+        self.waiting_on_canvas_image_updates.get()
     }
 
     /// From <https://drafts.csswg.org/css-font-loading/#fontfaceset-pending-on-the-environment>:
