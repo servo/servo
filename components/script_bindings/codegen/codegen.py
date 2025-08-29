@@ -4689,7 +4689,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
         name = f'set_{attr.identifier.name}'
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
-    def generate_code(self) -> CGList:
+    def generate_code(self) -> CGThing:
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
                                                         self.attr)
         safeContext = CGGeneric("let cx = SafeJSContext::from_ptr(cx);\n")
@@ -6764,7 +6764,7 @@ class CGClassTraceHook(CGAbstractClassHook):
                                      args, doesNotPanic=True)
         self.traceGlobal = descriptor.isGlobal()
 
-    def generate_code(self) -> CGList:
+    def generate_code(self) -> CGThing:
         body = [CGGeneric("if this.is_null() { return; } // GC during obj creation\n"
                           f"(*this).trace({self.args[0].name});")]
         if self.traceGlobal:
