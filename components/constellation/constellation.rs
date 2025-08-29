@@ -290,7 +290,7 @@ pub struct Constellation<STF, SWF> {
 
     /// An IPC channel for script threads to send messages to the constellation.
     /// This is the script threads' view of `script_receiver`.
-    script_sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
+    script_sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
 
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
@@ -607,11 +607,8 @@ where
             .name("Constellation".to_owned())
             .spawn(move || {
                 let (script_ipc_sender, script_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-                let script_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        script_ipc_receiver,
-                    );
+                    generic_channel::channel().expect("ipc channel failure");
+                let script_receiver = script_ipc_receiver.route_preserving_errors();
 
                 let (namespace_ipc_sender, namespace_ipc_receiver) =
                     generic_channel::channel().expect("ipc channel failure");
