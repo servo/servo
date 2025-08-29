@@ -9,6 +9,7 @@ use std::mem;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
+use base::generic_channel;
 use constellation_traits::ScriptToConstellationMessage;
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
@@ -689,7 +690,8 @@ impl DocumentEventHandler {
 
         // Step 4. If result is true, then show the UA context menu
         if result {
-            let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel.");
+            let (sender, receiver) =
+                generic_channel::channel().expect("Failed to create IPC channel.");
             self.window.send_to_embedder(EmbedderMsg::ShowContextMenu(
                 self.window.webview_id(),
                 sender,

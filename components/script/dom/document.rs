@@ -12,9 +12,9 @@ use std::str::FromStr;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
+use base::{Epoch, generic_channel};
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg};
 use chrono::Local;
@@ -32,7 +32,6 @@ use euclid::default::{Rect, Size2D};
 use fnv::FnvHashMap;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
-use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{PendingRestyle, ReflowGoal, ReflowPhasesRun, RestyleReason, TrustedNodeAddress};
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
@@ -1929,7 +1928,7 @@ impl Document {
             .ReturnValue()
             .is_empty();
         if default_prevented || return_value_not_empty {
-            let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
+            let (chan, port) = generic_channel::channel().expect("Failed to create IPC channel!");
             let msg = EmbedderMsg::AllowUnload(self.webview_id(), chan);
             self.send_to_embedder(msg);
             can_unload = port.recv().unwrap() == AllowOrDeny::Allow;

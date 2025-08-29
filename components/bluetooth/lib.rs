@@ -19,6 +19,7 @@ use std::string::String;
 use std::thread;
 use std::time::Duration;
 
+use base::generic_channel;
 use base::id::WebViewId;
 use bitflags::bitflags;
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
@@ -409,7 +410,8 @@ impl BluetoothManager {
             ]);
         }
 
-        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let (ipc_sender, ipc_receiver) =
+            generic_channel::channel().expect("Failed to create IPC channel!");
         self.embedder_proxy
             .send(EmbedderMsg::GetSelectedBluetoothDevice(
                 webview_id,

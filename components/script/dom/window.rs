@@ -17,6 +17,7 @@ use std::time::{Duration, Instant};
 use app_units::Au;
 use backtrace::Backtrace;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel;
 use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use base64::Engine;
@@ -67,7 +68,7 @@ use net_traits::image_cache::{
 };
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
-use profile_traits::ipc as ProfiledIpc;
+use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -862,7 +863,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             stderr.flush().unwrap();
         }
         let (sender, receiver) =
-            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+            ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Alert {
             message: s.to_string(),
             response_sender: sender,
@@ -879,7 +880,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://html.spec.whatwg.org/multipage/#dom-confirm
     fn Confirm(&self, s: DOMString) -> bool {
         let (sender, receiver) =
-            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+            ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Confirm {
             message: s.to_string(),
             response_sender: sender,
@@ -899,7 +900,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://html.spec.whatwg.org/multipage/#dom-prompt
     fn Prompt(&self, message: DOMString, default: DOMString) -> Option<DOMString> {
         let (sender, receiver) =
-            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+            ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Prompt {
             message: message.to_string(),
             default: default.to_string(),
@@ -2137,7 +2138,7 @@ impl Window {
     }
 
     fn client_window(&self) -> DeviceIndependentIntRect {
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel!");
 
         self.send_to_embedder(EmbedderMsg::GetWindowRect(self.webview_id(), sender));
 

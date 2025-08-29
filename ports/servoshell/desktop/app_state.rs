@@ -704,7 +704,7 @@ impl WebViewDelegate for RunningAppState {
         &self,
         webview: servo::WebView,
         devices: Vec<String>,
-        response_sender: IpcSender<Option<String>>,
+        response_sender: GenericSender<Option<String>>,
     ) {
         self.add_dialog(
             webview,
@@ -717,7 +717,7 @@ impl WebViewDelegate for RunningAppState {
         webview: servo::WebView,
         filter_pattern: Vec<FilterPattern>,
         allow_select_mutiple: bool,
-        response_sender: IpcSender<Option<Vec<PathBuf>>>,
+        response_sender: GenericSender<Option<Vec<PathBuf>>>,
     ) {
         let file_dialog =
             Dialog::new_file_dialog(allow_select_mutiple, response_sender, filter_pattern);

@@ -3347,13 +3347,10 @@ where
             response_sender,
         } = load_info;
 
-        let (webview_id_sender, webview_id_receiver) = match ipc::channel() {
-            Ok(result) => result,
-            Err(error) => {
-                warn!("Failed to create channel: {error:?}");
-                let _ = response_sender.send(None);
-                return;
-            },
+        let Some((webview_id_sender, webview_id_receiver)) = generic_channel::channel() else {
+            warn!("Failed to create channel");
+            let _ = response_sender.send(None);
+            return;
         };
         self.embedder_proxy.send(EmbedderMsg::AllowOpeningWebView(
             opener_webview_id,
