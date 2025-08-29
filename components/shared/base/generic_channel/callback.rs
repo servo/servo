@@ -272,6 +272,15 @@ where
     }
 }
 
+impl<T> fmt::Debug for GenericCallback<T>
+where
+    T: Serialize + Send + 'static,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "GenericCallback(..)")
+    }
+}
+
 #[cfg(test)]
 mod single_process_callback_test {
     use std::sync::Arc;
