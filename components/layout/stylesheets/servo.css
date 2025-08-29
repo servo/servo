@@ -38,14 +38,14 @@ input:not(:placeholder-shown)::placeholder {
 
 input::-servo-text-control-inner-editor, input::placeholder {
   block-size: fit-content !important;
+  inset-block: 0 !important;
+  margin-block: auto !important;
   min-width: stretch;
   white-space: pre;
 }
 
 input::placeholder {
   color: grey;
-  inset-block: 0 !important;
-  margin-block: auto !important;
   overflow: hidden;
   pointer-events: none !important;
   position: absolute !important;
