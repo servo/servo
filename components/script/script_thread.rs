@@ -1523,7 +1523,7 @@ impl ScriptThread {
                     },
                     #[cfg(feature = "webgpu")]
                     MixedMessage::FromWebGPUServer(inner_msg) => {
-                        self.handle_msg_from_webgpu_server(inner_msg, can_gc)
+                        self.handle_msg_from_webgpu_server(inner_msg)
                     },
                     MixedMessage::TimerFired => {},
                 }
@@ -1959,7 +1959,7 @@ impl ScriptThread {
     }
 
     #[cfg(feature = "webgpu")]
-    fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg, can_gc: CanGc) {
+    fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
         match msg {
             WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.free_adapter_id(id),
             WebGPUMsg::FreeDevice {
@@ -1997,7 +1997,7 @@ impl ScriptThread {
                 msg,
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
-                global.gpu_device_lost(device, reason, msg, can_gc);
+                global.gpu_device_lost(device, reason, msg);
             },
             WebGPUMsg::UncapturedError {
                 device,
@@ -2006,7 +2006,7 @@ impl ScriptThread {
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
                 let _ac = enter_realm(&*global);
-                global.handle_uncaptured_gpu_error(device, error, can_gc);
+                global.handle_uncaptured_gpu_error(device, error);
             },
             _ => {},
         }
