@@ -8478,7 +8478,7 @@ class CallbackMember(CGNativeMember):
         # Do them back to front, so our argc modifications will work
         # correctly, because we examine trailing arguments first.
         argConversions.reverse()
-        argConversionsCG = [CGGeneric(c) for c in argConversions]
+        argConversionsCG: list[CGThing] = [CGGeneric(c) for c in argConversions]
         # If arg count is only 1 but it's optional and not default value,
         # argc should be mutable.
         if self.argCount == 1 and not (arglist[0].optional and not arglist[0].defaultValue):
@@ -8546,7 +8546,7 @@ class CallbackMember(CGNativeMember):
             "    return Err(JSFailed);\n"
             "}\n")
 
-    def getArgcDecl(self, immutable: bool) -> CGGeneric:
+    def getArgcDecl(self, immutable: bool) -> CGThing:
         if immutable:
             return CGGeneric(f"let argc = {self.argCountStr};")
         return CGGeneric(f"let mut argc = {self.argCountStr};")
