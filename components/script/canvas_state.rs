@@ -2265,8 +2265,6 @@ impl CanvasState {
                 .union(&text_run.bounds);
         }
 
-        println!("bounds: {bounds:?}");
-
         self.send_canvas_2d_msg(Canvas2dMsg::FillText(
             bounds
                 .unwrap_or_default()
