@@ -278,13 +278,13 @@ impl CanvasContext for GPUCanvasContext {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
-    fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
+    fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
         if !self.onscreen() {
             return false;
         }
 
         // Step 1: Expire the current texture of context.
-        self.expire_current_texture(canvas_epoch)
+        self.expire_current_texture(Some(canvas_epoch))
         // Step 2: Set context.[[lastPresentedImage]] to context.[[drawingBuffer]].
         // TODO: Implement this.
     }

@@ -70,9 +70,9 @@ pub(crate) trait CanvasContext {
     /// The WebRender [`ImageKey`] of this [`CanvasContext`] if any.
     fn image_key(&self) -> Option<ImageKey>;
 
-    /// Request that the [`CanvasContext`] update the rendering of its contents, returning
-    /// the new [`Epoch`] of the image produced, if one was.
-    fn update_rendering(&self, _canvas_epoch: Option<Epoch>) -> bool {
+    /// Request that the [`CanvasContext`] update the rendering of its contents,
+    /// returning `true` if new image was produced.
+    fn update_rendering(&self, _canvas_epoch: Epoch) -> bool {
         false
     }
 
@@ -250,7 +250,7 @@ impl CanvasContext for RenderingContext {
         }
     }
 
-    fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
+    fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
         match self {
             RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
                 .context()
@@ -357,7 +357,7 @@ impl CanvasContext for OffscreenRenderingContext {
         None
     }
 
-    fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
+    fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.update_rendering(canvas_epoch),
             OffscreenRenderingContext::BitmapRenderer(context) => {

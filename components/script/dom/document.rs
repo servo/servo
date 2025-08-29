@@ -2690,7 +2690,7 @@ impl Document {
                 .borrow_mut()
                 .iter()
                 .filter_map(|(_, context)| context.root())
-                .filter(|context| context.update_rendering(Some(canvas_epoch)))
+                .filter(|context| context.update_rendering(canvas_epoch))
                 .map(|context| context.image_key()),
         );
 
@@ -2698,7 +2698,7 @@ impl Document {
             self.dirty_2d_contexts
                 .borrow_mut()
                 .drain()
-                .filter(|(_, context)| context.update_rendering(Some(canvas_epoch)))
+                .filter(|(_, context)| context.update_rendering(canvas_epoch))
                 .map(|(_, context)| context.image_key()),
         );
 
