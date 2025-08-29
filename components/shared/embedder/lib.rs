@@ -148,20 +148,20 @@ pub enum SimpleDialog {
     /// TODO: Include details about the document origin.
     Alert {
         message: String,
-        response_sender: IpcSender<AlertResponse>,
+        response_sender: GenericSender<AlertResponse>,
     },
     /// [`confirm()`](https://html.spec.whatwg.org/multipage/#dom-confirm).
     /// TODO: Include details about the document origin.
     Confirm {
         message: String,
-        response_sender: IpcSender<ConfirmResponse>,
+        response_sender: GenericSender<ConfirmResponse>,
     },
     /// [`prompt()`](https://html.spec.whatwg.org/multipage/#dom-prompt).
     /// TODO: Include details about the document origin.
     Prompt {
         message: String,
         default: String,
-        response_sender: IpcSender<PromptResponse>,
+        response_sender: GenericSender<PromptResponse>,
     },
 }
 
@@ -432,7 +432,7 @@ pub enum EmbedderMsg {
     /// Show a context menu to the user
     ShowContextMenu(
         WebViewId,
-        IpcSender<ContextMenuResult>,
+        GenericSender<ContextMenuResult>,
         Option<String>,
         Vec<String>,
     ),
@@ -470,9 +470,9 @@ pub enum EmbedderMsg {
     /// A history traversal operation completed.
     HistoryTraversalComplete(WebViewId, TraversalId),
     /// Get the device independent window rectangle.
-    GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
+    GetWindowRect(WebViewId, GenericSender<DeviceIndependentIntRect>),
     /// Get the device independent screen size and available size.
-    GetScreenMetrics(WebViewId, IpcSender<ScreenMetrics>),
+    GetScreenMetrics(WebViewId, GenericSender<ScreenMetrics>),
     /// Entered or exited fullscreen.
     NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
@@ -485,13 +485,13 @@ pub enum EmbedderMsg {
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(WebViewId, Vec<String>, IpcSender<Option<String>>),
+    GetSelectedBluetoothDevice(WebViewId, Vec<String>, GenericSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(
         WebViewId,
         Vec<FilterPattern>,
         bool,
-        IpcSender<Option<Vec<PathBuf>>>,
+        GenericSender<Option<Vec<PathBuf>>>,
     ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),

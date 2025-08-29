@@ -517,7 +517,7 @@ pub trait WebViewDelegate {
     fn show_context_menu(
         &self,
         _webview: WebView,
-        result_sender: IpcSender<ContextMenuResult>,
+        result_sender: GenericSender<ContextMenuResult>,
         _: Option<String>,
         _: Vec<String>,
     ) {
@@ -530,7 +530,7 @@ pub trait WebViewDelegate {
         &self,
         _webview: WebView,
         _: Vec<String>,
-        response_sender: IpcSender<Option<String>>,
+        response_sender: GenericSender<Option<String>>,
     ) {
         let _ = response_sender.send(None);
     }
@@ -541,7 +541,7 @@ pub trait WebViewDelegate {
         _webview: WebView,
         _filter_pattern: Vec<FilterPattern>,
         _allow_select_mutiple: bool,
-        response_sender: IpcSender<Option<Vec<PathBuf>>>,
+        response_sender: GenericSender<Option<Vec<PathBuf>>>,
     ) {
         let _ = response_sender.send(None);
     }
