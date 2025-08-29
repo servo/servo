@@ -63,12 +63,15 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 
+use ipc_channel::ErrorKind;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
+
+use crate::generic_channel::{SendError, SendResult};
 
 /// The callback type of our messages.
 ///
@@ -147,9 +150,16 @@ where
     /// Note that a return value of `Ok()` simply means that value was sent successfully
     /// to the callback. The callback itself does not return any value.
     /// The caller may not assume that the callback is executed synchronously.
-    pub fn send(&self, value: T) -> Result<(), ipc_channel::Error> {
+    pub fn send(&self, value: T) -> SendResult {
         match &self.0 {
-            GenericCallbackVariants::CrossProcess(sender) => sender.send(value),
+            GenericCallbackVariants::CrossProcess(sender) => {
+                sender.send(value).map_err(|error| match *error {
+                    ErrorKind::Io(_) => SendError::Disconnected,
+                    serialization_error => {
+                        SendError::SerializationError(serialization_error.to_string())
+                    },
+                })
+            },
             GenericCallbackVariants::InProcess(callback) => {
                 let mut cb = callback.lock().expect("poisoned");
                 (*cb)(Ok(value));
