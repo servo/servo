@@ -782,7 +782,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
     # Helper functions for dealing with failures due to the JS value being the
     # wrong type of value.
-    def onFailureNotAnObject(failureCode: str | None) -> CGWrapper:
+    def onFailureNotAnObject(failureCode: str | None) -> CGThing:
         return CGWrapper(
             CGGeneric(
                 failureCode
@@ -4605,7 +4605,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                 Argument('JSJitGetterCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args, templateArgs=["D: DomTypes"])
 
-    def definition_body(self) -> CGWrapper:
+    def definition_body(self) -> CGThing:
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
 
@@ -5479,7 +5479,7 @@ class CGUnionConversionStruct(CGThing):
                 return True
         return False
 
-    def from_jsval(self) -> CGWrapper:
+    def from_jsval(self) -> CGThing:
         memberTypes = self.type.flatMemberTypes
         names = []
         conversions = []
@@ -8864,7 +8864,7 @@ class GlobalGenRoots():
         ])
 
     @staticmethod
-    def InterfaceObjectMapData(config) -> CGWrapper:
+    def InterfaceObjectMapData(config) -> CGThing:
         pairs = []
         for d in config.getDescriptors(hasInterfaceObject=True, isInline=False):
             binding_mod = toBindingModuleFileFromDescriptor(d)
@@ -8890,7 +8890,7 @@ class GlobalGenRoots():
             post="\n}\n")
 
     @staticmethod
-    def PrototypeList(config) -> CGList:
+    def PrototypeList(config) -> CGThing:
         # Prototype ID enum.
         interfaces = config.getDescriptors(isCallback=False, isNamespace=False)
         protos = [d.name for d in interfaces]
@@ -8918,7 +8918,7 @@ class GlobalGenRoots():
         ])
 
     @staticmethod
-    def RegisterBindings(config) -> CGImports:
+    def RegisterBindings(config) -> CGThing:
         # TODO - Generate the methods we want
         code = CGList([
             CGRegisterProxyHandlers(config),
@@ -8931,7 +8931,7 @@ class GlobalGenRoots():
         ], config=config)
 
     @staticmethod
-    def InterfaceTypes(config) -> CGWrapper:
+    def InterfaceTypes(config) -> CGThing:
         descriptors = sorted([MakeNativeName(d.name)
                               for d in config.getDescriptors(register=True,
                                                              isCallback=False,
@@ -8942,7 +8942,7 @@ class GlobalGenRoots():
         return curr
 
     @staticmethod
-    def Bindings(config) -> CGWrapper:
+    def Bindings(config) -> CGThing:
 
         def leafModule(d) -> str:
             return getModuleFromObject(d).split('::')[-1]
@@ -8959,7 +8959,7 @@ class GlobalGenRoots():
         return curr
 
     @staticmethod
-    def ConcreteInheritTypes(config) -> CGWrapper:
+    def ConcreteInheritTypes(config) -> CGThing:
         descriptors = config.getDescriptors(register=True, isCallback=False)
         imports = [CGGeneric("use crate::dom::types::*;\n"),
                    CGGeneric("use script_bindings::codegen::InheritTypes::*;\n"),
@@ -9018,7 +9018,7 @@ impl {base} {{
         return curr
 
     @staticmethod
-    def InheritTypes(config) -> CGWrapper:
+    def InheritTypes(config) -> CGThing:
         descriptors = config.getDescriptors(register=True, isCallback=False)
         topTypes = []
         hierarchy = defaultdict(list)
@@ -9076,7 +9076,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def ConcreteUnionTypes(config) -> CGWrapper:
+    def ConcreteUnionTypes(config) -> CGThing:
         unions = set()
         cgthings = []
         allTypes = getAllTypes(
@@ -9096,7 +9096,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def UnionTypes(config) -> CGWrapper:
+    def UnionTypes(config) -> CGThing:
 
         curr = UnionTypes(config.getDescriptors(),
                           config.getDictionaries(),
@@ -9111,7 +9111,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def DomTypes(config) -> CGWrapper:
+    def DomTypes(config) -> CGThing:
         curr = DomTypes(config.getDescriptors(),
                         config.getDescriptorProvider(),
                         config.getDictionaries(),
@@ -9126,7 +9126,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def DomTypeHolder(config) -> CGWrapper:
+    def DomTypeHolder(config) -> CGThing:
         curr = DomTypeHolder(config.getDescriptors(),
                              config.getDescriptorProvider(),
                              config.getDictionaries(),
