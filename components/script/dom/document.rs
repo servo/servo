@@ -2743,6 +2743,10 @@ impl Document {
         self.waiting_on_canvas_image_updates.set(false);
     }
 
+    pub(crate) fn waiting_on_canvas_image_updates(&self) -> bool {
+        self.waiting_on_canvas_image_updates.get()
+    }
+
     /// From <https://drafts.csswg.org/css-font-loading/#fontfaceset-pending-on-the-environment>:
     ///
     /// > A FontFaceSet is pending on the environment if any of the following are true:
