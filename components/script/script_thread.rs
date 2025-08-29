@@ -1158,6 +1158,10 @@ impl ScriptThread {
                 continue;
             }
 
+            if document.waiting_on_canvas_image_updates() {
+                continue;
+            }
+
             // TODO(#31581): The steps in the "Revealing the document" section need to be implemented
             // `process_pending_input_events` handles the focusing steps as well as other events
             // from the compositor.
