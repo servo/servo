@@ -21,6 +21,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Point2D, Scale, Size2D};
@@ -426,7 +427,7 @@ pub enum EmbedderMsg {
         WebViewId,
         ServoUrl,
         bool, /* for proxy */
-        IpcSender<Option<AuthenticationResponse>>,
+        GenericSender<Option<AuthenticationResponse>>,
     ),
     /// Show a context menu to the user
     ShowContextMenu(
@@ -438,7 +439,10 @@ pub enum EmbedderMsg {
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(WebViewId, IpcSender<Option<(WebViewId, ViewportDetails)>>),
+    AllowOpeningWebView(
+        WebViewId,
+        GenericSender<Option<(WebViewId, ViewportDetails)>>,
+    ),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
     /// A webview potentially gained focus for keyboard events, as initiated
@@ -448,7 +452,7 @@ pub enum EmbedderMsg {
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document
-    AllowUnload(WebViewId, IpcSender<AllowOrDeny>),
+    AllowUnload(WebViewId, GenericSender<AllowOrDeny>),
     /// Sends an unconsumed key event back to the embedder.
     Keyboard(WebViewId, KeyboardEvent),
     /// Inform embedder to clear the clipboard
@@ -476,7 +480,7 @@ pub enum EmbedderMsg {
     WebResourceRequested(
         Option<WebViewId>,
         WebResourceRequest,
-        IpcSender<WebResourceResponseMsg>,
+        GenericSender<WebResourceResponseMsg>,
     ),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(WebViewId, String, Option<String>),
@@ -490,7 +494,7 @@ pub enum EmbedderMsg {
         IpcSender<Option<Vec<PathBuf>>>,
     ),
     /// Open interface to request permission specified by prompt.
-    PromptPermission(WebViewId, PermissionFeature, IpcSender<AllowOrDeny>),
+    PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
     /// Request to present an IME to the user when an editable element is focused.
     /// If the input is text, the second parameter defines the pre-existing string
     /// text content and the zero-based index into the string locating the insertion point.
@@ -512,7 +516,7 @@ pub enum EmbedderMsg {
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
-    RequestDevtoolsConnection(IpcSender<AllowOrDeny>),
+    RequestDevtoolsConnection(GenericSender<AllowOrDeny>),
     /// Request to play a haptic effect on a connected gamepad.
     PlayGamepadHapticEffect(WebViewId, usize, GamepadHapticEffectType, IpcSender<bool>),
     /// Request to stop a haptic effect on a connected gamepad.
@@ -546,10 +550,10 @@ pub enum FormControl {
     SelectElement(
         Vec<SelectElementOptionOrOptgroup>,
         Option<usize>,
-        IpcSender<Option<usize>>,
+        GenericSender<Option<usize>>,
     ),
     /// Indicates that the user has activated a `<input type=color>` element.
-    ColorPicker(RgbColor, IpcSender<Option<RgbColor>>),
+    ColorPicker(RgbColor, GenericSender<Option<RgbColor>>),
 }
 
 /// Filter for file selection;

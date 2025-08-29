@@ -9,6 +9,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
@@ -138,7 +139,7 @@ impl HttpState {
         }
 
         let embedder_proxy = self.embedder_proxy.lock().unwrap();
-        let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
+        let (ipc_sender, ipc_receiver) = generic_channel::channel().unwrap();
         embedder_proxy.send(EmbedderMsg::RequestAuthentication(
             webview_id,
             request.url(),

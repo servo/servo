@@ -11,6 +11,7 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
+use base::generic_channel;
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderMsg, FilterPattern, FormControl as EmbedderFormControl, InputMethodType, RgbColor,
@@ -18,7 +19,6 @@ use embedder_traits::{
 use encoding_rs::Encoding;
 use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, local_name, ns};
-use ipc_channel::ipc;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
@@ -2786,8 +2786,8 @@ impl HTMLInputElement {
         // Step 6. Otherwise, the user agent should show the relevant user interface for selecting a value for element,
         // in the way it normally would when the user interacts with the control.
         if self.input_type() == InputType::Color {
-            let (ipc_sender, ipc_receiver) =
-                ipc::channel::<Option<RgbColor>>().expect("Failed to create IPC channel!");
+            let (ipc_sender, ipc_receiver) = generic_channel::channel::<Option<RgbColor>>()
+                .expect("Failed to create IPC channel!");
             let document = self.owner_document();
             let rect = self.upcast::<Node>().border_box().unwrap_or_default();
             let rect = Rect::new(

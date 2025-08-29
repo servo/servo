@@ -10,12 +10,11 @@ use embedder_traits::{EmbedderMsg, FormControl as EmbedderFormControl};
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
 use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, local_name};
-use ipc_channel::ipc;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 use webrender_api::units::DeviceIntRect;
-
+use base::generic_channel;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::HTMLOptGroupElement_Binding::HTMLOptGroupElementMethods;
@@ -340,7 +339,8 @@ impl HTMLSelectElement {
     }
 
     pub(crate) fn show_menu(&self) -> Option<usize> {
-        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let (ipc_sender, ipc_receiver) =
+            generic_channel::channel().expect("Failed to create IPC channel!");
 
         // Collect list of optgroups and options
         let mut index = 0;
