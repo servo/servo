@@ -4820,10 +4820,10 @@ class CGMemberJITInfo(CGThing):
             return initializer.rstrip()
 
         if args is not None:
-            argTypes = f"{infoName}_argTypes"
-            argsTypes = [CGMemberJITInfo.getJSArgType(arg.type) for arg in args]
-            argsTypes.append("JSJitInfo_ArgType::ArgTypeListEnd as i32")
-            argTypesDecl = f"const {argTypes}: [i32; {len(argsTypes)}] = [ {', '.join(argsTypes)} ];\n"
+            argTypesArray = f"{infoName}_argTypes"
+            argTypes = [CGMemberJITInfo.getJSArgType(arg.type) for arg in args]
+            argTypes.append("JSJitInfo_ArgType::ArgTypeListEnd as i32")
+            argTypesDecl = f"const {argTypesArray}: [i32; {len(argTypes)}] = [ {', '.join(argTypes)} ];\n"
             return fill(
                 """
                 $*{argTypesDecl}
@@ -4839,7 +4839,7 @@ class CGMemberJITInfo(CGThing):
                 argTypesDecl=argTypesDecl,
                 infoName=infoName,
                 jitInfoInit=indent(jitInfoInitializer(True)),
-                argTypes=argTypes)
+                argTypes=argTypesArray)
 
         return f"""
 static {infoName}: ThreadUnsafeOnceLock<JSJitInfo> = ThreadUnsafeOnceLock::new();
@@ -5127,7 +5127,7 @@ class CGStaticMethodJitinfo(CGGeneric):
     A class for generating the JITInfo for a promise-returning static method.
     """
 
-    def __init__(self, method) -> None:
+    def __init__(self, method: IDLMethod) -> None:
         CGGeneric.__init__(
             self,
             f"""
@@ -5185,7 +5185,7 @@ def getEnumValueName(value: str) -> str:
 
 
 class CGEnum(CGThing):
-    def __init__(self, enum, config) -> None:
+    def __init__(self, enum: IDLEnum, config: Configuration) -> None:
         CGThing.__init__(self)
 
         ident = enum.identifier.name
@@ -5292,7 +5292,7 @@ def convertConstIDLValueToRust(value: IDLConst) -> str:
 
 
 class CGConstant(CGThing):
-    def __init__(self, constant) -> None:
+    def __init__(self, constant: IDLConst) -> None:
         CGThing.__init__(self)
         self.constant = constant
 
@@ -5384,7 +5384,7 @@ def traitRequiresManualImpl(name: str, ty: IDLObject) -> bool:
 
 
 class CGUnionStruct(CGThing):
-    def __init__(self, type, descriptorProvider, config) -> None:
+    def __init__(self, type: IDLUnionType, descriptorProvider: DescriptorProvider, config: Configuration) -> None:
         assert not type.nullable()
         assert not type.hasNullableType
 
@@ -5398,12 +5398,13 @@ class CGUnionStruct(CGThing):
         self.generic, self.genericSuffix = genericsForType(self.type)
 
     def membersNeedTracing(self) -> bool:
+        assert self.type.flatMemberTypes is not None
         for t in self.type.flatMemberTypes:
             if type_needs_tracing(t):
                 return True
         return False
 
-    def manualImplClone(self, templateVars) -> str:
+    def manualImplClone(self, templateVars: list[tuple[dict[str, Any], str]]) -> str:
         arms = [f"            {self.type}::{v['name']}(inner) => "
                 f"{self.type}::{v['name']}(inner.clone()),"
                 for (v, _) in templateVars]
@@ -5419,7 +5420,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
 }}
         """
 
-    def manualImpl(self, t, templateVars) -> str:
+    def manualImpl(self, t: str, templateVars: list[tuple[dict[str, Any], str]]) -> str:
         if t == "Clone":
             return self.manualImplClone(templateVars)
         raise ValueError(f"Don't know how to impl {t} for union")
