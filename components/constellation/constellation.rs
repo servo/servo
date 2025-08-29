@@ -134,8 +134,8 @@ use embedder_traits::{
     AnimationState, CompositorHitTestResult, EmbedderMsg, EmbedderProxy, FocusId,
     FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
     KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
-    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
+    MouseButton, MouseButtonAction, MouseButtonEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
+    WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -971,6 +971,10 @@ where
             self.public_resource_threads.clone()
         };
 
+        let embedder_chan = self.embedder_proxy.sender.clone();
+        let eventloop_waker = self.embedder_proxy.event_loop_waker.clone();
+        let script_to_embedder_chan = ScriptToEmbedderChan::new(embedder_chan, eventloop_waker);
+
         let result = Pipeline::spawn::<STF>(InitialPipelineState {
             id: pipeline_id,
             browsing_context_id,
@@ -981,6 +985,7 @@ where
                 sender: self.script_sender.clone(),
                 pipeline_id,
             },
+            script_to_embedder_chan,
             namespace_request_sender: self.namespace_ipc_sender.clone(),
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
             background_monitor_register: self.background_monitor_register.clone(),
@@ -1704,9 +1709,6 @@ where
                 }
                 self.broadcast_channels
                     .schedule_broadcast(router_id, message);
-            },
-            ScriptToConstellationMessage::ForwardToEmbedder(embedder_msg) => {
-                self.embedder_proxy.send(embedder_msg);
             },
             ScriptToConstellationMessage::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);

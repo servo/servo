@@ -30,7 +30,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     CompositorHitTestResult, FocusSequenceNumber, InputEvent, JavaScriptEvaluationId,
-    MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
+    MediaSessionActionType, ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -321,6 +321,9 @@ pub struct InitialScriptState {
     pub constellation_receiver: GenericReceiver<ScriptThreadMessage>,
     /// A channel on which messages can be sent to the constellation from script.
     pub pipeline_to_constellation_sender: ScriptToConstellationChan,
+    /// A channel which allows script to send messages directly to the Embedder
+    /// This will pump the embedder event loop.
+    pub pipeline_to_embedder_sender: ScriptToEmbedderChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.
     pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// A channel to the resource manager thread.

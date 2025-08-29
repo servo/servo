@@ -438,6 +438,7 @@ impl DedicatedWorkerGlobalScope {
                     init.mem_profiler_chan.clone(),
                     init.time_profiler_chan.clone(),
                     init.script_to_constellation_chan.clone(),
+                    init.script_to_embedder_chan.clone(),
                     init.resource_threads.clone(),
                     #[cfg(feature = "webgpu")]
                     gpu_id_hub.clone(),
