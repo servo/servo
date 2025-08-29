@@ -4638,7 +4638,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
         name = f'get_{attr.identifier.name}'
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
-    def generate_code(self) -> CGList:
+    def generate_code(self) -> CGThing:
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
         safeContext = CGGeneric("let cx = SafeJSContext::from_ptr(cx);\n")
@@ -4711,7 +4711,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
     def __init__(self, descriptor: Descriptor, attr: IDLAttribute) -> None:
         CGSpecializedSetter.__init__(self, descriptor, attr)
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         attrName = self.attr.identifier.name
         forwardToAttr = self.attr.getExtendedAttribute("PutForwards")
         assert forwardToAttr is not None
@@ -4741,7 +4741,7 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
     def __init__(self, descriptor: Descriptor, attr: IDLAttribute) -> None:
         CGSpecializedSetter.__init__(self, descriptor, attr)
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         assert self.attr.readonly
         name = str_to_cstr_ptr(self.attr.identifier.name)
         # JS_DefineProperty can only deal with ASCII.
@@ -5586,7 +5586,7 @@ class CGUnionConversionStruct(CGThing):
             assert len(booleanTypes) <= 1
             assert numUndefinedVariants <= 1
 
-            def getStringOrPrimitiveConversion(memberType) -> CGGeneric:
+            def getStringOrPrimitiveConversion(memberType) -> CGThing:
                 typename = get_name(memberType)
                 return CGGeneric(get_match(typename))
 
@@ -5637,7 +5637,7 @@ class CGUnionConversionStruct(CGThing):
             pre=f"impl{generic} FromJSValConvertible for {self.type}{genericSuffix} {{\n",
             post="\n}")
 
-    def try_method(self, t) -> CGGeneric | CGWrapper:
+    def try_method(self, t) -> CGThing | CGWrapper:
         if t.isUndefined():
             # undefined does not require a conversion method, so we don't generate one
             return CGGeneric("")
@@ -6156,7 +6156,7 @@ class CGProxyUnwrap(CGAbstractMethod):
                                   alwaysInline=True, unsafe=True,
                                   templateArgs=['D: DomTypes'])
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(f"""
         let mut slot = UndefinedValue();
         GetProxyReservedSlot(obj.get(), 0, &mut slot);
@@ -6286,7 +6286,7 @@ if !expando.is_null() {{
 {namedGet}\
 true"""
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
 
 
@@ -6346,7 +6346,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         set += f"return proxyhandler::define_property(*cx, {', '.join(a.name for a in self.args[1:])});"
         return set
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
 
 
@@ -6380,7 +6380,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
         set += f"return proxyhandler::delete(*cx, {', '.join(a.name for a in self.args[1:])});"
         return set
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
 
 
@@ -6450,7 +6450,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
 
         return body
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
 
 
@@ -6509,7 +6509,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
 
         return body
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
 
 
@@ -6583,7 +6583,7 @@ if !expando.is_null() {{
 *bp = false;
 true"""
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
 
 
@@ -6684,7 +6684,7 @@ if found {{
 vp.set(UndefinedValue());
 true"""
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
 
 
@@ -6703,7 +6703,7 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
             proxyhandler::maybe_cross_origin_get_prototype::<D>(cx, proxy, GetProtoObject::<D>, proto)
             """)
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
 
 
@@ -6716,7 +6716,7 @@ class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
     def getBody(self) -> str:
         return str_to_cstr_ptr(self.descriptor.name)
 
-    def definition_body(self) -> CGGeneric:
+    def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
 
 
@@ -6788,7 +6788,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
         self.constructor = constructor
         self.exposureSet = descriptor.interface.exposureSet
 
-    def definition_body(self) -> CGList:
+    def definition_body(self) -> CGThing:
         preamble = """let cx = SafeJSContext::from_ptr(cx);
 let args = CallArgs::from_vp(vp, argc);
 let global = D::GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
@@ -6850,7 +6850,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
         CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME,
                                      'void', args)
 
-    def generate_code(self) -> CGGeneric:
+    def generate_code(self) -> CGThing:
         return CGGeneric(finalizeHook(self.descriptor, self.name, self.args[0].name))
 
 
@@ -7512,20 +7512,20 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         else:
             initParent = ""
 
-        def memberInit(memberInfo) -> CGGeneric:
+        def memberInit(memberInfo) -> CGThing:
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
             conversion = self.getMemberConversion(memberInfo, member.type)
             return CGGeneric(f"{name}: {conversion.define()},\n")
 
-        def varInsert(varName: str, dictionaryName) -> CGGeneric:
+        def varInsert(varName: str, dictionaryName) -> CGThing:
             insertion = (
                 f"rooted!(in(cx) let mut {varName}_js = UndefinedValue());\n"
                 f"{varName}.to_jsval(cx, {varName}_js.handle_mut());\n"
                 f'set_dictionary_property(cx, obj.handle(), "{dictionaryName}", {varName}_js.handle()).unwrap();')
             return CGGeneric(insertion)
 
-        def memberInsert(memberInfo) -> CGGeneric:
+        def memberInsert(memberInfo) -> CGThing:
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
             if member.optional and not member.defaultValue:
@@ -7626,7 +7626,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             declType = CGWrapper(info.declType, pre="Option<", post=">")
         return declType.define()
 
-    def getMemberConversion(self, memberInfo, memberType) -> CGGeneric:
+    def getMemberConversion(self, memberInfo, memberType) -> CGThing:
         def indent(s) -> str:
             return CGIndenter(CGGeneric(s), 12).define()
 
@@ -9141,7 +9141,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def SupportedDomApis(config) -> CGGeneric:
+    def SupportedDomApis(config) -> CGThing:
         descriptors = config.getDescriptors(isExposedConditionally=False)
 
         base_path = os.path.dirname(__file__)
