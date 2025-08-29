@@ -6,6 +6,7 @@ use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::AtomicRefCell;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
+use euclid::Rect;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_geometry::f32_rect_to_au_rect;
@@ -290,6 +291,15 @@ impl BoxFragment {
                     );
                 acc.union(&scrollable_overflow_from_child)
             });
+
+        // Fragments with `IS_COLLAPSED` (currently only table cells that are part of
+        // table tracks with `visibility: collapse`) should not contribute to scrollable
+        // overflow. This behavior matches Chrome, but not Firefox.
+        // See https://github.com/w3c/csswg-drafts/issues/12689
+        if self.base.flags.contains(FragmentFlags::IS_COLLAPSED) {
+            self.scrollable_overflow = Some(Rect::zero());
+            return;
+        }
 
         self.scrollable_overflow = Some(scrollable_overflow)
     }
