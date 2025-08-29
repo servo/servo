@@ -58,8 +58,8 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
+use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
 use crate::script_runtime::{CanGc, JSContext};

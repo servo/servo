@@ -8,7 +8,7 @@ use webxr_api::Viewport;
 
 use crate::dom::bindings::codegen::Bindings::XRWebGLSubImageBinding::XRWebGLSubImage_Binding::XRWebGLSubImageMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::webgltexture::WebGLTexture;
+use crate::dom::webgl::webgltexture::WebGLTexture;
 use crate::dom::xrsubimage::XRSubImage;
 
 #[dom_struct]
