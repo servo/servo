@@ -123,11 +123,11 @@ impl CanvasContext for CanvasRenderingContext2D {
         Some(self.canvas.clone())
     }
 
-    fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
+    fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
         if !self.onscreen() {
             return false;
         }
-        self.canvas_state.update_rendering(canvas_epoch)
+        self.canvas_state.update_rendering(Some(canvas_epoch))
     }
 
     fn resize(&self) {
