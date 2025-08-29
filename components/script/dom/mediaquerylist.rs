@@ -116,7 +116,7 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
         self.upcast::<EventTarget>().remove_event_listener(
             DOMString::from_string("change".to_owned()),
             listener,
-            EventListenerOptions { capture: false },
+            Some(EventListenerOptions { capture: false }),
         );
     }
 

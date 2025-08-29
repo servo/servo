@@ -1135,7 +1135,7 @@ impl VirtualMethods for HTMLElement {
                         evtarget.remove_event_listener(
                             event_name.into(),
                             evtarget.get_event_handler_common(event_name, can_gc),
-                            EventListenerOptions { capture: false },
+                            None,
                         );
                     },
                 }
