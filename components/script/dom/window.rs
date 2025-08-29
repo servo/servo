@@ -1468,13 +1468,21 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
 
-    fn WebdriverFrame(&self, id: DOMString) -> Option<DomRoot<Element>> {
-        find_node_by_unique_id_in_document(&self.Document(), id.into())
-            .and_then(Root::downcast::<HTMLIFrameElement>)
-            .map(Root::upcast::<Element>)
+    fn WebdriverFrame(&self, browsing_context_id: DOMString) -> Option<DomRoot<WindowProxy>> {
+        self.Document()
+            .iframes()
+            .iter()
+            .find(|iframe| {
+                iframe
+                    .browsing_context_id()
+                    .as_ref()
+                    .map(BrowsingContextId::to_string) ==
+                    Some(browsing_context_id.to_string())
+            })
+            .and_then(|iframe| iframe.GetContentWindow())
     }
 
-    fn WebdriverWindow(&self, id: DOMString) -> Option<DomRoot<WindowProxy>> {
+    fn WebdriverWindow(&self, webview_id: DOMString) -> Option<DomRoot<WindowProxy>> {
         let window_proxy = self.window_proxy.get()?;
 
         // Window must be top level browsing context.
@@ -1482,10 +1490,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             return None;
         }
 
-        let pipeline_id = window_proxy.currently_active()?;
-        let document = ScriptThread::find_document(pipeline_id)?;
-
-        if document.upcast::<Node>().unique_id(pipeline_id) == id.str() {
+        if self.webview_id().to_string() == webview_id.str() {
             Some(DomRoot::from_ref(&window_proxy))
         } else {
             None
