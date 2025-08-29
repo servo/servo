@@ -16,6 +16,7 @@ use bluetooth_traits::BluetoothRequest;
 use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
+use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::ipc::IpcSender;
 use net_traits::FetchResponseMsg;
 use net_traits::image_cache::ImageCacheResponseMessage;
@@ -343,6 +344,10 @@ pub(crate) struct ScriptThreadSenders {
     #[no_trace]
     pub(crate) pipeline_to_constellation_sender:
         GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+
+    /// A channel to send messages to the Embedder.
+    #[no_trace]
+    pub(crate) pipeline_to_embedder_sender: ScriptToEmbedderChan,
 
     /// The shared [`IpcSender`] which is sent to the `ImageCache` when requesting an image. The
     /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which

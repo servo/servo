@@ -27,7 +27,9 @@ use constellation_traits::{LoadData, SWManagerMsg, ScriptToConstellationChan};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::user_content_manager::UserContentManager;
-use embedder_traits::{AnimationState, FocusSequenceNumber, Theme, ViewportDetails};
+use embedder_traits::{
+    AnimationState, FocusSequenceNumber, ScriptToEmbedderChan, Theme, ViewportDetails,
+};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -130,6 +132,9 @@ pub struct InitialPipelineState {
 
     /// A channel to the associated constellation.
     pub script_to_constellation_chan: ScriptToConstellationChan,
+
+    /// A channel to the embedder.
+    pub script_to_embedder_chan: ScriptToEmbedderChan,
 
     /// A sender to request pipeline namespace ids.
     pub namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
@@ -277,6 +282,7 @@ impl Pipeline {
                     parent_pipeline_id: state.parent_pipeline_id,
                     opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
+                    script_to_embedder_chan: state.script_to_embedder_chan,
                     namespace_request_sender: state.namespace_request_sender,
                     background_hang_monitor_to_constellation_chan: state
                         .background_hang_monitor_to_constellation_chan
@@ -476,6 +482,7 @@ pub struct UnprivilegedPipelineContent {
     opener: Option<BrowsingContextId>,
     namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
     script_to_constellation_chan: ScriptToConstellationChan,
+    script_to_embedder_chan: ScriptToEmbedderChan,
     background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
     bhm_control_port: Option<IpcReceiver<BackgroundHangMonitorControlMsg>>,
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -530,6 +537,7 @@ impl UnprivilegedPipelineContent {
                 constellation_sender: self.script_chan.clone(),
                 constellation_receiver: self.script_port,
                 pipeline_to_constellation_sender: self.script_to_constellation_chan.clone(),
+                pipeline_to_embedder_sender: self.script_to_embedder_chan,
                 background_hang_monitor_register: background_hang_monitor_register.clone(),
                 #[cfg(feature = "bluetooth")]
                 bluetooth_sender: self.bluetooth_thread,

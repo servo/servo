@@ -26,7 +26,7 @@ use content_security_policy::CspList;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError};
+use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan};
 use fonts::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -253,6 +253,11 @@ pub(crate) struct GlobalScope {
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     script_to_constellation_chan: ScriptToConstellationChan,
+
+    /// A handle for communicating messages to the Embedder.
+    #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
+    script_to_embedder_chan: ScriptToEmbedderChan,
 
     /// <https://html.spec.whatwg.org/multipage/#in-error-reporting-mode>
     in_error_reporting_mode: Cell<bool>,
@@ -741,6 +746,7 @@ impl GlobalScope {
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
+        script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         origin: MutableOrigin,
         creation_url: ServoUrl,
@@ -770,6 +776,7 @@ impl GlobalScope {
             mem_profiler_chan,
             time_profiler_chan,
             script_to_constellation_chan,
+            script_to_embedder_chan,
             in_error_reporting_mode: Default::default(),
             resource_threads,
             timers: OnceCell::default(),
@@ -2477,8 +2484,12 @@ impl GlobalScope {
         &self.script_to_constellation_chan
     }
 
+    pub(crate) fn script_to_embedder_chan(&self) -> &ScriptToEmbedderChan {
+        &self.script_to_embedder_chan
+    }
+
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
-        self.send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(msg));
+        self.script_to_embedder_chan().send(msg).unwrap();
     }
 
     pub(crate) fn send_to_constellation(&self, msg: ScriptToConstellationMessage) {

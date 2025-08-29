@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::WebViewId;
-use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{EmbedderMsg, ScriptToEmbedderChan};
 use ipc_channel::ipc::channel;
 use malloc_size_of_derive::MallocSizeOf;
 
@@ -19,25 +18,21 @@ pub trait ClipboardProvider {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct EmbedderClipboardProvider {
-    pub constellation_sender: ScriptToConstellationChan,
+    pub embedder_sender: ScriptToEmbedderChan,
     pub webview_id: WebViewId,
 }
 
 impl ClipboardProvider for EmbedderClipboardProvider {
     fn get_text(&mut self) -> Result<String, String> {
         let (tx, rx) = channel().unwrap();
-        self.constellation_sender
-            .send(ScriptToConstellationMessage::ForwardToEmbedder(
-                EmbedderMsg::GetClipboardText(self.webview_id, tx),
-            ))
+        self.embedder_sender
+            .send(EmbedderMsg::GetClipboardText(self.webview_id, tx))
             .unwrap();
         rx.recv().unwrap()
     }
     fn set_text(&mut self, s: String) {
-        self.constellation_sender
-            .send(ScriptToConstellationMessage::ForwardToEmbedder(
-                EmbedderMsg::SetClipboardText(self.webview_id, s),
-            ))
+        self.embedder_sender
+            .send(EmbedderMsg::SetClipboardText(self.webview_id, s))
             .unwrap();
     }
 }
