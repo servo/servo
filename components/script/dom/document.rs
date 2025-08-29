@@ -12,10 +12,9 @@ use std::str::FromStr;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel;
 use base::id::WebViewId;
+use base::{Epoch, generic_channel};
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg};
 use chrono::Local;
