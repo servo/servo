@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::Epoch;
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -122,8 +123,11 @@ impl CanvasContext for CanvasRenderingContext2D {
         Some(self.canvas.clone())
     }
 
-    fn update_rendering(&self) {
-        self.canvas_state.update_rendering();
+    fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
+        if !self.onscreen() {
+            return false;
+        }
+        self.canvas_state.update_rendering(canvas_epoch)
     }
 
     fn resize(&self) {
@@ -154,6 +158,10 @@ impl CanvasContext for CanvasRenderingContext2D {
             canvas.upcast::<Node>().dirty(NodeDamage::Other);
             canvas.owner_document().add_dirty_2d_canvas(self);
         }
+    }
+
+    fn image_key(&self) -> Option<ImageKey> {
+        Some(self.canvas_state.image_key())
     }
 }
 

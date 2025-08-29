@@ -98,6 +98,7 @@ impl MixedMessage {
                 ScriptThreadMessage::EvaluateJavaScript(id, _, _) => Some(*id),
                 ScriptThreadMessage::SendImageKeysBatch(..) => None,
                 ScriptThreadMessage::PreferencesUpdated(..) => None,
+                ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(_) => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {

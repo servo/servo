@@ -16,11 +16,14 @@ pub mod print_tree;
 pub mod text;
 mod unicode_block;
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use webrender_api::Epoch as WebRenderEpoch;
 
 /// A struct for denoting the age of messages; prevents race conditions.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, MallocSizeOf,
+)]
 pub struct Epoch(pub u32);
 
 impl Epoch {

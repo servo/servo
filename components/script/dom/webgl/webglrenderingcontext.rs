@@ -2042,6 +2042,10 @@ impl CanvasContext for WebGLRenderingContext {
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
         }
     }
+
+    fn image_key(&self) -> Option<ImageKey> {
+        Some(self.webrender_image)
+    }
 }
 
 #[cfg(not(feature = "webgl_backtrace"))]

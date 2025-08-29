@@ -261,6 +261,10 @@ pub enum ScriptThreadMessage {
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
     /// Preferences were updated in the parent process.
     PreferencesUpdated(Vec<(String, PrefValue)>),
+    /// Notify the `ScriptThread` that the Servo renderer is no longer waiting on
+    /// asynchronous image uploads for the given `Pipeline`. These are mainly used
+    /// by canvas to perform uploads while the display list is being built.
+    NoLongerWaitingOnAsychronousImageUpdates(PipelineId),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

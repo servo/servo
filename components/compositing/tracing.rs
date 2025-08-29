@@ -53,6 +53,7 @@ mod from_constellation {
                 Self::CollectMemoryReport(..) => target!("CollectMemoryReport"),
                 Self::Viewport(..) => target!("Viewport"),
                 Self::GenerateImageKeysForPipeline(..) => target!("GenerateImageKeysForPipeline"),
+                Self::DelayNewFrameForCanvas(..) => target!("DelayFramesForCanvas"),
             }
         }
     }

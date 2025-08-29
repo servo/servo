@@ -7,6 +7,7 @@ use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 
+use base::Epoch;
 /// Receiver type used in WebGLCommands.
 pub use base::generic_channel::GenericReceiver as WebGLReceiver;
 /// Sender type used in WebGLCommands.
@@ -107,7 +108,7 @@ pub enum WebGLMsg {
     /// The third field contains the time (in ns) when the request
     /// was initiated. The u64 in the second field will be the time the
     /// request is fulfilled
-    SwapBuffers(Vec<WebGLContextId>, WebGLSender<u64>, u64),
+    SwapBuffers(Vec<WebGLContextId>, Option<Epoch>, u64),
     /// Frees all resources and closes the thread.
     Exit(IpcSender<()>),
 }
