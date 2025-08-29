@@ -5426,13 +5426,14 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
         raise ValueError(f"Don't know how to impl {t} for union")
 
     def define(self) -> str:
-        def getTypeWrapper(t) -> str:
+        def getTypeWrapper(t: IDLType) -> str:
             if type_needs_tracing(t):
                 return "RootedTraceableBox"
             if t.isCallback():
                 return "Rc"
             return ""
 
+        assert self.type.flatMemberTypes is not None
         templateVars = [(getUnionTypeTemplateVars(t, self.descriptorProvider),
                          getTypeWrapper(t)) for t in self.type.flatMemberTypes]
         enumValues = [
