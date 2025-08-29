@@ -487,6 +487,11 @@ pub(crate) struct Document {
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// Whether or not animated images need to have their contents updated.
     has_pending_animated_image_update: Cell<bool>,
+    /// Whether or not there is a dirty WebGPU canvas in this [`Document`].
+    ///
+    /// TODO: This should ideally be a collection of dirty WebGPU canvases, but it
+    /// seems that WebGPU does not yet track when it dirties the canvas.
+    has_pending_dirty_webgpu_canvas: Cell<bool>,
     /// List of all WebGPU contexts.
     #[cfg(feature = "webgpu")]
     #[ignore_malloc_size_of = "Rc are hard"]
@@ -2648,7 +2653,11 @@ impl Document {
         if self.window().has_unhandled_resize_event() {
             return true;
         }
-        if self.has_pending_animated_image_update.get() {
+        if self.has_pending_animated_image_update.get() ||
+            !self.dirty_2d_contexts.borrow().is_empty() ||
+            !self.dirty_webgl_contexts.borrow().is_empty() ||
+            self.has_pending_dirty_webgpu_canvas.get()
+        {
             return true;
         }
 
@@ -2663,11 +2672,14 @@ impl Document {
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
     pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
+        let mut results = ReflowPhasesRun::empty();
+
         if self.has_pending_animated_image_update.get() {
             self.image_animation_manager
                 .borrow()
                 .update_active_frames(&self.window, self.current_animation_timeline_value());
             self.has_pending_animated_image_update.set(false);
+            results.insert(ReflowPhasesRun::UpdatedImageData);
         }
 
         // All dirty canvases are flushed before updating the rendering.
@@ -2677,13 +2689,20 @@ impl Document {
             .iter()
             .filter_map(|(_, context)| context.root())
             .filter(|context| context.onscreen())
-            .for_each(|context| context.update_rendering());
+            .for_each(|context| {
+                results.insert(ReflowPhasesRun::UpdatedImageData);
+                context.update_rendering()
+            });
+        self.has_pending_animated_image_update.set(false);
 
         self.dirty_2d_contexts
             .borrow_mut()
             .drain()
             .filter(|(_, context)| context.onscreen())
-            .for_each(|(_, context)| context.update_rendering());
+            .for_each(|(_, context)| {
+                results.insert(ReflowPhasesRun::UpdatedImageData);
+                context.update_rendering()
+            });
 
         let dirty_webgl_context_ids: Vec<_> = self
             .dirty_webgl_contexts
@@ -2693,6 +2712,7 @@ impl Document {
             .map(|(id, _)| id)
             .collect();
         if !dirty_webgl_context_ids.is_empty() {
+            results.insert(ReflowPhasesRun::UpdatedImageData);
             let (sender, receiver) = webgl::webgl_channel().unwrap();
             self.window
                 .webgl_chan()
@@ -2702,7 +2722,7 @@ impl Document {
             receiver.recv().unwrap();
         }
 
-        self.window().reflow(ReflowGoal::UpdateTheRendering)
+        results.union(self.window().reflow(ReflowGoal::UpdateTheRendering))
     }
 
     /// From <https://drafts.csswg.org/css-font-loading/#fontfaceset-pending-on-the-environment>:
@@ -3363,6 +3383,7 @@ impl Document {
             dirty_2d_contexts: DomRefCell::new(HashMapTracedValues::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             has_pending_animated_image_update: Cell::new(false),
+            has_pending_dirty_webgpu_canvas: Cell::new(false),
             #[cfg(feature = "webgpu")]
             webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
             selection: MutNullableDom::new(None),
@@ -4157,11 +4178,17 @@ impl Document {
             .do_post_reflow_update(&self.window, self.current_animation_timeline_value());
         self.image_animation_manager
             .borrow()
-            .update_rooted_dom_nodes(&self.window, self.current_animation_timeline_value());
+            .maybe_schedule_update_after_layout(
+                &self.window,
+                self.current_animation_timeline_value(),
+            );
     }
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
         self.animations.borrow().cancel_animations_for_node(node);
+        self.image_animation_manager
+            .borrow()
+            .cancel_animations_for_node(node);
     }
 
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
@@ -4199,6 +4226,10 @@ impl Document {
 
     pub(crate) fn set_has_pending_animated_image_update(&self) {
         self.has_pending_animated_image_update.set(true);
+    }
+
+    pub(crate) fn set_has_pending_dirty_webgpu_canvas(&self) {
+        self.has_pending_dirty_webgpu_canvas.set(true);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
