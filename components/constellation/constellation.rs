@@ -147,6 +147,8 @@ use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
+use net::image_cache::ImageCacheImpl;
+use net_traits::image_cache::ImageCache;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -482,6 +484,9 @@ pub struct Constellation<STF, SWF> {
 
     /// When in single-process mode, join handles for script-threads.
     script_join_handles: HashMap<WebViewId, JoinHandle<()>>,
+
+    /// The image cache for the single-process mode
+    image_cache: Box<dyn ImageCache>,
 }
 
 /// State needed to construct a constellation.
@@ -680,7 +685,7 @@ where
                     compositor_receiver,
                     layout_factory,
                     embedder_proxy: state.embedder_proxy,
-                    compositor_proxy: state.compositor_proxy,
+                    compositor_proxy: state.compositor_proxy.clone(),
                     webviews: WebViewManager::default(),
                     devtools_sender: state.devtools_sender,
                     #[cfg(feature = "bluetooth")]
@@ -727,11 +732,15 @@ where
                     active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
                     active_media_session: None,
-                    rippy_data,
+                    rippy_data: rippy_data.clone(),
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
                     script_join_handles: Default::default(),
+                    image_cache: Box::new(ImageCacheImpl::new(
+                        state.compositor_proxy.cross_process_compositor_api,
+                        rippy_data,
+                    )),
                 };
 
                 constellation.run();
@@ -1003,6 +1012,10 @@ where
             player_context: WindowGLContext::get(),
             rippy_data: self.rippy_data.clone(),
             user_content_manager: self.user_content_manager.clone(),
+            image_cache: self.image_cache.create_new_image_cache(
+                Some(pipeline_id),
+                self.compositor_proxy.cross_process_compositor_api.clone(),
+            ),
         });
 
         let pipeline = match result {

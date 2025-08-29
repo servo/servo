@@ -1280,6 +1280,7 @@ pub fn run_content_process(token: String) {
                 true,
                 layout_factory,
                 background_hang_monitor_register,
+                None,
             );
 
             // Since wait_for_completion is true,
