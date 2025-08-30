@@ -4042,12 +4042,7 @@ impl ScriptThread {
     }
 
     pub(crate) fn is_servo_privileged(url: ServoUrl) -> bool {
-        with_script_thread(|script_thread| {
-            script_thread
-                .privileged_urls
-                .iter()
-                .any(|privileged| *privileged == url)
-        })
+        with_script_thread(|script_thread| script_thread.privileged_urls.contains(&url))
     }
 }
 
