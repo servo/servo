@@ -343,8 +343,8 @@ impl CompiledEventListener {
                                 );
                                 // Step 4
                                 if let Ok(()) = return_value {
-                                    if rooted_return_value.handle().is_boolean()
-                                        && rooted_return_value.handle().to_boolean()
+                                    if rooted_return_value.handle().is_boolean() &&
+                                        rooted_return_value.handle().to_boolean()
                                     {
                                         event.upcast::<Event>().PreventDefault();
                                     }
@@ -988,23 +988,21 @@ impl EventTarget {
         &self,
         ty: DOMString,
         listener: Option<Rc<EventListener>>,
-        options: Option<EventListenerOptions>,
+        options: EventListenerOptions,
     ) {
         let Some(ref listener) = listener else {
             return;
         };
         let mut handlers = self.handlers.borrow_mut();
         if let Some(entries) = handlers.get_mut(&Atom::from(ty)) {
-            let phase = options.map(|options| {
-                if options.capture {
-                    ListenerPhase::Capturing
-                } else {
-                    ListenerPhase::Bubbling
-                }
-            });
+            let phase = if options.capture {
+                ListenerPhase::Capturing
+            } else {
+                ListenerPhase::Bubbling
+            };
             if let Some(position) = entries.iter().position(|e| {
-                e.borrow().listener == EventListenerType::Additive(listener.clone())
-                    && phase.is_none_or(|phase| e.borrow().phase == phase)
+                e.borrow().listener == EventListenerType::Additive(listener.clone()) &&
+                    e.borrow().phase == phase
             }) {
                 entries.remove(position).borrow_mut().removed = true;
             }
@@ -1110,7 +1108,7 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
         listener: Option<Rc<EventListener>>,
         options: EventListenerOptionsOrBoolean,
     ) {
-        self.remove_event_listener(ty, listener, Some(options.convert()))
+        self.remove_event_listener(ty, listener, options.convert())
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent
