@@ -158,7 +158,7 @@ impl TaffyItemBox {
         }
     }
 
-    pub(crate) fn with_base_mut<T>(&mut self, callback: impl Fn(&mut LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
         match &mut self.taffy_level_box {
             TaffyItemBoxInner::InFlowBox(independent_formatting_context) => {
                 callback(&mut independent_formatting_context.base)
