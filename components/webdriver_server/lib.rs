@@ -560,23 +560,31 @@ impl Handler {
         let response = NewSessionResponse::new(session_id.to_string(), Value::Object(capabilities));
 
         // Step 8. Set session' current top-level browsing context
-        let webview_id = match self.focused_webview_id()? {
-            Some(webview_id) => webview_id,
+        match self.focused_webview_id()? {
+            Some(webview_id) => {
+                self.session_mut()?.set_webview_id(webview_id);
+                self.session_mut()?
+                    .set_browsing_context_id(BrowsingContextId::from(webview_id));
+            },
             None => {
                 // This happens when there is no open webview.
                 // We need to create a new one. See https://github.com/servo/servo/issues/37408
                 let (sender, receiver) = ipc::channel().unwrap();
-                self.send_message_to_embedder(WebDriverCommandMsg::NewWebView(sender, None))?;
+
+                self.send_message_to_embedder(WebDriverCommandMsg::NewWebView(
+                    sender,
+                    Some(self.load_status_sender.clone()),
+                ))?;
                 let webview_id = receiver
                     .recv()
                     .expect("IPC failure when creating new webview for new session");
                 self.focus_webview(webview_id)?;
-                webview_id
+                self.session_mut()?.set_webview_id(webview_id);
+                self.session_mut()?
+                    .set_browsing_context_id(BrowsingContextId::from(webview_id));
+                let _ = self.wait_document_ready(3000);
             },
         };
-        self.session_mut()?.set_webview_id(webview_id);
-        self.session_mut()?
-            .set_browsing_context_id(BrowsingContextId::from(webview_id));
 
         // Step 9. Set the request queue to a new queue.
         // Skip here because the requests are handled in the external crate.
@@ -670,7 +678,7 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)?;
 
         // Step 8.2.1: try to wait for navigation to complete.
-        self.wait_for_document_ready_state()?;
+        self.wait_for_navigation_complete()?;
 
         // Step 8.3. Set current browsing context with session and current top browsing context
         self.session_mut()?
@@ -679,32 +687,8 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
-    fn wait_for_document_ready_state(&self) -> WebDriverResult<WebDriverResponse> {
-        debug!("waiting for load");
-
-        let session = self.session()?;
-
-        // Step 1. If session's page loading strategy is "none",
-        // return success with data null.
-        if session.page_loading_strategy() == PageLoadStrategy::None {
-            return Ok(WebDriverResponse::Void);
-        }
-
-        // Step 2. If session's current browsing context is no longer open,
-        // return success with data null.
-        if self
-            .verify_browsing_context_is_open(self.browsing_context_id()?)
-            .is_err()
-        {
-            return Ok(WebDriverResponse::Void);
-        }
-
-        // Step 3. let timeout be the session's page load timeout.
-        let timeout = session.session_timeouts().page_load;
-
-        // TODO: Step 4. Implement timer parameter
-
-        let result = select! {
+    fn wait_document_ready(&self, timeout: u64) -> WebDriverResult<WebDriverResponse> {
+        select! {
             recv(self.load_status_receiver) -> res => {
                 match res {
                     // If the navigation is navigation to IFrame, no document state event is fired.
@@ -730,7 +714,36 @@ impl Handler {
             recv(after(Duration::from_millis(timeout))) -> _ => Err(
                 WebDriverError::new(ErrorStatus::Timeout, "Load timed out")
             ),
-        };
+        }
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-wait-for-navigation-to-complete>
+    fn wait_for_navigation_complete(&self) -> WebDriverResult<WebDriverResponse> {
+        debug!("waiting for load");
+
+        let session = self.session()?;
+
+        // Step 1. If session's page loading strategy is "none",
+        // return success with data null.
+        if session.page_loading_strategy() == PageLoadStrategy::None {
+            return Ok(WebDriverResponse::Void);
+        }
+
+        // Step 2. If session's current browsing context is no longer open,
+        // return success with data null.
+        if self
+            .verify_browsing_context_is_open(self.browsing_context_id()?)
+            .is_err()
+        {
+            return Ok(WebDriverResponse::Void);
+        }
+
+        // Step 3. let timeout be the session's page load timeout.
+        let timeout = session.session_timeouts().page_load;
+
+        // TODO: Step 4. Implement timer parameter
+
+        let result = self.wait_document_ready(timeout);
         debug!("finished waiting for load with {:?}", result);
         result
     }
@@ -758,7 +771,7 @@ impl Handler {
         };
 
         match navigation_status {
-            WebDriverLoadStatus::NavigationStart => self.wait_for_document_ready_state(),
+            WebDriverLoadStatus::NavigationStart => self.wait_for_navigation_complete(),
             // If the load status is timeout, return an error
             WebDriverLoadStatus::Timeout => Err(WebDriverError::new(
                 ErrorStatus::Timeout,
@@ -984,7 +997,7 @@ impl Handler {
             webview_id,
             self.load_status_sender.clone(),
         ))?;
-        self.wait_for_document_ready_state()
+        self.wait_for_navigation_complete()
     }
 
     /// <https://w3c.github.io/webdriver/#forward>
@@ -1001,7 +1014,7 @@ impl Handler {
             webview_id,
             self.load_status_sender.clone(),
         ))?;
-        self.wait_for_document_ready_state()
+        self.wait_for_navigation_complete()
     }
 
     /// <https://w3c.github.io/webdriver/#refresh>
@@ -1018,7 +1031,7 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)?;
 
         // Step 4.1: Try to wait for navigation to complete.
-        self.wait_for_document_ready_state()?;
+        self.wait_for_navigation_complete()?;
 
         // Step 5. Set current browsing context with session and current top browsing context.
         self.session_mut()?
@@ -1167,7 +1180,7 @@ impl Handler {
         self.send_message_to_embedder(cmd_msg)?;
 
         if let Ok(webview_id) = receiver.recv() {
-            let _ = self.wait_for_document_ready_state();
+            let _ = self.wait_for_navigation_complete();
             let handle = self
                 .get_window_handle(webview_id)
                 .expect("Failed to get window handle of an existing webview");
