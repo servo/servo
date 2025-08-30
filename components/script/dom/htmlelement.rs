@@ -1131,10 +1131,7 @@ impl VirtualMethods for HTMLElement {
                     },
                     // https://html.spec.whatwg.org/multipage/#deactivate-an-event-handler
                     AttributeMutation::Removed => {
-                        evtarget.set_event_handler_common::<EventHandlerNonNull>(
-                            event_name.into(),
-                            None,
-                        );
+                        evtarget.set_event_handler_common::<EventHandlerNonNull>(event_name, None);
                     },
                 }
             },
