@@ -196,18 +196,18 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     }
 
     /// Take all tasks again and then run `recv()`.
-    pub(crate) fn take_tasks_and_recv(&self, fully_active: HashSet<PipelineId>) -> Result<T, ()> {
+    pub(crate) fn take_tasks_and_recv(&self, fully_active: &HashSet<PipelineId>) -> Result<T, ()> {
         self.take_tasks(T::wake_up_msg(), fully_active);
         self.recv()
     }
 
     /// Drain the queue for the current iteration of the event-loop.
     /// Holding-back throttles above a given high-water mark.
-    pub(crate) fn take_tasks(&self, first_msg: T, fully_active: HashSet<PipelineId>) {
+    pub(crate) fn take_tasks(&self, first_msg: T, fully_active: &HashSet<PipelineId>) {
         // High-watermark: once reached, throttled tasks will be held-back.
         const PER_ITERATION_MAX: u64 = 5;
         // Always first check for new tasks, but don't reset 'taken_task_counter'.
-        self.process_incoming_tasks(first_msg, &fully_active);
+        self.process_incoming_tasks(first_msg, fully_active);
         let mut throttled = self.throttled.borrow_mut();
         let mut throttled_length: usize = throttled.values().map(|queue| queue.len()).sum();
         let mut task_source_cycler = TaskSourceName::VARIANTS.iter().cycle();

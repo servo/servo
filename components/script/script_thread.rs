@@ -1343,9 +1343,12 @@ impl ScriptThread {
 
         // Receive at least one message so we don't spinloop.
         debug!("Waiting for event.");
-        let mut event = self
-            .receivers
-            .recv(&self.task_queue, &self.timer_scheduler.borrow(), self);
+        let fully_active = self.get_fully_active_document_ids();
+        let mut event = self.receivers.recv(
+            &self.task_queue,
+            &self.timer_scheduler.borrow(),
+            &fully_active,
+        );
 
         loop {
             debug!("Handling event: {event:?}");
@@ -1455,7 +1458,7 @@ impl ScriptThread {
             // If any of our input sources has an event pending, we'll perform another iteration
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
-            match self.receivers.try_recv(&self.task_queue, self) {
+            match self.receivers.try_recv(&self.task_queue, &fully_active) {
                 Some(new_event) => event = new_event,
                 None => break,
             }
