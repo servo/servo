@@ -17,7 +17,6 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
 pub(crate) struct IDBCursorWithValue {
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbcursorwithvalue-value>
     cursor: IDBCursor,
 }
 
