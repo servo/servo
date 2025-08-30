@@ -5464,16 +5464,14 @@ where
     }
 
     // Randomly close a pipeline -if --random-pipeline-closure-probability is set
-    #[servo_tracing::instrument(skip_all)]
     fn maybe_close_random_pipeline(&mut self) {
-        match self.random_pipeline_closure {
-            Some((ref mut rng, probability)) => {
-                if probability <= rng.r#gen::<f32>() {
-                    return;
-                }
-            },
-            _ => return,
+        let Some((ref mut rng, probability)) = self.random_pipeline_closure else {
+            return;
         };
+        if probability <= rng.r#gen::<f32>() {
+            return;
+        }
+        profile_traits::trace_span!("close random pipeline");
         // In order to get repeatability, we sort the pipeline ids.
         let mut pipeline_ids: Vec<&PipelineId> = self.pipelines.keys().collect();
         pipeline_ids.sort_unstable();
