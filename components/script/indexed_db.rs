@@ -51,9 +51,10 @@ pub fn key_type_to_jsval(
         IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
         IndexedDBKeyType::String(s) => s.safe_to_jsval(cx, result),
         IndexedDBKeyType::Binary(b) => b.safe_to_jsval(cx, result),
-        IndexedDBKeyType::Date(_d) => {
-            // TODO: implement this when Date's representation is finalized.
-            result.set(UndefinedValue());
+        IndexedDBKeyType::Date(d) => {
+            let time = js::jsapi::ClippedTime { t: *d };
+            let date = unsafe { js::jsapi::NewDateObject(*cx, time) };
+            date.safe_to_jsval(cx, result);
         },
         IndexedDBKeyType::Array(a) => {
             rooted_vec!(let mut values <- repeat_n(UndefinedValue(), a.len()));
