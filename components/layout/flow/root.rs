@@ -49,56 +49,12 @@ impl BoxTree {
     #[servo_tracing::instrument(name = "Box Tree Construction", skip_all)]
     pub(crate) fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
         let root_element = root_element.to_threadsafe();
-
-        // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
-        // > UAs must apply the overflow-* values set on the root element to the viewport when the
-        // > root element’s display value is not none. However, when the root element is an [HTML]
-        // > html element (including XML syntax for HTML) whose overflow value is visible (in both
-        // > axes), and that element has as a child a body element whose display value is also not
-        // > none, user agents must instead apply the overflow-* values of the first such child
-        // > element to the viewport. The element from which the value is propagated must then have a
-        // > used overflow value of visible.
-        let root_style = root_element.style(&context.style_context);
-
-        let mut viewport_overflow = AxesOverflow::from(&*root_style);
-        let mut element_propagating_overflow = root_element;
-        if viewport_overflow.x == Overflow::Visible &&
-            viewport_overflow.y == Overflow::Visible &&
-            !root_style.get_box().display.is_none()
-        {
-            for child in root_element.children() {
-                if !child
-                    .as_element()
-                    .is_some_and(|element| element.is_body_element_of_html_element_root())
-                {
-                    continue;
-                }
-
-                let style = child.style(&context.style_context);
-                if !style.get_box().display.is_none() {
-                    viewport_overflow = AxesOverflow::from(&*style);
-                    element_propagating_overflow = child;
-
-                    break;
-                }
-            }
-        }
-
         let boxes = construct_for_root_element(context, root_element);
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(boxes.len() <= 1);
 
-        if let Some(layout_data) = element_propagating_overflow.inner_layout_data() {
-            if let Some(ref mut layout_box) = *layout_data.self_box.borrow_mut() {
-                layout_box.with_base_mut(|base| {
-                    base.base_fragment_info
-                        .flags
-                        .insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT)
-                });
-            }
-        }
-
+        let viewport_overflow = Self::viewport_overflow(root_element, boxes.first());
         let contents = BlockContainer::BlockLevelBoxes(boxes);
         let contains_floats = contents.contains_floats();
         Self {
@@ -114,6 +70,63 @@ impl BoxTree {
                 y: viewport_overflow.y.to_scrollable().into(),
             },
         }
+    }
+
+    fn viewport_overflow(
+        root_element: ServoThreadSafeLayoutNode<'_>,
+        root_box: Option<&ArcRefCell<BlockLevelBox>>,
+    ) -> AxesOverflow {
+        // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
+        // > UAs must apply the overflow-* values set on the root element to the viewport when the
+        // > root element’s display value is not none. However, when the root element is an [HTML]
+        // > html element (including XML syntax for HTML) whose overflow value is visible (in both
+        // > axes), and that element has as a child a body element whose display value is also not
+        // > none, user agents must instead apply the overflow-* values of the first such child
+        // > element to the viewport. The element from which the value is propagated must then have a
+        // > used overflow value of visible.
+
+        // If there is no root box, the root element has `display: none`, so don't propagate.
+        // The spec isn't very clear about what value to use, but the initial value seems fine.
+        // See https://github.com/w3c/csswg-drafts/issues/12649
+        let Some(root_box) = root_box else {
+            return AxesOverflow::default();
+        };
+
+        let propagate_from_body = || {
+            // Unlike what the spec implies, we stop iterating when we find the first <body>,
+            // even if it's not suitable because it lacks a box. This matches other browsers.
+            // See https://github.com/w3c/csswg-drafts/issues/12644
+            let body = root_element.children().find(|child| {
+                child
+                    .as_element()
+                    .is_some_and(|element| element.is_body_element_of_html_element_root())
+            })?;
+
+            // We only propagate from the <body> if it generates a box. The spec only checks for
+            // `display: none`, but other browsers don't propagate for `display: contents` either.
+            // See https://github.com/w3c/csswg-drafts/issues/12643
+            let body_layout_data = body.inner_layout_data()?;
+            let mut body_box = body_layout_data.self_box.borrow_mut();
+            body_box.as_mut()?.with_base_mut_fold(None, |accum, base| {
+                base.base_fragment_info
+                    .flags
+                    .insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT);
+                accum.or_else(|| Some(AxesOverflow::from(&*base.style)))
+            })
+        };
+
+        root_box.borrow_mut().with_base_mut(|base| {
+            let root_overflow = AxesOverflow::from(&*base.style);
+            if root_overflow.x == Overflow::Visible && root_overflow.y == Overflow::Visible {
+                if let Some(body_overflow) = propagate_from_body() {
+                    return body_overflow;
+                }
+            }
+            base.base_fragment_info
+                .flags
+                .insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT);
+            root_overflow
+        })
     }
 
     /// This method attempts to incrementally update the box tree from an

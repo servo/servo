@@ -290,11 +290,9 @@ impl InlineItem {
         }
     }
 
-    pub(crate) fn with_base_mut(&mut self, callback: impl Fn(&mut LayoutBoxBase)) {
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
         match self {
-            InlineItem::StartInlineBox(inline_box) => {
-                callback(&mut inline_box.borrow_mut().base);
-            },
+            InlineItem::StartInlineBox(inline_box) => callback(&mut inline_box.borrow_mut().base),
             InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
                 unreachable!("Should never have these kind of fragments attached to a DOM node")
             },

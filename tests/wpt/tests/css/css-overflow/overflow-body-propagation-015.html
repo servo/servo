@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: two BODY elements</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-propagation">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1987284">
+<meta name="assert" content="If there are multiple <body> elements, the
+  one that propagates `overflow` to the viewport is the first one.
+
+  Here we insert a cloned body before the original one, so the original
+  needs to stop propagating because the clone will do it instead.
+
+  Therefore, the cloned <body> should get `overflow: visible` and its
+  overflowing contents should be visible. And the original <body> should
+  be able to keep `overflow: hidden` and hide its overflowing contents.">
+<link rel="match" href="overflow-body-propagation-012-ref.html">
+<style>
+body {
+  overflow: hidden;
+  width: 0px;
+  height: 0px;
+  border: solid green;
+  border-width: 0 400px 200px 0;
+  margin-bottom: 0;
+}
+body:not(#clone) {
+  margin-top: 0;
+}
+body > div {
+  background: red;
+  width: 400px;
+  height: 200px;
+}
+#clone {
+  border-color: red;
+  margin-top: revert;
+}
+#clone > div {
+  background: green;
+}
+</style>
+<body>
+  <div></div>
+</body>
+<script>
+let clone = document.body.cloneNode(true);
+clone.id = "clone";
+document.documentElement.prepend(clone);
+</script>

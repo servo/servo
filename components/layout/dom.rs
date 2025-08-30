@@ -170,24 +170,28 @@ impl LayoutBox {
         }
     }
 
-    pub(crate) fn with_base_mut(&mut self, callback: impl Fn(&mut LayoutBoxBase)) {
+    pub(crate) fn with_base_mut_fold<T>(
+        &mut self,
+        init: T,
+        callback: impl Fn(T, &mut LayoutBoxBase) -> T,
+    ) -> T {
         match self {
-            LayoutBox::DisplayContents(..) => {},
-            LayoutBox::BlockLevel(block_level_box) => {
-                block_level_box.borrow_mut().with_base_mut(callback);
+            LayoutBox::DisplayContents(..) => init,
+            LayoutBox::BlockLevel(block_level_box) => block_level_box
+                .borrow_mut()
+                .with_base_mut(|base| callback(init, base)),
+            LayoutBox::InlineLevel(inline_items) => inline_items.iter().fold(init, |acc, item| {
+                item.borrow_mut().with_base_mut(|base| callback(acc, base))
+            }),
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box
+                .borrow_mut()
+                .with_base_mut(|base| callback(init, base)),
+            LayoutBox::TableLevelBox(table_level_box) => {
+                table_level_box.with_base_mut(|base| callback(init, base))
             },
-            LayoutBox::InlineLevel(inline_items) => {
-                for inline_item in inline_items {
-                    inline_item.borrow_mut().with_base_mut(&callback);
-                }
-            },
-            LayoutBox::FlexLevel(flex_level_box) => {
-                flex_level_box.borrow_mut().with_base_mut(callback)
-            },
-            LayoutBox::TableLevelBox(table_level_box) => table_level_box.with_base_mut(callback),
-            LayoutBox::TaffyItemBox(taffy_item_box) => {
-                taffy_item_box.borrow_mut().with_base_mut(callback)
-            },
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box
+                .borrow_mut()
+                .with_base_mut(|base| callback(init, base)),
         }
     }
 

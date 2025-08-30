@@ -421,7 +421,7 @@ impl TableLevelBox {
         }
     }
 
-    pub(crate) fn with_base_mut<T>(&mut self, callback: impl Fn(&mut LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
         match self {
             TableLevelBox::Caption(caption) => callback(&mut caption.borrow_mut().context.base),
             TableLevelBox::Cell(cell) => callback(&mut cell.borrow_mut().base),
