@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by layout.
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use app_units::Au;
@@ -35,9 +36,9 @@ use style::traversal::resolve_style;
 use style::values::computed::{Float, Size};
 use style::values::generics::font::LineHeight;
 use style::values::generics::position::AspectRatio;
-use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
 use style::values::specified::text::TextTransformCase;
+use style::values::specified::{GenericGridTemplateComponent, Overflow};
 use style_traits::{ParsingMode, ToCss};
 
 use crate::ArcRefCell;
@@ -47,6 +48,7 @@ use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, cap
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
+use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Get a scroll node that would represents this [`ServoLayoutNode`]'s transform and
@@ -1181,4 +1183,216 @@ fn transform_au_rectangle(
     };
     outer_transformed_rect
         .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()))
+}
+
+/// Returns a list of node addresses that are in the containing block chain for the target
+pub(crate) fn process_containing_block_chain_batch_query(
+    target_node: ServoThreadSafeLayoutNode<'_>,
+    ancestor_nodes: &[ServoThreadSafeLayoutNode<'_>],
+) -> Vec<usize> {
+    // A sequence of successive containing blocks that form an
+    // ancestor-descendant chain through the containing block relation.
+    let mut containing_block_chain = HashMap::new();
+    println!("DEBUG: process_containing_block_chain_batch_query called");
+    println!("DEBUG: ancestor_nodes count: {}", ancestor_nodes.len());
+    // Determine the target element's position property
+    // This affects how we build the containing block chain
+    let target_position = target_node
+        .as_element()
+        .map(|element| {
+            let style_data = element.style_data();
+            style_data.styles.primary().get_box().position
+        })
+        .unwrap_or(Position::Static);
+
+    // First, check if this element is inside a fixed positioning context
+    let mut found_fixed = false;
+    for &ancestor_node in ancestor_nodes {
+        if let Some(element) = ancestor_node.as_element() {
+            let style_data = element.style_data();
+            let position = style_data.styles.primary().get_box().position;
+            if position == Position::Fixed {
+                found_fixed = true;
+                break;
+            }
+        }
+    }
+    let is_inside_fixed_context = target_position == Position::Fixed || found_fixed;
+
+    if is_inside_fixed_context {
+        // fixed element must not scroll its containing frame; however, it
+        // must scroll further ancestor scrollers as the element isn't fixed
+        // in relation to them.
+        containing_block_chain.insert(target_node.opaque().0, true);
+
+        // Find the nearest ancestor that establishes a fixed positioning containing block
+        let mut found_fixed_cb = false;
+        for &ancestor_node in ancestor_nodes {
+            if let Some(element) = ancestor_node.as_element() {
+                let style_data = element.style_data();
+                let style = style_data.styles.primary();
+
+                // Check if this ancestor establishes a containing block for fixed descendants
+                // properties like transform, will-change, contain, etc. can establish this
+                if style.establishes_containing_block_for_all_descendants(FragmentFlags::empty()) {
+                    // This ancestor establishes a containing block for fixed elements
+                    found_fixed_cb = true;
+                    containing_block_chain.insert(ancestor_node.opaque().0, true);
+                    break;
+                }
+            }
+        }
+
+        // If no ancestor establishes a fixed positioning containing block,
+        // the fixed positioning containing block is the layout viewport
+        if !found_fixed_cb {
+            // For same-frame documents, exclude the viewport to prevent scrolling
+            for &ancestor_node in ancestor_nodes {
+                let layout_node = ancestor_node.unsafe_get();
+
+                if layout_node.as_document().is_some() {
+                    // This is the layout viewport - exclude for same-frame fixed elements
+                    continue;
+                }
+
+                containing_block_chain.insert(ancestor_node.opaque().0, true);
+            }
+        }
+    } else {
+        match target_position {
+            Position::Absolute => {
+                // If the box has position: absolute: The containing block is established
+                // by the nearest ancestor box that establishes an absolute positioning containing block
+                containing_block_chain.insert(target_node.opaque().0, true);
+
+                // Find the nearest ancestor that establishes an absolute positioning containing block
+                let mut found_absolute_cb = false;
+                for &ancestor_node in ancestor_nodes {
+                    if let Some(element) = ancestor_node.as_element() {
+                        let style_data = element.style_data();
+                        let style = style_data.styles.primary();
+
+                        // Check if this ancestor establishes a containing block for absolute descendants
+                        // any positioned element (position != static) or elements with
+                        // transform, will-change, etc. establish containing blocks
+                        if style.establishes_containing_block_for_absolute_descendants(
+                            FragmentFlags::empty(),
+                        ) {
+                            found_absolute_cb = true;
+                            containing_block_chain.insert(ancestor_node.opaque().0, true);
+                            break;
+                        }
+                    }
+                }
+
+                // If no ancestor establishes an absolute positioning containing block,
+                // the absolute positioning containing block is the initial containing block
+                if !found_absolute_cb {
+                    // Include all ancestors up to the initial containing block
+                    for &ancestor_node in ancestor_nodes {
+                        containing_block_chain.insert(ancestor_node.opaque().0, true);
+                    }
+                }
+            },
+            Position::Static => {
+                containing_block_chain.insert(target_node.opaque().0, true);
+
+                // Find the nearest ancestor that establishes a containing block for static descendants
+                for &ancestor_node in ancestor_nodes {
+                    if let Some(element) = ancestor_node.as_element() {
+                        let style_data = element.style_data();
+                        let style = style_data.styles.primary();
+                        let position = style.get_box().position;
+                        let overflow_x = style.get_box().overflow_x;
+                        let overflow_y = style.get_box().overflow_y;
+
+                        // An element establishes a containing block for static descendants if:
+                        // - It has position != static
+                        // - Or it has overflow != visible (establishes BFC)
+                        if position != Position::Static ||
+                            overflow_x != Overflow::Visible ||
+                            overflow_y != Overflow::Visible
+                        {
+                            containing_block_chain.insert(ancestor_node.opaque().0, true);
+                            break;
+                        }
+                    }
+                }
+            },
+            Position::Relative => {
+                containing_block_chain.insert(target_node.opaque().0, true);
+
+                // For relative elements, the containing block is the same as for static
+                for &ancestor_node in ancestor_nodes {
+                    if let Some(element) = ancestor_node.as_element() {
+                        let style_data = element.style_data();
+                        let style = style_data.styles.primary();
+                        let position = style.get_box().position;
+                        let overflow_x = style.get_box().overflow_x;
+                        let overflow_y = style.get_box().overflow_y;
+
+                        // An element establishes a containing block for relative descendants if:
+                        // - It has position != static
+                        // - Or it has overflow != visible (establishes BFC)
+                        if position != Position::Static ||
+                            overflow_x != Overflow::Visible ||
+                            overflow_y != Overflow::Visible
+                        {
+                            containing_block_chain.insert(ancestor_node.opaque().0, true);
+                            break;
+                        }
+                    }
+                }
+            },
+            Position::Sticky => {
+                containing_block_chain.insert(target_node.opaque().0, true);
+
+                // For sticky elements, the containing block is established by the nearest ancestor
+                // that is a scroll container or the viewport
+                for &ancestor_node in ancestor_nodes {
+                    if let Some(element) = ancestor_node.as_element() {
+                        let style_data = element.style_data();
+                        let style = style_data.styles.primary();
+                        let overflow_x = style.get_box().overflow_x;
+                        let overflow_y = style.get_box().overflow_y;
+
+                        // A scroll container establishes a containing block for sticky descendants
+                        if overflow_x.is_scrollable() || overflow_y.is_scrollable() {
+                            containing_block_chain.insert(ancestor_node.opaque().0, true);
+                            break;
+                        }
+                    } else {
+                        // Check if this is a document (viewport)
+                        let layout_node = ancestor_node.unsafe_get();
+                        if layout_node.as_document().is_some() {
+                            // The viewport (document) is always a scroll container for sticky elements
+                            containing_block_chain.insert(ancestor_node.opaque().0, true);
+                            break;
+                        }
+                    }
+                }
+            },
+            Position::Fixed => {
+                // This case is handled above in is_inside_fixed_context
+                unreachable!("Fixed position should be handled above");
+            },
+        }
+    }
+
+    // Filter the provided ancestor_nodes to include only those in our containing block chain
+    // This is the final result that tells scrollIntoView which elements should be considered for scrolling
+    let result = ancestor_nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(index, &ancestor_node)| {
+            if containing_block_chain.get(&ancestor_node.opaque().0) == Some(&true) {
+                Some(index)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<usize>>();
+
+    println!("DEBUG: containing block chain result: {:?}", result);
+    result
 }
