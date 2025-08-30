@@ -5,7 +5,11 @@
 use std::time::Duration;
 use std::{ptr, thread};
 
-pub fn deinit(clean_shutdown: bool) {
+pub fn deinit(print_thread_stats: bool, clean_shutdown: bool) {
+    if !print_thread_stats {
+        return;
+    }
+
     // An unfortunate hack to make sure the linker's dead code stripping doesn't strip our
     // `Info.plist`.
     unsafe {

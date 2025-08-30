@@ -88,6 +88,9 @@ pub(crate) struct ServoShellPreferences {
     /// Log also to a file
     #[cfg(target_env = "ohos")]
     pub log_to_file: bool,
+
+    /// Report number of outstanding threads at shutdown.
+    pub print_thread_stats: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -111,6 +114,7 @@ impl Default for ServoShellPreferences {
             log_filter: None,
             #[cfg(target_env = "ohos")]
             log_to_file: false,
+            print_thread_stats: false,
         }
     }
 }
@@ -423,6 +427,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "Load in additional prefs from a file.",
         "/path/to/prefs.json",
     );
+    opts.optflag(
+        "",
+        "print-thread-stats",
+        "Report number of outstanding threads at shutdown",
+    );
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -643,6 +652,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         None
     };
 
+    let print_thread_stats = opt_match.opt_present("print-thread-stats");
+
     // FIXME: enable JIT compilation on 32-bit Android after the startup crash issue (#31134) is fixed.
     if cfg!(target_os = "android") && cfg!(target_pointer_width = "32") {
         preferences.js_baseline_interpreter_enabled = false;
@@ -677,6 +688,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         log_filter,
         #[cfg(target_env = "ohos")]
         log_to_file,
+        print_thread_stats,
         ..Default::default()
     };
 
