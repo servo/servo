@@ -12,7 +12,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::{fmt, mem};
 
-use cssparser::{Parser as CssParser, ParserInput as CssParserInput, match_ignore_ascii_case};
+use cssparser::match_ignore_ascii_case;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use embedder_traits::InputMethodType;
@@ -38,8 +38,6 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::computed_values::position::T as Position;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::MediaList;
-use style::parser::ParserContext as CssParserContext;
 use style::properties::longhands::{
     self, background_image, border_spacing, font_family, font_size,
 };
@@ -54,14 +52,13 @@ use style::selector_parser::{
 };
 use style::shared_lock::Locked;
 use style::stylesheets::layer_rule::LayerOrder;
-use style::stylesheets::{CssRuleType, Origin as CssOrigin, UrlExtraData};
+use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
 use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
-use style_traits::ParsingMode as CssParsingMode;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 use webrender_api::units::LayoutPixel;
@@ -858,32 +855,6 @@ impl Element {
         self.ensure_rare_data()
             .registered_intersection_observers
             .retain(|reg_obs| *reg_obs.observer != *observer)
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
-    pub(crate) fn matches_environment(&self, media_query: &str) -> bool {
-        let document = self.owner_document();
-        let quirks_mode = document.quirks_mode();
-        let document_url_data = UrlExtraData(document.url().get_arc());
-        // FIXME(emilio): This should do the same that we do for other media
-        // lists regarding the rule type and such, though it doesn't really
-        // matter right now...
-        //
-        // Also, ParsingMode::all() is wrong, and should be DEFAULT.
-        let context = CssParserContext::new(
-            CssOrigin::Author,
-            &document_url_data,
-            Some(CssRuleType::Style),
-            CssParsingMode::all(),
-            quirks_mode,
-            /* namespaces = */ Default::default(),
-            None,
-            None,
-        );
-        let mut parser_input = CssParserInput::new(media_query);
-        let mut parser = CssParser::new(&mut parser_input);
-        let media_list = MediaList::parse(&context, &mut parser);
-        media_list.evaluate(document.window().layout().device(), quirks_mode)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view>
