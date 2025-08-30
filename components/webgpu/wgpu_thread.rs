@@ -1179,25 +1179,22 @@ impl WGPU {
                         let device_scope = devices
                             .get_mut(&device_id)
                             .expect("Device should not be dropped by this point");
-                        if let Some(error_scope_stack) = &mut device_scope.error_scope_stack {
-                            if let Some(error_scope) = error_scope_stack.pop() {
-                                if let Err(e) = sender.send(Ok(
-                                    // TODO: Do actual selection instead of selecting first error
-                                    error_scope.errors.first().cloned(),
-                                )) {
-                                    warn!(
-                                        "Unable to send {:?} to poperrorscope: {e:?}",
-                                        error_scope.errors
-                                    );
+                        let result =
+                            if let Some(error_scope_stack) = &mut device_scope.error_scope_stack {
+                                if let Some(error_scope) = error_scope_stack.pop() {
+                                    Ok(
+                                        // TODO: Do actual selection instead of selecting first error
+                                        error_scope.errors.first().cloned(),
+                                    )
+                                } else {
+                                    Err(PopError::Empty)
                                 }
-                            } else if let Err(e) = sender.send(Err(PopError::Empty)) {
-                                warn!("Unable to send PopError::Empty: {e:?}");
-                            }
-                        } else {
-                            // device lost
-                            if let Err(e) = sender.send(Err(PopError::Lost)) {
-                                warn!("Unable to send PopError::Lost due {e:?}");
-                            }
+                            } else {
+                                // device lost
+                                Err(PopError::Lost)
+                            };
+                        if let Err(e) = sender.send(result) {
+                            warn!("Error while sending PopErrorScope result: {e:?}");
                         }
                     },
                     WebGPURequest::ComputeGetBindGroupLayout {
