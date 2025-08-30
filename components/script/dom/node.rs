@@ -326,7 +326,7 @@ impl Node {
 
     /// Implements the "unsafely set HTML" algorithm as specified in:
     /// <https://html.spec.whatwg.org/multipage/#concept-unsafely-set-html>
-    pub fn unsafely_set_html(
+    pub(crate) fn unsafely_set_html(
         target: &Node,
         context_element: &Element,
         html: DOMString,
@@ -2926,6 +2926,7 @@ impl Node {
                     document.allow_declarative_shadow_roots(),
                     Some(document.insecure_requests_policy()),
                     document.has_trustworthy_ancestor_or_current_origin(),
+                    document.custom_element_reaction_stack(),
                     can_gc,
                 );
                 DomRoot::upcast::<Node>(document)

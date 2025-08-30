@@ -117,6 +117,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             loader,
             Some(self.document.insecure_requests_policy()),
             self.document.has_trustworthy_ancestor_or_current_origin(),
+            self.document.custom_element_reaction_stack(),
             can_gc,
         );
 
@@ -184,6 +185,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             self.document.allow_declarative_shadow_roots(),
             Some(self.document.insecure_requests_policy()),
             self.document.has_trustworthy_ancestor_or_current_origin(),
+            self.document.custom_element_reaction_stack(),
             can_gc,
         );
 

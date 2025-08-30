@@ -52,12 +52,14 @@ impl Tokenizer {
         fragment_context: Option<super::FragmentContext>,
         parsing_algorithm: ParsingAlgorithm,
     ) -> Self {
+        let custom_element_reaction_stack = document.custom_element_reaction_stack();
         let sink = Sink {
             base_url: url,
             document: Dom::from_ref(document),
             current_line: Cell::new(1),
             script: Default::default(),
             parsing_algorithm,
+            custom_element_reaction_stack,
         };
 
         let quirks_mode = match document.quirks_mode() {
