@@ -230,13 +230,9 @@ impl Minibrowser {
             // Expansion would also show that they are 2 separate widgets
             visuals.widgets.active.expansion = 0.0;
             visuals.widgets.hovered.expansion = 0.0;
-
-            if let Some(favicon) = favicon_texture {
-                tab_frame.content_ui.add(
-                    egui::Image::from_texture(favicon)
-                        .fit_to_exact_size(egui::vec2(16.0, 16.0))
-                        .bg_fill(egui::Color32::TRANSPARENT),
-                );
+            
+            if webview.has_pending_load() {
+                tab_frame.content_ui.spinner();
             }
 
             let tab = tab_frame

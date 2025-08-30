@@ -88,6 +88,8 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
+    /// Whether the webview is still loading its top-level document.
+    pending_load: bool,
 }
 
 impl Drop for WebViewInner {
@@ -130,6 +132,7 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            pending_load: true,
         })));
 
         let viewport_details = webview.viewport_details();
@@ -160,7 +163,6 @@ impl WebView {
                     viewport_details,
                 ));
         }
-
         webview
     }
 
@@ -170,6 +172,10 @@ impl WebView {
 
     fn inner_mut(&self) -> RefMut<'_, WebViewInner> {
         self.0.borrow_mut()
+    }
+
+    pub fn has_pending_load(&self) -> bool {
+        self.inner().pending_load
     }
 
     pub(crate) fn viewport_details(&self) -> ViewportDetails {
@@ -216,6 +222,8 @@ impl WebView {
     }
 
     pub(crate) fn set_load_status(self, new_value: LoadStatus) {
+        // If the new status is `Complete`, `pending_load` is set to false;
+        self.inner_mut().pending_load = !matches!(new_value, LoadStatus::Complete);
         if self.inner().load_status == new_value {
             return;
         }
@@ -416,6 +424,7 @@ impl WebView {
     }
 
     pub fn load(&self, url: Url) {
+        self.inner_mut().pending_load = true;
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::LoadUrl(

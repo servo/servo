@@ -210,13 +210,23 @@ impl RunningAppState {
 
         // Delegate handlers may have asked us to present or update compositor contents.
         // Currently, egui-file-dialog dialogs need to be constantly redrawn or animations aren't fluid.
-        let need_window_redraw = self.inner().need_repaint || self.has_active_dialog();
+        // The check for a pending load is needed to animate a spinning wheel during the load.
+        let need_window_redraw = self.inner().need_repaint ||
+            self.has_active_dialog() ||
+            self.has_webview_with_pending_load();
         let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
 
         PumpResult::Continue {
             need_update,
             need_window_redraw,
         }
+    }
+
+    pub(crate) fn has_webview_with_pending_load(&self) -> bool {
+        self.inner()
+            .webviews
+            .values()
+            .any(|view| view.has_pending_load())
     }
 
     pub(crate) fn add(&self, webview: WebView) {
@@ -296,6 +306,12 @@ impl RunningAppState {
 
     pub fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
         self.inner().webviews.get(&id).cloned()
+    }
+
+    pub(crate) fn load_focused_webview(&self, url: Url) {
+        if let Some(focused_webview) = self.focused_webview() {
+            focused_webview.load(url);
+        }
     }
 
     pub fn handle_gamepad_events(&self) {
