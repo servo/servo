@@ -25,6 +25,7 @@ from WebIDL import (
     IDLCallback,
     IDLAttribute,
     IDLMethod,
+    IDLInterfaceMember,
 )
 
 TargetType = TypeVar('TargetType')
@@ -448,7 +449,7 @@ class Descriptor(DescriptorProvider):
     def supportsNamedProperties(self) -> bool:
         return self.operations['NamedGetter'] is not None
 
-    def getExtendedAttributes(self, member: IDLMethod, getter: bool = False, setter: bool = False) -> list[str]:
+    def getExtendedAttributes(self, member: IDLInterfaceMember, getter: bool = False, setter: bool = False) -> list[str]:
         def maybeAppendInfallibleToAttrs(attrs: list[str], throws: bool | None) -> None:
             if throws is None:
                 attrs.append("infallible")
