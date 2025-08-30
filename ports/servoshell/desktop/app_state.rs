@@ -86,6 +86,10 @@ pub struct RunningAppStateInner {
     /// because every `WebView` shares a `RenderingContext`.
     need_repaint: bool,
 
+    /// Whether or not the amount of dialogs on the currently rendered webview
+    /// has just changed.
+    dialog_amount_changed: bool,
+
     /// List of webviews that have favicon textures which are not yet uploaded
     /// to the GPU by egui.
     pending_favicon_loads: Vec<WebViewId>,
@@ -119,6 +123,7 @@ impl RunningAppState {
                 gamepad_support: GamepadSupport::maybe_new(),
                 need_update: false,
                 need_repaint: false,
+                dialog_amount_changed: false,
                 pending_favicon_loads: Default::default(),
             }),
         }
@@ -210,8 +215,12 @@ impl RunningAppState {
 
         // Delegate handlers may have asked us to present or update compositor contents.
         // Currently, egui-file-dialog dialogs need to be constantly redrawn or animations aren't fluid.
-        let need_window_redraw = self.inner().need_repaint || self.has_active_dialog();
+        let need_window_redraw = self.inner().need_repaint ||
+            self.has_active_dialog() ||
+            self.inner().dialog_amount_changed;
         let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
+
+        self.inner_mut().dialog_amount_changed = false;
 
         PumpResult::Continue {
             need_update,
@@ -239,8 +248,13 @@ impl RunningAppState {
             return;
         };
 
-        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+        let mut inner = self.inner_mut();
+        if let Some(dialogs) = inner.dialogs.get_mut(&webview_id) {
+            let length = dialogs.len();
             dialogs.retain_mut(callback);
+            if length != dialogs.len() {
+                inner.dialog_amount_changed = true;
+            }
         }
     }
 
