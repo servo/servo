@@ -341,19 +341,15 @@ pub struct ScriptThread {
     /// either be because the Servo renderer is managing animations and the [`ScriptThread`] has
     /// received a [`ScriptThreadMessage::TickAllAnimations`] message, because the [`ScriptThread`]
     /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
-<<<<<<< HEAD
     /// animation tick, or if there are no animations running and the [`ScriptThread`] has noticed a
     /// change that requires a rendering update.
     needs_rendering_update: Arc<AtomicBool>,
 
     debugger_global: Dom<DebuggerGlobalScope>,
-=======
-    /// animation tick.
-    has_pending_animation_tick: Arc<AtomicBool>,
+
     /// A list of URLs that can access privileged internal APIs.
     #[no_trace]
     privileged_urls: Vec<ServoUrl>,
->>>>>>> 4497d01f87c (feat: Expose embedder access to navigator.servo via static list of privileged URLs.)
 }
 
 struct BHMExitSignal {
@@ -1030,15 +1026,10 @@ impl ScriptThread {
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
-<<<<<<< HEAD
             scheduled_update_the_rendering: Default::default(),
             needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
-=======
-            scheduled_script_thread_animation_timer: Default::default(),
-            has_pending_animation_tick: Arc::new(AtomicBool::new(false)),
             privileged_urls: state.privileged_urls,
->>>>>>> 4497d01f87c (feat: Expose embedder access to navigator.servo via static list of privileged URLs.)
         }
     }
 

@@ -114,7 +114,8 @@ impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
 }
 
 impl ServoInternalsHelpers for ServoInternals {
-    /// The navigator.servo api is only exposed to about: pages except about:blank
+    /// The navigator.servo api is exposed to about: pages except about:blank, as
+    /// well as any URLs provided by embedders that register new protocol handlers.
     #[allow(unsafe_code)]
     fn is_servo_internal(cx: JSContext, _global: HandleObject) -> bool {
         unsafe {
