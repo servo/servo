@@ -155,8 +155,11 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbcursor-primarykey>
-    fn PrimaryKey(&self, cx: SafeJSContext, value: MutableHandleValue) {
-        key_type_to_jsval(cx, &self.effective_key().unwrap(), value);
+    fn PrimaryKey(&self, cx: SafeJSContext, mut value: MutableHandleValue) {
+        match self.effective_key() {
+            Some(effective_key) => key_type_to_jsval(cx, &effective_key, value),
+            None => value.set(UndefinedValue()),
+        }
     }
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbcursor-request>
