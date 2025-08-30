@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::IDBObjectStoreOrIDBIndex;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbindex::IDBIndex;
 use crate::dom::idbobjectstore::IDBObjectStore;
@@ -27,9 +27,10 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[expect(unused)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum ObjectStoreOrIndex {
-    ObjectStore(DomRoot<IDBObjectStore>),
-    Index(DomRoot<IDBIndex>),
+    ObjectStore(Dom<IDBObjectStore>),
+    Index(Dom<IDBIndex>),
 }
 
 #[dom_struct]
@@ -37,7 +38,7 @@ pub(crate) struct IDBCursor {
     reflector_: Reflector,
 
     /// <https://www.w3.org/TR/IndexedDB-2/#cursor-transaction>
-    transaction: DomRoot<IDBTransaction>,
+    transaction: Dom<IDBTransaction>,
     /// <https://www.w3.org/TR/IndexedDB-2/#cursor-range>
     #[no_trace]
     range: IndexedDBKeyRange,
@@ -67,8 +68,9 @@ pub(crate) struct IDBCursor {
 }
 
 impl IDBCursor {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
-        transaction: DomRoot<IDBTransaction>,
+        transaction: Dom<IDBTransaction>,
         direction: IDBCursorDirection,
         got_value: bool,
         source: ObjectStoreOrIndex,
@@ -92,10 +94,11 @@ impl IDBCursor {
     }
 
     #[expect(unused)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
-        transaction: DomRoot<IDBTransaction>,
+        transaction: Dom<IDBTransaction>,
         direction: IDBCursorDirection,
         got_value: bool,
         source: ObjectStoreOrIndex,
@@ -135,9 +138,11 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
     fn Source(&self) -> IDBObjectStoreOrIDBIndex {
         match &self.source {
             ObjectStoreOrIndex::ObjectStore(source) => {
-                IDBObjectStoreOrIDBIndex::IDBObjectStore(source.clone())
+                IDBObjectStoreOrIDBIndex::IDBObjectStore(source.as_rooted())
             },
-            ObjectStoreOrIndex::Index(source) => IDBObjectStoreOrIDBIndex::IDBIndex(source.clone()),
+            ObjectStoreOrIndex::Index(source) => {
+                IDBObjectStoreOrIDBIndex::IDBIndex(source.as_rooted())
+            },
         }
     }
 

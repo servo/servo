@@ -9,7 +9,7 @@ use net_traits::indexeddb_thread::IndexedDBKeyRange;
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
 use crate::dom::bindings::codegen::Bindings::IDBCursorWithValueBinding::IDBCursorWithValueMethods;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbcursor::{IDBCursor, ObjectStoreOrIndex};
 use crate::dom::idbtransaction::IDBTransaction;
@@ -22,8 +22,9 @@ pub(crate) struct IDBCursorWithValue {
 }
 
 impl IDBCursorWithValue {
-    pub(crate) fn new_inherited(
-        transaction: DomRoot<IDBTransaction>,
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    fn new_inherited(
+        transaction: Dom<IDBTransaction>,
         direction: IDBCursorDirection,
         got_value: bool,
         source: ObjectStoreOrIndex,
@@ -43,10 +44,11 @@ impl IDBCursorWithValue {
     }
 
     #[expect(unused)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
-        transaction: DomRoot<IDBTransaction>,
+        transaction: Dom<IDBTransaction>,
         direction: IDBCursorDirection,
         got_value: bool,
         source: ObjectStoreOrIndex,
@@ -67,11 +69,12 @@ impl IDBCursorWithValue {
         )
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        transaction: DomRoot<IDBTransaction>,
+        transaction: Dom<IDBTransaction>,
         direction: IDBCursorDirection,
         got_value: bool,
         source: ObjectStoreOrIndex,
