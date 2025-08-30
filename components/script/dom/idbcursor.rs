@@ -70,7 +70,7 @@ pub(crate) struct IDBCursor {
 impl IDBCursor {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
-        transaction: Dom<IDBTransaction>,
+        transaction: &IDBTransaction,
         direction: IDBCursorDirection,
         got_value: bool,
         source: ObjectStoreOrIndex,
@@ -79,7 +79,7 @@ impl IDBCursor {
     ) -> IDBCursor {
         IDBCursor {
             reflector_: Reflector::new(),
-            transaction,
+            transaction: Dom::from_ref(transaction),
             range,
             source,
             direction,
@@ -98,7 +98,7 @@ impl IDBCursor {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
-        transaction: Dom<IDBTransaction>,
+        transaction: &IDBTransaction,
         direction: IDBCursorDirection,
         got_value: bool,
         source: ObjectStoreOrIndex,

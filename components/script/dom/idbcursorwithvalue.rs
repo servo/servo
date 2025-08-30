@@ -9,7 +9,7 @@ use net_traits::indexeddb_thread::IndexedDBKeyRange;
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
 use crate::dom::bindings::codegen::Bindings::IDBCursorWithValueBinding::IDBCursorWithValueMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbcursor::{IDBCursor, ObjectStoreOrIndex};
 use crate::dom::idbtransaction::IDBTransaction;
@@ -24,7 +24,7 @@ pub(crate) struct IDBCursorWithValue {
 impl IDBCursorWithValue {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
-        transaction: Dom<IDBTransaction>,
+        transaction: &IDBTransaction,
         direction: IDBCursorDirection,
         got_value: bool,
         source: ObjectStoreOrIndex,
@@ -48,7 +48,7 @@ impl IDBCursorWithValue {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
-        transaction: Dom<IDBTransaction>,
+        transaction: &IDBTransaction,
         direction: IDBCursorDirection,
         got_value: bool,
         source: ObjectStoreOrIndex,
