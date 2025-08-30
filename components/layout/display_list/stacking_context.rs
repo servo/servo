@@ -849,6 +849,13 @@ impl Fragment {
         mode: StackingContextBuildMode,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
+        if self
+            .base()
+            .is_some_and(|base| base.flags.contains(FragmentFlags::IS_COLLAPSED))
+        {
+            return;
+        }
+
         let containing_block = containing_block_info.get_containing_block_for_fragment(self);
         let fragment_clone = self.clone();
         match self {
