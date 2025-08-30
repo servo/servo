@@ -9,6 +9,7 @@ use std::sync::LazyLock;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, local_name, ns};
+use script_bindings::inheritance::Castable;
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
 use stylo_atoms::Atom;
@@ -16,8 +17,8 @@ use stylo_atoms::Atom;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -134,7 +135,7 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
                 }
                 // Step 2.5. Change attribute to verifiedValue.
                 let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
-                owner.change_attribute(self, value, can_gc);
+                self.change(&owner, value, can_gc);
             } else {
                 // Step 2.3. If attribute’s element is null, then set attribute’s value to verifiedValue, and return.
                 self.set_value(value);
@@ -195,6 +196,10 @@ impl Attr {
         *self.value.borrow_mut() = AttrValue::String(value.into());
     }
 
+    fn string_value(&self) -> DOMString {
+        DOMString::from(&**self.value())
+    }
+
     pub(crate) fn local_name(&self) -> &LocalName {
         &self.identifier.local_name
     }
@@ -235,6 +240,124 @@ impl Attr {
             Some(ref prefix) => DOMString::from(format!("{}:{}", prefix, &**self.local_name())),
             None => DOMString::from(&**self.local_name()),
         }
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-append>
+    pub(crate) fn append(&self, owner: &Element, can_gc: CanGc) {
+        // Step 2. Set attribute’s element to element.
+        //
+        // Handled by callers of this function and asserted here.
+        assert!(self.GetOwnerElement().as_deref() == Some(owner));
+        // Step 3. Set attribute’s node document to element’s node document.
+        //
+        // Handled by callers of this function and asserted here.
+        assert!(self.upcast::<Node>().owner_doc() == owner.owner_doc());
+        // Step 1. Append attribute to element’s attribute list.
+        owner.attrs_to_mutate(self).push(Dom::from_ref(self));
+        // Step 4. Handle attribute changes for attribute with element, null, and attribute’s value.
+        owner.handle_attribute_changes(self, None, Some(self.string_value()), can_gc);
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-change>
+    pub(crate) fn change(&self, owner: &Element, mut value: AttrValue, can_gc: CanGc) {
+        // Step 1. Let oldValue be attribute’s value.
+        //
+        // Clone to avoid double borrow
+        let old_value = &self.value().clone();
+        // Step 2. Set attribute’s value to value.
+        owner.will_mutate_attr(self);
+        self.swap_value(&mut value);
+        // Step 3. Handle attribute changes for attribute with attribute’s element, oldValue, and value.
+        owner.handle_attribute_changes(self, Some(old_value), Some(self.string_value()), can_gc);
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-set>
+    /// including steps of
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-replace>
+    pub(crate) fn set_an_attribute_value(
+        &self,
+        owner: &Element,
+        can_gc: CanGc,
+    ) -> Fallible<Option<DomRoot<Attr>>> {
+        let local_name = self.local_name();
+        let namespace = self.namespace();
+        // Step 1. Let verifiedValue be the result of calling
+        // get Trusted Types-compliant attribute value with attr’s local name,
+        // attr’s namespace, element, and attr’s value. [TRUSTED-TYPES]
+        let verified_value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
+            owner.namespace(),
+            owner.local_name(),
+            local_name,
+            Some(namespace),
+            TrustedTypeOrString::String(self.Value()),
+            &owner.owner_global(),
+            can_gc,
+        )?;
+
+        // Step 2. If attr’s element is neither null nor element,
+        // throw an "InUseAttributeError" DOMException.
+        if let Some(current_owner) = self.GetOwnerElement() {
+            if &*current_owner != owner {
+                return Err(Error::InUseAttribute);
+            }
+        }
+
+        // Step 5. Set attr’s value to verifiedValue.
+        //
+        // This ensures that the attribute is of the expected kind for this
+        // specific element. This is inefficient and should probably be done
+        // differently.
+        self.swap_value(&mut owner.parse_attribute(namespace, local_name, verified_value.clone()));
+
+        // Step 3. Let oldAttr be the result of getting an attribute given attr’s namespace, attr’s local name, and element.
+        let position = owner.attrs().iter().position(|old_attr| {
+            namespace == old_attr.namespace() && local_name == old_attr.local_name()
+        });
+
+        let old_attr = if let Some(position) = position {
+            let old_attr = DomRoot::from_ref(&*owner.attrs()[position]);
+
+            // Step 4. If oldAttr is attr, return attr.
+            if &*old_attr == self {
+                return Ok(Some(DomRoot::from_ref(self)));
+            }
+
+            // Step 6. If oldAttr is non-null, then replace oldAttr with attr.
+            //
+            // Start of steps for https://dom.spec.whatwg.org/#concept-element-attributes-replace
+
+            // Step 1. Let element be oldAttribute’s element.
+            //
+            // Skipped, as that points to owner.
+
+            // Step 2. Replace oldAttribute by newAttribute in element’s attribute list.
+            owner.attrs_to_mutate(self)[position] = Dom::from_ref(self);
+            // Step 3. Set newAttribute’s element to element.
+            self.set_owner(Some(owner));
+            // Step 4. Set newAttribute’s node document to element’s node document.
+            self.upcast::<Node>().set_owner_doc(&owner.owner_doc());
+            // Step 5. Set oldAttribute’s element to null.
+            old_attr.set_owner(None);
+            // Step 6. Handle attribute changes for oldAttribute with element, oldAttribute’s value, and newAttribute’s value.
+            owner.handle_attribute_changes(
+                self,
+                Some(&old_attr.value()),
+                Some(verified_value),
+                can_gc,
+            );
+
+            Some(old_attr)
+        } else {
+            // Step 7. Otherwise, append attr to element.
+            self.set_owner(Some(owner));
+            self.upcast::<Node>().set_owner_doc(&owner.owner_doc());
+            self.append(owner, can_gc);
+
+            None
+        };
+
+        // Step 8. Return oldAttr.
+        Ok(old_attr)
     }
 }
 
