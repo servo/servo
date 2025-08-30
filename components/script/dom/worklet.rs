@@ -38,7 +38,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
 use crate::dom::csp::Violation;
@@ -495,8 +495,6 @@ impl WorkletThread {
                 // TODO: configure the JS runtime (e.g. discourage GC, encourage agressive JIT)
                 debug!("Initializing worklet thread.");
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
-                let roots = RootCollection::new();
-                let _stack_roots = ThreadLocalStackRoots::new(&roots);
                 let mut thread = RootedTraceableBox::new(WorkletThread {
                     role,
                     control_receiver,
