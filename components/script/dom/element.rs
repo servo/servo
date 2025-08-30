@@ -1867,6 +1867,10 @@ impl Element {
         Ref::map(self.attrs.borrow(), |attrs| &**attrs)
     }
 
+    pub(crate) fn owner_doc(&self) -> DomRoot<Document> {
+        self.node.owner_doc()
+    }
+
     // Element branch of https://dom.spec.whatwg.org/#locate-a-namespace
     pub(crate) fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
         let namespace_prefix = prefix.clone().map(|s| Prefix::from(&*s));
@@ -2147,11 +2151,11 @@ impl Element {
             Some(self),
             can_gc,
         );
-        self.push_attribute(&attr, can_gc);
+        attr.append(self, can_gc);
     }
 
     /// <https://dom.spec.whatwg.org/#handle-attribute-changes>
-    fn handle_attribute_changes(
+    pub(crate) fn handle_attribute_changes(
         &self,
         attr: &Attr,
         old_value: Option<&AttrValue>,
@@ -2210,26 +2214,6 @@ impl Element {
         // Put on a separate line to avoid double borrow
         let new_value = DOMString::from(&**attr.value());
         self.handle_attribute_changes(attr, Some(old_value), Some(new_value), can_gc);
-    }
-
-    /// <https://dom.spec.whatwg.org/#concept-element-attributes-append>
-    pub(crate) fn push_attribute(&self, attr: &Attr, can_gc: CanGc) {
-        // Step 2. Set attribute’s element to element.
-        //
-        // Handled by callers of this function and asserted here.
-        assert!(attr.GetOwnerElement().as_deref() == Some(self));
-        // Step 3. Set attribute’s node document to element’s node document.
-        //
-        // Handled by callers of this function and asserted here.
-        assert!(attr.upcast::<Node>().owner_doc() == self.node.owner_doc());
-        // Step 1. Append attribute to element’s attribute list.
-        self.will_mutate_attr(attr);
-        self.attrs.borrow_mut().push(Dom::from_ref(attr));
-        // Step 4. Handle attribute changes for attribute with element, null, and attribute’s value.
-        //
-        // Put on a separate line to avoid double borrow
-        let new_value = DOMString::from(&**attr.value());
-        self.handle_attribute_changes(attr, None, Some(new_value), can_gc);
     }
 
     pub(crate) fn get_attribute(
@@ -2657,6 +2641,11 @@ impl Element {
         node.owner_doc().element_attr_will_change(self, attr);
     }
 
+    pub(crate) fn attrs_to_mutate(&self, attr: &Attr) -> RefMut<'_, Vec<Dom<Attr>>> {
+        self.will_mutate_attr(attr);
+        self.attrs.borrow_mut()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
     fn update_style_attribute(&self, attr: &Attr, mutation: AttributeMutation) {
         let doc = self.upcast::<Node>().owner_doc();
@@ -2793,7 +2782,7 @@ impl Element {
             // Step 7. Otherwise, append attr to element.
             attr.set_owner(Some(self));
             attr.upcast::<Node>().set_owner_doc(&self.node.owner_doc());
-            self.push_attribute(attr, can_gc);
+            attr.append(self, can_gc);
 
             None
         };

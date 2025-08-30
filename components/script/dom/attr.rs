@@ -9,6 +9,7 @@ use std::sync::LazyLock;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, local_name, ns};
+use script_bindings::inheritance::Castable;
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
 use stylo_atoms::Atom;
@@ -17,7 +18,7 @@ use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -195,6 +196,10 @@ impl Attr {
         *self.value.borrow_mut() = AttrValue::String(value.into());
     }
 
+    fn string_value(&self) -> DOMString {
+        DOMString::from(&**self.value())
+    }
+
     pub(crate) fn local_name(&self) -> &LocalName {
         &self.identifier.local_name
     }
@@ -235,6 +240,22 @@ impl Attr {
             Some(ref prefix) => DOMString::from(format!("{}:{}", prefix, &**self.local_name())),
             None => DOMString::from(&**self.local_name()),
         }
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-append>
+    pub(crate) fn append(&self, owner: &Element, can_gc: CanGc) {
+        // Step 2. Set attribute’s element to element.
+        //
+        // Handled by callers of this function and asserted here.
+        assert!(self.GetOwnerElement().as_deref() == Some(owner));
+        // Step 3. Set attribute’s node document to element’s node document.
+        //
+        // Handled by callers of this function and asserted here.
+        assert!(self.upcast::<Node>().owner_doc() == owner.owner_doc());
+        // Step 1. Append attribute to element’s attribute list.
+        owner.attrs_to_mutate(self).push(Dom::from_ref(self));
+        // Step 4. Handle attribute changes for attribute with element, null, and attribute’s value.
+        owner.handle_attribute_changes(self, None, Some(self.string_value()), can_gc);
     }
 }
 
