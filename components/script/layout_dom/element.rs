@@ -615,6 +615,12 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
                 return true;
             }
 
+            if new_box.position.is_absolutely_positioned() &&
+                old_box.original_display != new_box.original_display
+            {
+                return true;
+            }
+
             if old.get_font() != new.get_font() {
                 return true;
             }

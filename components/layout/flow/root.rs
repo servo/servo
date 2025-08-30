@@ -15,6 +15,7 @@ use servo_arc::Arc;
 use style::dom::{NodeInfo, TNode};
 use style::properties::ComputedValues;
 use style::values::computed::Overflow;
+use style::values::specified::box_::DisplayOutside;
 use style_traits::CSSPixel;
 
 use crate::cell::ArcRefCell;
@@ -338,6 +339,12 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
                     BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
                         if box_style.position.is_absolutely_positioned() =>
                     {
+                        // If the outer type of its original display changed from block to inline,
+                        // a block-level abspos needs to be placed in an inline formatting context,
+                        // see [`BlockContainerBuilder::handle_absolutely_positioned_element()`].
+                        if box_style.original_display.outside() == DisplayOutside::Inline {
+                            return None;
+                        }
                         DirtyRootBoxTreeNode::AbsolutelyPositionedBlockLevelBox(
                             block_level_box.clone(),
                         )
