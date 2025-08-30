@@ -202,7 +202,7 @@ impl FlexLevelBox {
         }
     }
 
-    pub(crate) fn with_base_mut<T>(&mut self, callback: impl Fn(&mut LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
         match self {
             FlexLevelBox::FlexItem(flex_item_box) => {
                 callback(&mut flex_item_box.independent_formatting_context.base)

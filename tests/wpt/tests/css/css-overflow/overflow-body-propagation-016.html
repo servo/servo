@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: two BODY elements</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-propagation">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12644">
+<meta name="assert" content="If there are multiple <body> elements, the
+  one that propagates `overflow` to the viewport would be the first one.
+
+  However, the first one has `display: none`, and overflow propagation
+  can only happen when the element generates a box. Therefore, the viewport
+  shouldn't get scrollbars from the `overflow: scroll` on the first body.
+
+  The second body doesn't propagate either, so it should be able to keep
+  `overflow: hidden` and hide its overflowing contents.">
+<link rel="match" href="overflow-body-propagation-012-ref.html">
+<style>
+html {
+  scrollbar-color: red red;
+}
+body {
+  overflow: scroll;
+  width: 0px;
+  height: 0px;
+  border: solid red;
+  border-width: 0 400px 400px 0;
+}
+body > div {
+  overflow: hidden;
+  background: green;
+  width: 400px;
+  height: 400px;
+}
+#clone {
+  border-color: green;
+}
+#clone > div {
+  background: red;
+}
+</style>
+<body>
+  <div></div>
+</body>
+<script>
+let clone = document.body.cloneNode(true);
+clone.id = "clone";
+document.documentElement.appendChild(clone);
+document.body.style.display = "none";
+</script>
