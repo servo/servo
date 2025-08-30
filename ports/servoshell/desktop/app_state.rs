@@ -220,6 +220,8 @@ impl RunningAppState {
             self.inner().dialog_amount_changed;
         let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
 
+        self.inner_mut().dialog_amount_changed = false;
+
         PumpResult::Continue {
             need_update,
             need_window_redraw,
