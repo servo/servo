@@ -177,8 +177,8 @@ webpki-roots = "1.0"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.67", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.67" }
 webxr-api = { path = "components/shared/webxr" }
-wgpu-core = "25"
-wgpu-types = "25"
+wgpu-core = "26"
+wgpu-types = "26"
 winapi = "0.3"
 windows-sys = "0.59"
 winit = "0.30.12"
