@@ -11,7 +11,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::window::Window;
 
 /// The collection of all [`Document`]s managed by the [`crate::script_thread::ScriptThread`].

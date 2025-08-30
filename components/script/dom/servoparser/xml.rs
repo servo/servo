@@ -16,7 +16,7 @@ use xml5ever::tree_builder::XmlTreeBuilder;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
-use crate::dom::htmlscriptelement::HTMLScriptElement;
+use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::Node;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
 

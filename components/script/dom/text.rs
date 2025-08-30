@@ -17,7 +17,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
+use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

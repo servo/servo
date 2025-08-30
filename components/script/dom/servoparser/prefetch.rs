@@ -24,7 +24,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::document::{Document, determine_policy_for_token};
-use crate::dom::htmlscriptelement::script_fetch_request;
+use crate::dom::html::htmlscriptelement::script_fetch_request;
 use crate::fetch::create_a_potential_cors_request;
 use crate::script_module::ScriptFetchOptions;
 

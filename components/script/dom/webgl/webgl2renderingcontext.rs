@@ -46,7 +46,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
+use crate::dom::html::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 #[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
 use crate::dom::webgl::validations::WebGLValidator;

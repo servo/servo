@@ -37,7 +37,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::document::WebGPUContextsMap;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
+use crate::dom::html::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 

@@ -50,7 +50,7 @@ use crate::dom::bindings::inheritance::{
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::htmlslotelement::HTMLSlotElement;
+use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
 use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutNode};
 

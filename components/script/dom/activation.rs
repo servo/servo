@@ -5,7 +5,7 @@
 use crate::dom::element::Element;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlinputelement::InputActivationState;
+use crate::dom::html::htmlinputelement::InputActivationState;
 use crate::script_runtime::CanGc;
 
 /// Trait for elements with defined activation behavior

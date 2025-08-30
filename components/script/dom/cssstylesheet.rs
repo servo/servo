@@ -34,7 +34,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
-use crate::dom::htmlstyleelement::HTMLStyleElement;
+use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
 use crate::dom::stylesheet::StyleSheet;

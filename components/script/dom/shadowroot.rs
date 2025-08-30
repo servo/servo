@@ -44,7 +44,7 @@ use crate::dom::documentorshadowroot::{
     DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource,
 };
 use crate::dom::element::Element;
-use crate::dom::htmlslotelement::HTMLSlotElement;
+use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{
     BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
     VecPreOrderInsertionHelper,
