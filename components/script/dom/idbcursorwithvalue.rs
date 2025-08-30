@@ -71,7 +71,7 @@ impl IDBCursorWithValue {
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new_with_proto(
+    fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         transaction: Dom<IDBTransaction>,
