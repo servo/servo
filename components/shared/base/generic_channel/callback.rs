@@ -5,18 +5,18 @@
 //! # Generic Callbacks
 //!
 //! When sending cross-process messages, we sometimes want to run custom callbacks when the
-//! recipient has finished processing. The callback should run in the senders address space, and
+//! recipient has finished processing. The callback should run in the sender's address space, and
 //! could be something like enqueuing a task.
 //! In Multi-process mode we can implement this by providing an `IpcSender` to the recipient,
 //! which the recipient can use to send some data back to the senders process.
 //! To avoid blocking the sender, we can pass the callback to the ROUTER, which runs the callback
 //! when receiving the Ipc message.
-//! The callback will be run on every reply message from the recipient. `IpcSenders` are also
+//! The callback will be run on every reply message from the recipient. `IpcSender`s are also
 //! `Clone`able, so the Router will sequentialise callbacks.
 //!
 //! ## Callback scenario visualization
 //!
-//! The following visualization showcase how Ipc and the router thread are currently used
+//! The following visualization showcases how Ipc and the router thread are currently used
 //! to run callbacks asynchronously on the sender process. The recipient may keep the
 //! ReplySender alive and send an arbitrary amount of messages / replies.
 //!
@@ -54,7 +54,7 @@
 //!
 //! ### Future work
 //!
-//! -Further abstractions for callbacks with fewer constraints, e.g. callbacks
+//! - Further abstractions for callbacks with fewer constraints, e.g. callbacks
 //! which don't need to be cloned by the recipient, or non-mutable callbacks.
 //! - A tracing option to measure callback runtime and identify callbacks which misbehave (block)
 //!   for a long time.
