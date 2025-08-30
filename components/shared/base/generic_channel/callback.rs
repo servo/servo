@@ -55,7 +55,7 @@
 //! ### Future work
 //!
 //! - Further abstractions for callbacks with fewer constraints, e.g. callbacks
-//! which don't need to be cloned by the recipient, or non-mutable callbacks.
+//!   which don't need to be cloned by the recipient, or non-mutable callbacks.
 //! - A tracing option to measure callback runtime and identify callbacks which misbehave (block)
 //!   for a long time.
 
