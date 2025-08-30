@@ -97,7 +97,7 @@ impl IDBCursorWithValue {
 
 impl IDBCursorWithValueMethods<crate::DomTypeHolder> for IDBCursorWithValue {
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbcursorwithvalue-value>
-    fn Value(&self, _cx: SafeJSContext, mut value: MutableHandleValue) {
-        value.set(self.cursor.get_value());
+    fn Value(&self, _cx: SafeJSContext, value: MutableHandleValue) {
+        self.cursor.value(value);
     }
 }

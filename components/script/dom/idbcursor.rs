@@ -117,8 +117,8 @@ impl IDBCursor {
         )
     }
 
-    pub(crate) fn get_value(&self) -> JSVal {
-        self.value.get()
+    pub(crate) fn value(&self, mut out: MutableHandleValue) {
+        out.set(self.value.get());
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#cursor-effective-key>
