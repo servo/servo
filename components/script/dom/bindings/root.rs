@@ -27,7 +27,6 @@
 use std::cell::{OnceCell, UnsafeCell};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
 use std::{mem, ptr};
 
 use js::jsapi::{Heap, JSObject, JSTracer, Value};
@@ -42,21 +41,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::node::Node;
-
-pub(crate) struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
-
-impl<'a> ThreadLocalStackRoots<'a> {
-    pub(crate) fn new(roots: &'a RootCollection) -> Self {
-        STACK_ROOTS.with(|r| r.set(Some(roots)));
-        ThreadLocalStackRoots(PhantomData)
-    }
-}
-
-impl Drop for ThreadLocalStackRoots<'_> {
-    fn drop(&mut self) {
-        STACK_ROOTS.with(|r| r.set(None));
-    }
-}
 
 pub(crate) trait ToLayout<T> {
     /// Returns `LayoutDom<T>` containing the same pointer.

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, UnsafeCell};
+use std::cell::UnsafeCell;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::{fmt, mem, ptr};
@@ -40,9 +40,8 @@ where
         unsafe fn add_to_root_list(object: *const dyn JSTraceable) -> *const RootCollection {
             assert_in_script();
             STACK_ROOTS.with(|root_list| {
-                let root_list = unsafe { &*root_list.get().unwrap() };
                 unsafe { root_list.root(object) };
-                root_list
+                root_list as *const _
             })
         }
 
@@ -390,8 +389,7 @@ pub struct RootCollection {
 impl RootCollection {
     /// Create an empty collection of roots
     #[allow(clippy::new_without_default)]
-    pub fn new() -> RootCollection {
-        assert_in_script();
+    pub const fn new() -> RootCollection {
         RootCollection {
             roots: UnsafeCell::new(vec![]),
         }
@@ -419,7 +417,7 @@ impl RootCollection {
     }
 }
 
-thread_local!(pub static STACK_ROOTS: Cell<Option<*const RootCollection>> = const { Cell::new(None) });
+thread_local!(pub static STACK_ROOTS: RootCollection = const { RootCollection::new() });
 
 /// SM Callback that traces the rooted reflectors
 ///
@@ -428,7 +426,7 @@ thread_local!(pub static STACK_ROOTS: Cell<Option<*const RootCollection>> = cons
 pub unsafe fn trace_roots(tracer: *mut JSTracer) {
     trace!("tracing stack roots");
     STACK_ROOTS.with(|collection| {
-        let collection = unsafe { &*(*collection.get().unwrap()).roots.get() };
+        let collection = unsafe { &*collection.roots.get() };
         for root in collection {
             unsafe {
                 (**root).trace(tracer);
