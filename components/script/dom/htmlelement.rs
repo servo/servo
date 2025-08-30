@@ -20,7 +20,6 @@ use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
     EventHandlerNonNull, OnErrorEventHandlerNonNull,
 };
-use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
@@ -1132,11 +1131,7 @@ impl VirtualMethods for HTMLElement {
                     },
                     // https://html.spec.whatwg.org/multipage/#deactivate-an-event-handler
                     AttributeMutation::Removed => {
-                        evtarget.remove_event_listener(
-                            event_name.into(),
-                            evtarget.get_event_handler_common(event_name, can_gc),
-                            EventListenerOptions { capture: false },
-                        );
+                        evtarget.set_event_handler_common::<EventHandlerNonNull>(event_name, None);
                     },
                 }
             },

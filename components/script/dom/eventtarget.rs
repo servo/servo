@@ -1000,14 +1000,10 @@ impl EventTarget {
             } else {
                 ListenerPhase::Bubbling
             };
-            let old_entry = Rc::new(RefCell::new(EventListenerEntry {
-                phase,
-                listener: EventListenerType::Additive(listener.clone()),
-                once: false,
-                passive: None,
-                removed: false,
-            }));
-            if let Some(position) = entries.iter().position(|e| *e == old_entry) {
+            if let Some(position) = entries.iter().position(|e| {
+                e.borrow().listener == EventListenerType::Additive(listener.clone()) &&
+                    e.borrow().phase == phase
+            }) {
                 entries.remove(position).borrow_mut().removed = true;
             }
         }
