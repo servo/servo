@@ -2200,22 +2200,6 @@ impl Element {
         }
     }
 
-    /// <https://dom.spec.whatwg.org/#concept-element-attributes-change>
-    pub(crate) fn change_attribute(&self, attr: &Attr, mut value: AttrValue, can_gc: CanGc) {
-        // Step 1. Let oldValue be attribute’s value.
-        //
-        // Clone to avoid double borrow
-        let old_value = &attr.value().clone();
-        // Step 2. Set attribute’s value to value.
-        self.will_mutate_attr(attr);
-        attr.swap_value(&mut value);
-        // Step 3. Handle attribute changes for attribute with attribute’s element, oldValue, and value.
-        //
-        // Put on a separate line to avoid double borrow
-        let new_value = DOMString::from(&**attr.value());
-        self.handle_attribute_changes(attr, Some(old_value), Some(new_value), can_gc);
-    }
-
     pub(crate) fn get_attribute(
         &self,
         namespace: &Namespace,
@@ -2344,8 +2328,7 @@ impl Element {
             .map(|js| DomRoot::from_ref(&**js));
         if let Some(attr) = attr {
             // Step 3. Change attribute to value.
-            self.will_mutate_attr(&attr);
-            self.change_attribute(&attr, value, can_gc);
+            attr.change(self, value, can_gc);
         } else {
             // Step 2. If attribute is null, create an attribute whose namespace is namespace,
             // namespace prefix is prefix, local name is localName, value is value,

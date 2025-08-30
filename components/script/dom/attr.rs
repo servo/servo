@@ -135,7 +135,7 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
                 }
                 // Step 2.5. Change attribute to verifiedValue.
                 let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
-                owner.change_attribute(self, value, can_gc);
+                self.change(&owner, value, can_gc);
             } else {
                 // Step 2.3. If attribute’s element is null, then set attribute’s value to verifiedValue, and return.
                 self.set_value(value);
@@ -256,6 +256,19 @@ impl Attr {
         owner.attrs_to_mutate(self).push(Dom::from_ref(self));
         // Step 4. Handle attribute changes for attribute with element, null, and attribute’s value.
         owner.handle_attribute_changes(self, None, Some(self.string_value()), can_gc);
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-change>
+    pub(crate) fn change(&self, owner: &Element, mut value: AttrValue, can_gc: CanGc) {
+        // Step 1. Let oldValue be attribute’s value.
+        //
+        // Clone to avoid double borrow
+        let old_value = &self.value().clone();
+        // Step 2. Set attribute’s value to value.
+        owner.will_mutate_attr(self);
+        self.swap_value(&mut value);
+        // Step 3. Handle attribute changes for attribute with attribute’s element, oldValue, and value.
+        owner.handle_attribute_changes(self, Some(old_value), Some(self.string_value()), can_gc);
     }
 }
 
