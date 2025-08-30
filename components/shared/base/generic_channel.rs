@@ -15,6 +15,9 @@ use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
 
+mod callback;
+pub use callback::GenericCallback;
+
 /// Abstraction of the ability to send a particular type of message cross-process.
 /// This can be used to ease the use of GenericSender sub-fields.
 pub trait GenericSend<T>

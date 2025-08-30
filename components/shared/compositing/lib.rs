@@ -24,7 +24,7 @@ pub mod viewport_description;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::{self, GenericSender};
+use base::generic_channel::{self, GenericCallback, GenericSender};
 use bitflags::bitflags;
 use display_list::CompositorDisplayListInfo;
 use embedder_traits::ScreenGeometry;
@@ -188,19 +188,19 @@ pub struct CompositionPipeline {
 
 /// A mechanism to send messages from ScriptThread to the parent process' WebRender instance.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct CrossProcessCompositorApi(IpcSender<CompositorMsg>);
+pub struct CrossProcessCompositorApi(GenericCallback<CompositorMsg>);
 
 impl CrossProcessCompositorApi {
     /// Create a new [`CrossProcessCompositorApi`] struct.
-    pub fn new(sender: IpcSender<CompositorMsg>) -> Self {
-        CrossProcessCompositorApi(sender)
+    pub fn new(callback: GenericCallback<CompositorMsg>) -> Self {
+        CrossProcessCompositorApi(callback)
     }
 
     /// Create a new [`CrossProcessCompositorApi`] struct that does not have a listener on the other
     /// end to use for unit testing.
     pub fn dummy() -> Self {
-        let (sender, _) = ipc::channel().unwrap();
-        Self(sender)
+        let callback = GenericCallback::new(|_msg| ()).unwrap();
+        Self(callback)
     }
 
     /// Inform WebRender of the existence of this pipeline.
