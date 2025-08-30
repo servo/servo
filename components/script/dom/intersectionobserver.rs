@@ -11,6 +11,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::{Rect, SideOffsets2D, Size2D};
+use euclid::{Transform3D, Vector3D};
 use js::rust::{HandleObject, MutableHandleValue};
 use layout_api::BoxAreaType;
 use style::context::QuirksMode;
@@ -570,8 +571,7 @@ impl IntersectionObserver {
 
         // Step 14
         // > Let isVisible be the result of running the visibility algorithm on target.
-        // TODO: Implement visibility algorithm
-        let is_visible = false;
+        let is_visible = self.calculate_visibility(document, target);
 
         IntersectionObservationOutput::new_computed(
             threshold_index,
@@ -582,6 +582,142 @@ impl IntersectionObserver {
             is_visible,
             root_bounds,
         )
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#calculate-visibility-algo>
+    pub(crate) fn calculate_visibility(&self, document: &Document, target: &Element) -> bool {
+        // Step 1
+        // > If the observer’s trackVisibility attribute is false, return false.
+        if !self.track_visibility.get() {
+            return false;
+        }
+
+        // Step 2
+        // > If the target has an effective transformation matrix other than a 2D translation or proportional 2D upscaling, return false.
+        let effective_transformation_matrix =
+            self.calculate_effective_transformation_matrix(document, target);
+
+        if !effective_transformation_matrix.is_2d() {
+            // TODO proportional 2d upscaling?
+            return false;
+        }
+
+        // Step 3
+        // > If the target, or any element in its containing block chain, has an effective opacity other than 100%, return false.
+        if target.style().unwrap().clone_opacity() != 1.0 {
+            return false;
+        } // TODO containing block chain
+
+        // Step 4
+        // > If the target, or any element in its containing block chain, has any filters applied, return false.
+        if !target.style().unwrap().clone_filter().0.is_empty() {
+            return false;
+        }
+
+        // Step 5
+        // > If the implementation cannot guarantee that the target is completely unoccluded by other page content, return false.
+        // TODO Not sure how to do this bit
+
+        // Step 6
+        // > Return true.
+        true
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#calculate-effective-transformation-matrix>
+    pub(crate) fn calculate_effective_transformation_matrix(
+        &self,
+        document: &Document,
+        target: &Element,
+    ) -> Transform3D<f32, style_traits::CSSPixel, style_traits::CSSPixel> {
+        // Step 1
+        // > Let matrix be the serialization of the identity transform function.
+        let mut matrix: Transform3D<f32, style_traits::CSSPixel, style_traits::CSSPixel> =
+            Transform3D::from_untyped(
+                &target
+                    .style()
+                    .unwrap()
+                    .clone_transform()
+                    .to_transform_3d_matrix(None)
+                    .unwrap()
+                    .0,
+            );
+
+        // Step 2
+        // > Let container be the target.
+        #[allow(unused_mut)] // TODO remove
+        let mut container = target;
+
+        // Step 3
+        // > While container is not the intersection root:
+        #[allow(clippy::never_loop)] // TODO remove
+        while if self.root_is_implicit_root() {
+            *container.owner_document() != *document
+        } else {
+            match self.root.as_ref() {
+                Some(ElementOrDocument::Element(root)) => {
+                    *root.as_traced().to_owned() != *container
+                },
+                Some(ElementOrDocument::Document(root)) => {
+                    *root.as_traced().to_owned() != *container.owner_document()
+                },
+                None => true,
+            }
+        } {
+            // Step 3.1
+            // > Set t to container’s transformation matrix.
+            let t = Self::transformation_matrix_computation(container);
+
+            // Step 3.2
+            // > Set matrix to t post-multiplied by matrix.
+            matrix = t.then(&matrix);
+
+            // Step 3.3 TODO not sure how to go about this bit
+            // > If container is the root element of a nested browsing context, update container to be the browsing context container of container. Otherwise, update container to be the containing block of container.
+            break; // TODO remove when the above step is implemented
+        }
+
+        // Step 4
+        // > Return matrix.
+        matrix
+    }
+
+    /// <https://drafts.csswg.org/css-transforms-1/#transformation-matrix-computation>
+    pub(crate) fn transformation_matrix_computation(
+        target: &Element,
+    ) -> Transform3D<f32, style_traits::CSSPixel, style_traits::CSSPixel> {
+        let transform = target.style().unwrap().clone_transform();
+        let transform_origin = target.style().unwrap().clone_transform_origin();
+
+        // Step 1
+        // > Start with the identity matrix.
+        let mut transformation_matrix: Transform3D<
+            f32,
+            style_traits::CSSPixel,
+            style_traits::CSSPixel,
+        > = Transform3D::identity();
+
+        // Step 2
+        // > Translate by the computed X and Y of transform-origin
+        transformation_matrix = transformation_matrix.then_translate(Vector3D::from_lengths(
+            transform_origin.horizontal.to_length().unwrap().into(),
+            transform_origin.vertical.to_length().unwrap().into(),
+            transform_origin.depth.into(),
+        ));
+
+        // Step 3
+        // > Multiply by each of the transform functions in transform property from left to right
+        transformation_matrix = transformation_matrix.then(&Transform3D::from_untyped(
+            &transform.to_transform_3d_matrix(None).unwrap().0,
+        ));
+
+        // Step 4
+        // > Translate by the negated computed X and Y values of transform-origin
+        transformation_matrix = transformation_matrix.then_translate(Vector3D::from_lengths(
+            euclid::Length::new(-transform_origin.horizontal.to_length().unwrap().px()),
+            euclid::Length::new(-transform_origin.vertical.to_length().unwrap().px()),
+            transform_origin.depth.into(),
+        ));
+        transformation_matrix
     }
 
     /// Step 2.2.1-2.2.21 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
