@@ -31,7 +31,7 @@ pub mod platform {
     pub mod macos;
 
     #[cfg(not(target_os = "macos"))]
-    pub fn deinit(_clean_shutdown: bool) {}
+    pub fn deinit(_print_thread_stats: bool, _clean_shutdown: bool) {}
 }
 
 #[cfg(not(any(target_os = "android", target_env = "ohos")))]

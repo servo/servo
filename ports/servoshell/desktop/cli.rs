@@ -30,6 +30,7 @@ pub fn main() {
 
     let clean_shutdown = servoshell_preferences.clean_shutdown;
     let has_output_file = servoshell_preferences.output_image_path.is_some();
+    let print_thread_stats = servoshell_preferences.print_thread_stats;
     let event_loop = EventsLoop::new(servoshell_preferences.headless, has_output_file)
         .expect("Failed to create events loop");
 
@@ -38,5 +39,5 @@ pub fn main() {
         event_loop.run_app(&mut app);
     }
 
-    crate::platform::deinit(clean_shutdown)
+    crate::platform::deinit(print_thread_stats, clean_shutdown)
 }
