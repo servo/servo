@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::rust::{HandleObject, MutableHandleValue};
+use js::rust::MutableHandleValue;
 use net_traits::indexeddb_thread::IndexedDBKeyRange;
 
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
 use crate::dom::bindings::codegen::Bindings::IDBCursorWithValueBinding::IDBCursorWithValueMethods;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbcursor::{IDBCursor, ObjectStoreOrIndex};
@@ -56,33 +56,7 @@ impl IDBCursorWithValue {
         key_only: bool,
         can_gc: CanGc,
     ) -> DomRoot<IDBCursorWithValue> {
-        IDBCursorWithValue::new_with_proto(
-            global,
-            None,
-            transaction,
-            direction,
-            got_value,
-            source,
-            range,
-            key_only,
-            can_gc,
-        )
-    }
-
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    #[allow(clippy::too_many_arguments)]
-    fn new_with_proto(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        transaction: Dom<IDBTransaction>,
-        direction: IDBCursorDirection,
-        got_value: bool,
-        source: ObjectStoreOrIndex,
-        range: IndexedDBKeyRange,
-        key_only: bool,
-        can_gc: CanGc,
-    ) -> DomRoot<IDBCursorWithValue> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object(
             Box::new(IDBCursorWithValue::new_inherited(
                 transaction,
                 direction,
@@ -92,7 +66,6 @@ impl IDBCursorWithValue {
                 key_only,
             )),
             global,
-            proto,
             can_gc,
         )
     }
