@@ -1149,6 +1149,8 @@ fn create_constellation(
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
+    let privileged_urls = protocols.privileged_urls();
+
     let (public_resource_threads, private_resource_threads, async_runtime) = new_resource_threads(
         devtools_sender.clone(),
         time_profiler_chan.clone(),
@@ -1191,6 +1193,7 @@ fn create_constellation(
         wgpu_image_map,
         user_content_manager,
         async_runtime,
+        privileged_urls,
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());

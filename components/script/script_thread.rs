@@ -346,6 +346,10 @@ pub struct ScriptThread {
     needs_rendering_update: Arc<AtomicBool>,
 
     debugger_global: Dom<DebuggerGlobalScope>,
+
+    /// A list of URLs that can access privileged internal APIs.
+    #[no_trace]
+    privileged_urls: Vec<ServoUrl>,
 }
 
 struct BHMExitSignal {
@@ -1016,6 +1020,7 @@ impl ScriptThread {
             scheduled_update_the_rendering: Default::default(),
             needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
+            privileged_urls: state.privileged_urls,
         }
     }
 
@@ -4029,6 +4034,10 @@ impl ScriptThread {
             return;
         };
         document.event_handler().handle_refresh_cursor();
+    }
+
+    pub(crate) fn is_servo_privileged(url: ServoUrl) -> bool {
+        with_script_thread(|script_thread| script_thread.privileged_urls.contains(&url))
     }
 }
 

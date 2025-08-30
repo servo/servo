@@ -514,6 +514,10 @@ impl HttpCache {
         request: &Request,
         done_chan: &mut DoneChannel,
     ) -> Option<CachedResponse> {
+        if pref!(network_http_cache_disabled) {
+            return None;
+        }
+
         // TODO: generate warning headers as appropriate <https://tools.ietf.org/html/rfc7234#section-5.5>
         debug!("trying to construct cache response for {:?}", request.url());
         if request.method != Method::GET {

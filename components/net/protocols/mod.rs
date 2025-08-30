@@ -30,6 +30,13 @@ use file::FileProtocolHander;
 static FORBIDDEN_SCHEMES: [&str; 4] = ["http", "https", "chrome", "about"];
 
 pub trait ProtocolHandler: Send + Sync {
+    /// A list of schema-less URLs that can be resolved against this handler's
+    /// scheme. These URLs will be granted access to the `navigator.servo`
+    /// interface to perform privileged operations that manipulate Servo internals.
+    fn privileged_paths(&self) -> &'static [&'static str] {
+        &[]
+    }
+
     /// Triggers the load of a resource for this protocol and returns a future
     /// that will produce a Response. Even if the protocol is not backed by a
     /// http endpoint, it is recommended to a least provide:
@@ -131,6 +138,18 @@ impl ProtocolRegistry {
         self.handlers
             .get(scheme)
             .is_some_and(|handler| handler.is_secure())
+    }
+
+    pub fn privileged_urls(&self) -> Vec<ServoUrl> {
+        self.handlers
+            .iter()
+            .flat_map(|(scheme, handler)| {
+                let paths = handler.privileged_paths();
+                paths
+                    .iter()
+                    .filter_map(move |path| ServoUrl::parse(&format!("{scheme}:{path}")).ok())
+            })
+            .collect()
     }
 }
 
