@@ -10,7 +10,7 @@ use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessa
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
-use embedder_traits::JavaScriptEvaluationError;
+use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use net_traits::ResourceThreads;
@@ -100,6 +100,7 @@ impl WorkletGlobalScope {
                 init.mem_profiler_chan.clone(),
                 init.time_profiler_chan.clone(),
                 script_to_constellation_chan,
+                init.to_embedder_sender.clone(),
                 init.resource_threads.clone(),
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 base_url.clone(),
@@ -198,6 +199,8 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
     pub(crate) to_constellation_sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+    /// Messages to send to the Embedder
+    pub(crate) to_embedder_sender: ScriptToEmbedderChan,
     /// The image cache
     pub(crate) image_cache: Arc<dyn ImageCache>,
     /// Identity manager for WebGPU resources

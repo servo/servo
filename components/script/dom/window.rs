@@ -35,9 +35,9 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
-    UntrustedNodeAddress, ViewportDetails, WebDriverJSError, WebDriverJSResult,
-    WebDriverLoadStatus,
+    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, ScriptToEmbedderChan,
+    SimpleDialog, Theme, UntrustedNodeAddress, ViewportDetails, WebDriverJSError,
+    WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -2995,7 +2995,10 @@ impl Window {
     }
 
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
-        self.send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(msg));
+        self.as_global_scope()
+            .script_to_embedder_chan()
+            .send(msg)
+            .unwrap();
     }
 
     pub(crate) fn send_to_constellation(&self, msg: ScriptToConstellationMessage) {
@@ -3100,6 +3103,7 @@ impl Window {
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         constellation_chan: ScriptToConstellationChan,
+        embedder_chan: ScriptToEmbedderChan,
         control_chan: GenericSender<ScriptThreadMessage>,
         pipeline_id: PipelineId,
         parent_info: Option<PipelineId>,
@@ -3139,6 +3143,7 @@ impl Window {
                 mem_profiler_chan,
                 time_profiler_chan,
                 constellation_chan,
+                embedder_chan,
                 resource_threads,
                 origin,
                 creation_url,

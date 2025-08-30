@@ -1345,10 +1345,10 @@ impl DocumentEventHandler {
             },
             ClipboardEventType::Paste => {
                 let (sender, receiver) = ipc::channel().unwrap();
-                self.window
-                    .send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(
-                        EmbedderMsg::GetClipboardText(self.window.webview_id(), sender),
-                    ));
+                self.window.send_to_embedder(EmbedderMsg::GetClipboardText(
+                    self.window.webview_id(),
+                    sender,
+                ));
                 let text_contents = receiver
                     .recv()
                     .map(Result::unwrap_or_default)

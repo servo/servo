@@ -141,10 +141,10 @@ impl HTMLTextAreaElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> HTMLTextAreaElement {
-        let constellation_sender = document
+        let embedder_sender = document
             .window()
             .as_global_scope()
-            .script_to_constellation_chan()
+            .script_to_embedder_chan()
             .clone();
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited_with_state(
@@ -158,7 +158,7 @@ impl HTMLTextAreaElement {
                 Lines::Multiple,
                 DOMString::new(),
                 EmbedderClipboardProvider {
-                    constellation_sender,
+                    embedder_sender,
                     webview_id: document.webview_id(),
                 },
                 None,

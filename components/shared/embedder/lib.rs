@@ -21,7 +21,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericCallback, GenericSender, SendResult};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Point2D, Scale, Size2D};
@@ -1080,4 +1080,35 @@ pub struct RgbColor {
     pub red: u8,
     pub green: u8,
     pub blue: u8,
+}
+
+/// A Script to Embedder Channel
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ScriptToEmbedderChan(GenericCallback<EmbedderMsg>);
+
+impl ScriptToEmbedderChan {
+    /// Create a new Channel allowing script to send messages to the Embedder
+    pub fn new(
+        embedder_chan: Sender<EmbedderMsg>,
+        waker: Box<dyn EventLoopWaker>,
+    ) -> ScriptToEmbedderChan {
+        let embedder_callback = GenericCallback::new(move |embedder_msg| {
+            let msg = match embedder_msg {
+                Ok(embedder_msg) => embedder_msg,
+                Err(err) => {
+                    log::warn!("Script to Embedder message error: {err}");
+                    return;
+                },
+            };
+            let _ = embedder_chan.send(msg);
+            waker.wake();
+        })
+        .expect("Failed to create channel");
+        ScriptToEmbedderChan(embedder_callback)
+    }
+
+    /// Send a message to and wake the Embedder
+    pub fn send(&self, msg: EmbedderMsg) -> SendResult {
+        self.0.send(msg)
+    }
 }
