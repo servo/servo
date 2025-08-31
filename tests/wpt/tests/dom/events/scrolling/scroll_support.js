@@ -105,10 +105,15 @@ async function waitForScrollReset(test, scroller, x = 0, y = 0) {
 
 async function createScrollendPromiseForTarget(test,
                                                target_div,
-                                               timeoutMs = 500) {
+                                               timeoutMs = 500,
+                                               targetIsRoot = false) {
   return waitForScrollendEvent(test, target_div, timeoutMs).then(evt => {
     assert_false(evt.cancelable, 'Event is not cancelable');
-    assert_false(evt.bubbles, 'Event targeting element does not bubble');
+    if (targetIsRoot) {
+      assert_true(evt.bubbles, 'Event targeting element does not bubble');
+    } else {
+      assert_false(evt.bubbles, 'Event targeting element does not bubble');
+    }
   });
 }
 

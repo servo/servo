@@ -104,7 +104,7 @@ function setupAnimationAndTrigger(target, subject, duration) {
       { duration: duration, fill: "both" }
     ));
 
-  let trigger = new AnimationTrigger({
+  let trigger = new TimelineTrigger({
     behavior: "alternate",
     timeline: new ViewTimeline({ subject: subject, axis: "y" }),
     rangeStart: "contain 0%",

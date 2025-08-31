@@ -24,7 +24,8 @@
         width: 100%;
         background-color: blue;
         animation: slide-in 0.3s both;
-        animation-trigger: view() alternate contain 0% contain 100%;
+        timeline-trigger: --trigger view() alternate contain 0% contain 100%;
+        animation-trigger: --trigger;
         position: absolute;
       }
       .space {

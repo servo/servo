@@ -16,16 +16,16 @@ const ESC = '\uE00C';
 promise_test(async (t) => {
   const dialog = document.querySelector('dialog#test1');
   assert_true(dialog.open);
-  assert_true(dialog.matches(':open'));
+  assert_true(dialog.matches('[open]'));
   await new test_driver.send_keys(document.documentElement,ESC);
   assert_false(dialog.open);
-  assert_false(dialog.matches(':open'));
+  assert_false(dialog.matches('[open]'));
   dialog.showModal();
   assert_true(dialog.open);
-  assert_true(dialog.matches(':open'));
+  assert_true(dialog.matches('[open]'));
   await new test_driver.send_keys(document.documentElement,ESC);
   assert_false(dialog.open);
-  assert_false(dialog.matches(':open'));
+  assert_false(dialog.matches('[open]'));
 }, `Dialogs that start open and have closedby should still function`);
 </script>
 
@@ -65,11 +65,11 @@ promise_test(async (t) => {
     });
   });
   assert_true(dialog.open);
-  assert_true(dialog.matches(':open'));
+  assert_true(dialog.matches('[open]'));
   // Stop re-running showModal(), so we can check that the dialog closes with ESC:
   controller.abort();
   await test_driver.send_keys(document.documentElement,ESC);
   assert_false(dialog.open,'ESC should still work');
-  assert_false(dialog.matches(':open'));
+  assert_false(dialog.matches('[open]'));
 }, `Opening and closing a dialog during the dialog focus fixup should still leave closedby functional`);
 </script>

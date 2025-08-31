@@ -69,7 +69,7 @@
 
       const view_timeline = new ViewTimeline({ subject: subject });
       function setupAnimationTrigger() {
-        const trigger = new AnimationTrigger({
+        const trigger = new TimelineTrigger({
               behavior: "alternate",
               timeline: view_timeline,
               rangeStart: `${TRIGGER_START_PX}px`,

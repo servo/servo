@@ -21,22 +21,24 @@
       }
       .target {
         animation: myAnim linear 0.5s both;
-        animation-trigger-behavior: repeat;
-        animation-trigger-range: 250px 300px;
-        animation-trigger-exit-range: 200px 350px;
       }
-      .scroll {
-        animation-trigger-timeline: scroll();
+
+      #scroll_target {
+        animation-trigger: --scrolltrigger;
+        timeline-trigger: --scrolltrigger scroll() repeat 250px 300px 200px 350px;
       }
-      .view {
-        animation-trigger-timeline: view();
+      #view_target {
+        animation-trigger: --viewtrigger;
+        timeline-trigger: --viewtrigger view() repeat 250px 300px 200px 350px;
       }
-      .deferred {
-        animation-trigger-timeline: --viewtimeline;
+      #deferred_target {
+        animation-trigger: --deferredtrigger;
       }
-      .deferred.subject {
+      #deferred_subject {
         view-timeline: --viewtimeline;
+        timeline-trigger: --deferredtrigger --viewtimeline repeat 250px 300px 200px 350px;
       }
+
       .scroller {
         overflow-y: scroll;
         height: 500px;
@@ -55,20 +57,20 @@
     <div id="wrapper">
       <div id="scroll_scroller" class="scroller">
         <div id="space"></div>
-        <div id="scroll_target" class="scroll subject target" tabindex="0"></div>
+        <div id="scroll_target" class="subject target" tabindex="0"></div>
         <div id="space"></div>
       </div>
       <div id="view_scroller" class="scroller">
         <div id="space"></div>
-        <div id="view_target" class="view subject target" tabindex="0"></div>
+        <div id="view_target" class="subject target" tabindex="0"></div>
         <div id="space"></div>
       </div>
       <div id="deferred_scroller" class="scroller">
         <div id="space"></div>
-        <div id="deferred_subject" class="deferred subject" tabindex="0"></div>
+        <div id="deferred_subject" class="subject" tabindex="0"></div>
         <div id="space"></div>
       </div>
-      <div id="deferred_target" class="deferred target" tabindex="0"></div>
+      <div id="deferred_target" class="target" tabindex="0"></div>
     </div>
     <script>
       // // Each test case sets these.
@@ -79,36 +81,36 @@
         const initial_transform = getComputedStyle(target).transform;
         // Just short of the trigger range start, no trigger action expected.
         await testAnimationTrigger(test, () => {
-            return rangeBoundaries.exitTriggerRangeAbove();
-          }, target, ["animationstart", "animationend"], [false, false]);
+          return rangeBoundaries.exitTriggerRangeAbove();
+        }, target, ["animationstart", "animationend"], [false, false]);
 
         // This skips the trigger range and should not play the animation.
         await testAnimationTrigger(test, () => {
           return rangeBoundaries.exitTriggerRangeBelow();
-          }, target, ["animationstart", "animationend"], [false, false]);
+        }, target, ["animationstart", "animationend"], [false, false]);
 
         // This enters the trigger range and should play the animation.
         await testAnimationTrigger(test, () => {
-            return rangeBoundaries.enterTriggerRange();
-          }, target, ["animationstart", "animationend"], [true, true]);
+          return rangeBoundaries.enterTriggerRange();
+        }, target, ["animationstart", "animationend"], [true, true]);
 
         // This is a repeat trigger, exiting the exit range resets the
         // animation. By inspecting style.transform, we should see that the
         // animation was reset.
         await testAnimationTrigger(test, () => {
-            return rangeBoundaries.exitExitRangeAbove();
-          }, target, ["animationstart", "animationend", "animationcancel"],
+          return rangeBoundaries.exitExitRangeAbove();
+        }, target, ["animationstart", "animationend", "animationcancel"],
           [false, false, false]);
         assert_equals(getComputedStyle(target).transform, initial_transform);
 
         // This is a repeat trigger, re-entering plays the animation.
         await testAnimationTrigger(test, async () => {
-            // Enter the range.
-            await rangeBoundaries.enterTriggerRange();
-            await waitForAnimationFrames(5);
-            // Exit the range.
-            return rangeBoundaries.exitExitRangeBelow();
-          }, target, ["animationstart", "animationend", "animationcancel"],
+          // Enter the range.
+          await rangeBoundaries.enterTriggerRange();
+          await waitForAnimationFrames(5);
+          // Exit the range.
+          return rangeBoundaries.exitExitRangeBelow();
+        }, target, ["animationstart", "animationend", "animationcancel"],
           [true, false, false]);
       }
 

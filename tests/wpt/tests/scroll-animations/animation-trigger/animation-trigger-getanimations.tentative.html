@@ -4,6 +4,7 @@
     <link rel="help" href="https://drafts.csswg.org/web-animations-2#animation-trigger">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
   </head>
   <body>
     <style>
@@ -24,7 +25,8 @@
         width: 100%;
         background-color: blue;
         animation: slide-in 3s;
-        animation-trigger: view() alternate contain 0% contain 100%;
+        timeline-trigger: --trigger view() alternate contain 0% contain 100%;
+        animation-trigger: --trigger;
       }
       .target {
         height: 100px;
@@ -54,15 +56,11 @@
     <script>
       promise_test(async () => {
         assert_equals(idle_target.getAnimations().length, 1,
-        "idle target has an animation");
-      }, "getAnimations includes an untriggered " +
-         "'fill-mode: none' animation.");
-
-      promise_test(async () => {
+          "idle target has an animation");
         assert_equals(active_target.getAnimations().length, 1,
           "active target has an animation");
-      }, "getAnimations does include an untriggered " +
-          "'fill-mode: both' animation.");
+      }, "getAnimations includes an untriggered " +
+         "'fill-mode: none' and 'fill-mode: both' animations.");
     </script>
   </body>
 </html>

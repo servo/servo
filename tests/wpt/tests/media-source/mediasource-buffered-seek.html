@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Test MediaSource behavior when a seek is requested to a buffered position.</title>
+        <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+        <link rel="author" title="Alicia Boya García" href="mailto:aboya@igalia.com"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              mediaElement.play();
+
+              var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+              var firstSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[0]);
+
+              // Append the initialization segment to trigger a transition to HAVE_METADATA.
+              test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+              test.expectEvent(mediaElement, 'loadedmetadata', 'Reached HAVE_METADATA');
+              sourceBuffer.appendBuffer(initSegment);
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(mediaElement.seeking, 'mediaElement is not seeking');
+                  assert_equals(mediaElement.readyState, mediaElement.HAVE_METADATA, 'Still in HAVE_METADATA');
+
+                  test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+                  sourceBuffer.appendBuffer(firstSegment);
+                  test.expectEvent(mediaElement, 'playing', 'mediaElement playing');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_greater_than(mediaElement.readyState, mediaElement.HAVE_METADATA, 'readyState > HAVE_METADATA');
+
+                  // Seek to a position we know it's buffered by now.
+                  mediaElement.currentTime = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea) / 2;
+
+                  assert_true(mediaElement.seeking, 'mediaElement is seeking');
+
+                  test.expectEvent(mediaElement, 'seeking', 'mediaElement seeking');
+                  test.expectEvent(mediaElement, 'seeked', 'mediaElement finished seek');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_greater_than(mediaElement.readyState, mediaElement.HAVE_METADATA, 'readyState > HAVE_METADATA');
+                  test.done();
+              });
+
+          }, 'Test seeking to a buffered location.');
+        </script>
+    </body>
+</html>

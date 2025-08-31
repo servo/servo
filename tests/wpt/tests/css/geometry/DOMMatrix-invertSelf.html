@@ -13,13 +13,12 @@
   [[1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
                        [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]],
 ].forEach(([actual_array, expected_array]) => {
-  var is2D = false;
   test(() => {
     const actual = new DOMMatrix(actual_array);
     const actualInvertSelfReturnValue = actual.invertSelf();
     assert_true(actual === actualInvertSelfReturnValue);
     const expected = new DOMMatrix(expected_array);
-    checkDOMMatrix(actual, expected, is2D);
+    checkMatrix(actual, expected);
   }, `new DOMMatrix([${actual_array}]).invertSelf()`);
 });
 </script>

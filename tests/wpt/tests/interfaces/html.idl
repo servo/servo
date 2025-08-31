@@ -1981,6 +1981,7 @@ interface NavigationHistoryEntry : EventTarget {
 interface NavigationTransition {
   readonly attribute NavigationType navigationType;
   readonly attribute NavigationHistoryEntry from;
+  readonly attribute Promise<undefined> committed;
   readonly attribute Promise<undefined> finished;
 };
 
@@ -2026,6 +2027,7 @@ dictionary NavigateEventInit : EventInit {
 };
 
 dictionary NavigationInterceptOptions {
+  NavigationPrecommitHandler precommitHandler;
   NavigationInterceptHandler handler;
   NavigationFocusReset focusReset;
   NavigationScrollBehavior scroll;
@@ -2042,6 +2044,13 @@ enum NavigationScrollBehavior {
 };
 
 callback NavigationInterceptHandler = Promise<undefined> ();
+
+[Exposed=Window]
+interface NavigationPrecommitController {
+  undefined redirect(USVString url, optional NavigationNavigateOptions options = {});
+};
+
+callback NavigationPrecommitHandler = Promise<undefined> (NavigationPrecommitController controller);
 
 [Exposed=Window]
 interface NavigationDestination {

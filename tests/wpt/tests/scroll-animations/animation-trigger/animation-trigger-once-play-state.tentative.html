@@ -24,7 +24,8 @@
       }
       .target {
         animation: myAnim linear 0.5s forwards;
-        animation-trigger: once --viewtimeline 150px 200px;
+        timeline-trigger: --trigger once --viewtimeline 150px 200px;
+        animation-trigger: --trigger;
       }
       .scroller {
         overflow-y: scroll;

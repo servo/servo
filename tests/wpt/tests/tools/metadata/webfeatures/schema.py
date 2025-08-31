@@ -79,6 +79,9 @@ class FeatureEntry:
             lambda x: SchemaValue.from_list(SchemaValue.from_class(FeatureFile), x),
             SpecialFileEnum], obj.get("files"))
         self.name = SchemaValue.from_str(obj.get("name"))
+        # If "**" is used, it should be the only item. Not in a list.
+        if isinstance(self.files, list) and SpecialFileEnum.RECURSIVE.value in self.files:
+            raise ValueError(f'Feature {self.name} contains "**" in a list. It should be `files: "**"`')
 
 
     def does_feature_apply_recursively(self) -> bool:

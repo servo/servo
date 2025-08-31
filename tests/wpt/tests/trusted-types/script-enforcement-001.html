@@ -34,6 +34,15 @@
   }, "Script source set via TrustedScript sink HTMLScriptElement.innerText keeps trustworthiness.");
 
   promise_test(async t => {
+    let script = document.createElement("script");
+    Object.getOwnPropertyDescriptor(HTMLElement.prototype, "innerText").set.call(script, LOG_RUN_MESSAGE);
+    assert_equals(script.innerText, LOG_RUN_MESSAGE, "TrustedScript not required.");
+    await no_script_message_for(_ => {
+      container.appendChild(script);
+    });
+  }, "Script source set via HTMLElement.innerText drops trustworthiness.");
+
+  promise_test(async t => {
     await promise_rejects_js(t, TypeError, script_messages_for(_ => {
       document.createElement("script").textContent = LOG_RUN_MESSAGE;
     }), "TrustedScript required.");
@@ -44,6 +53,15 @@
     });
     assert_equals(message, "RUN");
   }, "Script source set via TrustedScript sink HTMLScriptElement.textContent keeps trustworthiness.");
+
+  promise_test(async t => {
+    let script = document.createElement("script");
+    Object.getOwnPropertyDescriptor(Node.prototype, "textContent").set.call(script, LOG_RUN_MESSAGE);
+    assert_equals(script.textContent, LOG_RUN_MESSAGE, "TrustedScript not required.");
+    await no_script_message_for(_ => {
+      container.appendChild(script);
+    });
+  }, "Script source set Node.textContent drops trustworthiness.");
 
   promise_test(async t => {
     await promise_rejects_js(t, TypeError, script_messages_for(_ => {

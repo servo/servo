@@ -50,13 +50,6 @@ promise_test(async t => {
   // O/A with tweaks to accept simulcast.
   await doOfferToSendSimulcastAndAnswer(pc1, pc2, ['foo', 'bar']);
 
-  // Workaround to RTP stats lifetime bug: In some browsers it takes a little
-  // while before multiple outbound RTP stats objects appear in the report.
-  // TODO(https://crbug.com/406585888): Test coverage for this should be added
-  // to rtp-stats-lifetime.https.html. When that test passes, delete this
-  // workaround.
-  await pollUntilMultipleOutboundRtps(pc1);
-
   const report = await pc1.getStats();
   // The RTP stream for sendEncodings[0].
   const outboundRtpFoo = report.values().find(

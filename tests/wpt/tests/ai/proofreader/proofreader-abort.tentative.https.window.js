@@ -18,3 +18,10 @@ promise_test(async t => {
   });
 }, 'Aborting Proofreader.proofread()');
 
+promise_test(async t => {
+  const proofreader = await createProofreader({includeCorrectionTypes: true});
+  await testAbortPromise(t, signal => {
+    return proofreader.proofread(kTestPrompt, { signal: signal });
+  });
+}, 'Aborting Proofreader.proofread() including correction types');
+
