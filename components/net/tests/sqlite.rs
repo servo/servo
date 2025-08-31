@@ -210,7 +210,7 @@ fn test_async_operations() {
                 store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
                     sender: channel.0,
-                    key: IndexedDBKeyType::Number(1.0),
+                    key: Some(IndexedDBKeyType::Number(1.0)),
                     value: vec![1, 2, 3],
                     should_overwrite: false,
                 }),
