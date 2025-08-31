@@ -14,23 +14,25 @@
  */
 'use strict';
 
-function getStatEntry(report, type, kind) {
+function getStatEntry(report, type, kind, assertStatsExists = true) {
   const values = [...report.values()];
   const for_kind = values.filter(
     stat => stat.type == type && stat.kind == kind);
 
-  assert_equals(1, for_kind.length,
-                "Expected report to have only 1 entry with type '" + type +
-                "' and kind '" + kind + "'. Found values " + for_kind);
-  return for_kind[0];
+  if (assertStatsExists) {
+    assert_equals(1, for_kind.length,
+                  "Expected report to have only 1 entry with type '" + type +
+                  "' and kind '" + kind + "'. Found values " + for_kind);
+  }
+  return for_kind.length > 0 ? for_kind[0] : null;
 }
 
 async function hasEncodedAndDecodedFrames(pc, t) {
   while (true) {
     const report = await pc.getStats();
-    const inboundRtp = getStatEntry(report, 'inbound-rtp', 'video');
-    const outboundRtp = getStatEntry(report, 'outbound-rtp', 'video');
-    if (inboundRtp.framesDecoded > 0 && outboundRtp.framesEncoded > 0) {
+    const inboundRtp = getStatEntry(report, 'inbound-rtp', 'video', false);
+    const outboundRtp = getStatEntry(report, 'outbound-rtp', 'video', false);
+    if (inboundRtp?.framesDecoded > 0 && outboundRtp?.framesEncoded > 0) {
       return;
     }
     // Avoid any stats caching, which can otherwise make this an infinite loop.

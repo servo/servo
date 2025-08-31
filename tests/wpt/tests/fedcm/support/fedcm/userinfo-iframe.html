@@ -13,7 +13,7 @@ import {alt_manifest_origin} from './../fedcm-helper.sub.js';
 window.onload = async () => {
   try {
    const manifest_path = `${alt_manifest_origin}/\
-fedcm/support/manifest.py`;
+fedcm/support/manifest_with_picture_account.json`;
     const user_info = await IdentityProvider.getUserInfo({
       configURL: manifest_path,
       // Approved client

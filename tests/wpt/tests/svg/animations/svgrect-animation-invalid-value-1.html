@@ -1,0 +1,35 @@
+<!doctype html>
+<title>Test SVGRect animation with invalid values: No spaces between numbers and units in viewbox for from attribute.</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#FromAttribute">
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ByAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg" viewBox="0 0 100 100">
+    <animate attributeName="viewbox" from="0  px 0  px 100  px 100  px" by="50 50 50 50" begin="0s" dur="4s" />
+    <rect width="100" height="100" fill="green" />
+</svg>
+
+<script>
+
+async_test(t => {
+    const svg = document.getElementById("svg");
+
+     window.addEventListener('load', t.step_func(() => {
+        svg.setCurrentTime(2);
+
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_equals(svg.viewBox.baseVal.x, 0);
+          assert_equals(svg.viewBox.baseVal.y, 0);
+          assert_equals(svg.viewBox.baseVal.width, 100);
+          assert_equals(svg.viewBox.baseVal.height, 100);
+
+          assert_equals(svg.viewBox.animVal.x, svg.viewBox.baseVal.x);
+          assert_equals(svg.viewBox.animVal.y, svg.viewBox.baseVal.y);
+          assert_equals(svg.viewBox.animVal.width, svg.viewBox.baseVal.width);
+          assert_equals(svg.viewBox.animVal.height, svg.viewBox.baseVal.height);
+        }));
+    }));
+  });
+
+</script>

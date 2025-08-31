@@ -30,6 +30,33 @@ test(function() {
   });
 
   test_blob(function() {
+    var blob = new Blob(["abcd"]);
+    return blob.slice(undefined, undefined, "content/type");
+  }, {
+    expected: "abcd",
+    type: "content/type",
+    desc: "undefined start/end Blob slice"
+  });
+
+  test_blob(function() {
+    var blob = new Blob(["abcd"]);
+    return blob.slice(undefined, 2, "content/type");
+  }, {
+    expected: "ab",
+    type: "content/type",
+    desc: "undefined start Blob slice"
+  });
+
+  test_blob(function() {
+    var blob = new Blob(["abcd"]);
+    return blob.slice(2, undefined, "content/type");
+  }, {
+    expected: "cd",
+    type: "content/type",
+    desc: "undefined end Blob slice"
+  });
+
+  test_blob(function() {
     return new Blob().slice(0,0,null);
   }, {
     expected: "",

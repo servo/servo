@@ -39,20 +39,10 @@ html {
 </div>
 </body>
 <script>
-let element_scrollend_arrived = false;
-let document_scrollend_arrived = false;
+let invalid_scrollend_arrived = false;
 
-function onElementScrollEnd(event) {
-  assert_false(event.cancelable);
-  assert_false(event.bubbles);
-  element_scrollend_arrived = true;
-}
-
-function onDocumentScrollEnd(event) {
-  assert_false(event.cancelable);
-  // scrollend events are bubbled when the target node is document.
-  assert_true(event.bubbles);
-  document_scrollend_arrived = true;
+function onInvalidScrollEnd(event) {
+  invalid_scrollend_arrived = true;
 }
 
 let scroll_fn_variants = [
@@ -119,20 +109,20 @@ function runTest() {
   async function testScrollFn(testInfo, t) {
     await waitForCompositorCommit();
 
-    targetDiv.addEventListener("scrollend", onElementScrollEnd);
-    document.addEventListener("scrollend", onDocumentScrollEnd);
+    let scrollendPromise = null;
+    if (testInfo.target == document.scrollingElement) {
+      targetDiv.addEventListener("scrollend", onInvalidScrollEnd);
+      scrollendPromise = createScrollendPromiseForTarget(t, document, 700, true);
+    } else {
+      document.addEventListener("scrollend", onInvalidScrollEnd);
+      scrollendPromise = createScrollendPromiseForTarget(t, targetDiv, 700, false);
+    }
 
     testInfo.target[testInfo.fn]({ top: 200, left: 200,
                                    behavior: testInfo.behavior });
 
-    await waitFor(() => {
-      return element_scrollend_arrived || document_scrollend_arrived;
-    }, testInfo.target.tagName + "." + testInfo.fn + " did not receive scrollend event.");
-    if (testInfo.target == document.scrollingElement) {
-      assert_false(element_scrollend_arrived);
-    } else {
-      assert_false(document_scrollend_arrived);
-    }
+    await scrollendPromise;
+    assert_false(invalid_scrollend_arrived, "Scrollend should not fire to target that has not scrolled");
 
     assert_equals(testInfo.target.scrollLeft, 200,
                   testInfo.target.tagName + "." + testInfo.fn + " scrollLeft");

@@ -364,6 +364,20 @@
     },
     "output": {"dataTypes": ["float32", "float16"]}
   },
+  "isNaN": {
+    "input": {
+      "dataTypes": ["float32", "float16"],
+      "rankRange": {"min": 0, "max": 4}
+    },
+    "output": {"dataTypes": ["uint8"]}
+  },
+  "isInfinite": {
+    "input": {
+      "dataTypes": ["float32", "float16"],
+      "rankRange": {"min": 0, "max": 4}
+    },
+    "output": {"dataTypes": ["uint8"]}
+  },
   "l2Pool2d": {
     "input": {"dataTypes": [], "rankRange": {}},
     "output": {"dataTypes": []}
@@ -724,6 +738,13 @@
       "rankRange": {"min": 0, "max": 5}
     },
     "output": {"dataTypes": ["float32", "float16", "int32"]}
+  },
+  "roundEven": {
+    "input": {
+      "dataTypes": ["float32", "float16"],
+      "rankRange": {"min": 0, "max": 5}
+    },
+    "output": {"dataTypes": ["float32", "float16"]}
   },
   "scatterElements": {
     "input": {

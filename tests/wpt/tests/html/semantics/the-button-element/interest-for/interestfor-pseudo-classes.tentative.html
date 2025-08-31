@@ -39,10 +39,10 @@
 <script>
 function checkPseudos(invoker,target,expectHasInterest,expectTargetHasInterest,msg) {
   msg = msg ?? 'Error';
-  assert_equals(invoker.matches(':has-interest'),expectHasInterest,`${msg}: :has-interest mismatch`);
-  assert_equals(target.matches(':target-of-interest'),expectTargetHasInterest,`${msg}: :target-of-interest mismatch`);
-  assert_false(invoker.matches(':target-of-interest'),'invoker should never match :target-of-interest');
-  assert_false(target.matches(':has-interest'),'target should never match :has-interest');
+  assert_equals(invoker.matches(':interest-source'),expectHasInterest,`${msg}: :interest-source mismatch`);
+  assert_equals(target.matches(':interest-target'),expectTargetHasInterest,`${msg}: :interest-target mismatch`);
+  assert_false(invoker.matches(':interest-target'),'invoker should never match :interest-target');
+  assert_false(target.matches(':interest-source'),'target should never match :interest-source');
   assert_equals(target.matches(':popover-open'),expectTargetHasInterest,'Popover should be open if target has interest');
 }
 // Note that add_cleanup does not wait for async functions.
@@ -145,16 +145,16 @@ promise_test(async (t) => {
   invoker.setAttribute('style',`interest-delay: ${invokerDelayMs}ms`);
   checkPseudos(invoker,target,false,false,'initial');
   const token1 = await mouseOverAndRecord(t,invoker);
-  const immediate_result = invoker.matches(':has-interest') ||
-      target.matches(':target-of-interest');
+  const immediate_result = invoker.matches(':interest-source') ||
+      target.matches(':interest-target');
   if (msSinceMouseOver(token1) < invokerDelayMs) {
     assert_false(immediate_result,'No pseudos should match before the show delay elapses');
   }
   await waitForHoverTime(hoverWaitTime);
   checkPseudos(invoker,target,true,true,'pseudos should match after hover delay');
   const token2 = await mouseOverAndRecord(t,unrelated);
-  const immediate_result2 =  invoker.matches(':has-interest') &&
-      target.matches(':target-of-interest');
+  const immediate_result2 =  invoker.matches(':interest-source') &&
+      target.matches(':interest-target');
   if (msSinceMouseOver(token2) < invokerDelayMs) {
     assert_true(immediate_result2,'all pseudos should still match before the hide delay elapses');
   }

@@ -50,7 +50,7 @@ function verifyInterest(onlyElements,description) {
   }
   [...allInterestForElements, another].forEach(el => {
     const expectInterest = onlyElements.includes(el);
-    assert_equals(el.matches(':has-interest'),expectInterest,`${description}, element ${el.dataset.testcase} should ${expectInterest ? "" : "NOT "}have interest`);
+    assert_equals(el.matches(':interest-source'),expectInterest,`${description}, element ${el.dataset.testcase} should ${expectInterest ? "" : "NOT "}have interest`);
   })
 }
 allInterestForElements.forEach(el => {

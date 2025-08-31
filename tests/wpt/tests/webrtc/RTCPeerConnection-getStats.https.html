@@ -269,7 +269,7 @@
         } else {
           assert_greater_than_equal(pairStats.totalRoundTripTime, pairStats.currentRoundTripTime);
         }
-        assert_less_than_equal(pairStats.totalRoundTripTime, elapsed_time_ms)
+        assert_less_than_equal(pairStats.totalRoundTripTime*1000, elapsed_time_ms)
       }
     }
 

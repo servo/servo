@@ -129,6 +129,7 @@ enum GPUFeatureName {
     "subgroups",
     "texture-formats-tier1",
     "texture-formats-tier2",
+    "primitive-index",
 };
 
 [Exposed=(Window, Worker), SecureContext]

@@ -1,0 +1,36 @@
+<!doctype html>
+<title>Test SVGNumberList animation with invalid values: String value in from list attribute.</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#FromAttribute">
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ToAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+    <text id="text" x="40 60 80 100" y="60" rotate="15 20 30 40" fill="green">ABCD
+        <animate attributeName="rotate" from="0 0 0 A" to="45 90 135 A" begin="0s" dur="4s" />
+    </text>
+</svg>
+
+<script>
+
+async_test(t => {
+    const svg = document.getElementById("svg");
+    const text = document.getElementById("text");
+
+    window.addEventListener('load', t.step_func(() => {
+        svg.setCurrentTime(2);
+
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_array_equals(
+            Array.from(text.rotate.baseVal).map(v => v.value),
+            [15, 20, 30, 40]
+          );
+          assert_array_equals(
+            Array.from(text.rotate.animVal).map(v => v.value),
+            Array.from(text.rotate.baseVal).map(v => v.value)
+          );
+        }));
+    }));
+  });
+
+</script>

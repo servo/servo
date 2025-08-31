@@ -10,9 +10,6 @@ test(function() {
   assert_true(m.isIdentity);
   var m1 = m.inverse();
   assert_true(m1.isIdentity);
-  // Use checkMatrix() instead of checkDOMMatrix() because checkMatrix() has
-  // a default epsilon = Number.MIN_VALUE which can at least pass
-  // assert_approx_equal(0, -0, epsilon).
   checkMatrix(m, m1);
   m.invertSelf();
   checkMatrix(m, m1);

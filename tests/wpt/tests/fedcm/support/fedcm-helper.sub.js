@@ -62,6 +62,7 @@ fedcm/support/${manifest_filename}`;
       providers: [{
         configURL: manifest_path,
         clientId: '1',
+        // TODO(crbug.com/441895082): Move nonce to params when FedCmNonceInParams is enabled by default
         nonce: '2'
       }]
     },
@@ -216,16 +217,16 @@ export function fedcm_get_dialog_type_promise(t) {
   return new Promise((resolve, reject) => {
     async function helper() {
       // Try to get the dialog type. If the UI is not up yet, we'll catch a 'no such alert'
-      // exception and try again in 100ms. Other exceptions will be rejected.
+      // exception and try again in 10ms. Other exceptions will be rejected.
       try {
         const type = await window.test_driver.get_fedcm_dialog_type();
         resolve(type);
       } catch (ex) {
         if (String(ex).includes("no such alert")) {
           if (t) {
-            t.step_timeout(helper, 100);
+            t.step_timeout(helper, 10);
           } else{
-            window.setTimeout(helper, 100);
+            window.setTimeout(helper, 10);
           }
         } else {
           reject(ex);
@@ -262,12 +263,12 @@ export function fedcm_get_title_promise(t) {
   return new Promise(resolve => {
     async function helper() {
       // Try to get the title. If the UI is not up yet, we'll catch an exception
-      // and try again in 100ms.
+      // and try again in 10ms.
       try {
         const title = await window.test_driver.get_fedcm_dialog_title();
         resolve(title);
       } catch (ex) {
-        t.step_timeout(helper, 100);
+        t.step_timeout(helper, 10);
       }
     }
     helper();
@@ -297,14 +298,14 @@ export function fedcm_error_dialog_dismiss(t) {
   return new Promise(resolve => {
     async function helper() {
       // Try to select the account. If the UI is not up yet, we'll catch an exception
-      // and try again in 100ms.
+      // and try again in 10ms.
       try {
         let type = await fedcm_get_dialog_type_promise(t);
         assert_equals(type, "Error");
         await window.test_driver.cancel_fedcm_dialog();
         resolve();
       } catch (ex) {
-        t.step_timeout(helper, 100);
+        t.step_timeout(helper, 10);
       }
     }
     helper();
@@ -315,14 +316,14 @@ export function fedcm_error_dialog_click_button(t, button) {
   return new Promise(resolve => {
     async function helper() {
       // Try to select the account. If the UI is not up yet, we'll catch an exception
-      // and try again in 100ms.
+      // and try again in 10ms.
       try {
         let type = await fedcm_get_dialog_type_promise(t);
         assert_equals(type, "Error");
         await window.test_driver.click_fedcm_dialog_button(button);
         resolve();
       } catch (ex) {
-        t.step_timeout(helper, 100);
+        t.step_timeout(helper, 10);
       }
     }
     helper();

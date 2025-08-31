@@ -30,6 +30,39 @@ import re
             None
         ),
         (
+            {
+                "features": [
+                    {
+                        "name": "feature1",
+                        "files": "**",
+                    }
+                ]
+            },
+            {
+                "features": [
+                    {
+                        "name": "feature1",
+                        "files": SpecialFileEnum.RECURSIVE,
+                    }
+                ]
+            },
+            None,
+            None
+        ),
+        (
+            {
+                "features": [
+                    {
+                        "name": "feature1",
+                        "files": ["**"],
+                    }
+                ]
+            },
+            None,
+            ValueError,
+            "Feature feature1 contains \"**\" in a list. It should be `files: \"**\"`"
+        ),
+        (
             {},
             None,
             ValueError,

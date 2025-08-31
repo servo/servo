@@ -5,13 +5,13 @@
 
 'use_strict';
 
-promise_test(async t => {
-  const db = (await new Promise(resolve => {
-    const request = self.indexedDB.open('db', 1);
-    request.addEventListener('upgradeneeded', resolve, {once: true});
-  })).target.result;
-  const store = db.createObjectStore('store', {keyPath: 'a.b', autoIncrement: true});
-  store.put({});
-  const index = store.createIndex('index', 'keypath');
-  db.close();
-}, "Assure no crash when populating index");
+indexeddb_test(
+  (t, db, tx) => {
+    const store = db.createObjectStore('store', { keyPath: 'a.b', autoIncrement: true });
+    store.put({});
+    const index = store.createIndex('index', 'keypath');
+    t.done();
+  },
+  /*open_func=*/null,
+  "Assure no crash when populating index",
+);

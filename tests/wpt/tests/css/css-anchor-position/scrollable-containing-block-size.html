@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<title>Tests where the "padding edge" should be for various display types.</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#scrollable-containing-block">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12552">
+<style>
+.scroller {
+  /* Use overflow hidden instead of scroll to mitigate scrollbar differences. */
+  overflow: hidden;
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 10px;
+  border: solid 3px;
+  padding: 10px;
+}
+
+.filler {
+  background: orange;
+  min-width: 180px;
+  min-height: 180px;
+}
+
+.translate {
+  translate: 50px;
+}
+
+.relative {
+  position: relative;
+  left: 20px;
+  top: 40px;
+}
+
+.anchor {
+  anchor-name: --a;
+}
+
+.target {
+  position-anchor: --a;
+  position: absolute;
+  inset: 0;
+  place-self: stretch;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.target')">
+
+<!-- Base case, block layout no shift. -->
+<div class="scroller">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Block layout with relative shift. -->
+<div class="scroller">
+  <div class="filler relative"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Block layout with translate shift. -->
+<div class="scroller">
+  <div class="filler translate"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Flex layout with no shift. -->
+<div class="scroller" style="display: flex;">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Flex layout with relative shift. -->
+<div class="scroller" style="display: flex;">
+  <div class="filler relative"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Flex layout with translate shift. -->
+<div class="scroller" style="display: flex;">
+  <div class="filler translate"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Grid layout with no shift. -->
+<div class="scroller" style="display: grid;">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Grid layout with relative shift. -->
+<div class="scroller" style="display: grid;">
+  <div class="filler relative"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Grid layout with translate shift. -->
+<div class="scroller" style="display: grid;">
+  <div class="filler translate"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Grid layout with template. -->
+<div class="scroller" style="display: grid; grid-template: 180px / 180px">
+  <div class="anchor"></div>
+  <div class="target" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Use flexbox to trigger up scrollable area. -->
+<div class="scroller" style="display: flex; flex-direction: column-reverse;">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="0" data-offset-y="-100" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Use flexbox to trigger right scrollable area. -->
+<div class="scroller" style="display: flex; flex-direction: row-reverse;">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="-100" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- Use RTL to trigger right scrollable area. -->
+<div class="scroller" style="direction: rtl;">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" data-offset-x="-100" data-offset-y="0" data-expected-width="200" data-expected-height="200"></div>
+</div>
