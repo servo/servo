@@ -536,7 +536,7 @@ impl WindowProxy {
                 .unwrap();
             let url = match existing_document.url().join(&url) {
                 Ok(url) => url,
-                Err(_) => return Err(Error::Syntax),
+                Err(_) => return Err(Error::Syntax(None)),
             };
             let referrer = if noreferrer {
                 Referrer::NoReferrer

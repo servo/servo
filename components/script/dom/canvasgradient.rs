@@ -64,7 +64,7 @@ impl CanvasGradientMethods<crate::DomTypeHolder> for CanvasGradient {
 
         let color = match parse_color(None, &color) {
             Ok(color) => color,
-            Err(_) => return Err(Error::Syntax),
+            Err(_) => return Err(Error::Syntax(None)),
         };
 
         self.stops.borrow_mut().push(CanvasGradientStop {

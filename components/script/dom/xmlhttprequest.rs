@@ -366,7 +366,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             Some(parsed_method) => {
                 // Step 3
                 if !is_token(&method) {
-                    return Err(Error::Syntax);
+                    return Err(Error::Syntax(None));
                 }
 
                 // Step 2
@@ -375,7 +375,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 let mut parsed_url = match base.join(&url.0) {
                     Ok(parsed) => parsed,
                     // Step 7
-                    Err(_) => return Err(Error::Syntax),
+                    Err(_) => return Err(Error::Syntax(None)),
                 };
 
                 // Step 9
@@ -424,7 +424,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             // Step 3
             // This includes cases where as_str() returns None, and when is_token() returns false,
             // both of which indicate invalid extension method names
-            _ => Err(Error::Syntax),
+            _ => Err(Error::Syntax(None)),
         }
     }
 
@@ -442,10 +442,10 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         // Step 4: If name is not a header name or value is not a header value, then throw a
         // "SyntaxError" DOMException.
         if !is_token(&name) || !is_field_value(value) {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
-        let name_str = name.as_str().ok_or(Error::Syntax)?;
+        let name_str = name.as_str().ok_or(Error::Syntax(None))?;
 
         // Step 5: If (name, value) is a forbidden request-header, then return.
         if is_forbidden_request_header(name_str, value) {
@@ -885,7 +885,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             Ok(mime) => mime,
             Err(_) => "application/octet-stream"
                 .parse::<Mime>()
-                .map_err(|_| Error::Syntax)?,
+                .map_err(|_| Error::Syntax(None))?,
         };
 
         *self.override_mime_type.borrow_mut() = Some(override_mime);

@@ -274,7 +274,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
                 let base_url = self.entry_settings_object().api_base_url();
                 let url = match base_url.join(&url.0) {
                     Ok(url) => url,
-                    Err(_) => return Err(Error::Syntax),
+                    Err(_) => return Err(Error::Syntax(None)),
                 };
 
                 Ok(Some(url))
@@ -304,7 +304,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&url.0) {
                 Ok(url) => url,
-                Err(_) => return Err(Error::Syntax),
+                Err(_) => return Err(Error::Syntax(None)),
             };
             // Step 3: Location-object navigate to the resulting URL record with
             // the replacement flag set.
@@ -504,7 +504,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
                 if copy_url.as_mut_url().set_scheme(scheme).is_err() {
                     // Step 5: If possibleFailure is failure, then throw a "SyntaxError" DOMException.
-                    return Err(Error::Syntax);
+                    return Err(Error::Syntax(None));
                 }
 
                 // Step 6: If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.

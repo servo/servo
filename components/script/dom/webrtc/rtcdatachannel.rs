@@ -369,7 +369,7 @@ impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
     // https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype
     fn SetBinaryType(&self, value: DOMString) -> Fallible<()> {
         if value != "blob" || value != "arraybuffer" {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
         *self.binary_type.borrow_mut() = value;
         Ok(())

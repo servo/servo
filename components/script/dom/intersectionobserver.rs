@@ -138,7 +138,7 @@ impl IntersectionObserver {
         let root_margin = if let Ok(margin) = parse_a_margin(init.rootMargin.as_ref()) {
             margin
         } else {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         };
 
         // Step 4.
@@ -147,7 +147,7 @@ impl IntersectionObserver {
         let scroll_margin = if let Ok(margin) = parse_a_margin(init.scrollMargin.as_ref()) {
             margin
         } else {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         };
 
         // Step 1 and step 2, 3, 4 setter

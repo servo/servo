@@ -30,7 +30,7 @@ pub enum Error {
     /// InvalidStateError DOMException
     InvalidState,
     /// SyntaxError DOMException
-    Syntax,
+    Syntax(Option<String>),
     /// NamespaceError DOMException
     Namespace,
     /// InvalidAccessError DOMException

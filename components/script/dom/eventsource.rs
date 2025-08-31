@@ -570,7 +570,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         let url_record = match base_url.join(&url) {
             Ok(u) => u,
             // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
-            Err(_) => return Err(Error::Syntax),
+            Err(_) => return Err(Error::Syntax(None)),
         };
         // Step 1 Let ev be a new EventSource object.
         let ev = EventSource::new(

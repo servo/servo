@@ -150,7 +150,7 @@ fn parse_font_face_descriptors(
     if error_reporter.not_encountered_error.get() {
         Ok(parsed_font_face_rule)
     } else {
-        Err(Error::Syntax)
+        Err(Error::Syntax(None))
     }
 }
 
@@ -191,7 +191,7 @@ impl FontFace {
         let font_status_promise = Promise::new(global, can_gc);
         // If any of them fail to parse correctly, reject font face’s [[FontStatusPromise]] with a
         // DOMException named "SyntaxError"
-        font_status_promise.reject_error(Error::Syntax, can_gc);
+        font_status_promise.reject_error(Error::Syntax(None), can_gc);
 
         // set font face’s corresponding attributes to the empty string, and set font face’s status
         // attribute to "error"

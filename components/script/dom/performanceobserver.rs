@@ -160,12 +160,12 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
 
         // Step 3
         if options.entryTypes.is_none() && options.type_.is_none() {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
         // Step 4
         if options.entryTypes.is_some() && (options.buffered.is_some() || options.type_.is_some()) {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
         // If this point is reached, then one of options.entryTypes or options.type_

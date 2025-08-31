@@ -35,7 +35,7 @@ unsafe_no_jsmanaged_fields!(RulesSource);
 impl Convert<Error> for RulesMutateError {
     fn convert(self) -> Error {
         match self {
-            RulesMutateError::Syntax => Error::Syntax,
+            RulesMutateError::Syntax => Error::Syntax(None),
             RulesMutateError::IndexSize => Error::IndexSize,
             RulesMutateError::HierarchyRequest => Error::HierarchyRequest,
             RulesMutateError::InvalidState => Error::InvalidState,

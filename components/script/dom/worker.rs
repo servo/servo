@@ -179,7 +179,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
         // Step 2-4.
         let worker_url = match global.api_base_url().join(&compliant_script_url) {
             Ok(url) => url,
-            Err(_) => return Err(Error::Syntax),
+            Err(_) => return Err(Error::Syntax(None)),
         };
 
         let (sender, receiver) = unbounded();
