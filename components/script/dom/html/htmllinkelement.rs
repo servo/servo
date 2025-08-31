@@ -24,7 +24,6 @@ use pixels::PixelFormat;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
-use strum_macros::IntoStaticStr;
 use style::attr::AttrValue;
 use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
@@ -50,10 +49,12 @@ use crate::dom::element::{
     set_cross_origin_attribute,
 };
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::linkprocessingoptions::LinkProcessingOptions;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::processingoptions::{
+    LinkFetchContext, LinkFetchContextType, LinkProcessingOptions,
+};
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::types::{EventTarget, GlobalScope};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -206,6 +207,10 @@ impl HTMLLinkElement {
             cssom_stylesheet.set_owner_node(None);
         }
         self.cssom_stylesheet.set(None);
+    }
+
+    pub(crate) fn line_number(&self) -> u32 {
+        self.line_number as u32
     }
 }
 
@@ -532,7 +537,8 @@ impl HTMLLinkElement {
         let document = self.upcast::<Node>().owner_doc();
         let fetch_context = LinkFetchContext {
             url,
-            link: Trusted::new(self),
+            link: Some(Trusted::new(self)),
+            global: Trusted::new(&document.global()),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             type_: LinkFetchContextType::Prefetch,
         };
@@ -790,19 +796,22 @@ impl HTMLLinkElement {
             return;
         };
         let url = request.url.clone();
+        let document = self.upcast::<Node>().owner_doc();
         let fetch_context = LinkFetchContext {
             url,
-            link: Trusted::new(self),
+            link: Some(Trusted::new(self)),
+            global: Trusted::new(&document.global()),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             type_: LinkFetchContextType::Preload,
         };
-        self.upcast::<Node>()
-            .owner_doc()
-            .fetch_background(request, fetch_context);
+        document.fetch_background(request, fetch_context);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
-    fn fire_event_after_response(&self, response: Result<ResourceFetchTiming, NetworkError>) {
+    pub(crate) fn fire_event_after_response(
+        &self,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
         // Step 3.1 If response is a network error, fire an event named error at el.
         // Otherwise, fire an event named load at el.
         if response.is_err() {
@@ -1081,99 +1090,6 @@ impl ResourceTimingListener for FaviconFetchContext {
 
 impl PreInvoke for FaviconFetchContext {
     fn should_invoke(&self) -> bool {
-        true
-    }
-}
-
-#[derive(Clone, IntoStaticStr)]
-#[strum(serialize_all = "lowercase")]
-enum LinkFetchContextType {
-    Prefetch,
-    Preload,
-}
-
-impl From<LinkFetchContextType> for InitiatorType {
-    fn from(other: LinkFetchContextType) -> Self {
-        let name: &'static str = other.into();
-        InitiatorType::LocalName(name.to_owned())
-    }
-}
-
-struct LinkFetchContext {
-    /// The `<link>` element that caused this prefetch operation
-    link: Trusted<HTMLLinkElement>,
-
-    resource_timing: ResourceFetchTiming,
-
-    /// The url being prefetched
-    url: ServoUrl,
-
-    /// The type of fetching we perform, used when report timings.
-    type_: LinkFetchContextType,
-}
-
-impl FetchResponseListener for LinkFetchContext {
-    fn process_request_body(&mut self, _: RequestId) {}
-
-    fn process_request_eof(&mut self, _: RequestId) {}
-
-    fn process_response(
-        &mut self,
-        _: RequestId,
-        fetch_metadata: Result<FetchMetadata, NetworkError>,
-    ) {
-        _ = fetch_metadata;
-    }
-
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
-        _ = chunk;
-    }
-
-    /// Step 7 of <https://html.spec.whatwg.org/multipage/#link-type-prefetch:fetch-and-process-the-linked-resource-2>
-    /// and step 3.1 of <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
-    fn process_response_eof(
-        &mut self,
-        _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
-    ) {
-        self.link.root().fire_event_after_response(response);
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        submit_timing(self, CanGc::note())
-    }
-
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        let global = &self.resource_timing_global();
-        let link = self.link.root();
-        let source_position = link
-            .upcast::<Element>()
-            .compute_source_position(link.line_number as u32);
-        global.report_csp_violations(violations, None, Some(source_position));
-    }
-}
-
-impl ResourceTimingListener for LinkFetchContext {
-    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (self.type_.clone().into(), self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.link.root().upcast::<Node>().owner_doc().global()
-    }
-}
-
-impl PreInvoke for LinkFetchContext {
-    fn should_invoke(&self) -> bool {
-        // Prefetch and preload requests are never aborted.
         true
     }
 }

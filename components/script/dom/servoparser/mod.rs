@@ -66,6 +66,7 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlinputelement::HTMLInputElement;
@@ -75,6 +76,9 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
+use crate::dom::processingoptions::{
+    LinkHeader, LinkProcessingPhase, extract_links_from_headers, process_link_headers,
+};
 use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
@@ -856,6 +860,8 @@ struct NavigationParams {
     policy_container: PolicyContainer,
     /// content-type of this document, if known. Otherwise need to sniff it
     content_type: Option<Mime>,
+    /// link headers from the response
+    link_headers: Vec<LinkHeader>,
     /// <https://html.spec.whatwg.org/multipage/#navigation-params-sandboxing>
     final_sandboxing_flag_set: SandboxingFlagSet,
     /// <https://mimesniff.spec.whatwg.org/#resource-header>
@@ -896,6 +902,7 @@ impl ParserContext {
             navigation_params: NavigationParams {
                 policy_container: Default::default(),
                 content_type: None,
+                link_headers: vec![],
                 final_sandboxing_flag_set: SandboxingFlagSet::empty(),
                 resource_header: vec![],
             },
@@ -928,6 +935,31 @@ impl ParserContext {
         // Step 9. Let document be a new Document, with
         document.set_policy_container(self.navigation_params.policy_container.clone());
         document.set_active_sandboxing_flag_set(self.navigation_params.final_sandboxing_flag_set);
+        // Step 17. Process link headers given document, navigationParams's response, and "pre-media".
+        process_link_headers(
+            &self.navigation_params.link_headers,
+            document,
+            LinkProcessingPhase::PreMedia,
+        );
+    }
+
+    /// Part of various load document methods
+    fn process_link_headers_in_media_phase_with_task(&mut self, document: &Document) {
+        // The first task that the networking task source places on the task queue
+        // while fetching runs must process link headers given document,
+        // navigationParams's response, and "media", after the task has been processed by the HTML parser.
+        let link_headers = std::mem::take(&mut self.navigation_params.link_headers);
+        if !link_headers.is_empty() {
+            let window = document.window();
+            let document = Trusted::new(document);
+            window
+                .upcast::<GlobalScope>()
+                .task_manager()
+                .networking_task_source()
+                .queue(task!(unhandled_rejection_event: move || {
+                    process_link_headers(&link_headers, &document.root(), LinkProcessingPhase::Media);
+                }));
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#loading-a-document>
@@ -987,24 +1019,32 @@ impl ParserContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-html>
-    fn load_html_document(&self, parser: &ServoParser) {
+    fn load_html_document(&mut self, parser: &ServoParser) {
         // Step 1. Let document be the result of creating and initializing a
         // Document object given "html", "text/html", and navigationParams.
         self.initialize_document_object(&parser.document);
+        // The first task that the networking task source places on the task queue while fetching
+        // runs must process link headers given document, navigationParams's response, and "media",
+        // after the task has been processed by the HTML parser.
+        self.process_link_headers_in_media_phase_with_task(&parser.document);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#read-xml>
-    fn load_xml_document(&self, parser: &ServoParser) {
+    fn load_xml_document(&mut self, parser: &ServoParser) {
         // When faced with displaying an XML file inline, provided navigation params navigationParams
         // and a string type, user agents must follow the requirements defined in XML and Namespaces in XML,
         // XML Media Types, DOM, and other relevant specifications to create and initialize a
         // Document object document, given "xml", type, and navigationParams, and return that Document.
         // They must also create a corresponding XML parser. [XML] [XMLNS] [RFC7303] [DOM]
         self.initialize_document_object(&parser.document);
+        // The first task that the networking task source places on the task queue while fetching
+        // runs must process link headers given document, navigationParams's response, and "media",
+        // after the task has been processed by the XML parser.
+        self.process_link_headers_in_media_phase_with_task(&parser.document);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-text>
-    fn load_text_document(&self, parser: &ServoParser) {
+    fn load_text_document(&mut self, parser: &ServoParser) {
         // Step 4. Create an HTML parser and associate it with the document.
         // Act as if the tokenizer had emitted a start tag token with the tag name "pre" followed by
         // a single U+000A LINE FEED (LF) character, and switch the HTML parser's tokenizer to the PLAINTEXT state.
@@ -1015,6 +1055,10 @@ impl ParserContext {
         parser.push_string_input_chunk(page);
         parser.parse_sync(CanGc::note());
         parser.tokenizer.set_plaintext_state();
+        // The first task that the networking task source places on the task queue while fetching
+        // runs must process link headers given document, navigationParams's response, and "media",
+        // after the task has been processed by the HTML parser.
+        self.process_link_headers_in_media_phase_with_task(&parser.document);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-media>
@@ -1079,6 +1123,9 @@ impl ParserContext {
         doc_body
             .AppendChild(&node, CanGc::note())
             .expect("Appending failed");
+        // Step 7. Process link headers given document, navigationParams's response, and "media".
+        let link_headers = std::mem::take(&mut self.navigation_params.link_headers);
+        process_link_headers(&link_headers, doc, LinkProcessingPhase::Media);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#read-ua-inline>
@@ -1125,14 +1172,15 @@ impl FetchResponseListener for ParserContext {
             .map(Serde::into_inner)
             .map(Into::into);
 
-        let (policy_container, endpoints_list) = match metadata.as_ref() {
-            None => (PolicyContainer::default(), None),
+        let (policy_container, endpoints_list, link_headers) = match metadata.as_ref() {
+            None => (PolicyContainer::default(), None, vec![]),
             Some(metadata) => (
                 Self::create_policy_container_from_fetch_response(metadata),
                 ReportingEndpoint::parse_reporting_endpoints_header(
                     &self.url.clone(),
                     &metadata.headers,
                 ),
+                extract_links_from_headers(&metadata.headers),
             ),
         };
 
@@ -1145,6 +1193,7 @@ impl FetchResponseListener for ParserContext {
         }
 
         let _realm = enter_realm(&*parser.document);
+        let window = parser.document.window();
 
         // From Step 23.8.3 of https://html.spec.whatwg.org/multipage/#navigate
         // Let finalSandboxFlags be the union of targetSnapshotParams's sandboxing flags and
@@ -1157,13 +1206,14 @@ impl FetchResponseListener for ParserContext {
             .unwrap_or(SandboxingFlagSet::empty());
 
         if let Some(endpoints) = endpoints_list {
-            parser.document.window().set_endpoints_list(endpoints);
+            window.set_endpoints_list(endpoints);
         }
         self.parser = Some(Trusted::new(&*parser));
         self.navigation_params = NavigationParams {
             policy_container,
             content_type,
             final_sandboxing_flag_set,
+            link_headers,
             resource_header: vec![],
         };
         self.submit_resource_timing();

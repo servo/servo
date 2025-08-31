@@ -347,7 +347,6 @@ pub(crate) mod inputevent;
 pub(crate) mod intersectionobserver;
 pub(crate) mod intersectionobserverentry;
 pub(crate) mod keyboardevent;
-pub(crate) mod linkprocessingoptions;
 pub(crate) mod location;
 pub(crate) mod mediadeviceinfo;
 pub(crate) mod mediadevices;
@@ -403,6 +402,7 @@ pub(crate) mod pluginarray;
 pub(crate) mod pointerevent;
 pub(crate) mod popstateevent;
 pub(crate) mod processinginstruction;
+pub(crate) mod processingoptions;
 pub(crate) mod progressevent;
 #[allow(dead_code)]
 pub(crate) mod promise;
