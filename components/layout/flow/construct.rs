@@ -588,7 +588,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         box_slot: BoxSlot<'dom>,
     ) {
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
-            if !builder.is_empty() {
+            if !builder.is_empty {
                 let constructor = || {
                     ArcRefCell::new(AbsolutelyPositionedBox::construct(
                         self.context,
@@ -625,7 +625,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         box_slot: BoxSlot<'dom>,
     ) {
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
-            if !builder.is_empty() {
+            if !builder.is_empty {
                 let constructor = || {
                     ArcRefCell::new(FloatBox::construct(
                         self.context,
