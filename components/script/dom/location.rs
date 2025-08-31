@@ -413,13 +413,14 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
         if self.has_document() {
             // Note: no call to self.check_same_origin_domain()
             // Step 2: Parse the given value relative to the entry settings object.
-            // If that failed, throw a TypeError exception.
+            // Step 3: If url is failure, then throw a "SyntaxError" DOMException.
             let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&value.0) {
                 Ok(url) => url,
-                Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
+                // TODO: include details?
+                Err(_e) => return Err(Error::Syntax),
             };
-            // Step 3: Location-object navigate to the resulting URL record.
+            // Step 4: Location-object navigate this to url.
             self.navigate(
                 url,
                 NavigationHistoryBehavior::Push,
