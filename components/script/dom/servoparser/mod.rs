@@ -67,11 +67,13 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::linkprocessingoptions::{LinkHeader, LinkProcessingOptions, VecLinkHeaderClone};
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
@@ -852,6 +854,8 @@ struct NavigationParams {
     csp_list: Option<CspList>,
     /// content-type of this document, if known. Otherwise need to sniff it
     content_type: Option<Mime>,
+    /// link headers from the response
+    link_headers: Vec<LinkHeader>,
     /// <https://html.spec.whatwg.org/multipage/#navigation-params-sandboxing>
     final_sandboxing_flag_set: SandboxingFlagSet,
     /// <https://mimesniff.spec.whatwg.org/#resource-header>
@@ -892,6 +896,7 @@ impl ParserContext {
             navigation_params: NavigationParams {
                 csp_list: None,
                 content_type: None,
+                link_headers: vec![],
                 final_sandboxing_flag_set: SandboxingFlagSet::empty(),
                 resource_header: vec![],
             },
@@ -917,6 +922,20 @@ impl ParserContext {
         // Step 9. Let document be a new Document, with
         document.set_csp_list(self.navigation_params.csp_list.clone());
         document.set_active_sandboxing_flag_set(self.navigation_params.final_sandboxing_flag_set);
+        // Step 17. Process link headers given document, navigationParams's response, and "pre-media".
+        let link_headers = &self.navigation_params.link_headers;
+        if !link_headers.is_empty() {
+            let window = document.window();
+            let document = Trusted::new(document);
+            let link_headers = link_headers.clone();
+            window
+                .upcast::<GlobalScope>()
+                .task_manager()
+                .networking_task_source()
+                .queue(task!(unhandled_rejection_event: move || {
+                    LinkProcessingOptions::process_link_headers(&link_headers, &document.root());
+                }));
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#loading-a-document>
@@ -1099,11 +1118,12 @@ impl FetchResponseListener for ParserContext {
             .map(Serde::into_inner)
             .map(Into::into);
 
-        let (csp_list, endpoints_list) = match metadata.as_ref() {
-            None => (None, None),
+        let (csp_list, endpoints_list, link_headers) = match metadata.as_ref() {
+            None => (None, None, vec![]),
             Some(m) => (
                 parse_csp_list_from_metadata(&m.headers),
                 ReportingEndpoint::parse_reporting_endpoints_header(&self.url.clone(), &m.headers),
+                LinkProcessingOptions::extract_links_from_headers(&m.headers),
             ),
         };
 
@@ -1116,6 +1136,7 @@ impl FetchResponseListener for ParserContext {
         }
 
         let _realm = enter_realm(&*parser.document);
+        let window = parser.document.window();
 
         // From Step 23.8.3 of https://html.spec.whatwg.org/multipage/#navigate
         // Let finalSandboxFlags be the union of targetSnapshotParams's sandboxing flags and
@@ -1127,13 +1148,14 @@ impl FetchResponseListener for ParserContext {
             .unwrap_or(SandboxingFlagSet::empty());
 
         if let Some(endpoints) = endpoints_list {
-            parser.document.window().set_endpoints_list(endpoints);
+            window.set_endpoints_list(endpoints);
         }
         self.parser = Some(Trusted::new(&*parser));
         self.navigation_params = NavigationParams {
             csp_list,
             content_type,
             final_sandboxing_flag_set,
+            link_headers,
             resource_header: vec![],
         };
         self.submit_resource_timing();
