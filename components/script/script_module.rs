@@ -66,7 +66,7 @@ use crate::dom::document::Document;
 use crate::dom::dynamicmoduleowner::{DynamicModuleId, DynamicModuleOwner};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::{
+use crate::dom::html::htmlscriptelement::{
     HTMLScriptElement, SCRIPT_JS_MIMES, ScriptId, ScriptOrigin, ScriptType,
 };
 use crate::dom::node::NodeTraits;

@@ -49,7 +49,7 @@ use crate::dom::create::create_native_html_element;
 use crate::dom::customelementregistry::{ConstructionStackEntry, CustomElementState};
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlelement::HTMLElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 

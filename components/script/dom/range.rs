@@ -33,7 +33,7 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
 use crate::dom::element::Element;
-use crate::dom::htmlscriptelement::HTMLScriptElement;
+use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding, UnbindContext};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;

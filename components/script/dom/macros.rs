@@ -147,7 +147,7 @@ macro_rules! make_form_action_getter(
 macro_rules! make_labels_getter(
     ( $attr:ident, $memo:ident ) => (
         fn $attr(&self) -> DomRoot<NodeList> {
-            use $crate::dom::htmlelement::HTMLElement;
+            use $crate::dom::html::htmlelement::HTMLElement;
             use $crate::dom::nodelist::NodeList;
             self.$memo.or_init(|| NodeList::new_labels_list(
                 self.upcast::<Node>().owner_doc().window(),

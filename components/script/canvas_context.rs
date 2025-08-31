@@ -13,7 +13,7 @@ use webrender_api::ImageKey;
 
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::node::{Node, NodeDamage};
 #[cfg(feature = "webgpu")]
 use crate::dom::types::GPUCanvasContext;

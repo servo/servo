@@ -124,8 +124,8 @@ use crate::dom::document::{
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::htmlslotelement::HTMLSlotElement;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::NodeTraits;
 use crate::dom::servoparser::{ParserContext, ServoParser};

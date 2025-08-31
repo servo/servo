@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasC
 use crate::dom::bindings::codegen::UnionTypes;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
+use crate::dom::html::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 
 #[dom_struct]
 pub(crate) struct GPUCanvasContext {

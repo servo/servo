@@ -30,7 +30,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
-use crate::dom::htmlelement::HTMLElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::stylesheetlist::StyleSheetListOwner;
