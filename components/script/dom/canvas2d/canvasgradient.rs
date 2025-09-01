@@ -7,7 +7,7 @@ use canvas_traits::canvas::{
 };
 use dom_struct::dom_struct;
 
-use crate::canvas_state::parse_color;
+use super::canvas_state::parse_color;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasGradientMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};

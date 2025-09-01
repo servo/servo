@@ -230,10 +230,8 @@ pub(crate) mod bluetooth;
 pub(crate) use self::bluetooth::*;
 pub(crate) mod broadcastchannel;
 pub(crate) mod bytelengthqueuingstrategy;
-pub(crate) mod canvasgradient;
-pub(crate) mod canvaspattern;
-#[allow(dead_code)]
-pub(crate) mod canvasrenderingcontext2d;
+mod canvas2d;
+pub(crate) use self::canvas2d::*;
 pub(crate) mod cdatasection;
 pub(crate) mod characterdata;
 pub(crate) mod client;
@@ -382,12 +380,9 @@ pub(crate) mod nodeiterator;
 pub(crate) mod nodelist;
 pub(crate) mod notification;
 pub(crate) mod offscreencanvas;
-pub(crate) mod offscreencanvasrenderingcontext2d;
 pub(crate) mod pagetransitionevent;
-pub(crate) mod paintrenderingcontext2d;
 pub(crate) mod paintsize;
 pub(crate) mod paintworkletglobalscope;
-pub(crate) mod path2d;
 pub(crate) mod performance;
 #[allow(dead_code)]
 pub(crate) mod performanceentry;
