@@ -3050,41 +3050,29 @@ impl KeyWrapAlgorithm {
     }
 }
 
-/// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
 fn parse_jwk(
     bytes: &[u8],
     import_alg: ImportKeyAlgorithm,
     extractable: bool,
     key_usages: &[KeyUsage],
 ) -> Result<Vec<u8>, Error> {
-    let value = serde_json::from_slice(bytes)
-        .map_err(|_| Error::Type("Failed to parse JWK string".into()))?;
-    let serde_json::Value::Object(obj) = value else {
-        return Err(Error::Data);
-    };
+    let jwk = JsonWebKey::parse(bytes)?;
 
-    let kty = get_jwk_string(&obj, "kty")?;
-    let ext = get_jwk_bool(&obj, "ext")?;
+    let kty = jwk.kty.as_ref().ok_or(Error::Data)?;
+    let ext = jwk.ext.ok_or(Error::Data)?;
     if !ext && extractable {
         return Err(Error::Data);
     }
 
     // If the key_ops field of jwk is present, and is invalid according to the requirements of JSON Web Key [JWK]
     // or does not contain all of the specified usages values, then throw a DataError.
-    if let Some(serde_json::Value::Array(key_ops)) = obj.get("key_ops") {
-        if key_ops.iter().any(|op| {
-            let op_string = match op {
-                serde_json::Value::String(op_string) => op_string,
-                _ => return true,
-            };
-            let usage = match KeyUsage::from_str(op_string) {
-                Ok(usage) => usage,
-                Err(_) => {
-                    return true;
-                },
-            };
-            !key_usages.contains(&usage)
-        }) {
+    if jwk.key_ops.is_some() {
+        let key_ops_usages = jwk.get_usages_from_key_ops()?;
+
+        if !key_usages
+            .iter()
+            .all(|usage| key_ops_usages.contains(usage))
+        {
             return Err(Error::Data);
         }
     }
@@ -3097,8 +3085,8 @@ fn parse_jwk(
             if kty != "oct" {
                 return Err(Error::Data);
             }
-            let k = get_jwk_string(&obj, "k")?;
-            let alg = get_jwk_string(&obj, "alg")?;
+            let k = jwk.k.as_ref().ok_or(Error::Data)?;
+            let alg = jwk.alg.as_ref().ok_or(Error::Data)?;
 
             let data = base64::engine::general_purpose::STANDARD_NO_PAD
                 .decode(k.as_bytes())
@@ -3124,10 +3112,8 @@ fn parse_jwk(
                 return Err(Error::Data);
             }
 
-            if let Some(serde_json::Value::String(use_)) = obj.get("use") {
-                if use_ != "enc" {
-                    return Err(Error::Data);
-                }
+            if !key_usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
+                return Err(Error::Data);
             }
 
             Ok(data)
@@ -3136,8 +3122,8 @@ fn parse_jwk(
             if kty != "oct" {
                 return Err(Error::Data);
             }
-            let k = get_jwk_string(&obj, "k")?;
-            let alg = get_jwk_string(&obj, "alg")?;
+            let k = jwk.k.as_ref().ok_or(Error::Data)?;
+            let alg = jwk.alg.as_ref().ok_or(Error::Data)?;
 
             let expected_alg = match params.hash {
                 DigestAlgorithm::Sha1 => "HS1",
@@ -3150,10 +3136,8 @@ fn parse_jwk(
                 return Err(Error::Data);
             }
 
-            if let Some(serde_json::Value::String(use_)) = obj.get("use") {
-                if use_ != "sign" {
-                    return Err(Error::Data);
-                }
+            if !key_usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "sign") {
+                return Err(Error::Data);
             }
 
             base64::engine::general_purpose::STANDARD_NO_PAD
@@ -3162,30 +3146,6 @@ fn parse_jwk(
         },
         _ => Err(Error::NotSupported),
     }
-}
-
-fn get_jwk_string(
-    value: &serde_json::Map<String, serde_json::Value>,
-    key: &str,
-) -> Result<String, Error> {
-    let s = value
-        .get(key)
-        .ok_or(Error::Data)?
-        .as_str()
-        .ok_or(Error::Data)?;
-    Ok(s.to_string())
-}
-
-fn get_jwk_bool(
-    value: &serde_json::Map<String, serde_json::Value>,
-    key: &str,
-) -> Result<bool, Error> {
-    let b = value
-        .get(key)
-        .ok_or(Error::Data)?
-        .as_bool()
-        .ok_or(Error::Data)?;
-    Ok(b)
 }
 
 trait RsaOtherPrimesInfoExt {
@@ -3226,10 +3186,9 @@ impl RsaOtherPrimesInfoExt for RsaOtherPrimesInfo {
 
 trait JsonWebKeyExt {
     fn parse(bytes: &[u8]) -> Result<JsonWebKey, Error>;
-    fn get_str(&self, param: &str) -> Result<&DOMString, Error>;
-    fn get_bool(&self, param: &str) -> Result<bool, Error>;
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
-    fn get_rsa_other_prime_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error>;
+    #[expect(unused)]
+    fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error>;
 }
 
 impl JsonWebKeyExt for JsonWebKey {
@@ -3299,37 +3258,6 @@ impl JsonWebKeyExt for JsonWebKey {
         Ok(key)
     }
 
-    fn get_str(&self, key: &str) -> Result<&DOMString, Error> {
-        match key {
-            "kty" => &self.kty,
-            "use" => &self.use_,
-            "alg" => &self.alg,
-            "crv" => &self.crv,
-            "x" => &self.x,
-            "y" => &self.y,
-            "d" => &self.d,
-            "n" => &self.n,
-            "e" => &self.e,
-            "p" => &self.p,
-            "q" => &self.q,
-            "dp" => &self.dp,
-            "dq" => &self.dq,
-            "qi" => &self.qi,
-            "k" => &self.k,
-            _ => &None,
-        }
-        .as_ref()
-        .ok_or(Error::Data)
-    }
-
-    fn get_bool(&self, key: &str) -> Result<bool, Error> {
-        match key {
-            "ext" => self.ext,
-            _ => None,
-        }
-        .ok_or(Error::Data)
-    }
-
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
         let mut usages = vec![];
         for op in self.key_ops.as_ref().ok_or(Error::Data)? {
@@ -3338,7 +3266,7 @@ impl JsonWebKeyExt for JsonWebKey {
         Ok(usages)
     }
 
-    fn get_rsa_other_prime_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error> {
+    fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error> {
         self.oth.as_ref().map(Vec::as_slice).ok_or(Error::Data)
     }
 }
