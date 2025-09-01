@@ -33,6 +33,7 @@ pub(crate) mod document_loader;
 mod dom;
 mod canvas_context;
 mod canvas_state;
+pub(crate) mod crypto;
 pub(crate) mod fetch;
 pub(crate) mod indexed_db;
 mod init;
