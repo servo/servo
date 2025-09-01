@@ -8,9 +8,7 @@ use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::display_list::ScrollType;
-use compositing_traits::viewport_description::{
-    DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM, ViewportDescription,
-};
+use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use embedder_traits::{
@@ -27,7 +25,7 @@ use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
-use crate::compositor::{PipelineDetails, ServoRenderer};
+use crate::compositor::{PageZoom, PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
 
 #[derive(Clone, Copy)]
@@ -64,6 +62,26 @@ pub(crate) enum PinchZoomResult {
     DidNotPinchZoom,
 }
 
+const ZOOM_LEVELS: &[f32] = &[
+    0.1,
+    0.25,
+    1.0 / 3.0,
+    0.5,
+    2.0 / 3.0,
+    0.75,
+    0.8,
+    0.9,
+    1.0,
+    1.1,
+    1.25,
+    1.5,
+    1.75,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+];
+
 /// A renderer for a libservo `WebView`. This is essentially the [`ServoRenderer`]'s interface to a
 /// libservo `WebView`, but the code here cannot depend on libservo in order to prevent circular
 /// dependencies, which is why we store a `dyn WebViewTrait` here instead of the `WebView` itself.
@@ -86,8 +104,10 @@ pub(crate) struct WebViewRenderer {
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
     /// Touch input state machine
     touch_handler: TouchHandler,
+    /// Index of "Desktop-style" zoom levels
+    page_zoom_index: i32,
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
-    pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
+    page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
     /// "Mobile-style" zoom that does not reflow the page.
     pinch_zoom: PinchZoomFactor,
     /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
@@ -109,6 +129,7 @@ impl WebViewRenderer {
     ) -> Self {
         let hidpi_scale_factor = viewport_details.hidpi_scale_factor;
         let size = viewport_details.size * viewport_details.hidpi_scale_factor;
+        let default_page_zoom_index = ZOOM_LEVELS.len() as i32 / 2;
         Self {
             id: renderer_webview.id(),
             webview: renderer_webview,
@@ -118,7 +139,8 @@ impl WebViewRenderer {
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
-            page_zoom: DEFAULT_PAGE_ZOOM,
+            page_zoom_index: default_page_zoom_index,
+            page_zoom: Scale::new(ZOOM_LEVELS[default_page_zoom_index as usize]),
             pinch_zoom: PinchZoomFactor::new(1.0),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
@@ -896,19 +918,21 @@ impl WebViewRenderer {
         old_zoom != self.pinch_zoom
     }
 
-    pub(crate) fn page_zoom(&mut self) -> Scale<f32, CSSPixel, DeviceIndependentPixel> {
-        self.page_zoom
-    }
-
-    pub(crate) fn set_page_zoom(
-        &mut self,
-        new_page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
-    ) {
-        let new_page_zoom = new_page_zoom.clamp(MIN_PAGE_ZOOM, MAX_PAGE_ZOOM);
+    fn set_page_zoom(&mut self, new_page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>) {
         let old_zoom = std::mem::replace(&mut self.page_zoom, new_page_zoom);
         if old_zoom != self.page_zoom {
             self.send_window_size_message();
         }
+    }
+
+    pub(crate) fn process_and_set_page_zoom(&mut self, new_zoom: PageZoom) {
+        self.page_zoom_index = match new_zoom {
+            PageZoom::ZoomOut => (self.page_zoom_index - 1).clamp(0, ZOOM_LEVELS.len() as i32 - 1),
+            PageZoom::ZoomReset => ZOOM_LEVELS.len() as i32 / 2,
+            PageZoom::ZoomIn => (self.page_zoom_index + 1).clamp(0, ZOOM_LEVELS.len() as i32 - 1),
+        };
+
+        self.set_page_zoom(Scale::new(ZOOM_LEVELS[self.page_zoom_index as usize]));
     }
 
     /// The scale to use when displaying this [`WebViewRenderer`] in WebRender

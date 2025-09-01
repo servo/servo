@@ -8,7 +8,7 @@ use std::rc::{Rc, Weak};
 use std::time::Duration;
 
 use base::id::WebViewId;
-use compositing::IOCompositor;
+use compositing::{IOCompositor, PageZoom};
 use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
@@ -495,18 +495,11 @@ impl WebView {
         self.inner().compositor.borrow_mut().on_vsync(self.id());
     }
 
-    pub fn set_zoom(&self, new_zoom: f32) {
+    pub fn apply_zoom(&self, new_zoom: PageZoom) {
         self.inner()
             .compositor
             .borrow_mut()
             .on_zoom_window_event(self.id(), new_zoom);
-    }
-
-    pub fn reset_zoom(&self) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_zoom_reset_window_event(self.id());
     }
 
     pub fn set_pinch_zoom(&self, new_pinch_zoom: f32) {
