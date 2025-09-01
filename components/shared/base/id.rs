@@ -12,14 +12,13 @@ use std::marker::PhantomData;
 use std::num::NonZeroU32;
 use std::sync::{Arc, LazyLock};
 
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
 
-use crate::generic_channel::GenericSender;
+use crate::generic_channel::{self, GenericReceiver, GenericSender};
 
 /// Asserts the size of a type at compile time.
 macro_rules! size_of_test {
@@ -117,19 +116,19 @@ macro_rules! namespace_id {
 
 #[derive(Debug, Deserialize, Serialize)]
 /// Request a pipeline-namespace id from the constellation.
-pub struct PipelineNamespaceRequest(pub IpcSender<PipelineNamespaceId>);
+pub struct PipelineNamespaceRequest(pub GenericSender<PipelineNamespaceId>);
 
 /// A per-process installer of pipeline-namespaces.
 pub struct PipelineNamespaceInstaller {
     request_sender: Option<GenericSender<PipelineNamespaceRequest>>,
-    namespace_sender: IpcSender<PipelineNamespaceId>,
-    namespace_receiver: IpcReceiver<PipelineNamespaceId>,
+    namespace_sender: GenericSender<PipelineNamespaceId>,
+    namespace_receiver: GenericReceiver<PipelineNamespaceId>,
 }
 
 impl Default for PipelineNamespaceInstaller {
     fn default() -> Self {
         let (namespace_sender, namespace_receiver) =
-            ipc::channel().expect("PipelineNamespaceInstaller ipc channel failure");
+            generic_channel::channel().expect("PipelineNamespaceInstaller channel failure");
         Self {
             request_sender: None,
             namespace_sender,
