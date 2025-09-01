@@ -101,6 +101,7 @@ impl ImageAnimationManager {
                         flags: ImageDescriptorFlags::ALLOW_MIPMAPS,
                     },
                     SerializableImageData::Raw(IpcSharedMemory::from_bytes(frame.bytes)),
+                    None,
                 ))
             })
             .collect();

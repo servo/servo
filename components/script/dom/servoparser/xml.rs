@@ -16,7 +16,7 @@ use xml5ever::tree_builder::XmlTreeBuilder;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
-use crate::dom::htmlscriptelement::HTMLScriptElement;
+use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::Node;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
 
@@ -35,6 +35,7 @@ impl Tokenizer {
             current_line: Cell::new(1),
             script: Default::default(),
             parsing_algorithm: ParsingAlgorithm::Normal,
+            custom_element_reaction_stack: document.custom_element_reaction_stack(),
         };
 
         let tb = XmlTreeBuilder::new(sink, Default::default());

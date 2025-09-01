@@ -43,7 +43,7 @@ fedcm/support/fedcm/userinfo-iframe.html`;
   assert_equals(message.firstAccountEmail, "john_doe@idp.example");
   assert_equals(message.firstAccountName, "John Doe");
   assert_equals(message.firstAccountGivenName, "John");
-  assert_equals(message.firstAccountPicture, "https://idp.example/profile/123");
+  assert_equals(message.firstAccountPicture, "https://localhost/profile/123");
 }, 'Test getUserInfo() after resolve() to verify that resolve stores the RP/IDP connection');
 
 </script>

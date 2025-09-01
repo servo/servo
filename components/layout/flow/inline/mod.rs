@@ -993,9 +993,11 @@ impl InlineFormattingContextLayout<'_> {
             return;
         }
 
-        let baseline = baseline_offset + block_start_position;
-        self.baselines.first.get_or_insert(baseline);
-        self.baselines.last = Some(baseline);
+        if line_to_layout.has_content {
+            let baseline = baseline_offset + block_start_position;
+            self.baselines.first.get_or_insert(baseline);
+            self.baselines.last = Some(baseline);
+        }
 
         // The inline part of this start offset was taken into account when determining
         // the inline start of the line in `calculate_inline_start_for_current_line` so

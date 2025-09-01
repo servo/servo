@@ -46,7 +46,6 @@ pub struct IDBObjectStore {
     key_path: Option<KeyPath>,
     index_names: DomRoot<DOMStringList>,
     transaction: Dom<IDBTransaction>,
-    auto_increment: bool,
 
     // We store the db name in the object store to be able to find the correct
     // store in the idb thread when checking if we have a key generator
@@ -79,9 +78,6 @@ impl IDBObjectStore {
 
             index_names: DOMStringList::new(global, Vec::new(), can_gc),
             transaction: Dom::from_ref(transaction),
-            // FIXME:(arihant2math)
-            auto_increment: false,
-
             db_name,
         }
     }
@@ -240,10 +236,10 @@ impl IDBObjectStore {
         }
 
         // Step 8: If key was given, then: convert a value to a key with key
-        let serialized_key: IndexedDBKeyType;
+        let serialized_key: Option<IndexedDBKeyType>;
 
         if !key.is_undefined() {
-            serialized_key = convert_value_to_key(cx, key, None)?;
+            serialized_key = Some(convert_value_to_key(cx, key, None)?);
         } else {
             // Step 11: We should use in-line keys instead
             if let Some(Ok(kpk)) = self
@@ -251,13 +247,12 @@ impl IDBObjectStore {
                 .as_ref()
                 .map(|p| extract_key(cx, value, p, None))
             {
-                serialized_key = kpk;
+                serialized_key = Some(kpk);
             } else {
                 if !self.has_key_generator() {
                     return Err(Error::Data);
                 }
-                // FIXME:(arihant2math)
-                return Err(Error::NotSupported);
+                serialized_key = None;
             }
         }
 
@@ -509,7 +504,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-autoincrement
     fn AutoIncrement(&self) -> bool {
-        // FIXME(arihant2math): This is wrong
-        self.auto_increment
+        self.has_key_generator()
     }
 }

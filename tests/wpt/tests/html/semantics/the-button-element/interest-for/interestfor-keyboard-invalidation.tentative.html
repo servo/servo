@@ -16,20 +16,20 @@
 <div popover id=target>Target</div>
 
 <style>
-  :has-interest {
+  :interest-source {
     background-color: purple;
   }
-  :has-interest:has-partial-interest {
+  :interest-source:has-partial-interest {
     background-color: red;
   }
   /* Test complicated combinators: */
-  :has-interest + button {
+  :interest-source + button {
     background-color: green;
   }
-  :root:has(:has-interest) #b5 {
+  :root:has(:interest-source) #b5 {
     background-color: green;
   }
-  :target-of-interest {
+  :interest-target {
     background-color: yellow;
   }
   [interestfor] {

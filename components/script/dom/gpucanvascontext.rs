@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::Epoch;
 use dom_struct::dom_struct;
 use webrender_api::ImageKey;
 
@@ -9,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasC
 use crate::dom::bindings::codegen::UnionTypes;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
+use crate::dom::html::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 
 #[dom_struct]
 pub(crate) struct GPUCanvasContext {

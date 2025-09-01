@@ -33,7 +33,7 @@ use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use base::generic_channel::RoutedReceiver;
+use base::generic_channel::{GenericCallback, RoutedReceiver};
 pub use base::id::WebViewId;
 use base::id::{PipelineNamespace, PipelineNamespaceId};
 #[cfg(feature = "bluetooth")]
@@ -83,7 +83,6 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 pub use gleam::gl;
 use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use javascript_evaluator::JavaScriptEvaluator;
 pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
@@ -1103,24 +1102,24 @@ fn create_compositor_channel(
     event_loop_waker: Box<dyn EventLoopWaker>,
 ) -> (CompositorProxy, RoutedReceiver<CompositorMsg>) {
     let (sender, receiver) = unbounded();
+    let sender_clone = sender.clone();
+    let event_loop_waker_clone = event_loop_waker.clone();
+    // This callback is equivalent to `CompositorProxy::send`
+    let result_callback = move |msg: Result<CompositorMsg, ipc_channel::Error>| {
+        if let Err(err) = sender_clone.send(msg) {
+            warn!("Failed to send response ({:?}).", err);
+        }
+        event_loop_waker_clone.wake();
+    };
 
-    let (compositor_ipc_sender, compositor_ipc_receiver) =
-        ipc::channel().expect("ipc channel failure");
-
-    let cross_process_compositor_api = CrossProcessCompositorApi::new(compositor_ipc_sender);
+    let generic_callback =
+        GenericCallback::new(result_callback).expect("Failed to create callback");
+    let cross_process_compositor_api = CrossProcessCompositorApi::new(generic_callback);
     let compositor_proxy = CompositorProxy {
         sender,
         cross_process_compositor_api,
         event_loop_waker,
     };
-
-    let compositor_proxy_clone = compositor_proxy.clone();
-    ROUTER.add_typed_route(
-        compositor_ipc_receiver,
-        Box::new(move |message| {
-            compositor_proxy_clone.route_msg(message);
-        }),
-    );
 
     (compositor_proxy, receiver)
 }
@@ -1148,6 +1147,8 @@ fn create_constellation(
     #[cfg(feature = "bluetooth")]
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
+
+    let privileged_urls = protocols.privileged_urls();
 
     let (public_resource_threads, private_resource_threads, async_runtime) = new_resource_threads(
         devtools_sender.clone(),
@@ -1191,6 +1192,7 @@ fn create_constellation(
         wgpu_image_map,
         user_content_manager,
         async_runtime,
+        privileged_urls,
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());

@@ -14,8 +14,9 @@ use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
+use base::{Epoch, generic_channel};
 use canvas_traits::canvas::CanvasId;
-use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
+use canvas_traits::webgl::{WebGLContextId, WebGLMsg};
 use chrono::Local;
 use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use content_security_policy::{CspList, PolicyDisposition};
@@ -31,7 +32,6 @@ use euclid::default::{Rect, Size2D};
 use fnv::FnvHashMap;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
-use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{PendingRestyle, ReflowGoal, ReflowPhasesRun, RestyleReason, TrustedNodeAddress};
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
@@ -124,7 +124,7 @@ use crate::dom::cdatasection::CDATASection;
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::customelementregistry::CustomElementDefinition;
+use crate::dom::customelementregistry::{CustomElementDefinition, CustomElementReactionStack};
 use crate::dom::customevent::CustomEvent;
 use crate::dom::document_event_handler::DocumentEventHandler;
 use crate::dom::documentfragment::DocumentFragment;
@@ -143,21 +143,21 @@ use crate::dom::focusevent::FocusEvent;
 use crate::dom::fontfaceset::FontFaceSet;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::htmlareaelement::HTMLAreaElement;
-use crate::dom::htmlbaseelement::HTMLBaseElement;
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlembedelement::HTMLEmbedElement;
-use crate::dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
-use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::htmlhtmlelement::HTMLHtmlElement;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::htmlimageelement::HTMLImageElement;
-use crate::dom::htmlinputelement::HTMLInputElement;
-use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
-use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::htmltitleelement::HTMLTitleElement;
+use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
+use crate::dom::html::htmlareaelement::HTMLAreaElement;
+use crate::dom::html::htmlbaseelement::HTMLBaseElement;
+use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlembedelement::HTMLEmbedElement;
+use crate::dom::html::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
+use crate::dom::html::htmlheadelement::HTMLHeadElement;
+use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::html::htmlinputelement::HTMLInputElement;
+use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
+use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::{Location, NavigationType};
@@ -556,6 +556,19 @@ pub(crate) struct Document {
     /// When a `ResizeObserver` starts observing a target, this becomes true, which in turn is a
     /// signal to the [`ScriptThread`] that a rendering update should happen.
     resize_observer_started_observing_target: Cell<bool>,
+    /// Whether or not this [`Document`] is waiting on canvas image updates. If it is
+    /// waiting it will not do any new layout until the canvas images are up-to-date in
+    /// the renderer.
+    waiting_on_canvas_image_updates: Cell<bool>,
+    /// The current canvas epoch, which is used to track when canvas images have been
+    /// uploaded to the renderer after a rendering update. Until those images are uploaded
+    /// this `Document` will not perform any more rendering updates.
+    #[no_trace]
+    current_canvas_epoch: RefCell<Epoch>,
+
+    /// The global custom element reaction stack for this script thread.
+    #[conditional_malloc_size_of]
+    custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 }
 
 #[allow(non_snake_case)]
@@ -1919,7 +1932,7 @@ impl Document {
             .ReturnValue()
             .is_empty();
         if default_prevented || return_value_not_empty {
-            let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
+            let (chan, port) = generic_channel::channel().expect("Failed to create IPC channel!");
             let msg = EmbedderMsg::AllowUnload(self.webview_id(), chan);
             self.send_to_embedder(msg);
             can_unload = port.recv().unwrap() == AllowOrDeny::Allow;
@@ -2671,38 +2684,71 @@ impl Document {
         }
 
         // All dirty canvases are flushed before updating the rendering.
-        #[cfg(feature = "webgpu")]
-        self.webgpu_contexts
-            .borrow_mut()
-            .iter()
-            .filter_map(|(_, context)| context.root())
-            .filter(|context| context.onscreen())
-            .for_each(|context| context.update_rendering());
+        self.current_canvas_epoch.borrow_mut().next();
+        let canvas_epoch = *self.current_canvas_epoch.borrow();
+        let mut image_keys = Vec::new();
 
-        self.dirty_2d_contexts
-            .borrow_mut()
-            .drain()
-            .filter(|(_, context)| context.onscreen())
-            .for_each(|(_, context)| context.update_rendering());
+        #[cfg(feature = "webgpu")]
+        image_keys.extend(
+            self.webgpu_contexts
+                .borrow_mut()
+                .iter()
+                .filter_map(|(_, context)| context.root())
+                .filter(|context| context.update_rendering(canvas_epoch))
+                .map(|context| context.image_key()),
+        );
+
+        image_keys.extend(
+            self.dirty_2d_contexts
+                .borrow_mut()
+                .drain()
+                .filter(|(_, context)| context.update_rendering(canvas_epoch))
+                .map(|(_, context)| context.image_key()),
+        );
 
         let dirty_webgl_context_ids: Vec<_> = self
             .dirty_webgl_contexts
             .borrow_mut()
             .drain()
             .filter(|(_, context)| context.onscreen())
-            .map(|(id, _)| id)
+            .map(|(id, context)| {
+                image_keys.push(context.image_key());
+                id
+            })
             .collect();
+
         if !dirty_webgl_context_ids.is_empty() {
-            let (sender, receiver) = webgl::webgl_channel().unwrap();
             self.window
                 .webgl_chan()
                 .expect("Where's the WebGL channel?")
-                .send(WebGLMsg::SwapBuffers(dirty_webgl_context_ids, sender, 0))
+                .send(WebGLMsg::SwapBuffers(
+                    dirty_webgl_context_ids,
+                    Some(canvas_epoch),
+                    0,
+                ))
                 .unwrap();
-            receiver.recv().unwrap();
+        }
+
+        // The renderer should wait to display the frame until all canvas images are
+        // uploaded. This allows canvas image uploading to happen asynchronously.
+        if !image_keys.is_empty() {
+            self.waiting_on_canvas_image_updates.set(true);
+            self.window().compositor_api().delay_new_frame_for_canvas(
+                self.window().pipeline_id(),
+                canvas_epoch,
+                image_keys.into_iter().flatten().collect(),
+            );
         }
 
         self.window().reflow(ReflowGoal::UpdateTheRendering)
+    }
+
+    pub(crate) fn handle_no_longer_waiting_on_asynchronous_image_updates(&self) {
+        self.waiting_on_canvas_image_updates.set(false);
+    }
+
+    pub(crate) fn waiting_on_canvas_image_updates(&self) -> bool {
+        self.waiting_on_canvas_image_updates.get()
     }
 
     /// From <https://drafts.csswg.org/css-font-loading/#fontfaceset-pending-on-the-environment>:
@@ -3219,6 +3265,7 @@ impl Document {
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
+        custom_element_reaction_stack: Rc<CustomElementReactionStack>,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3390,6 +3437,9 @@ impl Document {
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_event_targets: Default::default(),
             resize_observer_started_observing_target: Cell::new(false),
+            waiting_on_canvas_image_updates: Cell::new(false),
+            current_canvas_epoch: RefCell::new(Epoch(0)),
+            custom_element_reaction_stack,
         }
     }
 
@@ -3492,6 +3542,7 @@ impl Document {
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
+        custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3513,6 +3564,7 @@ impl Document {
             allow_declarative_shadow_roots,
             inherited_insecure_requests_policy,
             has_trustworthy_ancestor_origin,
+            custom_element_reaction_stack,
             can_gc,
         )
     }
@@ -3537,6 +3589,7 @@ impl Document {
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
+        custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -3558,6 +3611,7 @@ impl Document {
                 allow_declarative_shadow_roots,
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,
+                custom_element_reaction_stack,
             )),
             window,
             proto,
@@ -3692,6 +3746,7 @@ impl Document {
                     self.allow_declarative_shadow_roots(),
                     Some(self.insecure_requests_policy()),
                     self.has_trustworthy_ancestor_or_current_origin(),
+                    self.custom_element_reaction_stack.clone(),
                     can_gc,
                 );
                 new_doc
@@ -4369,6 +4424,10 @@ impl Document {
     pub(crate) fn highlighted_dom_node(&self) -> Option<DomRoot<Node>> {
         self.highlighted_dom_node.get()
     }
+
+    pub(crate) fn custom_element_reaction_stack(&self) -> Rc<CustomElementReactionStack> {
+        self.custom_element_reaction_stack.clone()
+    }
 }
 
 #[allow(non_snake_case)]
@@ -4400,6 +4459,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.allow_declarative_shadow_roots(),
             Some(doc.insecure_requests_policy()),
             doc.has_trustworthy_ancestor_or_current_origin(),
+            doc.custom_element_reaction_stack(),
             can_gc,
         ))
     }

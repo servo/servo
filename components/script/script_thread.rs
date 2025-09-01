@@ -111,7 +111,7 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
@@ -124,8 +124,8 @@ use crate::dom::document::{
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::htmlslotelement::HTMLSlotElement;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::NodeTraits;
 use crate::dom::servoparser::{ParserContext, ServoParser};
@@ -279,7 +279,7 @@ pub struct ScriptThread {
     docs_with_no_blocking_loads: DomRefCell<HashSet<Dom<Document>>>,
 
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
-    custom_element_reaction_stack: CustomElementReactionStack,
+    custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 
     /// Cross-process access to the compositor's API.
     #[no_trace]
@@ -346,6 +346,10 @@ pub struct ScriptThread {
     needs_rendering_update: Arc<AtomicBool>,
 
     debugger_global: Dom<DebuggerGlobalScope>,
+
+    /// A list of URLs that can access privileged internal APIs.
+    #[no_trace]
+    privileged_urls: Vec<ServoUrl>,
 }
 
 struct BHMExitSignal {
@@ -411,8 +415,6 @@ impl ScriptThreadFactory for ScriptThread {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::LAYOUT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
                 WebViewId::install(state.webview_id);
-                let roots = RootCollection::new();
-                let _stack_roots = ThreadLocalStackRoots::new(&roots);
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
 
                 let in_progress_load = InProgressLoad::new(
@@ -723,24 +725,21 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.is_user_interacting.get())
     }
 
-    pub(crate) fn get_fully_active_document_ids() -> HashSet<PipelineId> {
-        with_script_thread(|script_thread| {
-            script_thread
-                .documents
-                .borrow()
-                .iter()
-                .filter_map(|(id, document)| {
-                    if document.is_fully_active() {
-                        Some(id)
-                    } else {
-                        None
-                    }
-                })
-                .fold(HashSet::new(), |mut set, id| {
-                    let _ = set.insert(id);
-                    set
-                })
-        })
+    pub(crate) fn get_fully_active_document_ids(&self) -> HashSet<PipelineId> {
+        self.documents
+            .borrow()
+            .iter()
+            .filter_map(|(id, document)| {
+                if document.is_fully_active() {
+                    Some(id)
+                } else {
+                    None
+                }
+            })
+            .fold(HashSet::new(), |mut set, id| {
+                let _ = set.insert(id);
+                set
+            })
     }
 
     pub(crate) fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
@@ -810,19 +809,13 @@ impl ScriptThread {
             .register_paint_worklet_modules(name, properties, painter);
     }
 
-    pub(crate) fn push_new_element_queue() {
-        with_script_thread(|script_thread| {
+    pub(crate) fn custom_element_reaction_stack() -> Rc<CustomElementReactionStack> {
+        with_optional_script_thread(|script_thread| {
             script_thread
+                .as_ref()
+                .unwrap()
                 .custom_element_reaction_stack
-                .push_new_element_queue();
-        })
-    }
-
-    pub(crate) fn pop_current_element_queue(can_gc: CanGc) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .custom_element_reaction_stack
-                .pop_current_element_queue(can_gc);
+                .clone()
         })
     }
 
@@ -1006,7 +999,7 @@ impl ScriptThread {
             webxr_registry: state.webxr_registry,
             worklet_thread_pool: Default::default(),
             docs_with_no_blocking_loads: Default::default(),
-            custom_element_reaction_stack: CustomElementReactionStack::new(),
+            custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
             compositor_api: state.compositor_api,
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
@@ -1025,6 +1018,7 @@ impl ScriptThread {
             scheduled_update_the_rendering: Default::default(),
             needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
+            privileged_urls: state.privileged_urls,
         }
     }
 
@@ -1155,6 +1149,10 @@ impl ScriptThread {
                 .expect("Got pipeline for Document not managed by this ScriptThread.");
 
             if !document.is_fully_active() {
+                continue;
+            }
+
+            if document.waiting_on_canvas_image_updates() {
                 continue;
             }
 
@@ -1348,9 +1346,12 @@ impl ScriptThread {
 
         // Receive at least one message so we don't spinloop.
         debug!("Waiting for event.");
-        let mut event = self
-            .receivers
-            .recv(&self.task_queue, &self.timer_scheduler.borrow());
+        let fully_active = self.get_fully_active_document_ids();
+        let mut event = self.receivers.recv(
+            &self.task_queue,
+            &self.timer_scheduler.borrow(),
+            &fully_active,
+        );
 
         loop {
             debug!("Handling event: {event:?}");
@@ -1424,6 +1425,13 @@ impl ScriptThread {
                 )) => {
                     self.set_needs_rendering_update();
                 },
+                MixedMessage::FromConstellation(
+                    ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(pipeline_id),
+                ) => {
+                    if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                        document.handle_no_longer_waiting_on_asynchronous_image_updates();
+                    }
+                },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)
                 },
@@ -1453,7 +1461,7 @@ impl ScriptThread {
             // If any of our input sources has an event pending, we'll perform another iteration
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
-            match self.receivers.try_recv(&self.task_queue) {
+            match self.receivers.try_recv(&self.task_queue, &fully_active) {
                 Some(new_event) => event = new_event,
                 None => break,
             }
@@ -1512,7 +1520,7 @@ impl ScriptThread {
                     },
                     #[cfg(feature = "webgpu")]
                     MixedMessage::FromWebGPUServer(inner_msg) => {
-                        self.handle_msg_from_webgpu_server(inner_msg, can_gc)
+                        self.handle_msg_from_webgpu_server(inner_msg)
                     },
                     MixedMessage::TimerFired => {},
                 }
@@ -1891,6 +1899,7 @@ impl ScriptThread {
             msg @ ScriptThreadMessage::ExitFullScreen(..) |
             msg @ ScriptThreadMessage::SendInputEvent(..) |
             msg @ ScriptThreadMessage::TickAllAnimations(..) |
+            msg @ ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(..) |
             msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
@@ -1947,7 +1956,7 @@ impl ScriptThread {
     }
 
     #[cfg(feature = "webgpu")]
-    fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg, can_gc: CanGc) {
+    fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
         match msg {
             WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.free_adapter_id(id),
             WebGPUMsg::FreeDevice {
@@ -1985,7 +1994,7 @@ impl ScriptThread {
                 msg,
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
-                global.gpu_device_lost(device, reason, msg, can_gc);
+                global.gpu_device_lost(device, reason, msg);
             },
             WebGPUMsg::UncapturedError {
                 device,
@@ -1994,7 +2003,7 @@ impl ScriptThread {
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
                 let _ac = enter_realm(&*global);
-                global.handle_uncaptured_gpu_error(device, error, can_gc);
+                global.handle_uncaptured_gpu_error(device, error);
             },
             _ => {},
         }
@@ -3410,6 +3419,7 @@ impl ScriptThread {
             true,
             incomplete.load_data.inherited_insecure_requests_policy,
             incomplete.load_data.has_trustworthy_ancestor_origin,
+            self.custom_element_reaction_stack.clone(),
             can_gc,
         );
 
@@ -4022,6 +4032,10 @@ impl ScriptThread {
             return;
         };
         document.event_handler().handle_refresh_cursor();
+    }
+
+    pub(crate) fn is_servo_privileged(url: ServoUrl) -> bool {
+        with_script_thread(|script_thread| script_thread.privileged_urls.contains(&url))
     }
 }
 

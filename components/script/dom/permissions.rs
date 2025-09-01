@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
+use base::generic_channel;
 use dom_struct::dom_struct;
 use embedder_traits::{self, AllowOrDeny, EmbedderMsg, PermissionFeature};
-use ipc_channel::ipc;
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -350,7 +350,7 @@ fn prompt_user_from_embedder(name: PermissionName, global_scope: &GlobalScope) -
         warn!("Requesting permissions from non-webview-associated global scope");
         return PermissionState::Denied;
     };
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel!");
     global_scope.send_to_embedder(EmbedderMsg::PromptPermission(
         webview_id,
         name.convert(),

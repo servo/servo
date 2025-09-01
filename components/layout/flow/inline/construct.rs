@@ -71,7 +71,7 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// The traversal is at all times as deep in the tree as this stack is,
     /// which is why the code doesn't need to keep track of the actual
     /// container root (see `handle_inline_level_element`).
-    // _
+    ///
     /// When an inline box ends, it's removed from this stack.
     inline_box_stack: Vec<InlineBoxIdentifier>,
 
@@ -94,9 +94,10 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// newly built [`InlineFormattingContext`].
     old_block_in_inline_splits: Vec<Vec<ArcRefCell<InlineBox>>>,
 
-    /// Whether or not the inline formatting context under construction has any
-    /// uncollapsible text content.
-    pub has_uncollapsible_text_content: bool,
+    /// Whether this [`InlineFormattingContextBuilder`] is empty for the purposes of ignoring
+    /// during box tree construction. An IFC is empty if it only contains TextRuns with
+    /// completely collapsible whitespace. When that happens it can be ignored completely.
+    pub is_empty: bool,
 }
 
 impl InlineFormattingContextBuilder {
@@ -110,6 +111,7 @@ impl InlineFormattingContextBuilder {
         Self {
             // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
             on_word_boundary: true,
+            is_empty: true,
             shared_inline_styles_stack,
             ..Default::default()
         }
@@ -129,36 +131,6 @@ impl InlineFormattingContextBuilder {
             .last()
             .expect("Should always have at least one SharedInlineStyles")
             .clone()
-    }
-
-    /// Return true if this [`InlineFormattingContextBuilder`] is empty for the purposes of ignoring
-    /// during box tree construction. An IFC is empty if it only contains TextRuns with
-    /// completely collapsible whitespace. When that happens it can be ignored completely.
-    pub(crate) fn is_empty(&self) -> bool {
-        if self.has_uncollapsible_text_content {
-            return false;
-        }
-
-        if !self.inline_box_stack.is_empty() {
-            return false;
-        }
-
-        fn inline_level_box_is_empty(inline_level_box: &InlineItem) -> bool {
-            match inline_level_box {
-                InlineItem::StartInlineBox(_) => false,
-                InlineItem::EndInlineBox => false,
-                // Text content is handled by `self.has_uncollapsible_text` content above in order
-                // to avoid having to iterate through the character once again.
-                InlineItem::TextRun(_) => true,
-                InlineItem::OutOfFlowAbsolutelyPositionedBox(..) => false,
-                InlineItem::OutOfFlowFloatBox(_) => false,
-                InlineItem::Atomic(..) => false,
-            }
-        }
-
-        self.inline_items
-            .iter()
-            .all(|inline_level_box| inline_level_box_is_empty(&inline_level_box.borrow()))
     }
 
     pub(crate) fn push_atomic(
@@ -182,6 +154,7 @@ impl InlineFormattingContextBuilder {
             Level::ltr(), /* This will be assigned later if necessary. */
         ));
         self.inline_items.push(inline_level_box.clone());
+        self.is_empty = false;
 
         // Push an object replacement character for this atomic, which will ensure that the line breaker
         // inserts a line breaking opportunity here.
@@ -215,6 +188,7 @@ impl InlineFormattingContextBuilder {
         ));
 
         self.inline_items.push(inline_level_box.clone());
+        self.is_empty = false;
         inline_level_box
     }
 
@@ -236,6 +210,7 @@ impl InlineFormattingContextBuilder {
         );
 
         self.inline_items.push(inline_level_box.clone());
+        self.is_empty = false;
         self.contains_floats = true;
         inline_level_box
     }
@@ -299,6 +274,7 @@ impl InlineFormattingContextBuilder {
         let inline_level_box = ArcRefCell::new(InlineItem::StartInlineBox(inline_box));
         self.inline_items.push(inline_level_box.clone());
         self.inline_box_stack.push(identifier);
+        self.is_empty = false;
 
         let mut block_in_inline_splits = block_in_inline_splits.unwrap_or_default();
         block_in_inline_splits.push(inline_level_box);
@@ -343,6 +319,7 @@ impl InlineFormattingContextBuilder {
             .expect("Ended non-existent inline box");
         self.inline_items
             .push(ArcRefCell::new(InlineItem::EndInlineBox));
+        self.is_empty = false;
 
         self.inline_boxes.end_inline_box(identifier);
 
@@ -388,11 +365,14 @@ impl InlineFormattingContextBuilder {
         let white_space_collapse = info.style.clone_white_space_collapse();
         let new_text: String = char_iterator
             .inspect(|&character| {
-                self.has_uncollapsible_text_content |= matches!(
-                    white_space_collapse,
-                    WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
-                ) || !character.is_ascii_whitespace() ||
-                    (character == '\n' && white_space_collapse != WhiteSpaceCollapse::Collapse);
+                self.is_empty = self.is_empty &&
+                    match white_space_collapse {
+                        WhiteSpaceCollapse::Collapse => character.is_ascii_whitespace(),
+                        WhiteSpaceCollapse::PreserveBreaks => {
+                            character.is_ascii_whitespace() && character != '\n'
+                        },
+                        WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
+                    };
             })
             .collect();
 
@@ -443,7 +423,7 @@ impl InlineFormattingContextBuilder {
         has_first_formatted_line: bool,
         default_bidi_level: Level,
     ) -> Option<InlineFormattingContext> {
-        if self.is_empty() {
+        if self.is_empty {
             return None;
         }
 
@@ -506,7 +486,7 @@ impl InlineFormattingContextBuilder {
         is_single_line_text_input: bool,
         default_bidi_level: Level,
     ) -> Option<InlineFormattingContext> {
-        if self.is_empty() {
+        if self.is_empty {
             return None;
         }
 

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: no-ellipsis when there's not enough room</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-025-ref.html">
+<meta name="assert" content="the block overflow ellipsis displaces text, taking soft wrap opportunities into account. This may result in the entire line being displaced, and just the ellipsis being left.">
+<style>
+.clamp {
+  line-clamp: 4;
+  width: 32.5ch;
+  font-family: monospace;
+}
+</style>
+<div class="clamp">
+  Test passes if there are 4 lines
+  and the last one only contains …
+  supercalifragilisticexpialidocious
+  supercalifragilisticexpialidocious
+  Test fails: this should not be visible
+</div>

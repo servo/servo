@@ -204,6 +204,9 @@ pub struct InitialPipelineState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
+
+    /// A list of URLs that can access privileged internal APIs.
+    pub privileged_urls: Vec<ServoUrl>,
 }
 
 pub struct NewPipeline {
@@ -305,6 +308,7 @@ impl Pipeline {
                     rippy_data: state.rippy_data,
                     user_content_manager: state.user_content_manager,
                     lifeline_sender: None,
+                    privileged_urls: state.privileged_urls,
                 };
 
                 // Spawn the child process.
@@ -497,6 +501,7 @@ pub struct UnprivilegedPipelineContent {
     rippy_data: Vec<u8>,
     user_content_manager: UserContentManager,
     lifeline_sender: Option<IpcSender<()>>,
+    privileged_urls: Vec<ServoUrl>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -543,6 +548,7 @@ impl UnprivilegedPipelineContent {
                 player_context: self.player_context.clone(),
                 inherited_secure_context: self.load_data.inherited_secure_context,
                 user_content_manager: self.user_content_manager,
+                privileged_urls: self.privileged_urls,
             },
             layout_factory,
             Arc::new(self.system_font_service.to_proxy()),

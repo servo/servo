@@ -63,8 +63,8 @@
         return animation;
       }
       function setupAnimationTrigger(use_default_trigger=false) {
-        const trigger = use_default_trigger ? new AnimationTrigger()
-            : new AnimationTrigger({
+        const trigger = use_default_trigger ? new TimelineTrigger()
+            : new TimelineTrigger({
               behavior: "alternate",
               timeline: view_timeline,
               rangeStart: `${TRIGGER_START_PX}px`,

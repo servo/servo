@@ -114,7 +114,29 @@ promise_test(async t => {
   const [track] = stream.getVideoTracks();
   t.add_cleanup(() => track.stop());
   assert_equals(track.getSettings().resizeMode, 'crop-and-scale');
-}, 'getUserMedia() supports setting crop-and-scale as resizeMode.');
+}, 'getUserMedia() supports setting crop-and-scale as resizeMode without downscaling.');
+
+promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["resizeMode"],
+    "resizeMode should be supported");
+  const stream = await navigator.mediaDevices.getUserMedia(
+      { video: {resizeMode: {exact: 'crop-and-scale'}, width: {max: 30}}});
+  const [track] = stream.getVideoTracks();
+  t.add_cleanup(() => track.stop());
+  assert_equals(track.getSettings().resizeMode, 'crop-and-scale');
+  assert_less_than_equal(track.getSettings().width, 30);
+}, 'getUserMedia() supports setting crop-and-scale as resizeMode with downscaling.');
+
+promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["resizeMode"],
+    "resizeMode should be supported");
+  const stream = await navigator.mediaDevices.getUserMedia(
+      { video: {resizeMode: {exact: 'crop-and-scale'}, frameRate: {max: 5}}});
+  const [track] = stream.getVideoTracks();
+  t.add_cleanup(() => track.stop());
+  assert_equals(track.getSettings().resizeMode, 'crop-and-scale');
+  assert_less_than_equal(track.getSettings().frameRate, 5);
+}, 'getUserMedia() supports setting crop-and-scale as resizeMode with decimation.');
 
 promise_test(async t => {
   assert_true(navigator.mediaDevices.getSupportedConstraints()["resizeMode"],

@@ -35,8 +35,8 @@ promise_test(async (t) => {
   }
   popover.addEventListener('interest', (e) => {
     ++interestFired;
-    assert_in_listener(invoker.matches(':has-interest'),false,':has-interest should not yet match in the event handler');
-    assert_in_listener(popover.matches(':target-of-interest'),false,':target-of-interest should not yet match in the event handler');
+    assert_in_listener(invoker.matches(':interest-source'),false,':interest-source should not yet match in the event handler');
+    assert_in_listener(popover.matches(':interest-target'),false,':interest-target should not yet match in the event handler');
     assert_in_listener(popover.matches(':popover-open'),false,'popover shouldn\'t be open yet');
     if (interestFired === 1) {
       e.preventDefault();
@@ -44,8 +44,8 @@ promise_test(async (t) => {
   });
   popover.addEventListener('loseinterest', (e) => {
     ++loseInterestFired;
-    assert_in_listener(invoker.matches(':has-interest'),true,':has-interest should match in the event handler');
-    assert_in_listener(popover.matches(':target-of-interest'),true,':target-of-interest should match in the event handler');
+    assert_in_listener(invoker.matches(':interest-source'),true,':interest-source should match in the event handler');
+    assert_in_listener(popover.matches(':interest-target'),true,':interest-target should match in the event handler');
     assert_in_listener(popover.matches(':popover-open'),true,'popover should still be open');
     if (loseInterestFired === 1) {
       e.preventDefault();

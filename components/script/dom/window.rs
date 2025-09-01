@@ -17,6 +17,7 @@ use std::time::{Duration, Instant};
 use app_units::Au;
 use backtrace::Backtrace;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel;
 use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use base64::Engine;
@@ -67,7 +68,7 @@ use net_traits::image_cache::{
 };
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
-use profile_traits::ipc as ProfiledIpc;
+use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -138,8 +139,8 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use crate::dom::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::location::Location;
@@ -862,7 +863,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             stderr.flush().unwrap();
         }
         let (sender, receiver) =
-            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+            ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Alert {
             message: s.to_string(),
             response_sender: sender,
@@ -879,7 +880,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://html.spec.whatwg.org/multipage/#dom-confirm
     fn Confirm(&self, s: DOMString) -> bool {
         let (sender, receiver) =
-            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+            ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Confirm {
             message: s.to_string(),
             response_sender: sender,
@@ -899,7 +900,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://html.spec.whatwg.org/multipage/#dom-prompt
     fn Prompt(&self, message: DOMString, default: DOMString) -> Option<DOMString> {
         let (sender, receiver) =
-            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+            ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Prompt {
             message: message.to_string(),
             default: default.to_string(),
@@ -1468,13 +1469,21 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
 
-    fn WebdriverFrame(&self, id: DOMString) -> Option<DomRoot<Element>> {
-        find_node_by_unique_id_in_document(&self.Document(), id.into())
-            .and_then(Root::downcast::<HTMLIFrameElement>)
-            .map(Root::upcast::<Element>)
+    fn WebdriverFrame(&self, browsing_context_id: DOMString) -> Option<DomRoot<WindowProxy>> {
+        self.Document()
+            .iframes()
+            .iter()
+            .find(|iframe| {
+                iframe
+                    .browsing_context_id()
+                    .as_ref()
+                    .map(BrowsingContextId::to_string) ==
+                    Some(browsing_context_id.to_string())
+            })
+            .and_then(|iframe| iframe.GetContentWindow())
     }
 
-    fn WebdriverWindow(&self, id: DOMString) -> Option<DomRoot<WindowProxy>> {
+    fn WebdriverWindow(&self, webview_id: DOMString) -> Option<DomRoot<WindowProxy>> {
         let window_proxy = self.window_proxy.get()?;
 
         // Window must be top level browsing context.
@@ -1482,10 +1491,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             return None;
         }
 
-        let pipeline_id = window_proxy.currently_active()?;
-        let document = ScriptThread::find_document(pipeline_id)?;
-
-        if document.upcast::<Node>().unique_id(pipeline_id) == id.str() {
+        if self.webview_id().to_string() == webview_id.str() {
             Some(DomRoot::from_ref(&window_proxy))
         } else {
             None
@@ -2132,7 +2138,7 @@ impl Window {
     }
 
     fn client_window(&self) -> DeviceIndependentIntRect {
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel!");
 
         self.send_to_embedder(EmbedderMsg::GetWindowRect(self.webview_id(), sender));
 

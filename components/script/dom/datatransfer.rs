@@ -18,7 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransferitemlist::DataTransferItemList;
 use crate::dom::element::Element;
 use crate::dom::filelist::FileList;
-use crate::dom::htmlimageelement::HTMLImageElement;
+use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::window::Window;
 use crate::drag_data_store::{DragDataStore, Mode};
 use crate::script_runtime::{CanGc, JSContext};

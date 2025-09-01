@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref, RefCell};
-use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs::create_dir_all;
 use std::iter::once;
@@ -46,7 +47,7 @@ use webrender_api::units::{
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
     ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
-    FontVariation, HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding,
+    FontVariation, HitTestFlags, ImageKey, PipelineId as WebRenderPipelineId, PropertyBinding,
     ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo,
     SpatialId, SpatialTreeItemKey, TransformStyle,
 };
@@ -83,6 +84,7 @@ pub enum WebRenderDebugOption {
     TextureCacheDebug,
     RenderTargetDebug,
 }
+
 /// Data that is shared by all WebView renderers.
 pub struct ServoRenderer {
     /// The [`RefreshDriver`] which manages the rythym of painting.
@@ -120,6 +122,11 @@ pub struct ServoRenderer {
     /// The last position in the rendered view that the mouse moved over. This becomes `None`
     /// when the mouse leaves the rendered view.
     pub(crate) last_mouse_move_position: Option<DevicePoint>,
+
+    /// A [`FrameRequestDelayer`] which is used to wait for canvas image updates to
+    /// arrive before requesting a new frame, as these happen asynchronously with
+    /// `ScriptThread` display list construction.
+    frame_delayer: FrameDelayer,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -144,7 +151,7 @@ pub struct IOCompositor {
     rendering_context: Rc<dyn RenderingContext>,
 
     /// The number of frames pending to receive from WebRender.
-    pending_frames: usize,
+    pending_frames: Cell<usize>,
 
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
@@ -321,13 +328,14 @@ impl IOCompositor {
                 webxr_main_thread: state.webxr_main_thread,
                 convert_mouse_to_touch,
                 last_mouse_move_position: None,
+                frame_delayer: Default::default(),
             })),
             webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
             ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
-            pending_frames: 0,
+            pending_frames: Cell::new(0),
             _mem_profiler_registration: registration,
         };
 
@@ -492,7 +500,7 @@ impl IOCompositor {
                     self.ready_to_save_state,
                     ReadyState::WaitingForConstellationReply
                 );
-                if is_ready && self.pending_frames == 0 {
+                if is_ready && self.pending_frames.get() == 0 {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
@@ -661,7 +669,6 @@ impl IOCompositor {
                 }
 
                 let mut transaction = Transaction::new();
-
                 let is_root_pipeline =
                     Some(pipeline_id.into()) == webview_renderer.root_pipeline_id;
                 if is_root_pipeline && old_scale != webview_renderer.device_pixels_per_page_pixel()
@@ -676,9 +683,22 @@ impl IOCompositor {
             },
 
             CompositorMsg::GenerateFrame => {
-                let mut transaction = Transaction::new();
-                self.generate_frame(&mut transaction, RenderReasons::SCENE);
-                self.global.borrow_mut().send_transaction(transaction);
+                let mut global = self.global.borrow_mut();
+                global.frame_delayer.set_pending_frame(true);
+
+                if global.frame_delayer.needs_new_frame() {
+                    let mut transaction = Transaction::new();
+                    self.generate_frame(&mut transaction, RenderReasons::SCENE);
+                    global.send_transaction(transaction);
+
+                    let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
+                    let _ = global.constellation_sender.send(
+                        EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
+                            waiting_pipelines,
+                        ),
+                    );
+                    global.frame_delayer.set_pending_frame(false);
+                }
             },
 
             CompositorMsg::GenerateImageKey(sender) => {
@@ -699,20 +719,45 @@ impl IOCompositor {
                 }
             },
             CompositorMsg::UpdateImages(updates) => {
+                let mut global = self.global.borrow_mut();
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {
                         ImageUpdate::AddImage(key, desc, data) => {
                             txn.add_image(key, desc, data.into(), None)
                         },
-                        ImageUpdate::DeleteImage(key) => txn.delete_image(key),
-                        ImageUpdate::UpdateImage(key, desc, data) => {
+                        ImageUpdate::DeleteImage(key) => {
+                            txn.delete_image(key);
+                            global.frame_delayer.delete_image(key);
+                        },
+                        ImageUpdate::UpdateImage(key, desc, data, epoch) => {
+                            if let Some(epoch) = epoch {
+                                global.frame_delayer.update_image(key, epoch);
+                            }
                             txn.update_image(key, desc, data.into(), &DirtyRect::All)
                         },
                     }
                 }
-                self.global.borrow_mut().send_transaction(txn);
+
+                if global.frame_delayer.needs_new_frame() {
+                    global.frame_delayer.set_pending_frame(false);
+                    self.generate_frame(&mut txn, RenderReasons::SCENE);
+                    let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
+                    let _ = global.constellation_sender.send(
+                        EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
+                            waiting_pipelines,
+                        ),
+                    );
+                }
+
+                global.send_transaction(txn);
             },
+
+            CompositorMsg::DelayNewFrameForCanvas(pipeline_id, canvas_epoch, image_keys) => self
+                .global
+                .borrow_mut()
+                .frame_delayer
+                .add_delay(pipeline_id, canvas_epoch, image_keys),
 
             CompositorMsg::AddFont(font_key, data, index) => {
                 self.add_font(font_key, index, data);
@@ -802,7 +847,7 @@ impl IOCompositor {
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
                 // Subtract from the number of pending frames, but do not do any compositing.
-                self.pending_frames -= 1;
+                self.pending_frames.set(self.pending_frames.get() - 1);
             },
             _ => {
                 debug!("Ignoring message ({:?} while shutting down", msg);
@@ -832,8 +877,8 @@ impl IOCompositor {
     }
 
     /// Queue a new frame in the transaction and increase the pending frames count.
-    pub(crate) fn generate_frame(&mut self, transaction: &mut Transaction, reason: RenderReasons) {
-        self.pending_frames += 1;
+    pub(crate) fn generate_frame(&self, transaction: &mut Transaction, reason: RenderReasons) {
+        self.pending_frames.set(self.pending_frames.get() + 1);
         transaction.generate_frame(0, true /* present */, reason);
     }
 
@@ -1407,7 +1452,7 @@ impl IOCompositor {
                 CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
                     // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
                     // one frame from the pending frames.
-                    self.pending_frames -= 1;
+                    self.pending_frames.set(self.pending_frames.get() - 1);
                     false
                 },
                 CompositorMsg::NewWebRenderFrameReady(..) => {
@@ -1625,12 +1670,86 @@ impl IOCompositor {
     }
 
     fn handle_new_webrender_frame_ready(&mut self, recomposite_needed: bool) {
-        self.pending_frames -= 1;
+        self.pending_frames.set(self.pending_frames.get() - 1);
         if recomposite_needed {
             self.refresh_cursor();
         }
         if recomposite_needed || self.animation_callbacks_running() {
             self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
         }
+    }
+}
+
+/// A struct that is reponsible for delaying frame requests until all new canvas images
+/// for a particular "update the rendering" call in the `ScriptThread` have been
+/// sent to WebRender.
+///
+/// These images may be updated in WebRender asynchronously in the canvas task. A frame
+/// is then requested if:
+///
+///  - The renderer has received a GenerateFrame message from a `ScriptThread`.
+///  - All pending image updates have finished and have been noted in the [`FrameDelayer`].
+#[derive(Default)]
+struct FrameDelayer {
+    /// The latest [`Epoch`] of canvas images that have been sent to WebRender. Note
+    /// that this only records the `Epoch`s for canvases and only ones that are involved
+    /// in "update the rendering".
+    image_epochs: HashMap<ImageKey, Epoch>,
+    /// A map of all pending canvas images
+    pending_canvas_images: HashMap<ImageKey, Epoch>,
+    /// Whether or not we have a pending frame.
+    pending_frame: bool,
+    /// A list of pipelines that should be notified when we are no longer waiting for
+    /// canvas images.
+    waiting_pipelines: HashSet<PipelineId>,
+}
+
+impl FrameDelayer {
+    fn delete_image(&mut self, image_key: ImageKey) {
+        self.image_epochs.remove(&image_key);
+        self.pending_canvas_images.remove(&image_key);
+    }
+
+    fn update_image(&mut self, image_key: ImageKey, epoch: Epoch) {
+        self.image_epochs.insert(image_key, epoch);
+        let Entry::Occupied(entry) = self.pending_canvas_images.entry(image_key) else {
+            return;
+        };
+        if *entry.get() <= epoch {
+            entry.remove();
+        }
+    }
+
+    fn add_delay(
+        &mut self,
+        pipeline_id: PipelineId,
+        canvas_epoch: Epoch,
+        image_keys: Vec<ImageKey>,
+    ) {
+        for image_key in image_keys.into_iter() {
+            // If we've already seen the necessary epoch for this image, do not
+            // start waiting for it.
+            if self
+                .image_epochs
+                .get(&image_key)
+                .is_some_and(|epoch_seen| *epoch_seen >= canvas_epoch)
+            {
+                continue;
+            }
+            self.pending_canvas_images.insert(image_key, canvas_epoch);
+        }
+        self.waiting_pipelines.insert(pipeline_id);
+    }
+
+    fn needs_new_frame(&self) -> bool {
+        self.pending_frame && self.pending_canvas_images.is_empty()
+    }
+
+    fn set_pending_frame(&mut self, value: bool) {
+        self.pending_frame = value;
+    }
+
+    fn take_waiting_pipelines(&mut self) -> Vec<PipelineId> {
+        self.waiting_pipelines.drain().collect()
     }
 }

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Unknown Track Number in Third Block</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+</head>
+<body>
+</body>
+<script>
+// Test that an unknown track number in the third webm block triggers the
+// append error algorithm.
+// https://w3c.github.io/media-source/#byte-stream-formats
+// The user agent MUST run the append error algorithm when any combination of
+// an initialization segment and any contiguous sequence of media segments
+// satisfies the following conditions:
+// 1. The number and type (audio, video, text, etc.) of all tracks in the
+//    media segments are not identified.
+promise_test(async t => {
+  const audio = document.createElement('audio');
+  audio.controls = true;
+  audio.watcher = new EventWatcher(t, audio, ['error']);
+  document.body.appendChild(audio);
+
+  const source = new MediaSource();
+  source.watcher = new EventWatcher(t, source, ['sourceopen']);
+  audio.src = URL.createObjectURL(source);
+  await source.watcher.wait_for('sourceopen');
+
+  const resource = await MediaSourceUtil.fetchResourceOfManifest(
+    t, 'webm/test-a-128k-44100Hz-1ch-manifest.json');
+  assert_implements_optional(MediaSource.isTypeSupported(resource.type),
+                             `${resource.type} supported`);
+
+  const buffer = source.addSourceBuffer(resource.type);
+  buffer.watcher = new EventWatcher(t, buffer, ['error', 'updateend']);
+  // Intentionally append data ending at the end of a cluster having an
+  // invalid track number in a block that is after the second block in the
+  // cluster, because Gecko had a bug that failed to detect some demux errors
+  // in this situation.
+  resource.data = resource.data.subarray(0, resource.cluster_start[1]);
+  // Choose a track number of zero, which is not in the init segment.
+  const track_number = 0;
+  // Set the high bit of an octet, for a single-octet EBML VINT.
+  const track_number_vint = 1 << 7 | track_number;
+  // Skip two bytes for the EBML element ID and data size, and overwrite the
+  // track number.
+  resource.data[Number(resource.block_start[2]) + 2] = track_number_vint;
+
+  buffer.appendBuffer(resource.data);
+  await Promise.all([
+    buffer.watcher.wait_for(['error', 'updateend']),
+    audio.watcher.wait_for('error'),
+  ]);
+}, 'invalid-third-block');
+</script>
+</html>

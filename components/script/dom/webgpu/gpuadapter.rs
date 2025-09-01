@@ -269,7 +269,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     can_gc,
                 );
                 // 2. Lose the device(device, "unknown").
-                device.lose(GPUDeviceLostReason::Unknown, e, can_gc);
+                device.lose(GPUDeviceLostReason::Unknown, e);
                 promise.resolve_native(&device, can_gc);
             },
         }

@@ -39,8 +39,8 @@ use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
@@ -1044,8 +1044,12 @@ enum BackupElementQueueFlag {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
+/// # Safety
+/// This can be shared inside an Rc because one of those Rc copies lives
+/// inside ScriptThread, so the GC can always reach this structure.
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub(crate) struct CustomElementReactionStack {
     stack: DomRefCell<Vec<ElementQueue>>,
     backup_queue: ElementQueue,

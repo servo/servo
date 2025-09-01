@@ -8,7 +8,8 @@ use ipc_channel::ipc::IpcSender;
 use log::{error, info};
 use net_traits::indexeddb_thread::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
-    CreateObjectResult, IndexedDBKeyRange, IndexedDBTxnMode, KeyPath, PutItemResult,
+    CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath,
+    PutItemResult,
 };
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
@@ -237,6 +238,22 @@ impl SqliteEngine {
             .query_row(&*values.as_params(), |row| row.get(0))
             .map(|count: i64| count as usize)
     }
+
+    fn generate_key(
+        connection: &Connection,
+        store: &object_store_model::Model,
+    ) -> Result<IndexedDBKeyType, Error> {
+        if store.auto_increment == 0 {
+            unreachable!("Should be caught in the script thread");
+        }
+        // TODO: handle overflows, this also needs to be able to handle 2^53 as per spec
+        let new_key = store.auto_increment + 1;
+        connection.execute(
+            "UPDATE object_store SET auto_increment = ? WHERE id = ?",
+            params![new_key, store.id],
+        )?;
+        Ok(IndexedDBKeyType::Number(new_key as f64))
+    }
 }
 
 impl KvsEngine for SqliteEngine {
@@ -260,7 +277,7 @@ impl KvsEngine for SqliteEngine {
             params![
                 store_name.to_string(),
                 key_path.map(|v| bincode::serialize(&v).unwrap()),
-                auto_increment
+                auto_increment as i32
             ],
         )?;
 
@@ -349,6 +366,16 @@ impl KvsEngine for SqliteEngine {
                     }) => {
                         let Ok(object_store) = process_object_store(object_store, &sender) else {
                             continue;
+                        };
+                        let key = match key
+                            .map(Ok)
+                            .unwrap_or_else(|| Self::generate_key(&connection, &object_store))
+                        {
+                            Ok(key) => key,
+                            Err(e) => {
+                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
+                                continue;
+                            },
                         };
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         let _ = sender.send(
@@ -442,7 +469,8 @@ impl KvsEngine for SqliteEngine {
             .optional()
             .unwrap()
             // TODO: Wrong (change trait definition for this function)
-            .unwrap_or_default()
+            .unwrap_or_default() !=
+            0
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {

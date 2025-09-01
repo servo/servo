@@ -56,7 +56,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_d
 use crate::dom::bindings::root::{DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
+use crate::dom::html::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 #[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
@@ -2041,6 +2041,10 @@ impl CanvasContext for WebGLRenderingContext {
             },
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
         }
+    }
+
+    fn image_key(&self) -> Option<ImageKey> {
+        Some(self.webrender_image)
     }
 }
 

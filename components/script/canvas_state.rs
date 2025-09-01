@@ -8,6 +8,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use app_units::Au;
+use base::Epoch;
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
     FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
@@ -64,9 +65,9 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::HTMLCanvasElement;
-use crate::dom::htmlimageelement::HTMLImageElement;
-use crate::dom::htmlvideoelement::HTMLVideoElement;
+use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeTraits};
@@ -287,19 +288,18 @@ impl CanvasState {
     }
 
     /// Updates WR image and blocks on completion
-    pub(crate) fn update_rendering(&self) {
+    pub(crate) fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
         if !self.is_paintable() {
-            return;
+            return false;
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(
-                Canvas2dMsg::UpdateImage(sender),
+                Canvas2dMsg::UpdateImage(canvas_epoch),
                 self.canvas_id,
             ))
             .unwrap();
-        receiver.recv().unwrap();
+        true
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>

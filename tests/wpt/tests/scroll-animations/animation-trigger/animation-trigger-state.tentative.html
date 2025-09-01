@@ -21,21 +21,24 @@
       }
       .target {
         animation: myAnim linear 0.5s both;
-        animation-trigger: state;
-        animation-trigger-range: 150px 200px;
       }
-      .scroll {
-        animation-trigger-timeline: scroll();
+
+      #scroll_target {
+        animation-trigger: --scrolltrigger;
+        timeline-trigger: --scrolltrigger scroll() state 150px 200px;
       }
-      .view {
-        animation-trigger-timeline: view();
+      #view_target {
+        animation-trigger: --viewtrigger;
+        timeline-trigger: --viewtrigger view() state 150px 200px;
       }
-      .deferred {
-        animation-trigger-timeline: --viewtimeline;
+      #deferred_target {
+        animation-trigger: --deferredtrigger;
       }
-      .deferred.subject {
+      #deferred_subject {
         view-timeline: --viewtimeline;
+        timeline-trigger: --deferredtrigger --viewtimeline state 150px 200px;
       }
+
       .scroller {
         overflow-y: scroll;
         height: 500px;
@@ -54,20 +57,20 @@
     <div id="wrapper">
       <div id="scroll_scroller" class="scroller">
         <div id="space"></div>
-        <div id="scroll_target" class="scroll subject target" tabindex="0"></div>
+        <div id="scroll_target" class="subject target" tabindex="0"></div>
         <div id="space"></div>
       </div>
       <div id="view_scroller" class="scroller">
         <div id="space"></div>
-        <div id="view_target" class="view subject target" tabindex="0"></div>
+        <div id="view_target" class="subject target" tabindex="0"></div>
         <div id="space"></div>
       </div>
       <div id="deferred_scroller" class="scroller">
         <div id="space"></div>
-        <div id="deferred_subject" class="deferred subject" tabindex="0"></div>
+        <div id="deferred_subject" class="subject" tabindex="0"></div>
         <div id="space"></div>
       </div>
-      <div id="deferred_target" class="deferred target" tabindex="0"></div>
+      <div id="deferred_target" class="target" tabindex="0"></div>
     </div>
     <script>
       async function testStateAnimationTrigger(test, rangeBoundaries) {

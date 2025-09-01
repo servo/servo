@@ -31,4 +31,8 @@
   test_invalid_selector(':heading(2, 3n)');
   test_invalid_selector(':heading(2 of .foo)');
   test_invalid_selector(':heading(2n of .foo)');
+  test_invalid_selector(':heading(calc(1))');
+  test_invalid_selector(':heading(max(1, 2))');
+  test_invalid_selector(':heading(min(1, 2)');
+  test_invalid_selector(':heading(var(--level))');
 </script>

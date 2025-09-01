@@ -4,6 +4,7 @@
 
 //! Common interfaces for Canvas Contexts
 
+use base::Epoch;
 use euclid::default::Size2D;
 use layout_api::HTMLCanvasData;
 use pixels::Snapshot;
@@ -12,7 +13,7 @@ use webrender_api::ImageKey;
 
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::node::{Node, NodeDamage};
 #[cfg(feature = "webgpu")]
 use crate::dom::types::GPUCanvasContext;
@@ -66,7 +67,14 @@ pub(crate) trait CanvasContext {
         }
     }
 
-    fn update_rendering(&self) {}
+    /// The WebRender [`ImageKey`] of this [`CanvasContext`] if any.
+    fn image_key(&self) -> Option<ImageKey>;
+
+    /// Request that the [`CanvasContext`] update the rendering of its contents,
+    /// returning `true` if new image was produced.
+    fn update_rendering(&self, _canvas_epoch: Epoch) -> bool {
+        false
+    }
 
     fn onscreen(&self) -> bool {
         let Some(canvas) = self.canvas() else {
@@ -228,19 +236,31 @@ impl CanvasContext for RenderingContext {
         }
     }
 
-    fn update_rendering(&self) {
+    fn image_key(&self) -> Option<ImageKey> {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => {
-                if let Some(context) = offscreen_canvas.context() {
-                    context.update_rendering()
-                }
-            },
-            RenderingContext::Context2d(context) => context.update_rendering(),
-            RenderingContext::BitmapRenderer(context) => context.update_rendering(),
-            RenderingContext::WebGL(context) => context.update_rendering(),
-            RenderingContext::WebGL2(context) => context.update_rendering(),
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .and_then(|context| context.image_key()),
+            RenderingContext::Context2d(context) => context.image_key(),
+            RenderingContext::BitmapRenderer(context) => context.image_key(),
+            RenderingContext::WebGL(context) => context.image_key(),
+            RenderingContext::WebGL2(context) => context.image_key(),
             #[cfg(feature = "webgpu")]
-            RenderingContext::WebGPU(context) => context.update_rendering(),
+            RenderingContext::WebGPU(context) => context.image_key(),
+        }
+    }
+
+    fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .is_some_and(|context| context.update_rendering(canvas_epoch)),
+            RenderingContext::Context2d(context) => context.update_rendering(canvas_epoch),
+            RenderingContext::BitmapRenderer(context) => context.update_rendering(canvas_epoch),
+            RenderingContext::WebGL(context) => context.update_rendering(canvas_epoch),
+            RenderingContext::WebGL2(context) => context.update_rendering(canvas_epoch),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.update_rendering(canvas_epoch),
         }
     }
 
@@ -333,11 +353,17 @@ impl CanvasContext for OffscreenRenderingContext {
         }
     }
 
-    fn update_rendering(&self) {
+    fn image_key(&self) -> Option<ImageKey> {
+        None
+    }
+
+    fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
         match self {
-            OffscreenRenderingContext::Context2d(context) => context.update_rendering(),
-            OffscreenRenderingContext::BitmapRenderer(context) => context.update_rendering(),
-            OffscreenRenderingContext::Detached => {},
+            OffscreenRenderingContext::Context2d(context) => context.update_rendering(canvas_epoch),
+            OffscreenRenderingContext::BitmapRenderer(context) => {
+                context.update_rendering(canvas_epoch)
+            },
+            OffscreenRenderingContext::Detached => false,
         }
     }
 

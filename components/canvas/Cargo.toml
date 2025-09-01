@@ -18,6 +18,7 @@ tracing = ["dep:tracing"]
 
 [dependencies]
 app_units = { workspace = true }
+base = { workspace = true }
 bytemuck = { workspace = true, features = ["extern_crate_alloc"] }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }

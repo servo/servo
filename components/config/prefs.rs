@@ -452,7 +452,7 @@ pub enum UserAgentPlatform {
 impl UserAgentPlatform {
     /// Return the default `UserAgentPlatform` for this platform. This is
     /// not an implementation of `Default` so that it can be `const`.
-    const fn default() -> Self {
+    pub const fn default() -> Self {
         if cfg!(target_os = "android") {
             Self::Android
         } else if cfg!(target_env = "ohos") {

@@ -77,7 +77,7 @@
         return animation;
       }
       function setupAnimationTrigger(view_timeline) {
-        const trigger = new AnimationTrigger({
+        const trigger = new TimelineTrigger({
               behavior: "repeat",
               timeline: view_timeline,
               rangeStart: `${TRIGGER_START_PX}px`,

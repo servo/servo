@@ -6,6 +6,7 @@
 
 use std::fmt::{Debug, Error, Formatter};
 
+use base::Epoch;
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker, TouchEventResult};
@@ -23,7 +24,7 @@ pub mod viewport_description;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::{self, GenericSender};
+use base::generic_channel::{self, GenericCallback, GenericSender};
 use bitflags::bitflags;
 use display_list::CompositorDisplayListInfo;
 use embedder_traits::ScreenGeometry;
@@ -131,6 +132,11 @@ pub enum CompositorMsg {
     GenerateImageKeysForPipeline(PipelineId),
     /// Perform a resource update operation.
     UpdateImages(SmallVec<[ImageUpdate; 1]>),
+    /// Pause all pipeline display list processing for the given pipeline until the
+    /// following image updates have been received. This is used to ensure that canvas
+    /// elements have had a chance to update their rendering and send the image update to
+    /// the renderer before their associated display list is actually displayed.
+    DelayNewFrameForCanvas(PipelineId, Epoch, Vec<ImageKey>),
 
     /// Generate a new batch of font keys which can be used to allocate
     /// keys asynchronously.
@@ -182,19 +188,19 @@ pub struct CompositionPipeline {
 
 /// A mechanism to send messages from ScriptThread to the parent process' WebRender instance.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct CrossProcessCompositorApi(IpcSender<CompositorMsg>);
+pub struct CrossProcessCompositorApi(GenericCallback<CompositorMsg>);
 
 impl CrossProcessCompositorApi {
     /// Create a new [`CrossProcessCompositorApi`] struct.
-    pub fn new(sender: IpcSender<CompositorMsg>) -> Self {
-        CrossProcessCompositorApi(sender)
+    pub fn new(callback: GenericCallback<CompositorMsg>) -> Self {
+        CrossProcessCompositorApi(callback)
     }
 
     /// Create a new [`CrossProcessCompositorApi`] struct that does not have a listener on the other
     /// end to use for unit testing.
     pub fn dummy() -> Self {
-        let (sender, _) = ipc::channel().unwrap();
-        Self(sender)
+        let callback = GenericCallback::new(|_msg| ()).unwrap();
+        Self(callback)
     }
 
     /// Inform WebRender of the existence of this pipeline.
@@ -219,6 +225,21 @@ impl CrossProcessCompositorApi {
             scroll_id,
         )) {
             warn!("Error sending scroll node: {}", e);
+        }
+    }
+
+    pub fn delay_new_frame_for_canvas(
+        &self,
+        pipeline_id: PipelineId,
+        canvas_epoch: Epoch,
+        image_keys: Vec<ImageKey>,
+    ) {
+        if let Err(error) = self.0.send(CompositorMsg::DelayNewFrameForCanvas(
+            pipeline_id,
+            canvas_epoch,
+            image_keys,
+        )) {
+            warn!("Error delaying frames for canvas image updates {error:?}");
         }
     }
 
@@ -296,8 +317,9 @@ impl CrossProcessCompositorApi {
         key: ImageKey,
         descriptor: ImageDescriptor,
         data: SerializableImageData,
+        epoch: Option<Epoch>,
     ) {
-        self.update_images([ImageUpdate::UpdateImage(key, descriptor, data)].into());
+        self.update_images([ImageUpdate::UpdateImage(key, descriptor, data, epoch)].into());
     }
 
     pub fn delete_image(&self, key: ImageKey) {
@@ -538,7 +560,31 @@ pub enum ImageUpdate {
     /// Delete a previously registered image registration.
     DeleteImage(ImageKey),
     /// Update an existing image registration.
-    UpdateImage(ImageKey, ImageDescriptor, SerializableImageData),
+    UpdateImage(
+        ImageKey,
+        ImageDescriptor,
+        SerializableImageData,
+        Option<Epoch>,
+    ),
+}
+
+impl Debug for ImageUpdate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AddImage(image_key, image_desc, _) => f
+                .debug_tuple("AddImage")
+                .field(image_key)
+                .field(image_desc)
+                .finish(),
+            Self::DeleteImage(image_key) => f.debug_tuple("DeleteImage").field(image_key).finish(),
+            Self::UpdateImage(image_key, image_desc, _, epoch) => f
+                .debug_tuple("UpdateImage")
+                .field(image_key)
+                .field(image_desc)
+                .field(epoch)
+                .finish(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

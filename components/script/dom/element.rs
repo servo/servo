@@ -117,38 +117,46 @@ use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
-use crate::dom::htmlbuttonelement::HTMLButtonElement;
-use crate::dom::htmlcollection::HTMLCollection;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
-use crate::dom::htmlformelement::FormControlElementHelpers;
-use crate::dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers, SizePresentationalHint};
-use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
-use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
-use crate::dom::htmllabelelement::HTMLLabelElement;
-use crate::dom::htmllegendelement::HTMLLegendElement;
-use crate::dom::htmllinkelement::HTMLLinkElement;
-use crate::dom::htmlobjectelement::HTMLObjectElement;
-use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
-use crate::dom::htmloutputelement::HTMLOutputElement;
-use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
-use crate::dom::htmlstyleelement::HTMLStyleElement;
-use crate::dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
-use crate::dom::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
-use crate::dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
-use crate::dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHelpers};
-use crate::dom::htmltablesectionelement::{
+use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
+use crate::dom::html::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
+use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
+use crate::dom::html::htmlcollection::HTMLCollection;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
+use crate::dom::html::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
+use crate::dom::html::htmlformelement::FormControlElementHelpers;
+use crate::dom::html::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers, SizePresentationalHint};
+use crate::dom::html::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
+use crate::dom::html::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
+use crate::dom::html::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use crate::dom::html::htmllabelelement::HTMLLabelElement;
+use crate::dom::html::htmllegendelement::HTMLLegendElement;
+use crate::dom::html::htmllinkelement::HTMLLinkElement;
+use crate::dom::html::htmlobjectelement::HTMLObjectElement;
+use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::html::htmloutputelement::HTMLOutputElement;
+use crate::dom::html::htmlscriptelement::HTMLScriptElement;
+use crate::dom::html::htmlselectelement::HTMLSelectElement;
+use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
+use crate::dom::html::htmlstyleelement::HTMLStyleElement;
+use crate::dom::html::htmltablecellelement::{
+    HTMLTableCellElement, HTMLTableCellElementLayoutHelpers,
+};
+use crate::dom::html::htmltablecolelement::{
+    HTMLTableColElement, HTMLTableColElementLayoutHelpers,
+};
+use crate::dom::html::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
+use crate::dom::html::htmltablerowelement::{
+    HTMLTableRowElement, HTMLTableRowElementLayoutHelpers,
+};
+use crate::dom::html::htmltablesectionelement::{
     HTMLTableSectionElement, HTMLTableSectionElementLayoutHelpers,
 };
-use crate::dom::htmltemplateelement::HTMLTemplateElement;
-use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
+use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::html::htmltextareaelement::{
+    HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers,
+};
+use crate::dom::html::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
 use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;

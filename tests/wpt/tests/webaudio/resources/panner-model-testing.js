@@ -73,6 +73,14 @@ function createTestAndRun(
   return context.startRendering().then(buffer => checkResult(buffer, should));
 }
 
+async function createTestAndRun_W3CTH(
+    context, nodeCount, numberOfSourceChannels, positionSetter) {
+  numberOfChannels = numberOfSourceChannels;
+  createGraph(context, nodeCount, positionSetter);
+  const renderedBuffer = await context.startRendering();
+  return checkResult_W3CTH(renderedBuffer);
+}
+
 // Map our position angle to the azimuth angle (in degrees).
 //
 // An angle of 0 corresponds to an azimuth of 90 deg; pi, to -90 deg.
@@ -181,4 +189,51 @@ function checkResult(renderedBuffer, should) {
 
   should(maxErrorR, 'Error in right channel gain values')
       .beLessThanOrEqualTo(maxAllowedError);
+}
+
+function checkResult_W3CTH(renderedBuffer) {
+  // The max error we allow between the rendered impulse and the
+  // expected value.  This value is experimentally determined.  Set
+  // to 0 to make the test fail to see what the actual error is.
+  renderedLeft = renderedBuffer.getChannelData(0);
+  renderedRight = renderedBuffer.getChannelData(1);
+
+  const maxAllowedError = 1.1597e-6;
+  let impulseCount = 0;
+  let maxErrorL = 0;
+  let maxErrorR = 0;
+  const timeErrors = [];
+
+  for (let k = 0; k < renderedLeft.length; ++k) {
+    if (renderedLeft[k] !== 0 || renderedRight[k] !== 0) {
+      const {left: expectedL, right: expectedR} =
+          equalPowerGain(position[impulseCount].angle);
+
+      maxErrorL = Math.max(maxErrorL, Math.abs(renderedLeft[k] - expectedL));
+      maxErrorR = Math.max(maxErrorR, Math.abs(renderedRight[k] - expectedR));
+
+      const expectedOffset =
+          timeToSampleFrame(time[impulseCount], sampleRate);
+      if (k !== expectedOffset) {
+        timeErrors.push({actual: k, expected: expectedOffset});
+      }
+
+      ++impulseCount;
+    }
+  }
+
+  assert_equals(
+      impulseCount,
+      nodesToCreate,
+      'Number of impulses found');
+
+  assert_array_equals(
+      timeErrors.map(e => e.actual),
+      timeErrors.map(e => e.expected),
+      'Offsets of impulses at the wrong position');
+
+  assert_less_than_equal(maxErrorL, maxAllowedError,
+      `Left-channel gain error ${maxErrorL} > ${maxAllowedError}`);
+  assert_less_than_equal(maxErrorR, maxAllowedError,
+      `Right-channel gain error ${maxErrorR} > ${maxAllowedError}`);
 }

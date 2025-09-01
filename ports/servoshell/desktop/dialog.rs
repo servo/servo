@@ -9,7 +9,7 @@ use egui::Modal;
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use euclid::Length;
 use log::warn;
-use servo::ipc_channel::ipc::IpcSender;
+use servo::base::generic_channel::GenericSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
     AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, FilterPattern,
@@ -22,7 +22,7 @@ pub enum Dialog {
     File {
         dialog: EguiFileDialog,
         multiple: bool,
-        response_sender: IpcSender<Option<Vec<PathBuf>>>,
+        response_sender: GenericSender<Option<Vec<PathBuf>>>,
     },
     #[allow(clippy::enum_variant_names, reason = "spec terminology")]
     SimpleDialog(SimpleDialog),
@@ -38,7 +38,7 @@ pub enum Dialog {
     SelectDevice {
         devices: Vec<String>,
         selected_device_index: usize,
-        response_sender: IpcSender<Option<String>>,
+        response_sender: GenericSender<Option<String>>,
     },
     SelectElement {
         maybe_prompt: Option<SelectElement>,
@@ -54,7 +54,7 @@ pub enum Dialog {
 impl Dialog {
     pub fn new_file_dialog(
         multiple: bool,
-        response_sender: IpcSender<Option<Vec<PathBuf>>>,
+        response_sender: GenericSender<Option<Vec<PathBuf>>>,
         patterns: Vec<FilterPattern>,
     ) -> Self {
         let mut dialog = EguiFileDialog::new();
@@ -106,7 +106,7 @@ impl Dialog {
 
     pub fn new_device_selection_dialog(
         devices: Vec<String>,
-        response_sender: IpcSender<Option<String>>,
+        response_sender: GenericSender<Option<String>>,
     ) -> Self {
         Dialog::SelectDevice {
             devices,

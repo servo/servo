@@ -348,13 +348,13 @@ impl PaintWorkletGlobalScope {
             return self.invalid_image(size_in_dpx, missing_image_urls);
         }
 
-        let image_key = rendering_context.image_key();
+        rendering_context.update_rendering();
 
         DrawAPaintImageResult {
             width: size_in_dpx.width,
             height: size_in_dpx.height,
             format: PixelFormat::BGRA8,
-            image_key: Some(image_key),
+            image_key: Some(rendering_context.image_key()),
             missing_image_urls,
         }
     }

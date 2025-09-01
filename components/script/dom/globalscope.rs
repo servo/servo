@@ -105,7 +105,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
+use crate::dom::html::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
@@ -3191,7 +3191,6 @@ impl GlobalScope {
         device: WebGPUDevice,
         reason: DeviceLostReason,
         msg: String,
-        can_gc: CanGc,
     ) {
         let reason = match reason {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
@@ -3205,7 +3204,7 @@ impl GlobalScope {
             .expect("GPUDevice should still be in devices hashmap")
             .root()
         {
-            device.lose(reason, msg, can_gc);
+            device.lose(reason, msg);
         }
     }
 
@@ -3214,7 +3213,6 @@ impl GlobalScope {
         &self,
         device: WebGPUDevice,
         error: webgpu_traits::Error,
-        can_gc: CanGc,
     ) {
         if let Some(gpu_device) = self
             .gpu_devices
@@ -3222,7 +3220,7 @@ impl GlobalScope {
             .get(&device)
             .and_then(|device| device.root())
         {
-            gpu_device.fire_uncaptured_error(error, can_gc);
+            gpu_device.fire_uncaptured_error(error);
         } else {
             warn!("Recived error for lost GPUDevice!")
         }

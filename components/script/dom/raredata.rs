@@ -14,7 +14,7 @@ use crate::dom::customelementregistry::{
 };
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
-use crate::dom::htmlslotelement::SlottableData;
+use crate::dom::html::htmlslotelement::SlottableData;
 use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;

@@ -15,7 +15,7 @@ use style::values::AtomIdent;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
-use crate::dom::htmlelement::HTMLElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeDamage};
 use crate::dom::window::Window;
 

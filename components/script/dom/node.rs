@@ -95,17 +95,21 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator, Se
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
-use crate::dom::htmlcollection::HTMLCollection;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
-use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use crate::dom::htmlinputelement::{HTMLInputElement, InputType, LayoutHTMLInputElementHelpers};
-use crate::dom::htmllinkelement::HTMLLinkElement;
-use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
-use crate::dom::htmlstyleelement::HTMLStyleElement;
-use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
+use crate::dom::html::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
+use crate::dom::html::htmlcollection::HTMLCollection;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
+use crate::dom::html::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
+use crate::dom::html::htmlinputelement::{
+    HTMLInputElement, InputType, LayoutHTMLInputElementHelpers,
+};
+use crate::dom::html::htmllinkelement::HTMLLinkElement;
+use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
+use crate::dom::html::htmlstyleelement::HTMLStyleElement;
+use crate::dom::html::htmltextareaelement::{
+    HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers,
+};
+use crate::dom::html::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use crate::dom::nodelist::NodeList;
 use crate::dom::pointerevent::{PointerEvent, PointerId};
@@ -326,7 +330,7 @@ impl Node {
 
     /// Implements the "unsafely set HTML" algorithm as specified in:
     /// <https://html.spec.whatwg.org/multipage/#concept-unsafely-set-html>
-    pub fn unsafely_set_html(
+    pub(crate) fn unsafely_set_html(
         target: &Node,
         context_element: &Element,
         html: DOMString,
@@ -2926,6 +2930,7 @@ impl Node {
                     document.allow_declarative_shadow_roots(),
                     Some(document.insecure_requests_policy()),
                     document.has_trustworthy_ancestor_or_current_origin(),
+                    document.custom_element_reaction_stack(),
                     can_gc,
                 );
                 DomRoot::upcast::<Node>(document)

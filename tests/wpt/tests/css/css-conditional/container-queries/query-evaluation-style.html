@@ -130,6 +130,10 @@
   test_query('style(5 >= calc(3 + 1))', true);
   test_query('style(1px <= 1em)', true);
   test_query('style(5 >= 3)', true);
+  test_query('style(0 = 0px)', true);
+  test_query('style(0 = 0deg)', false);
+  test_query('style(0 >= 0px)', true);
+  test_query('style(0 < 3px)', true);
   test_query('style(3px >= 3px)', true);
   test_query('style(3px > 3px)', false);
   test_query('style(1em > 1px)', true);

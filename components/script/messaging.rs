@@ -5,6 +5,7 @@
 use core::fmt;
 #[cfg(feature = "webgpu")]
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::option::Option;
 use std::result::Result;
 
@@ -98,6 +99,7 @@ impl MixedMessage {
                 ScriptThreadMessage::EvaluateJavaScript(id, _, _) => Some(*id),
                 ScriptThreadMessage::SendImageKeysBatch(..) => None,
                 ScriptThreadMessage::PreferencesUpdated(..) => None,
+                ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(_) => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
@@ -396,10 +398,11 @@ impl ScriptThreadReceivers {
         &self,
         task_queue: &TaskQueue<MainThreadScriptMsg>,
         timer_scheduler: &TimerScheduler,
+        fully_active: &HashSet<PipelineId>,
     ) -> MixedMessage {
         select! {
             recv(task_queue.select()) -> msg => {
-                task_queue.take_tasks(msg.unwrap());
+                task_queue.take_tasks(msg.unwrap(), fully_active);
                 let event = task_queue
                     .recv()
                     .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
@@ -436,6 +439,7 @@ impl ScriptThreadReceivers {
     pub(crate) fn try_recv(
         &self,
         task_queue: &TaskQueue<MainThreadScriptMsg>,
+        fully_active: &HashSet<PipelineId>,
     ) -> Option<MixedMessage> {
         if let Ok(message) = self.constellation_receiver.try_recv() {
             let message = message
@@ -448,7 +452,7 @@ impl ScriptThreadReceivers {
                 .ok()?;
             return MixedMessage::FromConstellation(message).into();
         }
-        if let Ok(message) = task_queue.take_tasks_and_recv() {
+        if let Ok(message) = task_queue.take_tasks_and_recv(fully_active) {
             return MixedMessage::FromScript(message).into();
         }
         if let Ok(message) = self.devtools_server_receiver.try_recv() {

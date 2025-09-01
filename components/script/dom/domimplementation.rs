@@ -22,10 +22,10 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
-use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::htmlhtmlelement::HTMLHtmlElement;
-use crate::dom::htmltitleelement::HTMLTitleElement;
+use crate::dom::html::htmlbodyelement::HTMLBodyElement;
+use crate::dom::html::htmlheadelement::HTMLHeadElement;
+use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
+use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::node::Node;
 use crate::dom::text::Text;
 use crate::dom::xmldocument::XMLDocument;
@@ -117,6 +117,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             loader,
             Some(self.document.insecure_requests_policy()),
             self.document.has_trustworthy_ancestor_or_current_origin(),
+            self.document.custom_element_reaction_stack(),
             can_gc,
         );
 
@@ -184,6 +185,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             self.document.allow_declarative_shadow_roots(),
             Some(self.document.insecure_requests_policy()),
             self.document.has_trustworthy_ancestor_or_current_origin(),
+            self.document.custom_element_reaction_stack(),
             can_gc,
         );
 

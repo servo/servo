@@ -76,7 +76,7 @@ createToggleEventSourceTest({
   closeFunc: async () => {
     dialog.addEventListener('cancel', event => event.preventDefault(), {once: true});
     requestclosebutton.click();
-    assert_true(dialog.matches(':open'),
+    assert_true(dialog.matches('[open]'),
       'cancel preventDefault should have prevented dialog from closing.');
     await (new test_driver.Actions()
       .pointerMove(0, 0, {origin: lightdismiss})

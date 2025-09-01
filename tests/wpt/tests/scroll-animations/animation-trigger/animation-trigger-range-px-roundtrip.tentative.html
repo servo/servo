@@ -11,7 +11,7 @@
       // This test is aimed at environments where the device scale factor is not
       // 1, i.e. the ratio of physical pixels to CSS pixels isn't 1.
       promise_test(async (test) => {
-        let trigger = new AnimationTrigger({
+        let trigger = new TimelineTrigger({
           behavior: "alternate",
           timeline: new ViewTimeline({
             subject: document.getElementById('subject'), axis: "y"

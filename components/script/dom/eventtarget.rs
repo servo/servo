@@ -59,7 +59,7 @@ use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlformelement::FormControlElementHelpers;
+use crate::dom::html::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -1000,14 +1000,10 @@ impl EventTarget {
             } else {
                 ListenerPhase::Bubbling
             };
-            let old_entry = Rc::new(RefCell::new(EventListenerEntry {
-                phase,
-                listener: EventListenerType::Additive(listener.clone()),
-                once: false,
-                passive: None,
-                removed: false,
-            }));
-            if let Some(position) = entries.iter().position(|e| *e == old_entry) {
+            if let Some(position) = entries.iter().position(|e| {
+                e.borrow().listener == EventListenerType::Additive(listener.clone()) &&
+                    e.borrow().phase == phase
+            }) {
                 entries.remove(position).borrow_mut().removed = true;
             }
         }

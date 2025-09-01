@@ -829,12 +829,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 }
                 let exported_key = match alg_name.as_str() {
                     ALG_AES_CBC | ALG_AES_CTR | ALG_AES_KW | ALG_AES_GCM => subtle.export_key_aes(format, &key),
+                    ALG_HMAC => subtle.export_key_hmac(format, &key),
                     _ => Err(Error::NotSupported),
                 };
                 match exported_key {
                     Ok(k) => {
                         match k {
-                            AesExportedKey::Raw(k) => {
+                            ExportedKey::Raw(k) => {
                                 let cx = GlobalScope::get_cx();
                                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                                 create_buffer_source::<ArrayBufferU8>(cx, &k, array_buffer_ptr.handle_mut(),
@@ -842,7 +843,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                                     .expect("failed to create buffer source for exported key.");
                                 promise.resolve_native(&array_buffer_ptr.get(), CanGc::note())
                             },
-                            AesExportedKey::Jwk(k) => {
+                            ExportedKey::Jwk(k) => {
                                 promise.resolve_native(&k, CanGc::note())
                             },
                         }
@@ -911,8 +912,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 };
 
                 let bytes = match exported_key {
-                    AesExportedKey::Raw(k) => k,
-                    AesExportedKey::Jwk(key) => {
+                    ExportedKey::Raw(k) => k,
+                    ExportedKey::Jwk(key) => {
                         // The spec states to convert this to an ECMAscript object and stringify it, but since we know
                         // that the output will be a string of JSON we can just construct it manually
                         // TODO: Support more than just a subset of the JWK dict, or find a way to
@@ -2254,12 +2255,12 @@ impl SubtleCrypto {
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
     /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
-    fn export_key_aes(&self, format: KeyFormat, key: &CryptoKey) -> Result<AesExportedKey, Error> {
+    fn export_key_aes(&self, format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
         match format {
             KeyFormat::Raw => match key.handle() {
-                Handle::Aes128(key_data) => Ok(AesExportedKey::Raw(key_data.as_slice().to_vec())),
-                Handle::Aes192(key_data) => Ok(AesExportedKey::Raw(key_data.as_slice().to_vec())),
-                Handle::Aes256(key_data) => Ok(AesExportedKey::Raw(key_data.as_slice().to_vec())),
+                Handle::Aes128(key_data) => Ok(ExportedKey::Raw(key_data.as_slice().to_vec())),
+                Handle::Aes192(key_data) => Ok(ExportedKey::Raw(key_data.as_slice().to_vec())),
+                Handle::Aes256(key_data) => Ok(ExportedKey::Raw(key_data.as_slice().to_vec())),
                 _ => Err(Error::Data),
             },
             KeyFormat::Jwk => {
@@ -2300,7 +2301,7 @@ impl SubtleCrypto {
                     x: None,
                     y: None,
                 };
-                Ok(AesExportedKey::Jwk(Box::new(jwk)))
+                Ok(ExportedKey::Jwk(Box::new(jwk)))
             },
             _ => Err(Error::NotSupported),
         }
@@ -2456,6 +2457,18 @@ impl SubtleCrypto {
 
         // Step 15. Return key.
         Ok(key)
+    }
+
+    /// <https://w3c.github.io/webcrypto/#hmac-operations-export-key>
+    fn export_key_hmac(&self, format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+        match format {
+            KeyFormat::Raw => match key.handle() {
+                Handle::Hmac(key_data) => Ok(ExportedKey::Raw(key_data.as_slice().to_vec())),
+                _ => Err(Error::Operation),
+            },
+            // FIXME: Implement JWK export for HMAC keys
+            _ => Err(Error::NotSupported),
+        }
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-kw-operations>
@@ -2614,7 +2627,7 @@ impl SubtleCrypto {
     }
 }
 
-pub(crate) enum AesExportedKey {
+pub(crate) enum ExportedKey {
     Raw(Vec<u8>),
     Jwk(Box<JsonWebKey>),
 }

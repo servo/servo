@@ -8,9 +8,9 @@ use std::rc::Rc;
 use crossbeam_channel::Receiver;
 use dpi::PhysicalSize;
 use embedder_traits::webdriver::WebDriverSenders;
-use ipc_channel::ipc::IpcSender;
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
+use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
@@ -95,7 +95,7 @@ struct RunningAppStateInner {
     /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
     focused_webview_id: Option<WebViewId>,
 
-    context_menu_sender: Option<IpcSender<ContextMenuResult>>,
+    context_menu_sender: Option<GenericSender<ContextMenuResult>>,
 
     /// Whether or not the animation state has changed. This is used to trigger
     /// host callbacks indicating that animation state has changed.
@@ -265,7 +265,7 @@ impl WebViewDelegate for RunningAppState {
     fn show_context_menu(
         &self,
         _webview: WebView,
-        result_sender: IpcSender<ContextMenuResult>,
+        result_sender: GenericSender<ContextMenuResult>,
         title: Option<String>,
         items: Vec<String>,
     ) {

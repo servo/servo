@@ -25,7 +25,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::csskeyframerule::CSSKeyframeRule;
 use crate::dom::cssrule::CSSRule;
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::htmlelement::HTMLElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::StylesheetLoader;

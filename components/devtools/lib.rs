@@ -18,6 +18,7 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use base::generic_channel;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
@@ -26,7 +27,7 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use log::{trace, warn};
 use resource::{ResourceArrayType, ResourceAvailable};
 use serde::Serialize;
@@ -651,7 +652,8 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
     };
 
     // No token found. Prompt user
-    let (request_sender, request_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    let (request_sender, request_receiver) =
+        generic_channel::channel().expect("Failed to create IPC channel!");
     embedder.send(EmbedderMsg::RequestDevtoolsConnection(request_sender));
     request_receiver.recv().unwrap() == AllowOrDeny::Allow
 }

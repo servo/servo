@@ -19,16 +19,17 @@ test_valid_value("line-clamp", '6');
 test_valid_value("line-clamp", 'auto');
 test_valid_value("line-clamp", '" etc., etc. "');
 
-test_valid_value("line-clamp", '7 none');
+test_valid_value("line-clamp", '7 no-ellipsis');
 test_valid_value("line-clamp", '8 auto', '8');
 test_valid_value("line-clamp", '9 " etc., etc. "');
 
-test_valid_value("line-clamp", 'none 10', '10 none');
+test_valid_value("line-clamp", 'no-ellipsis 10', '10 no-ellipsis');
 test_valid_value("line-clamp", 'auto 11', '11');
 test_valid_value("line-clamp", '" etc., etc. " 12', '12 " etc., etc. "');
 
 test_valid_value("line-clamp", '1 -webkit-legacy');
 test_valid_value("line-clamp", 'auto -webkit-legacy');
+test_valid_value("line-clamp", 'no-ellipsis -webkit-legacy');
 test_valid_value("line-clamp", '3 auto -webkit-legacy', '3 -webkit-legacy');
 </script>
 </body>

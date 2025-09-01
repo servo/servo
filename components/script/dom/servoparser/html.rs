@@ -30,8 +30,8 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::Element;
-use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::html::htmlscriptelement::HTMLScriptElement;
+use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
@@ -52,12 +52,14 @@ impl Tokenizer {
         fragment_context: Option<super::FragmentContext>,
         parsing_algorithm: ParsingAlgorithm,
     ) -> Self {
+        let custom_element_reaction_stack = document.custom_element_reaction_stack();
         let sink = Sink {
             base_url: url,
             document: Dom::from_ref(document),
             current_line: Cell::new(1),
             script: Default::default(),
             parsing_algorithm,
+            custom_element_reaction_stack,
         };
 
         let quirks_mode = match document.quirks_mode() {

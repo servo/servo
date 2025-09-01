@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Type - SVG Style element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+  <style id=style1></style>
+  <style id=style2 type="random/type"></style>
+</svg>
+
+<script>
+    test(() => {
+        assert_equals(style1.type, "", "missing type reflects as empty string IDL attribute on the style element");
+        assert_equals(style2.type, "random/type", "type reflects correctly IDL attribute on the style element");
+    }, "type attribute on SVG <style> elements should reflect correctly");
+</script>
