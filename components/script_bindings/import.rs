@@ -17,9 +17,10 @@ pub(crate) mod base {
     pub(crate) use js::jsval::{JSVal, NullValue, ObjectOrNullValue, ObjectValue, UndefinedValue};
     pub(crate) use js::panic::maybe_resume_unwind;
     pub(crate) use js::rust::wrappers::Call;
-    pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
+    pub(crate) use js::rust::{CustomTrace, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
     pub(crate) use js::typedarray::{
-        ArrayBuffer, ArrayBufferView, Float32Array, Float64Array, Uint8Array, Uint8ClampedArray,
+        self, ArrayBuffer, ArrayBufferView, Float32Array, Float64Array, Uint8Array,
+        Uint8ClampedArray,
     };
 
     pub(crate) use crate::callback::{

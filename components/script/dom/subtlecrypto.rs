@@ -12,7 +12,7 @@ use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
-use aws_lc_rs::{digest, hkdf, hmac, pbkdf2};
+use aws_lc_rs::{digest, hkdf, hmac, pbkdf2, rsa};
 use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
 use dom_struct::dom_struct;
@@ -20,7 +20,7 @@ use js::conversions::ConversionResult;
 use js::jsapi::{JS_NewObject, JSObject};
 use js::jsval::ObjectValue;
 use js::rust::MutableHandleObject;
-use js::typedarray::ArrayBufferU8;
+use js::typedarray::{ArrayBufferU8, Uint8Array};
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -28,12 +28,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, HkdfParams, HmacImportParams,
-    HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
-    SubtleCryptoMethods,
-};
+use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm, AesKeyGenParams, Algorithm, AlgorithmIdentifier, HkdfParams, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaHashedKeyAlgorithm, RsaKeyAlgorithm, RsaKeyGenParams, SubtleCryptoMethods};
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
 };
@@ -1379,6 +1374,7 @@ enum EncryptionAlgorithm {
 ///
 /// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
 enum SignatureAlgorithm {
+    RsaSsaPkcs1,
     Hmac,
 }
 
@@ -1581,6 +1577,7 @@ fn normalize_algorithm_for_sign_or_verify(
     };
 
     let normalized_algorithm = match name.as_str() {
+        ALG_RSASSA_PKCS1 => SignatureAlgorithm::RsaSsaPkcs1,
         ALG_HMAC => SignatureAlgorithm::Hmac,
         _ => return Err(Error::NotSupported),
     };
@@ -2957,12 +2954,14 @@ impl EncryptionAlgorithm {
 impl SignatureAlgorithm {
     fn name(&self) -> &str {
         match self {
+            Self::RsaSsaPkcs1 => ALG_RSASSA_PKCS1,
             Self::Hmac => ALG_HMAC,
         }
     }
 
     fn sign(&self, cx: JSContext, key: &CryptoKey, data: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
+            Self::RsaSsaPkcs1 => sign_rsa_pkcs1(cx, key, data).map(|s| s.as_ref().to_vec()),
             Self::Hmac => sign_hmac(cx, key, data).map(|s| s.as_ref().to_vec()),
         }
     }
@@ -2975,6 +2974,7 @@ impl SignatureAlgorithm {
         signature: &[u8],
     ) -> Result<bool, Error> {
         match self {
+            Self::RsaSsaPkcs1 => verify_rsa_pkcs1(cx, key, data, signature),
             Self::Hmac => verify_hmac(cx, key, data, signature),
         }
     }
@@ -2994,6 +2994,35 @@ impl KeyGenerationAlgorithm {
             Self::Hmac(params) => subtle.generate_key_hmac(usages, params, extractable, can_gc),
         }
     }
+}
+
+/// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations>
+fn sign_rsa_pkcs1(cx: JSContext, key: &CryptoKey, data: &[u8]) -> Result<impl AsRef<[u8]>, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "private", then throw an InvalidAccessError.
+    if key.Type() != KeyType::Private {
+        return Err(Error::InvalidAccess);
+    }
+    // Step 2. Perform the signature generation operation defined in Section 8.2 of [RFC3447]
+    // with the key represented by the [[handle]] internal slot of key as the signer's private key
+    // and message as M and using the hash function specified in the hash attribute
+    // of the [[algorithm]] internal slot of key as the Hash option
+    // or the EMSA-PKCS1-v1_5 encoding method.
+    rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
+    let params = value_from_js_object!(RsaHashedKeyAlgorithm, cx, algorithm_slot);
+    let hash_algorithm = match params.hash.name.str() {
+        ALG_SHA256 => &aws_lc_rs::signature::RSA_PKCS1_SHA256,
+        ALG_SHA384 => &aws_lc_rs::signature::RSA_PKCS1_SHA384,
+        ALG_SHA512 => &aws_lc_rs::signature::RSA_PKCS1_SHA512,
+        _ => return Err(Error::NotSupported),
+    };
+    let key_pair = rsa::KeyPair::from_pkcs8(key.handle().as_bytes()).map_err(|_| {
+        Error::Operation
+    })?;
+    let mut signature = vec![0u8; key_pair.public_modulus_len()];
+    key_pair.sign(hash_algorithm, &aws_lc_rs::rand::SystemRandom::new(), data, &mut signature).map_err(|_| {
+        Error::Operation
+    })?;
+    Ok(signature)
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations>
@@ -3019,6 +3048,28 @@ fn sign_hmac(cx: JSContext, key: &CryptoKey, data: &[u8]) -> Result<impl AsRef<[
     // NOTE: This is done by the caller
     Ok(mac)
 }
+
+/// https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations
+fn verify_rsa_pkcs1(
+    cx: JSContext,
+    key: &CryptoKey,
+    data: &[u8],
+    signature: &[u8],
+) -> Result<bool, Error> {
+    // If the [[type]] internal slot of key is not "public", then throw an InvalidAccessError.
+    if key.Type() != KeyType::Public {
+        return Err(Error::InvalidAccess);
+    }
+    // Perform the signature verification operation defined in
+    // Section 8.2 of [RFC3447] with the key represented by the [[handle]] internal slot of key
+    // as the signer's RSA public key and message as M and signature as S and using the hash function
+    // specified in the hash attribute of the [[algorithm]] internal slot of key as the Hash option
+    // for the EMSA-PKCS1-v1_5 encoding method.
+    let real_signature = sign_rsa_pkcs1(cx, key, data)?;
+    let is_valid = real_signature.as_ref() == signature;
+    Ok(is_valid)
+}
+
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations>
 fn verify_hmac(
