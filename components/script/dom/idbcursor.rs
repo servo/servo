@@ -96,7 +96,6 @@ impl IDBCursor {
         }
     }
 
-    #[expect(unused)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
@@ -131,11 +130,12 @@ impl IDBCursor {
         *self.key.borrow_mut() = key;
     }
 
-    fn set_object_store_position(
-        &self,
-        object_store_position: Option<IndexedDBKeyType>,
-    ) {
+    fn set_object_store_position(&self, object_store_position: Option<IndexedDBKeyType>) {
         *self.object_store_position.borrow_mut() = object_store_position;
+    }
+
+    pub(crate) fn set_request(&self, request: &IDBRequest) {
+        self.request.set(Some(request));
     }
 
     pub(crate) fn value(&self, mut out: MutableHandleValue) {
@@ -230,7 +230,7 @@ pub(crate) fn iterate_cursor(
 
     // Step 3. Assert: if primaryKey is given, source is an index and direction is "next" or "prev".
     if primary_key.is_some() {
-        assert!(matches!(source, ObjectStoreOrIndex::Index( .. )));
+        assert!(matches!(source, ObjectStoreOrIndex::Index(..)));
         assert!(matches!(
             direction,
             IDBCursorDirection::Next | IDBCursorDirection::Prev
