@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use base::Epoch;
-use base::generic_channel::{GenericSender, SendResult};
+use base::generic_channel::{GenericCallback, GenericSender, SendResult};
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
@@ -290,7 +290,7 @@ pub struct Job {
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-script-url>
     pub script_url: ServoUrl,
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-client>
-    pub client: IpcSender<JobResult>,
+    pub client: GenericCallback<JobResult>,
     /// <https://w3c.github.io/ServiceWorker/#job-referrer>
     pub referrer: ServoUrl,
     /// Various data needed to process job.
@@ -303,7 +303,7 @@ impl Job {
         job_type: JobType,
         scope_url: ServoUrl,
         script_url: ServoUrl,
-        client: IpcSender<JobResult>,
+        client: GenericCallback<JobResult>,
         referrer: ServoUrl,
         scope_things: Option<ScopeThings>,
     ) -> Job {
