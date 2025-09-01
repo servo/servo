@@ -7,6 +7,7 @@ use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
@@ -15,7 +16,7 @@ use crossbeam_channel::{Receiver, Sender, after, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
@@ -161,7 +162,7 @@ pub(crate) struct ServiceWorkerGlobalScope {
 
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
-    swmanager_sender: IpcSender<ServiceWorkerMsg>,
+    swmanager_sender: GenericSender<ServiceWorkerMsg>,
 
     #[no_trace]
     scope_url: ServoUrl,
@@ -224,7 +225,7 @@ impl ServiceWorkerGlobalScope {
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
         time_out_port: Receiver<Instant>,
-        swmanager_sender: IpcSender<ServiceWorkerMsg>,
+        swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
@@ -263,7 +264,7 @@ impl ServiceWorkerGlobalScope {
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
         time_out_port: Receiver<Instant>,
-        swmanager_sender: IpcSender<ServiceWorkerMsg>,
+        swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
@@ -293,7 +294,7 @@ impl ServiceWorkerGlobalScope {
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
         devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
-        swmanager_sender: IpcSender<ServiceWorkerMsg>,
+        swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
