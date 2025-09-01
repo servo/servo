@@ -15,10 +15,6 @@ interface PasswordCredential : Credential {
 };
 PasswordCredential includes CredentialUserData;
 
-partial dictionary CredentialRequestOptions {
-  boolean password = false;
-};
-
 // https://www.w3.org/TR/credential-management-1/#dictdef-passwordcredentialdata
 dictionary PasswordCredentialData : CredentialData {
   USVString name;
@@ -28,7 +24,3 @@ dictionary PasswordCredentialData : CredentialData {
 };
 
 typedef (PasswordCredentialData or HTMLFormElement) PasswordCredentialInit;
-
-partial dictionary CredentialCreationOptions {
-  PasswordCredentialInit password;
-};
