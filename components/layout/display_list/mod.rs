@@ -200,7 +200,18 @@ impl DisplayListBuilder<'_> {
             builder.add_clip_to_display_list(clip);
         }
 
-        builder.push_hit_tests_for_scrollable_areas(&stacking_context_tree.hit_test_items);
+        // Add a single hit test that covers the entire viewport, so that WebRender knows
+        // which pipeline it hits when doing hit testing.
+        let pipeline_id = builder.compositor_info.pipeline_id;
+        let viewport_size = builder.compositor_info.viewport_details.size;
+        let viewport_rect = LayoutRect::from_size(viewport_size.cast_unit());
+        builder.wr().push_hit_test(
+            viewport_rect,
+            ClipChainId::INVALID,
+            SpatialId::root_reference_frame(pipeline_id),
+            PrimitiveFlags::default(),
+            (0, 0), /* tag */
+        );
 
         // Paint the canvas’ background (if any) before/under everything else
         stacking_context_tree
@@ -309,39 +320,6 @@ impl DisplayListBuilder<'_> {
 
         scroll_tree.update_mapping(mapping);
         self.compositor_info.scroll_tree = scroll_tree;
-    }
-
-    fn push_hit_tests_for_scrollable_areas(
-        &mut self,
-        scroll_frame_hit_test_items: &[ScrollFrameHitTestItem],
-    ) {
-        // Add a single hit test that covers the entire viewport, so that WebRender knows
-        // which pipeline it hits when doing hit testing.
-        let pipeline_id = self.compositor_info.pipeline_id;
-        let viewport_size = self.compositor_info.viewport_details.size;
-        let viewport_rect = LayoutRect::from_size(viewport_size.cast_unit());
-        self.wr().push_hit_test(
-            viewport_rect,
-            ClipChainId::INVALID,
-            SpatialId::root_reference_frame(pipeline_id),
-            PrimitiveFlags::default(),
-            (0, 0), /* tag */
-        );
-
-        for item in scroll_frame_hit_test_items {
-            let spatial_id = self
-                .compositor_info
-                .scroll_tree
-                .webrender_id(&item.scroll_node_id);
-            let clip_chain_id = self.clip_chain_id(item.clip_id);
-            self.wr().push_hit_test(
-                item.rect,
-                clip_chain_id,
-                spatial_id,
-                PrimitiveFlags::default(),
-                (item.external_scroll_id.0, 0), /* tag */
-            );
-        }
     }
 
     /// Add the given [`Clip`] to the WebRender display list and create a mapping from
@@ -583,6 +561,7 @@ impl Fragment {
         builder: &mut DisplayListBuilder,
         containing_block: &PhysicalRect<Au>,
         section: StackingContextSection,
+        is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
@@ -606,6 +585,7 @@ impl Fragment {
                     Visibility::Visible => BuilderForBoxFragment::new(
                         box_fragment,
                         containing_block,
+                        is_hit_test_for_scrollable_overflow,
                         is_collapsed_table_borders,
                     )
                     .build(builder, section),
@@ -937,6 +917,7 @@ struct BuilderForBoxFragment<'a> {
     border_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
+    is_hit_test_for_scrollable_overflow: bool,
     is_collapsed_table_borders: bool,
 }
 
@@ -944,6 +925,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn new(
         fragment: &'a BoxFragment,
         containing_block: &'a PhysicalRect<Au>,
+        is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
     ) -> Self {
         let border_rect = fragment
@@ -960,6 +942,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             border_edge_clip_chain_id: RefCell::new(None),
             padding_edge_clip_chain_id: RefCell::new(None),
             content_edge_clip_chain_id: RefCell::new(None),
+            is_hit_test_for_scrollable_overflow,
             is_collapsed_table_borders,
         }
     }
@@ -1042,6 +1025,13 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build(&mut self, builder: &mut DisplayListBuilder, section: StackingContextSection) {
+        if self.is_hit_test_for_scrollable_overflow &&
+            self.fragment.style.get_inherited_ui().pointer_events !=
+                style::computed_values::pointer_events::T::None
+        {
+            self.build_hit_test(builder, self.fragment.scrollable_overflow().to_webrender());
+            return;
+        }
         if self.is_collapsed_table_borders {
             self.build_collapsed_table_borders(builder);
             return;
@@ -1064,6 +1054,24 @@ impl<'a> BuilderForBoxFragment<'a> {
         self.build_background(builder);
         self.build_box_shadow(builder);
         self.build_border(builder);
+    }
+
+    fn build_hit_test(&self, builder: &mut DisplayListBuilder, rect: LayoutRect) {
+        let external_scroll_node_id = builder
+            .compositor_info
+            .external_scroll_id_for_scroll_tree_node(builder.current_scroll_node_id);
+
+        let mut common = builder.common_properties(rect, &self.fragment.style);
+        if let Some(clip_chain_id) = self.border_edge_clip(builder, false) {
+            common.clip_chain_id = clip_chain_id;
+        }
+        builder.wr().push_hit_test(
+            common.clip_rect,
+            common.clip_chain_id,
+            common.spatial_id,
+            common.flags,
+            (external_scroll_node_id.0, 0), /* tag */
+        );
     }
 
     fn build_background_for_painter(
