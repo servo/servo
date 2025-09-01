@@ -14,8 +14,9 @@ use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, Uint8ClampedArray};
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 
-use super::bindings::buffer_source::{HeapBufferSource, create_heap_buffer_source_with_length};
-use crate::dom::bindings::buffer_source::create_buffer_source;
+use crate::dom::bindings::buffer_source::{
+    HeapBufferSource, create_buffer_source, create_heap_buffer_source_with_length,
+};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     ImageDataMethods, ImageDataPixelFormat, ImageDataSettings, PredefinedColorSpace,
 };
