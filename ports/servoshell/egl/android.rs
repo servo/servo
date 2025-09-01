@@ -61,7 +61,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
     env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> JString<'local> {
-    let v = crate::servo_version();
+    let v = crate::VERSION;
     env.new_string(&v)
         .unwrap_or_else(|_str| JObject::null().into())
 }

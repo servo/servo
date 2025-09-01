@@ -97,9 +97,7 @@ pub fn init_tracing(filter_directives: Option<&str>) {
     }
 }
 
-pub fn servo_version() -> String {
-    format!("Servo {}-{}", env!("CARGO_PKG_VERSION"), env!("GIT_SHA"))
-}
+pub const VERSION: &str = concat!("Servo ", env!("CARGO_PKG_VERSION"), "-", env!("GIT_SHA"));
 
 /// Plumbs tracing spans into HiTrace, with the following caveats:
 ///
