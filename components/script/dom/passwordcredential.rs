@@ -54,7 +54,9 @@ impl PasswordCredential {
         can_gc: CanGc,
     ) -> DomRoot<PasswordCredential> {
         reflect_dom_object(
-            Box::new(PasswordCredential::new_inherited(id, origin, password, name, icon_url)),
+            Box::new(PasswordCredential::new_inherited(
+                id, origin, password, name, icon_url,
+            )),
             global,
             can_gc,
         )
@@ -89,6 +91,14 @@ impl PasswordCredentialMethods<DomTypeHolder> for PasswordCredential {
         can_gc: CanGc,
         data: &PasswordCredentialData,
     ) -> Fallible<DomRoot<PasswordCredential>> {
-        Ok(Self::new(global.as_global_scope(), data.parent.id.clone(), data.origin.clone(), data.password.clone(), data.name.clone(), data.iconURL.clone(), can_gc))
+        Ok(Self::new(
+            global.as_global_scope(),
+            data.parent.id.clone(),
+            data.origin.clone(),
+            data.password.clone(),
+            data.name.clone(),
+            data.iconURL.clone(),
+            can_gc,
+        ))
     }
 }
