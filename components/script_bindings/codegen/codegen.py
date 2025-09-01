@@ -52,6 +52,8 @@ from WebIDL import (
     IDLEnum,
     IDLCallbackType,
     IDLUnresolvedIdentifier,
+    IDLMaplikeOrSetlikeOrIterableBase,
+    IDLConstructor,
 )
 
 from configuration import (
@@ -2845,9 +2847,9 @@ def UnionTypes(
 
 def DomTypes(descriptors: list[Descriptor],
              descriptorProvider: DescriptorProvider,
-             dictionaries: IDLDictionary,
-             callbacks: IDLCallback,
-             typedefs: IDLTypedef,
+             dictionaries: list[IDLDictionary],
+             callbacks: list[IDLCallback],
+             typedefs: list[IDLTypedef],
              config: Configuration
              ) -> CGThing:
     traits = [
@@ -2962,9 +2964,9 @@ def DomTypes(descriptors: list[Descriptor],
 
 def DomTypeHolder(descriptors: list[Descriptor],
                   descriptorProvider: DescriptorProvider,
-                  dictionaries: IDLDictionary,
-                  callbacks: IDLCallback,
-                  typedefs: IDLTypedef,
+                  dictionaries: list[IDLDictionary],
+                  callbacks: list[IDLCallback],
+                  typedefs: list[IDLTypedef],
                   config: Configuration
                   ) -> CGThing:
     elements = [
@@ -4415,7 +4417,7 @@ let global = D::GlobalScope::from_object(args.callee());
         raise NotImplementedError
 
 
-def GetConstructorNameForReporting(descriptor: Descriptor, ctor: IDLInterfaceOrNamespace) -> str:
+def GetConstructorNameForReporting(descriptor: Descriptor, ctor: IDLConstructor) -> str:
     # Figure out the name of our constructor for reporting purposes.
     # For unnamed webidl constructors, identifier.name is "constructor" but
     # the name JS sees is the interface name; for legacy factory functions
@@ -6788,7 +6790,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
     """
     JS-visible constructor for our objects
     """
-    def __init__(self, descriptor: Descriptor, constructor=None) -> None:
+    def __init__(self, descriptor: Descriptor, constructor: IDLConstructor | None = None) -> None:
         args = [Argument('*mut JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
         name = CONSTRUCT_HOOK_NAME
         if constructor:
@@ -6885,7 +6887,7 @@ class CGInterfaceTrait(CGThing):
     def __init__(self, descriptor: Descriptor, descriptorProvider: DescriptorProvider) -> None:
         CGThing.__init__(self)
 
-        def attribute_arguments(attribute_type, argument=None, inRealm=False, canGc=False, retval=False):
+        def attribute_arguments(attribute_type: IDLType, argument: IDLType | None = None, inRealm: bool = False, canGc: bool = False, retval: bool = False) -> Iterable[tuple[str, str]]:
             if typeNeedsCx(attribute_type, retval):
                 yield "cx", "SafeJSContext"
 
@@ -6901,7 +6903,7 @@ class CGInterfaceTrait(CGThing):
             if retval and returnTypeNeedsOutparam(attribute_type):
                 yield "retval", outparamTypeFromReturnType(attribute_type)
 
-        def members():
+        def members() -> Iterator[tuple[str, Iterable[tuple[str, str]], str, bool]]:
             for m in descriptor.interface.members:
                 if (m.isMethod()
                         and not m.isMaplikeOrSetlikeOrIterableMethod()
@@ -6978,14 +6980,14 @@ class CGInterfaceTrait(CGThing):
                     rettype = return_type(descriptor, rettype, infallible)
                     yield name, arguments, rettype, False
 
-        def fmt(arguments, leadingComma=True) -> str:
+        def fmt(arguments: list[tuple[str, str]], leadingComma: bool = True) -> str:
             prefix = "" if not leadingComma else ", "
             return prefix + ", ".join(
                 f"r#{name}: {type_}"
                 for name, type_ in arguments
             )
 
-        def contains_unsafe_arg(arguments):
+        def contains_unsafe_arg(arguments: list[tuple[str, str]]) -> bool:
             if not arguments or len(arguments) == 0:
                 return False
             return functools.reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
@@ -7011,7 +7013,7 @@ class CGInterfaceTrait(CGThing):
                 f"{fmt(arguments, leadingComma=not isStatic)}){returnType};\n"
             ))
 
-        def ctorMethod(ctor, baseName: str | None=None):
+        def ctorMethod(ctor: IDLMethod, baseName: str | None = None) -> Iterator[CGThing]:
             infallible = 'infallible' in descriptor.getExtendedAttributes(ctor)
             for (i, (rettype, arguments)) in enumerate(ctor.signatures()):
                 name = (baseName or ctor.identifier.name) + ('_' * i)
@@ -7064,7 +7066,7 @@ class CGInitStatics(CGThing):
     def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
 
-        def internal(method):
+        def internal(method: IDLMethod) -> str:
             return descriptor.internalNameFor(method.identifier.name)
 
         properties = PropertyArrays(descriptor)
@@ -7157,7 +7159,7 @@ class CGDescriptor(CGThing):
 
         reexports = []
 
-        def reexportedName(name: str):
+        def reexportedName(name: str) -> str:
             if name.startswith(descriptor.name):
                 return name
             if not soleDescriptor:
@@ -7359,7 +7361,7 @@ class CGDescriptor(CGThing):
 
 
 class CGNonNamespacedEnum(CGThing):
-    def __init__(self, enumName, names, first, comment="", deriving="", repr="") -> None:
+    def __init__(self, enumName: str, names: list[str], first: int, comment: str = "", deriving: str = "", repr: str = "") -> None:
         # Account for first value
         entries = [f"{names[0]} = {first}"] + names[1:]
 
@@ -7393,7 +7395,7 @@ class CGNonNamespacedEnum(CGThing):
 
 
 class CGDictionary(CGThing):
-    def __init__(self, dictionary, descriptorProvider: DescriptorProvider, config: Configuration) -> None:
+    def __init__(self, dictionary: IDLDictionary, descriptorProvider: DescriptorProvider, config: Configuration) -> None:
         self.dictionary = dictionary
         derivesList = config.getDictConfig(dictionary.identifier.name).get('derives', [])
         self.manualImpls = list(filter(lambda t: traitRequiresManualImpl(t, self.dictionary), derivesList))
@@ -7408,7 +7410,7 @@ class CGDictionary(CGThing):
 
         self.generic, self.genericSuffix = genericsForType(self.dictionary)
 
-        self.memberInfo = [
+        self.memberInfo: list[tuple[IDLArgument, JSToNativeConversionInfo]] = [
             (member,
              getJSToNativeConversionInfo(member.type,
                                          descriptorProvider,
@@ -7441,7 +7443,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
 }}
 """
 
-    def manualImpl(self, t) -> str:
+    def manualImpl(self, t: str) -> str:
         if t == "Clone":
             return self.manualImplClone()
         raise ValueError(f"Don't know how to impl {t} for dicts.")
@@ -7524,20 +7526,20 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         else:
             initParent = ""
 
-        def memberInit(memberInfo) -> CGThing:
+        def memberInit(memberInfo: tuple[IDLArgument, JSToNativeConversionInfo]) -> CGThing:
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
             conversion = self.getMemberConversion(memberInfo, member.type)
             return CGGeneric(f"{name}: {conversion.define()},\n")
 
-        def varInsert(varName: str, dictionaryName) -> CGThing:
+        def varInsert(varName: str, dictionaryName: str) -> CGThing:
             insertion = (
                 f"rooted!(in(cx) let mut {varName}_js = UndefinedValue());\n"
                 f"{varName}.to_jsval(cx, {varName}_js.handle_mut());\n"
                 f'set_dictionary_property(cx, obj.handle(), "{dictionaryName}", {varName}_js.handle()).unwrap();')
             return CGGeneric(insertion)
 
-        def memberInsert(memberInfo) -> CGThing:
+        def memberInsert(memberInfo: tuple[IDLArgument, JSToNativeConversionInfo]) -> CGThing:
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
             if member.optional and not member.defaultValue:
@@ -7618,28 +7620,30 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         return type_needs_tracing(self.dictionary)
 
     @staticmethod
-    def makeDictionaryName(dictionary):
+    def makeDictionaryName(dictionary: IDLObject) -> str:
         if isinstance(dictionary, IDLWrapperType):
             return CGDictionary.makeDictionaryName(dictionary.inner)
         else:
+            assert isinstance(dictionary, IDLDictionary)
             return dictionary.identifier.name
 
-    def makeClassName(self, dictionary):
+    def makeClassName(self, dictionary: IDLObject) -> str:
         return self.makeDictionaryName(dictionary)
 
     @staticmethod
-    def makeModuleName(dictionary) -> str:
+    def makeModuleName(dictionary: IDLObject) -> str:
         return getModuleFromObject(dictionary)
 
-    def getMemberType(self, memberInfo):
+    def getMemberType(self, memberInfo: tuple[IDLArgument, JSToNativeConversionInfo]) -> str:
         member, info = memberInfo
+        assert info.declType is not None
         declType = info.declType
         if member.optional and not member.defaultValue:
             declType = CGWrapper(info.declType, pre="Option<", post=">")
         return declType.define()
 
-    def getMemberConversion(self, memberInfo, memberType) -> CGThing:
-        def indent(s) -> str:
+    def getMemberConversion(self, memberInfo: tuple[IDLArgument, JSToNativeConversionInfo], memberType: IDLType) -> CGThing:
+        def indent(s: str) -> str:
             return CGIndenter(CGGeneric(s), 12).define()
 
         member, info = memberInfo
@@ -7706,9 +7710,9 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             s += fieldTemplate % (self.makeMemberName(member.identifier.name), default)
         return functionTemplate % CGIndenter(CGGeneric(s), 12).define()
 
-    def hasRequiredFields(self, dictionary) -> bool:
+    def hasRequiredFields(self, dictionary: IDLDictionary) -> bool:
         if dictionary.parent:
-            if self.hasRequiredFields(dictionary.parent):
+            if self.hasRequiredFields(cast(IDLDictionary, dictionary.parent)):
                 return True
         for member in dictionary.members:
             if not member.optional:
@@ -7723,10 +7727,10 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         return name
 
     @staticmethod
-    def getDictionaryDependencies(dictionary):
+    def getDictionaryDependencies(dictionary: IDLDictionary) -> set[IDLDictionary]:
         deps = set()
         if dictionary.parent:
-            deps.add(dictionary.parent)
+            deps.add(cast(IDLDictionary, dictionary.parent))
         for member in dictionary.members:
             if member.type.isDictionary():
                 deps.add(member.type.unroll().inner)
@@ -7800,7 +7804,7 @@ class CGStructuredCloneMarker(CGThing):
     """
     Generate a type assertion for inheritance
     """
-    def __init__(self, descriptor: Descriptor, marker) -> None:
+    def __init__(self, descriptor: Descriptor, marker: str) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.marker = marker
@@ -7825,7 +7829,7 @@ class CGConcreteBindingRoot(CGThing):
     the generic bindings with type specialization applied.
     """
     root: CGThing | None
-    def __init__(self, config, prefix, webIDLFile) -> None:
+    def __init__(self, config: Configuration, prefix: str, webIDLFile: str) -> None:
         descriptors = config.getDescriptors(webIDLFile=webIDLFile,
                                             hasInterfaceObject=True)
         # We also want descriptors that have an interface prototype object
@@ -7967,7 +7971,7 @@ class CGBindingRoot(CGThing):
     declare or define to generate header or cpp code (respectively).
     """
     root: CGThing | None
-    def __init__(self, config, prefix, webIDLFile) -> None:
+    def __init__(self, config: Configuration, prefix: str, webIDLFile: str) -> None:
         descriptors = config.getDescriptors(webIDLFile=webIDLFile,
                                             hasInterfaceObject=True)
         # We also want descriptors that have an interface prototype object
@@ -8123,7 +8127,7 @@ def type_needs_auto_root(t: IDLType) -> bool:
     return False
 
 
-def argument_type(descriptorProvider: DescriptorProvider, ty: IDLType, optional: bool = False, defaultValue=None, variadic: bool = False) -> str:
+def argument_type(descriptorProvider: DescriptorProvider, ty: IDLType, optional: bool = False, defaultValue: IDLNullValue | None = None, variadic: bool = False) -> str:
     info = getJSToNativeConversionInfo(
         ty, descriptorProvider, isArgument=True,
         isAutoRooted=type_needs_auto_root(ty))
@@ -8312,7 +8316,7 @@ class CGCallback(CGClass):
                             visibility='pub'),
                 method]
 
-    def deps(self):
+    def deps(self) -> set[str]:
         return self._deps
 
 
@@ -8326,7 +8330,7 @@ def callbackSetterName(attr: IDLAttribute, descriptor: Descriptor) -> str:
 
 
 class CGCallbackFunction(CGCallback):
-    def __init__(self, callback, descriptorProvider) -> None:
+    def __init__(self, callback: IDLCallback, descriptorProvider: DescriptorProvider) -> None:
         CGCallback.__init__(self, callback, descriptorProvider,
                             "CallbackFunction<D>",
                             methods=[CallCallback(callback, descriptorProvider)])
@@ -8336,7 +8340,7 @@ class CGCallbackFunction(CGCallback):
 
 
 class CGCallbackFunctionImpl(CGGeneric):
-    def __init__(self, callback) -> None:
+    def __init__(self, callback: IDLInterfaceOrNamespace | IDLCallback) -> None:
         type = f"{callback.identifier.name}<D>"
         impl = (f"""
 impl<D: DomTypes> CallbackContainer<D> for {type} {{
@@ -8359,7 +8363,7 @@ impl<D: DomTypes> ToJSValConvertible for {type} {{
 
 
 class CGCallbackInterface(CGCallback):
-    def __init__(self, descriptor) -> None:
+    def __init__(self, descriptor: Descriptor) -> None:
         iface = descriptor.interface
         attrs = [m for m in iface.members if m.isAttr() and not m.isStatic()]
         assert not attrs
@@ -8534,7 +8538,7 @@ class CallbackMember(CGNativeMember):
             )
         return conversion
 
-    def getArgs(self, returnType, argList) -> list[Argument]:
+    def getArgs(self, returnType: IDLType, argList: list[IDLArgument]) -> list[Argument]:
         args = CGNativeMember.getArgs(self, returnType, argList)
         if not self.needThisHandling:
             # Since we don't need this handling, we're the actual method that
@@ -8564,7 +8568,7 @@ class CallbackMember(CGNativeMember):
         return CGGeneric(f"let mut argc = {self.argCountStr};")
 
     @staticmethod
-    def ensureASCIIName(idlObject) -> None:
+    def ensureASCIIName(idlObject: IDLInterfaceMember) -> None:
         type = "attribute" if idlObject.isAttr() else "operation"
         if re.match("[^\x20-\x7E]", idlObject.identifier.name):
             raise SyntaxError(f'Callback {type} name "{idlObject.identifier.name}" contains non-ASCII '
@@ -8674,7 +8678,7 @@ class CallbackOperation(CallbackOperationBase):
     """
     Codegen actual WebIDL operations on callback interfaces.
     """
-    def __init__(self, method, signature, descriptor) -> None:
+    def __init__(self, method: IDLMethod, signature: tuple[IDLType, list[IDLArgument | FakeArgument]], descriptor: Descriptor) -> None:
         self.ensureASCIIName(method)
         jsName = method.identifier.name
         CallbackOperationBase.__init__(self, signature,
@@ -8690,7 +8694,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGGeneric):
     CGMethodCall/CGPerSignatureCall. Functionality is filled in here instead of
     using CGCallGenerator.
     """
-    def __init__(self, descriptor, likeable, methodName) -> None:
+    def __init__(self, descriptor: Descriptor, likeable: IDLMaplikeOrSetlikeOrIterableBase, methodName: str) -> None:
         trait: str
         if likeable.isSetlike():
             trait = "Setlike"
@@ -8761,7 +8765,7 @@ class CGIterableMethodGenerator(CGGeneric):
     CGMethodCall/CGPerSignatureCall. Functionality is filled in here instead of
     using CGCallGenerator.
     """
-    def __init__(self, descriptor, iterable, methodName) -> None:
+    def __init__(self, descriptor: Descriptor, iterable: IDLMaplikeOrSetlikeOrIterableBase, methodName: str) -> None:
         if methodName == "forEach":
             CGGeneric.__init__(self, fill(
                 """
@@ -9125,7 +9129,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def DomTypes(config) -> CGThing:
+    def DomTypes(config: Configuration) -> CGThing:
         curr = DomTypes(config.getDescriptors(),
                         config.getDescriptorProvider(),
                         config.getDictionaries(),
@@ -9140,7 +9144,7 @@ impl Clone for TopTypeId {
         return curr
 
     @staticmethod
-    def DomTypeHolder(config) -> CGThing:
+    def DomTypeHolder(config: Configuration) -> CGThing:
         curr = DomTypeHolder(config.getDescriptors(),
                              config.getDescriptorProvider(),
                              config.getDictionaries(),
