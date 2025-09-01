@@ -289,6 +289,10 @@ pub enum AsyncReadOnlyOperation {
         sender: IpcSender<BackendResult<u64>>,
         key_range: IndexedDBKeyRange,
     },
+    Iterate {
+        sender: IpcSender<BackendResult<Vec<IndexedDBRecord>>>,
+        key_range: IndexedDBKeyRange,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
