@@ -195,10 +195,13 @@ pub fn init(
         RefCell::new(coordinates),
     ));
 
+    let begin_frame_source = Rc::new(BeginFrameSourceImpl::new());
+
     let servo = ServoBuilder::new(rendering_context.clone())
         .opts(opts)
         .preferences(preferences)
         .event_loop_waker(waker.clone())
+        .begin_frame_source(begin_frame_source.clone())
         .build();
 
     // Initialize WebDriver server if port is specified
@@ -215,6 +218,7 @@ pub fn init(
         rendering_context,
         servo,
         window_callbacks,
+        Some(begin_frame_source),
         servoshell_preferences,
         webdriver_receiver,
     );

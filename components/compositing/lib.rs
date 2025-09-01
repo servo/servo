@@ -12,7 +12,7 @@ use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{CompositorMsg, CompositorProxy};
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
-use embedder_traits::{EventLoopWaker, ShutdownState};
+use embedder_traits::{BeginFrameSource, EventLoopWaker, ShutdownState};
 use profile_traits::{mem, time};
 use webrender::RenderApi;
 use webrender_api::DocumentId;
@@ -55,4 +55,5 @@ pub struct InitialCompositorState {
     /// An [`EventLoopWaker`] used in order to wake up the embedder when it is
     /// time to paint.
     pub event_loop_waker: Box<dyn EventLoopWaker>,
+    pub begin_frame_source: Option<Rc<dyn BeginFrameSource>>,
 }

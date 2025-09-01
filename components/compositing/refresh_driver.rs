@@ -4,22 +4,21 @@
 
 use std::cell::Cell;
 use std::collections::hash_map::Values;
+use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use base::id::WebViewId;
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Sender, select};
-use embedder_traits::EventLoopWaker;
+use embedder_traits::{BeginFrameSource, BeginFrameSourceObserver, EventLoopWaker};
 use log::warn;
 use timers::{BoxedTimerCallback, TimerEventRequest, TimerScheduler};
 
 use crate::compositor::RepaintReason;
 use crate::webview_renderer::WebViewRenderer;
-
-const FRAME_DURATION: Duration = Duration::from_millis(1000 / 120);
 
 /// The [`RefreshDriver`] is responsible for controlling updates to aall `WebView`s
 /// onscreen presentation. Currently, it only manages controlling animation update
@@ -37,35 +36,36 @@ pub(crate) struct RefreshDriver {
     /// Whether or not we are waiting for our frame timeout to trigger
     pub(crate) waiting_for_frame_timeout: Arc<AtomicBool>,
 
-    /// A [`TimerThread`] which is used to schedule frame timeouts in the future.
-    timer_thread: TimerThread,
+    /// A [`BeginFrameSource`] to be used to register begin frame observers.
+    begin_frame_source: Rc<dyn BeginFrameSource>,
 
-    /// An [`EventLoopWaker`] to be used to wake up the embedder when it is
-    /// time to paint a frame.
-    event_loop_waker: Box<dyn EventLoopWaker>,
+    /// A [`BeginFrameSourceObserverImpl`] to be used to observe begin frame.
+    begin_frame_source_observer: Box<BeginFrameSourceObserverImpl>,
 }
 
 impl RefreshDriver {
     pub(crate) fn new(
         constellation_sender: Sender<EmbedderToConstellationMessage>,
         event_loop_waker: Box<dyn EventLoopWaker>,
+        begin_frame_source: Option<Rc<dyn BeginFrameSource>>,
     ) -> Self {
+        let begin_frame_source =
+            begin_frame_source.unwrap_or_else(|| Rc::new(DefaultBeginFrameSource::default()));
+
+        let waiting_for_frame_timeout = Arc::new(AtomicBool::new(false));
+        let begin_frame_source_observer = Box::new(BeginFrameSourceObserverImpl {
+            id: Arc::new(AtomicU64::new(0)),
+            waiting_for_frame_timeout: waiting_for_frame_timeout.clone(),
+            event_loop_waker,
+        });
+
         Self {
             constellation_sender,
             animating: Default::default(),
-            waiting_for_frame_timeout: Default::default(),
-            timer_thread: Default::default(),
-            event_loop_waker,
+            waiting_for_frame_timeout,
+            begin_frame_source,
+            begin_frame_source_observer,
         }
-    }
-
-    fn timer_callback(&self) -> BoxedTimerCallback {
-        let waiting_for_frame_timeout = self.waiting_for_frame_timeout.clone();
-        let event_loop_waker = self.event_loop_waker.clone_box();
-        Box::new(move || {
-            waiting_for_frame_timeout.store(false, Ordering::Relaxed);
-            event_loop_waker.wake();
-        })
     }
 
     /// Notify the [`RefreshDriver`] that a paint is about to happen. This will trigger
@@ -96,6 +96,8 @@ impl RefreshDriver {
         // any noew frames nor triggering a new animation deadline.
         if animating_webviews.is_empty() {
             self.animating.set(false);
+            self.begin_frame_source
+                .remove_observer(self.begin_frame_source_observer.id());
             return;
         }
 
@@ -112,8 +114,8 @@ impl RefreshDriver {
         self.animating.set(true);
         self.waiting_for_frame_timeout
             .store(true, Ordering::Relaxed);
-        self.timer_thread
-            .queue_timer(FRAME_DURATION, self.timer_callback());
+        self.begin_frame_source
+            .add_observer(self.begin_frame_source_observer.cloned_box());
     }
 
     /// Notify the [`RefreshDriver`] that the animation state of a particular `WebView`
@@ -143,8 +145,8 @@ impl RefreshDriver {
         self.animating.set(true);
         self.waiting_for_frame_timeout
             .store(true, Ordering::Relaxed);
-        self.timer_thread
-            .queue_timer(FRAME_DURATION, self.timer_callback());
+        self.begin_frame_source
+            .add_observer(self.begin_frame_source_observer.cloned_box());
     }
 
     /// Whether or not the renderer should trigger a message to the embedder to request a
@@ -228,5 +230,56 @@ impl TimerThread {
                 callback,
                 duration,
             }));
+    }
+}
+
+const FRAME_DURATION: Duration = Duration::from_millis(1000 / 120);
+
+#[derive(Default)]
+struct DefaultBeginFrameSource {
+    /// A [`TimerThread`] which is used to schedule frame timeouts in the future.
+    timer_thread: TimerThread,
+}
+
+impl BeginFrameSource for DefaultBeginFrameSource {
+    fn add_observer(&self, observer: Box<dyn BeginFrameSourceObserver>) {
+        self.timer_thread.queue_timer(
+            FRAME_DURATION,
+            Box::new(move || {
+                observer.on_begin_frame();
+            }),
+        );
+    }
+
+    fn remove_observer(&self, _id: u64) {}
+}
+
+struct BeginFrameSourceObserverImpl {
+    id: Arc<AtomicU64>,
+    waiting_for_frame_timeout: Arc<AtomicBool>,
+    event_loop_waker: Box<dyn EventLoopWaker>,
+}
+
+impl BeginFrameSourceObserver for BeginFrameSourceObserverImpl {
+    fn cloned_box(&self) -> Box<dyn BeginFrameSourceObserver> {
+        Box::new(Self {
+            id: self.id.clone(),
+            waiting_for_frame_timeout: self.waiting_for_frame_timeout.clone(),
+            event_loop_waker: self.event_loop_waker.clone_box(),
+        })
+    }
+
+    fn on_begin_frame(&self) {
+        self.waiting_for_frame_timeout
+            .store(false, Ordering::Relaxed);
+        self.event_loop_waker.wake();
+    }
+
+    fn set_id(&self, id: u64) {
+        self.id.store(id, Ordering::Relaxed);
+    }
+
+    fn id(&self) -> u64 {
+        self.id.load(Ordering::Relaxed)
     }
 }
