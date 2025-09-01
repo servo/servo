@@ -134,6 +134,24 @@ impl Clone for EmbedderProxy {
     }
 }
 
+pub trait BeginFrameSource {
+    fn add_observer(&self, observer: Box<dyn BeginFrameSourceObserver>);
+    fn remove_observer(&self, id: u64);
+}
+
+pub trait BeginFrameSourceObserver: 'static + Send {
+    fn cloned_box(&self) -> Box<dyn BeginFrameSourceObserver>;
+    fn on_begin_frame(&self);
+    fn set_id(&self, id: u64);
+    fn id(&self) -> u64;
+}
+
+impl Clone for Box<dyn BeginFrameSourceObserver> {
+    fn clone(&self) -> Self {
+        self.cloned_box()
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub enum ContextMenuResult {
     Dismissed,

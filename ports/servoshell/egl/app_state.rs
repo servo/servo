@@ -74,6 +74,7 @@ pub struct RunningAppState {
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
     callbacks: Rc<ServoWindowCallbacks>,
+    begin_frame_source: Option<Rc<BeginFrameSourceImpl>>,
     inner: RefCell<RunningAppStateInner>,
     /// servoshell specific preferences created during startup of the application.
     servoshell_preferences: ServoShellPreferences,
@@ -332,6 +333,49 @@ impl WebViewDelegate for RunningAppState {
     }
 }
 
+pub struct BeginFrameSourceImpl {
+    next_observer_id: Cell<64>,
+    observers: RefCell<HashMap<u64, Box<dyn BeginFrameSourceObserver>>>,
+}
+
+impl BeginFrameSourceImpl {
+    fn new() -> Self {
+        Self {
+            next_observer_id: Cell::new(1),
+            observers: RefCell::new(HashMap::new()),
+        }
+    }
+
+    fn next_id(&self) -> u64 {
+        let id = self.next_observer_id.get();
+        self.next_observer_id.set(id + 1);
+        id
+    }
+
+    fn notify_vsync(&self) {
+        for observer in self.observers.borrow().values() {
+            observer.on_begin_frame();
+        }
+    }
+}
+
+impl BeginFrameSource for BeginFrameSourceImpl {
+    fn add_observer(&self, observer: Box<dyn BeginFrameSourceObserver>) {
+        match self.observers.borrow_mut().entry(observer.id()) {
+            Entry::Vacant(entry) => {
+                let id = self.next_id();
+                observer.set_id(id);
+                entry.insert(observer);
+            },
+            Entry::Occupied(_) => return,
+        }
+    }
+
+    fn remove_observer(&self, id: u64) {
+        self.observers.borrow_mut().remove(&id);
+    }
+}
+
 #[allow(unused)]
 impl RunningAppState {
     pub(super) fn new(
@@ -340,6 +384,7 @@ impl RunningAppState {
         rendering_context: Rc<WindowRenderingContext>,
         servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
+        begin_frame_source: Option<Rc<BeginFrameSourceImpl>>,
         servoshell_preferences: ServoShellPreferences,
         webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     ) -> Rc<Self> {
@@ -358,6 +403,7 @@ impl RunningAppState {
             rendering_context,
             servo,
             callbacks,
+            begin_frame_source,
             servoshell_preferences,
             webdriver_receiver,
             webdriver_senders: RefCell::default(),
@@ -882,6 +928,10 @@ impl RunningAppState {
     }
 
     pub fn notify_vsync(&self) {
+        if let Some(begin_frame_source) = &self.begin_frame_source {
+            begin_frame_source.notify_vsync();
+        };
+
         self.active_webview().notify_vsync();
         self.perform_updates();
     }

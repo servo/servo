@@ -289,6 +289,7 @@ impl IOCompositor {
                 refresh_driver: RefreshDriver::new(
                     state.constellation_chan.clone(),
                     state.event_loop_waker,
+                    state.begin_frame_source,
                 ),
                 shutdown_state: state.shutdown_state,
                 compositor_receiver: state.receiver,
