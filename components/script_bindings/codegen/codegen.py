@@ -5006,13 +5006,12 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
         if t.isUnion():
             u = t.unroll()
             assert isinstance(u, IDLUnionType)
-            flatMemberTypes = u.flatMemberTypes
-            assert flatMemberTypes is not None
             if u.hasNullableType:
                 # Might be null or not
                 return "JSVAL_TYPE_UNKNOWN"
+            assert u.flatMemberTypes is not None
             return functools.reduce(CGMemberJITInfo.getSingleReturnType,
-                                    flatMemberTypes, "")
+                                    u.flatMemberTypes, "")
         if t.isDictionary():
             return "JSVAL_TYPE_OBJECT"
         if not t.isPrimitive():
@@ -5080,12 +5079,10 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
             return "JSJitInfo_ArgType::Object as i32"
         if t.isUnion():
             u = t.unroll()
-            assert isinstance(u, IDLUnionType)
-            flatMemberTypes = u.flatMemberTypes
-            assert flatMemberTypes is not None
+            assert isinstance(u, IDLUnionType) and u.flatMemberTypes is not None
             type = "JSJitInfo_ArgType::Null as i32" if u.hasNullableType else ""
             return functools.reduce(CGMemberJITInfo.getSingleArgType,
-                                    flatMemberTypes, type)
+                                    u.flatMemberTypes, type)
         if t.isDictionary():
             return "JSJitInfo_ArgType::Object as i32"
         if not t.isPrimitive():
@@ -5907,7 +5904,7 @@ class ClassMember(ClassItem):
 
 class CGClass(CGThing):
     def __init__(self, name, bases=[], members=[], constructors=[],
-                 destructor: list[CallbackOperation] | None=None, methods=[],
+                 destructor: ClassItem | None=None, methods=[],
                  typedefs=[], enums=[], unions=[], templateArgs=[],
                  templateSpecialization=[],
                  disallowCopyConstruction=False, indent='',
@@ -7734,7 +7731,7 @@ class CGInitAllStatics(CGAbstractMethod):
                                   pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
 
-    def definition_body(self) -> CGList:
+    def definition_body(self) -> CGThing:
         return CGList([
             CGGeneric(f"    GenericBindings::{toBindingModuleFileFromDescriptor(desc)}::{toBindingNamespace(desc.name)}"
                       "::init_statics::<D>();")
@@ -7751,7 +7748,7 @@ class CGRegisterProxyHandlersMethod(CGAbstractMethod):
                                   pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
 
-    def definition_body(self) -> CGList:
+    def definition_body(self) -> CGThing:
         body = [CGGeneric("unsafe {")]
         body += [
             CGGeneric(f"proxy_handlers::{desc.name}.store(\n"
@@ -8832,7 +8829,7 @@ class GlobalGenRoots():
     """
 
     @staticmethod
-    def Globals(config) -> CGList:
+    def Globals(config) -> CGThing:
         global_descriptors = config.getDescriptors(isGlobal=True)
         flags = [("EMPTY", 0)]
         flags.extend(
@@ -8851,7 +8848,7 @@ class GlobalGenRoots():
         ])
 
     @staticmethod
-    def InterfaceObjectMap(config) -> CGList:
+    def InterfaceObjectMap(config) -> CGThing:
         mods = [
             "crate::dom::bindings::codegen",
             "script_bindings::interfaces::Interface",
