@@ -1817,10 +1817,7 @@ impl<'a> TableLayout<'a> {
                 baselines.last = Some(row_end);
             }
 
-            if self.is_row_collapsed(row_index) {
-                continue;
-            }
-
+            let row_is_collapsed = self.is_row_collapsed(row_index);
             let table_row = self.table.rows[row_index].borrow();
             let mut row_fragment_layout = RowFragmentLayout::new(
                 &table_row,
@@ -1856,10 +1853,6 @@ impl<'a> TableLayout<'a> {
             let column_indices = 0..self.table.size.width;
             row_fragment_layout.fragments.reserve(self.table.size.width);
             for column_index in column_indices {
-                if self.is_column_collapsed(column_index) {
-                    continue;
-                }
-
                 self.do_final_cell_layout(
                     row_index,
                     column_index,
@@ -1868,6 +1861,7 @@ impl<'a> TableLayout<'a> {
                     &mut row_fragment_layout,
                     row_group_fragment_layout.as_mut(),
                     positioning_context,
+                    self.is_column_collapsed(column_index) || row_is_collapsed,
                 );
             }
 
@@ -1997,6 +1991,7 @@ impl<'a> TableLayout<'a> {
         row_fragment_layout: &mut RowFragmentLayout,
         row_group_fragment_layout: Option<&mut RowGroupFragmentLayout>,
         positioning_context_for_table: &mut PositioningContext,
+        is_collapsed: bool,
     ) {
         // The PositioningContext for cells is, in order or preference, the PositioningContext of the row,
         // the PositioningContext of the row group, or the PositioningContext of the table.
@@ -2046,6 +2041,7 @@ impl<'a> TableLayout<'a> {
             positioning_context,
             &self.table.style,
             &row_fragment_layout.containing_block,
+            is_collapsed,
         );
 
         // Make a table part rectangle relative to the row fragment for the purposes of
@@ -2829,6 +2825,7 @@ impl TableSlotCell {
             .sizes
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn create_fragment(
         &self,
         mut layout: CellLayout,
@@ -2837,6 +2834,7 @@ impl TableSlotCell {
         positioning_context: &mut PositioningContext,
         table_style: &ComputedValues,
         containing_block: &ContainingBlock,
+        is_collapsed: bool,
     ) -> BoxFragment {
         // This must be scoped to this function because it conflicts with euclid's Zero.
         use style::Zero as StyleZero;
@@ -2862,6 +2860,10 @@ impl TableSlotCell {
             layout.is_empty_for_empty_cells()
         {
             base_fragment_info.flags.insert(FragmentFlags::DO_NOT_PAINT);
+        }
+
+        if is_collapsed {
+            base_fragment_info.flags.insert(FragmentFlags::IS_COLLAPSED);
         }
 
         // Create an `AnonymousFragment` to move the cell contents to the cell baseline.
