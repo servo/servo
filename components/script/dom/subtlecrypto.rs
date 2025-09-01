@@ -3077,7 +3077,7 @@ fn parse_jwk(
                 serde_json::Value::String(op_string) => op_string,
                 _ => return true,
             };
-            let usage = match usage_from_str(op_string) {
+            let usage = match KeyUsage::from_str(op_string) {
                 Ok(usage) => usage,
                 Err(_) => {
                     return true;
@@ -3186,23 +3186,6 @@ fn get_jwk_bool(
         .as_bool()
         .ok_or(Error::Data)?;
     Ok(b)
-}
-
-fn usage_from_str(op: &str) -> Result<KeyUsage, Error> {
-    let usage = match op {
-        "encrypt" => KeyUsage::Encrypt,
-        "decrypt" => KeyUsage::Decrypt,
-        "sign" => KeyUsage::Sign,
-        "verify" => KeyUsage::Verify,
-        "deriveKey" => KeyUsage::DeriveKey,
-        "deriveBits" => KeyUsage::DeriveBits,
-        "wrapKey" => KeyUsage::WrapKey,
-        "unwrapKey" => KeyUsage::UnwrapKey,
-        _ => {
-            return Err(Error::Data);
-        },
-    };
-    Ok(usage)
 }
 
 trait RsaOtherPrimesInfoExt {
