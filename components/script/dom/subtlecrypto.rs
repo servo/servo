@@ -5,6 +5,7 @@
 use std::num::NonZero;
 use std::ptr;
 use std::rc::Rc;
+use std::str::FromStr;
 
 use aes::cipher::block_padding::Pkcs7;
 use aes::cipher::generic_array::GenericArray;
@@ -32,7 +33,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, HkdfParams, HmacImportParams,
     HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
-    SubtleCryptoMethods,
+    RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -3202,4 +3203,159 @@ fn usage_from_str(op: &str) -> Result<KeyUsage, Error> {
         },
     };
     Ok(usage)
+}
+
+trait RsaOtherPrimesInfoExt {
+    fn from_value(value: &serde_json::Value) -> Result<RsaOtherPrimesInfo, Error>;
+}
+
+impl RsaOtherPrimesInfoExt for RsaOtherPrimesInfo {
+    fn from_value(value: &serde_json::Value) -> Result<RsaOtherPrimesInfo, Error> {
+        let serde_json::Value::Object(object) = value else {
+            return Err(Error::Data);
+        };
+
+        let mut rsa_other_primes_info: RsaOtherPrimesInfo = Default::default();
+        for (key, value) in object {
+            match key.as_str() {
+                "r" => {
+                    rsa_other_primes_info.r =
+                        Some(DOMString::from(value.as_str().ok_or(Error::Data)?))
+                },
+                "d" => {
+                    rsa_other_primes_info.d =
+                        Some(DOMString::from(value.as_str().ok_or(Error::Data)?))
+                },
+                "t" => {
+                    rsa_other_primes_info.t =
+                        Some(DOMString::from(value.as_str().ok_or(Error::Data)?))
+                },
+                _ => {
+                    // Additional members can be present in the JWK; if not understood by
+                    // implementations encountering them, they MUST be ignored.
+                },
+            }
+        }
+
+        Ok(rsa_other_primes_info)
+    }
+}
+
+trait JsonWebKeyExt {
+    fn parse(bytes: &[u8]) -> Result<JsonWebKey, Error>;
+    fn get_str(&self, param: &str) -> Result<&DOMString, Error>;
+    fn get_bool(&self, param: &str) -> Result<bool, Error>;
+    fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
+    fn get_rsa_other_prime_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error>;
+}
+
+impl JsonWebKeyExt for JsonWebKey {
+    /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
+    fn parse(data: &[u8]) -> Result<JsonWebKey, Error> {
+        // Step 1. Let data be the sequence of bytes to be parsed.
+        // (It is given as a method paramter.)
+
+        // Step 2. Let json be the Unicode string that results from interpreting data according to UTF-8.
+        // Step 3. Convert json to UTF-16.
+        // Step 4. Let result be the object literal that results from executing the JSON.parse
+        // internal function in the context of a new global object, with text argument set to a
+        // JavaScript String containing json.
+        let value = serde_json::from_slice(data)
+            .map_err(|_| Error::Type("Failed to parse JWK string".into()))?;
+        let serde_json::Value::Object(result) = value else {
+            return Err(Error::Data);
+        };
+
+        // Step 5. Let key be the result of converting result to the IDL dictionary type of JsonWebKey.
+        let mut key: JsonWebKey = Default::default();
+        for (parameter, value) in result {
+            match parameter.as_str() {
+                "kty" => key.kty = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "use" => key.use_ = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "key_ops" => {
+                    let mut key_ops = vec![];
+                    for op in value.as_array().ok_or(Error::Data)? {
+                        key_ops.push(DOMString::from(op.as_str().ok_or(Error::Data)?));
+                    }
+                    key.key_ops = Some(key_ops);
+                },
+                "alg" => key.alg = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "ext" => key.ext = Some(value.as_bool().ok_or(Error::Data)?),
+                "crv" => key.crv = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "x" => key.x = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "y" => key.y = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "d" => key.d = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "n" => key.n = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "e" => key.e = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "p" => key.p = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "q" => key.q = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "dp" => key.dp = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "dq" => key.dq = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "qi" => key.qi = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                "oth" => {
+                    let mut oth = vec![];
+                    for sub_value in value.as_array().ok_or(Error::Data)? {
+                        oth.push(RsaOtherPrimesInfo::from_value(sub_value)?);
+                    }
+                    key.oth = Some(oth);
+                },
+                "k" => key.k = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
+                _ => {
+                    // Additional members can be present in the key; if not understood by
+                    // implementations encountering them, they MUST be ignored.
+                },
+            }
+        }
+
+        // Step 6. If the kty field of key is not defined, then throw a DataError.
+        if key.kty.is_none() {
+            return Err(Error::Data);
+        }
+
+        // Step 7. Result key.
+        Ok(key)
+    }
+
+    fn get_str(&self, key: &str) -> Result<&DOMString, Error> {
+        match key {
+            "kty" => &self.kty,
+            "use" => &self.use_,
+            "alg" => &self.alg,
+            "crv" => &self.crv,
+            "x" => &self.x,
+            "y" => &self.y,
+            "d" => &self.d,
+            "n" => &self.n,
+            "e" => &self.e,
+            "p" => &self.p,
+            "q" => &self.q,
+            "dp" => &self.dp,
+            "dq" => &self.dq,
+            "qi" => &self.qi,
+            "k" => &self.k,
+            _ => &None,
+        }
+        .as_ref()
+        .ok_or(Error::Data)
+    }
+
+    fn get_bool(&self, key: &str) -> Result<bool, Error> {
+        match key {
+            "ext" => self.ext,
+            _ => None,
+        }
+        .ok_or(Error::Data)
+    }
+
+    fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
+        let mut usages = vec![];
+        for op in self.key_ops.as_ref().ok_or(Error::Data)? {
+            usages.push(KeyUsage::from_str(op).map_err(|_| Error::Data)?);
+        }
+        Ok(usages)
+    }
+
+    fn get_rsa_other_prime_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error> {
+        self.oth.as_ref().map(Vec::as_slice).ok_or(Error::Data)
+    }
 }
