@@ -86,7 +86,7 @@ pub(crate) struct WebViewRenderer {
     /// Touch input state machine
     touch_handler: TouchHandler,
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
-    pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
+    page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
     /// "Mobile-style" zoom that does not reflow the page.
     pinch_zoom: PinchZoomFactor,
     /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
@@ -939,12 +939,7 @@ impl WebViewRenderer {
 
         // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
-            .push(ScrollZoomEvent::PinchZoom(
-                self.viewport_description
-                    .clone()
-                    .unwrap_or_default()
-                    .clamp_zoom(magnification),
-            ));
+            .push(ScrollZoomEvent::PinchZoom(magnification));
     }
 
     fn send_window_size_message(&self) {
