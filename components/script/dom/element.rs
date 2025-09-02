@@ -49,7 +49,7 @@ use style::properties::{
 };
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{
-    NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser,
+    NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser, Snapshot,
     extended_filtering,
 };
 use style::shared_lock::Locked;
@@ -5403,8 +5403,23 @@ impl Element {
             return;
         }
 
-        let node = self.upcast::<Node>();
-        node.owner_doc().element_state_will_change(self);
+        // Add a pending restyle for this node which captures a snapshot of the state
+        // before the change.
+        {
+            let document = self.owner_document();
+            let mut entry = document.ensure_pending_restyle(self);
+            if entry.snapshot.is_none() {
+                entry.snapshot = Some(Snapshot::new());
+            }
+            let snapshot = entry.snapshot.as_mut().unwrap();
+            if snapshot.state.is_none() {
+                snapshot.state = Some(self.state());
+            }
+        }
+
+        // Dirty the node so that it is laid out again if necessary.
+        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+
         self.state.set(state);
     }
 
@@ -5422,7 +5437,6 @@ impl Element {
     }
 
     pub(crate) fn set_focus_state(&self, value: bool) {
-        self.upcast::<Node>().dirty(NodeDamage::Other);
         self.set_state(ElementState::FOCUS, value);
     }
 
@@ -5431,7 +5445,7 @@ impl Element {
     }
 
     pub(crate) fn set_hover_state(&self, value: bool) {
-        self.set_state(ElementState::HOVER, value)
+        self.set_state(ElementState::HOVER, value);
     }
 
     pub(crate) fn enabled_state(&self) -> bool {
@@ -5463,10 +5477,7 @@ impl Element {
     }
 
     pub(crate) fn set_placeholder_shown_state(&self, value: bool) {
-        if self.placeholder_shown_state() != value {
-            self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
-            self.upcast::<Node>().dirty(NodeDamage::Other);
-        }
+        self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
     }
 
     pub(crate) fn set_target_state(&self, value: bool) {
