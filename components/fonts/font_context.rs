@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
-use base::id::WebViewId;
+use base::id::{RenderingGroupId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
@@ -277,19 +277,25 @@ impl FontContext {
         )?)))
     }
 
-    pub(crate) fn create_font_instance_key(&self, font: &Font) -> FontInstanceKey {
+    pub(crate) fn create_font_instance_key(
+        &self,
+        font: &Font,
+        rendering_group_id: RenderingGroupId,
+    ) -> FontInstanceKey {
         match font.template.identifier() {
             FontIdentifier::Local(_) => self.system_font_service_proxy.get_system_font_instance(
                 font.template.identifier(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
                 font.variations().to_owned(),
+                rendering_group_id,
             ),
             FontIdentifier::Web(_) => self.create_web_font_instance(
                 font.template.clone(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
                 font.variations().to_owned(),
+                rendering_group_id,
             ),
         }
     }
@@ -300,6 +306,7 @@ impl FontContext {
         pt_size: Au,
         flags: FontInstanceFlags,
         variations: Vec<FontVariation>,
+        rendering_group_id: RenderingGroupId,
     ) -> FontInstanceKey {
         let identifier = font_template.identifier().clone();
         let font_data = self
@@ -310,7 +317,9 @@ impl FontContext {
             .write()
             .entry(identifier.clone())
             .or_insert_with(|| {
-                let font_key = self.system_font_service_proxy.generate_font_key();
+                let font_key = self
+                    .system_font_service_proxy
+                    .generate_font_key(rendering_group_id);
                 self.compositor_api.lock().add_font(
                     font_key,
                     font_data.as_ipc_shared_memory(),
@@ -324,7 +333,9 @@ impl FontContext {
             .write()
             .entry((font_key, pt_size, variations.clone()))
             .or_insert_with(|| {
-                let font_instance_key = self.system_font_service_proxy.generate_font_instance_key();
+                let font_instance_key = self
+                    .system_font_service_proxy
+                    .generate_font_instance_key(rendering_group_id);
                 self.compositor_api.lock().add_font_instance(
                     font_instance_key,
                     font_key,

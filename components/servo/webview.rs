@@ -7,7 +7,7 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use base::id::WebViewId;
+use base::id::{RenderingGroupId, WebViewId};
 use compositing::IOCompositor;
 use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
@@ -90,6 +90,8 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
+
+    rendering_group_id: RenderingGroupId,
 }
 
 impl Drop for WebViewInner {
@@ -132,16 +134,18 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            rendering_group_id: builder.group_id.unwrap_or_default(),
         })));
 
         let viewport_details = webview.viewport_details();
-        servo.compositor.borrow_mut().add_webview(
-            Box::new(ServoRendererWebView {
-                weak_handle: webview.weak_handle(),
-                id,
-            }),
-            viewport_details,
-        );
+        let wv = Box::new(ServoRendererWebView {
+            weak_handle: webview.weak_handle(),
+            id,
+        });
+        servo
+            .compositor
+            .borrow_mut()
+            .add_webview(wv, viewport_details);
 
         servo
             .webviews
@@ -211,6 +215,10 @@ impl WebView {
 
     pub fn id(&self) -> WebViewId {
         self.inner().id
+    }
+
+    pub fn rendering_group_id(&self) -> RenderingGroupId {
+        self.inner().rendering_group_id
     }
 
     pub fn load_status(&self) -> LoadStatus {
@@ -604,6 +612,14 @@ impl WebViewTrait for ServoRendererWebView {
             webview.set_animating(new_value);
         }
     }
+
+    fn rendering_group_id(&self) -> RenderingGroupId {
+        if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
+            webview.rendering_group_id()
+        } else {
+            RenderingGroupId::default()
+        }
+    }
 }
 
 pub struct WebViewBuilder<'servo> {
@@ -613,6 +629,7 @@ pub struct WebViewBuilder<'servo> {
     url: Option<Url>,
     size: Option<PhysicalSize<u32>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    group_id: Option<RenderingGroupId>,
 }
 
 impl<'servo> WebViewBuilder<'servo> {
@@ -624,6 +641,7 @@ impl<'servo> WebViewBuilder<'servo> {
             size: None,
             hidpi_scale_factor: Scale::new(1.0),
             delegate: Rc::new(DefaultWebViewDelegate),
+            group_id: None,
         }
     }
 

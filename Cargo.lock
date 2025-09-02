@@ -2810,6 +2810,7 @@ name = "fonts_traits"
 version = "0.0.1"
 dependencies = [
  "atomic_refcell",
+ "base",
  "dwrote",
  "ipc-channel",
  "log",
