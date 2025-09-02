@@ -10,6 +10,7 @@ use style::properties::ComputedValues;
 use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
+use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
 
 use super::OutsideMarker;
 use super::inline::construct::InlineFormattingContextBuilder;
@@ -587,22 +588,34 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
-            if !builder.is_empty {
-                let constructor = || {
-                    ArcRefCell::new(AbsolutelyPositionedBox::construct(
-                        self.context,
-                        info,
-                        display_inside,
-                        contents,
-                    ))
-                };
-                let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
-                let inline_level_box =
-                    builder.push_absolutely_positioned_box(constructor, old_layout_box);
-                box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
-                return;
-            }
+        // If the original display was inline-level, then we need an inline formatting context
+        // in order to compute the static position correctly.
+        // If it was block-level, we don't want to break an existing inline formatting context,
+        // so push it there (`LineItemLayout::layout_absolute` can handle this well). But if
+        // there is no inline formatting context, then we can avoid creating one.
+        let needs_inline_builder =
+            info.style.get_box().original_display.outside() == StyloDisplayOutside::Inline;
+        if needs_inline_builder {
+            self.ensure_inline_formatting_context_builder();
+        }
+        let inline_builder = self
+            .inline_formatting_context_builder
+            .as_mut()
+            .filter(|builder| needs_inline_builder || !builder.is_empty);
+        if let Some(inline_builder) = inline_builder {
+            let constructor = || {
+                ArcRefCell::new(AbsolutelyPositionedBox::construct(
+                    self.context,
+                    info,
+                    display_inside,
+                    contents,
+                ))
+            };
+            let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
+            let inline_level_box =
+                inline_builder.push_absolutely_positioned_box(constructor, old_layout_box);
+            box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
+            return;
         }
 
         let kind = BlockLevelCreator::OutOfFlowAbsolutelyPositionedBox {
