@@ -8141,10 +8141,13 @@ def type_needs_auto_root(t: IDLType) -> bool:
     return False
 
 
+DefaultValueType = IDLValue | IDLNullValue | IDLUndefinedValue | IDLDefaultDictionaryValue | IDLEmptySequenceValue
+
+
 def argument_type(descriptorProvider: DescriptorProvider,
                   ty: IDLType,
                   optional: bool = False,
-                  defaultValue: IDLValue | IDLNullValue | IDLUndefinedValue | IDLDefaultDictionaryValue | IDLEmptySequenceValue | None = None,
+                  defaultValue: DefaultValueType | None = None,
                   variadic: bool = False
                   ) -> str:
     info = getJSToNativeConversionInfo(
