@@ -16,6 +16,7 @@ use cssparser::{Parser as CssParser, ParserInput as CssParserInput, match_ignore
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use embedder_traits::InputMethodType;
+use euclid::Vector2D;
 use euclid::default::{Rect, Size2D};
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
@@ -63,6 +64,7 @@ use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::ParsingMode as CssParsingMode;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
+use webrender_api::units::LayoutPixel;
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
@@ -282,11 +284,16 @@ enum ScrollingBox {
     Viewport(DomRoot<Document>),
 }
 
-/// Represents a scroll position with x and y coordinates
-#[derive(Clone, Copy, Debug)]
-struct ScrollPosition {
-    x: f64,
-    y: f64,
+impl ScrollingBox {
+    fn scroll_position(&self) -> Vector2D<f64, LayoutPixel> {
+        match self {
+            ScrollingBox::Element(element) => element
+                .owner_window()
+                .scroll_offset_query(element.upcast::<Node>())
+                .cast(),
+            ScrollingBox::Viewport(document) => document.window().scroll_offset().cast(),
+        }
+    }
 }
 
 //
@@ -887,124 +894,78 @@ impl Element {
         inline: ScrollLogicalPosition,
         container: Option<&Element>,
     ) {
-        let target_document = self.upcast::<Node>().owner_doc();
-
-        // Step 1: For each ancestor element or viewport that establishes a scrolling box,
-        // in order of innermost to outermost scrolling box
-        let mut out_of_bound = false;
-        self.upcast::<Node>()
+        // Shadow-inclusive ancestors of this node, skipping the node itself.
+        //
+        // TODO: This should be the ancestors of the node in the flat tree.
+        let ancestors = self
+            .upcast::<Node>()
             .inclusive_ancestors(ShadowIncluding::Yes)
-            .skip(1) // Skip self
-            .filter(|node| self.establishes_scroll_box(node))
-            .map_while(|node| {
-                if out_of_bound {
-                    return None;
-                }
-                let scrolling_box = if node.is::<Document>() {
-                    let document = node.downcast::<Document>().unwrap();
-                    ScrollingBox::Viewport(DomRoot::from_ref(document))
-                } else {
-                    let element = node.downcast::<Element>().unwrap();
-                    ScrollingBox::Element(DomRoot::from_ref(element))
-                };
+            .skip(1);
 
-                // Step 1.4: Check container stopping condition
-                if let Some(container) = container {
-                    // If container is not null and either scrolling box is a
-                    // shadow-including inclusive ancestor of container or is a viewport
-                    // whose document is a shadow-including inclusive ancestor of
-                    // container, abort the rest of these steps.
-                    let stop_condition = match scrolling_box {
-                        ScrollingBox::Element(ref element) => {
-                            // Check if the scrolling box element is a shadow-including inclusive ancestor of container
-                            element
-                                .upcast::<Node>()
-                                .is_shadow_including_inclusive_ancestor_of(
-                                    container.upcast::<Node>(),
-                                )
-                        },
-                        ScrollingBox::Viewport(ref document) => {
-                            // Check if the viewport's document is a shadow-including inclusive ancestor of container
-                            document
-                                .upcast::<Node>()
-                                .is_shadow_including_inclusive_ancestor_of(
-                                    container.upcast::<Node>(),
-                                )
-                        },
-                    };
-                    if stop_condition {
-                        out_of_bound = true;
-                    }
-                }
-                Some(scrolling_box)
-            })
-            .for_each(|scrolling_box| {
-                match scrolling_box {
-                    ScrollingBox::Element(ref element) => {
-                        // Step 1.1: Check same origin
-                        let scrolling_box_document = element.upcast::<Node>().owner_doc();
-                        if !target_document
-                            .origin()
-                            .same_origin(scrolling_box_document.origin())
-                        {
-                            return;
-                        }
-
-                        // Step 1.2: Determine scroll position
-                        let position = self.determine_scroll_into_view_position(
-                            element.upcast::<Node>(),
-                            block,
-                            inline,
-                        );
-                        // Step 1.3: Check if scroll is needed
-                        // TODO: check if scrolling box has an ongoing smooth scroll
-                        let current_scroll_x = element.ScrollLeft();
-                        let current_scroll_y = element.ScrollTop();
-                        if position.x != current_scroll_x || position.y != current_scroll_y {
-                            // Step 1.3.1: If scrolling box is associated with an element:
-                            // Perform a scroll of the element’s scrolling box to position,
-                            // with the element as the associated element and behavior as the scroll behavior.
-                            let window = target_document.window();
-                            window.scroll_an_element(element, position.x, position.y, behavior);
-                        }
-                    },
-                    ScrollingBox::Viewport(ref viewport) => {
-                        // Step 1.1: Check same origin (viewport is always same origin with target)
-                        // Step 1.2: Determine scroll position
-                        let position = self.determine_scroll_into_view_position(
-                            viewport.upcast::<Node>(),
-                            block,
-                            inline,
-                        );
-                        // Step 1.3: Check if scroll is needed
-                        let window = viewport.window();
-                        let current_scroll_x = window.ScrollX() as f64;
-                        let current_scroll_y = window.ScrollY() as f64;
-                        if position.x != current_scroll_x || position.y != current_scroll_y {
-                            // Step 1.3.2: Perform a scroll of the viewport to position, with root
-                            // element as the associated element
-                            window.scroll(position.x, position.y, behavior);
-                        }
-                    },
-                }
-            });
-    }
-
-    /// Check if an element establishes a scrolling box
-    fn establishes_scroll_box(&self, node: &Node) -> bool {
-        if node.is::<Document>() {
-            true // Document's viewport is always a scrolling box
-        } else if node.is::<Element>() {
-            let element: &Element = node.downcast::<Element>().unwrap();
-            if let Some(style) = element.style() {
-                let overflow_x = style.get_box().clone_overflow_x();
-                let overflow_y = style.get_box().clone_overflow_y();
-                overflow_x.is_scrollable() || overflow_y.is_scrollable()
-            } else {
-                false // Element without style is not a scrolling box
+        // Step 1: For each ancestor element or viewport that establishes a scrolling box `scrolling
+        // box`, in order of innermost to outermost scrolling box, run these substeps:
+        for node in ancestors {
+            if !node.establishes_scrolling_box() {
+                continue;
             }
-        } else {
-            false // Shadow roots and other nodes are not scrolling boxes
+
+            // TODO: This should skip elements which are not containing blocks of the element we
+            // are scrolling.
+            let scrolling_box = if let Some(document) = node.downcast::<Document>() {
+                ScrollingBox::Viewport(DomRoot::from_ref(document))
+            } else if let Some(element) = node.downcast::<Element>() {
+                ScrollingBox::Element(DomRoot::from_ref(element))
+            } else {
+                continue;
+            };
+
+            // Step 1.1: If the Document associated with `target` is not same origin with the
+            // Document associated with the element or viewport associated with `scrolling box`,
+            // terminate these steps.
+            //
+            // TODO: Handle this. We currently do not chain up to parent Documents.
+
+            // Step 1.2 Let `position` be the scroll position resulting from running the steps to
+            // determine the scroll-into-view position of `target` with `behavior` as the scroll
+            // behavior, `block` as the block flow position, `inline` as the inline base direction
+            // position and `scrolling box` as the scrolling box.
+            let position = self.determine_scroll_into_view_position(&node, block, inline);
+
+            // Step 1.3: If `position` is not the same as `scrolling box`’s current scroll position, or
+            // `scrolling box` has an ongoing smooth scroll,
+            //
+            // TODO: Handle smooth scrolling.
+            if position != scrolling_box.scroll_position() {
+                match scrolling_box {
+                    //  ↪ If `scrolling box` is associated with an element
+                    ScrollingBox::Element(element) => {
+                        // Perform a scroll of the element’s scrolling box to `position`,
+                        // with the `element` as the associated element and `behavior` as the
+                        // scroll behavior.
+                        let window = element.owner_window();
+                        window.scroll_an_element(&element, position.x, position.y, behavior);
+                    },
+                    //  ↪ If `scrolling box` is associated with a viewport
+                    ScrollingBox::Viewport(document) => {
+                        // Step 1: Let `document` be the viewport’s associated Document.
+                        // Step 2: Let `root element` be document’s root element, if there is one, or
+                        // null otherwise.
+                        // Step 3: Perform a scroll of the viewport to `position`, with `root element`
+                        // as the associated element and `behavior` as the scroll behavior.
+                        document.window().scroll(position.x, position.y, behavior);
+                    },
+                }
+            }
+
+            // Step 1.4: If `container` is not null and either `scrolling box` is a shadow-including
+            // inclusive ancestor of `container` or is a viewport whose document is a shadow-including
+            // inclusive ancestor of `container`, abort the rest of these steps.
+            if container.is_some_and(|container| {
+                let container_node = container.upcast::<Node>();
+                node.is_shadow_including_inclusive_ancestor_of(container_node)
+            }) {
+                break;
+            }
         }
     }
 
@@ -1014,7 +975,7 @@ impl Element {
         scrolling_node: &Node,
         block: ScrollLogicalPosition,
         inline: ScrollLogicalPosition,
-    ) -> ScrollPosition {
+    ) -> Vector2D<f64, LayoutPixel> {
         let target_bounding_box = self.upcast::<Node>().border_box().unwrap_or_default();
 
         let device_pixel_ratio = self
@@ -1194,10 +1155,7 @@ impl Element {
             )
         };
 
-        ScrollPosition {
-            x: target_x,
-            y: target_y,
-        }
+        Vector2D::new(target_x, target_y)
     }
 
     fn calculate_scroll_position_one_axis(
