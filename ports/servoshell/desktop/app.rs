@@ -380,6 +380,9 @@ impl App {
                         running_state.set_pending_focus(focus_id, response_sender);
                     }
                 },
+                WebDriverCommandMsg::FocusBrowsingContext(..) => {
+                    running_state.servo().execute_webdriver_command(msg);
+                },
                 WebDriverCommandMsg::GetAllWebViews(response_sender) => {
                     let webviews = running_state.webviews().iter().map(|(id, _)| *id).collect();
 

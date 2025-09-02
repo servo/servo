@@ -173,6 +173,7 @@ pub enum WebDriverCommandMsg {
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),
+    FocusBrowsingContext(BrowsingContextId),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -4524,6 +4524,9 @@ where
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
                 let _ = response_sender.send(is_open);
             },
+            WebDriverCommandMsg::FocusBrowsingContext(browsing_context_id) => {
+                self.handle_focus_remote_document_msg(browsing_context_id);
+            },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
                 let pipeline_id = if let Some(browsing_context) =
