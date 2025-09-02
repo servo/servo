@@ -252,9 +252,7 @@ impl Actor for SourceActor {
                         .insert(entry.column_number - 1);
                 }
 
-                // set-breakpoint
-                let (tx, rx) = channel().map_err(|_| ActorError::Internal)?;
-                println!("----: before");
+                let (tx, _rx) = channel().map_err(|_| ActorError::Internal)?;
                 self.script_sender
                     .send(DevtoolScriptControlMsg::SetBreakpoint(
                         self.spidermonkey_id,
@@ -262,9 +260,7 @@ impl Actor for SourceActor {
                         tx,
                     ))
                     .map_err(|_| ActorError::Internal)?;
-                println!("----: sent");
-                let result_setbreakpoint = rx.recv().map_err(|_| ActorError::Internal)?;
-                println!("----: received");
+
                 let reply = GetBreakpointPositionsCompressedReply {
                     from: self.name(),
                     positions,
