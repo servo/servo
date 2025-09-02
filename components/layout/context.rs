@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use base::id::RenderingGroupId;
 use embedder_traits::UntrustedNodeAddress;
 use euclid::Size2D;
 use fonts::FontContext;
@@ -44,6 +45,8 @@ pub(crate) struct LayoutContext<'a> {
     /// An [`ImageResolver`] used for resolving images during box and fragment
     /// tree construction. Later passed to display list construction.
     pub image_resolver: Arc<ImageResolver>,
+
+    pub rendering_group_id: RenderingGroupId,
 }
 
 pub enum ResolvedImage<'a> {
