@@ -417,8 +417,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&value.0) {
                 Ok(url) => url,
-                // TODO: include details?
-                Err(_e) => return Err(Error::Syntax),
+                Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
             };
             // Step 4: Location-object navigate this to url.
             self.navigate(
