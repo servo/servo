@@ -412,7 +412,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
         // Step 1: If this Location object's relevant Document is null, then return.
         if self.has_document() {
             // Note: no call to self.check_same_origin_domain()
-            // Step 2: Parse the given value relative to the entry settings object.
+            // Step 2: Let url be the result of encoding-parsing a URL given the given value, relative to the entry settings object.
             // Step 3: If url is failure, then throw a "SyntaxError" DOMException.
             let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&value.0) {
