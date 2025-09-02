@@ -7640,7 +7640,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         return self.makeDictionaryName(dictionary)
 
     @staticmethod
-    def makeModuleName(dictionary: IDLObject) -> str:
+    def makeModuleName(dictionary: IDLDictionary | IDLWrapperType) -> str:
         return getModuleFromObject(dictionary)
 
     def getMemberType(self, memberInfo: tuple[IDLArgument, JSToNativeConversionInfo]) -> str:
