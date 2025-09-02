@@ -3267,6 +3267,6 @@ impl JsonWebKeyExt for JsonWebKey {
     }
 
     fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error> {
-        self.oth.as_ref().map(Vec::as_slice).ok_or(Error::Data)
+        self.oth.as_deref().ok_or(Error::Data)
     }
 }
