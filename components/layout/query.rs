@@ -465,7 +465,13 @@ fn shorthand_to_css_string(
     let mut dest = String::new();
     for longhand in id.longhands() {
         block.push(
-            style.computed_or_resolved_declaration(longhand, Some(&Context { style })),
+            style.computed_or_resolved_declaration(
+                longhand,
+                Some(&Context {
+                    style,
+                    for_property: longhand.into(),
+                }),
+            ),
             Importance::Normal,
         );
     }
