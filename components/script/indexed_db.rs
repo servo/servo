@@ -316,8 +316,20 @@ pub fn evaluate_key_path_on_value(
                 }
             }
         },
-        KeyPath::StringSequence(_) => {
-            unimplemented!("String sequence keyPath is currently unsupported");
+        KeyPath::StringSequence(sequence) => {
+            let mut results = vec![];
+            for path in sequence {
+                let key_path = KeyPath::String(DOMString::from(path.clone()));
+                rooted!(in(*cx) let mut r = UndefinedValue());
+                evaluate_key_path_on_value(cx, value, r.handle_mut(), &key_path);
+                // TODO: throw error if any of the results is invalid
+                if r.handle().is_undefined() {
+                    results.clear();
+                    break;
+                }
+                results.push(convert_value_to_key(cx, r.handle(), None));
+            }
+            results.safe_to_jsval(cx, return_val);
         },
     }
 }
