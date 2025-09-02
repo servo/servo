@@ -5,6 +5,7 @@
 use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
 
+use base::id::RenderingGroupId;
 use icu_segmenter::WordSegmenter;
 use itertools::izip;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -475,6 +476,7 @@ impl InlineFormattingContextBuilder {
             has_first_formatted_line,
             /* is_single_line_text_input = */ false,
             default_bidi_level,
+            layout_context.rendering_group_id,
         )
     }
 
@@ -485,6 +487,7 @@ impl InlineFormattingContextBuilder {
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         default_bidi_level: Level,
+        rendering_group_id: RenderingGroupId,
     ) -> Option<InlineFormattingContext> {
         if self.is_empty {
             return None;
@@ -498,6 +501,7 @@ impl InlineFormattingContextBuilder {
             has_first_formatted_line,
             is_single_line_text_input,
             default_bidi_level,
+            rendering_group_id,
         ))
     }
 }

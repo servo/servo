@@ -12,9 +12,11 @@ use std::time::Instant;
 use std::{iter, str};
 
 use app_units::Au;
+use base::id::RenderingGroupId;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
+use fnv::FnvHashMap;
 use fonts_traits::FontDescriptor;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -223,7 +225,7 @@ pub struct Font {
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
-    pub(crate) font_instance_key: OnceLock<FontInstanceKey>,
+    font_instance_key: RwLock<FnvHashMap<RenderingGroupId, FontInstanceKey>>,
 
     /// If this is a synthesized small caps font, then this font reference is for
     /// the version of the font used to replace lowercase ASCII letters. It's up
@@ -248,12 +250,15 @@ impl malloc_size_of::MallocSizeOf for Font {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
         // TODO: Collect memory usage for platform fonts and for shapers.
         // This skips the template, because they are already stored in the template cache.
+
         self.metrics.size_of(ops) +
             self.descriptor.size_of(ops) +
             self.cached_shape_data.read().size_of(ops) +
             self.font_instance_key
-                .get()
-                .map_or(0, |key| key.size_of(ops))
+                .read()
+                .values()
+                .map(|key| key.size_of(ops))
+                .sum::<usize>()
     }
 }
 
@@ -306,10 +311,16 @@ impl Font {
         })
     }
 
-    pub fn key(&self, font_context: &FontContext) -> FontInstanceKey {
+    pub fn key(
+        &self,
+        rendering_group_id: RenderingGroupId,
+        font_context: &FontContext,
+    ) -> FontInstanceKey {
         *self
             .font_instance_key
-            .get_or_init(|| font_context.create_font_instance_key(self))
+            .write()
+            .entry(rendering_group_id)
+            .or_insert_with(|| font_context.create_font_instance_key(self, rendering_group_id))
     }
 
     /// Return the data for this `Font`. Note that this is currently highly inefficient for system
