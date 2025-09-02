@@ -262,7 +262,10 @@ impl IDBObjectStore {
         }
 
         // Step 10. Let clone be a clone of value in targetRealm during transaction. Rethrow any exceptions.
-        let serialized_value = structuredclone::write(cx, value, None)?;
+        let cloned_value = structuredclone::write(cx, value, None)?;
+        let Ok(serialized_value) = bincode::serialize(&cloned_value) else {
+            return Err(Error::InvalidState);
+        };
 
         let (sender, receiver) = indexed_db::create_channel(self.global());
 
@@ -273,7 +276,7 @@ impl IDBObjectStore {
             AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
                 sender,
                 key: serialized_key,
-                value: serialized_value.serialized,
+                value: serialized_value,
                 should_overwrite: overwrite,
             }),
             receiver,
