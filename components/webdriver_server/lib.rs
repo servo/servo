@@ -1214,8 +1214,14 @@ impl Handler {
                 self.handle_any_user_prompts(webview_id)?;
                 // Step 3. Set the current browsing context with session and
                 // session's current top-level browsing context.
+                let browsing_context_id = BrowsingContextId::from(webview_id);
                 self.session_mut()?
-                    .set_browsing_context_id(BrowsingContextId::from(webview_id));
+                    .set_browsing_context_id(browsing_context_id);
+
+                // Step 4. Update any implementation-specific state that would result from
+                // the user selecting session's current browsing context for interaction,
+                // without altering OS-level focus.
+                self.focus_browsing_context(browsing_context_id)?;
                 return Ok(WebDriverResponse::Void);
             },
             // id is a Number object
@@ -1260,6 +1266,10 @@ impl Handler {
             Ok(browsing_context_id) => {
                 self.session_mut()?
                     .set_browsing_context_id(browsing_context_id);
+                // Step 5. Update any implementation-specific state that would result from
+                // the user selecting session's current browsing context for interaction,
+                // without altering OS-level focus.
+                self.focus_browsing_context(browsing_context_id)?;
                 Ok(WebDriverResponse::Void)
             },
             Err(error) => Err(WebDriverError::new(error, "")),
@@ -1307,6 +1317,10 @@ impl Handler {
             Ok(browsing_context_id) => {
                 self.session_mut()?
                     .set_browsing_context_id(browsing_context_id);
+                // Step 4. Update any implementation-specific state that would result from
+                // the user selecting session's current browsing context for interaction,
+                // without altering OS-level focus.
+                self.focus_browsing_context(browsing_context_id)?;
                 Ok(WebDriverResponse::Void)
             },
             Err(error) => Err(WebDriverError::new(error, "")),
@@ -2505,6 +2519,12 @@ impl Handler {
             debug!("Focus new webview failed, it may not exist anymore");
         }
         Ok(())
+    }
+
+    fn focus_browsing_context(&self, browsing_cotext_id: BrowsingContextId) -> WebDriverResult<()> {
+        self.send_message_to_embedder(WebDriverCommandMsg::FocusBrowsingContext(
+            browsing_cotext_id,
+        ))
     }
 }
 
