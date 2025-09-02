@@ -111,7 +111,7 @@ class Configuration:
     def getInterface(self, ifname: str) -> IDLInterfaceOrNamespace:
         return self.interfaces[ifname]
 
-    def getDescriptors(self, **filters: IDLInterfaceOrNamespace) -> list[Descriptor]:
+    def getDescriptors(self, **filters: Any) -> list[Descriptor]:
         """Gets the descriptors that match the given filters."""
         curr = self.descriptors
         for key, val in filters.items():
