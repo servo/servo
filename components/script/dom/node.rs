@@ -1131,7 +1131,7 @@ impl Node {
             &UrlExtraData(doc.url().get_arc()),
         ) {
             // Step 2.
-            Err(_) => Err(Error::Syntax),
+            Err(_) => Err(Error::Syntax(None)),
             // Step 3.
             Ok(selectors) => {
                 let mut nth_index_cache = Default::default();
@@ -1168,7 +1168,7 @@ impl Node {
             &UrlExtraData(url.get_arc()),
         ) {
             // Step 2.
-            Err(_) => Err(Error::Syntax),
+            Err(_) => Err(Error::Syntax(None)),
             // Step 3.
             Ok(selectors) => {
                 let mut descendants = self.traverse_preorder(ShadowIncluding::No);

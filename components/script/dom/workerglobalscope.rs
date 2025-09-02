@@ -392,7 +392,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             let url = self.worker_url.borrow().join(&url);
             match url {
                 Ok(url) => urls.push(url),
-                Err(_) => return Err(Error::Syntax),
+                Err(_) => return Err(Error::Syntax(None)),
             };
         }
 

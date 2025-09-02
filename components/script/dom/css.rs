@@ -105,7 +105,9 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
                 RegisterPropertyError::InvalidSyntax |
                 RegisterPropertyError::InvalidInitialValue |
                 RegisterPropertyError::NoInitialValue |
-                RegisterPropertyError::InitialValueNotComputationallyIndependent => Error::Syntax,
+                RegisterPropertyError::InitialValueNotComputationallyIndependent => {
+                    Error::Syntax(None)
+                },
                 RegisterPropertyError::AlreadyRegistered => Error::InvalidModification,
             })?;
 

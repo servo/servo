@@ -1309,7 +1309,7 @@ impl CanvasState {
                 can_gc,
             )))
         } else {
-            Err(Error::Syntax)
+            Err(Error::Syntax(None))
         }
     }
 

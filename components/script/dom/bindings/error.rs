@@ -108,7 +108,15 @@ pub(crate) fn create_dom_exception(
         Error::NotSupported => DOMErrorName::NotSupportedError,
         Error::InUseAttribute => DOMErrorName::InUseAttributeError,
         Error::InvalidState => DOMErrorName::InvalidStateError,
-        Error::Syntax => DOMErrorName::SyntaxError,
+        Error::Syntax(Some(custom_message)) => {
+            return Ok(DOMException::new_with_custom_message(
+                global,
+                DOMErrorName::SyntaxError,
+                custom_message,
+                can_gc,
+            ));
+        },
+        Error::Syntax(None) => DOMErrorName::SyntaxError,
         Error::Namespace => DOMErrorName::NamespaceError,
         Error::InvalidAccess => DOMErrorName::InvalidAccessError,
         Error::Security => DOMErrorName::SecurityError,

@@ -270,7 +270,7 @@ impl FromStr for AdjacentPosition {
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
             "beforeend"   => Ok(AdjacentPosition::BeforeEnd),
             "afterend"    => Ok(AdjacentPosition::AfterEnd),
-            _             => Err(Error::Syntax)
+            _             => Err(Error::Syntax(None))
         }
     }
 }
@@ -4068,7 +4068,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             &selectors,
             &UrlExtraData(url.get_arc()),
         ) {
-            Err(_) => return Err(Error::Syntax),
+            Err(_) => return Err(Error::Syntax(None)),
             Ok(selectors) => selectors,
         };
 
@@ -4095,7 +4095,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             &selectors,
             &UrlExtraData(url.get_arc()),
         ) {
-            Err(_) => return Err(Error::Syntax),
+            Err(_) => return Err(Error::Syntax(None)),
             Ok(selectors) => selectors,
         };
 

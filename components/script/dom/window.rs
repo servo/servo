@@ -2009,7 +2009,7 @@ impl Window {
             "/" => Some(source_origin.clone()),
             url => match ServoUrl::parse(url) {
                 Ok(url) => Some(url.origin().clone()),
-                Err(_) => return Err(Error::Syntax),
+                Err(_) => return Err(Error::Syntax(None)),
             },
         };
 

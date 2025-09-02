@@ -757,7 +757,7 @@ impl HTMLElement {
             .nth(1)
             .is_some_and(|ch| ch.is_ascii_lowercase())
         {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
         self.as_element()
             .set_custom_attribute(to_snake_case(name), value, can_gc)

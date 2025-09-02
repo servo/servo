@@ -647,7 +647,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 17. If the [[type]] internal slot of result is "secret" or "private" and usages
                 // is empty, then throw a SyntaxError.
                 if matches!(result.Type(), KeyType::Secret | KeyType::Private) && result.usages().is_empty() {
-                    promise.reject_error(Error::Syntax, CanGc::note());
+                    promise.reject_error(Error::Syntax(None), CanGc::note());
                     return;
                 }
 
@@ -759,7 +759,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let data_string = match json_web_key.k {
                     Some(s) => s.to_string(),
                     None => {
-                        promise.reject_error(Error::Syntax, can_gc);
+                        promise.reject_error(Error::Syntax(None), can_gc);
                         return promise;
                     },
                 };
@@ -769,7 +769,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 {
                     Ok(data) => data,
                     Err(_) => {
-                        promise.reject_error(Error::Syntax, can_gc);
+                        promise.reject_error(Error::Syntax(None), can_gc);
                         return promise;
                     },
                 }
@@ -919,19 +919,19 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         // TODO: Support more than just a subset of the JWK dict, or find a way to
                         // stringify via SM internals
                         let Some(k) = key.k else {
-                            promise.reject_error(Error::Syntax, CanGc::note());
+                            promise.reject_error(Error::Syntax(None), CanGc::note());
                             return;
                         };
                         let Some(alg) = key.alg else {
-                            promise.reject_error(Error::Syntax, CanGc::note());
+                            promise.reject_error(Error::Syntax(None), CanGc::note());
                             return;
                         };
                         let Some(ext) = key.ext else {
-                            promise.reject_error(Error::Syntax, CanGc::note());
+                            promise.reject_error(Error::Syntax(None), CanGc::note());
                             return;
                         };
                         let Some(key_ops) = key.key_ops else {
-                            promise.reject_error(Error::Syntax, CanGc::note());
+                            promise.reject_error(Error::Syntax(None), CanGc::note());
                             return;
                         };
                         let key_ops_str = key_ops.iter().map(|op| op.to_string()).collect::<Vec<String>>();
@@ -1405,7 +1405,7 @@ macro_rules! value_from_js_object {
     ($t: ty, $cx: ident, $value: ident) => {{
         let params_result = <$t>::new($cx, $value.handle()).map_err(|_| Error::JSFailed)?;
         let ConversionResult::Success(params) = params_result else {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         };
         params
     }};
@@ -1639,21 +1639,21 @@ fn normalize_algorithm_for_key_wrap(
         ALG_AES_KW => KeyWrapAlgorithm::AesKw,
         ALG_AES_CBC => {
             let AlgorithmIdentifier::Object(obj) = algorithm else {
-                return Err(Error::Syntax);
+                return Err(Error::Syntax(None));
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
             KeyWrapAlgorithm::AesCbc(value_from_js_object!(AesCbcParams, cx, value).into())
         },
         ALG_AES_CTR => {
             let AlgorithmIdentifier::Object(obj) = algorithm else {
-                return Err(Error::Syntax);
+                return Err(Error::Syntax(None));
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
             KeyWrapAlgorithm::AesCtr(value_from_js_object!(AesCtrParams, cx, value).into())
         },
         ALG_AES_GCM => {
             let AlgorithmIdentifier::Object(obj) = algorithm else {
-                return Err(Error::Syntax);
+                return Err(Error::Syntax(None));
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
             KeyWrapAlgorithm::AesGcm(value_from_js_object!(AesGcmParams, cx, value).into())
@@ -2066,7 +2066,7 @@ impl SubtleCrypto {
                     )
                 }) || usages.is_empty()
                 {
-                    return Err(Error::Syntax);
+                    return Err(Error::Syntax(None));
                 }
             },
             ALG_AES_KW => {
@@ -2075,7 +2075,7 @@ impl SubtleCrypto {
                     .any(|usage| !matches!(usage, KeyUsage::WrapKey | KeyUsage::UnwrapKey)) ||
                     usages.is_empty()
                 {
-                    return Err(Error::Syntax);
+                    return Err(Error::Syntax(None));
                 }
             },
             _ => return Err(Error::NotSupported),
@@ -2128,7 +2128,7 @@ impl SubtleCrypto {
             .iter()
             .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
         {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
         // Step 2.
@@ -2213,7 +2213,7 @@ impl SubtleCrypto {
             )
         }) || usages.is_empty()
         {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
         if !matches!(format, KeyFormat::Raw | KeyFormat::Jwk) {
             return Err(Error::NotSupported);
@@ -2326,12 +2326,12 @@ impl SubtleCrypto {
                 .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
                 usages.is_empty()
             {
-                return Err(Error::Syntax);
+                return Err(Error::Syntax(None));
             }
 
             // Step 2. If extractable is not false, then throw a SyntaxError.
             if extractable {
-                return Err(Error::Syntax);
+                return Err(Error::Syntax(None));
             }
 
             // Step 3. Let key be a new CryptoKey representing the key data provided in keyData.
@@ -2383,7 +2383,7 @@ impl SubtleCrypto {
             .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify)) ||
             usages.is_empty()
         {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
         // Step 3. Let hash be a new KeyAlgorithm.
@@ -2592,12 +2592,12 @@ impl SubtleCrypto {
             .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
             usages.is_empty()
         {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
         // Step 3. If extractable is not false, then throw a SyntaxError.
         if extractable {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
         // Step 4. Let key be a new CryptoKey representing keyData.

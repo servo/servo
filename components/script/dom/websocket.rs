@@ -190,7 +190,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         // Step 1. Let baseURL be this's relevant settings object's API base URL.
         // Step 2. Let urlRecord be the result of applying the URL parser to url with baseURL.
         // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
-        let mut url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
+        let mut url_record = ServoUrl::parse(&url).or(Err(Error::Syntax(None)))?;
 
         // Step 4. If urlRecord’s scheme is "http", then set urlRecord’s scheme to "ws".
         // Step 5. Otherwise, if urlRecord’s scheme is "https", set urlRecord’s scheme to "wss".
@@ -209,12 +209,12 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                     .expect("Can't set scheme from https to wss");
             },
             "ws" | "wss" => {},
-            _ => return Err(Error::Syntax),
+            _ => return Err(Error::Syntax(None)),
         }
 
         // Step 7. If urlRecord’s fragment is non-null, then throw a "SyntaxError" DOMException.
         if url_record.fragment().is_some() {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
         // Step 8. If protocols is a string, set protocols to a sequence consisting of just that string.
@@ -236,12 +236,12 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 .iter()
                 .any(|p| p.eq_ignore_ascii_case(protocol))
             {
-                return Err(Error::Syntax);
+                return Err(Error::Syntax(None));
             }
 
             // https://tools.ietf.org/html/rfc6455#section-4.1
             if !is_token(protocol.as_bytes()) {
-                return Err(Error::Syntax);
+                return Err(Error::Syntax(None));
             }
         }
 
@@ -429,7 +429,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         if let Some(ref reason) = reason {
             if reason.0.len() > 123 {
                 // reason cannot be larger than 123 bytes
-                return Err(Error::Syntax);
+                return Err(Error::Syntax(Some("Reason too long".to_string())));
             }
         }
 

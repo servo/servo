@@ -64,7 +64,7 @@ impl DOMTokenList {
 
     fn check_token_exceptions(&self, token: &str) -> Fallible<Atom> {
         match token {
-            "" => Err(Error::Syntax),
+            "" => Err(Error::Syntax(None)),
             slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter),
             slice => Ok(Atom::from(slice)),
         }
@@ -190,7 +190,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     fn Replace(&self, token: DOMString, new_token: DOMString, can_gc: CanGc) -> Fallible<bool> {
         if token.is_empty() || new_token.is_empty() {
             // Step 1.
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
         if token.contains(HTML_SPACE_CHARACTERS) || new_token.contains(HTML_SPACE_CHARACTERS) {
             // Step 2.

@@ -1196,12 +1196,12 @@ pub(crate) fn transform_to_matrix(value: String) -> Fallible<(bool, Transform3D<
 
     let transform = match parser.parse_entirely(|t| transform::parse(&context, t)) {
         Ok(result) => result,
-        Err(..) => return Err(error::Error::Syntax),
+        Err(..) => return Err(error::Error::Syntax(None)),
     };
 
     let (m, is_3d) = match transform.to_transform_3d_matrix_f64(None) {
         Ok(result) => result,
-        Err(..) => return Err(error::Error::Syntax),
+        Err(..) => return Err(error::Error::Syntax(None)),
     };
 
     Ok((!is_3d, m))
