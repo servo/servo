@@ -5590,7 +5590,7 @@ class CGUnionConversionStruct(CGThing):
             assert len(booleanTypes) <= 1
             assert numUndefinedVariants <= 1
 
-            def getStringOrPrimitiveConversion(memberType: IDLType) -> CGGeneric:
+            def getStringOrPrimitiveConversion(memberType: IDLType) -> CGThing:
                 typename = get_name(memberType)
                 return CGGeneric(get_match(typename))
 
@@ -5641,7 +5641,7 @@ class CGUnionConversionStruct(CGThing):
             pre=f"impl{generic} FromJSValConvertible for {self.type}{genericSuffix} {{\n",
             post="\n}")
 
-    def try_method(self, t: IDLType) -> CGGeneric | CGWrapper:
+    def try_method(self, t: IDLType) -> CGThing:
         if t.isUndefined():
             # undefined does not require a conversion method, so we don't generate one
             return CGGeneric("")
@@ -5682,10 +5682,10 @@ class ClassItem:
         self.name = name
         self.visibility = visibility
 
-    def declare(self, cgClass: CGClass) -> str | None:
+    def declare(self, cgClass: CGClass) -> str: # pyrefly: ignore # bad-return
         assert False
 
-    def define(self, cgClass: CGClass) -> str | None:
+    def define(self, cgClass: CGClass) -> str: # pyrefly: ignore # bad-return
         assert False
 
 
@@ -5696,7 +5696,7 @@ class ClassBase(ClassItem):
     def declare(self, cgClass: CGClass) -> str:
         return f'{self.visibility} {self.name}'
 
-    def define(self, cgClass: CGClass) -> str | None:
+    def define(self, cgClass: CGClass) -> str:
         # Only in the header
         return ''
 
@@ -5778,7 +5778,7 @@ class ClassMethod(ClassItem):
             f"{returnType}{const}{override}{body}{self.breakAfterSelf}"
         )
 
-    def define(self, cgClass: CGClass) -> None:
+    def define(self, cgClass: CGClass) -> str: # pyrefly: ignore # bad-return
         pass
 
 
@@ -5889,7 +5889,7 @@ pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
 
 class ClassMember(ClassItem):
     def __init__(self, name: str | None, type: str, visibility: str = "priv", static: bool = False,
-                 body: str | None=None) -> None:
+                 body: str | None = None) -> None:
         self.type = type
         self.static = static
         self.body = body
@@ -5909,15 +5909,16 @@ class ClassMember(ClassItem):
 
 
 class CGClass(CGThing):
-    def __init__(self, name: str,
+    def __init__(self,
+                 name: str,
                  bases: list[ClassBase] = [],
                  members: list[ClassMember] = [],
                  constructors: list[ClassConstructor] = [],
-                 destructor: list[CallbackOperation] | None = None,
+                 destructor: ClassItem | None = None,
                  methods: list[ClassMethod] = [],
-                 typedefs: list[IDLTypedef] = [],
-                 enums: list[IDLEnum] = [],
-                 unions: list[IDLUnionType] =[],
+                 typedefs: list[ClassItem] = [],
+                 enums: list[ClassItem] = [],
+                 unions: list[ClassItem] =[],
                  templateArgs: list[Argument] | None = [],
                  templateSpecialization: list[str] = [],
                  disallowCopyConstruction: bool = False,
@@ -5972,12 +5973,12 @@ class CGClass(CGThing):
         result += ' {\n'
 
         if self.bases:
-            self.members = [ClassMember("parent", self.bases[0].name or "", "pub")] + self.members
+            self.members = [ClassMember("parent", self.bases[0].name, "pub")] + self.members
 
         result += CGIndenter(CGGeneric(self.extradeclarations),
                              len(self.indent)).define()
 
-        def declareMembers(cgClass: CGClass, memberList: list) -> str:
+        def declareMembers(cgClass: CGClass, memberList: list[ClassItem]  | list[ClassMember] | list[ClassConstructor | DisallowedCopyConstructor] | list[ClassConstructor] | list[ClassMethod]) -> str:
             result = ''
 
             for member in memberList:
@@ -6031,24 +6032,24 @@ class CGProxySpecialOperation(CGPerSignatureCall):
     (don't use this directly, use the derived classes below).
     """
     templateValues: dict[str, Any] | None
-    def __init__(self, descriptor: Descriptor, operation: str) -> None:
-        nativeName = MakeNativeName(descriptor.binaryNameFor(operation, False))
-        currentOperation = descriptor.operations[operation]
-        assert isinstance(currentOperation, IDLMethod)
-        assert len(currentOperation.signatures()) == 1
-        signature = currentOperation.signatures()[0]
+    def __init__(self, descriptor: Descriptor, operationName: str) -> None:
+        nativeName = MakeNativeName(descriptor.binaryNameFor(operationName, False))
+        operation = descriptor.operations[operationName]
+        assert isinstance(operation, IDLMethod)
+        assert len(operation.signatures()) == 1
+        signature = operation.signatures()[0]
 
         (returnType, arguments) = signature
-        if currentOperation.isGetter() and not returnType.nullable():
+        if operation.isGetter() and not returnType.nullable():
             returnType = IDLNullableType(returnType.location, returnType)
 
         # We pass len(arguments) as the final argument so that the
         # CGPerSignatureCall won't do any argument conversion of its own.
         CGPerSignatureCall.__init__(self, returnType, [], arguments, nativeName,
-                                    False, descriptor, currentOperation,
+                                    False, descriptor, operation,
                                     len(arguments))
 
-        if currentOperation.isSetter():
+        if operation.isSetter():
             # arguments[0] is the index or name of the item that we're setting.
             argument = arguments[1]
             info = getJSToNativeConversionInfo(
@@ -6887,7 +6888,12 @@ class CGInterfaceTrait(CGThing):
     def __init__(self, descriptor: Descriptor, descriptorProvider: DescriptorProvider) -> None:
         CGThing.__init__(self)
 
-        def attribute_arguments(attribute_type: IDLType, argument: IDLType | None = None, inRealm: bool = False, canGc: bool = False, retval: bool = False) -> Iterable[tuple[str, str]]:
+        def attribute_arguments(attribute_type: IDLType,
+                                argument: IDLType | None = None,
+                                inRealm: bool = False,
+                                canGc: bool = False,
+                                retval: bool = False
+                                ) -> Iterable[tuple[str, str]]:
             if typeNeedsCx(attribute_type, retval):
                 yield "cx", "SafeJSContext"
 
@@ -7451,6 +7457,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
     def struct(self) -> str:
         d = self.dictionary
         if d.parent:
+            assert isinstance(d.parent, IDLDictionary)
             typeName = f"{self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}"
             _, parentSuffix = genericsForType(d.parent)
             typeName += parentSuffix
@@ -7512,6 +7519,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
     def impl(self) -> str:
         d = self.dictionary
         if d.parent:
+            assert isinstance(d.parent, IDLDictionary)
             initParent = (
                 "{\n"
                 f"    match {self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}::new(cx, val)? {{\n"
@@ -7620,14 +7628,14 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         return type_needs_tracing(self.dictionary)
 
     @staticmethod
-    def makeDictionaryName(dictionary: IDLObject) -> str:
+    def makeDictionaryName(dictionary: IDLDictionary | IDLWrapperType) -> str:
         if isinstance(dictionary, IDLWrapperType):
             return CGDictionary.makeDictionaryName(dictionary.inner)
         else:
             assert isinstance(dictionary, IDLDictionary)
             return dictionary.identifier.name
 
-    def makeClassName(self, dictionary: IDLObject) -> str:
+    def makeClassName(self, dictionary: IDLDictionary | IDLWrapperType) -> str:
         return self.makeDictionaryName(dictionary)
 
     @staticmethod
@@ -7699,6 +7707,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             )
         s = ""
         if self.dictionary.parent:
+            assert isinstance(self.dictionary.parent, IDLDictionary)
             s += parentTemplate % (self.makeModuleName(self.dictionary.parent),
                                    self.makeClassName(self.dictionary.parent))
         for member, info in self.memberInfo:
@@ -8029,6 +8038,7 @@ class CGBindingRoot(CGThing):
 
         # Do codegen for all the callback interfaces.
         cgthings.extend(CGList([CGCallbackInterface(x),
+                                # pyrefly: ignore  # bad-argument-type
                                 CGCallbackFunctionImpl(x.interface)], "\n")
                         for x in callbackDescriptors)
 
@@ -8127,7 +8137,12 @@ def type_needs_auto_root(t: IDLType) -> bool:
     return False
 
 
-def argument_type(descriptorProvider: DescriptorProvider, ty: IDLType, optional: bool = False, defaultValue: IDLNullValue | None = None, variadic: bool = False) -> str:
+def argument_type(descriptorProvider: DescriptorProvider,
+                  ty: IDLType,
+                  optional: bool = False,
+                  defaultValue: IDLValue | IDLNullValue | IDLUndefinedValue | IDLDefaultDictionaryValue | IDLEmptySequenceValue | None = None,
+                  variadic: bool = False
+                  ) -> str:
     info = getJSToNativeConversionInfo(
         ty, descriptorProvider, isArgument=True,
         isAutoRooted=type_needs_auto_root(ty))
@@ -8340,7 +8355,7 @@ class CGCallbackFunction(CGCallback):
 
 
 class CGCallbackFunctionImpl(CGGeneric):
-    def __init__(self, callback: IDLInterfaceOrNamespace | IDLCallback) -> None:
+    def __init__(self, callback: IDLCallback | IDLInterface) -> None:
         type = f"{callback.identifier.name}<D>"
         impl = (f"""
 impl<D: DomTypes> CallbackContainer<D> for {type} {{
@@ -8881,7 +8896,7 @@ class GlobalGenRoots():
 
     @staticmethod
     def InterfaceObjectMapData(config: Configuration) -> CGThing:
-        pairs: list[tuple[str,  str, str]] = []
+        pairs: list[tuple[str, str, str]] = []
         for d in config.getDescriptors(hasInterfaceObject=True, isInline=False):
             binding_mod = toBindingModuleFileFromDescriptor(d)
             binding_ns = toBindingNamespace(d.name)
@@ -8892,7 +8907,7 @@ class GlobalGenRoots():
                 pairs.append((ctor.identifier.name, binding_mod, binding_ns))
         pairs.sort(key=operator.itemgetter(0))
 
-        def bindingPath(pair: tuple[str,  str, str]) -> str:
+        def bindingPath(pair: tuple[str, str, str]) -> str:
             return f'codegen::Bindings::{pair[1]}::{pair[2]}'
 
         mappings = [
