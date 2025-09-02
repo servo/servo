@@ -5978,7 +5978,7 @@ class CGClass(CGThing):
         result += CGIndenter(CGGeneric(self.extradeclarations),
                              len(self.indent)).define()
 
-        def declareMembers(cgClass: CGClass, memberList: list[ClassItem]  | list[ClassMember] | list[ClassConstructor | DisallowedCopyConstructor] | list[ClassConstructor] | list[ClassMethod]) -> str:
+        def declareMembers(cgClass: CGClass, memberList: Iterable[ClassItem | DisallowedCopyConstructor]) -> str:
             result = ''
 
             for member in memberList:
