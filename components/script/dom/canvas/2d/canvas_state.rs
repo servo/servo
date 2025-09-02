@@ -82,7 +82,7 @@ const IDEOGRAPHIC_BASELINE_DEFAULT: f64 = 0.5;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(dead_code)]
-pub(crate) enum CanvasFillOrStrokeStyle {
+pub(super) enum CanvasFillOrStrokeStyle {
     Color(#[no_trace] AbsoluteColor),
     Gradient(Dom<CanvasGradient>),
     Pattern(Dom<CanvasPattern>),
@@ -100,7 +100,7 @@ impl CanvasFillOrStrokeStyle {
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub(crate) struct CanvasContextState {
+pub(super) struct CanvasContextState {
     global_alpha: f64,
     #[no_trace]
     global_composition: CompositionOrBlending,
@@ -136,7 +136,7 @@ pub(crate) struct CanvasContextState {
 impl CanvasContextState {
     const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
 
-    pub(crate) fn new() -> CanvasContextState {
+    pub(super) fn new() -> CanvasContextState {
         CanvasContextState {
             global_alpha: 1.0,
             global_composition: CompositionOrBlending::default(),
@@ -192,7 +192,7 @@ impl CanvasContextState {
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct CanvasState {
+pub(super) struct CanvasState {
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     #[no_trace]
     ipc_renderer: IpcSender<CanvasMsg>,
@@ -223,7 +223,7 @@ pub(crate) struct CanvasState {
 }
 
 impl CanvasState {
-    pub(crate) fn new(global: &GlobalScope, size: Size2D<u64>) -> Option<CanvasState> {
+    pub(super) fn new(global: &GlobalScope, size: Size2D<u64>) -> Option<CanvasState> {
         debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
@@ -261,23 +261,23 @@ impl CanvasState {
         })
     }
 
-    pub(crate) fn image_key(&self) -> ImageKey {
+    pub(super) fn image_key(&self) -> ImageKey {
         self.image_key
     }
 
-    pub(crate) fn get_missing_image_urls(&self) -> &DomRefCell<Vec<ServoUrl>> {
+    pub(super) fn get_missing_image_urls(&self) -> &DomRefCell<Vec<ServoUrl>> {
         &self.missing_image_urls
     }
 
-    pub(crate) fn get_canvas_id(&self) -> CanvasId {
+    pub(super) fn get_canvas_id(&self) -> CanvasId {
         self.canvas_id
     }
 
-    pub(crate) fn is_paintable(&self) -> bool {
+    pub(super) fn is_paintable(&self) -> bool {
         !self.size.get().is_empty()
     }
 
-    pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
+    pub(super) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         if !self.is_paintable() {
             return;
         }
@@ -288,7 +288,7 @@ impl CanvasState {
     }
 
     /// Updates WR image and blocks on completion
-    pub(crate) fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
+    pub(super) fn update_rendering(&self, canvas_epoch: Option<Epoch>) -> bool {
         if !self.is_paintable() {
             return false;
         }
@@ -303,7 +303,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
-    pub(crate) fn set_bitmap_dimensions(&self, size: Size2D<u64>) {
+    pub(super) fn set_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.reset_to_initial_state();
 
         self.size.replace(adjust_canvas_size(size));
@@ -316,7 +316,7 @@ impl CanvasState {
             .unwrap();
     }
 
-    pub(crate) fn reset(&self) {
+    pub(super) fn reset(&self) {
         self.reset_to_initial_state();
 
         if !self.is_paintable() {
@@ -328,13 +328,13 @@ impl CanvasState {
             .unwrap();
     }
 
-    pub(crate) fn reset_to_initial_state(&self) {
+    pub(super) fn reset_to_initial_state(&self) {
         *self.current_default_path.borrow_mut() = Path::new();
         self.saved_states.borrow_mut().clear();
         *self.state.borrow_mut() = CanvasContextState::new();
     }
 
-    pub(crate) fn reset_bitmap(&self) {
+    pub(super) fn reset_bitmap(&self) {
         if !self.is_paintable() {
             return;
         }
@@ -360,7 +360,7 @@ impl CanvasState {
         ))
     }
 
-    pub(crate) fn origin_is_clean(&self) -> bool {
+    pub(super) fn origin_is_clean(&self) -> bool {
         self.origin_clean.get()
     }
 
@@ -931,7 +931,7 @@ impl CanvasState {
         self.mark_as_dirty(canvas);
     }
 
-    pub(crate) fn mark_as_dirty(&self, canvas: Option<&HTMLCanvasElement>) {
+    pub(super) fn mark_as_dirty(&self, canvas: Option<&HTMLCanvasElement>) {
         if let Some(canvas) = canvas {
             canvas.mark_as_dirty();
         }
@@ -1016,7 +1016,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
-    pub(crate) fn fill_rect(&self, x: f64, y: f64, width: f64, height: f64) {
+    pub(super) fn fill_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
             self.send_canvas_2d_msg(Canvas2dMsg::FillRect(
@@ -1030,14 +1030,14 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clearrect
-    pub(crate) fn clear_rect(&self, x: f64, y: f64, width: f64, height: f64) {
+    pub(super) fn clear_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(rect, self.state.borrow().transform));
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokerect
-    pub(crate) fn stroke_rect(&self, x: f64, y: f64, width: f64, height: f64) {
+    pub(super) fn stroke_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
             self.send_canvas_2d_msg(Canvas2dMsg::StrokeRect(
@@ -1052,12 +1052,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
-    pub(crate) fn shadow_offset_x(&self) -> f64 {
+    pub(super) fn shadow_offset_x(&self) -> f64 {
         self.state.borrow().shadow_offset_x
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
-    pub(crate) fn set_shadow_offset_x(&self, value: f64) {
+    pub(super) fn set_shadow_offset_x(&self, value: f64) {
         if !value.is_finite() || value == self.state.borrow().shadow_offset_x {
             return;
         }
@@ -1065,12 +1065,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
-    pub(crate) fn shadow_offset_y(&self) -> f64 {
+    pub(super) fn shadow_offset_y(&self) -> f64 {
         self.state.borrow().shadow_offset_y
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
-    pub(crate) fn set_shadow_offset_y(&self, value: f64) {
+    pub(super) fn set_shadow_offset_y(&self, value: f64) {
         if !value.is_finite() || value == self.state.borrow().shadow_offset_y {
             return;
         }
@@ -1078,12 +1078,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
-    pub(crate) fn shadow_blur(&self) -> f64 {
+    pub(super) fn shadow_blur(&self) -> f64 {
         self.state.borrow().shadow_blur
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
-    pub(crate) fn set_shadow_blur(&self, value: f64) {
+    pub(super) fn set_shadow_blur(&self, value: f64) {
         if !value.is_finite() || value < 0f64 || value == self.state.borrow().shadow_blur {
             return;
         }
@@ -1091,21 +1091,21 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
-    pub(crate) fn shadow_color(&self) -> DOMString {
+    pub(super) fn shadow_color(&self) -> DOMString {
         let mut result = String::new();
         serialize(&self.state.borrow().shadow_color, &mut result).unwrap();
         DOMString::from(result)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
-    pub(crate) fn set_shadow_color(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+    pub(super) fn set_shadow_color(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
         if let Ok(rgba) = parse_color(canvas, &value) {
             self.state.borrow_mut().shadow_color = rgba;
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    pub(crate) fn stroke_style(&self) -> StringOrCanvasGradientOrCanvasPattern {
+    pub(super) fn stroke_style(&self) -> StringOrCanvasGradientOrCanvasPattern {
         match self.state.borrow().stroke_style {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
@@ -1122,7 +1122,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    pub(crate) fn set_stroke_style(
+    pub(super) fn set_stroke_style(
         &self,
         canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
@@ -1148,7 +1148,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    pub(crate) fn fill_style(&self) -> StringOrCanvasGradientOrCanvasPattern {
+    pub(super) fn fill_style(&self) -> StringOrCanvasGradientOrCanvasPattern {
         match self.state.borrow().fill_style {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
@@ -1165,7 +1165,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    pub(crate) fn set_fill_style(
+    pub(super) fn set_fill_style(
         &self,
         canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
@@ -1191,7 +1191,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
-    pub(crate) fn create_linear_gradient(
+    pub(super) fn create_linear_gradient(
         &self,
         global: &GlobalScope,
         x0: Finite<f64>,
@@ -1209,7 +1209,7 @@ impl CanvasState {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient>
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn create_radial_gradient(
+    pub(super) fn create_radial_gradient(
         &self,
         global: &GlobalScope,
         x0: Finite<f64>,
@@ -1240,7 +1240,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern>
-    pub(crate) fn create_pattern(
+    pub(super) fn create_pattern(
         &self,
         global: &GlobalScope,
         image: CanvasImageSource,
@@ -1314,7 +1314,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
-    pub(crate) fn save(&self) {
+    pub(super) fn save(&self) {
         self.saved_states
             .borrow_mut()
             .push(self.state.borrow().clone());
@@ -1322,7 +1322,7 @@ impl CanvasState {
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-restore>
-    pub(crate) fn restore(&self) {
+    pub(super) fn restore(&self) {
         let mut saved_states = self.saved_states.borrow_mut();
         if let Some(state) = saved_states.pop() {
             let clips_to_pop = self.state.borrow().clips_pushed;
@@ -1334,12 +1334,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
-    pub(crate) fn global_alpha(&self) -> f64 {
+    pub(super) fn global_alpha(&self) -> f64 {
         self.state.borrow().global_alpha
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
-    pub(crate) fn set_global_alpha(&self, alpha: f64) {
+    pub(super) fn set_global_alpha(&self, alpha: f64) {
         if !alpha.is_finite() || !(0.0..=1.0).contains(&alpha) {
             return;
         }
@@ -1348,7 +1348,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
-    pub(crate) fn global_composite_operation(&self) -> DOMString {
+    pub(super) fn global_composite_operation(&self) -> DOMString {
         match self.state.borrow().global_composition {
             CompositionOrBlending::Composition(op) => DOMString::from(op.to_string()),
             CompositionOrBlending::Blending(op) => DOMString::from(op.to_string()),
@@ -1356,24 +1356,24 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
-    pub(crate) fn set_global_composite_operation(&self, op_str: DOMString) {
+    pub(super) fn set_global_composite_operation(&self, op_str: DOMString) {
         if let Ok(op) = CompositionOrBlending::from_str(&op_str) {
             self.state.borrow_mut().global_composition = op;
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
-    pub(crate) fn image_smoothing_enabled(&self) -> bool {
+    pub(super) fn image_smoothing_enabled(&self) -> bool {
         self.state.borrow().image_smoothing_enabled
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
-    pub(crate) fn set_image_smoothing_enabled(&self, value: bool) {
+    pub(super) fn set_image_smoothing_enabled(&self, value: bool) {
         self.state.borrow_mut().image_smoothing_enabled = value;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
-    pub(crate) fn fill_text(
+    pub(super) fn fill_text(
         &self,
         global_scope: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
@@ -1408,7 +1408,7 @@ impl CanvasState {
     /// <https://html.spec.whatwg.org/multipage/#text-preparation-algorithm>
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-measuretext>
     /// <https://html.spec.whatwg.org/multipage/#textmetrics>
-    pub(crate) fn measure_text(
+    pub(super) fn measure_text(
         &self,
         global: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
@@ -1500,7 +1500,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
-    pub(crate) fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+    pub(super) fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
         let canvas = match canvas {
             Some(element) => element,
             None => return, // offscreen canvas doesn't have a placeholder canvas
@@ -1525,7 +1525,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
-    pub(crate) fn font(&self) -> DOMString {
+    pub(super) fn font(&self) -> DOMString {
         self.state.borrow().font_style.as_ref().map_or_else(
             || CanvasContextState::DEFAULT_FONT_STYLE.into(),
             |style| {
@@ -1537,40 +1537,40 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
-    pub(crate) fn text_align(&self) -> CanvasTextAlign {
+    pub(super) fn text_align(&self) -> CanvasTextAlign {
         self.state.borrow().text_align
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
-    pub(crate) fn set_text_align(&self, value: CanvasTextAlign) {
+    pub(super) fn set_text_align(&self, value: CanvasTextAlign) {
         self.state.borrow_mut().text_align = value;
     }
 
-    pub(crate) fn text_baseline(&self) -> CanvasTextBaseline {
+    pub(super) fn text_baseline(&self) -> CanvasTextBaseline {
         self.state.borrow().text_baseline
     }
 
-    pub(crate) fn set_text_baseline(&self, value: CanvasTextBaseline) {
+    pub(super) fn set_text_baseline(&self, value: CanvasTextBaseline) {
         self.state.borrow_mut().text_baseline = value;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
-    pub(crate) fn direction(&self) -> CanvasDirection {
+    pub(super) fn direction(&self) -> CanvasDirection {
         self.state.borrow().direction
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
-    pub(crate) fn set_direction(&self, value: CanvasDirection) {
+    pub(super) fn set_direction(&self, value: CanvasDirection) {
         self.state.borrow_mut().direction = value;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
-    pub(crate) fn line_width(&self) -> f64 {
+    pub(super) fn line_width(&self) -> f64 {
         self.state.borrow().line_width
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
-    pub(crate) fn set_line_width(&self, width: f64) {
+    pub(super) fn set_line_width(&self, width: f64) {
         if !width.is_finite() || width <= 0.0 {
             return;
         }
@@ -1579,7 +1579,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
-    pub(crate) fn line_cap(&self) -> CanvasLineCap {
+    pub(super) fn line_cap(&self) -> CanvasLineCap {
         match self.state.borrow().line_cap {
             LineCapStyle::Butt => CanvasLineCap::Butt,
             LineCapStyle::Round => CanvasLineCap::Round,
@@ -1588,7 +1588,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
-    pub(crate) fn set_line_cap(&self, cap: CanvasLineCap) {
+    pub(super) fn set_line_cap(&self, cap: CanvasLineCap) {
         let line_cap = match cap {
             CanvasLineCap::Butt => LineCapStyle::Butt,
             CanvasLineCap::Round => LineCapStyle::Round,
@@ -1598,7 +1598,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
-    pub(crate) fn line_join(&self) -> CanvasLineJoin {
+    pub(super) fn line_join(&self) -> CanvasLineJoin {
         match self.state.borrow().line_join {
             LineJoinStyle::Round => CanvasLineJoin::Round,
             LineJoinStyle::Bevel => CanvasLineJoin::Bevel,
@@ -1607,7 +1607,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
-    pub(crate) fn set_line_join(&self, join: CanvasLineJoin) {
+    pub(super) fn set_line_join(&self, join: CanvasLineJoin) {
         let line_join = match join {
             CanvasLineJoin::Round => LineJoinStyle::Round,
             CanvasLineJoin::Bevel => LineJoinStyle::Bevel,
@@ -1617,12 +1617,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
-    pub(crate) fn miter_limit(&self) -> f64 {
+    pub(super) fn miter_limit(&self) -> f64 {
         self.state.borrow().miter_limit
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
-    pub(crate) fn set_miter_limit(&self, limit: f64) {
+    pub(super) fn set_miter_limit(&self, limit: f64) {
         if !limit.is_finite() || limit <= 0.0 {
             return;
         }
@@ -1631,14 +1631,14 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getlinedash>
-    pub(crate) fn line_dash(&self) -> Vec<f64> {
+    pub(super) fn line_dash(&self) -> Vec<f64> {
         // > return a sequence whose values are the values of
         // > the object's dash list, in the same order.
         self.state.borrow().line_dash.clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-setlinedash>
-    pub(crate) fn set_line_dash(&self, segments: Vec<f64>) {
+    pub(super) fn set_line_dash(&self, segments: Vec<f64>) {
         // > If any value in segments is not finite (e.g. an Infinity or a NaN value),
         // > or if any value is negative (less than zero), then return (without throwing
         // > an exception; user agents could show a message on a developer console,
@@ -1662,13 +1662,13 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
-    pub(crate) fn line_dash_offset(&self) -> f64 {
+    pub(super) fn line_dash_offset(&self) -> f64 {
         // > On getting, it must return the current value.
         self.state.borrow().line_dash_offset
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset?
-    pub(crate) fn set_line_dash_offset(&self, offset: f64) {
+    pub(super) fn set_line_dash_offset(&self, offset: f64) {
         // > On setting, infinite and NaN values must be ignored,
         // > leaving the value unchanged;
         if !offset.is_finite() {
@@ -1680,7 +1680,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
-    pub(crate) fn create_image_data(
+    pub(super) fn create_image_data(
         &self,
         global: &GlobalScope,
         sw: i32,
@@ -1694,7 +1694,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
-    pub(crate) fn create_image_data_(
+    pub(super) fn create_image_data_(
         &self,
         global: &GlobalScope,
         imagedata: &ImageData,
@@ -1705,7 +1705,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn get_image_data(
+    pub(super) fn get_image_data(
         &self,
         canvas_size: Size2D<u32>,
         global: &GlobalScope,
@@ -1757,7 +1757,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub(crate) fn put_image_data(
+    pub(super) fn put_image_data(
         &self,
         canvas_size: Size2D<u32>,
         imagedata: &ImageData,
@@ -1778,7 +1778,7 @@ impl CanvasState {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
     #[allow(unsafe_code, clippy::too_many_arguments)]
-    pub(crate) fn put_image_data_(
+    pub(super) fn put_image_data_(
         &self,
         canvas_size: Size2D<u32>,
         imagedata: &ImageData,
@@ -1833,7 +1833,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
-    pub(crate) fn draw_image(
+    pub(super) fn draw_image(
         &self,
         canvas: Option<&HTMLCanvasElement>,
         image: CanvasImageSource,
@@ -1848,7 +1848,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
-    pub(crate) fn draw_image_(
+    pub(super) fn draw_image_(
         &self,
         canvas: Option<&HTMLCanvasElement>,
         image: CanvasImageSource,
@@ -1877,7 +1877,7 @@ impl CanvasState {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn draw_image__(
+    pub(super) fn draw_image__(
         &self,
         canvas: Option<&HTMLCanvasElement>,
         image: CanvasImageSource,
@@ -1917,18 +1917,18 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beginpath
-    pub(crate) fn begin_path(&self) {
+    pub(super) fn begin_path(&self) {
         *self.current_default_path.borrow_mut() = Path::new();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
-    pub(crate) fn fill(&self, fill_rule: CanvasFillRule) {
+    pub(super) fn fill(&self, fill_rule: CanvasFillRule) {
         let path = self.current_default_path.borrow().clone();
         self.fill_(path, fill_rule);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
-    pub(crate) fn fill_(&self, path: Path, fill_rule: CanvasFillRule) {
+    pub(super) fn fill_(&self, path: Path, fill_rule: CanvasFillRule) {
         let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
         self.send_canvas_2d_msg(Canvas2dMsg::FillPath(
             style,
@@ -1941,12 +1941,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
-    pub(crate) fn stroke(&self) {
+    pub(super) fn stroke(&self) {
         let path = self.current_default_path.borrow().clone();
         self.stroke_(path);
     }
 
-    pub(crate) fn stroke_(&self, path: Path) {
+    pub(super) fn stroke_(&self, path: Path) {
         let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
         self.send_canvas_2d_msg(Canvas2dMsg::StrokePath(
             path,
@@ -1959,13 +1959,13 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
-    pub(crate) fn clip(&self, fill_rule: CanvasFillRule) {
+    pub(super) fn clip(&self, fill_rule: CanvasFillRule) {
         let path = self.current_default_path.borrow().clone();
         self.clip_(path, fill_rule);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
-    pub(crate) fn clip_(&self, path: Path, fill_rule: CanvasFillRule) {
+    pub(super) fn clip_(&self, path: Path, fill_rule: CanvasFillRule) {
         self.state.borrow_mut().clips_pushed += 1;
         self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(
             path,
@@ -1975,7 +1975,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
-    pub(crate) fn is_point_in_path(
+    pub(super) fn is_point_in_path(
         &self,
         global: &GlobalScope,
         x: f64,
@@ -1988,7 +1988,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
-    pub(crate) fn is_point_in_path_(
+    pub(super) fn is_point_in_path_(
         &self,
         _global: &GlobalScope,
         path: Path,
@@ -2004,7 +2004,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-scale
-    pub(crate) fn scale(&self, x: f64, y: f64) {
+    pub(super) fn scale(&self, x: f64, y: f64) {
         if !(x.is_finite() && y.is_finite()) {
             return;
         }
@@ -2014,7 +2014,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-rotate
-    pub(crate) fn rotate(&self, angle: f64) {
+    pub(super) fn rotate(&self, angle: f64) {
         if angle == 0.0 || !angle.is_finite() {
             return;
         }
@@ -2025,7 +2025,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-translate
-    pub(crate) fn translate(&self, x: f64, y: f64) {
+    pub(super) fn translate(&self, x: f64, y: f64) {
         if !(x.is_finite() && y.is_finite()) {
             return;
         }
@@ -2035,7 +2035,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-transform
-    pub(crate) fn transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
+    pub(super) fn transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
         if !(a.is_finite() &&
             b.is_finite() &&
             c.is_finite() &&
@@ -2051,13 +2051,13 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
-    pub(crate) fn get_transform(&self, global: &GlobalScope, can_gc: CanGc) -> DomRoot<DOMMatrix> {
+    pub(super) fn get_transform(&self, global: &GlobalScope, can_gc: CanGc) -> DomRoot<DOMMatrix> {
         let transform = self.state.borrow_mut().transform;
         DOMMatrix::new(global, true, transform.to_3d(), can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>
-    pub(crate) fn set_transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
+    pub(super) fn set_transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
         // Step 1. If any of the arguments are infinite or NaN, then return.
         if !a.is_finite() ||
             !b.is_finite() ||
@@ -2074,7 +2074,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform-matrix>
-    pub(crate) fn set_transform_(&self, transform: &DOMMatrix2DInit) -> ErrorResult {
+    pub(super) fn set_transform_(&self, transform: &DOMMatrix2DInit) -> ErrorResult {
         // Step 1. Let matrix be the result of creating a DOMMatrix from the 2D
         // dictionary transform.
         let matrix = dommatrix2dinit_to_matrix(transform)?;
@@ -2098,41 +2098,41 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
-    pub(crate) fn reset_transform(&self) {
+    pub(super) fn reset_transform(&self) {
         self.update_transform(Transform2D::identity())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-closepath
-    pub(crate) fn close_path(&self) {
+    pub(super) fn close_path(&self) {
         self.current_default_path.borrow_mut().close_path();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-moveto
-    pub(crate) fn move_to(&self, x: f64, y: f64) {
+    pub(super) fn move_to(&self, x: f64, y: f64) {
         self.current_default_path.borrow_mut().move_to(x, y);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-lineto
-    pub(crate) fn line_to(&self, x: f64, y: f64) {
+    pub(super) fn line_to(&self, x: f64, y: f64) {
         self.current_default_path.borrow_mut().line_to(x, y);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-rect
-    pub(crate) fn rect(&self, x: f64, y: f64, width: f64, height: f64) {
+    pub(super) fn rect(&self, x: f64, y: f64, width: f64, height: f64) {
         self.current_default_path
             .borrow_mut()
             .rect(x, y, width, height);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto
-    pub(crate) fn quadratic_curve_to(&self, cpx: f64, cpy: f64, x: f64, y: f64) {
+    pub(super) fn quadratic_curve_to(&self, cpx: f64, cpy: f64, x: f64, y: f64) {
         self.current_default_path
             .borrow_mut()
             .quadratic_curve_to(cpx, cpy, x, y);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beziercurveto
-    pub(crate) fn bezier_curve_to(
+    pub(super) fn bezier_curve_to(
         &self,
         cp1x: f64,
         cp1y: f64,
@@ -2147,7 +2147,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
-    pub(crate) fn arc(
+    pub(super) fn arc(
         &self,
         x: f64,
         y: f64,
@@ -2163,7 +2163,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arcto
-    pub(crate) fn arc_to(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, r: f64) -> ErrorResult {
+    pub(super) fn arc_to(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, r: f64) -> ErrorResult {
         self.current_default_path
             .borrow_mut()
             .arc_to(cp1x, cp1y, cp2x, cp2y, r)
@@ -2172,7 +2172,7 @@ impl CanvasState {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse>
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn ellipse(
+    pub(super) fn ellipse(
         &self,
         x: f64,
         y: f64,
@@ -2448,7 +2448,7 @@ impl UnshapedTextRun<'_> {
     }
 }
 
-pub(crate) fn parse_color(
+pub(super) fn parse_color(
     canvas: Option<&HTMLCanvasElement>,
     string: &str,
 ) -> Result<AbsoluteColor, ()> {
@@ -2496,12 +2496,12 @@ pub(crate) fn parse_color(
 
 // Used by drawImage to determine if a source or destination rectangle is valid
 // Origin coordinates and size cannot be negative. Size has to be greater than zero
-pub(crate) fn is_rect_valid(rect: Rect<f64>) -> bool {
+pub(super) fn is_rect_valid(rect: Rect<f64>) -> bool {
     rect.size.width > 0.0 && rect.size.height > 0.0
 }
 
 // https://html.spec.whatwg.org/multipage/#serialisation-of-a-color
-pub(crate) fn serialize<W>(color: &AbsoluteColor, dest: &mut W) -> fmt::Result
+pub(super) fn serialize<W>(color: &AbsoluteColor, dest: &mut W) -> fmt::Result
 where
     W: fmt::Write,
 {
@@ -2531,7 +2531,7 @@ where
     }
 }
 
-pub(crate) fn adjust_size_sign(
+pub(super) fn adjust_size_sign(
     mut origin: Point2D<i32>,
     mut size: Size2D<i32>,
 ) -> (Point2D<i32>, Size2D<u32>) {

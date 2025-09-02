@@ -31,8 +31,7 @@ mod devtools;
 pub(crate) mod document_loader;
 #[macro_use]
 mod dom;
-mod canvas_context;
-mod canvas_state;
+pub(crate) use dom::canvas_context;
 pub(crate) mod fetch;
 pub(crate) mod indexed_db;
 mod init;
