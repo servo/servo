@@ -21,10 +21,7 @@ pub(crate) struct DebuggerPauseEvent {
 }
 
 impl DebuggerPauseEvent {
-    pub(crate) fn new(
-        debugger_global: &GlobalScope,
-        can_gc: CanGc,
-    ) -> DomRoot<Self> {
+    pub(crate) fn new(debugger_global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
         });
@@ -46,7 +43,6 @@ impl DebuggerPauseEventMethods<crate::DomTypeHolder> for DebuggerPauseEvent {
 
 impl Debug for DebuggerPauseEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DebuggerPauseEvent")
-            .finish()
+        f.debug_struct("DebuggerPauseEvent").finish()
     }
 }

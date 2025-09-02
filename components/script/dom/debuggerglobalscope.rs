@@ -187,14 +187,8 @@ impl DebuggerGlobalScope {
         );
     }
 
-    pub(crate) fn fire_pause(
-        &self,
-        can_gc: CanGc,
-    ) {
-        let event = DomRoot::upcast::<Event>(DebuggerPauseEvent::new(
-            self.upcast(),
-            can_gc,
-        ));
+    pub(crate) fn fire_pause(&self, can_gc: CanGc) {
+        let event = DomRoot::upcast::<Event>(DebuggerPauseEvent::new(self.upcast(), can_gc));
         assert!(
             DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerPauseEvent::new"

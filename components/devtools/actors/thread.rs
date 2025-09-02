@@ -57,7 +57,7 @@ pub struct ThreadActor {
 }
 
 impl ThreadActor {
-    pub fn new(name: String, script_sender: IpcSender<DevtoolScriptControlMsg>,) -> ThreadActor {
+    pub fn new(name: String, script_sender: IpcSender<DevtoolScriptControlMsg>) -> ThreadActor {
         ThreadActor {
             name: name.clone(),
             source_manager: SourceManager::new(),
