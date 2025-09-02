@@ -1009,6 +1009,7 @@ impl BoxFragment {
         // > If a transform function causes the current transformation matrix of an object
         // > to be non-invertible, the object and its content do not get displayed.
         if !reference_frame_data.transform.is_invertible() {
+            self.clear_spatial_tree_node_including_descendants();
             return;
         }
 
@@ -1704,6 +1705,29 @@ impl BoxFragment {
             },
             Perspective::None => None,
         }
+    }
+
+    fn clear_spatial_tree_node_including_descendants(&self) {
+        fn assign_spatial_tree_node_on_fragments(fragments: &[Fragment]) {
+            for fragment in fragments.iter() {
+                match fragment {
+                    Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                        box_fragment
+                            .borrow()
+                            .clear_spatial_tree_node_including_descendants();
+                    },
+                    Fragment::Positioning(positioning_fragment) => {
+                        assign_spatial_tree_node_on_fragments(
+                            &positioning_fragment.borrow().children,
+                        );
+                    },
+                    _ => {},
+                }
+            }
+        }
+
+        *self.spatial_tree_node.borrow_mut() = None;
+        assign_spatial_tree_node_on_fragments(&self.children);
     }
 }
 

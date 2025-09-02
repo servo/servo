@@ -60,10 +60,8 @@ fn root_transform_for_layout_node(
         .first()
         .and_then(Fragment::retrieve_box_fragment)?
         .borrow();
-    let scroll_tree_node_id = box_fragment
-        .spatial_tree_node
-        .borrow()
-        .expect("Should always have a scroll tree node when querying bounding box.");
+    let scroll_tree_node_id = box_fragment.spatial_tree_node.borrow();
+    let scroll_tree_node_id = (*scroll_tree_node_id)?;
     Some(scroll_tree.cumulative_node_to_root_transform(&scroll_tree_node_id))
 }
 
@@ -87,7 +85,7 @@ pub(crate) fn process_box_area_request(
     let Some(transform) =
         root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
     else {
-        return Some(rect_union);
+        return Some(Rect::new(rect_union.origin, Size2D::zero()));
     };
 
     transform_au_rectangle(rect_union, transform)
@@ -107,7 +105,9 @@ pub(crate) fn process_box_areas_request(
     let Some(transform) =
         root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
     else {
-        return box_areas.collect();
+        return box_areas
+            .map(|rect| Rect::new(rect.origin, Size2D::zero()))
+            .collect();
     };
 
     box_areas
