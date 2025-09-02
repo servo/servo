@@ -5780,7 +5780,7 @@ class ClassMethod(ClassItem):
         )
 
     def define(self, cgClass: CGClass) -> str: # pyrefly: ignore # bad-return
-        pass
+        assert False
 
 
 class ClassConstructor(ClassItem):
