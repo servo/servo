@@ -7722,7 +7722,8 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
 
     def hasRequiredFields(self, dictionary: IDLDictionary) -> bool:
         if dictionary.parent:
-            if self.hasRequiredFields(cast(IDLDictionary, dictionary.parent)):
+            assert isinstance(dictionary.parent, IDLDictionary)
+            if self.hasRequiredFields(dictionary.parent):
                 return True
         for member in dictionary.members:
             if not member.optional:
@@ -7740,7 +7741,8 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
     def getDictionaryDependencies(dictionary: IDLDictionary) -> set[IDLDictionary]:
         deps = set()
         if dictionary.parent:
-            deps.add(cast(IDLDictionary, dictionary.parent))
+            assert isinstance(dictionary.parent, IDLDictionary)
+            deps.add(dictionary.parent)
         for member in dictionary.members:
             if member.type.isDictionary():
                 deps.add(member.type.unroll().inner)
