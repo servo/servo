@@ -5,25 +5,17 @@
 use std::borrow::{Borrow, ToOwned};
 use std::cell::Cell;
 use std::default::Default;
-use std::str::FromStr;
 
-use base::id::WebViewId;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use ipc_channel::ipc::IpcSender;
 use js::rust::HandleObject;
-use mime::Mime;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
     ImageOrMetadataAvailable, ImageResponse, PendingImageId, UsePlaceholder,
 };
-use net_traits::mime_classifier::{MediaType, MimeClassifier};
-use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{
-    CorsSettings, Destination, Initiator, InsecureRequestsPolicy, Referrer, RequestBuilder,
-    RequestId,
-};
+use net_traits::request::{Destination, Initiator, RequestBuilder, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
@@ -31,7 +23,8 @@ use net_traits::{
 use pixels::PixelFormat;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
+use strum_macros::IntoStaticStr;
 use style::attr::AttrValue;
 use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
@@ -57,13 +50,13 @@ use crate::dom::element::{
     set_cross_origin_attribute,
 };
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::linkprocessingoptions::LinkProcessingOptions;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::types::{EventTarget, GlobalScope};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::fetch::create_a_potential_cors_request;
 use crate::links::LinkRelations;
 use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
@@ -76,24 +69,6 @@ impl RequestGenerationId {
     fn increment(self) -> RequestGenerationId {
         RequestGenerationId(self.0 + 1)
     }
-}
-
-/// <https://html.spec.whatwg.org/multipage/#link-processing-options>
-struct LinkProcessingOptions {
-    href: String,
-    destination: Option<Destination>,
-    integrity: String,
-    link_type: String,
-    cryptographic_nonce_metadata: String,
-    cross_origin: Option<CorsSettings>,
-    referrer_policy: ReferrerPolicy,
-    policy_container: PolicyContainer,
-    source_set: Option<()>,
-    base_url: ServoUrl,
-    origin: ImmutableOrigin,
-    insecure_requests_policy: InsecureRequestsPolicy,
-    has_trustworthy_ancestor_origin: bool,
-    // Some fields that we don't need yet are missing
 }
 
 #[dom_struct]
@@ -542,23 +517,24 @@ impl HTMLLinkElement {
         options.destination = Some(Destination::None);
 
         // Step 4. Let request be the result of creating a link request given options.
-        let url = options.base_url.clone();
         let Some(request) = options.create_link_request(self.owner_window().webview_id()) else {
             // Step 5. If request is null, then return.
             return;
         };
+        let url = request.url.clone();
 
         // Step 6. Set request's initiator to "prefetch".
         let request = request.initiator(Initiator::Prefetch);
 
-        // (Step 7, firing load/error events is handled in the FetchResponseListener impl for PrefetchContext)
+        // (Step 7, firing load/error events is handled in the FetchResponseListener impl for LinkFetchContext)
 
         // Step 8. The user agent should fetch request, with processResponseConsumeBody set to processPrefetchResponse.
         let document = self.upcast::<Node>().owner_doc();
-        let fetch_context = PrefetchContext {
+        let fetch_context = LinkFetchContext {
             url,
             link: Trusted::new(self),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+            type_: LinkFetchContextType::Prefetch,
         };
 
         document.fetch_background(request, fetch_context);
@@ -794,129 +770,47 @@ impl HTMLLinkElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
+    /// and type matching destination steps of <https://html.spec.whatwg.org/multipage/#preload>
     fn handle_preload_url(&self) {
         // Step 1. Update the source set for el.
         // TODO
         // Step 2. Let options be the result of creating link options from el.
         let options = self.processing_options();
-        // Step 3. Preload options, with the following steps given a response response:
-        // Step 3.1 If response is a network error, fire an event named error at el.
-        // Otherwise, fire an event named load at el.
-        self.preload(options);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#preload>
-    fn preload(&self, options: LinkProcessingOptions) {
-        // Step 1. If options's type doesn't match options's destination, then return.
-        let type_matches_destination: bool =
-            HTMLLinkElement::type_matches_destination(&options.link_type, options.destination);
-        self.previous_type_matched.set(type_matches_destination);
-        if !type_matches_destination {
-            return;
+        // Steps for https://html.spec.whatwg.org/multipage/#preload
+        {
+            // Step 1. If options's type doesn't match options's destination, then return.
+            let type_matches_destination = options.type_matches_destination();
+            self.previous_type_matched.set(type_matches_destination);
+            if !type_matches_destination {
+                return;
+            }
         }
-        // Step 2. If options's destination is "image" and options's source set is not null,
-        // then set options's href to the result of selecting an image source from options's source set.
-        // TODO
-        // Step 3. Let request be the result of creating a link request given options.
-        let url = options.base_url.clone();
-        let Some(request) = options.create_link_request(self.owner_window().webview_id()) else {
-            // Step 4. If request is null, then return.
+        // Step 3. Preload options, with the following steps given a response response:
+        let Some(request) = options.preload(self.owner_window().webview_id()) else {
             return;
         };
-        let document = self.upcast::<Node>().owner_doc();
-        // Step 5. Let unsafeEndTime be 0.
-        // TODO
-        // Step 6. Let entry be a new preload entry whose integrity metadata is options's integrity.
-        // TODO
-        // Step 7. Let key be the result of creating a preload key given request.
-        // TODO
-        // Step 8. If options's document is "pending", then set request's initiator type to "early hint".
-        // TODO
-        // Step 9. Let controller be null.
-        // Step 10. Let reportTiming given a Document document be to report timing for controller
-        // given document's relevant global object.
-        // Step 11. Set controller to the result of fetching request, with processResponseConsumeBody
-        // set to the following steps given a response response and null, failure, or a byte sequence bodyBytes:
-        let fetch_context = PreloadContext {
+        let url = request.url.clone();
+        let fetch_context = LinkFetchContext {
             url,
             link: Trusted::new(self),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+            type_: LinkFetchContextType::Preload,
         };
-        document.fetch_background(request.clone(), fetch_context);
+        self.upcast::<Node>()
+            .owner_doc()
+            .fetch_background(request, fetch_context);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#match-preload-type>
-    fn type_matches_destination(mime_type: &str, destination: Option<Destination>) -> bool {
-        // Step 1. If type is an empty string, then return true.
-        if mime_type.is_empty() {
-            return true;
-        }
-        // Step 2. If destination is "fetch", then return true.
-        //
-        // Fetch is handled as an empty string destination in the spec:
-        // https://fetch.spec.whatwg.org/#concept-potential-destination-translate
-        let Some(destination) = destination else {
-            return false;
-        };
-        if destination == Destination::None {
-            return true;
-        }
-        // Step 3. Let mimeTypeRecord be the result of parsing type.
-        let Ok(mime_type_record) = Mime::from_str(mime_type) else {
-            // Step 4. If mimeTypeRecord is failure, then return false.
-            return false;
-        };
-        // Step 5. If mimeTypeRecord is not supported by the user agent, then return false.
-        //
-        // We currently don't check if we actually support the mime type. Only if we can classify
-        // it according to the spec.
-        let Some(mime_type) = MimeClassifier::get_media_type(&mime_type_record) else {
-            return false;
-        };
-        // Step 6. If any of the following are true:
-        if
-        // destination is "audio" or "video", and mimeTypeRecord is an audio or video MIME type;
-        ((destination == Destination::Audio || destination == Destination::Video) &&
-            mime_type == MediaType::AudioVideo)
-            // destination is a script-like destination and mimeTypeRecord is a JavaScript MIME type;
-            || (destination.is_script_like() && mime_type == MediaType::JavaScript)
-            // destination is "image" and mimeTypeRecord is an image MIME type;
-            || (destination == Destination::Image && mime_type == MediaType::Image)
-            // destination is "font" and mimeTypeRecord is a font MIME type;
-            || (destination == Destination::Font && mime_type == MediaType::Font)
-            // destination is "json" and mimeTypeRecord is a JSON MIME type;
-            || (destination == Destination::Json && mime_type == MediaType::Json)
-            // destination is "style" and mimeTypeRecord's essence is text/css; or
-            || (destination == Destination::Style && mime_type_record == mime::TEXT_CSS)
-            // destination is "track" and mimeTypeRecord's essence is text/vtt,
-            || (destination == Destination::Track && mime_type_record.essence_str() == "text/vtt")
-        {
-            // then return true.
-            return true;
-        }
-        // Step 7. Return false.
-        false
-    }
-
+    /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     fn fire_event_after_response(&self, response: Result<ResourceFetchTiming, NetworkError>) {
+        // Step 3.1 If response is a network error, fire an event named error at el.
+        // Otherwise, fire an event named load at el.
         if response.is_err() {
             self.upcast::<EventTarget>()
                 .fire_event(atom!("error"), CanGc::note());
         } else {
-            // TODO(35035): Figure out why we need to queue a task for the load event. Otherwise
-            // the performance timing data hasn't been saved yet, which fails several preload
-            // WPT tests that assume that performance timing information is available when
-            // the load event is fired.
-            let this = Trusted::new(self);
-            self.owner_global()
-                .task_manager()
-                .performance_timeline_task_source()
-                .queue(task!(preload_load_event: move || {
-                    let this = this.root();
-                    this
-                        .upcast::<EventTarget>()
-                        .fire_event(atom!("load"), CanGc::note());
-                }));
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("load"), CanGc::note());
         }
     }
 }
@@ -1092,54 +986,6 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     }
 }
 
-impl LinkProcessingOptions {
-    /// <https://html.spec.whatwg.org/multipage/#create-a-link-request>
-    fn create_link_request(self, webview_id: WebViewId) -> Option<RequestBuilder> {
-        // Step 1. Assert: options's href is not the empty string.
-        assert!(!self.href.is_empty());
-
-        // Step 2. If options's destination is null, then return null.
-        let destination = self.destination?;
-
-        // Step 3. Let url be the result of encoding-parsing a URL given options's href, relative to options's base URL.
-        // TODO: The spec passes a base url which is incompatible with the
-        //       "encoding-parse a URL" algorithm.
-        let Ok(url) = self.base_url.join(&self.href) else {
-            // Step 4. If url is failure, then return null.
-            return None;
-        };
-
-        // Step 5. Let request be the result of creating a potential-CORS request given
-        //         url, options's destination, and options's crossorigin.
-        // Step 6. Set request's policy container to options's policy container.
-        // Step 7. Set request's integrity metadata to options's integrity.
-        // Step 8. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
-        // Step 9. Set request's referrer policy to options's referrer policy.
-        // FIXME: Step 10. Set request's client to options's environment.
-        // FIXME: Step 11. Set request's priority to options's fetch priority.
-        // FIXME: Use correct referrer
-        let builder = create_a_potential_cors_request(
-            Some(webview_id),
-            url,
-            destination,
-            self.cross_origin,
-            None,
-            Referrer::NoReferrer,
-            self.insecure_requests_policy,
-            self.has_trustworthy_ancestor_origin,
-            self.policy_container,
-        )
-        .initiator(Initiator::Link)
-        .origin(self.origin)
-        .integrity_metadata(self.integrity)
-        .cryptographic_nonce_metadata(self.cryptographic_nonce_metadata)
-        .referrer_policy(self.referrer_policy);
-
-        // Step 12. Return request.
-        Some(builder)
-    }
-}
-
 /// <https://html.spec.whatwg.org/multipage/#translate-a-preload-destination>
 fn translate_a_preload_destination(potential_destination: &str) -> Destination {
     match potential_destination {
@@ -1239,7 +1085,21 @@ impl PreInvoke for FaviconFetchContext {
     }
 }
 
-struct PrefetchContext {
+#[derive(Clone, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
+enum LinkFetchContextType {
+    Prefetch,
+    Preload,
+}
+
+impl From<LinkFetchContextType> for InitiatorType {
+    fn from(other: LinkFetchContextType) -> Self {
+        let name: &'static str = other.into();
+        InitiatorType::LocalName(name.to_owned())
+    }
+}
+
+struct LinkFetchContext {
     /// The `<link>` element that caused this prefetch operation
     link: Trusted<HTMLLinkElement>,
 
@@ -1247,9 +1107,12 @@ struct PrefetchContext {
 
     /// The url being prefetched
     url: ServoUrl,
+
+    /// The type of fetching we perform, used when report timings.
+    type_: LinkFetchContextType,
 }
 
-impl FetchResponseListener for PrefetchContext {
+impl FetchResponseListener for LinkFetchContext {
     fn process_request_body(&mut self, _: RequestId) {}
 
     fn process_request_eof(&mut self, _: RequestId) {}
@@ -1266,97 +1129,8 @@ impl FetchResponseListener for PrefetchContext {
         _ = chunk;
     }
 
-    // Step 7 of `fetch and process the linked resource` in https://html.spec.whatwg.org/multipage/#link-type-prefetch
-    fn process_response_eof(
-        &mut self,
-        _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
-    ) {
-        if response.is_err() {
-            // Step 1. If response is a network error, fire an event named error at el.
-            self.link
-                .root()
-                .upcast::<EventTarget>()
-                .fire_event(atom!("error"), CanGc::note());
-        } else {
-            // Step 2. Otherwise, fire an event named load at el.
-            self.link
-                .root()
-                .upcast::<EventTarget>()
-                .fire_event(atom!("load"), CanGc::note());
-        }
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        submit_timing(self, CanGc::note())
-    }
-
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        let global = &self.resource_timing_global();
-        let link = self.link.root();
-        let source_position = link
-            .upcast::<Element>()
-            .compute_source_position(link.line_number as u32);
-        global.report_csp_violations(violations, None, Some(source_position));
-    }
-}
-
-impl ResourceTimingListener for PrefetchContext {
-    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (
-            InitiatorType::LocalName("prefetch".to_string()),
-            self.url.clone(),
-        )
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.link.root().upcast::<Node>().owner_doc().global()
-    }
-}
-
-impl PreInvoke for PrefetchContext {
-    fn should_invoke(&self) -> bool {
-        // Prefetch requests are never aborted.
-        true
-    }
-}
-
-struct PreloadContext {
-    /// The `<link>` element that caused this preload operation
-    link: Trusted<HTMLLinkElement>,
-
-    resource_timing: ResourceFetchTiming,
-
-    /// The url being preloaded
-    url: ServoUrl,
-}
-
-impl FetchResponseListener for PreloadContext {
-    fn process_request_body(&mut self, _: RequestId) {}
-
-    fn process_request_eof(&mut self, _: RequestId) {}
-
-    fn process_response(
-        &mut self,
-        _: RequestId,
-        fetch_metadata: Result<FetchMetadata, NetworkError>,
-    ) {
-        _ = fetch_metadata;
-    }
-
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
-        _ = chunk;
-    }
-
-    /// Step 3.1 of <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
+    /// Step 7 of <https://html.spec.whatwg.org/multipage/#link-type-prefetch:fetch-and-process-the-linked-resource-2>
+    /// and step 3.1 of <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     fn process_response_eof(
         &mut self,
         _: RequestId,
@@ -1387,12 +1161,9 @@ impl FetchResponseListener for PreloadContext {
     }
 }
 
-impl ResourceTimingListener for PreloadContext {
+impl ResourceTimingListener for LinkFetchContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (
-            InitiatorType::LocalName(self.url.clone().into_string()),
-            self.url.clone(),
-        )
+        (self.type_.clone().into(), self.url.clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
@@ -1400,9 +1171,9 @@ impl ResourceTimingListener for PreloadContext {
     }
 }
 
-impl PreInvoke for PreloadContext {
+impl PreInvoke for LinkFetchContext {
     fn should_invoke(&self) -> bool {
-        // Preload requests are never aborted.
+        // Prefetch and preload requests are never aborted.
         true
     }
 }
