@@ -402,7 +402,7 @@ fn test_request_and_response_data_with_network_messages() {
         send_time: devhttprequests.1.send_time,
         destination: Destination::Document,
         is_xhr: false,
-        browsing_context_id: TEST_WEBVIEW_ID.0,
+        browsing_context_id: TEST_WEBVIEW_ID.into(),
     };
 
     let content = "Yay!";
@@ -424,7 +424,7 @@ fn test_request_and_response_data_with_network_messages() {
         status: HttpStatus::default(),
         body: Some(content.as_bytes().to_vec()),
         pipeline_id: TEST_PIPELINE_ID,
-        browsing_context_id: TEST_WEBVIEW_ID.0,
+        browsing_context_id: TEST_WEBVIEW_ID.into(),
     };
 
     assert_eq!(devhttprequests.1, httprequest);

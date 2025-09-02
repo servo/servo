@@ -3477,7 +3477,8 @@ impl ScriptThread {
             .unwrap();
 
         // Notify devtools that a new script global exists.
-        let is_top_level_global = incomplete.webview_id.0 == incomplete.browsing_context_id;
+        let incomplete_browsing_context_id: BrowsingContextId = incomplete.webview_id.into();
+        let is_top_level_global = incomplete_browsing_context_id == incomplete.browsing_context_id;
         self.notify_devtools(
             document.Title(),
             final_url.clone(),

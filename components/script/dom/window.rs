@@ -588,8 +588,9 @@ impl Window {
     /// Returns the window proxy of the webview, which is the top-level ancestor browsing context.
     /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
     pub(crate) fn webview_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
-        self.undiscarded_window_proxy()
-            .and_then(|window_proxy| ScriptThread::find_window_proxy(window_proxy.webview_id().0))
+        self.undiscarded_window_proxy().and_then(|window_proxy| {
+            ScriptThread::find_window_proxy(window_proxy.webview_id().into())
+        })
     }
 
     #[cfg(feature = "bluetooth")]

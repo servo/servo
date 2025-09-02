@@ -302,7 +302,7 @@ thread_local!(pub static WEBVIEW_ID: Cell<Option<WebViewId>> =
 #[derive(
     Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
-pub struct WebViewId(pub BrowsingContextId);
+pub struct WebViewId(BrowsingContextId);
 
 size_of_test!(WebViewId, 8);
 size_of_test!(Option<WebViewId>, 8);
@@ -332,6 +332,10 @@ impl WebViewId {
 
     pub fn installed() -> Option<WebViewId> {
         WEBVIEW_ID.with(|tls| tls.get())
+    }
+
+    pub fn mock_for_testing(browsing_context_id: BrowsingContextId) -> WebViewId {
+        WebViewId(browsing_context_id)
     }
 }
 
