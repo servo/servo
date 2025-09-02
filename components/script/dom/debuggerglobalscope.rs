@@ -8,8 +8,8 @@ use base::id::{Index, PipelineId, PipelineNamespaceId};
 use constellation_traits::ScriptToConstellationChan;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
 use dom_struct::dom_struct;
-use embedder_traits::JavaScriptEvaluationError;
 use embedder_traits::resources::{self, Resource};
+use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_DefineDebuggerObject;
@@ -66,6 +66,7 @@ impl DebuggerGlobalScope {
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
+        script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         #[cfg(feature = "webgpu")] gpu_id_hub: std::sync::Arc<IdentityHub>,
         can_gc: CanGc,
@@ -77,6 +78,7 @@ impl DebuggerGlobalScope {
                 mem_profiler_chan,
                 time_profiler_chan,
                 script_to_constellation_chan,
+                script_to_embedder_chan,
                 resource_threads,
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 ServoUrl::parse_with_base(None, "about:internal/debugger")

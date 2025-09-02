@@ -781,6 +781,10 @@ impl ScriptThread {
                             .senders
                             .pipeline_to_constellation_sender
                             .clone(),
+                        to_embedder_sender: script_thread
+                            .senders
+                            .pipeline_to_embedder_sender
+                            .clone(),
                         image_cache,
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
@@ -941,6 +945,7 @@ impl ScriptThread {
             bluetooth_sender: state.bluetooth_sender,
             constellation_sender: state.constellation_sender,
             pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
+            pipeline_to_embedder_sender: state.pipeline_to_embedder_sender.clone(),
             image_cache_sender: ipc_image_cache_sender,
             time_profiler_sender: state.time_profiler_sender,
             memory_profiler_sender: state.memory_profiler_sender,
@@ -966,6 +971,7 @@ impl ScriptThread {
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
             script_to_constellation_chan,
+            senders.pipeline_to_embedder_sender.clone(),
             state.resource_threads.clone(),
             #[cfg(feature = "webgpu")]
             gpu_id_hub.clone(),
@@ -3312,6 +3318,7 @@ impl ScriptThread {
             self.senders.time_profiler_sender.clone(),
             self.senders.devtools_server_sender.clone(),
             script_to_constellation_chan,
+            self.senders.pipeline_to_embedder_sender.clone(),
             self.senders.constellation_sender.clone(),
             incomplete.pipeline_id,
             incomplete.parent_info,

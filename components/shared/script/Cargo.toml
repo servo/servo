@@ -44,3 +44,4 @@ stylo_traits = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"] }
+log = "0.4.27"

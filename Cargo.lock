@@ -7461,6 +7461,7 @@ dependencies = [
  "euclid",
  "ipc-channel",
  "keyboard-types",
+ "log",
  "malloc_size_of_derive",
  "media",
  "net_traits",

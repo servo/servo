@@ -17,9 +17,9 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use compositing_traits::CrossProcessCompositorApi;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
-    AnimationState, EmbedderMsg, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionEvent, Theme, TouchEventResult, ViewportDetails,
-    WebDriverMessageId,
+    AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, TouchEventResult,
+    ViewportDetails, WebDriverMessageId,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use fonts_traits::SystemFontServiceProxySender;
@@ -444,6 +444,8 @@ pub struct WorkerGlobalScopeInit {
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     /// Messages to send to constellation
     pub script_to_constellation_chan: ScriptToConstellationChan,
+    /// Messages to send to the Embedder
+    pub script_to_embedder_chan: ScriptToEmbedderChan,
     /// The worker id
     pub worker_id: WorkerId,
     /// The pipeline id
@@ -525,8 +527,6 @@ pub enum ScriptToConstellationMessage {
     /// Broadcast a message to all same-origin broadcast channels,
     /// excluding the source of the broadcast.
     ScheduleBroadcast(BroadcastChannelRouterId, BroadcastChannelMsg),
-    /// Forward a message to the embedder.
-    ForwardToEmbedder(EmbedderMsg),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
