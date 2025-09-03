@@ -22,10 +22,11 @@ use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, ns};
 use hyper_serde::Serde;
 use markup5ever::TokenizerResult;
 use mime::{self, Mime};
+use net_traits::mime_classifier::{ApacheBugFlag, MediaType, MimeClassifier, NoSniffFlag};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::RequestId;
 use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
+    FetchMetadata, FetchResponseListener, LoadContext, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
 use profile_traits::time::{
@@ -44,6 +45,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
 use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
@@ -75,6 +77,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
+use crate::dom::types::{HTMLAudioElement, HTMLMediaElement, HTMLVideoElement};
 use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::PreInvoke;
 use crate::realms::enter_realm;
@@ -943,21 +946,24 @@ impl FetchResponseListener for ParserContext {
         self.parser = Some(Trusted::new(&*parser));
         self.submit_resource_timing();
 
-        let content_type = match content_type {
-            Some(ref content_type) => content_type,
-            None => {
-                // No content-type header.
-                // Merge with #4212 when fixed.
-                return;
-            },
+        // Steps for https://html.spec.whatwg.org/multipage/#loading-a-document
+        //
+        // Step 1. Let type be the computed type of navigationParams's response.
+        let mime_type = MimeClassifier::default().classify(
+            LoadContext::Browsing,
+            NoSniffFlag::Off,
+            ApacheBugFlag::from_content_type(content_type.as_ref()),
+            &content_type,
+            // TODO(14024): Figure out how to pass the response data here for sniffing
+            // Requires implementation of https://mimesniff.spec.whatwg.org/#read-the-resource-header
+            &[],
+        );
+        let Some(media_type) = MimeClassifier::get_media_type(&mime_type) else {
+            return;
         };
-
-        match (
-            content_type.type_(),
-            content_type.subtype(),
-            content_type.suffix(),
-        ) {
-            (mime::IMAGE, _, _) => {
+        match media_type {
+            // Return the result of loading a media document given navigationParams and type.
+            MediaType::Image | MediaType::AudioVideo => {
                 self.is_synthesized_document = true;
                 let page = "<html><body></body></html>".into();
                 parser.push_string_input_chunk(page);
@@ -965,27 +971,45 @@ impl FetchResponseListener for ParserContext {
 
                 let doc = &parser.document;
                 let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
-                let img = HTMLImageElement::new(
-                    local_name!("img"),
-                    None,
-                    doc,
-                    None,
-                    ElementCreator::ParserCreated(1),
-                    CanGc::note(),
-                );
-                img.SetSrc(USVString(self.url.to_string()));
+                let node = if media_type == MediaType::Image {
+                    let img = HTMLImageElement::new(
+                        local_name!("img"),
+                        None,
+                        doc,
+                        None,
+                        ElementCreator::ParserCreated(1),
+                        CanGc::note(),
+                    );
+                    img.SetSrc(USVString(self.url.to_string()));
+                    DomRoot::upcast::<Node>(img)
+                } else if mime_type.type_() == mime::AUDIO {
+                    let audio =
+                        HTMLAudioElement::new(local_name!("audio"), None, doc, None, CanGc::note());
+                    audio
+                        .upcast::<HTMLMediaElement>()
+                        .SetSrc(USVString(self.url.to_string()));
+                    DomRoot::upcast::<Node>(audio)
+                } else {
+                    let video =
+                        HTMLVideoElement::new(local_name!("video"), None, doc, None, CanGc::note());
+                    video
+                        .upcast::<HTMLMediaElement>()
+                        .SetSrc(USVString(self.url.to_string()));
+                    DomRoot::upcast::<Node>(video)
+                };
                 doc_body
-                    .AppendChild(&DomRoot::upcast::<Node>(img), CanGc::note())
+                    .AppendChild(&node, CanGc::note())
                     .expect("Appending failed");
             },
-            (mime::TEXT, mime::PLAIN, _) => {
+            // Return the result of loading a text document given navigationParams and type.
+            MediaType::JavaScript | MediaType::Json | MediaType::Text | MediaType::Css => {
                 // https://html.spec.whatwg.org/multipage/#read-text
                 let page = "<pre>\n".into();
                 parser.push_string_input_chunk(page);
                 parser.parse_sync(CanGc::note());
                 parser.tokenizer.set_plaintext_state();
             },
-            (mime::TEXT, mime::HTML, _) => match error {
+            MediaType::Html => match error {
                 Some(NetworkError::SslValidation(reason, bytes)) => {
                     self.is_synthesized_document = true;
                     let page = resources::read_string(Resource::BadCertHTML);
@@ -1012,20 +1036,17 @@ impl FetchResponseListener for ParserContext {
                     parser.parse_sync(CanGc::note());
                 },
                 Some(_) => {},
+                // Return the result of loading an HTML document, given navigationParams.
                 None => parser.document.set_csp_list(csp_list),
             },
-            (mime::TEXT, mime::XML, _) |
-            (mime::APPLICATION, mime::XML, _) |
-            (mime::APPLICATION, mime::JSON, _) => parser.document.set_csp_list(csp_list),
-            (mime::APPLICATION, subtype, Some(mime::XML)) if subtype == "xhtml" => {
-                parser.document.set_csp_list(csp_list)
-            },
-            (mime_type, subtype, _) => {
+            // Return the result of loading an XML document given navigationParams and type.
+            MediaType::Xml => parser.document.set_csp_list(csp_list),
+            _ => {
                 // Show warning page for unknown mime types.
                 let page = format!(
                     "<html><body><p>Unknown content type ({}/{}).</p></body></html>",
-                    mime_type.as_str(),
-                    subtype.as_str()
+                    mime_type.type_().as_str(),
+                    mime_type.subtype().as_str()
                 );
                 self.is_synthesized_document = true;
                 parser.push_string_input_chunk(page);

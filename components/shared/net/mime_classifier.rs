@@ -25,6 +25,8 @@ pub enum MediaType {
     JavaScript,
     Json,
     Font,
+    Text,
+    Css,
 }
 
 #[derive(PartialEq)]
@@ -35,12 +37,11 @@ pub enum ApacheBugFlag {
 
 impl ApacheBugFlag {
     /// <https://mimesniff.spec.whatwg.org/#supplied-mime-type-detection-algorithm>
-    pub fn from_content_type(last_raw_content_type: &[u8]) -> ApacheBugFlag {
-        if last_raw_content_type == b"text/plain" ||
-            last_raw_content_type == b"text/plain; charset=ISO-8859-1" ||
-            last_raw_content_type == b"text/plain; charset=iso-8859-1" ||
-            last_raw_content_type == b"text/plain; charset=UTF-8"
-        {
+    pub fn from_content_type(mime_type: Option<&Mime>) -> ApacheBugFlag {
+        // TODO(36801): also handle charset ISO-8859-1
+        if mime_type.is_some_and(|mime_type| {
+            *mime_type == mime::TEXT_PLAIN || *mime_type == mime::TEXT_PLAIN_UTF_8
+        }) {
             ApacheBugFlag::On
         } else {
             ApacheBugFlag::Off
@@ -312,6 +313,14 @@ impl MimeClassifier {
                 .contains(&mt.subtype().as_str())))
     }
 
+    fn is_text(mt: &Mime) -> bool {
+        *mt == mime::TEXT_PLAIN || mt.essence_str() == "text/vtt"
+    }
+
+    fn is_css(mt: &Mime) -> bool {
+        *mt == mime::TEXT_CSS
+    }
+
     pub fn get_media_type(mime: &Mime) -> Option<MediaType> {
         if MimeClassifier::is_xml(mime) {
             Some(MediaType::Xml)
@@ -327,6 +336,10 @@ impl MimeClassifier {
             Some(MediaType::Font)
         } else if MimeClassifier::is_json(mime) {
             Some(MediaType::Json)
+        } else if MimeClassifier::is_text(mime) {
+            Some(MediaType::Text)
+        } else if MimeClassifier::is_css(mime) {
+            Some(MediaType::Css)
         } else {
             None
         }
