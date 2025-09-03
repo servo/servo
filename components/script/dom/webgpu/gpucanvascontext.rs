@@ -13,7 +13,8 @@ use pixels::Snapshot;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use script_bindings::inheritance::Castable;
 use webgpu_traits::{
-    ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPUContextId, WebGPURequest,
+    ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,
+    WebGPURequest,
 };
 use webrender_api::{ImageFormat, ImageKey};
 use wgpu_core::id;
@@ -205,6 +206,16 @@ impl GPUCanvasContext {
             size: self.size(),
         })
     }
+
+    fn pending_texture(&self) -> Option<PendingTexture> {
+        self.current_texture.get().map(|texture| PendingTexture {
+            texture_id: texture.id().0,
+            encoder_id: self.global().wgpu_id_hub().create_command_encoder_id(),
+            configuration: self
+                .context_configuration()
+                .expect("Context should be configured if there is a texture."),
+        })
+    }
 }
 
 impl CanvasContext for GPUCanvasContext {
@@ -215,40 +226,30 @@ impl CanvasContext for GPUCanvasContext {
     }
 
     fn image_key(&self) -> Option<ImageKey> {
-        if self.cleared.get() {
-            None
-        } else {
-            Some(self.webrender_image)
-        }
+        Some(self.webrender_image)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
     fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
-        let mut updated_image = false;
-        if let Some(texture) = self.current_texture.get() {
-            // Copy the image into the presentation buffer before destroying it.
-            let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
-            if let Err(e) = self.channel.0.send(WebGPURequest::Present {
-                context_id: self.context_id,
-                texture_id: texture.id().0,
-                encoder_id,
-                configuration: self
-                    .context_configuration()
-                    .expect("Context should be configured if there is a texture."),
-                canvas_epoch,
-            }) {
-                warn!(
-                    "Failed to send WebGPURequest::Present({:?}) ({})",
-                    self.context_id, e
-                );
-            } else {
-                updated_image = true;
-            }
+        // Present by updating image in WR.
+        // This will copy texture into the presentation buffer and use it for presenting
+        // or send cleared image to WR.
+        if let Err(e) = self.channel.0.send(WebGPURequest::Present {
+            context_id: self.context_id,
+            pending_texture: self.pending_texture(),
+            size: self.size(),
+            canvas_epoch,
+        }) {
+            warn!(
+                "Failed to send WebGPURequest::Present({:?}) ({})",
+                self.context_id, e
+            );
         }
+
         // 1. Expire the current texture of context.
         self.expire_current_texture(true);
 
-        updated_image
+        true
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-update-the-canvas-size>
@@ -283,14 +284,7 @@ impl CanvasContext for GPUCanvasContext {
                 .send(WebGPURequest::GetImage {
                     context_id: self.context_id,
                     // We need to read from the pending texture, if one exists.
-                    pending_texture: self.current_texture.get().map(|texture| {
-                        (
-                            texture.id().0,
-                            self.global().wgpu_id_hub().create_command_encoder_id(),
-                            self.context_configuration()
-                                .expect("Context should be configured if there is a texture."),
-                        )
-                    }),
+                    pending_texture: self.pending_texture(),
                     sender,
                 })
                 .ok()?;

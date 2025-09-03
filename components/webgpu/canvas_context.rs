@@ -18,7 +18,9 @@ use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::{IpcSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
-use webgpu_traits::{ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPUContextId, WebGPUMsg};
+use webgpu_traits::{
+    ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPUContextId, WebGPUMsg,
+};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageDescriptor, ImageDescriptorFlags,
@@ -536,16 +538,22 @@ impl crate::WGPU {
     pub(crate) fn get_image(
         &self,
         context_id: WebGPUContextId,
-        pending_texture: Option<(TextureId, CommandEncoderId, ContextConfiguration)>,
+        pending_texture: Option<PendingTexture>,
         sender: IpcSender<IpcSnapshot>,
     ) {
         let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
-        if let Some((texture_id, encoder_id, config)) = pending_texture {
-            let Some(staging_buffer) = context_data.get_or_make_available_buffer(&config) else {
+        if let Some(PendingTexture {
+            texture_id,
+            encoder_id,
+            configuration,
+        }) = pending_texture
+        {
+            let Some(staging_buffer) = context_data.get_or_make_available_buffer(&configuration)
+            else {
                 warn!("Failure obtaining available staging buffer");
                 sender
-                    .send(Snapshot::cleared(config.size).as_ipc())
+                    .send(Snapshot::cleared(configuration.size).as_ipc())
                     .unwrap();
                 return;
             };
@@ -558,7 +566,7 @@ impl crate::WGPU {
                 texture_id,
                 encoder_id,
                 staging_buffer,
-                config,
+                configuration,
                 move |staging_buffer| {
                     let mut webgpu_contexts = wgpu_image_map.lock().unwrap();
                     let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
@@ -566,7 +574,7 @@ impl crate::WGPU {
                         .send(
                             staging_buffer
                                 .snapshot()
-                                .unwrap_or_else(|| Snapshot::cleared(config.size))
+                                .unwrap_or_else(|| Snapshot::cleared(configuration.size))
                                 .as_ipc(),
                         )
                         .unwrap();
@@ -602,14 +610,34 @@ impl crate::WGPU {
     pub(crate) fn present(
         &self,
         context_id: WebGPUContextId,
-        encoder_id: CommandEncoderId,
-        texture_id: TextureId,
-        configuration: ContextConfiguration,
+        pending_texture: Option<PendingTexture>,
+        size: Size2D<u32>,
         canvas_epoch: Epoch,
     ) {
         let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
         let image_key = context_data.image_key;
+        let Some(PendingTexture {
+            texture_id,
+            encoder_id,
+            configuration,
+        }) = pending_texture
+        else {
+            context_data.clear_presentation();
+            self.compositor_api.update_image(
+                image_key,
+                ImageDescriptor {
+                    format: ImageFormat::BGRA8,
+                    size: size.cast_unit().cast(),
+                    stride: None,
+                    offset: 0,
+                    flags: ImageDescriptorFlags::empty(),
+                },
+                SerializableImageData::External(image_data(context_id)),
+                Some(canvas_epoch),
+            );
+            return;
+        };
         let Some(staging_buffer) = context_data.get_or_make_available_buffer(&configuration) else {
             warn!("Failure obtaining available staging buffer");
             context_data.clear_presentation();

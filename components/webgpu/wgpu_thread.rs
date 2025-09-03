@@ -511,18 +511,11 @@ impl WGPU {
                     },
                     WebGPURequest::Present {
                         context_id,
-                        texture_id,
-                        encoder_id,
-                        configuration,
+                        pending_texture,
+                        size,
                         canvas_epoch,
                     } => {
-                        self.present(
-                            context_id,
-                            encoder_id,
-                            texture_id,
-                            configuration,
-                            canvas_epoch,
-                        );
+                        self.present(context_id, pending_texture, size, canvas_epoch);
                     },
                     WebGPURequest::GetImage {
                         context_id,
