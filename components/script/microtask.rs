@@ -23,6 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlimageelement::ImageElementMicrotask;
 use crate::dom::html::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::mutationobserver::MutationObserver;
+use crate::dom::promise::WaitForAllSuccessStepsMicrotask;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext, notify_about_rejected_promises};
 use crate::script_thread::ScriptThread;
@@ -43,6 +44,7 @@ pub(crate) enum Microtask {
     MediaElement(MediaElementMicrotask),
     ImageElement(ImageElementMicrotask),
     ReadableStreamTeeReadRequest(DefaultTeeReadRequestMicrotask),
+    WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask),
     CustomElementReaction,
     NotifyMutationObservers,
 }
@@ -141,15 +143,19 @@ impl MicrotaskQueue {
                         let _realm = task.enter_realm();
                         task.handler(can_gc);
                     },
+                    Microtask::ReadableStreamTeeReadRequest(ref task) => {
+                        let _realm = task.enter_realm();
+                        task.handler(can_gc);
+                    },
+                    Microtask::WaitForAllSuccessSteps(ref task) => {
+                        let _realm = task.enter_realm();
+                        task.handler(can_gc);
+                    },
                     Microtask::CustomElementReaction => {
                         ScriptThread::invoke_backup_element_queue(can_gc);
                     },
                     Microtask::NotifyMutationObservers => {
                         MutationObserver::notify_mutation_observers(can_gc);
-                    },
-                    Microtask::ReadableStreamTeeReadRequest(ref task) => {
-                        let _realm = task.enter_realm();
-                        task.handler(can_gc);
                     },
                 }
             }
