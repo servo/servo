@@ -32,7 +32,7 @@ use crate::{
 const KERN_PAIR_LEN: usize = 6;
 
 #[derive(Clone)]
-pub(crate) struct FontTable {
+pub struct FontTable {
     data: CFData,
 }
 
@@ -54,7 +54,7 @@ impl FontTableMethods for FontTable {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct PlatformFont {
+pub struct PlatformFont {
     pub(crate) ctfont: CTFont,
     variations: Vec<FontVariation>,
     h_kern_subtable: Option<CachedKernTable>,

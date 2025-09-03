@@ -141,7 +141,7 @@ where
 }
 
 // Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
-pub(crate) fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
     if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Noto Color Emoji");

@@ -44,7 +44,7 @@ fn au_from_pt(pt: f64) -> Au {
     Au::from_f64_px(pt_to_px(pt))
 }
 
-pub(crate) struct FontTable {
+pub struct FontTable {
     data: Vec<u8>,
 }
 
@@ -63,7 +63,7 @@ impl FontTableMethods for FontTable {
 }
 
 #[derive(Debug)]
-pub(crate) struct PlatformFont {
+pub struct PlatformFont {
     face: Nondebug<FontFace>,
     em_size: f32,
     du_to_px: f32,

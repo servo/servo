@@ -492,7 +492,7 @@ where
 }
 
 // Based on fonts present in OpenHarmony.
-pub(crate) fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = vec![];
 
     if options.presentation_preference == EmojiPresentationPreference::Emoji {

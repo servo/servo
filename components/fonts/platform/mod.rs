@@ -22,26 +22,26 @@ use unicode_script::Script;
 ))]
 use crate::FallbackFontSelectionOptions;
 #[cfg(any(target_os = "linux", target_os = "android"))]
-pub(crate) use crate::platform::freetype::{font, font_list};
+pub use crate::platform::freetype::{font, font_list};
 #[cfg(target_os = "macos")]
-pub(crate) use crate::platform::macos::{core_text_font_cache, font, font_list};
+pub use crate::platform::macos::{core_text_font_cache, font, font_list};
 #[cfg(target_os = "windows")]
-pub(crate) use crate::platform::windows::{font, font_list};
+pub use crate::platform::windows::{font, font_list};
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
-pub(crate) mod freetype;
+pub mod freetype;
 
 #[cfg(target_os = "macos")]
 mod macos {
-    pub(crate) mod core_text_font_cache;
-    pub(crate) mod font;
-    pub(crate) mod font_list;
+    pub mod core_text_font_cache;
+    pub mod font;
+    pub mod font_list;
 }
 
 #[cfg(target_os = "windows")]
 mod windows {
-    pub(crate) mod font;
-    pub(crate) mod font_list;
+    pub mod font;
+    pub mod font_list;
 }
 
 #[cfg(all(

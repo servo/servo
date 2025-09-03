@@ -162,7 +162,7 @@ impl FontContext {
 
     /// Returns a font matching the parameters. Fonts are cached, so repeated calls will return a
     /// reference to the same underlying `Font`.
-    pub(crate) fn font(
+    pub fn font(
         &self,
         font_template: FontTemplateRef,
         font_descriptor: &FontDescriptor,
@@ -247,7 +247,7 @@ impl FontContext {
 
     /// Try to find matching templates in this [`FontContext`], first looking in the list of web fonts and
     /// falling back to asking the [`super::SystemFontService`] for a matching system font.
-    pub(crate) fn matching_templates(
+    pub fn matching_templates(
         &self,
         descriptor_to_match: &FontDescriptor,
         family_descriptor: &FontFamilyDescriptor,

@@ -33,7 +33,7 @@ use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
 use crate::platform::font::{FontTable, PlatformFont};
-pub(crate) use crate::platform::font_list::fallback_font_families;
+use crate::platform::font_list::fallback_font_families;
 use crate::{
     ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
@@ -59,7 +59,7 @@ static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 // needed by the text shaper as well as access to the underlying font
 // resources needed by the graphics layer to draw glyphs.
 
-pub(crate) trait PlatformFontMethods: Sized {
+pub trait PlatformFontMethods: Sized {
     #[servo_tracing::instrument(name = "PlatformFontMethods::new_from_template", skip_all)]
     fn new_from_template(
         template: FontTemplateRef,
@@ -258,7 +258,7 @@ impl malloc_size_of::MallocSizeOf for Font {
 }
 
 impl Font {
-    pub(crate) fn new(
+    pub fn new(
         template: FontTemplateRef,
         descriptor: FontDescriptor,
         data: Option<FontData>,
@@ -432,7 +432,7 @@ impl Font {
     /// "fast shaping" ie shaping without Harfbuzz.
     ///
     /// Note: This will eventually be removed.
-    pub(crate) fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
+    pub fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
         options.script == Script::Latin &&
             !options.flags.contains(ShapingFlags::RTL_FLAG) &&
             *self.can_do_fast_shaping.get_or_init(|| {
@@ -835,7 +835,7 @@ impl FontGroupFamily {
 
 /// The scope within which we will look for a font.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub(crate) enum FontSearchScope {
+pub enum FontSearchScope {
     /// All fonts will be searched, including those specified via `@font-face` rules.
     Any,
 
@@ -845,13 +845,13 @@ pub(crate) enum FontSearchScope {
 
 /// The font family parameters for font selection.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub(crate) struct FontFamilyDescriptor {
+pub struct FontFamilyDescriptor {
     pub(crate) family: SingleFontFamily,
     pub(crate) scope: FontSearchScope,
 }
 
 impl FontFamilyDescriptor {
-    pub(crate) fn new(family: SingleFontFamily, scope: FontSearchScope) -> FontFamilyDescriptor {
+    pub fn new(family: SingleFontFamily, scope: FontSearchScope) -> FontFamilyDescriptor {
         FontFamilyDescriptor { family, scope }
     }
 
