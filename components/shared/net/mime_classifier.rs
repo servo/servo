@@ -70,7 +70,7 @@ impl Default for MimeClassifier {
 }
 
 impl MimeClassifier {
-    // Performs MIME Type Sniffing Algorithm (sections 7 and 8)
+    /// <https://mimesniff.spec.whatwg.org/#mime-type-sniffing-algorithm>
     pub fn classify<'a>(
         &'a self,
         context: LoadContext,
@@ -82,26 +82,47 @@ impl MimeClassifier {
         let supplied_type_or_octet_stream = supplied_type
             .clone()
             .unwrap_or(mime::APPLICATION_OCTET_STREAM);
+        // Step 1. If the supplied MIME type is an XML MIME type or HTML MIME type,
+        // the computed MIME type is the supplied MIME type.
+        if Self::is_xml(&supplied_type_or_octet_stream) || Self::is_html(&supplied_type_or_octet_stream)
+        {
+            return supplied_type_or_octet_stream;
+        }
         match context {
             LoadContext::Browsing => match *supplied_type {
+                // Step 2. If the supplied MIME type is undefined or if the supplied MIME type’s essence is "unknown/unknown",
+                // "application/unknown", or "*/*", execute the rules for identifying
+                // an unknown MIME type with the sniff-scriptable flag equal to the inverse of the no-sniff flag and abort these steps.
                 None => self.sniff_unknown_type(no_sniff_flag, data),
                 Some(ref supplied_type) => {
                     if MimeClassifier::is_explicit_unknown(supplied_type) {
                         self.sniff_unknown_type(no_sniff_flag, data)
                     } else {
                         match no_sniff_flag {
+                            // Step 3. If the no-sniff flag is set, the computed MIME type is the supplied MIME type.
+                            // Abort these steps.
                             NoSniffFlag::On => supplied_type.clone(),
                             NoSniffFlag::Off => match apache_bug_flag {
+                                // Step 4. If the check-for-apache-bug flag is set,
+                                // execute the rules for distinguishing if a resource is text or binary and abort these steps.
                                 ApacheBugFlag::On => self.sniff_text_or_data(data),
                                 ApacheBugFlag::Off => {
                                     match MimeClassifier::get_media_type(supplied_type) {
                                         Some(MediaType::Html) => {
                                             self.feeds_classifier.classify(data)
                                         },
+                                        // Step 5. If the supplied MIME type is an image MIME type supported by the user agent,
+                                        // let matched-type be the result of executing the image type pattern matching algorithm with
+                                        // the resource header as the byte sequence to be matched.
                                         Some(MediaType::Image) => {
+                                            // Step 6. If matched-type is not undefined, the computed MIME type is matched-type.
                                             self.image_classifier.classify(data)
                                         },
+                                        // Step 7. If the supplied MIME type is an audio or video MIME type supported by the user agent,
+                                        // let matched-type be the result of executing the audio or video type pattern matching algorithm
+                                        // with the resource header as the byte sequence to be matched.
                                         Some(MediaType::AudioVideo) => {
+                                            // Step 8. If matched-type is not undefined, the computed MIME type is matched-type.
                                             self.audio_video_classifier.classify(data)
                                         },
                                         Some(MediaType::JavaScript) |
@@ -110,6 +131,7 @@ impl MimeClassifier {
                                         Some(MediaType::Xml) |
                                         None => None,
                                     }
+                                    // Step 9. The computed MIME type is the supplied MIME type.
                                     .unwrap_or(supplied_type.clone())
                                 },
                             },
@@ -452,29 +474,45 @@ impl MIMEChecker for TagTerminatedByteMatcher {
 pub struct Mp4Matcher;
 
 impl Mp4Matcher {
+    /// <https://mimesniff.spec.whatwg.org/#matches-the-signature-for-mp4>
     pub fn matches(&self, data: &[u8]) -> bool {
+        // Step 1. Let sequence be the byte sequence to be matched,
+        // where sequence[s] is byte s in sequence and sequence[0] is the first byte in sequence.
+        // Step 2. Let length be the number of bytes in sequence.
+        // Step 3. If length is less than 12, return false.
         if data.len() < 12 {
             return false;
         }
 
+        // Step 4. Let box-size be the four bytes from sequence[0] to sequence[3],
+        // interpreted as a 32-bit unsigned big-endian integer.
         let box_size = (((data[0] as u32) << 24) |
             ((data[1] as u32) << 16) |
             ((data[2] as u32) << 8) |
             (data[3] as u32)) as usize;
+        // Step 5. If length is less than box-size or if box-size modulo 4 is not equal to 0, return false.
         if (data.len() < box_size) || (box_size % 4 != 0) {
             return false;
         }
 
+        // Step 6. If the four bytes from sequence[4] to sequence[7] are not equal to 0x66 0x74 0x79 0x70 ("ftyp"), return false.
         let ftyp = [0x66, 0x74, 0x79, 0x70];
         if !data[4..].starts_with(&ftyp) {
             return false;
         }
 
+        // Step 7. If the three bytes from sequence[8] to sequence[10] are equal to 0x6D 0x70 0x34 ("mp4"), return true.
         let mp4 = [0x6D, 0x70, 0x34];
         data[8..].starts_with(&mp4) ||
+        // Step 8. Let bytes-read be 16.
+        // Step 9. While bytes-read is less than box-size, continuously loop through these steps:
             data[16..box_size]
+            // Step 11. Increment bytes-read by 4.
                 .chunks(4)
+                // Step 10. If the three bytes from sequence[bytes-read] to sequence[bytes-read + 2]
+                // are equal to 0x6D 0x70 0x34 ("mp4"), return true.
                 .any(|chunk| chunk.starts_with(&mp4))
+        // Step 12. Return false.
     }
 }
 impl MIMEChecker for Mp4Matcher {
@@ -494,7 +532,15 @@ impl MIMEChecker for Mp4Matcher {
 struct BinaryOrPlaintextClassifier;
 
 impl BinaryOrPlaintextClassifier {
+    /// <https://mimesniff.spec.whatwg.org/#rules-for-text-or-binary>
     fn classify_impl(&self, data: &[u8]) -> Mime {
+        // Step 1. Let length be the number of bytes in the resource header.
+        // Step 2. If length is greater than or equal to 2 and
+        // the first 2 bytes of the resource header are equal to 0xFE 0xFF (UTF-16BE BOM)
+        // or 0xFF 0xFE (UTF-16LE BOM), the computed MIME type is "text/plain".
+        // Step 3. If length is greater than or equal to 3
+        // and the first 3 bytes of the resource header are equal to
+        // 0xEF 0xBB 0xBF (UTF-8 BOM), the computed MIME type is "text/plain".
         if data.starts_with(&[0xFFu8, 0xFEu8]) ||
             data.starts_with(&[0xFEu8, 0xFFu8]) ||
             data.starts_with(&[0xEFu8, 0xBBu8, 0xBFu8])
@@ -506,8 +552,11 @@ impl BinaryOrPlaintextClassifier {
                 (0x0Eu8..=0x1Au8).contains(&x) ||
                 (0x1Cu8..=0x1Fu8).contains(&x)
         }) {
+            // Step 5. The computed MIME type is "application/octet-stream".
             mime::APPLICATION_OCTET_STREAM
         } else {
+            // Step 4. If the resource header contains no binary data bytes,
+            // the computed MIME type is "text/plain".
             mime::TEXT_PLAIN
         }
     }
