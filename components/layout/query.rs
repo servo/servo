@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by layout.
+use std::collections::HashSet;
 use std::rc::Rc;
 
 use app_units::Au;
@@ -47,6 +48,7 @@ use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, cap
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
+use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Get a scroll node that would represents this [`ServoLayoutNode`]'s transform and
@@ -1181,4 +1183,138 @@ fn transform_au_rectangle(
     };
     outer_transformed_rect
         .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()))
+}
+
+/// Returns a sequence of successive containing blocks that form an ancestor-descendant chain through the containing block relation.
+pub(crate) fn process_containing_block_chain_batch_query(
+    target_node: ServoThreadSafeLayoutNode<'_>,
+    ancestor_nodes: &[ServoThreadSafeLayoutNode<'_>],
+) -> Vec<usize> {
+    let mut containing_block_chain = HashSet::new();
+    let mut current_node = target_node;
+    let mut current_index = 0;
+    loop {
+        let target_position = current_node
+            .as_element()
+            .map(|element| {
+                let style_data = element.style_data();
+                style_data.styles.primary().get_box().position
+            })
+            .unwrap_or(Position::Static);
+
+        match target_position {
+            Position::Absolute | Position::Fixed => {
+                fn establishes_containing_block_for_position(
+                    style: &ServoArc<ComputedValues>,
+                    fragment_flags: FragmentFlags,
+                    descendant_position: Position,
+                ) -> bool {
+                    match descendant_position {
+                        Position::Absolute => style
+                            .establishes_containing_block_for_absolute_descendants(fragment_flags),
+                        Position::Fixed => {
+                            style.establishes_containing_block_for_all_descendants(fragment_flags)
+                        },
+                        _ => true,
+                    }
+                }
+
+                // If the box has position absolute or fixed, the containing block is established
+                // by the nearest ancestor box that establishes a positioning containing block
+                let mut found_cb = false;
+                for (i, &ancestor_node) in ancestor_nodes[current_index..].iter().enumerate() {
+                    if let Some(parent_fragment) = ancestor_node.fragments_for_pseudo(None).first()
+                    {
+                        let established_containing_block = match parent_fragment {
+                            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                                establishes_containing_block_for_position(
+                                    &box_fragment.borrow().style,
+                                    box_fragment.borrow().base.flags,
+                                    target_position,
+                                )
+                            },
+                            Fragment::Positioning(positioning_fragment) => {
+                                establishes_containing_block_for_position(
+                                    &positioning_fragment.borrow().style,
+                                    positioning_fragment.borrow().base.flags,
+                                    target_position,
+                                )
+                            },
+                            _ => false,
+                        };
+
+                        if established_containing_block {
+                            found_cb = true;
+                            current_node = ancestor_node;
+                            current_index = current_index + i + 1;
+                            break;
+                        }
+                    }
+                }
+
+                // If no ancestor establishes a positioning containing block,
+                // the positioning containing block is the initial containing block
+                if !found_cb {
+                    current_node = *ancestor_nodes.last().unwrap();
+                    current_index = ancestor_nodes.len() - 1;
+                }
+            },
+            Position::Static | Position::Relative | Position::Sticky => {
+                // Find the nearest ancestor that establishes a containing block for static descendants
+                let mut found_static_cb = false;
+                for (i, &ancestor_node) in ancestor_nodes[current_index..].iter().enumerate() {
+                    if let Some(element) = ancestor_node.as_element() {
+                        let style_data = element.style_data();
+                        let style = style_data.styles.primary();
+                        // An element establishes a containing block for static descendants if:
+                        // - It is a block container or establishes a formatting context
+                        // - It doesn't generate a non-replaced inline box
+                        let display = style.get_box().display;
+                        let generates_non_replaced_inline = display == Display::Inline &&
+                            !(ancestor_node.as_image().is_some() ||
+                                ancestor_node.as_canvas().is_some() ||
+                                ancestor_node.as_iframe().is_some() ||
+                                ancestor_node.as_video().is_some() ||
+                                ancestor_node.as_svg().is_some() ||
+                                ancestor_node
+                                    .as_typeless_object_with_data_attribute()
+                                    .is_some());
+
+                        if display != Display::None &&
+                            display != Display::Contents &&
+                            !generates_non_replaced_inline
+                        {
+                            found_static_cb = true;
+                            current_node = ancestor_node;
+                            current_index = current_index + i + 1;
+                            break;
+                        }
+                    }
+                }
+                if !found_static_cb {
+                    current_node = *ancestor_nodes.last().unwrap();
+                    current_index = ancestor_nodes.len() - 1;
+                }
+            },
+        }
+
+        containing_block_chain.insert(current_node.opaque().0);
+        if current_node == *ancestor_nodes.last().unwrap() {
+            // If we've reached the initial containing block, we stop
+            break;
+        }
+    }
+    // Filter the provided ancestor_nodes to include only those in our containing block chain
+    // This is the final result that tells scrollIntoView which elements should be considered for scrolling
+    ancestor_nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(index, &ancestor_node)| {
+            if containing_block_chain.contains(&ancestor_node.opaque().0) {
+                Some(index)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<usize>>()
 }

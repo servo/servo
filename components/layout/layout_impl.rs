@@ -91,7 +91,8 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, StackingContextTree};
 use crate::query::{
     get_the_text_steps, process_box_area_request, process_box_areas_request,
-    process_client_rect_request, process_node_scroll_area_request, process_offset_parent_query,
+    process_client_rect_request, process_containing_block_chain_batch_query,
+    process_node_scroll_area_request, process_offset_parent_query,
     process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
@@ -415,6 +416,30 @@ impl Layout for LayoutThread {
             .borrow_mut()
             .as_mut()
             .map(|tree| HitTest::run(tree, point, flags))
+            .unwrap_or_default()
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn query_containing_block_chain_batch(
+        &self,
+        target_node: TrustedNodeAddress,
+        ancestor_nodes: &[TrustedNodeAddress],
+    ) -> Vec<usize> {
+        self.fragment_tree
+            .borrow()
+            .as_ref()
+            .map(|_tree| {
+                let target_layout_node = unsafe { ServoLayoutNode::new(&target_node) };
+                let ancestor_layout_nodes: Vec<_> = ancestor_nodes
+                    .iter()
+                    .map(|addr| unsafe { ServoLayoutNode::new(addr) }.to_threadsafe())
+                    .collect();
+
+                process_containing_block_chain_batch_query(
+                    target_layout_node.to_threadsafe(),
+                    &ancestor_layout_nodes,
+                )
+            })
             .unwrap_or_default()
     }
 
@@ -1611,7 +1636,8 @@ impl ReflowPhases {
                 QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedFontStyleQuery |
                 QueryMsg::TextIndexQuery |
-                QueryMsg::StyleQuery => Self::empty(),
+                QueryMsg::StyleQuery |
+                QueryMsg::ContainingBlockQuery => Self::empty(),
             },
         }
     }
