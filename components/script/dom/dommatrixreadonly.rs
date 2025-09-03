@@ -412,29 +412,40 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself
     pub(crate) fn invert_self(&self) {
         let mut matrix = self.matrix.borrow_mut();
+        let empty = Transform3D::new(
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+        );
         // Step 1.
-        *matrix = matrix.inverse().unwrap_or_else(|| {
-            // Step 2.
-            self.is2D.set(false);
-            Transform3D::new(
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-                f64::NAN,
-            )
-        })
+        *matrix = match self.is2D() {
+            true => match matrix.to_2d().inverse() {
+                Some(m) => m.to_3d(),
+                None => {
+                    // Step 2.
+                    self.is2D.set(false);
+                    empty
+                },
+            },
+            false => matrix.inverse().unwrap_or_else(|| {
+                // Step 2.
+                self.is2D.set(false);
+                empty
+            }),
+        }
         // Step 3 in DOMMatrix.InvertSelf
     }
 }
