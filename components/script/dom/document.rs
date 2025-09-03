@@ -3773,17 +3773,6 @@ impl Document {
         })
     }
 
-    pub(crate) fn element_state_will_change(&self, element: &Element) {
-        let mut entry = self.ensure_pending_restyle(element);
-        if entry.snapshot.is_none() {
-            entry.snapshot = Some(Snapshot::new());
-        }
-        let snapshot = entry.snapshot.as_mut().unwrap();
-        if snapshot.state.is_none() {
-            snapshot.state = Some(element.state());
-        }
-    }
-
     pub(crate) fn element_attr_will_change(&self, el: &Element, attr: &Attr) {
         // FIXME(emilio): Kind of a shame we have to duplicate this.
         //
