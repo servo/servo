@@ -29,7 +29,7 @@ use url::Host;
 use webrender_api::ImageKey;
 
 use super::validations::types::TexImageTarget;
-use crate::canvas_context::CanvasContext;
+use crate::canvas_context::{CanvasContext, LayoutCanvasRenderingContextHelpers};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
 };
@@ -38,15 +38,14 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, Float32ArrayOrUnrestrictedFloatSequence,
-    HTMLCanvasElementOrOffscreenCanvas, Int32ArrayOrLongSequence,
-    Uint32ArrayOrUnsignedLongSequence,
+    HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas,
+    Int32ArrayOrLongSequence, Uint32ArrayOrUnsignedLongSequence,
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 #[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
 use crate::dom::webgl::validations::WebGLValidator;
@@ -133,7 +132,7 @@ struct ReadPixelsSizes {
 impl WebGL2RenderingContext {
     fn new_inherited(
         window: &Window,
-        canvas: &HTMLCanvasElementOrOffscreenCanvas,
+        canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
         can_gc: CanGc,
@@ -179,10 +178,9 @@ impl WebGL2RenderingContext {
         })
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
-        canvas: &HTMLCanvasElementOrOffscreenCanvas,
+        canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
         can_gc: CanGc,
@@ -973,8 +971,8 @@ impl CanvasContext for WebGL2RenderingContext {
         self.base.context_id()
     }
 
-    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
-        self.base.canvas().clone()
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
+        self.base.canvas()
     }
 
     fn resize(&self) {
@@ -1000,7 +998,7 @@ impl CanvasContext for WebGL2RenderingContext {
 
 impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingContext {
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
-    fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+    fn Canvas(&self) -> RootedHTMLCanvasElementOrOffscreenCanvas {
         self.base.Canvas()
     }
 

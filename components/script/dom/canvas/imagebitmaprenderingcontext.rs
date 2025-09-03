@@ -9,11 +9,14 @@ use euclid::default::Size2D;
 use pixels::Snapshot;
 use webrender_api::ImageKey;
 
-use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};
+use crate::canvas_context::{
+    CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas,
+    LayoutCanvasRenderingContextHelpers,
+};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::ImageBitmapMethods;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapRenderingContextBinding::ImageBitmapRenderingContextMethods;
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
@@ -37,6 +40,7 @@ pub(crate) struct ImageBitmapRenderingContext {
 
 impl ImageBitmapRenderingContext {
     /// <https://html.spec.whatwg.org/multipage/#imagebitmaprenderingcontext-creation-algorithm>
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(canvas: HTMLCanvasElementOrOffscreenCanvas) -> ImageBitmapRenderingContext {
         ImageBitmapRenderingContext {
             reflector_: Reflector::new(),
@@ -48,11 +52,13 @@ impl ImageBitmapRenderingContext {
 
     pub(crate) fn new(
         global: &GlobalScope,
-        canvas: HTMLCanvasElementOrOffscreenCanvas,
+        canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         can_gc: CanGc,
     ) -> DomRoot<ImageBitmapRenderingContext> {
         reflect_dom_object(
-            Box::new(ImageBitmapRenderingContext::new_inherited(canvas)),
+            Box::new(ImageBitmapRenderingContext::new_inherited(
+                HTMLCanvasElementOrOffscreenCanvas::from(canvas),
+            )),
             global,
             can_gc,
         )
@@ -99,8 +105,8 @@ impl CanvasContext for ImageBitmapRenderingContext {
 
     fn context_id(&self) -> Self::ID {}
 
-    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
-        Some(self.canvas.clone())
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
+        Some(RootedHTMLCanvasElementOrOffscreenCanvas::from(&self.canvas))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-canvas-element:concept-canvas-bitmaprenderer>
@@ -158,8 +164,8 @@ impl CanvasContext for ImageBitmapRenderingContext {
 
 impl ImageBitmapRenderingContextMethods<crate::DomTypeHolder> for ImageBitmapRenderingContext {
     /// <https://html.spec.whatwg.org/multipage/#dom-imagebitmaprenderingcontext-canvas>
-    fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
-        self.canvas.clone()
+    fn Canvas(&self) -> RootedHTMLCanvasElementOrOffscreenCanvas {
+        RootedHTMLCanvasElementOrOffscreenCanvas::from(&self.canvas)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagebitmaprenderingcontext-transferfromimagebitmap>
