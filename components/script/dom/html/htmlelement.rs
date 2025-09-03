@@ -444,6 +444,11 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         document.request_focus(None, FocusInitiator::Local, can_gc);
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
+    fn GetScrollParent(&self) -> Option<DomRoot<Element>> {
+        self.owner_window().scroll_parent_query(self.upcast())
+    }
+
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent>
     fn GetOffsetParent(&self) -> Option<DomRoot<Element>> {
         if self.is_body_element() || self.is::<HTMLHtmlElement>() {

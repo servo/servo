@@ -295,6 +295,7 @@ pub trait Layout {
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
+    fn query_scroll_parent(&self, node: TrustedNodeAddress) -> Option<ScrollParentResponse>;
     fn query_resolved_style(
         &self,
         node: TrustedNodeAddress,
@@ -351,6 +352,12 @@ pub struct OffsetParentResponse {
     pub rect: Rect<Au>,
 }
 
+#[derive(Clone)]
+pub enum ScrollParentResponse {
+    DocumentScrollingElement,
+    Element(UntrustedNodeAddress),
+}
+
 #[derive(Debug, PartialEq)]
 pub enum QueryMsg {
     BoxArea,
@@ -361,6 +368,7 @@ pub enum QueryMsg {
     InnerWindowDimensionsQuery,
     NodesFromPointQuery,
     OffsetParentQuery,
+    ScrollParentQuery,
     ResolvedFontStyleQuery,
     ResolvedStyleQuery,
     ScrollingAreaOrOffsetQuery,

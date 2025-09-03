@@ -598,6 +598,14 @@ impl ComputedValuesExt for ComputedValues {
         let mut overflow_x = style_box.overflow_x;
         let mut overflow_y = style_box.overflow_y;
 
+        // Inline boxes should never establish scroll containers.
+        if self.is_inline_box(fragment_flags) {
+            return AxesOverflow {
+                x: Overflow::Visible,
+                y: Overflow::Visible,
+            };
+        }
+
         // https://www.w3.org/TR/css-overflow-3/#overflow-propagation
         // The element from which the value is propagated must then have a used overflow value of visible.
         if fragment_flags.contains(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT) {

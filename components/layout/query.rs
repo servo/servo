@@ -11,7 +11,9 @@ use euclid::default::{Point2D, Rect};
 use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use layout_api::{BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse};
+use layout_api::{
+    BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse, ScrollParentResponse,
+};
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
@@ -47,6 +49,7 @@ use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, cap
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
+use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Get a scroll node that would represents this [`ServoLayoutNode`]'s transform and
@@ -636,6 +639,95 @@ pub fn process_offset_parent_query(node: ServoLayoutNode<'_>) -> Option<OffsetPa
         node_address: parent_fragment.base.tag.map(|tag| tag.node.into()),
         rect: border_box.to_untyped(),
     })
+}
+
+/// This is an implementation of
+/// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>.
+#[inline]
+pub(crate) fn process_scroll_parent_query(
+    node: ServoLayoutNode<'_>,
+) -> Option<ScrollParentResponse> {
+    let layout_data = node.to_threadsafe().inner_layout_data()?;
+
+    // 1. If any of the following holds true, return null and terminate this algorithm:
+    //  - The element does not have an associated box.
+    let layout_box = layout_data.self_box.borrow();
+    let layout_box = layout_box.as_ref()?;
+
+    let (mut current_position_value, flags) = layout_box
+        .with_base_flat(|base| vec![(base.style.clone_position(), base.base_fragment_info.flags)])
+        .first()
+        .cloned()?;
+
+    // - The element is the root element.
+    // - The element is the body element.
+    // - The element’s computed value of the position property is fixed and no ancestor
+    //   establishes a fixed position containing block.
+    if flags.intersects(
+        FragmentFlags::IS_ROOT_ELEMENT | FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT,
+    ) {
+        return None;
+    }
+
+    // 2. Let ancestor be the containing block of the element in the flat tree and repeat these substeps:
+    // - If ancestor is the initial containing block, return the scrollingElement for the
+    //   element’s document if it is not closed-shadow-hidden from the element, otherwise
+    //   return null.
+    // - If ancestor is not closed-shadow-hidden from the element, and is a scroll
+    //   container, terminate this algorithm and return ancestor.
+    // - If the computed value of the position property of ancestor is fixed, and no
+    //   ancestor establishes a fixed position containing block, terminate this algorithm
+    //   and return null.
+    // - Let ancestor be the containing block of ancestor in the flat tree.
+    //
+    // Notes: We don't follow the specification exactly below, but we follow the spirit.
+    //
+    // TODO: Handle the situation where the ancestor is "closed-shadow-hidden" from the element.
+    let mut current_ancestor = node.as_element()?;
+    while let Some(ancestor) = current_ancestor.traversal_parent() {
+        current_ancestor = ancestor;
+
+        let Some(layout_data) = ancestor.as_node().to_threadsafe().inner_layout_data() else {
+            continue;
+        };
+        let ancestor_layout_box = layout_data.self_box.borrow();
+        let Some(ancestor_layout_box) = ancestor_layout_box.as_ref() else {
+            continue;
+        };
+
+        let (ancestor_style, ancestor_flags) = ancestor_layout_box
+            .with_base_flat(|base| vec![(base.style.clone(), base.base_fragment_info.flags)])
+            .first()
+            .cloned()?;
+
+        let is_containing_block = match current_position_value {
+            Position::Static | Position::Relative | Position::Sticky => {
+                !ancestor_style.is_inline_box(ancestor_flags)
+            },
+            Position::Absolute => {
+                ancestor_style.establishes_containing_block_for_absolute_descendants(ancestor_flags)
+            },
+            Position::Fixed => {
+                ancestor_style.establishes_containing_block_for_all_descendants(ancestor_flags)
+            },
+        };
+        if !is_containing_block {
+            continue;
+        }
+
+        if ancestor_style.establishes_scroll_container(ancestor_flags) {
+            return Some(ScrollParentResponse::Element(
+                ancestor.as_node().opaque().into(),
+            ));
+        }
+
+        current_position_value = ancestor_style.clone_position();
+    }
+
+    match current_position_value {
+        Position::Fixed => None,
+        _ => Some(ScrollParentResponse::DocumentScrollingElement),
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
