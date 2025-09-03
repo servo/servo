@@ -1628,11 +1628,18 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
     fn ScrollBy(&self, options: &ScrollToOptions) {
-        // Step 1
+        // Step 1.2: Normalize non-finite values for left and top dictionary members of options.
         let x = options.left.unwrap_or(0.0f64);
         let y = options.top.unwrap_or(0.0f64);
-        self.ScrollBy_(x, y);
-        self.scroll(x, y, options.parent.behavior);
+
+        let scroll_offset = self.scroll_offset();
+        // Step 3: Add the value of scrollLeft to the left dictionary member.
+        let left = x + scroll_offset.x as f64;
+        // Step 4: Add the value of scrollTop to the top dictionary member.
+        let top = y + scroll_offset.y as f64;
+
+        // Step 5: Act as if the scroll() method was invoked with options as the only argument.
+        self.scroll(left, top, options.parent.behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
@@ -2128,8 +2135,16 @@ impl Window {
         // Even though the note mention the scrollend, it is relevant to the scroll as well.
         if reflow_phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
             match element {
-                Some(el) => self.Document().handle_element_scroll_event(el),
-                None => self.Document().handle_viewport_scroll_event(),
+                Some(el) => {
+                    self.Document().handle_element_scroll_event(el);
+                    // Add to pending scrollend events for instant scroll completion
+                    self.Document().handle_element_scrollend_event(el);
+                },
+                None => {
+                    self.Document().handle_viewport_scroll_event();
+                    // Add to pending scrollend events for instant scroll completion
+                    self.Document().handle_viewport_scrollend_event();
+                },
             };
         }
     }

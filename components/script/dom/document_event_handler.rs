@@ -1452,6 +1452,7 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         if event.external_id.is_root() {
             document.handle_viewport_scroll_event();
+            document.handle_viewport_scrollend_event();
         } else {
             // Otherwise, check whether it is for a relevant element within the document.
             let Some(node_id) = node_id_from_scroll_id(event.external_id.0 as usize) else {
@@ -1469,6 +1470,7 @@ impl DocumentEventHandler {
             };
 
             document.handle_element_scroll_event(&element);
+            document.handle_element_scrollend_event(&element);
         }
     }
 }
