@@ -71,6 +71,7 @@ use num_traits::ToPrimitive;
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
 use script_bindings::root::Root;
@@ -109,8 +110,7 @@ use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, FrameRequestCallback, ScrollBehavior, ScrollToOptions, WindowMethods,
-    WindowPostMessageOptions,
+    self, FrameRequestCallback, ScrollBehavior, WindowMethods, WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
@@ -1603,48 +1603,85 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.ScrollY()
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-window-scroll
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
     fn Scroll(&self, options: &ScrollToOptions) {
-        // Step 1
-        let left = options.left.unwrap_or(0.0f64);
-        let top = options.top.unwrap_or(0.0f64);
-        self.scroll(left, top, options.parent.behavior);
+        // Step 1: If invoked with one argument, follow these substeps:
+        // Step 1.1: Let options be the argument.
+        // Step 1.2: Let x be the value of the left dictionary member of options, if
+        // present, or the viewport’s current scroll position on the x axis otherwise.
+        let x = options.left.unwrap_or(0.0) as f32;
+
+        // Step 1.3: Let y be the value of the top dictionary member of options, if
+        // present, or the viewport’s current scroll position on the y axis otherwise.
+        let y = options.top.unwrap_or(0.0) as f32;
+
+        // The rest of the specification continues from `Self::scroll`.
+        self.scroll(x, y, options.parent.behavior);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-window-scroll
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
     fn Scroll_(&self, x: f64, y: f64) {
-        self.scroll(x, y, ScrollBehavior::Auto);
+        // Step 2: If invoked with two arguments, follow these substeps:
+        // Step 2.1 Let options be null converted to a ScrollToOptions dictionary. [WEBIDL]
+        // Step 2.2: Let x and y be the arguments, respectively.
+        self.scroll(x as f32, y as f32, ScrollBehavior::Auto);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollto>
+    ///
+    /// > When the scrollTo() method is invoked, the user agent must act as if the
+    /// > scroll() method was invoked with the same arguments.
     fn ScrollTo(&self, options: &ScrollToOptions) {
         self.Scroll(options);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollto>:
+    ///
+    /// > When the scrollTo() method is invoked, the user agent must act as if the
+    /// > scroll() method was invoked with the same arguments.
     fn ScrollTo_(&self, x: f64, y: f64) {
-        self.scroll(x, y, ScrollBehavior::Auto);
+        self.Scroll_(x, y)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollby>
     fn ScrollBy(&self, options: &ScrollToOptions) {
-        // Step 1
-        let x = options.left.unwrap_or(0.0f64);
-        let y = options.top.unwrap_or(0.0f64);
-        self.ScrollBy_(x, y);
-        self.scroll(x, y, options.parent.behavior);
+        // When the scrollBy() method is invoked, the user agent must run these steps:
+        // Step 1: If invoked with two arguments, follow these substeps:
+        //   This doesn't apply here.
+
+        // Step 2: Normalize non-finite values for the left and top dictionary members of options.
+        let mut options = options.clone();
+        let x = options.left.unwrap_or(0.0);
+        let x = if x.is_finite() { x } else { 0.0 };
+        let y = options.top.unwrap_or(0.0);
+        let y = if y.is_finite() { y } else { 0.0 };
+
+        // Step 3: Add the value of scrollX to the left dictionary member.
+        options.left.replace(x + self.ScrollX() as f64);
+
+        // Step 4. Add the value of scrollY to the top dictionary member.
+        options.top.replace(y + self.ScrollY() as f64);
+
+        // Step 5: Act as if the scroll() method was invoked with options as the only argument.
+        self.Scroll(&options)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollby>
     fn ScrollBy_(&self, x: f64, y: f64) {
-        let scroll_offset = self.scroll_offset();
-        // Step 3
-        let left = x + scroll_offset.x as f64;
-        // Step 4
-        let top = y + scroll_offset.y as f64;
+        // When the scrollBy() method is invoked, the user agent must run these steps:
+        // Step 1: If invoked with two arguments, follow these substeps:
+        // Step 1.1: Let options be null converted to a ScrollToOptions dictionary.
+        let mut options = ScrollToOptions::empty();
 
-        // Step 5
-        self.scroll(left, top, ScrollBehavior::Auto);
+        // Step 1.2: Let x and y be the arguments, respectively.
+        // Step 1.3: Let the left dictionary member of options have the value x.
+        options.left.replace(x);
+
+        // Step 1.5:  Let the top dictionary member of options have the value y.
+        options.top.replace(y);
+
+        // Now follow the specification for the one argument option.
+        self.ScrollBy(&options);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
@@ -2062,46 +2099,56 @@ impl Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
-    pub(crate) fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
-        // Step 3
-        let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
-        let yfinite = if y_.is_finite() { y_ } else { 0.0f64 };
+    pub(crate) fn scroll(&self, x: f32, y: f32, behavior: ScrollBehavior) {
+        // Step 3: Normalize non-finite values for x and y.
+        let xfinite = if x.is_finite() { x } else { 0.0 };
+        let yfinite = if y.is_finite() { y } else { 0.0 };
 
-        // TODO Step 4 - determine if a window has a viewport
+        // Step 4: If there is no viewport, abort these steps.
+        // Currently every frame has a viewport in Servo.
 
-        // Step 5 & 6
-        // TODO: Remove scrollbar dimensions.
+        // Step 5. Let `viewport width` be the width of the viewport excluding the width
+        // of the scroll bar, if any.
+        // Step 6. `Let viewport height` be the height of the viewport excluding the
+        // height of the scroll bar, if any.
+        //
+        // TODO: Servo does not yet support scrollbars.
         let viewport = self.viewport_details.get().size;
 
-        // Step 7 & 8
-        // TODO: Consider `block-end` and `inline-end` overflow direction.
-        let scrolling_area = self.scrolling_area_query(None);
-        let x = xfinite
-            .min(scrolling_area.width() as f64 - viewport.width as f64)
-            .max(0.0f64);
-        let y = yfinite
-            .min(scrolling_area.height() as f64 - viewport.height as f64)
-            .max(0.0f64);
+        // Step 7:
+        // If the viewport has rightward overflow direction
+        //    Let x be max(0, min(x, viewport scrolling area width - viewport width)).
+        // If the viewport has leftward overflow direction
+        //    Let x be min(0, max(x, viewport width - viewport scrolling area width)).
+        // TODO: Implement this.
 
-        // Step 10
-        // TODO handling ongoing smooth scrolling
+        // Step 8:
+        // If the viewport has downward overflow direction
+        //    Let y be max(0, min(y, viewport scrolling area height - viewport height)).
+        // If the viewport has upward overflow direction
+        //    Let y be min(0, max(y, viewport height - viewport scrolling area height)).
+        // TODO: Implement this.
+
+        // Step 9: Let position be the scroll position the viewport would have by aligning
+        // the x-coordinate x of the viewport scrolling area with the left of the viewport
+        // and aligning the y-coordinate y of the viewport scrolling area with the top of
+        // the viewport.
+        let scrolling_area = self.scrolling_area_query(None);
+        let x = xfinite.clamp(0.0, scrolling_area.width() as f32 - viewport.width);
+        let y = yfinite.clamp(0.0, scrolling_area.height() as f32 - viewport.height);
+
+        // Step 10: If position is the same as the viewport’s current scroll position, and
+        // the viewport does not have an ongoing smooth scroll, abort these steps.
         let scroll_offset = self.scroll_offset();
-        if x == scroll_offset.x as f64 && y == scroll_offset.y as f64 {
+        if x == scroll_offset.x && y == scroll_offset.y {
             return;
         }
 
-        // TODO Step 11
-
+        // Step 11: Let document be the viewport’s associated Document.
         // Step 12: Perform a scroll of the viewport to position, document’s root element
         // as the associated element, if there is one, or null otherwise, and the scroll
         // behavior being the value of the behavior dictionary member of options.
-        self.perform_a_scroll(
-            x.to_f32().unwrap_or(0.0f32),
-            y.to_f32().unwrap_or(0.0f32),
-            self.pipeline_id().root_scroll_id(),
-            behavior,
-            None,
-        );
+        self.perform_a_scroll(x, y, self.pipeline_id().root_scroll_id(), behavior, None);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#perform-a-scroll>
@@ -2483,8 +2530,8 @@ impl Window {
     pub(crate) fn scroll_an_element(
         &self,
         element: &Element,
-        x_: f64,
-        y_: f64,
+        x: f32,
+        y: f32,
         behavior: ScrollBehavior,
     ) {
         let scroll_id = ExternalScrollId(
@@ -2498,13 +2545,7 @@ impl Window {
         // Step 6.
         // > Perform a scroll of box to position, element as the associated element and behavior as
         // > the scroll behavior.
-        self.perform_a_scroll(
-            x_.to_f32().unwrap_or(0.0f32),
-            y_.to_f32().unwrap_or(0.0f32),
-            scroll_id,
-            behavior,
-            Some(element),
-        );
+        self.perform_a_scroll(x, y, scroll_id, behavior, Some(element));
     }
 
     pub(crate) fn resolved_style_query(

@@ -1065,8 +1065,7 @@ impl Document {
             });
 
         if let Some((x, y)) = point {
-            self.window
-                .scroll(x as f64, y as f64, ScrollBehavior::Instant)
+            self.window.scroll(x, y, ScrollBehavior::Instant)
         }
     }
 
