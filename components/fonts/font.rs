@@ -13,7 +13,7 @@ use std::{iter, str};
 
 use app_units::Au;
 use bitflags::bitflags;
-use euclid::default::{Point2D, Rect, Size2D};
+use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
 use fonts_traits::FontDescriptor;
 use log::debug;
@@ -831,41 +831,6 @@ impl FontGroupFamily {
 
         members.iter_mut()
     }
-}
-
-pub(crate) struct RunMetrics {
-    // may be negative due to negative width (i.e., kerning of '.' in 'P.T.')
-    pub(crate) advance_width: Au,
-    pub(crate) ascent: Au,  // nonzero
-    pub(crate) descent: Au, // nonzero
-    // this bounding box is relative to the left origin baseline.
-    // so, bounding_box.position.y = -ascent
-    pub(crate) bounding_box: Rect<Au>,
-}
-
-impl RunMetrics {
-    pub(crate) fn new(advance: Au, ascent: Au, descent: Au) -> RunMetrics {
-        let bounds = Rect::new(
-            Point2D::new(Au::zero(), -ascent),
-            Size2D::new(advance, ascent + descent),
-        );
-
-        // TODO(Issue #125): support loose and tight bounding boxes; using the
-        // ascent+descent and advance is sometimes too generous and
-        // looking at actual glyph extents can yield a tighter box.
-
-        RunMetrics {
-            advance_width: advance,
-            bounding_box: bounds,
-            ascent,
-            descent,
-        }
-    }
-}
-
-/// Get the number of nanoseconds spent shaping text across all threads.
-pub(crate) fn get_and_reset_text_shaping_performance_counter() -> usize {
-    TEXT_SHAPING_PERFORMANCE_COUNTER.swap(0, Ordering::SeqCst)
 }
 
 /// The scope within which we will look for a font.

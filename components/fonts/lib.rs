@@ -18,9 +18,7 @@ pub use font::{
     FontBaseline, FontGroup, FontMetrics, FontRef, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags,
     ShapingOptions,
 };
-pub(crate) use font_context::*;
 pub use font_context::{FontContext, FontContextWebFontMethods};
-pub(crate) use font_store::*;
 pub use fonts_traits::*;
 pub(crate) use glyph::*;
 pub use glyph::{GlyphInfo, GlyphRun, GlyphStore};

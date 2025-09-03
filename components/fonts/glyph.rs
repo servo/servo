@@ -649,32 +649,6 @@ impl GlyphStore {
         })
     }
 
-    // Scan the glyphs for a given range until we reach a given advance. Returns the index
-    // and advance of the glyph in the range at the given advance, if reached. Otherwise, returns the
-    // the number of glyphs and the advance for the given range.
-    #[inline]
-    pub(crate) fn range_index_of_advance(
-        &self,
-        range: &Range<ByteIndex>,
-        advance: Au,
-        extra_word_spacing: Au,
-    ) -> (usize, Au) {
-        let mut index = 0;
-        let mut current_advance = Au::zero();
-        for glyph in self.iter_glyphs_for_byte_range(range) {
-            if glyph.char_is_word_separator() {
-                current_advance += glyph.advance() + extra_word_spacing
-            } else {
-                current_advance += glyph.advance()
-            }
-            if current_advance > advance {
-                break;
-            }
-            index += 1;
-        }
-        (index, current_advance)
-    }
-
     #[inline]
     pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         if range.begin() == ByteIndex(0) && range.end() == self.len() {
@@ -703,16 +677,6 @@ impl GlyphStore {
     pub(crate) fn char_is_word_separator(&self, i: ByteIndex) -> bool {
         assert!(i < self.len());
         self.entry_buffer[i.to_usize()].char_is_word_separator()
-    }
-
-    pub(crate) fn word_separator_count_in_range(&self, range: &Range<ByteIndex>) -> u32 {
-        let mut spaces = 0;
-        for index in range.each_index() {
-            if self.char_is_word_separator(index) {
-                spaces += 1
-            }
-        }
-        spaces
     }
 }
 
@@ -759,16 +723,6 @@ pub struct GlyphRun {
 }
 
 impl GlyphRun {
-    pub(crate) fn compare(&self, key: &ByteIndex) -> Ordering {
-        if *key < self.range.begin() {
-            Ordering::Greater
-        } else if *key >= self.range.end() {
-            Ordering::Less
-        } else {
-            Ordering::Equal
-        }
-    }
-
     #[inline]
     pub fn is_single_preserved_newline(&self) -> bool {
         self.glyph_store.is_single_preserved_newline
