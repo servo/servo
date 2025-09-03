@@ -18,10 +18,7 @@ use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::{IpcSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
-use webgpu_traits::{
-    ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPUContextId, WebGPUMsg, buffer_size,
-    stride,
-};
+use webgpu_traits::{ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPUContextId, WebGPUMsg};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageDescriptor, ImageDescriptorFlags,
@@ -60,7 +57,7 @@ struct Buffer {
 impl Buffer {
     /// Returns true if buffer is compatible with provided configuration
     fn has_config(&self, config: &ContextConfiguration) -> bool {
-        config.device_id == self.device_id && self.size == buffer_size(config.size, config.format)
+        config.device_id == self.device_id && self.size == config.buffer_size()
     }
 }
 
@@ -82,6 +79,11 @@ impl MappedBuffer {
     const fn slice(&'_ self) -> &'_ [u8] {
         // Safety: Pointer is from wgpu, and we only use it here
         unsafe { std::slice::from_raw_parts(self.data.as_ptr(), self.len as usize) }
+    }
+
+    pub fn stride(&self) -> u32 {
+        (self.image_size.width * self.image_format.bytes_per_pixel() as u32)
+            .next_multiple_of(wgt::COPY_BYTES_PER_ROW_ALIGNMENT)
     }
 }
 
@@ -159,7 +161,7 @@ impl StagingBuffer {
             },
         };
         if recreate {
-            let buffer_size = buffer_size(config.size, config.format);
+            let buffer_size = config.buffer_size();
             let (_, error) = self.global.device_create_buffer(
                 config.device_id,
                 &BufferDescriptor {
@@ -210,7 +212,7 @@ impl StagingBuffer {
             buffer: self.buffer_id,
             layout: wgt::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(stride(config.size, config.format)),
+                bytes_per_row: Some(config.stride()),
                 rows_per_image: None,
             },
         };
@@ -271,7 +273,7 @@ impl StagingBuffer {
                 premultiplied: true,
             }
         };
-        let padded_byte_width = stride(mapped.image_size, mapped.image_format);
+        let padded_byte_width = mapped.stride();
         let data = mapped.slice();
         let bytes_per_pixel = mapped.image_format.bytes_per_pixel() as usize;
         let mut result_unpadded =
