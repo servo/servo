@@ -544,7 +544,7 @@ pub(crate) fn wait_for_all(
     // Note: done using the len of result.
 
     // If total is 0, then:
-    if promises.len() == 0 {
+    if promises.is_empty() {
         // Queue a microtask to perform successSteps given « ».
         global.microtask_queue().enqueue(
             Microtask::WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask {
