@@ -168,7 +168,7 @@ impl MicrotaskQueue {
 
         // Step 7. Set the event loop's performing a microtask checkpoint to false.
         self.performing_a_microtask_checkpoint.set(false);
-        // TODO: Step 8. Set the event loop's performing a microtask checkpoint to false.
+        // TODO: Step 8. Record timing info for microtask checkpoint.
     }
 
     pub(crate) fn empty(&self) -> bool {
