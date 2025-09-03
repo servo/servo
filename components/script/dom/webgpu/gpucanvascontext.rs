@@ -157,7 +157,7 @@ impl GPUCanvasContext {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-expire-the-current-texture>
-    fn expire_current_texture(&self) {
+    fn expire_current_texture(&self, skip_dirty: bool) {
         // 1. If context.[[currentTexture]] is not null:
 
         if let Some(current_texture) = self.current_texture.take() {
@@ -171,14 +171,16 @@ impl GPUCanvasContext {
             // because we already copied content when doing present
             // or current texture is getting cleared
         }
-        // texture is either cleared or applied to canvas
-        self.mark_as_dirty();
+        if !skip_dirty {
+            // texture is either cleared or applied to canvas
+            self.mark_as_dirty();
+        }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-replace-the-drawing-buffer>
     fn replace_drawing_buffer(&self) {
         // 1. Expire the current texture of context.
-        self.expire_current_texture();
+        self.expire_current_texture(false);
         // 2. Let configuration be context.[[configuration]].
         // 3. Set context.[[drawingBuffer]] to
         // a transparent black image of the same size as context.canvas
@@ -244,7 +246,7 @@ impl CanvasContext for GPUCanvasContext {
             }
         }
         // 1. Expire the current texture of context.
-        self.expire_current_texture();
+        self.expire_current_texture(true);
 
         updated_image
     }
