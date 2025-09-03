@@ -28,6 +28,7 @@ pub enum MediaType {
     Font,
 }
 
+#[derive(PartialEq)]
 pub enum ApacheBugFlag {
     On,
     Off,
@@ -84,7 +85,8 @@ impl MimeClassifier {
             .unwrap_or(mime::APPLICATION_OCTET_STREAM);
         // Step 1. If the supplied MIME type is an XML MIME type or HTML MIME type,
         // the computed MIME type is the supplied MIME type.
-        if Self::is_xml(&supplied_type_or_octet_stream) || Self::is_html(&supplied_type_or_octet_stream)
+        if Self::is_xml(&supplied_type_or_octet_stream) ||
+            Self::is_html(&supplied_type_or_octet_stream)
         {
             return supplied_type_or_octet_stream;
         }
@@ -96,47 +98,38 @@ impl MimeClassifier {
                 None => self.sniff_unknown_type(no_sniff_flag, data),
                 Some(ref supplied_type) => {
                     if MimeClassifier::is_explicit_unknown(supplied_type) {
-                        self.sniff_unknown_type(no_sniff_flag, data)
-                    } else {
-                        match no_sniff_flag {
-                            // Step 3. If the no-sniff flag is set, the computed MIME type is the supplied MIME type.
-                            // Abort these steps.
-                            NoSniffFlag::On => supplied_type.clone(),
-                            NoSniffFlag::Off => match apache_bug_flag {
-                                // Step 4. If the check-for-apache-bug flag is set,
-                                // execute the rules for distinguishing if a resource is text or binary and abort these steps.
-                                ApacheBugFlag::On => self.sniff_text_or_data(data),
-                                ApacheBugFlag::Off => {
-                                    match MimeClassifier::get_media_type(supplied_type) {
-                                        Some(MediaType::Html) => {
-                                            self.feeds_classifier.classify(data)
-                                        },
-                                        // Step 5. If the supplied MIME type is an image MIME type supported by the user agent,
-                                        // let matched-type be the result of executing the image type pattern matching algorithm with
-                                        // the resource header as the byte sequence to be matched.
-                                        Some(MediaType::Image) => {
-                                            // Step 6. If matched-type is not undefined, the computed MIME type is matched-type.
-                                            self.image_classifier.classify(data)
-                                        },
-                                        // Step 7. If the supplied MIME type is an audio or video MIME type supported by the user agent,
-                                        // let matched-type be the result of executing the audio or video type pattern matching algorithm
-                                        // with the resource header as the byte sequence to be matched.
-                                        Some(MediaType::AudioVideo) => {
-                                            // Step 8. If matched-type is not undefined, the computed MIME type is matched-type.
-                                            self.audio_video_classifier.classify(data)
-                                        },
-                                        Some(MediaType::JavaScript) |
-                                        Some(MediaType::Font) |
-                                        Some(MediaType::Json) |
-                                        Some(MediaType::Xml) |
-                                        None => None,
-                                    }
-                                    // Step 9. The computed MIME type is the supplied MIME type.
-                                    .unwrap_or(supplied_type.clone())
-                                },
-                            },
-                        }
+                        return self.sniff_unknown_type(no_sniff_flag, data);
                     }
+                    // Step 3. If the no-sniff flag is set, the computed MIME type is the supplied MIME type.
+                    // Abort these steps.
+                    if no_sniff_flag == NoSniffFlag::On {
+                        return supplied_type.clone();
+                    }
+                    // Step 4. If the check-for-apache-bug flag is set,
+                    // execute the rules for distinguishing if a resource is text or binary and abort these steps.
+                    if apache_bug_flag == ApacheBugFlag::On {
+                        return self.sniff_text_or_data(data);
+                    }
+                    match MimeClassifier::get_media_type(supplied_type) {
+                        // Step 5. If the supplied MIME type is an image MIME type supported by the user agent,
+                        // let matched-type be the result of executing the image type pattern matching algorithm with
+                        // the resource header as the byte sequence to be matched.
+                        Some(MediaType::Image) => {
+                            // Step 6. If matched-type is not undefined, the computed MIME type is matched-type.
+                            self.image_classifier.classify(data)
+                        },
+                        // Step 7. If the supplied MIME type is an audio or video MIME type supported by the user agent,
+                        // let matched-type be the result of executing the audio or video type pattern matching algorithm
+                        // with the resource header as the byte sequence to be matched.
+                        Some(MediaType::AudioVideo) => {
+                            // Step 8. If matched-type is not undefined, the computed MIME type is matched-type.
+                            self.audio_video_classifier.classify(data)
+                        },
+                        Some(MediaType::Html) | Some(MediaType::Xml) => unreachable!(),
+                        _ => None,
+                    }
+                    // Step 9. The computed MIME type is the supplied MIME type.
+                    .unwrap_or(supplied_type.clone())
                 },
             },
             LoadContext::Image => {
