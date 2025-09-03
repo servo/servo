@@ -320,9 +320,7 @@ fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions)
             // but the spec will expand to cover all fragments.
             target
                 .upcast::<Node>()
-                .border_boxes()
-                .pop()
-                .unwrap_or_else(Rect::zero)
+                .border_box()
         },
         // TODO(#31182): add support for device pixel size calculations.
         _ => Rect::zero(),
