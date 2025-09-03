@@ -2643,11 +2643,8 @@ impl Document {
 
     #[cfg(feature = "webgpu")]
     pub(crate) fn add_dirty_webgpu_context(&self, context: &GPUCanvasContext) {
-        let Ok(mut dirty_webgpu_contexts) = self.dirty_webgpu_contexts.try_borrow_mut() else {
-            // ignore already borrowed problem, that happens when updating the rendering
-            return;
-        };
-        dirty_webgpu_contexts
+        self.dirty_webgpu_contexts
+            .borrow_mut()
             .entry(context.context_id())
             .or_insert_with(|| Dom::from_ref(context));
     }
