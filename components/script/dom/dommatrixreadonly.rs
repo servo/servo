@@ -409,43 +409,38 @@ impl DOMMatrixReadOnly {
         // Step 2 in DOMMatrix.SkewYSelf
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself
+    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself>
     pub(crate) fn invert_self(&self) {
         let mut matrix = self.matrix.borrow_mut();
-        let empty = Transform3D::new(
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-            f64::NAN,
-        );
-        // Step 1.
-        *matrix = match self.is2D() {
-            true => match matrix.to_2d().inverse() {
-                Some(m) => m.to_3d(),
-                None => {
-                    // Step 2.
-                    self.is2D.set(false);
-                    empty
-                },
-            },
-            false => matrix.inverse().unwrap_or_else(|| {
-                // Step 2.
-                self.is2D.set(false);
-                empty
-            }),
-        }
+        // Step 1. Invert the current matrix.
+        let inverted = match self.is2D() {
+            true => matrix.to_2d().inverse().map(|m| m.to_3d()),
+            false => matrix.inverse(),
+        };
+
+        // Step 2. If the current matrix is not invertible set all attributes to NaN
+        // and set is 2D to false.
+        *matrix = inverted.unwrap_or_else(|| -> Transform3D<f64> {
+            self.is2D.set(false);
+            Transform3D::new(
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+            )
+        });
         // Step 3 in DOMMatrix.InvertSelf
     }
 }
