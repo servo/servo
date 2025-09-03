@@ -168,7 +168,7 @@ unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
-uuid = { version = "1.18.0", features = ["v4", "v5"] }
+uuid = { version = "1.18.1", features = ["v4", "v5"] }
 vello = { git = "https://github.com/linebender/vello", rev = "5e3e12559781891b204553161aee761900c7e92d" }
 vello_cpu = { git = "https://github.com/linebender/vello", rev = "5e3e12559781891b204553161aee761900c7e92d" }
 webdriver = "0.53.0"
