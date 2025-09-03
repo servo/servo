@@ -28,6 +28,7 @@ use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{CompositorHitTestResult, InputEvent, ShutdownState, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
+use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
@@ -1183,7 +1184,7 @@ impl IOCompositor {
                 // complete (i.e. has *all* layers painted to the requested epoch).
                 // This gets sent to the constellation for comparison with the current
                 // frame tree.
-                let mut pipeline_epochs = HashMap::new();
+                let mut pipeline_epochs = FnvHashMap::default();
                 for id in self
                     .webview_renderers
                     .iter()

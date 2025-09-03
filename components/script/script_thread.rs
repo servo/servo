@@ -55,6 +55,7 @@ use embedder_traits::{
 };
 use euclid::Point2D;
 use euclid::default::Rect;
+use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
@@ -1943,7 +1944,7 @@ impl ScriptThread {
     fn handle_set_scroll_states(
         &self,
         pipeline_id: PipelineId,
-        scroll_states: HashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: FnvHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Received scroll states for closed pipeline {pipeline_id}");

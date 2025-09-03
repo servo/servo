@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::{BrowsingContextId, PipelineId};
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
+use fnv::FnvHashMap;
 use log::warn;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use style_traits::CSSPixel;
@@ -64,7 +63,7 @@ impl ConstellationWebView {
     fn target_pipeline_id_for_input_event(
         &self,
         event: &ConstellationInputEvent,
-        browsing_contexts: &HashMap<BrowsingContextId, BrowsingContext>,
+        browsing_contexts: &FnvHashMap<BrowsingContextId, BrowsingContext>,
     ) -> Option<PipelineId> {
         if let Some(hit_test_result) = &event.hit_test_result {
             return Some(hit_test_result.pipeline_id);
@@ -85,8 +84,8 @@ impl ConstellationWebView {
     pub(crate) fn forward_input_event(
         &mut self,
         event: ConstellationInputEvent,
-        pipelines: &HashMap<PipelineId, Pipeline>,
-        browsing_contexts: &HashMap<BrowsingContextId, BrowsingContext>,
+        pipelines: &FnvHashMap<PipelineId, Pipeline>,
+        browsing_contexts: &FnvHashMap<BrowsingContextId, BrowsingContext>,
     ) {
         let Some(pipeline_id) = self.target_pipeline_id_for_input_event(&event, browsing_contexts)
         else {

@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use base::id::BroadcastChannelRouterId;
 use constellation_traits::BroadcastChannelMsg;
+use fnv::FnvHashMap;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use servo_url::ImmutableOrigin;
@@ -13,7 +14,7 @@ use servo_url::ImmutableOrigin;
 #[derive(Default)]
 pub(crate) struct BroadcastChannels {
     /// A map of broadcast routers to their IPC sender.
-    routers: HashMap<BroadcastChannelRouterId, IpcSender<BroadcastChannelMsg>>,
+    routers: FnvHashMap<BroadcastChannelRouterId, IpcSender<BroadcastChannelMsg>>,
 
     /// A map of origin to a map of channel name to a list of relevant routers.
     channels: HashMap<ImmutableOrigin, HashMap<String, Vec<BroadcastChannelRouterId>>>,
