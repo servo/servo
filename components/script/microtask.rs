@@ -93,16 +93,17 @@ impl MicrotaskQueue {
     ) where
         F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>,
     {
+        // Step 1. If the event loop's performing a microtask checkpoint is true, then return.
         if self.performing_a_microtask_checkpoint.get() {
             return;
         }
 
-        // Step 1
+        // Step 2. Set the event loop's performing a microtask checkpoint to true.
         self.performing_a_microtask_checkpoint.set(true);
 
         debug!("Now performing a microtask checkpoint");
 
-        // Steps 2
+        // Step 3. While the event loop's microtask queue is not empty:
         while !self.microtask_queue.borrow().is_empty() {
             rooted_vec!(let mut pending_queue);
             mem::swap(&mut *pending_queue, &mut *self.microtask_queue.borrow_mut());
@@ -154,15 +155,20 @@ impl MicrotaskQueue {
             }
         }
 
-        // Step 3
+        // Step 4. For each environment settings object settingsObject whose responsible
+        // event loop is this event loop, notify about rejected promises given
+        // settingsObject's global object.
         for global in globalscopes.into_iter() {
             notify_about_rejected_promises(&global);
         }
 
-        // TODO: Step 4 - Cleanup Indexed Database transactions.
+        // TODO: Step 5. Cleanup Indexed Database transactions.
 
-        // Step 5
+        // TODO: Step 6. Perform ClearKeptObjects().
+
+        // Step 7. Set the event loop's performing a microtask checkpoint to false.
         self.performing_a_microtask_checkpoint.set(false);
+        // TODO: Step 8. Record timing info for microtask checkpoint.
     }
 
     pub(crate) fn empty(&self) -> bool {
