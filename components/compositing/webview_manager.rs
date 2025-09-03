@@ -128,7 +128,7 @@ mod test {
     use crate::webview_renderer::UnknownWebView;
 
     fn top_level_id(namespace_id: u32, index: u32) -> WebViewId {
-        WebViewId(BrowsingContextId {
+        WebViewId::mock_for_testing(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
             index: Index::new(index).unwrap(),
         })

@@ -89,7 +89,7 @@ mod test {
     use crate::webview_manager::WebViewManager;
 
     fn id(namespace_id: u32, index: u32) -> WebViewId {
-        WebViewId(BrowsingContextId {
+        WebViewId::mock_for_testing(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
             index: Index::new(index).expect("Incorrect test case"),
         })

@@ -470,7 +470,7 @@ pub fn send_response_values_to_devtools(
         request.pipeline_id,
         request.target_webview_id,
     ) {
-        let browsing_context_id = webview_id.0;
+        let browsing_context_id = webview_id.into();
 
         let devtoolsresponse = DevtoolsHttpResponse {
             headers,
@@ -494,7 +494,7 @@ pub fn send_response_values_to_devtools(
 pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
     if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
         context.devtools_chan.as_ref(),
-        request.target_webview_id.map(|id| id.0),
+        request.target_webview_id.map(|id| id.into()),
         request.pipeline_id,
     ) {
         // Build the partial DevtoolsHttpRequest
@@ -1965,7 +1965,7 @@ async fn http_network_fetch(
         let _ = fetch_terminated_sender.send(false);
     }
 
-    let browsing_context_id = request.target_webview_id.map(|id| id.0);
+    let browsing_context_id = request.target_webview_id.map(Into::into);
 
     let response_future = obtain_response(
         &context.state.client,
