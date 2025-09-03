@@ -899,7 +899,7 @@ impl Element {
             // determine the scroll-into-view position of `target` with `behavior` as the scroll
             // behavior, `block` as the block flow position, `inline` as the inline base direction
             // position and `scrolling box` as the scrolling box.
-            let position = self.determine_scroll_into_view_position(&node, block, inline);
+            let position = self.determine_scroll_into_view_position(&scrolling_box, block, inline);
 
             // Step 1.3: If `position` is not the same as `scrolling box`’s current scroll position, or
             // `scrolling box` has an ongoing smooth scroll,
@@ -942,7 +942,7 @@ impl Element {
     /// <https://drafts.csswg.org/cssom-view/#element-scrolling-members>
     fn determine_scroll_into_view_position(
         &self,
-        scrolling_node: &Node,
+        scrolling_box: &ScrollingBox,
         block: ScrollLogicalPosition,
         inline: ScrollLogicalPosition,
     ) -> LayoutVector2D {
@@ -975,156 +975,150 @@ impl Element {
         let element_right = element_left + element_width;
         let element_bottom = element_top + element_height;
 
-        let (target_x, target_y) = if scrolling_node.is::<Document>() {
-            // Handle document-specific scrolling
-            // Viewport bounds and current scroll position
-            let owner_doc = self.upcast::<Node>().owner_doc();
-            let window = owner_doc.window();
-            let viewport_width = window.InnerWidth() as f32;
-            let viewport_height = window.InnerHeight() as f32;
-            let current_scroll_x = window.ScrollX() as f32;
-            let current_scroll_y = window.ScrollY() as f32;
+        let (target_x, target_y) = match scrolling_box {
+            ScrollingBox::Viewport(document) => {
+                let window = document.window();
+                let viewport_width = window.InnerWidth() as f32;
+                let viewport_height = window.InnerHeight() as f32;
+                let current_scroll_x = window.ScrollX() as f32;
+                let current_scroll_y = window.ScrollY() as f32;
 
-            // For viewport scrolling, we need to add current scroll to get document-relative positions
-            let document_element_left = element_left + current_scroll_x;
-            let document_element_top = element_top + current_scroll_y;
-            let document_element_right = element_right + current_scroll_x;
-            let document_element_bottom = element_bottom + current_scroll_y;
+                // For viewport scrolling, we need to add current scroll to get document-relative positions
+                let document_element_left = element_left + current_scroll_x;
+                let document_element_top = element_top + current_scroll_y;
+                let document_element_right = element_right + current_scroll_x;
+                let document_element_bottom = element_bottom + current_scroll_y;
 
-            (
-                self.calculate_scroll_position_one_axis(
-                    inline,
-                    document_element_left,
-                    document_element_right,
-                    element_width,
-                    viewport_width,
-                    current_scroll_x,
-                ),
-                self.calculate_scroll_position_one_axis(
-                    block,
-                    document_element_top,
-                    document_element_bottom,
-                    element_height,
-                    viewport_height,
-                    current_scroll_y,
-                ),
-            )
-        } else {
-            // Handle element-specific scrolling
-            // Scrolling box bounds and current scroll position
-            let scrolling_box = scrolling_node.border_box().unwrap_or_default();
-            let scrolling_left = scrolling_box.origin.x.to_nearest_pixel(device_pixel_ratio);
-            let scrolling_top = scrolling_box.origin.y.to_nearest_pixel(device_pixel_ratio);
-            let scrolling_width = scrolling_box
-                .size
-                .width
-                .to_nearest_pixel(device_pixel_ratio);
-            let scrolling_height = scrolling_box
-                .size
-                .height
-                .to_nearest_pixel(device_pixel_ratio);
+                (
+                    self.calculate_scroll_position_one_axis(
+                        inline,
+                        document_element_left,
+                        document_element_right,
+                        element_width,
+                        viewport_width,
+                        current_scroll_x,
+                    ),
+                    self.calculate_scroll_position_one_axis(
+                        block,
+                        document_element_top,
+                        document_element_bottom,
+                        element_height,
+                        viewport_height,
+                        current_scroll_y,
+                    ),
+                )
+            },
+            ScrollingBox::Element(scrolling_element) => {
+                let scrolling_node = scrolling_element.upcast::<Node>();
+                let scrolling_box = scrolling_node.border_box().unwrap_or_default();
+                let scrolling_left = scrolling_box.origin.x.to_nearest_pixel(device_pixel_ratio);
+                let scrolling_top = scrolling_box.origin.y.to_nearest_pixel(device_pixel_ratio);
+                let scrolling_width = scrolling_box
+                    .size
+                    .width
+                    .to_nearest_pixel(device_pixel_ratio);
+                let scrolling_height = scrolling_box
+                    .size
+                    .height
+                    .to_nearest_pixel(device_pixel_ratio);
 
-            // TODO: This function should accept `Element` and not `Node`.
-            let scrolling_element = scrolling_node
-                .downcast::<Element>()
-                .expect("Should be provided an Element.");
-            let current_scroll_x = scrolling_element.ScrollLeft() as f32;
-            let current_scroll_y = scrolling_element.ScrollTop() as f32;
+                // Calculate element position in scroller's content coordinate system
+                // Element's viewport position relative to scroller, then add scroll offset to get content position
+                let viewport_relative_left = element_left - scrolling_left;
+                let viewport_relative_top = element_top - scrolling_top;
+                let viewport_relative_right = element_right - scrolling_left;
+                let viewport_relative_bottom = element_bottom - scrolling_top;
 
-            // Calculate element position in scroller's content coordinate system
-            // Element's viewport position relative to scroller, then add scroll offset to get content position
-            let viewport_relative_left = element_left - scrolling_left;
-            let viewport_relative_top = element_top - scrolling_top;
-            let viewport_relative_right = element_right - scrolling_left;
-            let viewport_relative_bottom = element_bottom - scrolling_top;
+                // For absolutely positioned elements, we need to account for the positioning context
+                // If the element is positioned relative to an ancestor that's within the scrolling container,
+                // we need to adjust coordinates accordingly
+                let (
+                    adjusted_relative_left,
+                    adjusted_relative_top,
+                    adjusted_relative_right,
+                    adjusted_relative_bottom,
+                ) = {
+                    // Check if this element has a positioned ancestor between it and the scrolling container
+                    let mut current_node = self.upcast::<Node>().GetParentNode();
+                    let mut final_coords = (
+                        viewport_relative_left,
+                        viewport_relative_top,
+                        viewport_relative_right,
+                        viewport_relative_bottom,
+                    );
 
-            // For absolutely positioned elements, we need to account for the positioning context
-            // If the element is positioned relative to an ancestor that's within the scrolling container,
-            // we need to adjust coordinates accordingly
-            let (
-                adjusted_relative_left,
-                adjusted_relative_top,
-                adjusted_relative_right,
-                adjusted_relative_bottom,
-            ) = {
-                // Check if this element has a positioned ancestor between it and the scrolling container
-                let mut current_node = self.upcast::<Node>().GetParentNode();
-                let mut final_coords = (
-                    viewport_relative_left,
-                    viewport_relative_top,
-                    viewport_relative_right,
-                    viewport_relative_bottom,
-                );
+                    while let Some(node) = current_node {
+                        // Stop if we reach the scrolling container
+                        if &*node == scrolling_node {
+                            break;
+                        }
 
-                while let Some(node) = current_node {
-                    // Stop if we reach the scrolling container
-                    if &*node == scrolling_node {
-                        break;
-                    }
+                        // Check if this node establishes a positioning context and has position relative/absolute
+                        if let Some(element) = node.downcast::<Element>() {
+                            if let Some(computed_style) = element.style() {
+                                let position = computed_style.get_box().position;
 
-                    // Check if this node establishes a positioning context and has position relative/absolute
-                    if let Some(element) = node.downcast::<Element>() {
-                        if let Some(computed_style) = element.style() {
-                            let position = computed_style.get_box().position;
+                                if matches!(position, Position::Relative | Position::Absolute) {
+                                    // If this element establishes a positioning context,
+                                    // Get its bounding box to calculate the offset
+                                    let positioning_box = node.border_box().unwrap_or_default();
+                                    let positioning_left = positioning_box
+                                        .origin
+                                        .x
+                                        .to_nearest_pixel(device_pixel_ratio);
+                                    let positioning_top = positioning_box
+                                        .origin
+                                        .y
+                                        .to_nearest_pixel(device_pixel_ratio);
 
-                            if matches!(position, Position::Relative | Position::Absolute) {
-                                // If this element establishes a positioning context,
-                                // Get its bounding box to calculate the offset
-                                let positioning_box = node.border_box().unwrap_or_default();
-                                let positioning_left = positioning_box
-                                    .origin
-                                    .x
-                                    .to_nearest_pixel(device_pixel_ratio);
-                                let positioning_top = positioning_box
-                                    .origin
-                                    .y
-                                    .to_nearest_pixel(device_pixel_ratio);
+                                    // Calculate the offset of the positioning context relative to the scrolling container
+                                    let offset_left = positioning_left - scrolling_left;
+                                    let offset_top = positioning_top - scrolling_top;
 
-                                // Calculate the offset of the positioning context relative to the scrolling container
-                                let offset_left = positioning_left - scrolling_left;
-                                let offset_top = positioning_top - scrolling_top;
-
-                                // Adjust the coordinates by subtracting the positioning context offset
-                                final_coords = (
-                                    viewport_relative_left - offset_left,
-                                    viewport_relative_top - offset_top,
-                                    viewport_relative_right - offset_left,
-                                    viewport_relative_bottom - offset_top,
-                                );
-                                break;
+                                    // Adjust the coordinates by subtracting the positioning context offset
+                                    final_coords = (
+                                        viewport_relative_left - offset_left,
+                                        viewport_relative_top - offset_top,
+                                        viewport_relative_right - offset_left,
+                                        viewport_relative_bottom - offset_top,
+                                    );
+                                    break;
+                                }
                             }
                         }
+
+                        current_node = node.GetParentNode();
                     }
 
-                    current_node = node.GetParentNode();
-                }
+                    final_coords
+                };
 
-                final_coords
-            };
+                let current_scroll_x = scrolling_element.ScrollLeft() as f32;
+                let current_scroll_y = scrolling_element.ScrollTop() as f32;
+                let content_element_left = adjusted_relative_left + current_scroll_x;
+                let content_element_top = adjusted_relative_top + current_scroll_y;
+                let content_element_right = adjusted_relative_right + current_scroll_x;
+                let content_element_bottom = adjusted_relative_bottom + current_scroll_y;
 
-            let content_element_left = adjusted_relative_left + current_scroll_x;
-            let content_element_top = adjusted_relative_top + current_scroll_y;
-            let content_element_right = adjusted_relative_right + current_scroll_x;
-            let content_element_bottom = adjusted_relative_bottom + current_scroll_y;
-
-            (
-                self.calculate_scroll_position_one_axis(
-                    inline,
-                    content_element_left,
-                    content_element_right,
-                    element_width,
-                    scrolling_width,
-                    current_scroll_x,
-                ),
-                self.calculate_scroll_position_one_axis(
-                    block,
-                    content_element_top,
-                    content_element_bottom,
-                    element_height,
-                    scrolling_height,
-                    current_scroll_y,
-                ),
-            )
+                (
+                    self.calculate_scroll_position_one_axis(
+                        inline,
+                        content_element_left,
+                        content_element_right,
+                        element_width,
+                        scrolling_width,
+                        current_scroll_x,
+                    ),
+                    self.calculate_scroll_position_one_axis(
+                        block,
+                        content_element_top,
+                        content_element_bottom,
+                        element_height,
+                        scrolling_height,
+                        current_scroll_y,
+                    ),
+                )
+            },
         };
 
         Vector2D::new(target_x, target_y)
