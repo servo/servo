@@ -26,10 +26,6 @@
           <label for="experimental">Experimental web platform features</label>
         </li>
         <li>
-          <input type="checkbox" class="bool-preference" id="more-experimental">
-          <label for="more-experimental">Even more experimental web platform features</label>
-        </li>
-        <li>
           <input type="checkbox" class="bool-preference" id="http-cache">
           <label for="http-cache">Disable HTTP cache</label>
         </li>
@@ -52,7 +48,6 @@
       const prefs = {
           "experimental": [],
           "http-cache": ["network_http_cache_disabled"],
-          "more-experimental": ["dom_abort_controller_enabled"],
           "user-agent": ["user_agent"],
       };
 
