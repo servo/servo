@@ -64,7 +64,7 @@ use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::ParsingMode as CssParsingMode;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
-use webrender_api::units::LayoutPixel;
+use webrender_api::units::LayoutVector2D;
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
@@ -285,13 +285,12 @@ enum ScrollingBox {
 }
 
 impl ScrollingBox {
-    fn scroll_position(&self) -> Vector2D<f64, LayoutPixel> {
+    fn scroll_position(&self) -> LayoutVector2D {
         match self {
             ScrollingBox::Element(element) => element
                 .owner_window()
-                .scroll_offset_query(element.upcast::<Node>())
-                .cast(),
-            ScrollingBox::Viewport(document) => document.window().scroll_offset().cast(),
+                .scroll_offset_query(element.upcast::<Node>()),
+            ScrollingBox::Viewport(document) => document.window().scroll_offset(),
         }
     }
 }
@@ -975,7 +974,7 @@ impl Element {
         scrolling_node: &Node,
         block: ScrollLogicalPosition,
         inline: ScrollLogicalPosition,
-    ) -> Vector2D<f64, LayoutPixel> {
+    ) -> LayoutVector2D {
         let target_bounding_box = self.upcast::<Node>().border_box().unwrap_or_default();
 
         let device_pixel_ratio = self
@@ -989,19 +988,19 @@ impl Element {
         let element_left = target_bounding_box
             .origin
             .x
-            .to_nearest_pixel(device_pixel_ratio) as f64;
+            .to_nearest_pixel(device_pixel_ratio);
         let element_top = target_bounding_box
             .origin
             .y
-            .to_nearest_pixel(device_pixel_ratio) as f64;
+            .to_nearest_pixel(device_pixel_ratio);
         let element_width = target_bounding_box
             .size
             .width
-            .to_nearest_pixel(device_pixel_ratio) as f64;
+            .to_nearest_pixel(device_pixel_ratio);
         let element_height = target_bounding_box
             .size
             .height
-            .to_nearest_pixel(device_pixel_ratio) as f64;
+            .to_nearest_pixel(device_pixel_ratio);
         let element_right = element_left + element_width;
         let element_bottom = element_top + element_height;
 
@@ -1010,10 +1009,10 @@ impl Element {
             // Viewport bounds and current scroll position
             let owner_doc = self.upcast::<Node>().owner_doc();
             let window = owner_doc.window();
-            let viewport_width = window.InnerWidth() as f64;
-            let viewport_height = window.InnerHeight() as f64;
-            let current_scroll_x = window.ScrollX() as f64;
-            let current_scroll_y = window.ScrollY() as f64;
+            let viewport_width = window.InnerWidth() as f32;
+            let viewport_height = window.InnerHeight() as f32;
+            let current_scroll_x = window.ScrollX() as f32;
+            let current_scroll_y = window.ScrollY() as f32;
 
             // For viewport scrolling, we need to add current scroll to get document-relative positions
             let document_element_left = element_left + current_scroll_x;
@@ -1043,19 +1042,23 @@ impl Element {
             // Handle element-specific scrolling
             // Scrolling box bounds and current scroll position
             let scrolling_box = scrolling_node.border_box().unwrap_or_default();
-            let scrolling_left = scrolling_box.origin.x.to_nearest_pixel(device_pixel_ratio) as f64;
-            let scrolling_top = scrolling_box.origin.y.to_nearest_pixel(device_pixel_ratio) as f64;
+            let scrolling_left = scrolling_box.origin.x.to_nearest_pixel(device_pixel_ratio);
+            let scrolling_top = scrolling_box.origin.y.to_nearest_pixel(device_pixel_ratio);
             let scrolling_width = scrolling_box
                 .size
                 .width
-                .to_nearest_pixel(device_pixel_ratio) as f64;
+                .to_nearest_pixel(device_pixel_ratio);
             let scrolling_height = scrolling_box
                 .size
                 .height
-                .to_nearest_pixel(device_pixel_ratio) as f64;
+                .to_nearest_pixel(device_pixel_ratio);
 
-            let current_scroll_x = scrolling_node.downcast::<Element>().unwrap().ScrollLeft();
-            let current_scroll_y = scrolling_node.downcast::<Element>().unwrap().ScrollTop();
+            // TODO: This function should accept `Element` and not `Node`.
+            let scrolling_element = scrolling_node
+                .downcast::<Element>()
+                .expect("Should be provided an Element.");
+            let current_scroll_x = scrolling_element.ScrollLeft() as f32;
+            let current_scroll_y = scrolling_element.ScrollTop() as f32;
 
             // Calculate element position in scroller's content coordinate system
             // Element's viewport position relative to scroller, then add scroll offset to get content position
@@ -1100,13 +1103,11 @@ impl Element {
                                 let positioning_left = positioning_box
                                     .origin
                                     .x
-                                    .to_nearest_pixel(device_pixel_ratio)
-                                    as f64;
+                                    .to_nearest_pixel(device_pixel_ratio);
                                 let positioning_top = positioning_box
                                     .origin
                                     .y
-                                    .to_nearest_pixel(device_pixel_ratio)
-                                    as f64;
+                                    .to_nearest_pixel(device_pixel_ratio);
 
                                 // Calculate the offset of the positioning context relative to the scrolling container
                                 let offset_left = positioning_left - scrolling_left;
@@ -1161,12 +1162,12 @@ impl Element {
     fn calculate_scroll_position_one_axis(
         &self,
         alignment: ScrollLogicalPosition,
-        element_start: f64,
-        element_end: f64,
-        element_size: f64,
-        container_size: f64,
-        current_scroll_offset: f64,
-    ) -> f64 {
+        element_start: f32,
+        element_end: f32,
+        element_size: f32,
+        container_size: f32,
+        current_scroll_offset: f32,
+    ) -> f32 {
         match alignment {
             // Step 1 & 5: If inline is "start", then align element start edge with scrolling box start edge.
             ScrollLogicalPosition::Start => element_start,
@@ -2876,12 +2877,14 @@ impl Element {
         }
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
-    // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
-    pub(crate) fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scroll>
+    ///
+    /// TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is
+    /// quite outdated.
+    pub(crate) fn scroll(&self, x: f64, y: f64, behavior: ScrollBehavior) {
         // Step 1.2 or 2.3
-        let x = if x_.is_finite() { x_ } else { 0.0f64 };
-        let y = if y_.is_finite() { y_ } else { 0.0f64 };
+        let x = if x.is_finite() { x } else { 0.0 } as f32;
+        let y = if y.is_finite() { y } else { 0.0 } as f32;
 
         let node = self.upcast::<Node>();
 
@@ -3549,7 +3552,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
-        let y = if y_.is_finite() { y_ } else { 0.0f64 };
+        let y = if y_.is_finite() { y_ } else { 0.0 } as f32;
 
         let node = self.upcast::<Node>();
 
@@ -3570,7 +3573,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 7
         if *self.root_element() == *self {
             if doc.quirks_mode() != QuirksMode::Quirks {
-                win.scroll(win.ScrollX() as f64, y, behavior);
+                win.scroll(win.ScrollX() as f32, y, behavior);
             }
 
             return;
@@ -3581,7 +3584,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            win.scroll(win.ScrollX() as f64, y, behavior);
+            win.scroll(win.ScrollX() as f32, y, behavior);
             return;
         }
 
@@ -3591,7 +3594,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 11
-        win.scroll_an_element(self, self.ScrollLeft(), y, behavior);
+        win.scroll_an_element(self, self.ScrollLeft() as f32, y, behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
@@ -3641,11 +3644,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
-    fn SetScrollLeft(&self, x_: f64) {
+    fn SetScrollLeft(&self, x: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
-        let x = if x_.is_finite() { x_ } else { 0.0f64 };
+        let x = if x.is_finite() { x } else { 0.0 } as f32;
 
         let node = self.upcast::<Node>();
 
@@ -3669,7 +3672,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 return;
             }
 
-            win.scroll(x, win.ScrollY() as f64, behavior);
+            win.scroll(x, win.ScrollY() as f32, behavior);
             return;
         }
 
@@ -3678,7 +3681,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            win.scroll(x, win.ScrollY() as f64, behavior);
+            win.scroll(x, win.ScrollY() as f32, behavior);
             return;
         }
 
@@ -3688,7 +3691,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 11
-        win.scroll_an_element(self, x, self.ScrollTop(), behavior);
+        win.scroll_an_element(self, x, self.ScrollTop() as f32, behavior);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview>
