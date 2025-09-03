@@ -66,12 +66,15 @@ pub struct ContextConfiguration {
     pub size: Size2D<u32>,
 }
 
-pub fn stride(size: Size2D<u32>, format: ImageFormat) -> u32 {
-    (size.width * format.bytes_per_pixel() as u32).next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT)
-}
+impl ContextConfiguration {
+    pub fn stride(&self) -> u32 {
+        (self.size.width * self.format.bytes_per_pixel() as u32)
+            .next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT)
+    }
 
-pub fn buffer_size(size: Size2D<u32>, format: ImageFormat) -> u64 {
-    stride(size, format) as u64 * size.height as u64
+    pub fn buffer_size(&self) -> u64 {
+        self.stride() as u64 * self.size.height as u64
+    }
 }
 
 impl From<ContextConfiguration> for ImageDescriptor {
@@ -79,7 +82,7 @@ impl From<ContextConfiguration> for ImageDescriptor {
         ImageDescriptor {
             format: config.format,
             size: config.size.cast().cast_unit(),
-            stride: Some(stride(config.size, config.format) as i32),
+            stride: Some(config.stride() as i32),
             offset: 0,
             flags: if config.is_opaque {
                 ImageDescriptorFlags::IS_OPAQUE
