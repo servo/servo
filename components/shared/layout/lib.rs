@@ -12,7 +12,6 @@ mod layout_damage;
 pub mod wrapper_traits;
 
 use std::any::Any;
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 use std::thread::JoinHandle;
@@ -281,7 +280,7 @@ pub trait Layout {
     /// Set the scroll states of this layout after a compositor scroll.
     fn set_scroll_offsets_from_renderer(
         &mut self,
-        scroll_states: &HashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: &FnvHashMap<ExternalScrollId, LayoutVector2D>,
     );
 
     /// Get the scroll offset of the given scroll node with id of [`ExternalScrollId`] or `None` if it does

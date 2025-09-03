@@ -5,12 +5,13 @@
 use std::collections::HashMap;
 
 use base::id::WebViewId;
+use fnv::FnvHashMap;
 
 #[derive(Debug)]
 pub struct WebViewManager<WebView> {
     /// Our top-level browsing contexts. In the WebRender scene, their pipelines are the children of
     /// a single root pipeline that also applies any pinch zoom transformation.
-    webviews: HashMap<WebViewId, WebView>,
+    webviews: FnvHashMap<WebViewId, WebView>,
 
     /// The order in which they were focused, latest last.
     focus_order: Vec<WebViewId>,

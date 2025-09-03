@@ -11,7 +11,7 @@
 mod from_script_message;
 mod structured_data;
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
 
@@ -22,6 +22,7 @@ use embedder_traits::{
     CompositorHitTestResult, FocusId, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
     Theme, TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
 };
+use fnv::FnvHashMap;
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
@@ -41,7 +42,7 @@ pub enum EmbedderToConstellationMessage {
     /// Exit the constellation.
     Exit,
     /// Query the constellation to see if the current compositor output is stable
-    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
+    IsReadyToSaveImage(FnvHashMap<PipelineId, Epoch>),
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
@@ -94,7 +95,7 @@ pub enum EmbedderToConstellationMessage {
     SetWebViewThrottled(WebViewId, bool),
     /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
     /// given pipeline via the constellation.
-    SetScrollStates(PipelineId, HashMap<ExternalScrollId, LayoutVector2D>),
+    SetScrollStates(PipelineId, FnvHashMap<ExternalScrollId, LayoutVector2D>),
     /// Notify the constellation that a particular paint metric event has happened for the given pipeline.
     PaintMetric(PipelineId, PaintMetricEvent),
     /// Evaluate a JavaScript string in the context of a `WebView`. When execution is complete or an
@@ -180,7 +181,7 @@ pub struct PortTransferInfo {
 #[allow(clippy::large_enum_variant)]
 pub enum MessagePortMsg {
     /// Complete the transfer for a batch of ports.
-    CompleteTransfer(HashMap<MessagePortId, PortTransferInfo>),
+    CompleteTransfer(FnvHashMap<MessagePortId, PortTransferInfo>),
     /// Complete the transfer of a single port,
     /// whose transfer was pending because it had been requested
     /// while a previous failed transfer was being rolled-back.

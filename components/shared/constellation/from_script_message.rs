@@ -4,7 +4,6 @@
 
 //! Messages send from the ScriptThread to the Constellation.
 
-use std::collections::HashMap;
 use std::fmt;
 
 use base::Epoch;
@@ -22,6 +21,7 @@ use embedder_traits::{
     ViewportDetails, WebDriverMessageId,
 };
 use euclid::default::Size2D as UntypedSize2D;
+use fnv::FnvHashMap;
 use fonts_traits::SystemFontServiceProxySender;
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
@@ -492,7 +492,7 @@ pub enum ScriptToConstellationMessage {
         /* The ids of ports transferred successfully */
         Vec<MessagePortId>,
         /* The ids, and buffers, of ports whose transfer failed */
-        HashMap<MessagePortId, PortTransferInfo>,
+        FnvHashMap<MessagePortId, PortTransferInfo>,
     ),
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortRouterId, MessagePortId),

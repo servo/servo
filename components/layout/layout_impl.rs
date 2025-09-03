@@ -5,7 +5,6 @@
 #![allow(unsafe_code)]
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::process;
 use std::rc::Rc;
@@ -503,7 +502,7 @@ impl Layout for LayoutThread {
 
     fn set_scroll_offsets_from_renderer(
         &mut self,
-        scroll_states: &HashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: &FnvHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {

@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
-
 use base::id::{BrowsingContextGroupId, BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::ViewportDetails;
+use fnv::{FnvHashMap, FnvHashSet};
 use log::warn;
 
 use crate::pipeline::Pipeline;
@@ -71,7 +70,7 @@ pub struct BrowsingContext {
 
     /// All the pipelines that have been presented or will be presented in
     /// this browsing context.
-    pub pipelines: HashSet<PipelineId>,
+    pub pipelines: FnvHashSet<PipelineId>,
 }
 
 impl BrowsingContext {
@@ -89,7 +88,7 @@ impl BrowsingContext {
         inherited_secure_context: Option<bool>,
         throttled: bool,
     ) -> BrowsingContext {
-        let mut pipelines = HashSet::new();
+        let mut pipelines = FnvHashSet::default();
         pipelines.insert(pipeline_id);
         BrowsingContext {
             bc_group_id,
@@ -123,12 +122,12 @@ pub struct FullyActiveBrowsingContextsIterator<'a> {
     pub stack: Vec<BrowsingContextId>,
 
     /// The set of all browsing contexts.
-    pub browsing_contexts: &'a HashMap<BrowsingContextId, BrowsingContext>,
+    pub browsing_contexts: &'a FnvHashMap<BrowsingContextId, BrowsingContext>,
 
     /// The set of all pipelines.  We use this to find the active
     /// children of a frame, which are the iframes in the currently
     /// active document.
-    pub pipelines: &'a HashMap<PipelineId, Pipeline>,
+    pub pipelines: &'a FnvHashMap<PipelineId, Pipeline>,
 }
 
 impl<'a> Iterator for FullyActiveBrowsingContextsIterator<'a> {
@@ -170,12 +169,12 @@ pub struct AllBrowsingContextsIterator<'a> {
     pub stack: Vec<BrowsingContextId>,
 
     /// The set of all browsing contexts.
-    pub browsing_contexts: &'a HashMap<BrowsingContextId, BrowsingContext>,
+    pub browsing_contexts: &'a FnvHashMap<BrowsingContextId, BrowsingContext>,
 
     /// The set of all pipelines.  We use this to find the
     /// children of a browsing context, which are the iframes in all documents
     /// in the session history.
-    pub pipelines: &'a HashMap<PipelineId, Pipeline>,
+    pub pipelines: &'a FnvHashMap<PipelineId, Pipeline>,
 }
 
 impl<'a> Iterator for AllBrowsingContextsIterator<'a> {

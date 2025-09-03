@@ -26,6 +26,7 @@ crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
+fnv = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 malloc_size_of = { workspace = true }

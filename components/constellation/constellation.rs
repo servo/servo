@@ -139,6 +139,7 @@ use embedder_traits::{
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
+use fnv::{FnvHashMap, FnvHashSet};
 use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -240,7 +241,7 @@ struct WebrenderWGPU {
 #[derive(Clone, Default)]
 struct BrowsingContextGroup {
     /// A browsing context group holds a set of top-level browsing contexts.
-    top_level_browsing_context_set: HashSet<WebViewId>,
+    top_level_browsing_context_set: FnvHashSet<WebViewId>,
 
     /// The set of all event loops in this BrowsingContextGroup.
     /// We store the event loops in a map
@@ -384,25 +385,25 @@ pub struct Constellation<STF, SWF> {
     webrender_wgpu: WebrenderWGPU,
 
     /// A map of message-port Id to info.
-    message_ports: HashMap<MessagePortId, MessagePortInfo>,
+    message_ports: FnvHashMap<MessagePortId, MessagePortInfo>,
 
     /// A map of router-id to ipc-sender, to route messages to ports.
-    message_port_routers: HashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
+    message_port_routers: FnvHashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
 
     /// Bookkeeping for BroadcastChannel functionnality.
     broadcast_channels: BroadcastChannels,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
-    pipelines: HashMap<PipelineId, Pipeline>,
+    pipelines: FnvHashMap<PipelineId, Pipeline>,
 
     /// The set of all the browsing contexts in the browser.
-    browsing_contexts: HashMap<BrowsingContextId, BrowsingContext>,
+    browsing_contexts: FnvHashMap<BrowsingContextId, BrowsingContext>,
 
     /// A user agent holds a a set of browsing context groups.
     ///
     /// <https://html.spec.whatwg.org/multipage/#browsing-context-group-set>
-    browsing_context_group_set: HashMap<BrowsingContextGroupId, BrowsingContextGroup>,
+    browsing_context_group_set: FnvHashMap<BrowsingContextGroupId, BrowsingContextGroup>,
 
     /// The Id counter for BrowsingContextGroup.
     browsing_context_group_next_id: u32,
@@ -425,7 +426,7 @@ pub struct Constellation<STF, SWF> {
     webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
-    document_states: HashMap<PipelineId, DocumentState>,
+    document_states: FnvHashMap<PipelineId, DocumentState>,
 
     /// Are we shutting down?
     shutting_down: bool,
@@ -481,7 +482,7 @@ pub struct Constellation<STF, SWF> {
     async_runtime: Box<dyn AsyncRuntime>,
 
     /// When in single-process mode, join handles for script-threads.
-    script_join_handles: HashMap<WebViewId, JoinHandle<()>>,
+    script_join_handles: FnvHashMap<WebViewId, JoinHandle<()>>,
 
     /// A list of URLs that can access privileged internal APIs.
     privileged_urls: Vec<ServoUrl>,
@@ -696,11 +697,11 @@ where
                     swmanager_ipc_sender,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
-                    message_ports: HashMap::new(),
-                    message_port_routers: HashMap::new(),
+                    message_ports: Default::default(),
+                    message_port_routers: Default::default(),
                     broadcast_channels: Default::default(),
-                    pipelines: HashMap::new(),
-                    browsing_contexts: HashMap::new(),
+                    pipelines: Default::default(),
+                    browsing_contexts: Default::default(),
                     pending_changes: vec![],
                     // We initialize the namespace at 2, since we reserved
                     // namespace 0 for the embedder, and 0 for the constellation
@@ -710,7 +711,7 @@ where
                     phantom: PhantomData,
                     webdriver_load_status_sender: None,
                     webdriver_input_command_reponse_sender: None,
-                    document_states: HashMap::new(),
+                    document_states: Default::default(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
                     shutting_down: false,
@@ -725,7 +726,7 @@ where
                     webgl_threads: state.webgl_threads,
                     webxr_registry: state.webxr_registry,
                     canvas: OnceCell::new(),
-                    pending_approval_navigations: HashMap::new(),
+                    pending_approval_navigations: Default::default(),
                     pressed_mouse_buttons: 0,
                     active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
@@ -2119,7 +2120,7 @@ where
 
     fn handle_message_port_transfer_failed(
         &mut self,
-        ports: HashMap<MessagePortId, PortTransferInfo>,
+        ports: FnvHashMap<MessagePortId, PortTransferInfo>,
     ) {
         for (port_id, mut transfer_info) in ports.into_iter() {
             let entry = match self.message_ports.remove(&port_id) {
@@ -2201,7 +2202,7 @@ where
         router_id: MessagePortRouterId,
         ports: Vec<MessagePortId>,
     ) {
-        let mut response = HashMap::new();
+        let mut response = FnvHashMap::default();
         for port_id in ports.into_iter() {
             let entry = match self.message_ports.remove(&port_id) {
                 None => {
@@ -3784,9 +3785,11 @@ where
         webview_id: WebViewId,
         direction: TraversalDirection,
     ) {
-        let mut browsing_context_changes = HashMap::<BrowsingContextId, NeedsToReload>::new();
-        let mut pipeline_changes = HashMap::<PipelineId, (Option<HistoryStateId>, ServoUrl)>::new();
-        let mut url_to_load = HashMap::<PipelineId, ServoUrl>::new();
+        let mut browsing_context_changes =
+            FnvHashMap::<BrowsingContextId, NeedsToReload>::default();
+        let mut pipeline_changes =
+            FnvHashMap::<PipelineId, (Option<HistoryStateId>, ServoUrl)>::default();
+        let mut url_to_load = FnvHashMap::<PipelineId, ServoUrl>::default();
         {
             let session_history = self.get_joint_session_history(webview_id);
             match direction {
@@ -4792,7 +4795,7 @@ where
                     };
 
                     let mut pipelines_to_close = vec![];
-                    let mut states_to_close = HashMap::new();
+                    let mut states_to_close = FnvHashMap::default();
 
                     let diffs_to_close = self
                         .get_joint_session_history(change.webview_id)
@@ -5049,7 +5052,7 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_is_ready_to_save_image(
         &mut self,
-        pipeline_states: HashMap<PipelineId, Epoch>,
+        pipeline_states: FnvHashMap<PipelineId, Epoch>,
     ) -> ReadyToSave {
         // Note that this function can panic, due to ipc-channel creation
         // failure. Avoiding this panic would require a mechanism for dealing
@@ -5593,7 +5596,7 @@ where
     fn handle_set_scroll_states(
         &self,
         pipeline_id: PipelineId,
-        scroll_states: HashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: FnvHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             warn!("Discarding scroll offset update for unknown pipeline");
