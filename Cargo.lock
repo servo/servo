@@ -247,7 +247,7 @@ dependencies = [
  "log",
  "ndk",
  "ndk-context",
- "ndk-sys 0.6.0+11769913",
+ "ndk-sys",
  "num_enum",
  "thiserror 1.0.69",
 ]
@@ -1721,7 +1721,7 @@ checksum = "c07782be35f9e1140080c6b96f0d44b739e2278479f64e02fdab4e32dfd8b081"
 dependencies = [
  "bitflags 1.3.2",
  "core-foundation 0.9.4",
- "core-graphics-types",
+ "core-graphics-types 0.1.3",
  "foreign-types",
  "libc",
 ]
@@ -1734,6 +1734,17 @@ checksum = "45390e6114f68f718cc7a830514a96f903cccd70d02a8f6d9f643ac4ba45afaf"
 dependencies = [
  "bitflags 1.3.2",
  "core-foundation 0.9.4",
+ "libc",
+]
+
+[[package]]
+name = "core-graphics-types"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d44a101f213f6c4cdc1853d4b78aef6db6bdfa3468798cc1d9912f4735013eb"
+dependencies = [
+ "bitflags 2.9.4",
+ "core-foundation 0.10.1",
  "libc",
 ]
 
@@ -5280,13 +5291,13 @@ dependencies = [
 
 [[package]]
 name = "metal"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f569fb946490b5743ad69813cb19629130ce9374034abe31614a36402d18f99e"
+checksum = "00c15a6f673ff72ddcc22394663290f870fb224c1bfce55734a75c414150e605"
 dependencies = [
  "bitflags 2.9.4",
  "block",
- "core-graphics-types",
+ "core-graphics-types 0.2.0",
  "foreign-types",
  "log",
  "objc",
@@ -5403,25 +5414,26 @@ checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
 
 [[package]]
 name = "naga"
-version = "25.0.1"
+version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b977c445f26e49757f9aca3631c3b8b836942cb278d69a92e7b80d3b24da632"
+checksum = "916cbc7cb27db60be930a4e2da243cf4bc39569195f22fd8ee419cd31d5b662c"
 dependencies = [
  "arrayvec",
  "bit-set",
  "bitflags 2.9.4",
+ "cfg-if",
  "cfg_aliases",
  "codespan-reporting",
  "half",
  "hashbrown",
  "hexf-parse",
  "indexmap",
+ "libm",
  "log",
  "num-traits",
  "once_cell",
  "rustc-hash 1.1.0",
  "spirv",
- "strum",
  "thiserror 2.0.16",
  "unicode-ident",
 ]
@@ -5491,7 +5503,7 @@ dependencies = [
  "bitflags 2.9.4",
  "jni-sys",
  "log",
- "ndk-sys 0.6.0+11769913",
+ "ndk-sys",
  "num_enum",
  "raw-window-handle",
  "thiserror 1.0.69",
@@ -5502,15 +5514,6 @@ name = "ndk-context"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27b02d87554356db9e9a873add8782d4ea6e3e58ea071a9adb9a2e8ddb884a8b"
-
-[[package]]
-name = "ndk-sys"
-version = "0.5.0+25.2.9519653"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c196769dd60fd4f363e11d948139556a344e79d451aeb2fa2fd040738ef7691"
-dependencies = [
- "jni-sys",
-]
 
 [[package]]
 name = "ndk-sys"
@@ -9418,7 +9421,7 @@ checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 [[package]]
 name = "vello"
 version = "0.5.0"
-source = "git+https://github.com/linebender/vello?rev=5e3e12559781891b204553161aee761900c7e92d#5e3e12559781891b204553161aee761900c7e92d"
+source = "git+https://github.com/linebender/vello?rev=fdf025a88dd00c546c8fc534697cbf21dac7e12d#fdf025a88dd00c546c8fc534697cbf21dac7e12d"
 dependencies = [
  "bytemuck",
  "futures-intrusive",
@@ -9436,7 +9439,7 @@ dependencies = [
 [[package]]
 name = "vello_common"
 version = "0.0.1"
-source = "git+https://github.com/linebender/vello?rev=5e3e12559781891b204553161aee761900c7e92d#5e3e12559781891b204553161aee761900c7e92d"
+source = "git+https://github.com/linebender/vello?rev=fdf025a88dd00c546c8fc534697cbf21dac7e12d#fdf025a88dd00c546c8fc534697cbf21dac7e12d"
 dependencies = [
  "bytemuck",
  "fearless_simd",
@@ -9450,7 +9453,7 @@ dependencies = [
 [[package]]
 name = "vello_cpu"
 version = "0.0.1"
-source = "git+https://github.com/linebender/vello?rev=5e3e12559781891b204553161aee761900c7e92d#5e3e12559781891b204553161aee761900c7e92d"
+source = "git+https://github.com/linebender/vello?rev=fdf025a88dd00c546c8fc534697cbf21dac7e12d#fdf025a88dd00c546c8fc534697cbf21dac7e12d"
 dependencies = [
  "bytemuck",
  "vello_common",
@@ -9459,7 +9462,7 @@ dependencies = [
 [[package]]
 name = "vello_encoding"
 version = "0.5.0"
-source = "git+https://github.com/linebender/vello?rev=5e3e12559781891b204553161aee761900c7e92d#5e3e12559781891b204553161aee761900c7e92d"
+source = "git+https://github.com/linebender/vello?rev=fdf025a88dd00c546c8fc534697cbf21dac7e12d#fdf025a88dd00c546c8fc534697cbf21dac7e12d"
 dependencies = [
  "bytemuck",
  "guillotiere",
@@ -9471,7 +9474,7 @@ dependencies = [
 [[package]]
 name = "vello_shaders"
 version = "0.5.0"
-source = "git+https://github.com/linebender/vello?rev=5e3e12559781891b204553161aee761900c7e92d#5e3e12559781891b204553161aee761900c7e92d"
+source = "git+https://github.com/linebender/vello?rev=fdf025a88dd00c546c8fc534697cbf21dac7e12d#fdf025a88dd00c546c8fc534697cbf21dac7e12d"
 dependencies = [
  "bytemuck",
  "log",
@@ -10000,12 +10003,13 @@ checksum = "a751b3277700db47d3e574514de2eced5e54dc8a5436a3bf7a0b248b2cee16f3"
 
 [[package]]
 name = "wgpu"
-version = "25.0.2"
+version = "26.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec8fb398f119472be4d80bc3647339f56eb63b2a331f6a3d16e25d8144197dd9"
+checksum = "70b6ff82bbf6e9206828e1a3178e851f8c20f1c9028e74dd3a8090741ccd5798"
 dependencies = [
  "arrayvec",
  "bitflags 2.9.4",
+ "cfg-if",
  "cfg_aliases",
  "document-features",
  "hashbrown",
@@ -10028,9 +10032,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "25.0.1"
+version = "26.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a19813e647da7aa3cdaa84f5846e2c64114970ea7c86b1e6aae8be08091f4bdc"
+checksum = "d5f62f1053bd28c2268f42916f31588f81f64796e2ff91b81293515017ca8bd9"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -10060,36 +10064,36 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core-deps-apple"
-version = "25.0.0"
+version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfd488b3239b6b7b185c3b045c39ca6bf8af34467a4c5de4e0b1a564135d093d"
+checksum = "18ae5fbde6a4cbebae38358aa73fcd6e0f15c6144b67ef5dc91ded0db125dbdf"
 dependencies = [
  "wgpu-hal",
 ]
 
 [[package]]
 name = "wgpu-core-deps-emscripten"
-version = "25.0.0"
+version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f09ad7aceb3818e52539acc679f049d3475775586f3f4e311c30165cf2c00445"
+checksum = "d7670e390f416006f746b4600fdd9136455e3627f5bd763abf9a65daa216dd2d"
 dependencies = [
  "wgpu-hal",
 ]
 
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
-version = "25.0.0"
+version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cba5fb5f7f9c98baa7c889d444f63ace25574833df56f5b817985f641af58e46"
+checksum = "720a5cb9d12b3d337c15ff0e24d3e97ed11490ff3f7506e7f3d98c68fa5d6f14"
 dependencies = [
  "wgpu-hal",
 ]
 
 [[package]]
 name = "wgpu-hal"
-version = "25.0.1"
+version = "26.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb7c4a1dc42ff14c23c9b11ebf1ee85cde661a9b1cf0392f79c1faca5bc559fb"
+checksum = "7df2c64ac282a91ad7662c90bc4a77d4a2135bc0b2a2da5a4d4e267afc034b9e"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -10100,7 +10104,7 @@ dependencies = [
  "bytemuck",
  "cfg-if",
  "cfg_aliases",
- "core-graphics-types",
+ "core-graphics-types 0.2.0",
  "glow",
  "glutin_wgl_sys",
  "gpu-alloc",
@@ -10114,11 +10118,12 @@ dependencies = [
  "log",
  "metal",
  "naga",
- "ndk-sys 0.5.0+25.2.9519653",
+ "ndk-sys",
  "objc",
  "ordered-float 4.6.0",
  "parking_lot",
  "portable-atomic",
+ "portable-atomic-util",
  "profiling",
  "range-alloc",
  "raw-window-handle",
@@ -10134,9 +10139,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "25.0.0"
+version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2aa49460c2a8ee8edba3fca54325540d904dd85b2e086ada762767e17d06e8bc"
+checksum = "eca7a8d8af57c18f57d393601a1fb159ace8b2328f1b6b5f80893f7d672c9ae2"
 dependencies = [
  "bitflags 2.9.4",
  "bytemuck",

@@ -5,7 +5,7 @@
 //! Render pass commands
 
 use serde::{Deserialize, Serialize};
-use wgpu_core::command::{RenderPass, RenderPassError};
+use wgpu_core::command::{PassStateError, RenderPass};
 use wgpu_core::global::Global;
 use wgpu_core::id::{BindGroupId, BufferId, RenderBundleId, RenderPipelineId};
 
@@ -75,7 +75,7 @@ pub fn apply_render_command(
     global: &Global,
     pass: &mut RenderPass,
     command: RenderCommand,
-) -> Result<(), RenderPassError> {
+) -> Result<(), PassStateError> {
     match command {
         RenderCommand::SetPipeline(pipeline_id) => {
             global.render_pass_set_pipeline(pass, pipeline_id)

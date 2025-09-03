@@ -169,16 +169,16 @@ unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.18.1", features = ["v4", "v5"] }
-vello = { git = "https://github.com/linebender/vello", rev = "5e3e12559781891b204553161aee761900c7e92d" }
-vello_cpu = { git = "https://github.com/linebender/vello", rev = "5e3e12559781891b204553161aee761900c7e92d" }
+vello = { git = "https://github.com/linebender/vello", rev = "fdf025a88dd00c546c8fc534697cbf21dac7e12d" }
+vello_cpu = { git = "https://github.com/linebender/vello", rev = "fdf025a88dd00c546c8fc534697cbf21dac7e12d" }
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.67", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.67" }
 webxr-api = { path = "components/shared/webxr" }
-wgpu-core = "25"
-wgpu-types = "25"
+wgpu-core = "26"
+wgpu-types = "26"
 winapi = "0.3"
 windows-sys = "0.61"
 winit = "0.30.12"
