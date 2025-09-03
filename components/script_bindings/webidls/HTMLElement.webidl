@@ -64,6 +64,7 @@ interface HTMLElement : Element {
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-htmlelement-interface
 partial interface HTMLElement {
   // CSSOM things are not [Pure] because they can flush
+  readonly attribute Element? scrollParent;
   readonly attribute Element? offsetParent;
   readonly attribute long offsetTop;
   readonly attribute long offsetLeft;
