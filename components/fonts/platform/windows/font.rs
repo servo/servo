@@ -49,7 +49,7 @@ pub struct FontTable {
 }
 
 impl FontTable {
-    pub fn wrap(data: &[u8]) -> FontTable {
+    pub(crate) fn wrap(data: &[u8]) -> FontTable {
         FontTable {
             data: data.to_vec(),
         }

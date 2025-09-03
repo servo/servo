@@ -42,7 +42,7 @@ fn pt_to_px(pt: f64) -> f64 {
 }
 
 impl FontTable {
-    pub fn wrap(data: CFData) -> FontTable {
+    pub(crate) fn wrap(data: CFData) -> FontTable {
         FontTable { data }
     }
 }

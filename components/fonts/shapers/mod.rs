@@ -9,7 +9,7 @@ use app_units::Au;
 use base::text::is_bidi_control;
 use euclid::default::Point2D;
 use fonts_traits::ByteIndex;
-pub use harfbuzz::{ShapedGlyphData, Shaper};
+pub(crate) use harfbuzz::Shaper;
 use log::debug;
 use num_traits::Zero as _;
 

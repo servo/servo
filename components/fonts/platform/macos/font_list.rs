@@ -16,7 +16,7 @@ use crate::{
     FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
-pub fn for_each_available_family<F>(mut callback: F)
+pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
     F: FnMut(String),
 {
@@ -26,7 +26,7 @@ where
     }
 }
 
-pub fn for_each_variation<F>(family_name: &str, mut callback: F)
+pub(crate) fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
     F: FnMut(FontTemplate),
 {
@@ -175,7 +175,9 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     families
 }
 
-pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+pub(crate) fn default_system_generic_font_family(
+    generic: GenericFontFamily,
+) -> LowercaseFontFamilyName {
     match generic {
         GenericFontFamily::None | GenericFontFamily::Serif => "Times",
         GenericFontFamily::SansSerif => "Helvetica",

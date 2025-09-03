@@ -17,7 +17,7 @@ use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::{FontStyle, FontWeight};
 
 #[derive(Default, MallocSizeOf)]
-pub struct FontStore {
+pub(crate) struct FontStore {
     pub(crate) families: HashMap<LowercaseFontFamilyName, FontTemplates>,
     web_fonts_loading_for_stylesheets: Vec<(DocumentStyleSheet, usize)>,
     web_fonts_loading_for_script: usize,

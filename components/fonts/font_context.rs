@@ -45,7 +45,7 @@ use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontSe
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
-pub type FontParameters = (FontKey, Au, Vec<FontVariation>);
+pub(crate) type FontParameters = (FontKey, Au, Vec<FontVariation>);
 
 #[derive(MallocSizeOf)]
 struct FontGroupRef(#[conditional_malloc_size_of] Arc<RwLock<FontGroup>>);
@@ -749,7 +749,7 @@ impl FontContext {
     }
 }
 
-pub type ScriptWebFontLoadFinishedCallback =
+pub(crate) type ScriptWebFontLoadFinishedCallback =
     Box<dyn FnOnce(LowercaseFontFamilyName, Option<FontTemplate>) + Send>;
 
 pub(crate) enum WebFontLoadInitiator {
