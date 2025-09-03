@@ -124,9 +124,6 @@ skip = [
     # wgpu has the latest and greatest.
     "windows-core",
 
-    # wgpu-hal depends on 0.5.0.
-    "ndk-sys",
-
     # rust-content-security-policy uses newest base64.
     "base64",
 
@@ -193,6 +190,9 @@ skip = [
     "cfg-expr",
     "system-deps",
     "target-lexicon",
+
+    # duplicated by core-graphics
+    "core-graphics-types",
 ]
 
 # github.com organizations to allow git sources for
