@@ -16,7 +16,7 @@ use crate::{
     FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
-pub fn for_each_available_family<F>(mut callback: F)
+pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
     F: FnMut(String),
 {
@@ -26,7 +26,7 @@ where
     }
 }
 
-pub fn for_each_variation<F>(family_name: &str, mut callback: F)
+pub(crate) fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
     F: FnMut(FontTemplate),
 {
@@ -61,7 +61,7 @@ where
 /// Get the list of fallback fonts given an optional codepoint. This is
 /// based on `gfxPlatformMac::GetCommonFallbackFonts()` in Gecko from
 /// <https://searchfox.org/mozilla-central/source/gfx/thebes/gfxPlatformMac.cpp>.
-pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub(crate) fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
     if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Apple Color Emoji");
@@ -175,7 +175,9 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     families
 }
 
-pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+pub(crate) fn default_system_generic_font_family(
+    generic: GenericFontFamily,
+) -> LowercaseFontFamilyName {
     match generic {
         GenericFontFamily::None | GenericFontFamily::Serif => "Times",
         GenericFontFamily::SansSerif => "Helvetica",

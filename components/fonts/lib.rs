@@ -9,32 +9,38 @@ mod font_context;
 mod font_store;
 mod glyph;
 #[allow(unsafe_code)]
-pub mod platform;
+pub(crate) mod platform;
 mod shapers;
 mod system_font_service;
 
-pub use font::*;
-pub use font_context::*;
-pub use font_store::*;
-pub use fonts_traits::{LocalFontIdentifier, *};
-pub use glyph::*;
-pub use shapers::*;
-pub use system_font_service::*;
+pub(crate) use font::*;
+pub use font::{
+    FontBaseline, FontGroup, FontMetrics, FontRef, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags,
+    ShapingOptions,
+};
+pub(crate) use font_context::*;
+pub use font_context::{FontContext, FontContextWebFontMethods};
+pub(crate) use font_store::*;
+pub use fonts_traits::*;
+pub(crate) use glyph::*;
+pub use glyph::{GlyphInfo, GlyphRun, GlyphStore};
+pub(crate) use shapers::*;
+pub use system_font_service::SystemFontService;
 use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
 
 /// Whether or not font fallback selection prefers the emoji or text representation
 /// of a character. If `None` then either presentation is acceptable.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum EmojiPresentationPreference {
+pub(crate) enum EmojiPresentationPreference {
     None,
     Text,
     Emoji,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct FallbackFontSelectionOptions {
-    pub character: char,
-    pub presentation_preference: EmojiPresentationPreference,
+pub(crate) struct FallbackFontSelectionOptions {
+    pub(crate) character: char,
+    pub(crate) presentation_preference: EmojiPresentationPreference,
 }
 
 impl Default for FallbackFontSelectionOptions {
@@ -47,7 +53,7 @@ impl Default for FallbackFontSelectionOptions {
 }
 
 impl FallbackFontSelectionOptions {
-    pub fn new(character: char, next_character: Option<char>) -> Self {
+    pub(crate) fn new(character: char, next_character: Option<char>) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
                 EmojiPresentationPreference::Emoji

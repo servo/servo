@@ -38,7 +38,7 @@ use crate::{
 const HB_OT_TAG_DEFAULT_SCRIPT: hb_tag_t = u32::from_be_bytes(Tag::new(b"DFLT").to_be_bytes());
 const HB_OT_TAG_DEFAULT_LANGUAGE: hb_tag_t = u32::from_be_bytes(Tag::new(b"dflt").to_be_bytes());
 
-pub struct ShapedGlyphData {
+pub(crate) struct ShapedGlyphData {
     count: usize,
     buffer: *mut hb_buffer_t,
     glyph_infos: *mut hb_glyph_info_t,
@@ -131,7 +131,7 @@ impl HarfBuzzShapedGlyphData for ShapedGlyphData {
 }
 
 #[derive(Debug)]
-pub struct Shaper {
+pub(crate) struct Shaper {
     hb_face: *mut hb_face_t,
     hb_font: *mut hb_font_t,
     font: *const Font,
@@ -156,7 +156,7 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
-    pub fn new(font: &Font) -> Shaper {
+    pub(crate) fn new(font: &Font) -> Shaper {
         unsafe {
             let hb_face: *mut hb_face_t = hb_face_create_for_tables(
                 Some(font_table_func),
@@ -272,13 +272,13 @@ impl Shaper {
         unsafe { &(*self.font) }
     }
 
-    pub fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
+    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
         let glyph_data = self.shaped_glyph_data(text, options);
         let font = self.font();
         super::shape_text_harfbuzz(&glyph_data, font, text, options, glyphs);
     }
 
-    pub fn baseline(&self) -> Option<FontBaseline> {
+    pub(crate) fn baseline(&self) -> Option<FontBaseline> {
         unsafe { (*self.font).table_for_tag(BASE)? };
 
         let mut hanging_baseline = 0;

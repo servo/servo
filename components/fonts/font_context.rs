@@ -45,7 +45,7 @@ use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontSe
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
-pub type FontParameters = (FontKey, Au, Vec<FontVariation>);
+pub(crate) type FontParameters = (FontKey, Au, Vec<FontVariation>);
 
 #[derive(MallocSizeOf)]
 struct FontGroupRef(#[conditional_malloc_size_of] Arc<RwLock<FontGroup>>);
@@ -162,7 +162,7 @@ impl FontContext {
 
     /// Returns a font matching the parameters. Fonts are cached, so repeated calls will return a
     /// reference to the same underlying `Font`.
-    pub fn font(
+    pub(crate) fn font(
         &self,
         font_template: FontTemplateRef,
         font_descriptor: &FontDescriptor,
@@ -247,7 +247,7 @@ impl FontContext {
 
     /// Try to find matching templates in this [`FontContext`], first looking in the list of web fonts and
     /// falling back to asking the [`super::SystemFontService`] for a matching system font.
-    pub fn matching_templates(
+    pub(crate) fn matching_templates(
         &self,
         descriptor_to_match: &FontDescriptor,
         family_descriptor: &FontFamilyDescriptor,
@@ -749,7 +749,7 @@ impl FontContext {
     }
 }
 
-pub type ScriptWebFontLoadFinishedCallback =
+pub(crate) type ScriptWebFontLoadFinishedCallback =
     Box<dyn FnOnce(LowercaseFontFamilyName, Option<FontTemplate>) + Send>;
 
 pub(crate) enum WebFontLoadInitiator {

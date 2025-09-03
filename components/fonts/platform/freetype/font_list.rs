@@ -34,7 +34,7 @@ use crate::{
     LowercaseFontFamilyName,
 };
 
-pub fn for_each_available_family<F>(mut callback: F)
+pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
     F: FnMut(String),
 {
@@ -69,7 +69,7 @@ where
     }
 }
 
-pub fn for_each_variation<F>(family_name: &str, mut callback: F)
+pub(crate) fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
     F: FnMut(FontTemplate),
 {
@@ -141,7 +141,7 @@ where
 }
 
 // Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
-pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub(crate) fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
     if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Noto Color Emoji");
@@ -180,7 +180,9 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     families
 }
 
-pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+pub(crate) fn default_system_generic_font_family(
+    generic: GenericFontFamily,
+) -> LowercaseFontFamilyName {
     let generic_string = match generic {
         GenericFontFamily::None | GenericFontFamily::Serif => "serif",
         GenericFontFamily::SansSerif => "sans-serif",

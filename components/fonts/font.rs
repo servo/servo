@@ -33,21 +33,21 @@ use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
 use crate::platform::font::{FontTable, PlatformFont};
-pub use crate::platform::font_list::fallback_font_families;
+pub(crate) use crate::platform::font_list::fallback_font_families;
 use crate::{
     ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
     FontTemplateRefMethods, GlyphData, GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
 };
 
-pub const GPOS: Tag = Tag::new(b"GPOS");
-pub const GSUB: Tag = Tag::new(b"GSUB");
-pub const KERN: Tag = Tag::new(b"kern");
-pub const SBIX: Tag = Tag::new(b"sbix");
-pub const CBDT: Tag = Tag::new(b"CBDT");
-pub const COLR: Tag = Tag::new(b"COLR");
-pub const BASE: Tag = Tag::new(b"BASE");
-pub const LIGA: Tag = Tag::new(b"liga");
+pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
+pub(crate) const GSUB: Tag = Tag::new(b"GSUB");
+pub(crate) const KERN: Tag = Tag::new(b"kern");
+pub(crate) const SBIX: Tag = Tag::new(b"sbix");
+pub(crate) const CBDT: Tag = Tag::new(b"CBDT");
+pub(crate) const COLR: Tag = Tag::new(b"COLR");
+pub(crate) const BASE: Tag = Tag::new(b"BASE");
+pub(crate) const LIGA: Tag = Tag::new(b"liga");
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -59,7 +59,7 @@ static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 // needed by the text shaper as well as access to the underlying font
 // resources needed by the graphics layer to draw glyphs.
 
-pub trait PlatformFontMethods: Sized {
+pub(crate) trait PlatformFontMethods: Sized {
     #[servo_tracing::instrument(name = "PlatformFontMethods::new_from_template", skip_all)]
     fn new_from_template(
         template: FontTemplateRef,
@@ -140,9 +140,9 @@ pub trait PlatformFontMethods: Sized {
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
-pub type FractionalPixel = f64;
+pub(crate) type FractionalPixel = f64;
 
-pub trait FontTableMethods {
+pub(crate) trait FontTableMethods {
     fn buffer(&self) -> &[u8];
 }
 
@@ -212,8 +212,8 @@ impl malloc_size_of::MallocSizeOf for CachedShapeData {
 }
 
 pub struct Font {
-    pub handle: PlatformFont,
-    pub template: FontTemplateRef,
+    pub(crate) handle: PlatformFont,
+    pub(crate) template: FontTemplateRef,
     pub metrics: FontMetrics,
     pub descriptor: FontDescriptor,
 
@@ -223,12 +223,12 @@ pub struct Font {
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
-    pub font_instance_key: OnceLock<FontInstanceKey>,
+    pub(crate) font_instance_key: OnceLock<FontInstanceKey>,
 
     /// If this is a synthesized small caps font, then this font reference is for
     /// the version of the font used to replace lowercase ASCII letters. It's up
     /// to the consumer of this font to properly use this reference.
-    pub synthesized_small_caps: Option<FontRef>,
+    pub(crate) synthesized_small_caps: Option<FontRef>,
 
     /// Whether or not this font supports color bitmaps or a COLR table. This is
     /// essentially equivalent to whether or not we use it for emoji presentation.
@@ -258,7 +258,7 @@ impl malloc_size_of::MallocSizeOf for Font {
 }
 
 impl Font {
-    pub fn new(
+    pub(crate) fn new(
         template: FontTemplateRef,
         descriptor: FontDescriptor,
         data: Option<FontData>,
@@ -294,11 +294,11 @@ impl Font {
         self.template.identifier()
     }
 
-    pub fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
+    pub(crate) fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
         self.handle.webrender_font_instance_flags()
     }
 
-    pub fn has_color_bitmap_or_colr_table(&self) -> bool {
+    pub(crate) fn has_color_bitmap_or_colr_table(&self) -> bool {
         *self.has_color_bitmap_or_colr_table.get_or_init(|| {
             self.table_for_tag(SBIX).is_some() ||
                 self.table_for_tag(CBDT).is_some() ||
@@ -330,7 +330,7 @@ impl Font {
         Ok(data_and_index)
     }
 
-    pub fn variations(&self) -> &[FontVariation] {
+    pub(crate) fn variations(&self) -> &[FontVariation] {
         self.handle.variations()
     }
 }
@@ -432,7 +432,7 @@ impl Font {
     /// "fast shaping" ie shaping without Harfbuzz.
     ///
     /// Note: This will eventually be removed.
-    pub fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
+    pub(crate) fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
         options.script == Script::Latin &&
             !options.flags.contains(ShapingFlags::RTL_FLAG) &&
             *self.can_do_fast_shaping.get_or_init(|| {
@@ -471,7 +471,7 @@ impl Font {
         glyphs.finalize_changes();
     }
 
-    pub fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
+    pub(crate) fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
         let result = self.handle.table_for_tag(tag);
         let status = if result.is_some() {
             "Found"
@@ -507,11 +507,15 @@ impl Font {
         glyph_index
     }
 
-    pub fn has_glyph_for(&self, codepoint: char) -> bool {
+    pub(crate) fn has_glyph_for(&self, codepoint: char) -> bool {
         self.glyph_index(codepoint).is_some()
     }
 
-    pub fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
+    pub(crate) fn glyph_h_kerning(
+        &self,
+        first_glyph: GlyphId,
+        second_glyph: GlyphId,
+    ) -> FractionalPixel {
         self.handle.glyph_h_kerning(first_glyph, second_glyph)
     }
 
@@ -564,7 +568,7 @@ pub struct FontGroup {
 }
 
 impl FontGroup {
-    pub fn new(style: &FontStyleStruct, descriptor: FontDescriptor) -> FontGroup {
+    pub(crate) fn new(style: &FontStyleStruct, descriptor: FontDescriptor) -> FontGroup {
         let families: SmallVec<[FontGroupFamily; 8]> = style
             .font_family
             .families
@@ -829,18 +833,18 @@ impl FontGroupFamily {
     }
 }
 
-pub struct RunMetrics {
+pub(crate) struct RunMetrics {
     // may be negative due to negative width (i.e., kerning of '.' in 'P.T.')
-    pub advance_width: Au,
-    pub ascent: Au,  // nonzero
-    pub descent: Au, // nonzero
+    pub(crate) advance_width: Au,
+    pub(crate) ascent: Au,  // nonzero
+    pub(crate) descent: Au, // nonzero
     // this bounding box is relative to the left origin baseline.
     // so, bounding_box.position.y = -ascent
-    pub bounding_box: Rect<Au>,
+    pub(crate) bounding_box: Rect<Au>,
 }
 
 impl RunMetrics {
-    pub fn new(advance: Au, ascent: Au, descent: Au) -> RunMetrics {
+    pub(crate) fn new(advance: Au, ascent: Au, descent: Au) -> RunMetrics {
         let bounds = Rect::new(
             Point2D::new(Au::zero(), -ascent),
             Size2D::new(advance, ascent + descent),
@@ -860,13 +864,13 @@ impl RunMetrics {
 }
 
 /// Get the number of nanoseconds spent shaping text across all threads.
-pub fn get_and_reset_text_shaping_performance_counter() -> usize {
+pub(crate) fn get_and_reset_text_shaping_performance_counter() -> usize {
     TEXT_SHAPING_PERFORMANCE_COUNTER.swap(0, Ordering::SeqCst)
 }
 
 /// The scope within which we will look for a font.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub enum FontSearchScope {
+pub(crate) enum FontSearchScope {
     /// All fonts will be searched, including those specified via `@font-face` rules.
     Any,
 
@@ -876,13 +880,13 @@ pub enum FontSearchScope {
 
 /// The font family parameters for font selection.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct FontFamilyDescriptor {
-    pub family: SingleFontFamily,
-    pub scope: FontSearchScope,
+pub(crate) struct FontFamilyDescriptor {
+    pub(crate) family: SingleFontFamily,
+    pub(crate) scope: FontSearchScope,
 }
 
 impl FontFamilyDescriptor {
-    pub fn new(family: SingleFontFamily, scope: FontSearchScope) -> FontFamilyDescriptor {
+    pub(crate) fn new(family: SingleFontFamily, scope: FontSearchScope) -> FontFamilyDescriptor {
         FontFamilyDescriptor { family, scope }
     }
 

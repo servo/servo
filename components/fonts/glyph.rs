@@ -11,7 +11,7 @@ use std::{fmt, mem};
 use app_units::Au;
 use euclid::default::Point2D;
 use euclid::num::Zero;
-pub use fonts_traits::ByteIndex;
+pub(crate) use fonts_traits::ByteIndex;
 use itertools::Either;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -27,7 +27,7 @@ use serde::{Deserialize, Serialize};
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct GlyphEntry {
+pub(crate) struct GlyphEntry {
     value: u32,
 }
 
@@ -72,7 +72,7 @@ impl GlyphEntry {
 }
 
 /// The id of a particular glyph within a font
-pub type GlyphId = u32;
+pub(crate) type GlyphId = u32;
 
 // TODO: make this more type-safe.
 
@@ -316,7 +316,7 @@ impl<'a> DetailedGlyphStore {
 // This struct is used by GlyphStore clients to provide new glyph data.
 // It should be allocated on the stack and passed by reference to GlyphStore.
 #[derive(Clone, Copy, Debug)]
-pub struct GlyphData {
+pub(crate) struct GlyphData {
     id: GlyphId,
     advance: Au,
     offset: Point2D<Au>,
@@ -326,7 +326,7 @@ pub struct GlyphData {
 
 impl GlyphData {
     /// Creates a new entry for one glyph.
-    pub fn new(
+    pub(crate) fn new(
         id: GlyphId,
         advance: Au,
         offset: Option<Point2D<Au>>,
@@ -367,7 +367,6 @@ impl GlyphInfo<'_> {
     }
 
     #[inline(always)]
-    // FIXME: Resolution conflicts with IteratorUtil trait so adding trailing _
     pub fn advance(self) -> Au {
         match self {
             GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].advance(),
@@ -463,7 +462,7 @@ impl GlyphStore {
     /// Initializes the glyph store, but doesn't actually shape anything.
     ///
     /// Use the `add_*` methods to store glyph data.
-    pub fn new(
+    pub(crate) fn new(
         length: usize,
         is_whitespace: bool,
         ends_with_whitespace: bool,
@@ -510,7 +509,7 @@ impl GlyphStore {
         self.total_word_separators
     }
 
-    pub fn finalize_changes(&mut self) {
+    pub(crate) fn finalize_changes(&mut self) {
         self.detail_store.ensure_sorted();
         self.cache_total_advance_and_word_separators()
     }
@@ -530,7 +529,12 @@ impl GlyphStore {
     }
 
     /// Adds a single glyph.
-    pub fn add_glyph_for_byte_index(&mut self, i: ByteIndex, character: char, data: &GlyphData) {
+    pub(crate) fn add_glyph_for_byte_index(
+        &mut self,
+        i: ByteIndex,
+        character: char,
+        data: &GlyphData,
+    ) {
         let glyph_is_compressible = is_simple_glyph_id(data.id) &&
             is_simple_advance(data.advance) &&
             data.offset == Point2D::zero() &&
@@ -567,7 +571,11 @@ impl GlyphStore {
         self.entry_buffer[i.to_usize()] = entry;
     }
 
-    pub fn add_glyphs_for_byte_index(&mut self, i: ByteIndex, data_for_glyphs: &[GlyphData]) {
+    pub(crate) fn add_glyphs_for_byte_index(
+        &mut self,
+        i: ByteIndex,
+        data_for_glyphs: &[GlyphData],
+    ) {
         assert!(i < self.len());
         assert!(!data_for_glyphs.is_empty());
 
@@ -645,7 +653,7 @@ impl GlyphStore {
     // and advance of the glyph in the range at the given advance, if reached. Otherwise, returns the
     // the number of glyphs and the advance for the given range.
     #[inline]
-    pub fn range_index_of_advance(
+    pub(crate) fn range_index_of_advance(
         &self,
         range: &Range<ByteIndex>,
         advance: Au,
@@ -677,7 +685,7 @@ impl GlyphStore {
     }
 
     #[inline]
-    pub fn advance_for_byte_range_simple_glyphs(
+    pub(crate) fn advance_for_byte_range_simple_glyphs(
         &self,
         range: &Range<ByteIndex>,
         extra_word_spacing: Au,
@@ -692,12 +700,12 @@ impl GlyphStore {
             })
     }
 
-    pub fn char_is_word_separator(&self, i: ByteIndex) -> bool {
+    pub(crate) fn char_is_word_separator(&self, i: ByteIndex) -> bool {
         assert!(i < self.len());
         self.entry_buffer[i.to_usize()].char_is_word_separator()
     }
 
-    pub fn word_separator_count_in_range(&self, range: &Range<ByteIndex>) -> u32 {
+    pub(crate) fn word_separator_count_in_range(&self, range: &Range<ByteIndex>) -> u32 {
         let mut spaces = 0;
         for index in range.each_index() {
             if self.char_is_word_separator(index) {
@@ -751,7 +759,7 @@ pub struct GlyphRun {
 }
 
 impl GlyphRun {
-    pub fn compare(&self, key: &ByteIndex) -> Ordering {
+    pub(crate) fn compare(&self, key: &ByteIndex) -> Ordering {
         if *key < self.range.begin() {
             Ordering::Greater
         } else if *key >= self.range.end() {

@@ -34,7 +34,7 @@ fn fixed_26_dot_6_to_float(fixed: FT_F26Dot6) -> f64 {
 }
 
 #[derive(Debug)]
-pub struct FontTable {
+pub(crate) struct FontTable {
     data: FreeTypeFaceTableProviderData,
     tag: Tag,
 }
@@ -51,7 +51,7 @@ impl FontTableMethods for FontTable {
 
 #[derive(Debug)]
 #[allow(unused)]
-pub struct PlatformFont {
+pub(crate) struct PlatformFont {
     face: ReentrantMutex<FreeTypeFace>,
     requested_face_size: Au,
     actual_face_size: Au,

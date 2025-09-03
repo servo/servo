@@ -17,7 +17,7 @@ use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::{FontStyle, FontWeight};
 
 #[derive(Default, MallocSizeOf)]
-pub struct FontStore {
+pub(crate) struct FontStore {
     pub(crate) families: HashMap<LowercaseFontFamilyName, FontTemplates>,
     web_fonts_loading_for_stylesheets: Vec<(DocumentStyleSheet, usize)>,
     web_fonts_loading_for_script: usize,
@@ -201,7 +201,7 @@ impl SimpleFamily {
 }
 /// A list of font templates that make up a given font family.
 #[derive(Clone, Debug, MallocSizeOf)]
-pub struct FontTemplates {
+pub(crate) struct FontTemplates {
     pub(crate) templates: Vec<FontTemplateRef>,
     simple_family: Option<SimpleFamily>,
 }
@@ -217,7 +217,7 @@ impl Default for FontTemplates {
 
 impl FontTemplates {
     /// Find a font in this family that matches a given descriptor.
-    pub fn find_for_descriptor(
+    pub(crate) fn find_for_descriptor(
         &self,
         descriptor_to_match: Option<&FontDescriptor>,
     ) -> Vec<FontTemplateRef> {
@@ -263,7 +263,7 @@ impl FontTemplates {
         Vec::new()
     }
 
-    pub fn add_template(&mut self, new_template: FontTemplate) {
+    pub(crate) fn add_template(&mut self, new_template: FontTemplate) {
         for existing_template in &self.templates {
             let existing_template = existing_template.borrow();
             if *existing_template.identifier() == new_template.identifier &&
