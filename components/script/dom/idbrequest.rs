@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 
-use constellation_traits::StructuredSerializedData;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
@@ -117,14 +116,14 @@ impl RequestListener {
                     key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut())
                 },
                 IdbResult::Data(serialized_data) => {
-                    let data = StructuredSerializedData {
-                        serialized: serialized_data,
-                        ..Default::default()
-                    };
-
-                    if structuredclone::read(&global, data, answer.handle_mut()).is_err() {
+                    let result = bincode::deserialize(&serialized_data)
+                        .map_err(|_| Error::Data)
+                        .and_then(|data| structuredclone::read(&global, data, answer.handle_mut()));
+                    if let Err(e) = result {
                         warn!("Error reading structuredclone data");
-                    }
+                        Self::handle_async_request_error(&global, cx, request, e);
+                        return;
+                    };
                 },
                 IdbResult::Count(count) => {
                     answer.handle_mut().set(DoubleValue(count as f64));
