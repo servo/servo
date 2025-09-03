@@ -21,6 +21,7 @@ use servo::servo_url::ServoUrl;
 use url::Url;
 
 pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
+    "dom_abort_controller_enabled",
     "dom_async_clipboard_enabled",
     "dom_fontface_enabled",
     "dom_intersection_observer_enabled",
