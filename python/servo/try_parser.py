@@ -117,8 +117,6 @@ def handle_preset(s: str) -> Optional[JobConfig]:
             wpt_args=" ".join(
                 [
                     "./tests/wpt/tests/webdriver/tests/classic/",
-                    "--product servodriver",
-                    "--headless",
                     "--processes 1",
                 ]
             ),
