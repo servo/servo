@@ -146,7 +146,7 @@ impl GPUCanvasContext {
             // causes FAIL on webgpu:web_platform,canvas,configure:usage:*
             usage: configuration.usage | GPUTextureUsageConstants::COPY_SRC,
             viewFormats: configuration.viewFormats.clone(),
-            // other members set to their defaults
+            // All other members set to their defaults.
             mipLevelCount: 1,
             sampleCount: 1,
             parent: GPUObjectDescriptorBase {
@@ -224,7 +224,7 @@ impl CanvasContext for GPUCanvasContext {
     fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
         let mut updated_image = false;
         if let Some(texture) = self.current_texture.get() {
-            // we copy image into presentation buffer before destroy
+            // Copy the image into the presentation buffer before destroying it.
             let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
             if let Err(e) = self.channel.0.send(WebGPURequest::Present {
                 context_id: self.context_id,
@@ -280,7 +280,7 @@ impl CanvasContext for GPUCanvasContext {
                 .0
                 .send(WebGPURequest::GetImage {
                     context_id: self.context_id,
-                    // we need to read from pending texture, if any
+                    // We need to read from the pending texture, if one exists.
                     pending_texture: self.current_texture.get().map(|texture| {
                         (
                             texture.id().0,
@@ -328,7 +328,8 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
         // 5. Let descriptor be the GPUTextureDescriptor for the canvas and configuration.
         let descriptor = self.texture_descriptor_for_canvas_and_configuration(configuration);
 
-        // 2., 3. Validate texture format required features
+        // 2. Validate texture format required features of configuration.format with device.[[device]].
+        // 3. Validate texture format required features of each element of configuration.viewFormats with device.[[device]].
         let (mut desc, _) = convert_texture_descriptor(&descriptor, device)?;
         desc.label = Some(Cow::Borrowed(
             "dummy texture for texture descriptor validation",
