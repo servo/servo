@@ -19,8 +19,9 @@ use cipher::consts::{U12, U16, U32};
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JS_NewObject, JSObject};
-use js::jsval::ObjectValue;
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::MutableHandleObject;
+use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::ArrayBufferU8;
 use servo_rand::{RngCore, ServoRng};
 
@@ -1070,7 +1071,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let import_key_bytes = match format {
                     KeyFormat::Raw | KeyFormat::Spki | KeyFormat::Pkcs8 => bytes,
                     KeyFormat::Jwk => {
-                        match parse_jwk(&bytes, normalized_key_algorithm.clone(), extractable, &key_usages) {
+                        match parse_jwk(cx, &bytes, normalized_key_algorithm.clone(), extractable, &key_usages) {
                             Ok(bytes) => bytes,
                             Err(e) => {
                                 promise.reject_error(e, CanGc::note());
@@ -3051,12 +3052,13 @@ impl KeyWrapAlgorithm {
 }
 
 fn parse_jwk(
+    cx: JSContext,
     bytes: &[u8],
     import_alg: ImportKeyAlgorithm,
     extractable: bool,
     key_usages: &[KeyUsage],
 ) -> Result<Vec<u8>, Error> {
-    let jwk = JsonWebKey::parse(bytes)?;
+    let jwk = JsonWebKey::parse(cx, bytes)?;
 
     let kty = jwk.kty.as_ref().ok_or(Error::Data)?;
     let ext = jwk.ext.ok_or(Error::Data)?;
@@ -3185,7 +3187,7 @@ impl RsaOtherPrimesInfoExt for RsaOtherPrimesInfo {
 }
 
 trait JsonWebKeyExt {
-    fn parse(bytes: &[u8]) -> Result<JsonWebKey, Error>;
+    fn parse(cx: JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
     #[expect(unused)]
     fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error>;
@@ -3193,61 +3195,37 @@ trait JsonWebKeyExt {
 
 impl JsonWebKeyExt for JsonWebKey {
     /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
-    fn parse(data: &[u8]) -> Result<JsonWebKey, Error> {
+    #[allow(unsafe_code)]
+    fn parse(cx: JSContext, data: &[u8]) -> Result<JsonWebKey, Error> {
         // Step 1. Let data be the sequence of bytes to be parsed.
         // (It is given as a method paramter.)
 
         // Step 2. Let json be the Unicode string that results from interpreting data according to UTF-8.
+        let json = str::from_utf8(data).map_err(|_| Error::Data)?;
+
         // Step 3. Convert json to UTF-16.
+        let json: Vec<_> = json.encode_utf16().collect();
+
         // Step 4. Let result be the object literal that results from executing the JSON.parse
         // internal function in the context of a new global object, with text argument set to a
         // JavaScript String containing json.
-        let value = serde_json::from_slice(data)
-            .map_err(|_| Error::Type("Failed to parse JWK string".into()))?;
-        let serde_json::Value::Object(result) = value else {
-            return Err(Error::Data);
-        };
-
-        // Step 5. Let key be the result of converting result to the IDL dictionary type of JsonWebKey.
-        let mut key: JsonWebKey = Default::default();
-        for (parameter, value) in result {
-            match parameter.as_str() {
-                "kty" => key.kty = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "use" => key.use_ = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "key_ops" => {
-                    let mut key_ops = vec![];
-                    for op in value.as_array().ok_or(Error::Data)? {
-                        key_ops.push(DOMString::from(op.as_str().ok_or(Error::Data)?));
-                    }
-                    key.key_ops = Some(key_ops);
-                },
-                "alg" => key.alg = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "ext" => key.ext = Some(value.as_bool().ok_or(Error::Data)?),
-                "crv" => key.crv = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "x" => key.x = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "y" => key.y = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "d" => key.d = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "n" => key.n = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "e" => key.e = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "p" => key.p = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "q" => key.q = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "dp" => key.dp = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "dq" => key.dq = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "qi" => key.qi = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                "oth" => {
-                    let mut oth = vec![];
-                    for sub_value in value.as_array().ok_or(Error::Data)? {
-                        oth.push(RsaOtherPrimesInfo::from_value(sub_value)?);
-                    }
-                    key.oth = Some(oth);
-                },
-                "k" => key.k = Some(DOMString::from(value.as_str().ok_or(Error::Data)?)),
-                _ => {
-                    // Additional members can be present in the key; if not understood by
-                    // implementations encountering them, they MUST be ignored.
-                },
+        rooted!(in(*cx) let mut result = UndefinedValue());
+        unsafe {
+            if !JS_ParseJSON(*cx, json.as_ptr(), json.len() as u32, result.handle_mut()) {
+                return Err(Error::JSFailed);
             }
         }
+
+        // Step 5. Let key be the result of converting result to the IDL dictionary type of JsonWebKey.
+        let key = match JsonWebKey::new(cx, result.handle()) {
+            Ok(ConversionResult::Success(key)) => key,
+            Ok(ConversionResult::Failure(error)) => {
+                return Err(Error::Type(error.to_string()));
+            },
+            Err(()) => {
+                return Err(Error::JSFailed);
+            },
+        };
 
         // Step 6. If the kty field of key is not defined, then throw a DataError.
         if key.kty.is_none() {
