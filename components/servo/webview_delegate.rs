@@ -436,12 +436,13 @@ pub trait WebViewDelegate {
     /// The favicon of the currently loaded page in this [`WebView`] has changed. The new
     /// favicon [`Image`] can accessed via [`WebView::favicon`].
     fn notify_favicon_changed(&self, _webview: WebView) {}
-
     /// Notify the embedder that it needs to present a new frame.
     fn notify_new_frame_ready(&self, _webview: WebView) {}
     /// The history state has changed.
+    /// The current [`WebView`] is selected with the total history being given by `entries`
+    /// and `current` denoting the index into `entries` that corresponds to the active webview.
     // changed pattern; maybe wasteful if embedder doesn’t care?
-    fn notify_history_changed(&self, _webview: WebView, _: Vec<Url>, _: usize) {}
+    fn notify_history_changed(&self, _webview: WebView, _entries: Vec<Url>, _current: usize) {}
     /// A history traversal operation is complete.
     fn notify_traversal_complete(&self, _webview: WebView, _: TraversalId) {}
     /// Page content has closed this [`WebView`] via `window.close()`. It's the embedder's
