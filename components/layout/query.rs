@@ -12,7 +12,7 @@ use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
-    BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse, ScrollParentResponse,
+    BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse, ScrollContainerResponse,
 };
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
@@ -647,12 +647,19 @@ pub fn process_offset_parent_query(node: ServoLayoutNode<'_>) -> Option<OffsetPa
     })
 }
 
-/// This is an implementation of
+/// This is based on `scrollParent`:
 /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>.
+///
+/// There is one important difference. The root element and `<body>` children of the root
+/// in an HTML document do not return `None`. Instead they return the viewport as the
+/// scrolling container. This is because `scrollIntoView` on the `<body>` element should
+/// scroll the body, but the `scrollParent` of the body is `null`.
+///
+/// This is designed this way so that the implementation can be shared with `scrollIntoView`.
 #[inline]
-pub(crate) fn process_scroll_parent_query(
+pub(crate) fn process_scroll_container_query(
     node: ServoLayoutNode<'_>,
-) -> Option<ScrollParentResponse> {
+) -> Option<ScrollContainerResponse> {
     let layout_data = node.to_threadsafe().inner_layout_data()?;
 
     // 1. If any of the following holds true, return null and terminate this algorithm:
@@ -660,21 +667,25 @@ pub(crate) fn process_scroll_parent_query(
     let layout_box = layout_data.self_box.borrow();
     let layout_box = layout_box.as_ref()?;
 
-    let (mut current_position_value, flags) = layout_box
-        .with_base_flat(|base| vec![(base.style.clone_position(), base.base_fragment_info.flags)])
+    let mut current_position_value = layout_box
+        .with_base_flat(|base| vec![base.style.clone_position()])
         .first()
         .cloned()?;
 
     // - The element is the root element.
     // - The element is the body element.
+    //
+    // Note: We do not do this. Instead it is handled in the `scrollParent` implementation
+    // in `HTMLElement`.
+
     // - The element’s computed value of the position property is fixed and no ancestor
     //   establishes a fixed position containing block.
-    if flags.intersects(
-        FragmentFlags::IS_ROOT_ELEMENT | FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT,
-    ) {
-        return None;
-    }
+    //
+    // This is handled below in step 2.
 
+    // This is the algorithm from <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
+    // that we are following, starting from step 2.
+    //
     // 2. Let ancestor be the containing block of the element in the flat tree and repeat these substeps:
     // - If ancestor is the initial containing block, return the scrollingElement for the
     //   element’s document if it is not closed-shadow-hidden from the element, otherwise
@@ -722,7 +733,7 @@ pub(crate) fn process_scroll_parent_query(
         }
 
         if ancestor_style.establishes_scroll_container(ancestor_flags) {
-            return Some(ScrollParentResponse::Element(
+            return Some(ScrollContainerResponse::Element(
                 ancestor.as_node().opaque().into(),
             ));
         }
@@ -732,7 +743,7 @@ pub(crate) fn process_scroll_parent_query(
 
     match current_position_value {
         Position::Fixed => None,
-        _ => Some(ScrollParentResponse::DocumentScrollingElement),
+        _ => Some(ScrollContainerResponse::Viewport),
     }
 }
 
