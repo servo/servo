@@ -56,8 +56,8 @@ use js::rust::{
 use layout_api::{
     BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout,
     PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg, ReflowGoal,
-    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason, ScrollParentResponse,
-    TrustedNodeAddress, combine_id_with_fragment_type,
+    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason, ScrollContainerQueryType,
+    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2599,21 +2599,15 @@ impl Window {
         (element, response.rect)
     }
 
-    #[allow(unsafe_code)]
-    pub(crate) fn scroll_parent_query(&self, node: &Node) -> Option<DomRoot<Element>> {
+    pub(crate) fn scroll_container_query(
+        &self,
+        node: &Node,
+        query_type: ScrollContainerQueryType,
+    ) -> Option<ScrollContainerResponse> {
         self.layout_reflow(QueryMsg::ScrollParentQuery);
         self.layout
             .borrow()
-            .query_scroll_parent(node.to_trusted_node_address())
-            .and_then(|response| match response {
-                ScrollParentResponse::DocumentScrollingElement => {
-                    self.Document().GetScrollingElement()
-                },
-                ScrollParentResponse::Element(parent_node_address) => {
-                    let node = unsafe { from_untrusted_node_address(parent_node_address) };
-                    DomRoot::downcast(node)
-                },
-            })
+            .query_scroll_container(node.to_trusted_node_address(), query_type)
     }
 
     pub(crate) fn text_index_query(
