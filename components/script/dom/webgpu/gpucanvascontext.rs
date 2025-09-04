@@ -25,7 +25,6 @@ use crate::canvas_context::{
     CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas,
     LayoutCanvasRenderingContextHelpers,
 };
-use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -39,7 +38,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
-use crate::dom::node::NodeTraits;
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::script_runtime::CanGc;
 
 /// <https://gpuweb.github.io/gpuweb/#supported-context-formats>
