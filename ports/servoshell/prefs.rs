@@ -88,6 +88,9 @@ pub(crate) struct ServoShellPreferences {
     /// Log also to a file
     #[cfg(target_env = "ohos")]
     pub log_to_file: bool,
+
+    /// Whether the CLI option to enable experimental prefs was present at startup.
+    pub experimental_prefs_enabled: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -111,6 +114,7 @@ impl Default for ServoShellPreferences {
             log_filter: None,
             #[cfg(target_env = "ohos")]
             log_to_file: false,
+            experimental_prefs_enabled: false,
         }
     }
 }
@@ -605,7 +609,9 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         })
         .collect();
 
-    if opt_match.opt_present("enable-experimental-web-platform-features") {
+    let experimental_prefs_enabled =
+        opt_match.opt_present("enable-experimental-web-platform-features");
+    if experimental_prefs_enabled {
         for pref in EXPERIMENTAL_PREFS {
             preferences.set_value(pref, PrefValue::Bool(true));
         }
@@ -677,6 +683,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         log_filter,
         #[cfg(target_env = "ohos")]
         log_to_file,
+        experimental_prefs_enabled,
         ..Default::default()
     };
 

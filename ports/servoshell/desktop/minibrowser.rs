@@ -22,7 +22,9 @@ use servo::base::id::WebViewId;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
-use servo::{Image, LoadStatus, OffscreenRenderingContext, PixelFormat, RenderingContext, WebView};
+use servo::{
+    Image, LoadStatus, OffscreenRenderingContext, PixelFormat, PrefValue, RenderingContext, WebView,
+};
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
@@ -33,6 +35,7 @@ use super::events_loop::EventLoopProxy;
 use super::geometry::winit_position_to_euclid_point;
 use super::headed_window::Window as ServoWindow;
 use crate::desktop::window_trait::WindowPortsMethods;
+use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 
 pub struct Minibrowser {
     rendering_context: Rc<OffscreenRenderingContext>,
@@ -55,6 +58,9 @@ pub struct Minibrowser {
     ///
     /// These need to be cached across egui draw calls.
     favicon_textures: HashMap<WebViewId, (egui::TextureHandle, egui::load::SizedTexture)>,
+
+    /// Whether the user has enabled experimental preferences.
+    experimental_prefs_enabled: bool,
 }
 
 pub enum MinibrowserEvent {
@@ -63,6 +69,7 @@ pub enum MinibrowserEvent {
     Back,
     Forward,
     Reload,
+    ReloadAll,
     NewWebView,
     CloseWebView(WebViewId),
 }
@@ -88,6 +95,7 @@ impl Minibrowser {
         event_loop: &ActiveEventLoop,
         event_loop_proxy: EventLoopProxy,
         initial_url: ServoUrl,
+        preferences: &ServoShellPreferences,
     ) -> Self {
         let rendering_context = window.offscreen_rendering_context();
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
@@ -118,6 +126,7 @@ impl Minibrowser {
             load_status: LoadStatus::Complete,
             status_text: None,
             favicon_textures: Default::default(),
+            experimental_prefs_enabled: preferences.experimental_prefs_enabled,
         }
     }
 
@@ -336,6 +345,19 @@ impl Minibrowser {
                                 ui.available_size(),
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
+                                    let prefs_toggle = ui
+                                        .toggle_value(&mut self.experimental_prefs_enabled, "☢")
+                                        .on_hover_text("Enable experimental prefs");
+                                    if prefs_toggle.clicked() {
+                                        let enable = self.experimental_prefs_enabled;
+                                        for pref in EXPERIMENTAL_PREFS {
+                                            state
+                                                .servo()
+                                                .set_preference(pref, PrefValue::Bool(enable));
+                                        }
+                                        event_queue.borrow_mut().push(MinibrowserEvent::ReloadAll);
+                                    }
+
                                     let location_id = egui::Id::new("location_input");
                                     let location_field = ui.add_sized(
                                         ui.available_size(),

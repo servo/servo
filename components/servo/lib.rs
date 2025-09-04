@@ -98,6 +98,7 @@ use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
 use servo_config::opts::Opts;
+pub use servo_config::prefs::PrefValue;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
 use servo_delegate::DefaultServoDelegate;
@@ -1082,6 +1083,12 @@ impl Servo {
             self.constellation_proxy
                 .send(EmbedderToConstellationMessage::WebDriverCommand(command));
         }
+    }
+
+    pub fn set_preference(&self, name: &str, value: PrefValue) {
+        let mut preferences = prefs::get().clone();
+        preferences.set_value(name, value);
+        prefs::set(preferences);
     }
 }
 
