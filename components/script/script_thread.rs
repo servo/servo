@@ -2140,6 +2140,9 @@ impl ScriptThread {
                     result_sender,
                 );
             },
+            DevtoolScriptControlMsg::Pause() => {
+                self.debugger_global.fire_pause(can_gc);
+            },
         }
     }
 
