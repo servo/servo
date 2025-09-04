@@ -48,14 +48,6 @@ pub struct FontTable {
     data: Vec<u8>,
 }
 
-impl FontTable {
-    pub(crate) fn wrap(data: &[u8]) -> FontTable {
-        FontTable {
-            data: data.to_vec(),
-        }
-    }
-}
-
 impl FontTableMethods for FontTable {
     fn buffer(&self) -> &[u8] {
         &self.data
