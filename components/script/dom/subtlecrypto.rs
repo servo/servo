@@ -3202,6 +3202,7 @@ impl JsonWebKeyExt for JsonWebKey {
         // (It is given as a method paramter.)
 
         // Step 2. Let json be the Unicode string that results from interpreting data according to UTF-8.
+        #[allow(clippy::incompatible_msrv)]
         let json = str::from_utf8(data).map_err(|_| Error::Data)?;
 
         // Step 3. Convert json to UTF-16.
