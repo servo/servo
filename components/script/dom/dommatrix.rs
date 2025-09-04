@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use euclid::default::Transform3D;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
+use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
@@ -476,6 +477,25 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         self.upcast::<DOMMatrixReadOnly>().invert_self();
         // Step 3.
         DomRoot::from_ref(self)
+    }
+
+    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-setmatrixvalue>
+    fn SetMatrixValue(&self, transformList: DOMString) -> Fallible<DomRoot<DOMMatrix>> {
+        // 1. Parse transformList into an abstract matrix, and let
+        // matrix and 2dTransform be the result. If the result is failure,
+        // then throw a "SyntaxError" DOMException.
+        match transform_to_matrix(transformList.to_string()) {
+            Ok(tuple) => {
+                // 2. Set is 2D to the value of 2dTransform.
+                self.parent.set_is2D(tuple.0);
+                // 3. Set m11 element through m44 element to the element values of matrix in column-major order.
+                self.parent.set_matrix(tuple.1);
+            },
+            Err(error) => return Err(error),
+        }
+
+        // 4. Return the current matrix.
+        Ok(DomRoot::from_ref(self))
     }
 }
 

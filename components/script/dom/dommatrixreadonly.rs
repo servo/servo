@@ -86,8 +86,31 @@ impl DOMMatrixReadOnly {
         self.matrix.borrow()
     }
 
+    pub(crate) fn set_matrix(&self, value: Transform3D<f64>) {
+        self.set_m11(value.m11);
+        self.set_m12(value.m12);
+        self.set_m13(value.m13);
+        self.set_m14(value.m14);
+        self.set_m21(value.m21);
+        self.set_m22(value.m22);
+        self.set_m23(value.m23);
+        self.set_m24(value.m24);
+        self.set_m31(value.m31);
+        self.set_m32(value.m32);
+        self.set_m33(value.m33);
+        self.set_m34(value.m34);
+        self.set_m41(value.m41);
+        self.set_m42(value.m42);
+        self.set_m43(value.m43);
+        self.set_m44(value.m44);
+    }
+
     pub(crate) fn is2D(&self) -> bool {
         self.is2D.get()
+    }
+
+    pub(crate) fn set_is2D(&self, value: bool) {
+        self.is2D.set(value);
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
