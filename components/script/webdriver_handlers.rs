@@ -457,7 +457,13 @@ unsafe fn jsval_to_webdriver_inner(
                 Err(WebDriverJSError::JSError)
             }
         } else {
-            clone_an_object(cx, global_scope, val, seen, object.handle())
+            clone_an_object(
+                SafeJSContext::from_ptr(cx),
+                global_scope,
+                val,
+                seen,
+                object.handle(),
+            )
         }
     } else {
         Err(WebDriverJSError::UnknownType)
@@ -467,7 +473,7 @@ unsafe fn jsval_to_webdriver_inner(
 #[allow(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-clone-an-object>
 unsafe fn clone_an_object(
-    cx: *mut JSContext,
+    cx: SafeJSContext,
     global_scope: &GlobalScope,
     val: HandleValue,
     seen: &mut HashSet<HashableJSVal>,
@@ -482,49 +488,38 @@ unsafe fn clone_an_object(
     seen.insert(hashable.clone());
 
     let return_val = if unsafe {
-        is_array_like::<crate::DomTypeHolder>(cx, val) || is_arguments_object(cx, val)
+        is_array_like::<crate::DomTypeHolder>(*cx, val) || is_arguments_object(*cx, val)
     } {
         let mut result: Vec<JSValue> = Vec::new();
 
-        let get_property_result = unsafe {
-            get_property::<u32>(cx, object_handle, "length", ConversionBehavior::Default)
-        };
+        let get_property_result =
+            get_property::<u32>(cx, object_handle, "length", ConversionBehavior::Default);
         let length = match get_property_result {
             Ok(length) => match length {
                 Some(length) => length,
                 _ => return Err(WebDriverJSError::UnknownType),
             },
             Err(error) => {
-                throw_dom_exception(
-                    unsafe { SafeJSContext::from_ptr(cx) },
-                    global_scope,
-                    error,
-                    CanGc::note(),
-                );
+                throw_dom_exception(cx, global_scope, error, CanGc::note());
                 return Err(WebDriverJSError::JSError);
             },
         };
         // Step 4. For each enumerable property in value, run the following substeps:
         for i in 0..length {
-            rooted!(in(cx) let mut item = UndefinedValue());
+            rooted!(in(*cx) let mut item = UndefinedValue());
             let get_property_result =
-                unsafe { get_property_jsval(cx, object_handle, &i.to_string(), item.handle_mut()) };
+                get_property_jsval(cx, object_handle, &i.to_string(), item.handle_mut());
             match get_property_result {
                 Ok(_) => {
                     let conversion_result =
-                        unsafe { jsval_to_webdriver_inner(cx, global_scope, item.handle(), seen) };
+                        unsafe { jsval_to_webdriver_inner(*cx, global_scope, item.handle(), seen) };
                     match conversion_result {
                         Ok(converted_item) => result.push(converted_item),
                         err @ Err(_) => return err,
                     }
                 },
                 Err(error) => {
-                    throw_dom_exception(
-                        unsafe { SafeJSContext::from_ptr(cx) },
-                        global_scope,
-                        error,
-                        CanGc::note(),
-                    );
+                    throw_dom_exception(cx, global_scope, error, CanGc::note());
                     return Err(WebDriverJSError::JSError);
                 },
             }
@@ -533,10 +528,10 @@ unsafe fn clone_an_object(
     } else {
         let mut result = HashMap::new();
 
-        let mut ids = unsafe { IdVector::new(cx) };
+        let mut ids = unsafe { IdVector::new(*cx) };
         let succeeded = unsafe {
             GetPropertyKeys(
-                cx,
+                *cx,
                 object_handle.into(),
                 jsapi::JSITER_OWNONLY,
                 ids.handle_mut(),
@@ -546,13 +541,13 @@ unsafe fn clone_an_object(
             return Err(WebDriverJSError::JSError);
         }
         for id in ids.iter() {
-            rooted!(in(cx) let id = *id);
-            rooted!(in(cx) let mut desc = PropertyDescriptor::default());
+            rooted!(in(*cx) let id = *id);
+            rooted!(in(*cx) let mut desc = PropertyDescriptor::default());
 
             let mut is_none = false;
             let succeeded = unsafe {
                 JS_GetOwnPropertyDescriptorById(
-                    cx,
+                    *cx,
                     object_handle.into(),
                     id.handle().into(),
                     desc.handle_mut().into(),
@@ -563,10 +558,10 @@ unsafe fn clone_an_object(
                 return Err(WebDriverJSError::JSError);
             }
 
-            rooted!(in(cx) let mut property = UndefinedValue());
+            rooted!(in(*cx) let mut property = UndefinedValue());
             let succeeded = unsafe {
                 JS_GetPropertyById(
-                    cx,
+                    *cx,
                     object_handle.into(),
                     id.handle().into(),
                     property.handle_mut().into(),
@@ -577,13 +572,13 @@ unsafe fn clone_an_object(
             }
 
             if !property.is_undefined() {
-                let name = unsafe { jsid_to_string(cx, id.handle()) };
+                let name = unsafe { jsid_to_string(*cx, id.handle()) };
                 let Some(name) = name else {
                     return Err(WebDriverJSError::JSError);
                 };
 
                 if let Ok(value) =
-                    unsafe { jsval_to_webdriver_inner(cx, global_scope, property.handle(), seen) }
+                    unsafe { jsval_to_webdriver_inner(*cx, global_scope, property.handle(), seen) }
                 {
                     result.insert(name.into(), value);
                 } else {
@@ -1705,14 +1700,12 @@ pub(crate) fn handle_get_property(
                 let cx = document.window().get_cx();
 
                 rooted!(in(*cx) let mut property = UndefinedValue());
-                match unsafe {
-                    get_property_jsval(
-                        *cx,
-                        element.reflector().get_jsobject(),
-                        &name,
-                        property.handle_mut(),
-                    )
-                } {
+                match get_property_jsval(
+                    cx,
+                    element.reflector().get_jsobject(),
+                    &name,
+                    property.handle_mut(),
+                ) {
                     Ok(_) => {
                         match jsval_to_webdriver(
                             cx,
