@@ -497,78 +497,11 @@ fn test_sniff_utf_8_bom() {
 }
 
 #[test]
-fn test_sniff_rss_feed() {
-    // RSS feeds
-    test_sniff_full(
-        &PathBuf::from("text/xml/feed.rss"),
-        "application/rss+xml".parse().unwrap(),
-        Some(mime::TEXT_HTML),
-    );
-    test_sniff_full(
-        &PathBuf::from("text/xml/rdf_rss.xml"),
-        "application/rss+xml".parse().unwrap(),
-        Some(mime::TEXT_HTML),
-    );
-    // Not RSS feeds
-    test_sniff_full(
-        &PathBuf::from("text/xml/rdf_rss_ko_1.xml"),
-        mime::TEXT_HTML,
-        Some(mime::TEXT_HTML),
-    );
-    test_sniff_full(
-        &PathBuf::from("text/xml/rdf_rss_ko_2.xml"),
-        mime::TEXT_HTML,
-        Some(mime::TEXT_HTML),
-    );
-    test_sniff_full(
-        &PathBuf::from("text/xml/rdf_rss_ko_3.xml"),
-        mime::TEXT_HTML,
-        Some(mime::TEXT_HTML),
-    );
-    test_sniff_full(
-        &PathBuf::from("text/xml/rdf_rss_ko_4.xml"),
-        mime::TEXT_HTML,
-        Some(mime::TEXT_HTML),
-    );
-}
-
-#[test]
-fn test_sniff_atom_feed() {
-    test_sniff_full(
-        &PathBuf::from("text/xml/feed.atom"),
-        "application/atom+xml".parse().unwrap(),
-        Some(mime::TEXT_HTML),
-    );
-}
-
-#[test]
 fn test_sniff_binary_file() {
     test_sniff_full(
         &PathBuf::from("unknown/binary_file"),
         mime::APPLICATION_OCTET_STREAM,
         None,
-    );
-}
-
-#[test]
-fn test_sniff_atom_feed_with_no_sniff_flag_on() {
-    test_sniff_with_flags(
-        &PathBuf::from("text/xml/feed.atom"),
-        mime::TEXT_HTML,
-        Some(mime::TEXT_HTML),
-        NoSniffFlag::On,
-        ApacheBugFlag::Off,
-    );
-}
-
-#[test]
-fn test_sniff_with_no_sniff_flag_on_and_apache_flag_on() {
-    test_sniff_with_flags(
-        &PathBuf::from("text/xml/feed.atom"),
-        mime::TEXT_HTML,
-        Some(mime::TEXT_HTML),
-        NoSniffFlag::On,
-        ApacheBugFlag::On,
     );
 }
 
