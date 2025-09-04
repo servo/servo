@@ -439,9 +439,9 @@ pub trait WebViewDelegate {
     /// Notify the embedder that it needs to present a new frame.
     fn notify_new_frame_ready(&self, _webview: WebView) {}
     /// The history state has changed.
-    /// The current [`WebView`] is selected with the total history being given by `entries`
-    /// and `current` denoting the index into `entries` that corresponds to the active webview.
-    // changed pattern; maybe wasteful if embedder doesn’t care?
+    /// The navigation history of this [`WebView`] has changed. The navigation history is represented
+    /// as a `Vec<Url>` and `_current` denotes the current index in the history. New navigations,
+    /// back navigation, and forward navigation modify this index.
     fn notify_history_changed(&self, _webview: WebView, _entries: Vec<Url>, _current: usize) {}
     /// A history traversal operation is complete.
     fn notify_traversal_complete(&self, _webview: WebView, _: TraversalId) {}
