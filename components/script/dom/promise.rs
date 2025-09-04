@@ -494,7 +494,7 @@ impl Callback for WaitForAllRejectionHandler {
 /// The microtask for performing successSteps given « » in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct WaitForAllSuccessStepsMicrotask {
     global: Dom<GlobalScope>,
 
