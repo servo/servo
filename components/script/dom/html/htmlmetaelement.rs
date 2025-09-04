@@ -64,7 +64,9 @@ impl HTMLMetaElement {
             if name == "referrer" {
                 self.apply_referrer();
             }
-            if name == "viewport" {
+            if (cfg!(target_os = "android") || cfg!(target_os = "ios") || cfg!(target_env = "ohos")) &&
+                name == "viewport"
+            {
                 self.parse_and_send_viewport_if_necessary();
             }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
