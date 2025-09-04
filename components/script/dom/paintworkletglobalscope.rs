@@ -513,20 +513,17 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Step 4-6.
         let mut property_names: Vec<String> =
-            unsafe { get_property(*cx, paint_obj.handle(), "inputProperties", ()) }?
-                .unwrap_or_default();
+            get_property(cx, paint_obj.handle(), "inputProperties", ())?.unwrap_or_default();
         let properties = property_names.drain(..).map(Atom::from).collect();
 
         // Step 7-9.
         let input_arguments: Vec<String> =
-            unsafe { get_property(*cx, paint_obj.handle(), "inputArguments", ()) }?
-                .unwrap_or_default();
+            get_property(cx, paint_obj.handle(), "inputArguments", ())?.unwrap_or_default();
 
         // TODO: Steps 10-11.
 
         // Steps 12-13.
-        let alpha: bool =
-            unsafe { get_property(*cx, paint_obj.handle(), "alpha", ()) }?.unwrap_or(true);
+        let alpha: bool = get_property(cx, paint_obj.handle(), "alpha", ())?.unwrap_or(true);
 
         // Step 14
         if unsafe { !IsConstructor(paint_obj.get()) } {
@@ -535,9 +532,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Steps 15-16
         rooted!(in(*cx) let mut prototype = UndefinedValue());
-        unsafe {
-            get_property_jsval(*cx, paint_obj.handle(), "prototype", prototype.handle_mut())?;
-        }
+        get_property_jsval(cx, paint_obj.handle(), "prototype", prototype.handle_mut())?;
         if !prototype.is_object() {
             return Err(Error::Type(String::from("Prototype is not an object.")));
         }
@@ -545,14 +540,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Steps 17-18
         rooted!(in(*cx) let mut paint_function = UndefinedValue());
-        unsafe {
-            get_property_jsval(
-                *cx,
-                prototype.handle(),
-                "paint",
-                paint_function.handle_mut(),
-            )?;
-        }
+        get_property_jsval(cx, prototype.handle(), "paint", paint_function.handle_mut())?;
         if !paint_function.is_object() || unsafe { !IsCallable(paint_function.to_object()) } {
             return Err(Error::Type(String::from("Paint function is not callable.")));
         }
