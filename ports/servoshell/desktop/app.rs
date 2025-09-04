@@ -119,6 +119,7 @@ impl App {
                     event_loop,
                     proxy,
                     self.initial_url.clone(),
+                    &self.servoshell_preferences,
                 ));
                 Rc::new(window)
             },
@@ -319,6 +320,12 @@ impl App {
                     minibrowser.update_location_dirty(false);
                     if let Some(focused_webview) = state.focused_webview() {
                         focused_webview.reload();
+                    }
+                },
+                MinibrowserEvent::ReloadAll => {
+                    minibrowser.update_location_dirty(false);
+                    for (_, webview) in state.webviews() {
+                        webview.reload();
                     }
                 },
                 MinibrowserEvent::NewWebView => {
