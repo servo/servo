@@ -3150,6 +3150,7 @@ fn parse_jwk(
     }
 }
 
+#[expect(unused)]
 trait RsaOtherPrimesInfoExt {
     fn from_value(value: &serde_json::Value) -> Result<RsaOtherPrimesInfo, Error>;
 }
