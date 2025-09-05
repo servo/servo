@@ -147,7 +147,7 @@ impl TaffyItemBox {
         }
     }
 
-    pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self.taffy_level_box {
             TaffyItemBoxInner::InFlowBox(ref independent_formatting_context) => {
                 callback(&independent_formatting_context.base)

@@ -412,7 +412,7 @@ impl TableLevelBox {
         }
     }
 
-    pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
             TableLevelBox::Caption(caption) => callback(&caption.borrow().context.base),
             TableLevelBox::Cell(cell) => callback(&cell.borrow().base),
