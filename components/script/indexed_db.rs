@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ffi::CString;
 use std::iter::repeat_n;
 use std::ptr;
 
@@ -10,10 +11,10 @@ use js::conversions::jsstr_to_string;
 use js::gc::MutableHandle;
 use js::jsapi::{
     ClippedTime, ESClass, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength,
-    JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
+    JS_IsArrayBufferViewObject, JS_NewObject, JS_ValueIsUndefined, NewDateObject,
 };
 use js::jsval::{DoubleValue, UndefinedValue};
-use js::rust::wrappers::IsArrayObject;
+use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::indexeddb_thread::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
 use profile_traits::ipc;
@@ -370,14 +371,36 @@ pub(crate) fn evaluate_key_path_on_value(
                         return Ok(EvaluationResult::Failure);
                     }
 
-                    // Let hop be ! HasOwnProperty(value, identifier).
-                    // If hop is false, return failure.
-                    // Let value be ! Get(value, identifier).
-                    // If value is undefined, return failure.
                     rooted!(in(*cx) let object = current_value.to_object());
-                    rooted!(in(*cx) let mut property = UndefinedValue());
-                    get_property_jsval(*cx, object.handle(), identifier, property.handle_mut())?;
-                    current_value.set(property.get());
+                    let identifier_name =
+                        CString::new(identifier).expect("Failed to convert str to CString");
+
+                    // Let hop be ! HasOwnProperty(value, identifier).
+                    let mut hop = false;
+                    if !JS_HasOwnProperty(*cx, object.handle(), identifier_name.as_ptr(), &mut hop)
+                    {
+                        return Err(Error::JSFailed);
+                    }
+
+                    // If hop is false, return failure.
+                    if !hop {
+                        return Ok(EvaluationResult::Failure);
+                    }
+
+                    // Let value be ! Get(value, identifier).
+                    if !JS_GetProperty(
+                        *cx,
+                        object.handle(),
+                        identifier_name.as_ptr(),
+                        current_value.handle_mut(),
+                    ) {
+                        return Err(Error::JSFailed);
+                    }
+
+                    // If value is undefined, return failure.
+                    if JS_ValueIsUndefined(current_value.as_ptr()) {
+                        return Ok(EvaluationResult::Failure);
+                    }
                 }
             }
 
