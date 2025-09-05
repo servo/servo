@@ -274,7 +274,7 @@ impl InlineItem {
         }
     }
 
-    pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
             InlineItem::StartInlineBox(inline_box) => callback(&inline_box.borrow().base),
             InlineItem::EndInlineBox | InlineItem::TextRun(..) => {

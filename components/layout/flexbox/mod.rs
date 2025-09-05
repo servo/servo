@@ -191,7 +191,7 @@ impl FlexLevelBox {
         }
     }
 
-    pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
             FlexLevelBox::FlexItem(flex_item_box) => {
                 callback(&flex_item_box.independent_formatting_context.base)

@@ -661,9 +661,7 @@ pub(crate) fn process_scroll_parent_query(
     let layout_box = layout_box.as_ref()?;
 
     let (mut current_position_value, flags) = layout_box
-        .with_base_flat(|base| vec![(base.style.clone_position(), base.base_fragment_info.flags)])
-        .first()
-        .cloned()?;
+        .with_first_base(|base| (base.style.clone_position(), base.base_fragment_info.flags))?;
 
     // - The element is the root element.
     // - The element is the body element.
@@ -702,9 +700,7 @@ pub(crate) fn process_scroll_parent_query(
         };
 
         let Some((ancestor_style, ancestor_flags)) = ancestor_layout_box
-            .with_base_flat(|base| vec![(base.style.clone(), base.base_fragment_info.flags)])
-            .first()
-            .cloned()
+            .with_first_base(|base| (base.style.clone(), base.base_fragment_info.flags))
         else {
             continue;
         };

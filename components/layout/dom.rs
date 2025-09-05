@@ -140,6 +140,22 @@ impl LayoutBox {
         }
     }
 
+    pub(crate) fn with_first_base<T>(
+        &self,
+        callback: impl FnOnce(&LayoutBoxBase) -> T,
+    ) -> Option<T> {
+        Some(match self {
+            LayoutBox::DisplayContents(..) => return None,
+            LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().with_base(callback),
+            LayoutBox::InlineLevel(inline_items) => {
+                inline_items.first()?.borrow().with_base(callback)
+            },
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().with_base(callback),
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().with_base(callback),
+            LayoutBox::TableLevelBox(table_box) => table_box.with_base(callback),
+        })
+    }
+
     pub(crate) fn with_base_flat<T>(&self, callback: impl Fn(&LayoutBoxBase) -> Vec<T>) -> Vec<T> {
         match self {
             LayoutBox::DisplayContents(..) => vec![],
