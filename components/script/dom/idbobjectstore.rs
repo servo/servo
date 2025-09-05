@@ -29,8 +29,9 @@ use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbrequest::IDBRequest;
 use crate::dom::idbtransaction::IDBTransaction;
-use crate::indexed_db;
-use crate::indexed_db::{convert_value_to_key, convert_value_to_key_range, extract_key};
+use crate::indexed_db::{
+    self, ExtractionResult, convert_value_to_key, convert_value_to_key_range, extract_key,
+};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -242,7 +243,7 @@ impl IDBObjectStore {
             serialized_key = Some(convert_value_to_key(cx, key, None)?);
         } else {
             // Step 11: We should use in-line keys instead
-            if let Some(Ok(kpk)) = self
+            if let Some(Ok(ExtractionResult::Key(kpk))) = self
                 .key_path
                 .as_ref()
                 .map(|p| extract_key(cx, value, p, None))

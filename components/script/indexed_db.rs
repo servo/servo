@@ -26,7 +26,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrSt
 use crate::dom::bindings::conversions::{
     SafeToJSValConvertible, get_property_jsval, root_from_handlevalue, root_from_object,
 };
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -194,6 +194,13 @@ pub fn convert_value_to_key_range(
     Ok(IndexedDBKeyRange::only(key))
 }
 
+/// The result of steps in
+/// <https://www.w3.org/TR/IndexedDB-2/#evaluate-a-key-path-on-a-value>
+pub(crate) enum EvaluationResult {
+    Success,
+    Failure,
+}
+
 /// <https://www.w3.org/TR/IndexedDB-2/#evaluate-a-key-path-on-a-value>
 #[allow(unsafe_code)]
 pub(crate) fn evaluate_key_path_on_value(
@@ -201,7 +208,7 @@ pub(crate) fn evaluate_key_path_on_value(
     value: HandleValue,
     key_path: &KeyPath,
     mut return_val: MutableHandleValue,
-) -> ErrorResult {
+) -> Result<EvaluationResult, Error> {
     match key_path {
         // Step 1. If keyPath is a list of strings, then:
         KeyPath::StringSequence(key_path) => {
@@ -216,12 +223,14 @@ pub(crate) fn evaluate_key_path_on_value(
                 // Step 1.3.2. Assert: key is not an abrupt completion.
                 // Step 1.3.3. If key is failure, abort the overall algorithm and return failure.
                 rooted!(in(*cx) let mut key = UndefinedValue());
-                evaluate_key_path_on_value(
+                if let EvaluationResult::Failure = evaluate_key_path_on_value(
                     cx,
                     value,
                     &KeyPath::String(item.clone()),
                     key.handle_mut(),
-                )?;
+                )? {
+                    return Ok(EvaluationResult::Failure);
+                };
 
                 // Step 1.3.4. Let p be ! ToString(i).
                 // Step 1.3.5. Let status be CreateDataProperty(result, p, key).
@@ -242,7 +251,7 @@ pub(crate) fn evaluate_key_path_on_value(
             // Step 2. If keyPath is the empty string, return value and skip the remaining steps.
             if key_path.is_empty() {
                 return_val.set(*value);
-                return Ok(());
+                return Ok(EvaluationResult::Success);
             }
 
             // NOTE: Use current_value, instead of value described in spec, in the following steps.
@@ -358,7 +367,7 @@ pub(crate) fn evaluate_key_path_on_value(
                 unsafe {
                     // If Type(value) is not Object, return failure.
                     if !current_value.is_object() {
-                        return Err(Error::Data);
+                        return Ok(EvaluationResult::Failure);
                     }
 
                     // Let hop be ! HasOwnProperty(value, identifier).
@@ -379,7 +388,17 @@ pub(crate) fn evaluate_key_path_on_value(
             return_val.set(*current_value);
         },
     }
-    Ok(())
+    Ok(EvaluationResult::Success)
+}
+
+/// The result of steps in
+/// <https://www.w3.org/TR/IndexedDB-2/#extract-a-key-from-a-value-using-a-key-path>
+pub(crate) enum ExtractionResult {
+    Key(IndexedDBKeyType),
+    // NOTE: Invalid is not used for now. Remove the unused annotation when it is used.
+    #[expect(unused)]
+    Invalid,
+    Failure,
 }
 
 /// <https://www.w3.org/TR/IndexedDB-2/#extract-a-key-from-a-value-using-a-key-path>
@@ -388,23 +407,30 @@ pub(crate) fn extract_key(
     value: HandleValue,
     key_path: &KeyPath,
     multi_entry: Option<bool>,
-) -> Result<IndexedDBKeyType, Error> {
+) -> Result<ExtractionResult, Error> {
     // Step 1. Let r be the result of running the steps to evaluate a key path on a value with
     // value and keyPath. Rethrow any exceptions.
     // Step 2. If r is failure, return failure.
     rooted!(in(*cx) let mut r = UndefinedValue());
-    evaluate_key_path_on_value(cx, value, key_path, r.handle_mut())?;
+    if let EvaluationResult::Failure =
+        evaluate_key_path_on_value(cx, value, key_path, r.handle_mut())?
+    {
+        return Ok(ExtractionResult::Failure);
+    }
 
     // Step 3. Let key be the result of running the steps to convert a value to a key with r if the
     // multiEntry flag is unset, and the result of running the steps to convert a value to a
     // multiEntry key with r otherwise. Rethrow any exceptions.
-    // Step 4. If key is invalid, return invalid.
-    // Step 5. Return key.
-    match multi_entry {
+    let key = match multi_entry {
         Some(true) => {
             // TODO: implement convert_value_to_multientry_key
             unimplemented!("multiEntry keys are not yet supported");
         },
-        _ => convert_value_to_key(cx, r.handle(), None),
-    }
+        _ => convert_value_to_key(cx, r.handle(), None)?,
+    };
+
+    // TODO: Step 4. If key is invalid, return invalid.
+
+    // Step 5. Return key.
+    Ok(ExtractionResult::Key(key))
 }
