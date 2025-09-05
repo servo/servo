@@ -228,7 +228,7 @@ pub(crate) fn evaluate_key_path_on_value(
                 // Step 1.3.6. Assert: status is true.
                 unsafe {
                     set_dictionary_property(*cx, result.handle(), &i.to_string(), key.handle())
-                        .map_err(|_| Error::Data)?;
+                        .map_err(|_| Error::JSFailed)?;
                 }
 
                 // Step 1.3.7. Increase i by 1.
@@ -266,7 +266,7 @@ pub(crate) fn evaluate_key_path_on_value(
                     unsafe {
                         let mut is_array = false;
                         if !IsArrayObject(*cx, current_value.handle(), &mut is_array) {
-                            return Err(Error::Data);
+                            return Err(Error::JSFailed);
                         }
                         if is_array {
                             // Let value be ! ToLength(! Get(value, "length")).
