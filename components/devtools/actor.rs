@@ -170,7 +170,7 @@ impl ActorRegistry {
     pub fn new_name(&self, prefix: &str) -> String {
         let suffix = self.next.get();
         self.next.set(suffix + 1);
-        format!("{}{}", prefix, suffix)
+        format!("server1.conn0.{}{}", prefix, suffix)
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
