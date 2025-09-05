@@ -260,9 +260,11 @@ pub(crate) fn evaluate_key_path_on_value(
                         let string_length = JS_GetStringLength(*string_value) as u64;
                         string_length.safe_to_jsval(cx, current_value.handle_mut());
                     }
+                    continue;
                 }
+
                 // If value is an Array and identifier is "length"
-                else if identifier == "length" {
+                if identifier == "length" {
                     unsafe {
                         let mut is_array = false;
                         if !IsArrayObject(*cx, current_value.handle(), &mut is_array) {
@@ -277,52 +279,67 @@ pub(crate) fn evaluate_key_path_on_value(
                                 "length",
                                 current_value.handle_mut(),
                             )?;
+
+                            continue;
                         }
                     }
                 }
+
                 // If value is a Blob and identifier is "size"
-                else if identifier == "size" {
+                if identifier == "size" {
                     unsafe {
                         if let Ok(blob) = root_from_handlevalue::<Blob>(current_value.handle(), *cx)
                         {
                             // Let value be a Number equal to value’s size.
                             blob.Size().safe_to_jsval(cx, current_value.handle_mut());
+
+                            continue;
                         }
                     }
                 }
+
                 // If value is a Blob and identifier is "type"
-                else if identifier == "type" {
+                if identifier == "type" {
                     unsafe {
                         if let Ok(blob) = root_from_handlevalue::<Blob>(current_value.handle(), *cx)
                         {
                             // Let value be a String equal to value’s type.
                             blob.Type().safe_to_jsval(cx, current_value.handle_mut());
+
+                            continue;
                         }
                     }
                 }
+
                 // If value is a File and identifier is "name"
-                else if identifier == "name" {
+                if identifier == "name" {
                     unsafe {
                         if let Ok(file) = root_from_handlevalue::<File>(current_value.handle(), *cx)
                         {
                             // Let value be a String equal to value’s name.
                             file.name().safe_to_jsval(cx, current_value.handle_mut());
+
+                            continue;
                         }
                     }
                 }
+
                 // If value is a File and identifier is "lastModified"
-                else if identifier == "lastModified" {
+                if identifier == "lastModified" {
                     unsafe {
                         if let Ok(file) = root_from_handlevalue::<File>(current_value.handle(), *cx)
                         {
                             // Let value be a Number equal to value’s lastModified.
                             file.LastModified()
                                 .safe_to_jsval(cx, current_value.handle_mut());
+
+                            continue;
                         }
                     }
                 }
+
                 // If value is a File and identifier is "lastModifiedDate"
-                else if identifier == "lastModifiedDate" {
+                if identifier == "lastModifiedDate" {
                     unsafe {
                         if let Ok(file) = root_from_handlevalue::<File>(current_value.handle(), *cx)
                         {
@@ -331,31 +348,27 @@ pub(crate) fn evaluate_key_path_on_value(
                                 t: file.LastModified() as f64,
                             };
                             NewDateObject(*cx, time).safe_to_jsval(cx, current_value.handle_mut());
+
+                            continue;
                         }
                     }
                 }
-                // Otherwise
-                else {
-                    unsafe {
-                        // If Type(value) is not Object, return failure.
-                        if !current_value.is_object() {
-                            return Err(Error::Data);
-                        }
 
-                        // Let hop be ! HasOwnProperty(value, identifier).
-                        // If hop is false, return failure.
-                        // Let value be ! Get(value, identifier).
-                        // If value is undefined, return failure.
-                        rooted!(in(*cx) let object = current_value.to_object());
-                        rooted!(in(*cx) let mut property = UndefinedValue());
-                        get_property_jsval(
-                            *cx,
-                            object.handle(),
-                            identifier,
-                            property.handle_mut(),
-                        )?;
-                        current_value.set(property.get());
+                // Otherwise
+                unsafe {
+                    // If Type(value) is not Object, return failure.
+                    if !current_value.is_object() {
+                        return Err(Error::Data);
                     }
+
+                    // Let hop be ! HasOwnProperty(value, identifier).
+                    // If hop is false, return failure.
+                    // Let value be ! Get(value, identifier).
+                    // If value is undefined, return failure.
+                    rooted!(in(*cx) let object = current_value.to_object());
+                    rooted!(in(*cx) let mut property = UndefinedValue());
+                    get_property_jsval(*cx, object.handle(), identifier, property.handle_mut())?;
+                    current_value.set(property.get());
                 }
             }
 
