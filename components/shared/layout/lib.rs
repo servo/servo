@@ -295,7 +295,7 @@ pub trait Layout {
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
-    fn query_scroll_parent(&self, node: TrustedNodeAddress) -> Option<ScrollParentResponse>;
+    fn query_scroll_container(&self, node: TrustedNodeAddress) -> Option<ScrollContainerResponse>;
     fn query_resolved_style(
         &self,
         node: TrustedNodeAddress,
@@ -353,8 +353,8 @@ pub struct OffsetParentResponse {
 }
 
 #[derive(Clone)]
-pub enum ScrollParentResponse {
-    DocumentScrollingElement,
+pub enum ScrollContainerResponse {
+    Viewport,
     Element(UntrustedNodeAddress),
 }
 

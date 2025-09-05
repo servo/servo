@@ -24,7 +24,7 @@ use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_pr
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use layout_api::LayoutDamage;
+use layout_api::{LayoutDamage, ScrollContainerResponse};
 use net_traits::ReferrerPolicy;
 use net_traits::request::CorsSettings;
 use selectors::Element as SelectorsElement;
@@ -161,7 +161,7 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, LayoutNodeHelpers, Node, NodeDamage,
-    NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
+    NodeFlags, NodeTraits, ShadowIncluding, UnbindContext, from_untrusted_node_address,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
@@ -288,6 +288,20 @@ impl ScrollingBox {
                 .owner_window()
                 .scroll_offset_query(element.upcast::<Node>()),
             ScrollingBox::Viewport(document) => document.window().scroll_offset(),
+        }
+    }
+
+    fn parent(&self) -> Option<ScrollingBox> {
+        match self {
+            ScrollingBox::Element(element) => element.scrolling_box(),
+            ScrollingBox::Viewport(_) => None,
+        }
+    }
+
+    fn node(&self) -> &Node {
+        match self {
+            ScrollingBox::Element(element) => element.upcast(),
+            ScrollingBox::Viewport(document) => document.upcast(),
         }
     }
 }
@@ -793,10 +807,20 @@ impl Element {
     }
 
     pub(crate) fn is_root(&self) -> bool {
-        match self.node.GetParentNode() {
-            None => false,
-            Some(node) => node.is::<Document>(),
+        self.node
+            .GetParentNode()
+            .is_some_and(|node| node.is::<Document>())
+    }
+
+    pub(crate) fn is_body_element_of_html_root(&self) -> bool {
+        if self.local_name() != &local_name!("body") {
+            return false;
         }
+        self.upcast::<Node>()
+            .GetParentElement()
+            .is_some_and(|element| {
+                element.is_root() && element.local_name() == &local_name!("html")
+            })
     }
 
     /// Return all IntersectionObserverRegistration for this element.
@@ -856,6 +880,21 @@ impl Element {
             .retain(|reg_obs| *reg_obs.observer != *observer)
     }
 
+    #[allow(unsafe_code)]
+    fn scrolling_box(&self) -> Option<ScrollingBox> {
+        self.owner_window()
+            .scroll_parent_query(self.upcast())
+            .and_then(|response| match response {
+                ScrollContainerResponse::Viewport => {
+                    Some(ScrollingBox::Viewport(self.owner_document()))
+                },
+                ScrollContainerResponse::Element(parent_node_address) => {
+                    let node = unsafe { from_untrusted_node_address(parent_node_address) };
+                    Some(ScrollingBox::Element(DomRoot::downcast(node)?))
+                },
+            })
+    }
+
     /// <https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view>
     fn scroll_into_view_with_options(
         &self,
@@ -864,30 +903,11 @@ impl Element {
         inline: ScrollLogicalPosition,
         container: Option<&Element>,
     ) {
-        // Shadow-inclusive ancestors of this node, skipping the node itself.
-        //
-        // TODO: This should be the ancestors of the node in the flat tree.
-        let ancestors = self
-            .upcast::<Node>()
-            .inclusive_ancestors(ShadowIncluding::Yes)
-            .skip(1);
-
         // Step 1: For each ancestor element or viewport that establishes a scrolling box `scrolling
         // box`, in order of innermost to outermost scrolling box, run these substeps:
-        for node in ancestors {
-            if !node.establishes_scrolling_box() {
-                continue;
-            }
-
-            // TODO: This should skip elements which are not containing blocks of the element we
-            // are scrolling.
-            let scrolling_box = if let Some(document) = node.downcast::<Document>() {
-                ScrollingBox::Viewport(DomRoot::from_ref(document))
-            } else if let Some(element) = node.downcast::<Element>() {
-                ScrollingBox::Element(DomRoot::from_ref(element))
-            } else {
-                continue;
-            };
+        let mut parent_scrolling_box = self.scrolling_box();
+        while let Some(scrolling_box) = parent_scrolling_box {
+            parent_scrolling_box = scrolling_box.parent();
 
             // Step 1.1: If the Document associated with `target` is not same origin with the
             // Document associated with the element or viewport associated with `scrolling box`,
@@ -906,14 +926,15 @@ impl Element {
             //
             // TODO: Handle smooth scrolling.
             if position != scrolling_box.scroll_position() {
-                match scrolling_box {
+                match &scrolling_box {
                     //  ↪ If `scrolling box` is associated with an element
                     ScrollingBox::Element(element) => {
                         // Perform a scroll of the element’s scrolling box to `position`,
                         // with the `element` as the associated element and `behavior` as the
                         // scroll behavior.
-                        let window = element.owner_window();
-                        window.scroll_an_element(&element, position.x, position.y, behavior);
+                        element
+                            .owner_window()
+                            .scroll_an_element(element, position.x, position.y, behavior);
                     },
                     //  ↪ If `scrolling box` is associated with a viewport
                     ScrollingBox::Viewport(document) => {
@@ -932,7 +953,9 @@ impl Element {
             // inclusive ancestor of `container`, abort the rest of these steps.
             if container.is_some_and(|container| {
                 let container_node = container.upcast::<Node>();
-                node.is_shadow_including_inclusive_ancestor_of(container_node)
+                scrolling_box
+                    .node()
+                    .is_shadow_including_inclusive_ancestor_of(container_node)
             }) {
                 break;
             }
@@ -1242,6 +1265,7 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     fn id_attribute(self) -> *const Option<Atom>;
     fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(self) -> &'dom LocalName;
+    fn is_body_element_of_html_element_root(&self) -> bool;
     fn namespace(self) -> &'dom Namespace;
     fn get_lang_attr_val_for_layout(self) -> Option<&'dom str>;
     fn get_lang_for_layout(self) -> String;
@@ -1662,6 +1686,11 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[allow(unsafe_code)]
     fn local_name(self) -> &'dom LocalName {
         &(self.unsafe_get()).local_name
+    }
+
+    #[allow(unsafe_code)]
+    fn is_body_element_of_html_element_root(&self) -> bool {
+        self.unsafe_get().is_body_element_of_html_root()
     }
 
     fn namespace(self) -> &'dom Namespace {
