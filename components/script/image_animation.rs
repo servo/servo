@@ -8,12 +8,12 @@ use std::time::Duration;
 
 use compositing_traits::{ImageUpdate, SerializableImageData};
 use embedder_traits::UntrustedNodeAddress;
-use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSharedMemory;
 use layout_api::ImageAnimationState;
 use libc::c_void;
 use malloc_size_of::MallocSizeOf;
 use parking_lot::RwLock;
+use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::root::Dom;
 use style::dom::OpaqueNode;

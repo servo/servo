@@ -8,7 +8,6 @@ use embedder_traits::UntrustedNodeAddress;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use fonts::FontContext;
-use fxhash::FxHashMap;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{
     IFrameSizes, ImageAnimationState, PendingImage, PendingImageState, PendingRasterizationImage,
@@ -19,6 +18,7 @@ use net_traits::image_cache::{
 };
 use parking_lot::{Mutex, RwLock};
 use pixels::RasterImage;
+use rustc_hash::FxHashMap;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;

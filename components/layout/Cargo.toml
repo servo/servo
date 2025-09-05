@@ -46,6 +46,7 @@ pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 range = { path = "../range" }
 rayon = { workspace = true }
+rustc-hash = { workspace = true }
 script = { path = "../script" }
 script_traits = { workspace = true }
 selectors = { workspace = true }

@@ -7,8 +7,8 @@ use std::cell::Cell;
 use app_units::Au;
 use base::print_tree::PrintTree;
 use compositing_traits::display_list::AxesScrollSensitivity;
-use fxhash::FxHashSet;
 use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::FxHashSet;
 use style::animation::AnimationSetKey;
 use style::computed_values::position::T as Position;
 
