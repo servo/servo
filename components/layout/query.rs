@@ -701,10 +701,13 @@ pub(crate) fn process_scroll_parent_query(
             continue;
         };
 
-        let (ancestor_style, ancestor_flags) = ancestor_layout_box
+        let Some((ancestor_style, ancestor_flags)) = ancestor_layout_box
             .with_base_flat(|base| vec![(base.style.clone(), base.base_fragment_info.flags)])
             .first()
-            .cloned()?;
+            .cloned()
+        else {
+            continue;
+        };
 
         let is_containing_block = match current_position_value {
             Position::Static | Position::Relative | Position::Sticky => {
