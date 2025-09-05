@@ -3855,7 +3855,7 @@ impl ScriptThread {
 
         let dummy_request_id = RequestId::default();
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
-        context.append_parent_to_csp_list(policy_container.as_ref());
+        context.set_policy_container(policy_container.as_ref());
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,
@@ -3882,7 +3882,7 @@ impl ScriptThread {
         let dummy_request_id = RequestId::default();
 
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
-        context.append_parent_to_csp_list(policy_container.as_ref());
+        context.set_policy_container(policy_container.as_ref());
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,
