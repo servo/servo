@@ -105,6 +105,7 @@ skip = [
     "windows",
     "windows-implement",
     "windows-interface",
+    "windows-link",
     "windows-result",
 
     # Duplicated by winit.
