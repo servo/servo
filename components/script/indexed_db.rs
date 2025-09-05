@@ -11,7 +11,7 @@ use js::conversions::jsstr_to_string;
 use js::gc::MutableHandle;
 use js::jsapi::{
     ClippedTime, ESClass, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength,
-    JS_IsArrayBufferViewObject, JS_NewObject, JS_ValueIsUndefined, NewDateObject,
+    JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
 };
 use js::jsval::{DoubleValue, UndefinedValue};
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty};
@@ -398,7 +398,7 @@ pub(crate) fn evaluate_key_path_on_value(
                     }
 
                     // If value is undefined, return failure.
-                    if JS_ValueIsUndefined(current_value.as_ptr()) {
+                    if current_value.get().is_undefined() {
                         return Ok(EvaluationResult::Failure);
                     }
                 }
