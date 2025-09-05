@@ -284,7 +284,7 @@ pub(crate) fn evaluate_key_path_on_value(
                             // Let value be ! ToLength(! Get(value, "length")).
                             rooted!(in(*cx) let object = current_value.to_object());
                             get_property_jsval(
-                                *cx,
+                                cx,
                                 object.handle(),
                                 "length",
                                 current_value.handle_mut(),
