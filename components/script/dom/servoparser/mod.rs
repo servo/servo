@@ -10,6 +10,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use base64::Engine as _;
 use base64::engine::general_purpose;
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
@@ -940,6 +941,15 @@ impl FetchResponseListener for ParserContext {
 
         let _realm = enter_realm(&*parser.document);
 
+        // From Step 23.8.3 of https://html.spec.whatwg.org/multipage/#navigate
+        // Let finalSandboxFlags be the union of targetSnapshotParams's sandboxing flags and
+        // policyContainer's CSP list's CSP-derived sandboxing flags.
+        // TODO: implement targetSnapshotParam's sandboxing flags
+        let csp_derived_sandboxing_flag_set = csp_list
+            .as_ref()
+            .and_then(|csp| csp.get_sandboxing_flag_set_for_document())
+            .unwrap_or(SandboxingFlagSet::empty());
+
         if let Some(endpoints) = endpoints_list {
             parser.document.window().set_endpoints_list(endpoints);
         }
@@ -961,6 +971,15 @@ impl FetchResponseListener for ParserContext {
         let Some(media_type) = MimeClassifier::get_media_type(&mime_type) else {
             return;
         };
+
+        // CSP/Sandboxing is applied conditionally based on the content type
+        let apply_csp_and_sandboxing_flags = || {
+            parser
+                .document
+                .set_active_sandboxing_flag_set(csp_derived_sandboxing_flag_set);
+            parser.document.set_csp_list(csp_list);
+        };
+
         match media_type {
             // Return the result of loading a media document given navigationParams and type.
             MediaType::Image | MediaType::AudioVideo => {
@@ -1037,10 +1056,10 @@ impl FetchResponseListener for ParserContext {
                 },
                 Some(_) => {},
                 // Return the result of loading an HTML document, given navigationParams.
-                None => parser.document.set_csp_list(csp_list),
+                None => apply_csp_and_sandboxing_flags(),
             },
             // Return the result of loading an XML document given navigationParams and type.
-            MediaType::Xml => parser.document.set_csp_list(csp_list),
+            MediaType::Xml => apply_csp_and_sandboxing_flags(),
             _ => {
                 // Show warning page for unknown mime types.
                 let page = format!(
