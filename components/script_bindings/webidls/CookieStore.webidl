@@ -55,12 +55,6 @@ dictionary CookieStoreDeleteOptions {
 dictionary CookieListItem {
   USVString name;
   USVString value;
-  USVString? domain;
-  USVString path;
-  DOMHighResTimeStamp? expires;
-  boolean secure;
-  CookieSameSite sameSite;
-  boolean partitioned;
 };
 
 typedef sequence<CookieListItem> CookieList;
