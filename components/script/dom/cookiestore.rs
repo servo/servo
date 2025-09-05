@@ -7,7 +7,6 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use base::id::CookieStoreId;
-use cookie::Expiration::DateTime;
 use cookie::{Cookie, SameSite};
 use dom_struct::dom_struct;
 use hyper_serde::Serde;
@@ -22,11 +21,9 @@ use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CookieStoreBinding::{
-    CookieInit, CookieListItem, CookieSameSite, CookieStoreDeleteOptions, CookieStoreGetOptions,
-    CookieStoreMethods,
+    CookieInit, CookieListItem, CookieStoreDeleteOptions, CookieStoreGetOptions, CookieStoreMethods,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -149,36 +146,8 @@ fn cookie_to_list_item(cookie: Cookie) -> CookieListItem {
     // TODO: Investigate if we need to explicitly UTF-8 decode without BOM here or if thats
     // already being done by cookie-rs or implicitly by using rust strings
     CookieListItem {
-        // Let domain be the result of running UTF-8 decode without BOM on cookie’s domain.
-        domain: cookie
-            .domain()
-            .map(|domain| Some(domain.to_string().into())),
-
-        // Let expires be cookie’s expiry-time (as a timestamp).
-        expires: match cookie.expires() {
-            None | Some(cookie::Expiration::Session) => None,
-            Some(DateTime(time)) => Some(Some(Finite::wrap((time.unix_timestamp() * 1000) as f64))),
-        },
-
         // Let name be the result of running UTF-8 decode without BOM on cookie’s name.
         name: Some(cookie.name().to_string().into()),
-
-        // Let partitioned be a boolean indicating that the user agent supports cookie partitioning and that i
-        // that cookie has a partition key.
-        partitioned: Some(false), // Do we support partitioning? Spec says true only if UA supports it
-
-        // Let path be the result of running UTF-8 decode without BOM on cookie’s path.
-        path: cookie.path().map(|path| path.to_string().into()),
-
-        sameSite: match cookie.same_site() {
-            Some(SameSite::None) => Some(CookieSameSite::None),
-            Some(SameSite::Lax) => Some(CookieSameSite::Lax),
-            Some(SameSite::Strict) => Some(CookieSameSite::Strict),
-            None => None, // The spec doesnt handle this case, which implies the default of Lax?
-        },
-
-        // Let secure be cookie’s secure-only-flag.
-        secure: cookie.secure(),
 
         // Let value be the result of running UTF-8 decode without BOM on cookie’s value.
         value: Some(cookie.value().to_string().into()),
