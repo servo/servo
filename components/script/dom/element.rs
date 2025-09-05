@@ -12,19 +12,20 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::{fmt, mem};
 
+use app_units::Au;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use embedder_traits::InputMethodType;
 use euclid::Vector2D;
-use euclid::default::{Rect, Size2D};
+use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use layout_api::LayoutDamage;
+use layout_api::{LayoutDamage, ScrollParentResponse};
 use net_traits::ReferrerPolicy;
 use net_traits::request::CorsSettings;
 use selectors::Element as SelectorsElement;
@@ -35,7 +36,6 @@ use selectors::sink::Push;
 use servo_arc::Arc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use style::computed_values::position::T as Position;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::longhands::{
@@ -76,6 +76,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::{
     ElementMethods, GetHTMLOptions, ScrollIntoViewContainer, ScrollLogicalPosition, ShadowRootInit,
 };
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
@@ -161,7 +162,7 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, LayoutNodeHelpers, Node, NodeDamage,
-    NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
+    NodeFlags, NodeTraits, ShadowIncluding, UnbindContext, from_untrusted_node_address,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
@@ -864,23 +865,41 @@ impl Element {
         inline: ScrollLogicalPosition,
         container: Option<&Element>,
     ) {
-        // Shadow-inclusive ancestors of this node, skipping the node itself.
-        //
-        // TODO: This should be the ancestors of the node in the flat tree.
-        let ancestors = self
-            .upcast::<Node>()
-            .inclusive_ancestors(ShadowIncluding::Yes)
-            .skip(1);
+        let mut scrolling_ancestors = Vec::new();
+
+        // Now use scroll parent queries to determine which ones are in containing block chain
+        let mut current_node_address = self.upcast::<Node>().to_trusted_node_address();
+
+        loop {
+            if let Some(scroll_parent_response) = self
+                .upcast::<Node>()
+                .owner_doc()
+                .window()
+                .layout()
+                .query_scroll_parent(current_node_address)
+            {
+                match scroll_parent_response {
+                    ScrollParentResponse::Element(parent_address) => {
+                        #[allow(unsafe_code)]
+                        let parent_node = unsafe { from_untrusted_node_address(parent_address) };
+                        scrolling_ancestors.push(parent_node.clone());
+                        current_node_address = parent_node.to_trusted_node_address();
+                    },
+                    layout_api::ScrollParentResponse::DocumentScrollingElement => {
+                        scrolling_ancestors.push(DomRoot::from_ref(
+                            self.upcast::<Node>().owner_doc().upcast::<Node>(),
+                        ));
+                        break;
+                    },
+                }
+            } else {
+                break;
+            }
+        }
 
         // Step 1: For each ancestor element or viewport that establishes a scrolling box `scrolling
         // box`, in order of innermost to outermost scrolling box, run these substeps:
-        for node in ancestors {
-            if !node.establishes_scrolling_box() {
-                continue;
-            }
-
-            // TODO: This should skip elements which are not containing blocks of the element we
-            // are scrolling.
+        for node in scrolling_ancestors {
             let scrolling_box = if let Some(document) = node.downcast::<Document>() {
                 ScrollingBox::Viewport(DomRoot::from_ref(document))
             } else if let Some(element) = node.downcast::<Element>() {
@@ -946,7 +965,28 @@ impl Element {
         block: ScrollLogicalPosition,
         inline: ScrollLogicalPosition,
     ) -> LayoutVector2D {
-        let target_bounding_box = self.upcast::<Node>().border_box().unwrap_or_default();
+        // Get the target element's stable position using offset properties
+        let target_bounding_box = self
+            .downcast::<HTMLElement>()
+            .map(|html_element| {
+                // Use HTMLElement's offset properties for stable positioning
+                let offset_left = html_element.OffsetLeft() as f32;
+                let offset_top = html_element.OffsetTop() as f32;
+                let offset_width = html_element.OffsetWidth() as f32;
+                let offset_height = html_element.OffsetHeight() as f32;
+
+                Rect::new(
+                    Point2D::new(Au::from_f32_px(offset_left), Au::from_f32_px(offset_top)),
+                    Size2D::new(
+                        Au::from_f32_px(offset_width),
+                        Au::from_f32_px(offset_height),
+                    ),
+                )
+            })
+            .unwrap_or_else(|| {
+                // Fallback for non-HTML elements
+                self.upcast::<Node>().content_box().unwrap_or_default()
+            });
 
         let device_pixel_ratio = self
             .upcast::<Node>()
@@ -975,7 +1015,7 @@ impl Element {
         let element_right = element_left + element_width;
         let element_bottom = element_top + element_height;
 
-        let (target_x, target_y) = match scrolling_box {
+        match scrolling_box {
             ScrollingBox::Viewport(document) => {
                 let window = document.window();
                 let viewport_width = window.InnerWidth() as f32;
@@ -983,25 +1023,35 @@ impl Element {
                 let current_scroll_x = window.ScrollX() as f32;
                 let current_scroll_y = window.ScrollY() as f32;
 
-                // For viewport scrolling, we need to add current scroll to get document-relative positions
-                let document_element_left = element_left + current_scroll_x;
-                let document_element_top = element_top + current_scroll_y;
-                let document_element_right = element_right + current_scroll_x;
-                let document_element_bottom = element_bottom + current_scroll_y;
+                // Check if element is already fully visible in the viewport
+                let viewport_left = current_scroll_x;
+                let viewport_top = current_scroll_y;
+                let viewport_right = viewport_left + viewport_width;
+                let viewport_bottom = viewport_top + viewport_height;
 
-                (
+                let is_fully_visible = element_left >= viewport_left &&
+                    element_top >= viewport_top &&
+                    element_right <= viewport_right &&
+                    element_bottom <= viewport_bottom;
+
+                // If element is already fully visible, don't scroll
+                if is_fully_visible {
+                    return Vector2D::new(current_scroll_x, current_scroll_y);
+                }
+
+                Vector2D::new(
                     self.calculate_scroll_position_one_axis(
                         inline,
-                        document_element_left,
-                        document_element_right,
+                        element_left,
+                        element_right,
                         element_width,
                         viewport_width,
                         current_scroll_x,
                     ),
                     self.calculate_scroll_position_one_axis(
                         block,
-                        document_element_top,
-                        document_element_bottom,
+                        element_top,
+                        element_bottom,
                         element_height,
                         viewport_height,
                         current_scroll_y,
@@ -1009,119 +1059,125 @@ impl Element {
                 )
             },
             ScrollingBox::Element(scrolling_element) => {
-                let scrolling_node = scrolling_element.upcast::<Node>();
-                let scrolling_box = scrolling_node.border_box().unwrap_or_default();
-                let scrolling_left = scrolling_box.origin.x.to_nearest_pixel(device_pixel_ratio);
-                let scrolling_top = scrolling_box.origin.y.to_nearest_pixel(device_pixel_ratio);
-                let scrolling_width = scrolling_box
-                    .size
-                    .width
-                    .to_nearest_pixel(device_pixel_ratio);
-                let scrolling_height = scrolling_box
-                    .size
-                    .height
-                    .to_nearest_pixel(device_pixel_ratio);
+                let (scrolling_left, scrolling_top, scrolling_width, scrolling_height) =
+                    if let Some(html_scrolling_element) =
+                        scrolling_element.downcast::<HTMLElement>()
+                    {
+                        // Use HTMLElement's offset properties for stable positioning
+                        let offset_left = html_scrolling_element.OffsetLeft() as f32;
+                        let offset_top = html_scrolling_element.OffsetTop() as f32;
+                        let offset_width = html_scrolling_element.OffsetWidth() as f32;
+                        let offset_height = html_scrolling_element.OffsetHeight() as f32;
+                        (offset_left, offset_top, offset_width, offset_height)
+                    } else {
+                        // Fallback for non-HTML elements
+                        let scrolling_box = scrolling_element
+                            .upcast::<Node>()
+                            .content_box()
+                            .unwrap_or_default();
 
-                // Calculate element position in scroller's content coordinate system
-                // Element's viewport position relative to scroller, then add scroll offset to get content position
-                let viewport_relative_left = element_left - scrolling_left;
-                let viewport_relative_top = element_top - scrolling_top;
-                let viewport_relative_right = element_right - scrolling_left;
-                let viewport_relative_bottom = element_bottom - scrolling_top;
-
-                // For absolutely positioned elements, we need to account for the positioning context
-                // If the element is positioned relative to an ancestor that's within the scrolling container,
-                // we need to adjust coordinates accordingly
-                let (
-                    adjusted_relative_left,
-                    adjusted_relative_top,
-                    adjusted_relative_right,
-                    adjusted_relative_bottom,
-                ) = {
-                    // Check if this element has a positioned ancestor between it and the scrolling container
-                    let mut current_node = self.upcast::<Node>().GetParentNode();
-                    let mut final_coords = (
-                        viewport_relative_left,
-                        viewport_relative_top,
-                        viewport_relative_right,
-                        viewport_relative_bottom,
-                    );
-
-                    while let Some(node) = current_node {
-                        // Stop if we reach the scrolling container
-                        if &*node == scrolling_node {
-                            break;
-                        }
-
-                        // Check if this node establishes a positioning context and has position relative/absolute
-                        if let Some(element) = node.downcast::<Element>() {
-                            if let Some(computed_style) = element.style() {
-                                let position = computed_style.get_box().position;
-
-                                if matches!(position, Position::Relative | Position::Absolute) {
-                                    // If this element establishes a positioning context,
-                                    // Get its bounding box to calculate the offset
-                                    let positioning_box = node.border_box().unwrap_or_default();
-                                    let positioning_left = positioning_box
-                                        .origin
-                                        .x
-                                        .to_nearest_pixel(device_pixel_ratio);
-                                    let positioning_top = positioning_box
-                                        .origin
-                                        .y
-                                        .to_nearest_pixel(device_pixel_ratio);
-
-                                    // Calculate the offset of the positioning context relative to the scrolling container
-                                    let offset_left = positioning_left - scrolling_left;
-                                    let offset_top = positioning_top - scrolling_top;
-
-                                    // Adjust the coordinates by subtracting the positioning context offset
-                                    final_coords = (
-                                        viewport_relative_left - offset_left,
-                                        viewport_relative_top - offset_top,
-                                        viewport_relative_right - offset_left,
-                                        viewport_relative_bottom - offset_top,
-                                    );
-                                    break;
-                                }
-                            }
-                        }
-
-                        current_node = node.GetParentNode();
-                    }
-
-                    final_coords
-                };
+                        (
+                            scrolling_box.origin.x.to_nearest_pixel(device_pixel_ratio),
+                            scrolling_box.origin.y.to_nearest_pixel(device_pixel_ratio),
+                            scrolling_box
+                                .size
+                                .width
+                                .to_nearest_pixel(device_pixel_ratio),
+                            scrolling_box
+                                .size
+                                .height
+                                .to_nearest_pixel(device_pixel_ratio),
+                        )
+                    };
 
                 let current_scroll_x = scrolling_element.ScrollLeft() as f32;
                 let current_scroll_y = scrolling_element.ScrollTop() as f32;
-                let content_element_left = adjusted_relative_left + current_scroll_x;
-                let content_element_top = adjusted_relative_top + current_scroll_y;
-                let content_element_right = adjusted_relative_right + current_scroll_x;
-                let content_element_bottom = adjusted_relative_bottom + current_scroll_y;
 
-                (
-                    self.calculate_scroll_position_one_axis(
-                        inline,
-                        content_element_left,
-                        content_element_right,
-                        element_width,
-                        scrolling_width,
-                        current_scroll_x,
-                    ),
-                    self.calculate_scroll_position_one_axis(
-                        block,
-                        content_element_top,
-                        content_element_bottom,
-                        element_height,
-                        scrolling_height,
-                        current_scroll_y,
-                    ),
-                )
+                // Calculate element position in scroller's content coordinate system
+                // Determine if the element's coordinates need to be adjusted relative to the scrolling container
+                let result = self.downcast::<HTMLElement>().map_or_else(
+                    || {
+                        // If target is not an HTMLElement, can't reliably determine the coordinate relationship
+                        // Fall back to subtracting scrolling container position
+                        let content_element_left = element_left - scrolling_left;
+                        let content_element_top = element_top - scrolling_top;
+                        let content_element_right = element_right - scrolling_left;
+                        let content_element_bottom = element_bottom - scrolling_top;
+
+                        Vector2D::new(
+                            self.calculate_scroll_position_one_axis(
+                                inline,
+                                content_element_left,
+                                content_element_right,
+                                element_width,
+                                scrolling_width,
+                                current_scroll_x,
+                            ),
+                            self.calculate_scroll_position_one_axis(
+                                block,
+                                content_element_top,
+                                content_element_bottom,
+                                element_height,
+                                scrolling_height,
+                                current_scroll_y,
+                            ),
+                        )
+                    },
+                    |target_element| {
+                        // Check if we should subtract the scrolling container's position
+                        // by examining the offset parent relationship
+                        // If target's offset parent is the same as the scrolling container, don't subtract
+                        // If target's offset parent is different, we need to subtract to make coordinates relative
+                        let should_subtract_container = target_element
+                            .GetOffsetParent()
+                            .is_none_or(|target_offset_parent| {
+                                scrolling_element.downcast::<HTMLElement>().is_none_or(
+                                    |scrolling_html_element| {
+                                        &*target_offset_parent !=
+                                            scrolling_html_element.upcast::<Element>()
+                                    },
+                                )
+                            });
+
+                        let (
+                            content_element_left,
+                            content_element_top,
+                            content_element_right,
+                            content_element_bottom,
+                        ) = if should_subtract_container {
+                            (
+                                element_left - scrolling_left,
+                                element_top - scrolling_top,
+                                element_right - scrolling_left,
+                                element_bottom - scrolling_top,
+                            )
+                        } else {
+                            (element_left, element_top, element_right, element_bottom)
+                        };
+
+                        Vector2D::new(
+                            self.calculate_scroll_position_one_axis(
+                                inline,
+                                content_element_left,
+                                content_element_right,
+                                element_width,
+                                scrolling_width,
+                                current_scroll_x,
+                            ),
+                            self.calculate_scroll_position_one_axis(
+                                block,
+                                content_element_top,
+                                content_element_bottom,
+                                element_height,
+                                scrolling_height,
+                                current_scroll_y,
+                            ),
+                        )
+                    },
+                );
+                return result;
             },
-        };
-
-        Vector2D::new(target_x, target_y)
+        }
     }
 
     fn calculate_scroll_position_one_axis(
