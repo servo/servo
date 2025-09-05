@@ -147,6 +147,7 @@ use crate::mime::{APPLICATION, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
+use crate::script_mutation_observers::ScriptMutationObservers;
 use crate::script_runtime::{
     CanGc, IntroductionType, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory,
     ThreadSafeJSContext,
@@ -192,6 +193,30 @@ pub(crate) struct IncompleteParserContexts(RefCell<Vec<(PipelineId, ParserContex
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
 type NodeIdSet = HashSet<String>;
+
+/// A simple guard structure that restore the user interacting state when dropped
+#[derive(Default)]
+pub(crate) struct ScriptUserInteractingGuard {
+    was_interacting: bool,
+    user_interaction_cell: Rc<Cell<bool>>,
+}
+
+impl ScriptUserInteractingGuard {
+    fn new(user_interaction_cell: Rc<Cell<bool>>) -> Self {
+        let was_interacting = user_interaction_cell.get();
+        user_interaction_cell.set(true);
+        Self {
+            was_interacting,
+            user_interaction_cell,
+        }
+    }
+}
+
+impl Drop for ScriptUserInteractingGuard {
+    fn drop(&mut self) {
+        self.user_interaction_cell.set(self.was_interacting)
+    }
+}
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
@@ -254,11 +279,7 @@ pub struct ScriptThread {
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     microtask_queue: Rc<MicrotaskQueue>,
 
-    /// Microtask Queue for adding support for mutation observer microtasks
-    mutation_observer_microtask_queued: Cell<bool>,
-
-    /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
-    mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
+    mutation_observers: Rc<ScriptMutationObservers>,
 
     /// <https://dom.spec.whatwg.org/#signal-slot-list>
     signal_slots: DomRefCell<Vec<Dom<HTMLSlotElement>>>,
@@ -314,7 +335,7 @@ pub struct ScriptThread {
     pipeline_to_node_ids: DomRefCell<HashMap<PipelineId, NodeIdSet>>,
 
     /// Code is running as a consequence of a user interaction
-    is_user_interacting: Cell<bool>,
+    is_user_interacting: Rc<Cell<bool>>,
 
     /// Identity manager for WebGPU resources
     #[no_trace]
@@ -478,34 +499,22 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn set_mutation_observer_microtask_queued(value: bool) {
-        with_script_thread(|script_thread| {
-            script_thread.mutation_observer_microtask_queued.set(value);
-        })
-    }
-
-    pub(crate) fn is_mutation_observer_microtask_queued() -> bool {
-        with_script_thread(|script_thread| script_thread.mutation_observer_microtask_queued.get())
-    }
-
     pub(crate) fn add_mutation_observer(observer: &MutationObserver) {
         with_script_thread(|script_thread| {
             script_thread
+                .mutation_observers
                 .mutation_observers
                 .borrow_mut()
                 .push(Dom::from_ref(observer));
         })
     }
 
-    pub(crate) fn get_mutation_observers() -> Vec<DomRoot<MutationObserver>> {
-        with_script_thread(|script_thread| {
-            script_thread
-                .mutation_observers
-                .borrow()
-                .iter()
-                .map(|o| DomRoot::from_ref(&**o))
-                .collect()
-        })
+    pub(crate) fn mutation_observers() -> Rc<ScriptMutationObservers> {
+        with_script_thread(|script_thread| script_thread.mutation_observers.clone())
+    }
+
+    pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
+        with_script_thread(|script_thread| script_thread.microtask_queue.clone())
     }
 
     pub(crate) fn add_signal_slot(observer: &HTMLSlotElement) {
@@ -716,10 +725,12 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.documents.borrow().find_document(id))
     }
 
-    pub(crate) fn set_user_interacting(interacting: bool) {
+    /// Creates a guard that sets user_is_interacting to true and returns the
+    /// state of user_is_interacting on drop of the guard.
+    pub(crate) fn user_iteracting_guard() -> ScriptUserInteractingGuard {
         with_script_thread(|script_thread| {
-            script_thread.is_user_interacting.set(interacting);
-        });
+            ScriptUserInteractingGuard::new(script_thread.is_user_interacting.clone())
+        })
     }
 
     pub(crate) fn is_user_interacting() -> bool {
@@ -997,7 +1008,6 @@ impl ScriptThread {
             microtask_queue,
             js_runtime,
             closed_pipelines: DomRefCell::new(HashSet::new()),
-            mutation_observer_microtask_queued: Default::default(),
             mutation_observers: Default::default(),
             signal_slots: Default::default(),
             system_font_service,
@@ -1016,7 +1026,7 @@ impl ScriptThread {
             user_content_manager: state.user_content_manager,
             player_context: state.player_context,
             pipeline_to_node_ids: Default::default(),
-            is_user_interacting: Cell::new(false),
+            is_user_interacting: Rc::new(Cell::new(false)),
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             inherited_secure_context: state.inherited_secure_context,
@@ -1075,10 +1085,9 @@ impl ScriptThread {
             warn!("Compositor event sent to a pipeline with a closed window {pipeline_id}.");
             return;
         }
-        ScriptThread::set_user_interacting(true);
 
+        let _ = ScriptUserInteractingGuard::new(self.is_user_interacting.clone());
         document.event_handler().handle_pending_input_events(can_gc);
-        ScriptThread::set_user_interacting(false);
     }
 
     fn cancel_scheduled_update_the_rendering(&self) {

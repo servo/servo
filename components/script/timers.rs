@@ -588,8 +588,7 @@ impl JsTimerTask {
         // prep for step ? in nested set_timeout_or_interval calls
         timers.nesting_level.set(self.nesting_level);
 
-        let was_user_interacting = ScriptThread::is_user_interacting();
-        ScriptThread::set_user_interacting(self.is_user_interacting);
+        let _ = ScriptThread::user_iteracting_guard();
         match self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
                 // Step 6.4. Let settings object be global's relevant settings object.
@@ -629,7 +628,6 @@ impl JsTimerTask {
                 let _ = function.Call_(this, arguments, value.handle_mut(), Report, can_gc);
             },
         };
-        ScriptThread::set_user_interacting(was_user_interacting);
 
         // reset nesting level (see above)
         timers.nesting_level.set(0);
