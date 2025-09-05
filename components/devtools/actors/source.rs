@@ -239,6 +239,7 @@ impl Actor for SourceActor {
                         tx,
                     ))
                     .map_err(|_| ActorError::Internal)?;
+
                 let result = rx.recv().map_err(|_| ActorError::Internal)?;
                 let mut positions: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::default();
                 for entry in result {
@@ -250,6 +251,16 @@ impl Actor for SourceActor {
                         .or_default()
                         .insert(entry.column_number - 1);
                 }
+
+                let (tx, _rx) = channel().map_err(|_| ActorError::Internal)?;
+                self.script_sender
+                    .send(DevtoolScriptControlMsg::SetBreakpoint(
+                        self.spidermonkey_id,
+                        5,
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+
                 let reply = GetBreakpointPositionsCompressedReply {
                     from: self.name(),
                     positions,

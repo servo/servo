@@ -48,5 +48,29 @@ addEventListener("getPossibleBreakpoints", event => {
         }
         return result;
     }
+
     getPossibleBreakpointsResult(event, getPossibleBreakpointsRecursive(script));
+});
+
+addEventListener("setBreakpoint", event => {
+    const {spidermonkeyId, offset} = event;
+    const script = sourceIdsToScripts.get(spidermonkeyId);
+
+    // The hit method’s return value should be a resumption value, determining how execution should continue.
+    // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
+    function breakpointHandler(...args) {
+        // TODO: Notify script to pause and handle different resumption values
+        // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#setbreakpoint-offset-handler>
+        return {throw: "1"}
+    }
+
+    function getPossibleBreakpointsRecursive(script) {
+        script.setBreakpoint(offset, { hit: breakpointHandler })
+        for (const child of script.getChildScripts()) {
+            getPossibleBreakpointsRecursive(child)
+        }
+    }
+
+    getPossibleBreakpointsRecursive(script);
+    setBreakpointResult(event, true)
 });
