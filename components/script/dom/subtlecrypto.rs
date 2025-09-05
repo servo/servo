@@ -5,6 +5,7 @@
 use std::num::NonZero;
 use std::ptr;
 use std::rc::Rc;
+use std::str::FromStr;
 
 use aes::cipher::block_padding::Pkcs7;
 use aes::cipher::generic_array::GenericArray;
@@ -18,8 +19,9 @@ use cipher::consts::{U12, U16, U32};
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JS_NewObject, JSObject};
-use js::jsval::ObjectValue;
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::MutableHandleObject;
+use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::ArrayBufferU8;
 use servo_rand::{RngCore, ServoRng};
 
@@ -32,7 +34,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, HkdfParams, HmacImportParams,
     HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
-    SubtleCryptoMethods,
+    RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -1069,7 +1071,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let import_key_bytes = match format {
                     KeyFormat::Raw | KeyFormat::Spki | KeyFormat::Pkcs8 => bytes,
                     KeyFormat::Jwk => {
-                        match parse_jwk(&bytes, normalized_key_algorithm.clone(), extractable, &key_usages) {
+                        match parse_jwk(cx, &bytes, normalized_key_algorithm.clone(), extractable, &key_usages) {
                             Ok(bytes) => bytes,
                             Err(e) => {
                                 promise.reject_error(e, CanGc::note());
@@ -3049,41 +3051,30 @@ impl KeyWrapAlgorithm {
     }
 }
 
-/// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
 fn parse_jwk(
+    cx: JSContext,
     bytes: &[u8],
     import_alg: ImportKeyAlgorithm,
     extractable: bool,
     key_usages: &[KeyUsage],
 ) -> Result<Vec<u8>, Error> {
-    let value = serde_json::from_slice(bytes)
-        .map_err(|_| Error::Type("Failed to parse JWK string".into()))?;
-    let serde_json::Value::Object(obj) = value else {
-        return Err(Error::Data);
-    };
+    let jwk = JsonWebKey::parse(cx, bytes)?;
 
-    let kty = get_jwk_string(&obj, "kty")?;
-    let ext = get_jwk_bool(&obj, "ext")?;
+    let kty = jwk.kty.as_ref().ok_or(Error::Data)?;
+    let ext = jwk.ext.ok_or(Error::Data)?;
     if !ext && extractable {
         return Err(Error::Data);
     }
 
     // If the key_ops field of jwk is present, and is invalid according to the requirements of JSON Web Key [JWK]
     // or does not contain all of the specified usages values, then throw a DataError.
-    if let Some(serde_json::Value::Array(key_ops)) = obj.get("key_ops") {
-        if key_ops.iter().any(|op| {
-            let op_string = match op {
-                serde_json::Value::String(op_string) => op_string,
-                _ => return true,
-            };
-            let usage = match usage_from_str(op_string) {
-                Ok(usage) => usage,
-                Err(_) => {
-                    return true;
-                },
-            };
-            !key_usages.contains(&usage)
-        }) {
+    if jwk.key_ops.is_some() {
+        let key_ops_usages = jwk.get_usages_from_key_ops()?;
+
+        if !key_usages
+            .iter()
+            .all(|usage| key_ops_usages.contains(usage))
+        {
             return Err(Error::Data);
         }
     }
@@ -3096,8 +3087,8 @@ fn parse_jwk(
             if kty != "oct" {
                 return Err(Error::Data);
             }
-            let k = get_jwk_string(&obj, "k")?;
-            let alg = get_jwk_string(&obj, "alg")?;
+            let k = jwk.k.as_ref().ok_or(Error::Data)?;
+            let alg = jwk.alg.as_ref().ok_or(Error::Data)?;
 
             let data = base64::engine::general_purpose::STANDARD_NO_PAD
                 .decode(k.as_bytes())
@@ -3123,10 +3114,8 @@ fn parse_jwk(
                 return Err(Error::Data);
             }
 
-            if let Some(serde_json::Value::String(use_)) = obj.get("use") {
-                if use_ != "enc" {
-                    return Err(Error::Data);
-                }
+            if !key_usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
+                return Err(Error::Data);
             }
 
             Ok(data)
@@ -3135,8 +3124,8 @@ fn parse_jwk(
             if kty != "oct" {
                 return Err(Error::Data);
             }
-            let k = get_jwk_string(&obj, "k")?;
-            let alg = get_jwk_string(&obj, "alg")?;
+            let k = jwk.k.as_ref().ok_or(Error::Data)?;
+            let alg = jwk.alg.as_ref().ok_or(Error::Data)?;
 
             let expected_alg = match params.hash {
                 DigestAlgorithm::Sha1 => "HS1",
@@ -3149,10 +3138,8 @@ fn parse_jwk(
                 return Err(Error::Data);
             }
 
-            if let Some(serde_json::Value::String(use_)) = obj.get("use") {
-                if use_ != "sign" {
-                    return Err(Error::Data);
-                }
+            if !key_usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "sign") {
+                return Err(Error::Data);
             }
 
             base64::engine::general_purpose::STANDARD_NO_PAD
@@ -3163,43 +3150,102 @@ fn parse_jwk(
     }
 }
 
-fn get_jwk_string(
-    value: &serde_json::Map<String, serde_json::Value>,
-    key: &str,
-) -> Result<String, Error> {
-    let s = value
-        .get(key)
-        .ok_or(Error::Data)?
-        .as_str()
-        .ok_or(Error::Data)?;
-    Ok(s.to_string())
+#[expect(unused)]
+trait RsaOtherPrimesInfoExt {
+    fn from_value(value: &serde_json::Value) -> Result<RsaOtherPrimesInfo, Error>;
 }
 
-fn get_jwk_bool(
-    value: &serde_json::Map<String, serde_json::Value>,
-    key: &str,
-) -> Result<bool, Error> {
-    let b = value
-        .get(key)
-        .ok_or(Error::Data)?
-        .as_bool()
-        .ok_or(Error::Data)?;
-    Ok(b)
-}
-
-fn usage_from_str(op: &str) -> Result<KeyUsage, Error> {
-    let usage = match op {
-        "encrypt" => KeyUsage::Encrypt,
-        "decrypt" => KeyUsage::Decrypt,
-        "sign" => KeyUsage::Sign,
-        "verify" => KeyUsage::Verify,
-        "deriveKey" => KeyUsage::DeriveKey,
-        "deriveBits" => KeyUsage::DeriveBits,
-        "wrapKey" => KeyUsage::WrapKey,
-        "unwrapKey" => KeyUsage::UnwrapKey,
-        _ => {
+impl RsaOtherPrimesInfoExt for RsaOtherPrimesInfo {
+    fn from_value(value: &serde_json::Value) -> Result<RsaOtherPrimesInfo, Error> {
+        let serde_json::Value::Object(object) = value else {
             return Err(Error::Data);
-        },
-    };
-    Ok(usage)
+        };
+
+        let mut rsa_other_primes_info: RsaOtherPrimesInfo = Default::default();
+        for (key, value) in object {
+            match key.as_str() {
+                "r" => {
+                    rsa_other_primes_info.r =
+                        Some(DOMString::from(value.as_str().ok_or(Error::Data)?))
+                },
+                "d" => {
+                    rsa_other_primes_info.d =
+                        Some(DOMString::from(value.as_str().ok_or(Error::Data)?))
+                },
+                "t" => {
+                    rsa_other_primes_info.t =
+                        Some(DOMString::from(value.as_str().ok_or(Error::Data)?))
+                },
+                _ => {
+                    // Additional members can be present in the JWK; if not understood by
+                    // implementations encountering them, they MUST be ignored.
+                },
+            }
+        }
+
+        Ok(rsa_other_primes_info)
+    }
+}
+
+trait JsonWebKeyExt {
+    fn parse(cx: JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
+    fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
+    #[expect(unused)]
+    fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error>;
+}
+
+impl JsonWebKeyExt for JsonWebKey {
+    /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
+    #[allow(unsafe_code)]
+    fn parse(cx: JSContext, data: &[u8]) -> Result<JsonWebKey, Error> {
+        // Step 1. Let data be the sequence of bytes to be parsed.
+        // (It is given as a method paramter.)
+
+        // Step 2. Let json be the Unicode string that results from interpreting data according to UTF-8.
+        let json = String::from_utf8_lossy(data);
+
+        // Step 3. Convert json to UTF-16.
+        let json: Vec<_> = json.encode_utf16().collect();
+
+        // Step 4. Let result be the object literal that results from executing the JSON.parse
+        // internal function in the context of a new global object, with text argument set to a
+        // JavaScript String containing json.
+        rooted!(in(*cx) let mut result = UndefinedValue());
+        unsafe {
+            if !JS_ParseJSON(*cx, json.as_ptr(), json.len() as u32, result.handle_mut()) {
+                return Err(Error::JSFailed);
+            }
+        }
+
+        // Step 5. Let key be the result of converting result to the IDL dictionary type of JsonWebKey.
+        let key = match JsonWebKey::new(cx, result.handle()) {
+            Ok(ConversionResult::Success(key)) => key,
+            Ok(ConversionResult::Failure(error)) => {
+                return Err(Error::Type(error.to_string()));
+            },
+            Err(()) => {
+                return Err(Error::JSFailed);
+            },
+        };
+
+        // Step 6. If the kty field of key is not defined, then throw a DataError.
+        if key.kty.is_none() {
+            return Err(Error::Data);
+        }
+
+        // Step 7. Result key.
+        Ok(key)
+    }
+
+    fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
+        let mut usages = vec![];
+        for op in self.key_ops.as_ref().ok_or(Error::Data)? {
+            usages.push(KeyUsage::from_str(op).map_err(|_| Error::Data)?);
+        }
+        Ok(usages)
+    }
+
+    fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error> {
+        self.oth.as_deref().ok_or(Error::Data)
+    }
 }

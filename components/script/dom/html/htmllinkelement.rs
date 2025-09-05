@@ -339,7 +339,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
 
                 let matches_media_environment =
-                    self.upcast::<Element>().matches_environment(&attr.value());
+                    MediaList::matches_environment(&self.owner_document(), &attr.value());
                 self.previous_media_environment_matched
                     .set(matches_media_environment);
             },
@@ -573,7 +573,7 @@ impl HTMLLinkElement {
             None => "",
         };
 
-        if !element.matches_environment(mq_str) {
+        if !MediaList::matches_environment(&document, mq_str) {
             return;
         }
 

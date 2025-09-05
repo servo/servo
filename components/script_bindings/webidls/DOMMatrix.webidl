@@ -68,7 +68,7 @@ interface DOMMatrix : DOMMatrixReadOnly {
     DOMMatrix skewYSelf(optional unrestricted double sy = 0);
     DOMMatrix invertSelf();
 
-//  DOMMatrix setMatrixValue(DOMString transformList);
+    [Exposed=Window, Throws] DOMMatrix setMatrixValue(DOMString transformList);
 };
 
 dictionary DOMMatrix2DInit {

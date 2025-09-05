@@ -1241,10 +1241,11 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.34"
+version = "1.2.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42bc4aea80032b7bf409b0bc7ccad88853858911b7713a8062fdc0623867bedc"
+checksum = "590f9024a68a8c40351881787f1934dc11afd69090f5edb6831464694d836ea3"
 dependencies = [
+ "find-msvc-tools",
  "jobserver",
  "libc",
  "shlex",
@@ -2254,9 +2255,9 @@ dependencies = [
 
 [[package]]
 name = "ecolor"
-version = "0.32.1"
+version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6a7fc3172c2ef56966b2ce4f84177e159804c40b9a84de8861558ce4a59f422"
+checksum = "ebb57dec02e4cca6d70d02e29865f7e52dbd471383f4c3444dda7ee78d467360"
 dependencies = [
  "bytemuck",
  "emath",
@@ -2264,9 +2265,9 @@ dependencies = [
 
 [[package]]
 name = "egui"
-version = "0.32.1"
+version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49e2be082f77715496b4a39fdc6f5dc7491fefe2833111781b8697ea6ee919a7"
+checksum = "40df1115b8b0f3d4f1f9134a26287fd3d0e067fc18f879b8c9641aedf3eecef7"
 dependencies = [
  "accesskit",
  "ahash",
@@ -2295,9 +2296,9 @@ dependencies = [
 
 [[package]]
 name = "egui-winit"
-version = "0.32.1"
+version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe6d8b0f8d6de4d43e794e343f03bacc3908aada931f0ed6fd7041871388a590"
+checksum = "1abd8326d2be6d0e945dcfe8acd2c07d64be4c977c5e1115f902dc9cd3ff7bf5"
 dependencies = [
  "accesskit_winit",
  "ahash",
@@ -2314,9 +2315,9 @@ dependencies = [
 
 [[package]]
 name = "egui_glow"
-version = "0.32.1"
+version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ab645760288e42eab70283a5cccf44509a6f43b554351855d3c73594bfe3c23"
+checksum = "7baca67871a8b808e2eb0849282f56149673b6842702306860916bf2dd83fca1"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -2339,9 +2340,9 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
 name = "emath"
-version = "0.32.1"
+version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "935df67dc48fdeef132f2f7ada156ddc79e021344dd42c17f066b956bb88dde3"
+checksum = "b5c95b6d5571099bfa0ae9f4fdaef2c239bccb01d55339a082070259dc6f3b05"
 dependencies = [
  "bytemuck",
 ]
@@ -2464,9 +2465,9 @@ dependencies = [
 
 [[package]]
 name = "epaint"
-version = "0.32.1"
+version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b66fc0a5a9d322917de9bd3ac7d426ca8aa3127fbf1e76fae5b6b25e051e06a3"
+checksum = "695fd7b458f31fe515d6a308f46b2936cae9316dc40c960a7ee31ce3a97866b9"
 dependencies = [
  "ab_glyph",
  "ahash",
@@ -2482,9 +2483,9 @@ dependencies = [
 
 [[package]]
 name = "epaint_default_fonts"
-version = "0.32.1"
+version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f6cf8ce0fb817000aa24f5e630bda904a353536bd430b83ebc1dceee95b4a3a"
+checksum = "bbc9f86ce3eaf9b7fc7179a578af21a6a5cd2d4fd21965564e82a2d009a7dab0"
 
 [[package]]
 name = "equator"
@@ -2641,6 +2642,12 @@ dependencies = [
  "libredox",
  "windows-sys 0.59.0",
 ]
+
+[[package]]
+name = "find-msvc-tools"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e178e4fba8a2726903f6ba98a6d221e76f9c12c650d5dc0e6afdc50677b49650"
 
 [[package]]
 name = "fixed_decimal"
@@ -5120,9 +5127,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.27"
+version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
+checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
 name = "loop9"
@@ -7534,7 +7541,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.31.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "bitflags 2.9.4",
  "cssparser",
@@ -7853,7 +7860,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.1"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -8331,8 +8338,8 @@ dependencies = [
 
 [[package]]
 name = "stylo"
-version = "0.6.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -8388,8 +8395,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_atoms"
-version = "0.6.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -8397,13 +8404,13 @@ dependencies = [
 
 [[package]]
 name = "stylo_config"
-version = "0.6.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 
 [[package]]
 name = "stylo_derive"
-version = "0.6.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8414,8 +8421,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_dom"
-version = "0.6.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "bitflags 2.9.4",
  "stylo_malloc_size_of",
@@ -8423,8 +8430,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_malloc_size_of"
-version = "0.6.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "app_units",
  "cssparser",
@@ -8440,13 +8447,13 @@ dependencies = [
 
 [[package]]
 name = "stylo_static_prefs"
-version = "0.6.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 
 [[package]]
 name = "stylo_traits"
-version = "0.6.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "app_units",
  "bitflags 2.9.4",
@@ -8860,7 +8867,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -8873,7 +8880,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-08-01#35cd8025bb3d5c4cc50db80cb65f9b1840e5ac5a"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#64d8521f1b8509a0160a89e24d0ace2883fa3269"
 dependencies = [
  "darling",
  "proc-macro2",

@@ -75,6 +75,7 @@ use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::htmlmapelement::HTMLMapElement;
 use crate::dom::html::htmlpictureelement::HTMLPictureElement;
 use crate::dom::html::htmlsourceelement::HTMLSourceElement;
+use crate::dom::medialist::MediaList;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
@@ -713,7 +714,7 @@ impl HTMLImageElement {
 
             // Step 4.6
             if let Some(x) = element.get_attribute(&ns!(), &local_name!("media")) {
-                if !elem.matches_environment(&x.value()) {
+                if !MediaList::matches_environment(&elem.owner_document(), &x.value()) {
                     continue;
                 }
             }

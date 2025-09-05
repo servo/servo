@@ -19,6 +19,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::document::Document;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -116,6 +117,31 @@ impl MediaList {
 
     pub(crate) fn update_media_list(&self, media_queries: Arc<Locked<StyleMediaList>>) {
         *self.media_queries.borrow_mut() = media_queries;
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
+    pub(crate) fn matches_environment(document: &Document, media_query: &str) -> bool {
+        let quirks_mode = document.quirks_mode();
+        let document_url_data = UrlExtraData(document.url().get_arc());
+        // FIXME(emilio): This should do the same that we do for other media
+        // lists regarding the rule type and such, though it doesn't really
+        // matter right now...
+        //
+        // Also, ParsingMode::all() is wrong, and should be DEFAULT.
+        let context = ParserContext::new(
+            Origin::Author,
+            &document_url_data,
+            Some(CssRuleType::Style),
+            ParsingMode::all(),
+            quirks_mode,
+            /* namespaces = */ Default::default(),
+            None,
+            None,
+        );
+        let mut parser_input = ParserInput::new(media_query);
+        let mut parser = Parser::new(&mut parser_input);
+        let media_list = StyleMediaList::parse(&context, &mut parser);
+        media_list.evaluate(document.window().layout().device(), quirks_mode)
     }
 }
 
