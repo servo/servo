@@ -240,13 +240,13 @@ impl MimeClassifier {
     /// <https://mimesniff.spec.whatwg.org/#xml-mime-type>
     fn is_xml(mt: &Mime) -> bool {
         mt.suffix() == Some(mime::XML) ||
-            *mt == mime::TEXT_XML ||
-            (mt.type_() == mime::APPLICATION && mt.subtype() == mime::XML)
+            mt.essence_str() == "text/xml" ||
+            mt.essence_str() == "application/xml"
     }
 
     /// <https://mimesniff.spec.whatwg.org/#html-mime-type>
     fn is_html(mt: &Mime) -> bool {
-        *mt == mime::TEXT_HTML
+        mt.essence_str() == "text/html"
     }
 
     /// <https://mimesniff.spec.whatwg.org/#image-mime-type>
@@ -258,7 +258,7 @@ impl MimeClassifier {
     fn is_audio_video(mt: &Mime) -> bool {
         mt.type_() == mime::AUDIO ||
             mt.type_() == mime::VIDEO ||
-            mt.type_() == mime::APPLICATION && mt.subtype() == mime::OGG
+            mt.essence_str() == "application/ogg"
     }
 
     fn is_explicit_unknown(mt: &Mime) -> bool {
@@ -318,7 +318,7 @@ impl MimeClassifier {
     }
 
     fn is_css(mt: &Mime) -> bool {
-        *mt == mime::TEXT_CSS
+        mt.essence_str() == "text/css"
     }
 
     pub fn get_media_type(mime: &Mime) -> Option<MediaType> {
