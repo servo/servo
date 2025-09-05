@@ -51,12 +51,16 @@ pub struct IDBDatabase {
 }
 
 impl IDBDatabase {
-    pub fn new_inherited(name: DOMString, version: u64) -> IDBDatabase {
+    pub fn new_inherited(
+        name: DOMString,
+        version: u64,
+        object_stores: Vec<DOMString>,
+    ) -> IDBDatabase {
         IDBDatabase {
             eventtarget: EventTarget::new_inherited(),
             name,
             version: Cell::new(version),
-            object_store_names: Default::default(),
+            object_store_names: DomRefCell::new(object_stores),
 
             upgrade_transaction: Default::default(),
             closing: Cell::new(false),
@@ -67,10 +71,11 @@ impl IDBDatabase {
         global: &GlobalScope,
         name: DOMString,
         version: u64,
+        object_stores: Vec<DOMString>,
         can_gc: CanGc,
     ) -> DomRoot<IDBDatabase> {
         reflect_dom_object(
-            Box::new(IDBDatabase::new_inherited(name, version)),
+            Box::new(IDBDatabase::new_inherited(name, version, object_stores)),
             global,
             can_gc,
         )
