@@ -95,7 +95,7 @@ where
 
 #[servo_tracing::instrument(skip_all)]
 pub(crate) fn compute_damage_and_repair_style(
-    context: &SharedStyleContext,
+    context: &LayoutContext,
     node: ServoThreadSafeLayoutNode<'_>,
     damage_from_environment: RestyleDamage,
 ) -> RestyleDamage {
@@ -103,7 +103,7 @@ pub(crate) fn compute_damage_and_repair_style(
 }
 
 pub(crate) fn compute_damage_and_repair_style_inner(
-    context: &SharedStyleContext,
+    context: &LayoutContext,
     node: ServoThreadSafeLayoutNode<'_>,
     damage_from_parent: RestyleDamage,
 ) -> RestyleDamage {
@@ -121,14 +121,14 @@ pub(crate) fn compute_damage_and_repair_style_inner(
 
         if let Some(ref style) = element_data.styles.primary {
             if style.get_box().display == Display::None {
-                element_data.damage = element_damage;
+                element_data.damage = RestyleDamage::empty();
                 return element_damage;
             }
         }
     }
 
     // If we are reconstructing this node, then all of the children should be reconstructed as well.
-    // Otherwise, do not propagate down its box damage.
+    // Otherwise, do not propagate down its layout damage.
     let mut damage_for_children = element_damage;
     if !element_damage.contains(LayoutDamage::rebuild_box_tree()) {
         damage_for_children.truncate();
@@ -148,9 +148,9 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         element_damage.insert(LayoutDamage::recollect_box_tree_children());
     }
 
-    // If this node's box will not be preserved, we need to relayout its box tree.
+    // If this node's box has layout damage, we need to relayout its box tree.
     let element_layout_damage = LayoutDamage::from(element_damage);
-    if element_layout_damage.has_box_damage() {
+    if !element_layout_damage.is_empty() {
         element_damage.insert(RestyleDamage::RELAYOUT);
     }
 
@@ -170,11 +170,15 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     }
 
     // If the box will be preserved, update the box's style and also in any fragments
-    // that haven't been cleared. Meanwhile, clear the damage to avoid affecting the
-    // next reflow.
+    // that haven't been cleared. Meanwhile, update the box's replaced contents and
+    // clear the damage to avoid affecting the next reflow.
     if !element_layout_damage.has_box_damage() {
         if !original_element_damage.is_empty() {
-            node.repair_style(context);
+            node.repair_style(&context.style_context);
+        }
+
+        if element_layout_damage.contains(LayoutDamage::REPAIR_REPLACED_CONTENTS) {
+            node.repair_replaced_contents(context);
         }
 
         element_damage = RestyleDamage::empty();

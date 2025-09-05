@@ -39,6 +39,7 @@ use crate::geom::{
 };
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
+use crate::replaced::ReplacedContents;
 use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
     SizeConstraint, Sizes,
@@ -132,6 +133,22 @@ impl BlockLevelBox {
                 base.repair_style(new_style);
                 contents.repair_style(node, new_style);
             },
+        }
+    }
+
+    pub(crate) fn repair_replaced_contents(&mut self, new_contents: ReplacedContents) {
+        match self {
+            BlockLevelBox::Independent(independent_formatting_context) => {
+                independent_formatting_context.repair_replaced_contents(new_contents);
+            },
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
+                .borrow_mut()
+                .context
+                .repair_replaced_contents(new_contents),
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => {
+                float_box.contents.repair_replaced_contents(new_contents);
+            },
+            _ => unreachable!("Called repair_replaced_contents on a non-replaced block-level box"),
         }
     }
 

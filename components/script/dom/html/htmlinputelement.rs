@@ -3230,7 +3230,8 @@ impl VirtualMethods for HTMLInputElement {
                     );
             }
             if !reaction.is_empty() {
-                self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+                self.upcast::<Node>()
+                    .dirty(NodeDamage::NonReplacedContentsOrHeritage);
             }
         }
 

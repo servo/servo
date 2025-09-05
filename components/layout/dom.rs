@@ -22,13 +22,14 @@ use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 
 use crate::cell::ArcRefCell;
+use crate::context::LayoutContext;
 use crate::flexbox::FlexLevelBox;
 use crate::flow::BlockLevelBox;
 use crate::flow::inline::{InlineItem, SharedInlineStyles};
-use crate::fragment_tree::Fragment;
+use crate::fragment_tree::{Fragment, FragmentFlags};
 use crate::geom::PhysicalSize;
 use crate::layout_box_base::LayoutBoxBase;
-use crate::replaced::CanvasInfo;
+use crate::replaced::{CanvasInfo, ReplacedContents};
 use crate::table::TableLevelBox;
 use crate::taffy::TaffyItemBox;
 
@@ -210,6 +211,35 @@ impl LayoutBox {
         }
     }
 
+    fn repair_replaced_contents(&self, new_contents: ReplacedContents) {
+        match self {
+            LayoutBox::BlockLevel(block_level_box) => {
+                block_level_box
+                    .borrow_mut()
+                    .repair_replaced_contents(new_contents);
+            },
+            LayoutBox::InlineLevel(inline_items) => {
+                if let Some(inline_level_box) = inline_items.first() {
+                    inline_level_box
+                        .borrow()
+                        .repair_replaced_contents(new_contents);
+                }
+            },
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box
+                .borrow_mut()
+                .repair_replaced_contents(new_contents),
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box
+                .borrow_mut()
+                .repair_replaced_contents(new_contents),
+            LayoutBox::TableLevelBox(_) => {
+                unreachable!("Called repair_replaced_contents on a table box")
+            },
+            LayoutBox::DisplayContents(..) => {
+                unreachable!("Called repair_replaced_contents on a display: contents box")
+            },
+        }
+    }
+
     /// If this [`LayoutBox`] represents an unsplit (due to inline-block splits) inline
     /// level item, unwrap and return it. If not, return `None`.
     pub(crate) fn unsplit_inline_level_layout_box(self) -> Option<ArcRefCell<InlineItem>> {
@@ -304,6 +334,7 @@ pub(crate) trait NodeExt<'dom> {
     fn clear_fragment_layout_cache(&self);
 
     fn repair_style(&self, context: &SharedStyleContext);
+    fn repair_replaced_contents(&self, context: &LayoutContext);
     fn take_restyle_damage(&self) -> LayoutDamage;
 }
 
@@ -471,6 +502,32 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
     fn repair_style(&self, context: &SharedStyleContext) {
         if let Some(layout_data) = self.inner_layout_data() {
             layout_data.repair_style(self, context);
+        }
+    }
+
+    fn repair_replaced_contents(&self, context: &LayoutContext) {
+        let Some(layout_data) = self.inner_layout_data() else {
+            return;
+        };
+
+        let Some(layout_box) = &*layout_data.self_box.borrow() else {
+            return;
+        };
+
+        if layout_box
+            .with_base_flat(|base| {
+                vec![
+                    base.base_fragment_info
+                        .flags
+                        .contains(FragmentFlags::IS_REPLACED),
+                ]
+            })
+            .into_iter()
+            .all(|is_replaced| is_replaced)
+        {
+            let new_contents = ReplacedContents::for_element(*self, context)
+                .expect("Expect to be a replaced element");
+            layout_box.repair_replaced_contents(new_contents);
         }
     }
 

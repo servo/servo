@@ -389,13 +389,18 @@ impl Element {
         let doc = self.node.owner_doc();
         let mut restyle = doc.ensure_pending_restyle(self);
 
-        // FIXME(bholley): I think we should probably only do this for
-        // NodeStyleDamaged, but I'm preserving existing behavior.
-        restyle.hint.insert(RestyleHint::RESTYLE_SELF);
+        if !matches!(damage, NodeDamage::ReplacedContents) {
+            restyle.hint.insert(RestyleHint::RESTYLE_SELF);
+        }
 
         match damage {
             NodeDamage::Style => {},
-            NodeDamage::ContentOrHeritage => {
+            NodeDamage::ReplacedContents => {
+                restyle
+                    .damage
+                    .insert(LayoutDamage::repair_replaced_contents());
+            },
+            NodeDamage::NonReplacedContentsOrHeritage => {
                 doc.note_node_with_dirty_descendants(self.upcast());
                 restyle
                     .damage
@@ -5421,7 +5426,8 @@ impl Element {
         }
 
         // Dirty the node so that it is laid out again if necessary.
-        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+        self.upcast::<Node>()
+            .dirty(NodeDamage::NonReplacedContentsOrHeritage);
 
         self.state.set(state);
     }
