@@ -42,6 +42,7 @@ use embedder_traits::{
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::FontContext;
+use fxhash::{FxBuildHasher, FxHashMap};
 use ipc_channel::ipc::{self, IpcSender};
 use js::glue::DumpJSStack;
 use js::jsapi::{
@@ -354,19 +355,21 @@ pub(crate) struct Window {
     /// `ImageCache` it adds an entry to this list. When those loads are triggered from
     /// layout, they also add an etry to [`Self::pending_layout_images`].
     #[no_trace]
-    pending_image_callbacks: DomRefCell<HashMap<PendingImageId, Vec<PendingImageCallback>>>,
+    pending_image_callbacks: DomRefCell<FxHashMap<PendingImageId, Vec<PendingImageCallback>>>,
 
     /// All of the elements that have an outstanding image request that was
     /// initiated by layout during a reflow. They are stored in the [`ScriptThread`]
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
-    pending_layout_images: DomRefCell<HashMapTracedValues<PendingImageId, Vec<Dom<Node>>>>,
+    pending_layout_images:
+        DomRefCell<HashMapTracedValues<PendingImageId, Vec<Dom<Node>>, FxBuildHasher>>,
 
     /// Vector images for which layout has intiated rasterization at a specific size
     /// and whose results are not yet available. They are stored in the [`ScriptThread`]
     /// so that the element can be marked dirty once the rasterization is completed.
-    pending_images_for_rasterization:
-        DomRefCell<HashMapTracedValues<PendingImageRasterizationKey, Vec<Dom<Node>>>>,
+    pending_images_for_rasterization: DomRefCell<
+        HashMapTracedValues<PendingImageRasterizationKey, Vec<Dom<Node>>, FxBuildHasher>,
+    >,
 
     /// Directory to store unminified css for this window if unminify-css
     /// opt is enabled.

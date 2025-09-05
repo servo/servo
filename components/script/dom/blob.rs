@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 use std::ptr;
 use std::rc::Rc;
 
@@ -10,6 +9,7 @@ use base::id::{BlobId, BlobIndex};
 use constellation_traits::{BlobData, BlobImpl};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
+use fxhash::FxHashMap;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, Uint8};
@@ -120,7 +120,7 @@ impl Serializable for Blob {
 
     fn serialized_storage<'a>(
         reader: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<BlobId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<BlobId, Self::Data>> {
         match reader {
             StructuredData::Reader(r) => &mut r.blob_impls,
             StructuredData::Writer(w) => &mut w.blobs,

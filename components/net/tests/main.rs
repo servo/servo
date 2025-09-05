@@ -31,6 +31,7 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, EventLoopWaker};
 use futures::future::ready;
+use fxhash::FxHashMap;
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Empty, Full};
 use hyper::body::{Bytes, Incoming};
@@ -146,7 +147,7 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
         hsts_list: RwLock::new(net::hsts::HstsList::default()),
         cookie_jar: RwLock::new(net::cookie_storage::CookieStorage::new(150)),
         auth_cache: RwLock::new(net::resource_thread::AuthCache::default()),
-        history_states: RwLock::new(HashMap::new()),
+        history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(net::http_cache::HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(

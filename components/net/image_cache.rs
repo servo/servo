@@ -10,6 +10,7 @@ use std::{mem, thread};
 
 use base::id::PipelineId;
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
+use fxhash::FxHashMap;
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{debug, error, warn};
@@ -185,11 +186,11 @@ type ImageKey = (ServoUrl, ImmutableOrigin, Option<CorsSettings>);
 struct AllPendingLoads {
     // The loads, indexed by a load key. Used during most operations,
     // for performance reasons.
-    loads: HashMap<LoadKey, PendingLoad>,
+    loads: FxHashMap<LoadKey, PendingLoad>,
 
     // Get a load key from its url and requesting origin. Used ony when starting and
     // finishing a load or when adding a new listener.
-    url_to_load_key: HashMap<ImageKey, LoadKey>,
+    url_to_load_key: FxHashMap<ImageKey, LoadKey>,
 
     // A counter used to generate instances of LoadKey
     keygen: LoadKeyGenerator,
@@ -198,8 +199,8 @@ struct AllPendingLoads {
 impl AllPendingLoads {
     fn new() -> AllPendingLoads {
         AllPendingLoads {
-            loads: HashMap::new(),
-            url_to_load_key: HashMap::new(),
+            loads: FxHashMap::default(),
+            url_to_load_key: FxHashMap::default(),
             keygen: LoadKeyGenerator::new(),
         }
     }

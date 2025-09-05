@@ -28,6 +28,7 @@ embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 ipc-channel = { workspace = true }
+fxhash = { workspace = true }
 keyboard-types = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }

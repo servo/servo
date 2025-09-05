@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
 use constellation_traits::{BlobImpl, TransferableOffscreenCanvas};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
+use fxhash::FxHashMap;
 use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
 use script_bindings::weakref::WeakRef;
@@ -261,7 +261,7 @@ impl Transferable for OffscreenCanvas {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<OffscreenCanvasId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<OffscreenCanvasId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.offscreen_canvases,
             StructuredData::Writer(w) => &mut w.offscreen_canvases,

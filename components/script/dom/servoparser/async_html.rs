@@ -12,6 +12,7 @@ use std::rc::Rc;
 use std::thread;
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
+use fxhash::FxHashMap;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{SendTendril, StrTendril, Tendril};
@@ -697,7 +698,7 @@ struct ParseNodeData {
 
 pub(crate) struct Sink {
     current_line: Cell<u64>,
-    parse_node_data: RefCell<HashMap<ParseNodeId, ParseNodeData>>,
+    parse_node_data: RefCell<FxHashMap<ParseNodeId, ParseNodeData>>,
     next_parse_node_id: Cell<ParseNodeId>,
     document_node: ParseNode,
     sender: Sender<ToTokenizerMsg>,
@@ -708,7 +709,7 @@ impl Sink {
     fn new(sender: Sender<ToTokenizerMsg>, allow_declarative_shadow_roots: bool) -> Sink {
         let sink = Sink {
             current_line: Cell::new(1),
-            parse_node_data: RefCell::new(HashMap::new()),
+            parse_node_data: RefCell::new(FxHashMap::default()),
             next_parse_node_id: Cell::new(1),
             document_node: ParseNode {
                 id: 0,

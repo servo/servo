@@ -18,6 +18,7 @@ use devtools_traits::{
 };
 use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
+use fxhash::FxHashMap;
 use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
@@ -102,7 +103,7 @@ pub struct HttpState {
     /// or whether a concurrent pending store should be awaited.
     pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
-    pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
+    pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, crate::connector::BoxedBody>,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,

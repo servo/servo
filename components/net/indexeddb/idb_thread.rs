@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
+use fxhash::FxHashMap;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use log::{debug, warn};
 use net_traits::indexeddb_thread::{
@@ -78,7 +79,7 @@ impl IndexedDBDescription {
 
 struct IndexedDBEnvironment<E: KvsEngine> {
     engine: E,
-    transactions: HashMap<u64, KvsTransaction>,
+    transactions: FxHashMap<u64, KvsTransaction>,
     serial_number_counter: u64,
 }
 
@@ -86,7 +87,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     fn new(engine: E) -> IndexedDBEnvironment<E> {
         IndexedDBEnvironment {
             engine,
-            transactions: HashMap::new(),
+            transactions: FxHashMap::default(),
             serial_number_counter: 0,
         }
     }
