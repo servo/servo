@@ -854,6 +854,8 @@ struct NavigationParams {
     content_type: Option<Mime>,
     /// <https://html.spec.whatwg.org/multipage/#navigation-params-sandboxing>
     final_sandboxing_flag_set: SandboxingFlagSet,
+    /// <https://mimesniff.spec.whatwg.org/#resource-header>
+    resource_header: Vec<u8>,
 }
 
 /// The context required for asynchronously fetching a document
@@ -863,6 +865,8 @@ pub(crate) struct ParserContext {
     parser: Option<Trusted<ServoParser>>,
     /// Is this a synthesized document
     is_synthesized_document: bool,
+    /// Has a document already been loaded (relevant for checking the resource header)
+    has_loaded_document: bool,
     /// The pipeline associated with this document.
     id: PipelineId,
     /// The URL for this document.
@@ -880,6 +884,7 @@ impl ParserContext {
         ParserContext {
             parser: None,
             is_synthesized_document: false,
+            has_loaded_document: false,
             id,
             url,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
@@ -888,6 +893,7 @@ impl ParserContext {
                 csp_list: None,
                 content_type: None,
                 final_sandboxing_flag_set: SandboxingFlagSet::empty(),
+                resource_header: vec![],
             },
         }
     }
@@ -915,6 +921,12 @@ impl ParserContext {
 
     /// <https://html.spec.whatwg.org/multipage/#loading-a-document>
     fn load_document(&mut self) {
+        assert!(!self.has_loaded_document);
+        self.has_loaded_document = true;
+        let Some(ref parser) = self.parser.as_ref().map(|p| p.root()) else {
+            return;
+        };
+        let _realm = enter_realm(&*parser.document);
         // Step 1. Let type be the computed type of navigationParams's response.
         let content_type = &self.navigation_params.content_type;
         let mime_type = MimeClassifier::default().classify(
@@ -922,9 +934,7 @@ impl ParserContext {
             NoSniffFlag::Off,
             ApacheBugFlag::from_content_type(content_type.as_ref()),
             content_type,
-            // TODO(14024): Figure out how to pass the response data here for sniffing
-            // Requires implementation of https://mimesniff.spec.whatwg.org/#read-the-resource-header
-            &[],
+            &self.navigation_params.resource_header,
         );
         // Step 2. If the user agent has been configured to process resources of the given type using
         // some mechanism other than rendering the content in a navigable, then skip this step.
@@ -934,47 +944,47 @@ impl ParserContext {
                 "<html><body><p>Unknown content type ({}).</p></body></html>",
                 &mime_type,
             );
-            self.load_inline_unknown_content(page);
+            self.load_inline_unknown_content(parser, page);
             return;
         };
         match media_type {
             // Return the result of loading an HTML document, given navigationParams.
-            MediaType::Html => self.load_html_document(),
+            MediaType::Html => self.load_html_document(parser),
             // Return the result of loading an XML document given navigationParams and type.
-            MediaType::Xml => self.load_xml_document(),
+            MediaType::Xml => self.load_xml_document(parser),
             // Return the result of loading a text document given navigationParams and type.
             MediaType::JavaScript | MediaType::Json | MediaType::Text | MediaType::Css => {
-                self.load_text_document()
+                self.load_text_document(parser)
             },
             // Return the result of loading a media document given navigationParams and type.
             MediaType::Image | MediaType::AudioVideo => {
-                self.load_media_document(media_type, &mime_type)
+                self.load_media_document(parser, media_type, &mime_type)
             },
             MediaType::Font => {
                 let page = format!(
                     "<html><body><p>Unable to load font with content type ({}).</p></body></html>",
                     &mime_type,
                 );
-                self.load_inline_unknown_content(page);
+                self.load_inline_unknown_content(parser, page);
+                return;
             },
-        }
+        };
+
+        parser.parse_bytes_chunk(
+            std::mem::take(&mut self.navigation_params.resource_header),
+            CanGc::note(),
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-html>
-    fn load_html_document(&self) {
-        let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
-            return;
-        };
+    fn load_html_document(&self, parser: &ServoParser) {
         // Step 1. Let document be the result of creating and initializing a
         // Document object given "html", "text/html", and navigationParams.
         self.initialize_document_object(&parser.document);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#read-xml>
-    fn load_xml_document(&self) {
-        let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
-            return;
-        };
+    fn load_xml_document(&self, parser: &ServoParser) {
         // When faced with displaying an XML file inline, provided navigation params navigationParams
         // and a string type, user agents must follow the requirements defined in XML and Namespaces in XML,
         // XML Media Types, DOM, and other relevant specifications to create and initialize a
@@ -984,10 +994,7 @@ impl ParserContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-text>
-    fn load_text_document(&self) {
-        let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
-            return;
-        };
+    fn load_text_document(&self, parser: &ServoParser) {
         // Step 4. Create an HTML parser and associate it with the document.
         // Act as if the tokenizer had emitted a start tag token with the tag name "pre" followed by
         // a single U+000A LINE FEED (LF) character, and switch the HTML parser's tokenizer to the PLAINTEXT state.
@@ -1001,10 +1008,12 @@ impl ParserContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-media>
-    fn load_media_document(&mut self, media_type: MediaType, mime_type: &Mime) {
-        let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
-            return;
-        };
+    fn load_media_document(
+        &mut self,
+        parser: &ServoParser,
+        media_type: MediaType,
+        mime_type: &Mime,
+    ) {
         // Step 8. Act as if the user agent had stopped parsing document.
         self.is_synthesized_document = true;
         // Step 3. Populate with html/head/body given document.
@@ -1047,10 +1056,7 @@ impl ParserContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#read-ua-inline>
-    fn load_inline_unknown_content(&mut self, page: String) {
-        let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
-            return;
-        };
+    fn load_inline_unknown_content(&mut self, parser: &ServoParser, page: String) {
         self.is_synthesized_document = true;
         parser.push_string_input_chunk(page);
         parser.parse_sync(CanGc::note());
@@ -1128,6 +1134,7 @@ impl FetchResponseListener for ParserContext {
             csp_list,
             content_type,
             final_sandboxing_flag_set,
+            resource_header: vec![],
         };
         self.submit_resource_timing();
 
@@ -1160,9 +1167,7 @@ impl FetchResponseListener for ParserContext {
                     return;
                 },
             };
-            self.load_inline_unknown_content(page);
-        } else {
-            self.load_document();
+            self.load_inline_unknown_content(&parser, page);
         }
     }
 
@@ -1170,15 +1175,25 @@ impl FetchResponseListener for ParserContext {
         if self.is_synthesized_document {
             return;
         }
-        let parser = match self.parser.as_ref() {
-            Some(parser) => parser.root(),
-            None => return,
+        let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
+            return;
         };
         if parser.aborted.get() {
             return;
         }
-        let _realm = enter_realm(&*parser);
-        parser.parse_bytes_chunk(payload, CanGc::note());
+        if !self.has_loaded_document {
+            // https://mimesniff.spec.whatwg.org/#read-the-resource-header
+            self.navigation_params
+                .resource_header
+                .extend_from_slice(&payload);
+            // the number of bytes in buffer is greater than or equal to 1445.
+            if self.navigation_params.resource_header.len() >= 1445 {
+                self.load_document();
+            }
+        } else {
+            let _realm = enter_realm(&*parser);
+            parser.parse_bytes_chunk(payload, CanGc::note());
+        }
     }
 
     // This method is called via script_thread::handle_fetch_eof, so we must call
@@ -1197,14 +1212,21 @@ impl FetchResponseListener for ParserContext {
             return;
         }
 
-        let _realm = enter_realm(&*parser);
-
         match status {
             // are we throwing this away or can we use it?
             Ok(_) => (),
             // TODO(Savago): we should send a notification to callers #5463.
             Err(err) => debug!("Failed to load page URL {}, error: {:?}", self.url, err),
         }
+
+        // https://mimesniff.spec.whatwg.org/#read-the-resource-header
+        //
+        // the end of the resource is reached.
+        if !self.has_loaded_document {
+            self.load_document();
+        }
+
+        let _realm = enter_realm(&*parser);
 
         parser
             .document
