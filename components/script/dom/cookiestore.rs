@@ -11,6 +11,7 @@ use cookie::{Cookie, SameSite};
 use dom_struct::dom_struct;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
+use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use itertools::Itertools;
 use js::jsval::NullValue;
@@ -46,6 +47,9 @@ pub(crate) struct CookieStore {
     // Store an id so that we can send it with requests and the resource thread knows who to respond to
     #[no_trace]
     store_id: CookieStoreId,
+    #[ignore_malloc_size_of = "Channels are hard"]
+    #[no_trace]
+    unregister_channel: IpcSender<CoreResourceMsg>,
 }
 
 struct CookieListener {
@@ -92,16 +96,23 @@ impl CookieListener {
 }
 
 impl CookieStore {
-    fn new_inherited() -> CookieStore {
+    fn new_inherited(unregister_channel: IpcSender<CoreResourceMsg>) -> CookieStore {
         CookieStore {
             eventtarget: EventTarget::new_inherited(),
             in_flight: Default::default(),
             store_id: CookieStoreId::new(),
+            unregister_channel,
         }
     }
 
     pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<CookieStore> {
-        let store = reflect_dom_object(Box::new(CookieStore::new_inherited()), global, can_gc);
+        let store = reflect_dom_object(
+            Box::new(CookieStore::new_inherited(
+                global.resource_threads().core_thread.clone(),
+            )),
+            global,
+            can_gc,
+        );
         store.setup_route();
         store
     }
@@ -567,8 +578,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 impl Drop for CookieStore {
     fn drop(&mut self) {
         let res = self
-            .global()
-            .resource_threads()
+            .unregister_channel
             .send(CoreResourceMsg::RemoveCookieListener(self.store_id));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");
