@@ -113,7 +113,7 @@ use webgl::WebGLComm;
 #[cfg(feature = "webgpu")]
 pub use webgpu;
 #[cfg(feature = "webgpu")]
-use webgpu::swapchain::WGPUImageMap;
+use webgpu::canvas_context::WGPUImageMap;
 use webrender::{ONE_TIME_USAGE_HINT, RenderApiSender, ShaderPrecacheFlags, UploadMethod};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
 use webview::WebViewInner;

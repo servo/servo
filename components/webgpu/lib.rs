@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use canvas_context::WGPUImageMap;
+pub use canvas_context::{ContextData, WGPUExternalImages};
 use log::warn;
-use swapchain::WGPUImageMap;
-pub use swapchain::{ContextData, WGPUExternalImages};
 use webgpu_traits::{WebGPU, WebGPUMsg};
 use wgpu_thread::WGPU;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
@@ -19,7 +19,7 @@ use compositing_traits::{CrossProcessCompositorApi, WebrenderExternalImageRegist
 use ipc_channel::ipc::{self, IpcReceiver};
 use servo_config::pref;
 
-pub mod swapchain;
+pub mod canvas_context;
 
 pub fn start_webgpu_thread(
     compositor_api: CrossProcessCompositorApi,
