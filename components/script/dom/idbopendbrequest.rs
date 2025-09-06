@@ -224,7 +224,7 @@ impl IDBOpenDBRequest {
         self.idbrequest.set_error(error, can_gc);
     }
 
-    pub fn open_database(&self, name: DOMString, version: Option<u64>) {
+    pub fn open_database(&self, name: DOMString, version: Option<u64>) -> Result<(), ()> {
         let global = self.global();
 
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
@@ -286,13 +286,17 @@ impl IDBOpenDBRequest {
             }),
         );
 
-        global
+        if global
             .resource_threads()
             .send(IndexedDBThreadMsg::Sync(open_operation))
-            .unwrap();
+            .is_err()
+        {
+            return Err(());
+        }
+        Ok(())
     }
 
-    pub fn delete_database(&self, name: String) {
+    pub fn delete_database(&self, name: String) -> Result<(), ()> {
         let global = self.global();
 
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
@@ -317,10 +321,14 @@ impl IDBOpenDBRequest {
             }),
         );
 
-        global
+        if global
             .resource_threads()
             .send(IndexedDBThreadMsg::Sync(delete_operation))
-            .unwrap();
+            .is_err()
+        {
+            return Err(());
+        }
+        Ok(())
     }
 
     pub fn dispatch_success(&self, result: &IDBDatabase) {
