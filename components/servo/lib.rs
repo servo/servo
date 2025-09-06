@@ -484,6 +484,7 @@ impl Servo {
                 webxr_main_thread,
                 shutdown_state: shutdown_state.clone(),
                 event_loop_waker,
+                begin_frame_source: builder.begin_frame_source,
             },
             opts.debug.convert_mouse_to_touch,
         );
@@ -1360,6 +1361,7 @@ pub struct ServoBuilder {
     opts: Option<Box<Opts>>,
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
+    begin_frame_source: Option<Rc<dyn BeginFrameSource>>,
     user_content_manager: UserContentManager,
     protocol_registry: ProtocolRegistry,
     #[cfg(feature = "webxr")]
@@ -1373,6 +1375,7 @@ impl ServoBuilder {
             opts: None,
             preferences: None,
             event_loop_waker: Box::new(DefaultEventLoopWaker),
+            begin_frame_source: None,
             user_content_manager: UserContentManager::default(),
             protocol_registry: ProtocolRegistry::default(),
             #[cfg(feature = "webxr")]
@@ -1396,6 +1399,11 @@ impl ServoBuilder {
 
     pub fn event_loop_waker(mut self, event_loop_waker: Box<dyn EventLoopWaker>) -> Self {
         self.event_loop_waker = event_loop_waker;
+        self
+    }
+
+    pub fn begin_frame_source(mut self, begin_frame_source: Rc<dyn BeginFrameSource>) -> Self {
+        self.begin_frame_source = Some(begin_frame_source);
         self
     }
 

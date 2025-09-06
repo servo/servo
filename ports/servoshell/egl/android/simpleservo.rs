@@ -126,6 +126,7 @@ pub fn init(
             rendering_context,
             servo,
             window_callbacks,
+            None,
             servoshell_preferences,
             webdriver_receiver,
         );
