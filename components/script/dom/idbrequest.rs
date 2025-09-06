@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-
+use std::iter::repeat_n;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
@@ -131,7 +131,7 @@ impl RequestListener {
                     key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut())
                 },
                 IdbResult::Keys(keys) => {
-                    let mut array: Vec<JSVal> = Vec::with_capacity(keys.len());
+                    rooted_vec!(let mut array <- repeat_n(UndefinedValue(), keys.len()));
                     for key in keys {
                         rooted!(in(*cx) let mut val = UndefinedValue());
                         key_type_to_jsval(GlobalScope::get_cx(), &key, val.handle_mut());
@@ -150,7 +150,7 @@ impl RequestListener {
                     };
                 },
                 IdbResult::Values(serialized_values) => {
-                    let mut array: Vec<JSVal> = Vec::with_capacity(serialized_values.len());
+                    rooted_vec!(let mut values <- repeat_n(UndefinedValue(), serialized_values.len()));
                     for serialized_data in serialized_values {
                         rooted!(in(*cx) let mut val = UndefinedValue());
                         let result = bincode::deserialize(&serialized_data)
@@ -161,9 +161,9 @@ impl RequestListener {
                             Self::handle_async_request_error(&global, cx, request, e);
                             return;
                         };
-                        array.push(val.get());
+                        values.push(val.get());
                     }
-                    array.safe_to_jsval(cx, answer.handle_mut());
+                    values.safe_to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Count(count) => {
                     answer.handle_mut().set(DoubleValue(count as f64));
