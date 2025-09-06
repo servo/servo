@@ -197,6 +197,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                     ),
                     store_op: color.storeOp.convert(),
                     view: color.view.id().0,
+                    depth_slice: None,
                 }))
             })
             .collect::<Fallible<Vec<_>>>()?;
