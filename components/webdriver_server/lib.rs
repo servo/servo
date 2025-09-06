@@ -254,10 +254,15 @@ impl Serialize for SendableJSValue {
         S: Serializer,
     {
         match self.0 {
-            JSValue::Undefined => serializer.serialize_unit(),
-            JSValue::Null => serializer.serialize_unit(),
+            JSValue::Undefined | JSValue::Null => serializer.serialize_unit(),
             JSValue::Boolean(x) => serializer.serialize_bool(x),
-            JSValue::Number(x) => serializer.serialize_f64(x),
+            JSValue::Number(x) => {
+                if x.fract() == 0.0 {
+                    serializer.serialize_i64(x as i64)
+                } else {
+                    serializer.serialize_f64(x)
+                }
+            },
             JSValue::String(ref x) => serializer.serialize_str(x),
             JSValue::Element(ref x) => WebElement(x.clone()).serialize(serializer),
             JSValue::ShadowRoot(ref x) => ShadowRoot(x.clone()).serialize(serializer),
