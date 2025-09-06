@@ -4,13 +4,16 @@
 
 use std::ffi::CString;
 use std::iter::repeat_n;
-use std::mem::MaybeUninit;
 use std::ptr;
 
 use ipc_channel::ipc::IpcSender;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandle;
-use js::jsapi::{ClippedTime, ESClass, GetArrayLength, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength, JS_HasOwnPropertyById, JS_IndexToId, JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject, PropertyKey};
+use js::jsapi::{
+    ClippedTime, ESClass, GetArrayLength, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength,
+    JS_HasOwnPropertyById, JS_IndexToId, JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
+    PropertyKey,
+};
 use js::jsval::{DoubleValue, UndefinedValue};
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty};
 use js::rust::{HandleValue, IntoHandle, IntoMutableHandle, MutableHandleValue};
