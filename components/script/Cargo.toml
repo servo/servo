@@ -100,6 +100,7 @@ parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 phf = "0.11"
 pixels = { path = "../pixels" }
+rustc-hash = { workspace = true }
 profile_traits = { workspace = true }
 range = { path = "../range" }
 regex = { workspace = true }

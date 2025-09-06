@@ -23,7 +23,6 @@ euclid = { workspace = true }
 fnv = { workspace = true }
 fonts = { path = "../../fonts" }
 fonts_traits = { workspace = true }
-fxhash = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
@@ -33,6 +32,7 @@ net_traits = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }
+rustc-hash = { workspace = true }
 range = { path = "../../range" }
 script_traits = { workspace = true }
 selectors = { workspace = true }
