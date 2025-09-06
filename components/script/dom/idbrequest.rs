@@ -132,10 +132,10 @@ impl RequestListener {
                 },
                 IdbResult::Keys(keys) => {
                     rooted_vec!(let mut array <- repeat_n(UndefinedValue(), keys.len()));
-                    for key in keys {
+                    for (count, key) in keys.into_iter().enumerate() {
                         rooted!(in(*cx) let mut val = UndefinedValue());
                         key_type_to_jsval(GlobalScope::get_cx(), &key, val.handle_mut());
-                        array.push(val.get());
+                        array[count] = val.get();
                     }
                     array.safe_to_jsval(cx, answer.handle_mut());
                 },
@@ -151,7 +151,7 @@ impl RequestListener {
                 },
                 IdbResult::Values(serialized_values) => {
                     rooted_vec!(let mut values <- repeat_n(UndefinedValue(), serialized_values.len()));
-                    for serialized_data in serialized_values {
+                    for (count, serialized_data) in serialized_values.into_iter().enumerate() {
                         rooted!(in(*cx) let mut val = UndefinedValue());
                         let result = bincode::deserialize(&serialized_data)
                             .map_err(|_| Error::Data)
@@ -161,7 +161,7 @@ impl RequestListener {
                             Self::handle_async_request_error(&global, cx, request, e);
                             return;
                         };
-                        values.push(val.get());
+                        values[count] = val.get();
                     }
                     values.safe_to_jsval(cx, answer.handle_mut());
                 },
