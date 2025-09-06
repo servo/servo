@@ -7,6 +7,7 @@ use net::indexeddb::engines::sqlite::serialization::{
 };
 use net_traits::indexeddb_thread::IndexedDBKeyType;
 
+#[test]
 fn test_number_roundtrip() {
     let numbers = [
         0.0,
@@ -32,6 +33,7 @@ fn test_number_roundtrip() {
     }
 }
 
+#[test]
 fn test_number_sorting() {
     let numbers = [
         3.0,
@@ -55,6 +57,7 @@ fn test_number_sorting() {
     assert_eq!(deserialized, expected);
 }
 
+#[test]
 fn test_roundtrip() {
     let keys = vec![
         IndexedDBKeyType::Number(42.0),
