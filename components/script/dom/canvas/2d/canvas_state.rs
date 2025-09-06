@@ -1382,10 +1382,11 @@ impl CanvasState {
         y: f64,
         max_width: Option<f64>,
     ) {
-        if !x.is_finite() || !y.is_finite() {
-            return;
-        }
-        if max_width.is_some_and(|max_width| !max_width.is_finite() || max_width <= 0.) {
+        // Step 1: If any of the arguments are infinite or NaN, then return.
+        if !x.is_finite() ||
+            !y.is_finite() ||
+            max_width.is_some_and(|max_width| !max_width.is_finite())
+        {
             return;
         }
 
@@ -1396,13 +1397,68 @@ impl CanvasState {
         // the initial values for the text style.
         let size = self.font_style().font_size.computed_size().px() as f64;
 
-        self.fill_text_with_size(
+        let Some((bounds, text_run)) = self.text_with_size(
             global_scope,
             text.str(),
             Point2D::new(x, y),
             size,
             max_width,
-        );
+        ) else {
+            return;
+        };
+        self.send_canvas_2d_msg(Canvas2dMsg::FillText(
+            bounds,
+            text_run,
+            self.state.borrow().fill_style.to_fill_or_stroke_style(),
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
+        ));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroketext
+    pub(super) fn stroke_text(
+        &self,
+        global_scope: &GlobalScope,
+        canvas: Option<&HTMLCanvasElement>,
+        text: DOMString,
+        x: f64,
+        y: f64,
+        max_width: Option<f64>,
+    ) {
+        // Step 1: If any of the arguments are infinite or NaN, then return.
+        if !x.is_finite() ||
+            !y.is_finite() ||
+            max_width.is_some_and(|max_width| !max_width.is_finite())
+        {
+            return;
+        }
+
+        if self.state.borrow().font_style.is_none() {
+            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
+        }
+        // This may be `None` if if this is offscreen canvas, in which case just use
+        // the initial values for the text style.
+        let size = self.font_style().font_size.computed_size().px() as f64;
+
+        let Some((bounds, text_run)) = self.text_with_size(
+            global_scope,
+            text.str(),
+            Point2D::new(x, y),
+            size,
+            max_width,
+        ) else {
+            return;
+        };
+        self.send_canvas_2d_msg(Canvas2dMsg::StrokeText(
+            bounds,
+            text_run,
+            self.state.borrow().stroke_style.to_fill_or_stroke_style(),
+            self.state.borrow().line_options(),
+            self.state.borrow().shadow_options(),
+            self.state.borrow().composition_options(),
+            self.state.borrow().transform,
+        ));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#text-preparation-algorithm>
@@ -2189,18 +2245,23 @@ impl CanvasState {
             .map_err(|_| Error::IndexSize)
     }
 
-    fn fill_text_with_size(
+    fn text_with_size(
         &self,
         global_scope: &GlobalScope,
         text: &str,
         origin: Point2D<f64>,
         size: f64,
         max_width: Option<f64>,
-    ) {
+    ) -> Option<(Rect<f64>, Vec<TextRun>)> {
         let Some(font_context) = global_scope.font_context() else {
             warn!("Tried to paint to a canvas of GlobalScope without a FontContext.");
-            return;
+            return None;
         };
+
+        // Step 1: If maxWidth was provided but is less than or equal to zero or equal to NaN, then return an empty array.
+        if max_width.is_some_and(|max_width| max_width.is_nan() || max_width <= 0.) {
+            return None;
+        }
 
         // > Step 2: Replace all ASCII whitespace in text with U+0020 SPACE characters.
         let text = replace_ascii_whitespace(text);
@@ -2212,7 +2273,7 @@ impl CanvasState {
         let mut font_group = font_group.write();
         let Some(first_font) = font_group.first(font_context) else {
             warn!("Could not render canvas text, because there was no first font.");
-            return;
+            return None;
         };
 
         let runs = self.build_unshaped_text_runs(font_context, &text, &mut font_group);
@@ -2242,8 +2303,7 @@ impl CanvasState {
         if let Some(max_width) = max_width {
             let new_size = (max_width / total_advance * size).floor().max(5.);
             if total_advance > max_width && new_size != size {
-                self.fill_text_with_size(global_scope, &text, origin, new_size, Some(max_width));
-                return;
+                return self.text_with_size(global_scope, &text, origin, new_size, Some(max_width));
             }
         }
 
@@ -2265,16 +2325,12 @@ impl CanvasState {
                 .union(&text_run.bounds);
         }
 
-        self.send_canvas_2d_msg(Canvas2dMsg::FillText(
+        Some((
             bounds
                 .unwrap_or_default()
                 .translate(start.to_vector().cast_unit()),
             shaped_runs,
-            self.state.borrow().fill_style.to_fill_or_stroke_style(),
-            self.state.borrow().shadow_options(),
-            self.state.borrow().composition_options(),
-            self.state.borrow().transform,
-        ));
+        ))
     }
 
     fn build_unshaped_text_runs<'text>(

@@ -124,6 +124,25 @@ impl CanvasPaintThread {
                     transform,
                 );
             },
+            Canvas2dMsg::StrokeText(
+                text_bounds,
+                text_runs,
+                fill_or_stroke_style,
+                line_options,
+                shadow_options,
+                composition_options,
+                transform,
+            ) => {
+                self.canvas(canvas_id).stroke_text(
+                    text_bounds,
+                    text_runs,
+                    fill_or_stroke_style,
+                    line_options,
+                    shadow_options,
+                    composition_options,
+                    transform,
+                );
+            },
             Canvas2dMsg::FillRect(rect, style, shadow_options, composition_options, transform) => {
                 self.canvas(canvas_id).fill_rect(
                     &rect,
@@ -308,6 +327,40 @@ impl Canvas {
             Canvas::Vello(canvas_data) => canvas_data.pop_clips(clips),
             #[cfg(feature = "vello_cpu")]
             Canvas::VelloCPU(canvas_data) => canvas_data.pop_clips(clips),
+        }
+    }
+
+    fn stroke_text(
+        &mut self,
+        text_bounds: Rect<f64>,
+        text_runs: Vec<TextRun>,
+        fill_or_stroke_style: FillOrStrokeStyle,
+        line_options: LineOptions,
+        shadow_options: ShadowOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f64>,
+    ) {
+        match self {
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.stroke_text(
+                text_bounds,
+                text_runs,
+                fill_or_stroke_style,
+                line_options,
+                shadow_options,
+                composition_options,
+                transform,
+            ),
+            #[cfg(feature = "vello_cpu")]
+            Canvas::VelloCPU(canvas_data) => canvas_data.stroke_text(
+                text_bounds,
+                text_runs,
+                fill_or_stroke_style,
+                line_options,
+                shadow_options,
+                composition_options,
+                transform,
+            ),
         }
     }
 
