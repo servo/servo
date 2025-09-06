@@ -123,7 +123,6 @@ pub(crate) struct SelectionState {
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct TextInput<T: ClipboardProvider> {
     /// Current text input content, split across lines without trailing '\n'
-    #[ignore_malloc_size_of = "FIXME"]
     #[no_trace]
     lines: Vec<Utf16String>,
 
