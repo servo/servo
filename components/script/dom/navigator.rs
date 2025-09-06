@@ -34,7 +34,7 @@ use crate::dom::bindings::utils::to_frozen_array;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::clipboard::Clipboard;
-use crate::dom::credentialscontainer::CredentialsContainer;
+use crate::dom::credentialmanagement::credentialscontainer::CredentialsContainer;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepad::gamepadevent::GamepadEventType;

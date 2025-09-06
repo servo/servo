@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::CredentialsContainerBinding::Creden
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::credential::Credential;
+use crate::dom::credentialmanagement::credential::Credential;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;

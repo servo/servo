@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::PasswordCredentialBinding::Password
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::credential::Credential;
+use crate::dom::credentialmanagement::credential::Credential;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::window::Window;
