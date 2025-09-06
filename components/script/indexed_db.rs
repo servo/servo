@@ -10,12 +10,13 @@ use ipc_channel::ipc::IpcSender;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandle;
 use js::jsapi::{
-    ClippedTime, ESClass, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength,
-    JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
+    ClippedTime, ESClass, GetArrayLength, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength,
+    JS_HasOwnPropertyById, JS_IndexToId, JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
+    PropertyKey,
 };
 use js::jsval::{DoubleValue, UndefinedValue};
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty};
-use js::rust::{HandleValue, MutableHandleValue};
+use js::rust::{HandleValue, IntoHandle, IntoMutableHandle, MutableHandleValue};
 use net_traits::indexeddb_thread::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
 use profile_traits::ipc;
 use profile_traits::ipc::IpcReceiver;
@@ -109,7 +110,7 @@ pub fn convert_value_to_key(
     seen: Option<Vec<HandleValue>>,
 ) -> Result<IndexedDBKeyType, Error> {
     // Step 1: If seen was not given, then let seen be a new empty set.
-    let _seen = seen.unwrap_or_default();
+    let mut seen = seen.unwrap_or_default();
 
     // Step 2: If seen contains input, then return invalid.
     // FIXME:(arihant2math) implement this
@@ -159,9 +160,41 @@ pub fn convert_value_to_key(
             }
 
             if let ESClass::Array = built_in_class {
-                // FIXME:(arihant2math)
-                error!("Arrays as keys is currently unsupported");
-                return Err(Error::NotSupported);
+                let mut len = 0;
+                if !GetArrayLength(*cx, object.handle().into_handle(), &mut len) {
+                    return Err(Error::JSFailed);
+                }
+                seen.push(input);
+                let mut values = vec![];
+                for i in 0..len {
+                    rooted!(in(*cx) let mut id: PropertyKey);
+                    if !JS_IndexToId(*cx, i, js::jsapi::MutableHandleId::from(id.handle_mut())) {
+                        return Err(Error::JSFailed);
+                    }
+                    let mut has_own = false;
+                    if !JS_HasOwnPropertyById(
+                        *cx,
+                        object.handle().into_handle(),
+                        id.handle().into_handle(),
+                        &mut has_own,
+                    ) {
+                        return Err(Error::JSFailed);
+                    }
+                    if !has_own {
+                        return Err(Error::InvalidState);
+                    }
+                    rooted!(in(*cx) let mut item = UndefinedValue());
+                    if !js::jsapi::JS_GetPropertyById(
+                        *cx,
+                        object.handle().into_handle(),
+                        id.handle().into_handle(),
+                        item.handle_mut().into_handle_mut(),
+                    ) {
+                        return Err(Error::JSFailed);
+                    }
+                    values.push(convert_value_to_key(cx, item.handle(), Some(seen.clone()))?);
+                }
+                return Ok(IndexedDBKeyType::Array(values));
             }
         }
     }
