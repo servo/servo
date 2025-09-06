@@ -8,8 +8,8 @@ use js::jsval::NullValue;
 use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyRange,
-    IndexedDBKeyType, IndexedDBThreadMsg, SyncOperation,
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
+    IndexedDBThreadMsg, SyncOperation,
 };
 use profile_traits::ipc;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -281,12 +281,7 @@ impl IDBObjectStore {
         //
         // The query parameter may be a key or an IDBKeyRange to use as the cursor's range. If null
         // or not given, an unbounded key range is used.
-        // FIXME:
-        let range = if query.is_null_or_undefined() {
-            IndexedDBKeyRange::new(None, None, false, false)
-        } else {
-            convert_value_to_key_range(cx, query, Some(false))?
-        };
+        let range = convert_value_to_key_range(cx, query, Some(false))?;
 
         // Step 6. Let cursor be a new cursor with transaction set to transaction, an undefined
         // position, direction set to direction, got value flag unset, and undefined key and value.

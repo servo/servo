@@ -187,15 +187,14 @@ pub fn convert_value_to_key(
     Ok(ConversionResult::Invalid)
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range
+/// <https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range>
 #[allow(unsafe_code)]
 pub fn convert_value_to_key_range(
     cx: SafeJSContext,
     input: HandleValue,
     null_disallowed: Option<bool>,
 ) -> Result<IndexedDBKeyRange, Error> {
-    let null_disallowed = null_disallowed.unwrap_or(false);
-    // Step 1.
+    // Step 1. If value is a key range, return value.
     if input.is_object() {
         rooted!(in(*cx) let object = input.to_object());
         unsafe {
@@ -205,11 +204,30 @@ pub fn convert_value_to_key_range(
             }
         }
     }
-    // Step 2.
-    if (input.get().is_undefined() || input.get().is_null()) && null_disallowed {
-        return Err(Error::Data);
+
+    // Step 2. If value is undefined or is null, then throw a "DataError" DOMException if null
+    // disallowed flag is set, or return an unbounded key range otherwise.
+    if input.get().is_undefined() || input.get().is_null() {
+        if null_disallowed.is_some_and(|flag| flag) {
+            return Err(Error::Data);
+        } else {
+            return Ok(IndexedDBKeyRange {
+                lower: None,
+                upper: None,
+                lower_open: Default::default(),
+                upper_open: Default::default(),
+            });
+        }
     }
-    let key = convert_value_to_key(cx, input, None)?.into_result()?;
+
+    // Step 3. Let key be the result of running the steps to convert a value to a key with value.
+    // Rethrow any exceptions.
+    let key = convert_value_to_key(cx, input, None)?;
+
+    // Step 4. If key is invalid, throw a "DataError" DOMException.
+    let key = key.into_result()?;
+
+    // Step 5. Return a key range containing only key.
     Ok(IndexedDBKeyRange::only(key))
 }
 
