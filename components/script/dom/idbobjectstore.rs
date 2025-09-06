@@ -274,19 +274,18 @@ impl IDBObjectStore {
         self.verify_not_deleted()?;
 
         // Step 4. If transaction is not active, throw a "TransactionInactiveError" DOMException.
-        if !self.transaction.is_active() {
-            return Err(Error::TransactionInactive);
-        }
+        self.check_transaction_active()?;
 
         // Step 5. Let range be the result of running the steps to convert a value to a key range
         // with query. Rethrow any exceptions.
         //
         // The query parameter may be a key or an IDBKeyRange to use as the cursor's range. If null
         // or not given, an unbounded key range is used.
+        // FIXME:
         let range = if query.is_null_or_undefined() {
             IndexedDBKeyRange::new(None, None, false, false)
         } else {
-            convert_value_to_key_range(cx, query, None)?
+            convert_value_to_key_range(cx, query, Some(false))?
         };
 
         // Step 6. Let cursor be a new cursor with transaction set to transaction, an undefined
@@ -515,6 +514,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 }),
                 receiver,
                 None,
+                None,
                 CanGc::note(),
             )
         })
@@ -551,6 +551,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                     count,
                 }),
                 receiver,
+                None,
                 None,
                 CanGc::note(),
             )
