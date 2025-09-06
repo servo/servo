@@ -9,6 +9,7 @@ use std::thread;
 
 use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::WebViewId;
+use fxhash::FxHashMap;
 use malloc_size_of::MallocSizeOf;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::mem::{
@@ -52,7 +53,7 @@ type OriginEntry = (usize, BTreeMap<String, String>);
 
 struct StorageManager {
     port: GenericReceiver<StorageThreadMsg>,
-    session_data: HashMap<WebViewId, HashMap<String, OriginEntry>>,
+    session_data: FxHashMap<WebViewId, HashMap<String, OriginEntry>>,
     local_data: HashMap<String, OriginEntry>,
     config_dir: Option<PathBuf>,
 }
@@ -65,7 +66,7 @@ impl StorageManager {
         }
         StorageManager {
             port,
-            session_data: HashMap::new(),
+            session_data: FxHashMap::default(),
             local_data,
             config_dir,
         }

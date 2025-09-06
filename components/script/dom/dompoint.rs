@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::{DomPointId, DomPointIndex};
 use constellation_traits::DomPoint;
 use dom_struct::dom_struct;
+use fxhash::FxHashMap;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
@@ -165,7 +164,7 @@ impl Serializable for DOMPoint {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<DomPointId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<DomPointId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.points,
             StructuredData::Writer(writer) => &mut writer.points,

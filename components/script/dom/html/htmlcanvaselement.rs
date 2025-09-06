@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
@@ -12,6 +11,7 @@ use constellation_traits::BlobImpl;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
+use fxhash::FxHashMap;
 use html5ever::{LocalName, Prefix, local_name, ns};
 #[cfg(feature = "webgpu")]
 use ipc_channel::ipc::{self as ipcchan};
@@ -77,7 +77,7 @@ pub(crate) struct HTMLCanvasElement {
     // This id and hashmap are used to keep track of ongoing toBlob() calls.
     callback_id: Cell<u32>,
     #[ignore_malloc_size_of = "not implemented for webidl callbacks"]
-    blob_callbacks: RefCell<HashMap<u32, Rc<BlobCallback>>>,
+    blob_callbacks: RefCell<FxHashMap<u32, Rc<BlobCallback>>>,
 }
 
 impl HTMLCanvasElement {
@@ -90,7 +90,7 @@ impl HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             context_mode: DomRefCell::new(None),
             callback_id: Cell::new(0),
-            blob_callbacks: RefCell::new(HashMap::new()),
+            blob_callbacks: RefCell::new(FxHashMap::default()),
         }
     }
 

@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::ptr::{self};
 use std::rc::Rc;
 
 use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::TransformStreamData;
 use dom_struct::dom_struct;
+use fxhash::FxHashMap;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
@@ -1193,7 +1193,7 @@ impl Transferable for TransformStream {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.transform_streams_port_impls,
             StructuredData::Writer(w) => &mut w.transform_streams_port,

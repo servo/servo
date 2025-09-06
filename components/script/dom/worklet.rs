@@ -12,7 +12,7 @@
 
 use std::cell::OnceCell;
 use std::cmp::max;
-use std::collections::{HashMap, hash_map};
+use std::collections::hash_map;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, Ordering};
@@ -21,6 +21,7 @@ use std::thread;
 use base::id::PipelineId;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
+use fxhash::FxHashMap;
 use js::jsapi::{GCReason, JS_GC, JS_GetGCParameter, JSGCParamKey, JSTracer};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::IpcSend;
@@ -458,7 +459,7 @@ struct WorkletThread {
     global_init: WorkletGlobalScopeInit,
 
     /// The global scopes created by this thread
-    global_scopes: HashMap<WorkletId, Dom<WorkletGlobalScope>>,
+    global_scopes: FxHashMap<WorkletId, Dom<WorkletGlobalScope>>,
 
     /// A one-place buffer for control messages
     control_buffer: Option<WorkletControl>,
@@ -502,7 +503,7 @@ impl WorkletThread {
                     hot_backup_sender: init.hot_backup_sender,
                     cold_backup_sender: init.cold_backup_sender,
                     global_init: init.global_init,
-                    global_scopes: HashMap::new(),
+                    global_scopes: FxHashMap::default(),
                     control_buffer: None,
                     runtime: Runtime::new(None),
                     should_gc: false,

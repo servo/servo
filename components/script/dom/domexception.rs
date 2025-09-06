@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::{DomExceptionId, DomExceptionIndex};
 use constellation_traits::DomException;
 use dom_struct::dom_struct;
+use fxhash::FxHashMap;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::{
@@ -280,7 +279,7 @@ impl Serializable for DOMException {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<DomExceptionId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<DomExceptionId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.exceptions,
             StructuredData::Writer(writer) => &mut writer.exceptions,
