@@ -64,6 +64,24 @@ pub struct AxesOverflow {
     pub y: Overflow,
 }
 
+impl Default for AxesOverflow {
+    fn default() -> Self {
+        Self {
+            x: Overflow::Visible,
+            y: Overflow::Visible,
+        }
+    }
+}
+
+impl From<&ComputedValues> for AxesOverflow {
+    fn from(style: &ComputedValues) -> Self {
+        Self {
+            x: style.clone_overflow_x(),
+            y: style.clone_overflow_y(),
+        }
+    }
+}
+
 impl DisplayGeneratingBox {
     pub(crate) fn display_inside(&self) -> DisplayInside {
         match *self {
@@ -594,79 +612,60 @@ impl ComputedValuesExt for ComputedValues {
     /// flex containers, and grid containers. And some box types only accept a few values.
     /// <https://www.w3.org/TR/css-overflow-3/#overflow-control>
     fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow {
-        let style_box = self.get_box();
-        let mut overflow_x = style_box.overflow_x;
-        let mut overflow_y = style_box.overflow_y;
-
-        // Inline boxes should never establish scroll containers.
-        if self.is_inline_box(fragment_flags) {
-            return AxesOverflow {
-                x: Overflow::Visible,
-                y: Overflow::Visible,
-            };
-        }
-
         // https://www.w3.org/TR/css-overflow-3/#overflow-propagation
         // The element from which the value is propagated must then have a used overflow value of visible.
         if fragment_flags.contains(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT) {
-            return AxesOverflow {
-                x: Overflow::Visible,
-                y: Overflow::Visible,
-            };
+            return AxesOverflow::default();
         }
+
+        let mut overflow = AxesOverflow::from(self);
 
         // From <https://www.w3.org/TR/css-overflow-4/#overflow-control>:
         // "On replaced elements, the used values of all computed values other than visible is clip."
         if fragment_flags.contains(FragmentFlags::IS_REPLACED) {
-            if overflow_x != Overflow::Visible {
-                overflow_x = Overflow::Clip;
+            if overflow.x != Overflow::Visible {
+                overflow.x = Overflow::Clip;
             }
-            if overflow_y != Overflow::Visible {
-                overflow_y = Overflow::Clip;
+            if overflow.y != Overflow::Visible {
+                overflow.y = Overflow::Clip;
             }
-            return AxesOverflow {
-                x: overflow_x,
-                y: overflow_y,
-            };
+            return overflow;
         }
 
-        let ignores_overflow = match style_box.display.inside() {
+        let ignores_overflow = match self.get_box().display.inside() {
+            // <https://drafts.csswg.org/css-overflow-3/#overflow-control>
+            // `overflow` doesn't apply to inline boxes.
+            stylo::DisplayInside::Flow => self.is_inline_box(fragment_flags),
+
+            // According to <https://drafts.csswg.org/css-tables/#global-style-overrides>,
+            // - overflow applies to table-wrapper boxes and not to table grid boxes.
+            //   That's what Blink and WebKit do, however Firefox matches a CSSWG resolution that says
+            //   the opposite: <https://lists.w3.org/Archives/Public/www-style/2012Aug/0298.html>
+            //   Due to the way that we implement table-wrapper boxes, it's easier to align with Firefox.
+            // - Tables ignore overflow values different than visible, clip and hidden.
+            //   This affects both axes, to ensure they have the same scrollability.
             stylo::DisplayInside::Table => {
-                // According to <https://drafts.csswg.org/css-tables/#global-style-overrides>,
-                // - overflow applies to table-wrapper boxes and not to table grid boxes.
-                //   That's what Blink and WebKit do, however Firefox matches a CSSWG resolution that says
-                //   the opposite: <https://lists.w3.org/Archives/Public/www-style/2012Aug/0298.html>
-                //   Due to the way that we implement table-wrapper boxes, it's easier to align with Firefox.
-                // - Tables ignore overflow values different than visible, clip and hidden.
-                //   This affects both axes, to ensure they have the same scrollability.
                 !matches!(self.pseudo(), Some(PseudoElement::ServoTableGrid)) ||
-                    matches!(overflow_x, Overflow::Auto | Overflow::Scroll) ||
-                    matches!(overflow_y, Overflow::Auto | Overflow::Scroll)
+                    matches!(overflow.x, Overflow::Auto | Overflow::Scroll) ||
+                    matches!(overflow.y, Overflow::Auto | Overflow::Scroll)
             },
+
+            // <https://drafts.csswg.org/css-tables/#global-style-overrides>
+            // Table-track and table-track-group boxes ignore overflow.
             stylo::DisplayInside::TableColumn |
             stylo::DisplayInside::TableColumnGroup |
             stylo::DisplayInside::TableRow |
             stylo::DisplayInside::TableRowGroup |
             stylo::DisplayInside::TableHeaderGroup |
-            stylo::DisplayInside::TableFooterGroup => {
-                // <https://drafts.csswg.org/css-tables/#global-style-overrides>
-                // Table-track and table-track-group boxes ignore overflow.
-                true
-            },
+            stylo::DisplayInside::TableFooterGroup => true,
+
             _ => false,
         };
-
         if ignores_overflow {
-            AxesOverflow {
-                x: Overflow::Visible,
-                y: Overflow::Visible,
-            }
-        } else {
-            AxesOverflow {
-                x: overflow_x,
-                y: overflow_y,
-            }
+            return AxesOverflow::default();
         }
+
+        overflow
     }
 
     /// Return true if this style is a normal block and establishes

@@ -31,7 +31,7 @@ use crate::fragment_tree::{FragmentFlags, FragmentTree};
 use crate::geom::{LogicalVec2, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContents;
-use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
+use crate::style_ext::{AxesOverflow, Display, DisplayGeneratingBox, DisplayInside};
 use crate::taffy::{TaffyItemBox, TaffyItemBoxInner};
 use crate::{DefiniteContainingBlock, PropagatedBoxTreeData};
 
@@ -60,11 +60,10 @@ impl BoxTree {
         // > used overflow value of visible.
         let root_style = root_element.style(&context.style_context);
 
-        let mut viewport_overflow_x = root_style.clone_overflow_x();
-        let mut viewport_overflow_y = root_style.clone_overflow_y();
+        let mut viewport_overflow = AxesOverflow::from(&*root_style);
         let mut element_propagating_overflow = root_element;
-        if viewport_overflow_x == Overflow::Visible &&
-            viewport_overflow_y == Overflow::Visible &&
+        if viewport_overflow.x == Overflow::Visible &&
+            viewport_overflow.y == Overflow::Visible &&
             !root_style.get_box().display.is_none()
         {
             for child in root_element.children() {
@@ -77,8 +76,7 @@ impl BoxTree {
 
                 let style = child.style(&context.style_context);
                 if !style.get_box().display.is_none() {
-                    viewport_overflow_x = style.clone_overflow_x();
-                    viewport_overflow_y = style.clone_overflow_y();
+                    viewport_overflow = AxesOverflow::from(&*style);
                     element_propagating_overflow = child;
 
                     break;
@@ -112,8 +110,8 @@ impl BoxTree {
             // > If visible is applied to the viewport, it must be interpreted as auto.
             // > If clip is applied to the viewport, it must be interpreted as hidden.
             viewport_scroll_sensitivity: AxesScrollSensitivity {
-                x: viewport_overflow_x.to_scrollable().into(),
-                y: viewport_overflow_y.to_scrollable().into(),
+                x: viewport_overflow.x.to_scrollable().into(),
+                y: viewport_overflow.y.to_scrollable().into(),
             },
         }
     }
