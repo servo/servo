@@ -8,8 +8,8 @@ use ipc_channel::ipc::IpcSender;
 use log::{error, info};
 use net_traits::indexeddb_thread::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
-    CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath,
-    PutItemResult,
+    CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTxnMode,
+    KeyPath, PutItemResult,
 };
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
@@ -223,6 +223,16 @@ impl SqliteEngine {
     ) -> Result<Vec<Vec<u8>>, Error> {
         Self::get_all(connection, store, key_range, count)
             .map(|models| models.into_iter().map(|m| m.data).collect())
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn get_all_records(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Error> {
+        Self::get_all(connection, store, key_range, None)
+            .map(|models| models.into_iter().map(|m| (m.key, m.data)).collect())
     }
 
     fn put_item(
@@ -504,6 +514,28 @@ impl KvsEngine for SqliteEngine {
                         let _ = sender.send(
                             Self::count(&connection, object_store, key_range)
                                 .map(|r| r as u64)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
+                        sender,
+                        key_range,
+                    }) => {
+                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                            continue;
+                        };
+                        let _ = sender.send(
+                            Self::get_all_records(&connection, object_store, key_range)
+                                .map(|records| {
+                                    records
+                                        .into_iter()
+                                        .map(|(key, data)| IndexedDBRecord {
+                                            key: bincode::deserialize(&key).unwrap(),
+                                            primary_key: bincode::deserialize(&key).unwrap(),
+                                            value: data,
+                                        })
+                                        .collect()
+                                })
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },

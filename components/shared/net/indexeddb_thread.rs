@@ -233,6 +233,14 @@ impl IndexedDBKeyRange {
     }
 }
 
+/// <https://w3c.github.io/IndexedDB/#record-snapshot>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct IndexedDBRecord {
+    pub key: IndexedDBKeyType,
+    pub primary_key: IndexedDBKeyType,
+    pub value: Vec<u8>,
+}
+
 #[test]
 fn test_as_singleton() {
     let key = IndexedDBKeyType::Number(1.0);
@@ -279,6 +287,10 @@ pub enum AsyncReadOnlyOperation {
 
     Count {
         sender: IpcSender<BackendResult<u64>>,
+        key_range: IndexedDBKeyRange,
+    },
+    Iterate {
+        sender: IpcSender<BackendResult<Vec<IndexedDBRecord>>>,
         key_range: IndexedDBKeyRange,
     },
 }
