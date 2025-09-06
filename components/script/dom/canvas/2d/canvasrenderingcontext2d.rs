@@ -350,6 +350,19 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         self.mark_as_dirty();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroketext
+    fn StrokeText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
+        self.canvas_state.stroke_text(
+            &self.global(),
+            self.canvas.canvas().as_deref(),
+            text,
+            x,
+            y,
+            max_width,
+        );
+        self.mark_as_dirty();
+    }
+
     // https://html.spec.whatwg.org/multipage/#textmetrics
     fn MeasureText(&self, text: DOMString, can_gc: CanGc) -> DomRoot<TextMetrics> {
         self.canvas_state.measure_text(

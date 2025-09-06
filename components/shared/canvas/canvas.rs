@@ -492,6 +492,15 @@ pub enum Canvas2dMsg {
         CompositionOptions,
         Transform2D<f64>,
     ),
+    StrokeText(
+        Rect<f64>,
+        Vec<TextRun>,
+        FillOrStrokeStyle,
+        LineOptions,
+        ShadowOptions,
+        CompositionOptions,
+        Transform2D<f64>,
+    ),
     FillRect(
         Rect<f32>,
         FillOrStrokeStyle,
