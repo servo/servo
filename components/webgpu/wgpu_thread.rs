@@ -572,7 +572,7 @@ impl WGPU {
                     },
                     WebGPURequest::DestroyBuffer(buffer) => {
                         let global = &self.global;
-                        let _result = global.buffer_destroy(buffer);
+                        global.buffer_destroy(buffer);
                     },
                     WebGPURequest::DestroyDevice(device) => {
                         let global = &self.global;
@@ -582,7 +582,7 @@ impl WGPU {
                     },
                     WebGPURequest::DestroyTexture(texture_id) => {
                         let global = &self.global;
-                        let _ = global.texture_destroy(texture_id);
+                        global.texture_destroy(texture_id);
                     },
                     WebGPURequest::Exit(sender) => {
                         if let Err(e) = sender.send(()) {
