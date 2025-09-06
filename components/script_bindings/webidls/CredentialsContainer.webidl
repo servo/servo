@@ -24,9 +24,9 @@ interface CredentialsContainer {
 dictionary CredentialRequestOptions {
   CredentialMediationRequirement mediation = "optional";
   AbortSignal signal;
-    // FIXME: This should be part of a partial dictionary, but that is not implemented yet
-    // From PasswordCredential.webidl
-    boolean password = false;
+   // FIXME: This should be part of a partial dictionary, but that is not implemented yet
+   // From PasswordCredential.webidl
+   boolean password = false;
 };
 
 // https://www.w3.org/TR/credential-management-1/#dictdef-credentialcreationoptions

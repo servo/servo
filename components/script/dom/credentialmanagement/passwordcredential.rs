@@ -10,7 +10,7 @@ use script_bindings::str::USVString;
 
 use crate::dom::bindings::codegen::Bindings::PasswordCredentialBinding::PasswordCredentialMethods;
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::credentialmanagement::credential::Credential;
 use crate::dom::globalscope::GlobalScope;
@@ -28,7 +28,7 @@ pub(crate) struct PasswordCredential {
 }
 
 impl PasswordCredential {
-    pub(crate) fn new_inherited(
+    fn new_inherited(
         id: USVString,
         origin: USVString,
         password: USVString,
@@ -61,6 +61,26 @@ impl PasswordCredential {
             can_gc,
         )
     }
+
+    pub(crate) fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        id: USVString,
+        origin: USVString,
+        password: USVString,
+        name: Option<USVString>,
+        icon_url: Option<USVString>,
+        can_gc: CanGc,
+    ) -> DomRoot<PasswordCredential> {
+        reflect_dom_object_with_proto(
+            Box::new(PasswordCredential::new_inherited(
+                id, origin, password, name, icon_url,
+            )),
+            global,
+            proto,
+            can_gc,
+        )
+    }
 }
 
 impl PasswordCredentialMethods<DomTypeHolder> for PasswordCredential {
@@ -87,12 +107,13 @@ impl PasswordCredentialMethods<DomTypeHolder> for PasswordCredential {
 
     fn Constructor_(
         global: &Window,
-        _proto: Option<HandleObject>,
+        proto: Option<HandleObject>,
         can_gc: CanGc,
         data: &PasswordCredentialData,
     ) -> Fallible<DomRoot<PasswordCredential>> {
-        Ok(Self::new(
+        Ok(Self::new_with_proto(
             global.as_global_scope(),
+            proto,
             data.parent.id.clone(),
             data.origin.clone(),
             data.password.clone(),
