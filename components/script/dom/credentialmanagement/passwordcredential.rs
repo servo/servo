@@ -23,40 +23,27 @@ pub(crate) struct PasswordCredential {
     credential: Credential,
     origin: USVString,
     password: USVString,
-    name: Option<USVString>,
-    icon_url: Option<USVString>,
 }
 
 impl PasswordCredential {
-    fn new_inherited(
-        id: USVString,
-        origin: USVString,
-        password: USVString,
-        name: Option<USVString>,
-        icon_url: Option<USVString>,
-    ) -> PasswordCredential {
+    fn new_inherited(id: USVString, origin: USVString, password: USVString) -> PasswordCredential {
         PasswordCredential {
             credential: Credential::new_inherited(id, "password".into()),
             origin,
             password,
-            name,
-            icon_url,
         }
     }
 
+    #[expect(dead_code)]
     pub(crate) fn new(
         global: &GlobalScope,
         id: USVString,
         origin: USVString,
         password: USVString,
-        name: Option<USVString>,
-        icon_url: Option<USVString>,
         can_gc: CanGc,
     ) -> DomRoot<PasswordCredential> {
         reflect_dom_object(
-            Box::new(PasswordCredential::new_inherited(
-                id, origin, password, name, icon_url,
-            )),
+            Box::new(PasswordCredential::new_inherited(id, origin, password)),
             global,
             can_gc,
         )
@@ -68,14 +55,10 @@ impl PasswordCredential {
         id: USVString,
         origin: USVString,
         password: USVString,
-        name: Option<USVString>,
-        icon_url: Option<USVString>,
         can_gc: CanGc,
     ) -> DomRoot<PasswordCredential> {
         reflect_dom_object_with_proto(
-            Box::new(PasswordCredential::new_inherited(
-                id, origin, password, name, icon_url,
-            )),
+            Box::new(PasswordCredential::new_inherited(id, origin, password)),
             global,
             proto,
             can_gc,
@@ -86,14 +69,6 @@ impl PasswordCredential {
 impl PasswordCredentialMethods<DomTypeHolder> for PasswordCredential {
     fn Password(&self) -> USVString {
         self.password.clone()
-    }
-
-    fn GetName(&self) -> Option<USVString> {
-        self.name.clone()
-    }
-
-    fn GetIconURL(&self) -> Option<USVString> {
-        self.icon_url.clone()
     }
 
     fn Constructor(
@@ -117,8 +92,6 @@ impl PasswordCredentialMethods<DomTypeHolder> for PasswordCredential {
             data.parent.id.clone(),
             data.origin.clone(),
             data.password.clone(),
-            data.name.clone(),
-            data.iconURL.clone(),
             can_gc,
         ))
     }

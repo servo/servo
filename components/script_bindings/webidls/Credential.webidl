@@ -14,11 +14,3 @@ interface Credential {
   static Promise<boolean> isConditionalMediationAvailable();
   static Promise<undefined> willRequestConditionalCreation();
 };
-
-// https://www.w3.org/TR/credential-management-1/#credentialuserdata
-[SecureContext]
-interface mixin CredentialUserData {
-  // TODO: seems like interface mixins are broken: these should be optional by default?
-  readonly attribute USVString? name;
-  readonly attribute USVString? iconURL;
-};

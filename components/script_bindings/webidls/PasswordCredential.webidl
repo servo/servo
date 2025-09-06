@@ -13,7 +13,6 @@ interface PasswordCredential : Credential {
   [Throws] constructor(PasswordCredentialData data);
   readonly attribute USVString password;
 };
-PasswordCredential includes CredentialUserData;
 
 // https://www.w3.org/TR/credential-management-1/#dictdef-passwordcredentialdata
 dictionary PasswordCredentialData : CredentialData {
