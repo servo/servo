@@ -185,7 +185,15 @@ impl RequestListener {
                     let param = self.iteration_param.as_ref().expect(
                         "iteration_param must be provided by IDBRequest::execute_async for Iterate",
                     );
-                    if let Some(cursor) = iterate_cursor(&global, cx, param, records) {
+                    let cursor = match iterate_cursor(&global, cx, param, records) {
+                        Ok(cursor) => cursor,
+                        Err(e) => {
+                            warn!("Error reading structuredclone data");
+                            Self::handle_async_request_error(&global, cx, request, e);
+                            return;
+                        },
+                    };
+                    if let Some(cursor) = cursor {
                         match cursor.downcast::<IDBCursorWithValue>() {
                             Some(cursor_with_value) => {
                                 answer.handle_mut().set(ObjectValue(
