@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::iter::repeat_n;
 
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
@@ -15,6 +16,7 @@ use net_traits::indexeddb_thread::{
     IndexedDBTxnMode, PutItemResult,
 };
 use profile_traits::ipc::IpcReceiver;
+use script_bindings::conversions::SafeToJSValConvertible;
 use serde::{Deserialize, Serialize};
 use stylo_atoms::Atom;
 
@@ -45,7 +47,9 @@ struct RequestListener {
 
 pub enum IdbResult {
     Key(IndexedDBKeyType),
-    Data(Vec<u8>),
+    Keys(Vec<IndexedDBKeyType>),
+    Value(Vec<u8>),
+    Values(Vec<Vec<u8>>),
     Count(u64),
     Error(Error),
     None,
@@ -57,9 +61,21 @@ impl From<IndexedDBKeyType> for IdbResult {
     }
 }
 
+impl From<Vec<IndexedDBKeyType>> for IdbResult {
+    fn from(value: Vec<IndexedDBKeyType>) -> Self {
+        IdbResult::Keys(value)
+    }
+}
+
 impl From<Vec<u8>> for IdbResult {
     fn from(value: Vec<u8>) -> Self {
-        IdbResult::Data(value)
+        IdbResult::Value(value)
+    }
+}
+
+impl From<Vec<Vec<u8>>> for IdbResult {
+    fn from(value: Vec<Vec<u8>>) -> Self {
+        IdbResult::Values(value)
     }
 }
 
@@ -115,7 +131,16 @@ impl RequestListener {
                 IdbResult::Key(key) => {
                     key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut())
                 },
-                IdbResult::Data(serialized_data) => {
+                IdbResult::Keys(keys) => {
+                    rooted_vec!(let mut array <- repeat_n(UndefinedValue(), keys.len()));
+                    for (count, key) in keys.into_iter().enumerate() {
+                        rooted!(in(*cx) let mut val = UndefinedValue());
+                        key_type_to_jsval(GlobalScope::get_cx(), &key, val.handle_mut());
+                        array[count] = val.get();
+                    }
+                    array.safe_to_jsval(cx, answer.handle_mut());
+                },
+                IdbResult::Value(serialized_data) => {
                     let result = bincode::deserialize(&serialized_data)
                         .map_err(|_| Error::Data)
                         .and_then(|data| structuredclone::read(&global, data, answer.handle_mut()));
@@ -124,6 +149,24 @@ impl RequestListener {
                         Self::handle_async_request_error(&global, cx, request, e);
                         return;
                     };
+                },
+                IdbResult::Values(serialized_values) => {
+                    rooted_vec!(let mut values <- repeat_n(UndefinedValue(), serialized_values.len()));
+                    for (count, serialized_data) in serialized_values.into_iter().enumerate() {
+                        rooted!(in(*cx) let mut val = UndefinedValue());
+                        let result = bincode::deserialize(&serialized_data)
+                            .map_err(|_| Error::Data)
+                            .and_then(|data| {
+                                structuredclone::read(&global, data, val.handle_mut())
+                            });
+                        if let Err(e) = result {
+                            warn!("Error reading structuredclone data");
+                            Self::handle_async_request_error(&global, cx, request, e);
+                            return;
+                        };
+                        values[count] = val.get();
+                    }
+                    values.safe_to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Count(count) => {
                     answer.handle_mut().set(DoubleValue(count as f64));

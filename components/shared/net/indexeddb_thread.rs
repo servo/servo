@@ -248,7 +248,7 @@ fn test_as_singleton() {
     assert!(full_range.as_singleton().is_none());
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum PutItemResult {
     Success,
     CannotOverwrite,
@@ -264,6 +264,17 @@ pub enum AsyncReadOnlyOperation {
     GetItem {
         sender: IpcSender<BackendResult<Option<Vec<u8>>>>,
         key_range: IndexedDBKeyRange,
+    },
+
+    GetAllKeys {
+        sender: IpcSender<BackendResult<Vec<IndexedDBKeyType>>>,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    },
+    GetAllItems {
+        sender: IpcSender<BackendResult<Vec<Vec<u8>>>>,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
     },
 
     Count {

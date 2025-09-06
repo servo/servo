@@ -283,7 +283,7 @@ impl IDBObjectStore {
 }
 
 impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put>
     fn Put(
         &self,
         cx: SafeJSContext,
@@ -293,7 +293,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.put(cx, value, key, true, CanGc::note())
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-add
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-add>
     fn Add(
         &self,
         cx: SafeJSContext,
@@ -303,7 +303,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.put(cx, value, key, false, CanGc::note())
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete>
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -331,7 +331,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear>
     fn Clear(&self) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -355,7 +355,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         )
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get>
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -385,7 +385,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey>
     fn GetKey(&self, cx: SafeJSContext, query: HandleValue) -> Result<DomRoot<IDBRequest>, Error> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -416,27 +416,81 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getall
-    // fn GetAll(
-    //     &self,
-    //     _cx: SafeJSContext,
-    //     _query: HandleValue,
-    //     _count: Option<u32>,
-    // ) -> DomRoot<IDBRequest> {
-    //     unimplemented!();
-    // }
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getall>
+    fn GetAll(
+        &self,
+        cx: SafeJSContext,
+        query: HandleValue,
+        count: Option<u32>,
+    ) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. Let store be this's object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getallkeys
-    // fn GetAllKeys(
-    //     &self,
-    //     _cx: SafeJSContext,
-    //     _query: HandleValue,
-    //     _count: Option<u32>,
-    // ) -> DomRoot<IDBRequest> {
-    //     unimplemented!();
-    // }
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        self.check_transaction_active()?;
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count
+        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        let serialized_query = convert_value_to_key_range(cx, query, None);
+
+        // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
+        // The steps are run with this object store handle as source and the steps to retrieve a key from an object
+        // store as operation, using store and range.
+        let (sender, receiver) = indexed_db::create_channel(self.global());
+        serialized_query.and_then(|q| {
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                    sender,
+                    key_range: q,
+                    count,
+                }),
+                receiver,
+                None,
+                CanGc::note(),
+            )
+        })
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getallkeys>
+    fn GetAllKeys(
+        &self,
+        cx: SafeJSContext,
+        query: HandleValue,
+        count: Option<u32>,
+    ) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. Let store be this's object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        self.check_transaction_active()?;
+
+        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        let serialized_query = convert_value_to_key_range(cx, query, None);
+
+        // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
+        // The steps are run with this object store handle as source and the steps to retrieve a key from an object
+        // store as operation, using store and range.
+        let (sender, receiver) = indexed_db::create_channel(self.global());
+        serialized_query.and_then(|q| {
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllKeys {
+                    sender,
+                    key_range: q,
+                    count,
+                }),
+                receiver,
+                None,
+                CanGc::note(),
+            )
+        })
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count>
     fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -466,12 +520,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-name
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-name>
     fn Name(&self) -> DOMString {
         self.name.borrow().clone()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-setname
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-setname>
     fn SetName(&self, value: DOMString) -> ErrorResult {
         // Step 2. Let transaction be this’s transaction.
         let transaction = &self.transaction;
@@ -501,12 +555,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     //     unimplemented!();
     // }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction>
     fn Transaction(&self) -> DomRoot<IDBTransaction> {
         self.transaction()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-autoincrement
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-autoincrement>
     fn AutoIncrement(&self) -> bool {
         self.has_key_generator()
     }
