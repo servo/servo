@@ -34,6 +34,7 @@ use crate::dom::bindings::utils::to_frozen_array;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::clipboard::Clipboard;
+use crate::dom::credentialmanagement::credentialscontainer::CredentialsContainer;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
@@ -66,6 +67,7 @@ pub(crate) struct Navigator {
     reflector_: Reflector,
     #[cfg(feature = "bluetooth")]
     bluetooth: MutNullableDom<Bluetooth>,
+    credentials: MutNullableDom<CredentialsContainer>,
     plugins: MutNullableDom<PluginArray>,
     mime_types: MutNullableDom<MimeTypeArray>,
     service_worker: MutNullableDom<ServiceWorkerContainer>,
@@ -90,6 +92,7 @@ impl Navigator {
             reflector_: Reflector::new(),
             #[cfg(feature = "bluetooth")]
             bluetooth: Default::default(),
+            credentials: Default::default(),
             plugins: Default::default(),
             mime_types: Default::default(),
             service_worker: Default::default(),
@@ -227,6 +230,12 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn Bluetooth(&self) -> DomRoot<Bluetooth> {
         self.bluetooth
             .or_init(|| Bluetooth::new(&self.global(), CanGc::note()))
+    }
+
+    // https://www.w3.org/TR/credential-management-1/#framework-credential-management
+    fn Credentials(&self) -> DomRoot<CredentialsContainer> {
+        self.credentials
+            .or_init(|| CredentialsContainer::new(&self.global(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#navigatorlanguage

@@ -114,6 +114,7 @@ WEBIDL_STANDARDS = [
     b"//dev.w3.org/fxtf",
     b"//dvcs.w3.org/hg",
     b"//www.w3.org/TR/trusted-types/",
+    b"//www.w3.org/TR/credential-management",
     b"//dom.spec.whatwg.org",
     b"//drafts.csswg.org",
     b"//drafts.css-houdini.org",

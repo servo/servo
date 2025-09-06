@@ -245,6 +245,8 @@ pub(crate) mod console;
 pub(crate) mod cookiestore;
 pub(crate) mod countqueuingstrategy;
 mod create;
+pub(crate) mod credentialmanagement;
+pub(crate) use self::credentialmanagement::*;
 pub(crate) mod crypto;
 pub(crate) mod cryptokey;
 pub(crate) mod csp;
