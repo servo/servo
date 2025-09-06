@@ -7545,7 +7545,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             insertion = (
                 f"rooted!(in(cx) let mut {varName}_js = UndefinedValue());\n"
                 f"{varName}.to_jsval(cx, {varName}_js.handle_mut());\n"
-                f'set_dictionary_property(cx, obj.handle(), "{dictionaryName}", {varName}_js.handle()).unwrap();')
+                f'set_dictionary_property(SafeJSContext::from_ptr(cx), obj.handle(), "{dictionaryName}", {varName}_js.handle()).unwrap();')
             return CGGeneric(insertion)
 
         def memberInsert(memberInfo: tuple[IDLArgument, JSToNativeConversionInfo]) -> CGThing:
