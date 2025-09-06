@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::iter::repeat_n;
+
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
@@ -155,7 +156,9 @@ impl RequestListener {
                         rooted!(in(*cx) let mut val = UndefinedValue());
                         let result = bincode::deserialize(&serialized_data)
                             .map_err(|_| Error::Data)
-                            .and_then(|data| structuredclone::read(&global, data, val.handle_mut()));
+                            .and_then(|data| {
+                                structuredclone::read(&global, data, val.handle_mut())
+                            });
                         if let Err(e) = result {
                             warn!("Error reading structuredclone data");
                             Self::handle_async_request_error(&global, cx, request, e);
