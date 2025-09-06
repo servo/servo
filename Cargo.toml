@@ -18,7 +18,7 @@ publish = false
 # why we should consider increasing our minimum supported rust version.
 # Please also note, that the **default** rust version in rust-toolchain.toml may be
 # bumped freely.
-rust-version = "1.85.0"
+rust-version = "1.86.0"
 
 [workspace.dependencies]
 accountable-refcell = "0.2.2"
