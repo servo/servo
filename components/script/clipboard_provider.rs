@@ -28,11 +28,11 @@ impl ClipboardProvider for EmbedderClipboardProvider {
         self.embedder_sender
             .send(EmbedderMsg::GetClipboardText(self.webview_id, tx))
             .unwrap();
-        rx.recv().unwrap()
+        rx.recv().unwrap().map(Into::into).map_err(Into::into)
     }
-    fn set_text(&mut self, s: String) {
+    fn set_text(&mut self, value: String) {
         self.embedder_sender
-            .send(EmbedderMsg::SetClipboardText(self.webview_id, s))
+            .send(EmbedderMsg::SetClipboardText(self.webview_id, value.into()))
             .unwrap();
     }
 }
