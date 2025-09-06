@@ -231,15 +231,8 @@ impl SqliteEngine {
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
     ) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Error> {
-        // TODO: Rebase after PR 38885, which provides Self::get_all, is merged.
-        //
-        // Self::get_all(connection, store, key_range, None).map(|models| {
-        //     models
-        //         .into_iter()
-        //         .map(|model| (model.key, model.data))
-        //         .collect()
-        // })
-        todo!()
+        Self::get_all(connection, store, key_range, None)
+            .map(|models| models.into_iter().map(|m| (m.key, m.data)).collect())
     }
 
     fn put_item(
