@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 
-use constellation_traits::StructuredSerializedData;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
@@ -16,6 +15,7 @@ use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::{
     IDBCursorDirection, IDBCursorMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::IDBObjectStoreOrIDBIndex;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -215,7 +215,7 @@ pub(crate) fn iterate_cursor(
     cx: SafeJSContext,
     param: &IterationParam,
     records: Vec<IndexedDBRecord>,
-) -> Option<DomRoot<IDBCursor>> {
+) -> Result<Option<DomRoot<IDBCursor>>, Error> {
     // Unpack IterationParam
     let cursor = param.cursor.root();
     let key = param.key.clone();
@@ -448,7 +448,7 @@ pub(crate) fn iterate_cursor(
                 }
 
                 // Step 9.2.4. Return null.
-                return None;
+                return Ok(None);
             },
             Some(found_record) => {
                 // Step 9.3. Let position be found record’s key.
@@ -481,16 +481,11 @@ pub(crate) fn iterate_cursor(
     // Step 13. If cursor’s key only flag is unset, then:
     if !cursor.key_only {
         // Step 13.1. Let serialized be found record’s referenced value.
-        let serialized = StructuredSerializedData {
-            serialized: found_record.value.clone(),
-            ..Default::default()
-        };
-
         // Step 13.2. Set cursor’s value to ! StructuredDeserialize(serialized, targetRealm)
-        rooted!(in(*cx) let mut new_cursor_value: JSVal);
-        if structuredclone::read(global, serialized, new_cursor_value.handle_mut()).is_err() {
-            warn!("Error reading structuredclone data");
-        }
+        rooted!(in(*cx) let mut new_cursor_value = UndefinedValue());
+        bincode::deserialize(&found_record.value)
+            .map_err(|_| Error::Data)
+            .and_then(|data| structuredclone::read(global, data, new_cursor_value.handle_mut()))?;
         cursor.value.set(new_cursor_value.get());
     }
 
@@ -498,5 +493,5 @@ pub(crate) fn iterate_cursor(
     cursor.got_value.set(true);
 
     // Step 15. Return cursor.
-    Some(cursor)
+    Ok(Some(cursor))
 }
