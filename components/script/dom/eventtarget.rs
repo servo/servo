@@ -720,7 +720,7 @@ impl EventTarget {
         };
 
         // Step 3.2
-        if !document.is_scripting_enabled() {
+        if !document.scripting_enabled() {
             return None;
         }
 
