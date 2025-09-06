@@ -210,30 +210,27 @@ pub fn convert_value_to_key(
             }
 
             if let ESClass::Array = built_in_class {
-                // FIXME:(arihant2math)
-                let mut len = MaybeUninit::uninit();
-                if !GetArrayLength(*cx, object.handle().into_handle(), len.as_mut_ptr()) {
-                    return Err(Error::InvalidState);
+                let mut len = 0;
+                if !GetArrayLength(*cx, object.handle().into_handle(), &mut len) {
+                    return Err(Error::JSFailed);
                 }
-                let len = len.assume_init();
                 seen.push(input);
                 let mut values = vec![];
                 for i in 0..len {
-                    rooted!(in(*cx) let mut id: PropertyKey = std::mem::zeroed());
+                    rooted!(in(*cx) let mut id: PropertyKey);
                     if !JS_IndexToId(*cx, i, js::jsapi::MutableHandleId::from(id.handle_mut())) {
-                        return Err(Error::InvalidState);
+                        return Err(Error::JSFailed);
                     }
-                    let mut hop = MaybeUninit::uninit();
+                    let mut has_own = false;
                     if !JS_HasOwnPropertyById(
                         *cx,
                         object.handle().into_handle(),
                         id.handle().into_handle(),
-                        hop.as_mut_ptr(),
+                        &mut has_own,
                     ) {
-                        return Err(Error::InvalidState);
+                        return Err(Error::JSFailed);
                     }
-                    let hop = hop.assume_init();
-                    if !hop {
+                    if !has_own {
                         return Err(Error::InvalidState);
                     }
                     rooted!(in(*cx) let mut item = UndefinedValue());
@@ -243,10 +240,7 @@ pub fn convert_value_to_key(
                         id.handle().into_handle(),
                         item.handle_mut().into_handle_mut(),
                     ) {
-                        return Err(Error::InvalidState);
-                    }
-                    if item.is_undefined() {
-                        return Err(Error::InvalidState);
+                        return Err(Error::JSFailed);
                     }
                     values.push(convert_value_to_key(cx, item.handle(), Some(seen.clone()))?);
                 }
