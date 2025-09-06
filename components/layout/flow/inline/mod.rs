@@ -127,6 +127,7 @@ use crate::fragment_tree::{
 use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::replaced::ReplacedContents;
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::{ConstraintSpace, ContainingBlock, SharedStyle};
@@ -243,6 +244,24 @@ impl InlineItem {
                 .repair_style(context, node, new_style),
             InlineItem::Atomic(atomic, ..) => {
                 atomic.borrow_mut().repair_style(context, node, new_style)
+            },
+        }
+    }
+
+    pub(crate) fn repair_replaced_contents(&self, new_contents: ReplacedContents) {
+        match self {
+            InlineItem::StartInlineBox(..) | InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
+            },
+            InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => positioned_box
+                .borrow_mut()
+                .context
+                .repair_replaced_contents(new_contents),
+            InlineItem::OutOfFlowFloatBox(float_box) => float_box
+                .borrow_mut()
+                .contents
+                .repair_replaced_contents(new_contents),
+            InlineItem::Atomic(atomic, ..) => {
+                atomic.borrow_mut().repair_replaced_contents(new_contents)
             },
         }
     }

@@ -23,6 +23,7 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::replaced::ReplacedContents;
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct TaffyContainer {
@@ -184,6 +185,18 @@ impl TaffyItemBox {
                 .borrow_mut()
                 .context
                 .repair_style(context, node, new_style),
+        }
+    }
+
+    pub(crate) fn repair_replaced_contents(&mut self, new_contents: ReplacedContents) {
+        match &mut self.taffy_level_box {
+            TaffyItemBoxInner::InFlowBox(independent_formatting_context) => {
+                independent_formatting_context.repair_replaced_contents(new_contents)
+            },
+            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
+                .borrow_mut()
+                .context
+                .repair_replaced_contents(new_contents),
         }
     }
 

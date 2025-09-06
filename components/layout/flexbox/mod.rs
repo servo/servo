@@ -25,6 +25,7 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
+use crate::replaced::ReplacedContents;
 
 mod geom;
 mod layout;
@@ -174,6 +175,18 @@ impl FlexLevelBox {
                 .borrow_mut()
                 .context
                 .repair_style(context, node, new_style),
+        }
+    }
+
+    pub(crate) fn repair_replaced_contents(&mut self, new_contents: ReplacedContents) {
+        match self {
+            FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
+                .independent_formatting_context
+                .repair_replaced_contents(new_contents),
+            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
+                .borrow_mut()
+                .context
+                .repair_replaced_contents(new_contents),
         }
     }
 

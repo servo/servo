@@ -269,6 +269,7 @@ fn traverse_pseudo_element_contents<'dom>(
                     Display::from(anonymous_info.style.get_box().display) ==
                         Display::GeneratingBox(display_inline)
                 );
+
                 handler.handle_element(
                     anonymous_info,
                     display_inline,

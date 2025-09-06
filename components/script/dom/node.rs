@@ -821,12 +821,12 @@ impl Node {
         match self.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
                 // For content changes in text nodes, we should accurately use
-                // [`NodeDamage::ContentOrHeritage`] to mark the parent node, thereby
+                // [`NodeDamage::NonReplacedContentsOrHeritage`] to mark the parent node, thereby
                 // reducing the scope of incremental box tree construction.
                 self.parent_node
                     .get()
                     .unwrap()
-                    .dirty(NodeDamage::ContentOrHeritage)
+                    .dirty(NodeDamage::NonReplacedContentsOrHeritage)
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => self
@@ -4092,9 +4092,12 @@ impl VirtualMethods for Node {
 pub(crate) enum NodeDamage {
     /// The node's `style` attribute changed.
     Style,
-    /// The node's content or heritage changed, such as the addition or removal of
-    /// children.
-    ContentOrHeritage,
+    /// The node's replaced content changed, such as an image element's image
+    /// data status changed from pending to loaded.
+    ReplacedContents,
+    /// The node's non replaced content or heritage changed, such as the addition
+    /// or removal of children.
+    NonReplacedContentsOrHeritage,
     /// Other parts of a node changed; attributes, text content, etc.
     Other,
 }

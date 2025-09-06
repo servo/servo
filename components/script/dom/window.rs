@@ -643,7 +643,10 @@ impl Window {
             Entry::Occupied(nodes) => nodes,
             Entry::Vacant(_) => return,
         };
-        if matches!(response.response, ImageResponse::Loaded(_, _)) {
+        if matches!(
+            response.response,
+            ImageResponse::Loaded(_, _) | ImageResponse::PlaceholderLoaded(_, _)
+        ) {
             for node in nodes.get() {
                 node.dirty(NodeDamage::Other);
             }

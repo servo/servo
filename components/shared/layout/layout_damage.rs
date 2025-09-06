@@ -10,6 +10,9 @@ bitflags! {
     /// of `RestyleDamage` from stylo, which only uses the 4 lower bits.
     #[derive(Clone, Copy, Default, Eq, PartialEq)]
     pub struct LayoutDamage: u16 {
+        /// Repair the replaced contents for this element, becase its replaced contents
+        /// have been changed.
+        const REPAIR_REPLACED_CONTENTS = 0b0011_1111_1111 << 4;
         /// Recollect the box children for this element, because some of the them will be
         /// rebuilt.
         const RECOLLECT_BOX_TREE_CHILDREN = 0b0111_1111_1111 << 4;
@@ -20,6 +23,10 @@ bitflags! {
 }
 
 impl LayoutDamage {
+    pub fn repair_replaced_contents() -> RestyleDamage {
+        RestyleDamage::from_bits_retain(LayoutDamage::REPAIR_REPLACED_CONTENTS.bits())
+    }
+
     pub fn recollect_box_tree_children() -> RestyleDamage {
         RestyleDamage::from_bits_retain(LayoutDamage::RECOLLECT_BOX_TREE_CHILDREN.bits())
     }
@@ -29,7 +36,7 @@ impl LayoutDamage {
     }
 
     pub fn has_box_damage(&self) -> bool {
-        self.intersects(Self::REBUILD_BOX)
+        self.contains(Self::RECOLLECT_BOX_TREE_CHILDREN)
     }
 }
 
@@ -45,6 +52,8 @@ impl std::fmt::Debug for LayoutDamage {
             f.write_str("REBUILD_BOX")
         } else if self.contains(Self::RECOLLECT_BOX_TREE_CHILDREN) {
             f.write_str("RECOLLECT_BOX_TREE_CHILDREN")
+        } else if self.contains(Self::REPAIR_REPLACED_CONTENTS) {
+            f.write_str("REPAIR_REPLACED_CONTENTS")
         } else {
             f.write_str("EMPTY")
         }
