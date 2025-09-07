@@ -64,6 +64,8 @@ jobs:
         run: tar -xzf ${{ inputs.profile }}-binary-linux/target.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
         timeout-minutes: 60
         run: |
