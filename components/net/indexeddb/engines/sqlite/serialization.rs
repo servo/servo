@@ -8,11 +8,13 @@ use net_traits::indexeddb_thread::IndexedDBKeyType;
 // Implementation is a port of:
 // https://searchfox.org/firefox-main/rev/55ec080e4a37b7ae1f89267063eccd361cdd232d/dom/indexedDB/Key.cpp#109-187
 
+#[repr(u8)]
 enum KeyType {
     Number = 0x10,
     Date = 0x20,
     String = 0x30,
-    Array = 0x40,
+    Binary = 0x40,
+    Array = 0x50,
 }
 
 impl From<KeyType> for u8 {
@@ -29,7 +31,8 @@ impl TryFrom<u8> for KeyType {
             0x10 => Ok(KeyType::Number),
             0x20 => Ok(KeyType::Date),
             0x30 => Ok(KeyType::String),
-            0x40 => Ok(KeyType::Array),
+            0x40 => Ok(KeyType::Binary),
+            0x50 => Ok(KeyType::Array),
             _ => Err(()),
         }
     }
@@ -83,7 +86,7 @@ pub fn serialize(key: &IndexedDBKeyType) -> Vec<u8> {
         IndexedDBKeyType::String(string) => iter::once(KeyType::String.into())
             .chain(string.as_bytes().iter().copied())
             .collect(),
-        IndexedDBKeyType::Binary(binary) => iter::once(KeyType::String.into())
+        IndexedDBKeyType::Binary(binary) => iter::once(KeyType::Binary.into())
             .chain(binary.iter().copied())
             .collect(),
         // FIXME:(arihant2math) don't use bincode
@@ -111,7 +114,11 @@ pub fn deserialize(data: &[u8]) -> Option<IndexedDBKeyType> {
         Ok(KeyType::String) => Some(IndexedDBKeyType::String(
             String::from_utf8(rest.to_vec()).ok()?,
         )),
-        Ok(KeyType::Array) => bincode::deserialize(rest).ok(),
+        Ok(KeyType::Binary) => Some(IndexedDBKeyType::Binary(rest.to_vec())),
+        Ok(KeyType::Array) => {
+            let array = bincode::deserialize(rest).ok()?;
+            Some(IndexedDBKeyType::Array(array))
+        },
         Err(()) => None,
     }
 }

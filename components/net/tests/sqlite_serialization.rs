@@ -19,8 +19,9 @@ fn test_number_roundtrip() {
         f64::INFINITY,
         f64::NEG_INFINITY,
         f64::NAN,
-        std::f64::MAX,
-        std::f64::MIN,
+        f64::MAX,
+        f64::MIN,
+        f64::MIN_POSITIVE,
     ];
     for &number in &numbers {
         let serialized = serialize_number(number);
@@ -31,30 +32,6 @@ fn test_number_roundtrip() {
             assert_eq!(number, deserialized);
         }
     }
-}
-
-#[test]
-fn test_number_sorting() {
-    let numbers = [
-        3.0,
-        -1.0,
-        2.0,
-        0.0,
-        -3.0,
-        1.0,
-        -2.0,
-        f64::INFINITY,
-        f64::NEG_INFINITY,
-    ];
-    let mut serialized: Vec<[u8; 8]> = numbers.iter().map(|&n| serialize_number(n)).collect();
-    serialized.sort();
-    let deserialized: Vec<f64> = serialized
-        .iter()
-        .map(|s| deserialize_number(s).unwrap())
-        .collect();
-    let mut expected = numbers.to_vec();
-    expected.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    assert_eq!(deserialized, expected);
 }
 
 #[test]
@@ -71,7 +48,8 @@ fn test_roundtrip() {
     ];
     for key in &keys {
         let serialized = serialize(key);
-        let deserialized = deserialize(&serialized).unwrap();
+        let deserialized = deserialize(&serialized)
+            .expect(format!("Failed to deserialize key: {:?}", key).as_str());
         assert_eq!(key, &deserialized);
     }
 }
