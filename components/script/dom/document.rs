@@ -1799,6 +1799,18 @@ impl Document {
         self.policy_container.borrow()
     }
 
+    pub(crate) fn set_policy_container(&self, policy_container: PolicyContainer) {
+        *self.policy_container.borrow_mut() = policy_container;
+    }
+
+    pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
+        self.policy_container.borrow_mut().set_csp_list(csp_list);
+    }
+
+    pub(crate) fn get_csp_list(&self) -> Option<CspList> {
+        self.policy_container.borrow().csp_list.clone()
+    }
+
     /// Add the policy container and HTTPS state to a given request.
     ///
     /// TODO: Can this hapen for all requests that go through the document?
@@ -3477,14 +3489,6 @@ impl Document {
 
     pub(crate) fn set_resize_observer_started_observing_target(&self, value: bool) {
         self.resize_observer_started_observing_target.set(value);
-    }
-
-    pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
-        self.policy_container.borrow_mut().set_csp_list(csp_list);
-    }
-
-    pub(crate) fn get_csp_list(&self) -> Option<CspList> {
-        self.policy_container.borrow().csp_list.clone()
     }
 
     /// Prevent any JS or layout from running until the corresponding call to

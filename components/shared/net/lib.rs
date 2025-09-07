@@ -137,6 +137,19 @@ pub enum ReferrerPolicy {
     StrictOriginWhenCrossOrigin,
 }
 
+impl ReferrerPolicy {
+    /// <https://w3c.github.io/webappsec-referrer-policy/#parse-referrer-policy-from-header>
+    pub fn parse_header_for_response(headers: &Option<Serde<HeaderMap>>) -> Self {
+        // Step 4. Return policy.
+        headers
+            .as_ref()
+            // Step 1. Let policy-tokens be the result of extracting header list values given `Referrer-Policy` and response’s header list.
+            .and_then(|headers| headers.typed_get::<ReferrerPolicyHeader>())
+            // Step 2-3.
+            .into()
+    }
+}
+
 impl Display for ReferrerPolicy {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let string = match self {
@@ -154,8 +167,11 @@ impl Display for ReferrerPolicy {
     }
 }
 
+/// <https://w3c.github.io/webappsec-referrer-policy/#parse-referrer-policy-from-header>
 impl From<Option<ReferrerPolicyHeader>> for ReferrerPolicy {
     fn from(header: Option<ReferrerPolicyHeader>) -> Self {
+        // Step 2. Let policy be the empty string.
+        // Step 3. For each token in policy-tokens, if token is a referrer policy and token is not the empty string, then set policy to token.
         header.map_or(ReferrerPolicy::EmptyString, |policy| match policy {
             ReferrerPolicyHeader::NO_REFERRER => ReferrerPolicy::NoReferrer,
             ReferrerPolicyHeader::NO_REFERRER_WHEN_DOWNGRADE => {
