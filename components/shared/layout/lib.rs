@@ -640,7 +640,7 @@ impl ImageAnimationState {
                 .frames
                 .get(self.active_frame)
                 .unwrap()
-                .delay
+                .delay()
                 .unwrap()
                 .as_secs_f64();
         let mut next_active_frame_id = self.active_frame;
@@ -650,7 +650,7 @@ impl ImageAnimationState {
                 .frames
                 .get(next_active_frame_id)
                 .unwrap()
-                .delay
+                .delay()
                 .unwrap()
                 .as_secs_f64();
         }
