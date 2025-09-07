@@ -106,7 +106,6 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
-        _can_gc: CanGc,
         transaction: &IDBTransaction,
     ) -> IDBObjectStore {
         let key_path: Option<KeyPath> = match options {
@@ -143,7 +142,6 @@ impl IDBObjectStore {
                 db_name,
                 name,
                 options,
-                can_gc,
                 transaction,
             )),
             global,
@@ -709,7 +707,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.has_key_generator()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-createindex
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-createindex>
     fn CreateIndex(
         &self,
         name: DOMString,
@@ -717,23 +715,27 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         options: &IDBIndexParameters,
     ) -> Fallible<DomRoot<IDBIndex>> {
         let key_path: KeyPath = key_path.into();
-        // Step 3
+        // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if self.transaction.Mode() != IDBTransactionMode::Versionchange {
             return Err(Error::InvalidState);
         }
-        // TODO: Step 4
-        // Step 5
+        // TODO: Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
+        // Step 5. If transaction is not active, throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
-        // Step 6
+        // Step 6. If an index named name already exists in store, throw a "ConstraintError" DOMException.
         if self.index_names.borrow().contains(&name) {
             return Err(Error::Constraint);
         }
-        // TODO: Step 7: Validate key path
-        // Step 10
+        // TODO: Step 7. If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
+        // TODO: Step 8. Let unique be set if options’s unique member is true, and unset otherwise.
+        // TODO: Step 9. Let multiEntry be set if options’s multiEntry member is true, and unset otherwise.
+        // Step 10. If keyPath is a sequence and multiEntry is set, throw an "InvalidAccessError" DOMException.
         if matches!(key_path, KeyPath::StringSequence(_)) && options.multiEntry {
             return Err(Error::InvalidAccess);
         }
-        // Step 11
+        // Step 11. Let index be a new index in store.
+        // Set index’s name to name and key path to keyPath. If unique is set, set index’s unique flag.
+        // If multiEntry is set, set index’s multiEntry flag.
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let create_index_operation = SyncOperation::CreateIndex(
             sender,
@@ -745,13 +747,20 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             options.unique,
             options.multiEntry,
         );
-        self.get_idb_thread()
+        if self
+            .get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(create_index_operation))
-            .unwrap();
-        // TODO: Handle result properly
-        let _ = receiver.recv().unwrap();
-        // Step 12
+            .is_err()
+        {
+            return Err(Error::Operation);
+        }
+        let result = receiver.recv().unwrap();
+        if result.is_err() {
+            return Err(Error::Operation);
+        }
+        // Step 12. Add index to this object store handle's index set.
         self.index_names.borrow_mut().push(name.clone());
+        // Step 13. Return a new index handle associated with index and this object store handle.
         Ok(IDBIndex::new(
             &self.global(),
             DomRoot::from_ref(self),
@@ -764,20 +773,21 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-deleteindex
     fn DeleteIndex(&self, name: DOMString) -> Fallible<()> {
-        // Step 3
+        // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if self.transaction.Mode() != IDBTransactionMode::Versionchange {
             return Err(Error::InvalidState);
         }
-        // TODO: Step 4
-        // Step 5
+        // TODO: Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
+        // Step 5. If transaction is not active, throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
-        // Step 6
+        // Step 6. Let index be the index named name in store if one exists,
+        // or throw a "NotFoundError" DOMException otherwise.
         if !self.index_names.borrow().contains(&name) {
             return Err(Error::NotFound);
         }
-        // Step 7
+        // Step 7. Remove index from this object store handle's index set.
         self.index_names.borrow_mut().retain(|n| n != &name);
-        // Step 8
+        // Step 8. Destroy index.
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let delete_index_operation = SyncOperation::DeleteIndex(
             sender,
@@ -789,8 +799,10 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(delete_index_operation))
             .unwrap();
-        // TODO: Handle result properly
-        let _ = receiver.recv().unwrap();
+        let result = receiver.recv().unwrap();
+        if result.is_err() {
+            return Err(Error::Operation);
+        }
         Ok(())
     }
 }
