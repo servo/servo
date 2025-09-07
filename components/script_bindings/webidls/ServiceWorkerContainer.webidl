@@ -12,7 +12,9 @@ interface ServiceWorkerContainer : EventTarget {
                                                           optional RegistrationOptions options = {});
 
   //[NewObject] Promise<any> getRegistration(optional USVString clientURL = "");
+  // TODO: Replace this when FrozenArray is supported, using sequence like firefox
   //[NewObject] Promise<FrozenArray<ServiceWorkerRegistration>> getRegistrations();
+  [NewObject] Promise<sequence<ServiceWorkerRegistration>> getRegistrations();
 
   //void startMessages();
 
