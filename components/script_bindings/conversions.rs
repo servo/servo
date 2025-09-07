@@ -229,7 +229,7 @@ impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
         value: HandleValue,
         _config: Self::Config,
     ) -> Result<ConversionResult<DomRoot<T>>, ()> {
-        Ok(match root_from_handlevalue(value, cx) {
+        Ok(match root_from_handlevalue(value, SafeJSContext::from_ptr(cx)) {
             Ok(result) => ConversionResult::Success(result),
             Err(()) => ConversionResult::Failure("value is not an object".into()),
         })
@@ -398,14 +398,17 @@ where
 /// # Safety
 /// cx must point to a valid, non-null JS context.
 #[allow(clippy::result_unit_err)]
-pub unsafe fn root_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+#[allow(unsafe_code)]
+pub fn root_from_handlevalue<T>(v: HandleValue, cx: SafeJSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
     if !v.get().is_object() {
         return Err(());
     }
-    root_from_object(v.get().to_object(), cx)
+    unsafe {
+        root_from_object(v.get().to_object(), *cx)
+    }
 }
 
 /// Convert `id` to a `DOMString`. Returns `None` if `id` is not a string or
