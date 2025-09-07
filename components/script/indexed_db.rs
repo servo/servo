@@ -348,7 +348,9 @@ pub(crate) fn evaluate_key_path_on_value(
                             let time = ClippedTime {
                                 t: file.LastModified() as f64,
                             };
-                            NewDateObject(*cx, time).safe_to_jsval(cx, current_value.handle_mut());
+                            unsafe{
+                                NewDateObject(*cx, time).safe_to_jsval(cx, current_value.handle_mut());
+                            }
 
                             continue;
                         }
