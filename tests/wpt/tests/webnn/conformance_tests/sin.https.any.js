@@ -532,11 +532,5 @@ const sinTests = [
   }
 ];
 
-if (navigator.ml) {
-  sinTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getSinPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    sinTests, buildAndExecuteGraph, getSinPrecisionTolerance);

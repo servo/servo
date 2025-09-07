@@ -1100,11 +1100,5 @@ const layerNormTests = [
   }
 ];
 
-if (navigator.ml) {
-  layerNormTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getLayerNormPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    layerNormTests, buildAndExecuteGraph, getLayerNormPrecisionTolerance);

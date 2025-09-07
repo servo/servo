@@ -47,6 +47,9 @@ class SessionManager:
         self.refresh_endpoint_unavailable = False
         self.response_session_id_override = None
         self.allowed_refresh_initiators = ["*"]
+        self.provider_session_id = None
+        self.provider_url = None
+        self.provider_key = None
 
     def next_session_id(self):
         return len(self.session_to_key_map)
@@ -132,6 +135,18 @@ class SessionManager:
         if allowed_refresh_initiators is not None:
             self.allowed_refresh_initiators = allowed_refresh_initiators
 
+        provider_session_id = configuration.get("providerSessionId")
+        if provider_session_id is not None:
+            self.provider_session_id = provider_session_id
+
+        provider_url = configuration.get("providerUrl")
+        if provider_url is not None:
+            self.provider_url = provider_url
+
+        provider_key = configuration.get("providerKey")
+        if provider_key is not None:
+            self.provider_key = provider_key
+
     def get_should_refresh_end_session(self):
         return self.should_refresh_end_session
 
@@ -215,3 +230,12 @@ class SessionManager:
 
     def get_refresh_endpoint_unavailable(self):
         return self.refresh_endpoint_unavailable
+
+    def get_provider_session_id(self):
+        return self.provider_session_id
+
+    def get_provider_url(self):
+        return self.provider_url
+
+    def get_provider_key(self):
+        return self.provider_key

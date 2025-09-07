@@ -158,14 +158,14 @@ def test_x_y_floats(session):
 
 
 def test_width_height_floats(session):
-    response = set_window_rect(session, {"width": 550.5, "height": 420})
+    response = set_window_rect(session, {"width": 650.5, "height": 420})
     value = assert_success(response, session.window.rect)
-    assert value["width"] == 550
+    assert value["width"] == 650
     assert value["height"] == 420
 
-    response = set_window_rect(session, {"width": 550, "height": 450.5})
+    response = set_window_rect(session, {"width": 650, "height": 450.5})
     value = assert_success(response, session.window.rect)
-    assert value["width"] == 550
+    assert value["width"] == 650
     assert value["height"] == 450
 
 

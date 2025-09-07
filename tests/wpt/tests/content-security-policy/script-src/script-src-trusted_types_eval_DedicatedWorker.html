@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  // WebKit test runner assumes the tests always run in the same order, so make
+  // sure fetch_tests_from_worker tests run sequentially.
+  setup({explicit_done: true});
+  (async function() {
+    await fetch_tests_from_worker(new Worker("support/script-src-trusted_types_eval_with_require_trusted_types_eval_DedicatedWorker.js"));
+    await fetch_tests_from_worker(new Worker("support/script-src-trusted_types_eval_without_require_trusted_types_eval_DedicatedWorker.js"));
+    await fetch_tests_from_worker(new Worker("support/script-src-trusted_types_eval_with_report_only_require_trusted_types_eval_DedicatedWorker.js"));
+    done();
+  })();
+</script>

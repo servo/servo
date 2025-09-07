@@ -980,10 +980,4 @@ const greaterTests = [
   }
 ];
 
-if (navigator.ml) {
-  greaterTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(greaterTests, buildAndExecuteGraph, getZeroULPTolerance);

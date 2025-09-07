@@ -528,11 +528,5 @@ const erfTests = [
   }
 ];
 
-if (navigator.ml) {
-  erfTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getErfPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    erfTests, buildAndExecuteGraph, getErfPrecisionTolerance);

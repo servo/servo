@@ -24,7 +24,7 @@
         background-color: blue;
         animation: slide-in 3s none;
         timeline-trigger: --trigger view() alternate contain 0% contain 100%;
-        animation-trigger: --trigger;
+        animation-trigger: trigger(--trigger, enter play-forwards, exit play-backwards);
       }
       .space {
         height: 250px;

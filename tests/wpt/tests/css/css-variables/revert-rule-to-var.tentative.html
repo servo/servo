@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Custom Properties: Using revert-rule to revert to a var()</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables/#substitute-a-var">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10443">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    --green: green;
+    color: var(--green);
+  }
+  #target {
+    color: red;
+    color: revert-rule;
+  }
+</style>
+<div id=target>
+</div>
+<script>
+  test((x) => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+  }, 'Using revert-rule to revert to a value containing var()');
+
+</script>

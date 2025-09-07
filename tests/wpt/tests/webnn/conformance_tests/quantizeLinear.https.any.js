@@ -1168,11 +1168,6 @@ const quantizeLinearTests = [
   }
 ];
 
-if (navigator.ml) {
-  quantizeLinearTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getQuantizeLinearPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    quantizeLinearTests, buildAndExecuteGraph,
+    getQuantizeLinearPrecisionTolerance);

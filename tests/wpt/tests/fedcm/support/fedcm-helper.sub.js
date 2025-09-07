@@ -355,3 +355,12 @@ fedcm/support/${manifest_filename}`;
       accountHint: accountHint
   };
 }
+
+export async function fedcm_get_flexible_tokens_credential(t, type) {
+  const options = request_options_with_mediation_required(`manifest_flexible_tokens.json`);
+  options.identity.providers[0].params = {
+      "token_type": type
+  };
+  await select_manifest(t, options);
+  return await fedcm_get_and_select_first_account(t, options);
+}

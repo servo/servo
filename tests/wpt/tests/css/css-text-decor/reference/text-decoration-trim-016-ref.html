@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-trim</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-trim">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+body {
+  background: white;
+  color: black;
+}
+div {
+  position: relative;
+}
+h1 {
+  position: absolute;
+}
+u {
+  text-decoration-color: black;
+}
+</style>
+
+<p>The underline for "brown" should be offset by 10em to the right, and lengthened by 2em:</p>
+
+<div>
+  <h1>
+    the quick brown fox
+  </h1>
+  <h1 style="left: 10em; color: transparent">
+    the quick <u>brown</u> fox
+  </h1>
+  <h1 style="left: 12em; color: transparent">
+    the quick <u>brown</u> fox
+  </h1>
+</div>

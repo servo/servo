@@ -5,13 +5,91 @@ test(() => {
 }, `fetchLater() cannot be called without request.`);
 
 test(() => {
-  assert_throws_js(TypeError, () => fetchLater('http://www.google.com'));
+  const result = fetchLater('/');
+  assert_false(result.activated, `result.activated should be false for '/'`);
+}, `fetchLater() with same-origin (https) URL does not throw.`);
+
+test(() => {
+  const url = 'http://localhost';
+  const result = fetchLater(url);
+  assert_false(result.activated, `result.activated should be false for ${url}`);
+}, `fetchLater() with http://localhost URL does not throw.`);
+
+test(() => {
+  const url = 'https://localhost';
+  const result = fetchLater(url);
+  assert_false(result.activated, `result.activated should be false for ${url}`);
+}, `fetchLater() with https://localhost URL does not throw.`);
+
+test(() => {
+  const url = 'http://127.0.0.1';
+  const result = fetchLater(url);
+  assert_false(result.activated, `result.activated should be false for ${url}`);
+}, `fetchLater() with http://127.0.0.1 URL does not throw.`);
+
+test(() => {
+  const url = 'https://127.0.0.1';
+  const result = fetchLater(url);
+  assert_false(result.activated, `result.activated should be false for ${url}`);
+}, `fetchLater() with https://127.0.0.1 URL does not throw.`);
+
+test(() => {
+  const url = 'http://[::1]';
+  const result = fetchLater(url);
+  assert_false(result.activated, `result.activated should be false for ${url}`);
+}, `fetchLater() with http://[::1] URL does not throw.`);
+
+test(() => {
+  const url = 'https://[::1]';
+  const result = fetchLater(url);
+  assert_false(result.activated, `result.activated should be false for ${url}`);
+}, `fetchLater() with https://[::1] URL does not throw.`);
+
+test(() => {
+  const url = 'https://example.com';
+  const result = fetchLater(url);
+  assert_false(result.activated, `result.activated should be false for ${url}`);
+}, `fetchLater() with https://example.com URL does not throw.`);
+
+test(() => {
+  const httpUrl = 'http://example.com';
+  assert_throws_dom(
+      'SecurityError', () => fetchLater(httpUrl),
+      `should throw SecurityError for insecure http url ${httpUrl}`);
+}, `fetchLater() throws SecurityError on non-trustworthy http URL.`);
+
+test(() => {
   assert_throws_js(TypeError, () => fetchLater('file://tmp'));
+}, `fetchLater() throws TypeError on file:// scheme.`);
+
+test(() => {
+  assert_throws_js(TypeError, () => fetchLater('ftp://example.com'));
+}, `fetchLater() throws TypeError on ftp:// scheme.`);
+
+test(() => {
   assert_throws_js(TypeError, () => fetchLater('ssh://example.com'));
+}, `fetchLater() throws TypeError on ssh:// scheme.`);
+
+test(() => {
   assert_throws_js(TypeError, () => fetchLater('wss://example.com'));
+}, `fetchLater() throws TypeError on wss:// scheme.`);
+
+test(() => {
   assert_throws_js(TypeError, () => fetchLater('about:blank'));
+}, `fetchLater() throws TypeError on about: scheme.`);
+
+test(() => {
   assert_throws_js(TypeError, () => fetchLater(`javascript:alert('');`));
-}, `fetchLater() throws TypeError on non-HTTPS URL.`);
+}, `fetchLater() throws TypeError on javascript: scheme.`);
+
+test(() => {
+  assert_throws_js(TypeError, () => fetchLater('data:text/plain,Hello'));
+}, `fetchLater() throws TypeError on data: scheme.`);
+
+test(() => {
+  assert_throws_js(
+      TypeError, () => fetchLater('blob:https://example.com/some-uuid'));
+}, `fetchLater() throws TypeError on blob: scheme.`);
 
 test(() => {
   assert_throws_js(

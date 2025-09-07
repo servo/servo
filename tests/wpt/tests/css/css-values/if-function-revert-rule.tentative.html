@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>The revert-rule keyword: interaction with if()</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10443">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #test1 {
+    color: green;
+  }
+  #test1 {
+    color: red;
+    --x: 3;
+    color: if(style(--x:1000):red; else:revert-rule);
+  }
+</style>
+<div id=test1></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test1).color, 'rgb(0, 128, 0)')
+  }, 'The revert-rule works as a branch in if()');
+</script>
+
+
+<style>
+  #test2 {
+    color: green;
+  }
+  #test2 {
+    color: red;
+    --x: 1000;
+    color: if(style(--x:1000):revert-rule; else:red);
+  }
+</style>
+<div id=test2></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test2).color, 'rgb(0, 128, 0)')
+  }, 'The revert-rule works as a branch in if(), earlier return');
+</script>

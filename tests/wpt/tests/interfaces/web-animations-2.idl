@@ -116,26 +116,35 @@ dictionary AnimationPlaybackEventInit : EventInit {
 
 [Exposed=Window]
 interface AnimationTrigger {
-  readonly attribute AnimationTriggerBehavior behavior;
+  constructor(optional AnimationTriggerOptions options = {});
+  attribute AnimationTimeline timeline;
+  attribute AnimationTriggerBehavior behavior;
+  attribute any rangeStart;
+  attribute any rangeEnd;
+  attribute any exitRangeStart;
+  attribute any exitRangeEnd;
 };
 
-[Exposed=Window]
-interface TimelineTrigger : AnimationTrigger {
-  constructor(optional TimelineTriggerOptions options = {});
-  readonly attribute AnimationTimeline timeline;
-  readonly attribute any rangeStart;
-  readonly attribute any rangeEnd;
-  readonly attribute any exitRangeStart;
-  readonly attribute any exitRangeEnd;
-};
-
-dictionary TimelineTriggerOptions {
+dictionary AnimationTriggerOptions {
   AnimationTimeline? timeline;
   AnimationTriggerBehavior? behavior = "once";
   (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeStart = "normal";
   (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeEnd = "normal";
   (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) exitRangeStart = "auto";
   (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) exitRangeEnd = "auto";
+};
+
+[Exposed=Window]
+interface EventTrigger : AnimationTrigger {
+  constructor(optional EventTriggerOptions options = {});
+  readonly attribute DOMString eventType;
+  readonly attribute EventTarget eventTarget;
+};
+
+dictionary EventTriggerOptions {
+  AnimationTriggerBehavior? behavior = "once";
+  DOMString eventType;
+  EventTarget eventTarget;
 };
 
 enum AnimationTriggerBehavior { "once", "repeat", "alternate", "state" };

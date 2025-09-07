@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resource-timing/resources/observe-entry.js"></script>
+  <script src="../../resources/test-initiator.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+
+</head>
+<body>
+  <script>
+    // As of 08/2025, Chromium hasn't properly implemented |initiator_Url| for document.write().
+    // These tests are passing because they are wrongly considered as html inline resources.
+    // document.write() is deprecated. The implementation of "initiator-url" for it is not
+    // planned. document.write() test cases should be removed.
+    document.write('<img id="img_written" src="/images/blue.png?inline-script-doc-write">');
+    document.write('<link id="css_written" rel="stylesheet" href="../resources/empty_style.css?inline-script-doc-write">');
+    document.write('<script id="script_written" src="../resources/empty.js?doc-write"><\/script>');
+
+    const host_info = get_host_info();
+    const expectedInitiatorUrl = host_info["ORIGIN"] +
+      "/resource-timing/tentative/initiator-url/inline-document-write.html";
+
+    const resources = [
+      "blue.png?inline-script-doc-write",
+      "empty_style.css?inline-script-doc-write",
+      "empty.js?doc-write",
+    ];
+
+    for (const resource of resources) {
+      initiator_url_test(resource, expectedInitiatorUrl, resource+
+        " initiatorUrl from document-initiated", resource+" timeout");
+    }
+  </script>
+</body>

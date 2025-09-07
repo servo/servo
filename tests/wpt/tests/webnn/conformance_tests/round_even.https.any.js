@@ -242,11 +242,5 @@ const roundEvenTests = [
   },
 ]
 
-if (navigator.ml) {
-  roundEvenTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getRoundEvenPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    roundEvenTests, buildAndExecuteGraph, getRoundEvenPrecisionTolerance);

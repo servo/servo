@@ -86,11 +86,5 @@ const tests = [{
   }
 }];
 
-if (navigator.ml) {
-  tests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getInstanceNormPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    tests, buildAndExecuteGraph, getInstanceNormPrecisionTolerance);
