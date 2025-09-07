@@ -297,7 +297,6 @@ pub(crate) fn evaluate_key_path_on_value(
 
                 // If value is a Blob and identifier is "size"
                 if identifier == "size" {
-
                     if let Ok(blob) = root_from_handlevalue::<Blob>(current_value.handle(), cx)
                     {
                         // Let value be a Number equal to value’s size.
@@ -305,12 +304,10 @@ pub(crate) fn evaluate_key_path_on_value(
 
                         continue;
                     }
-
                 }
 
                 // If value is a Blob and identifier is "type"
                 if identifier == "type" {
-
                     if let Ok(blob) = root_from_handlevalue::<Blob>(current_value.handle(), cx)
                     {
                         // Let value be a String equal to value’s type.
@@ -318,12 +315,10 @@ pub(crate) fn evaluate_key_path_on_value(
 
                         continue;
                     }
-
                 }
 
                 // If value is a File and identifier is "name"
                 if identifier == "name" {
-
                     if let Ok(file) = root_from_handlevalue::<File>(current_value.handle(), cx)
                     {
                         // Let value be a String equal to value’s name.
@@ -331,7 +326,6 @@ pub(crate) fn evaluate_key_path_on_value(
 
                         continue;
                     }
-
                 }
 
                 // If value is a File and identifier is "lastModified"
