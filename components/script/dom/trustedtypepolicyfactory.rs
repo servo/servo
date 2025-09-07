@@ -342,7 +342,7 @@ impl TrustedTypePolicyFactory {
         cx: JSContext,
         value: HandleValue,
     ) -> Result<DomRoot<TrustedScript>, ()> {
-        unsafe { root_from_handlevalue::<TrustedScript>(value, cx) }
+        root_from_handlevalue::<TrustedScript>(value, cx)
     }
 }
 
@@ -359,7 +359,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-ishtml>
     #[allow(unsafe_code)]
     fn IsHTML(&self, cx: JSContext, value: HandleValue) -> bool {
-        unsafe { root_from_handlevalue::<TrustedHTML>(value, cx).is_ok() }
+         root_from_handlevalue::<TrustedHTML>(value, cx).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
     #[allow(unsafe_code)]
@@ -369,7 +369,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscripturl>
     #[allow(unsafe_code)]
     fn IsScriptURL(&self, cx: JSContext, value: HandleValue) -> bool {
-        unsafe { root_from_handlevalue::<TrustedScriptURL>(value, cx).is_ok() }
+        root_from_handlevalue::<TrustedScriptURL>(value, cx).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyhtml>
     fn EmptyHTML(&self, can_gc: CanGc) -> DomRoot<TrustedHTML> {

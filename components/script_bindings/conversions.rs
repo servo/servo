@@ -398,7 +398,6 @@ where
 /// # Safety
 /// cx must point to a valid, non-null JS context.
 #[allow(clippy::result_unit_err)]
-#[allow(unsafe_code)]
 pub fn root_from_handlevalue<T>(v: HandleValue, cx: SafeJSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
@@ -406,6 +405,7 @@ where
     if !v.get().is_object() {
         return Err(());
     }
+    #[allow(unsafe_code)]
     unsafe {
         root_from_object(v.get().to_object(), *cx)
     }
