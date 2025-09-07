@@ -688,7 +688,7 @@ impl HTMLScriptElement {
         }
 
         // Step 17. If scripting is disabled for el, then return.
-        if !doc.is_scripting_enabled() {
+        if !doc.scripting_enabled() {
             return;
         }
 
@@ -1093,7 +1093,7 @@ impl HTMLScriptElement {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = self.owner_document();
-        if !document.is_fully_active() || !document.is_scripting_enabled() {
+        if !document.is_fully_active() || !document.scripting_enabled() {
             return;
         }
 
@@ -1130,7 +1130,7 @@ impl HTMLScriptElement {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = self.owner_document();
-        if !document.is_fully_active() || !document.is_scripting_enabled() {
+        if !document.is_fully_active() || !document.scripting_enabled() {
             return;
         }
 
