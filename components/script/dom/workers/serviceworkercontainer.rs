@@ -10,11 +10,13 @@ use constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
 };
 use dom_struct::dom_struct;
+use script_bindings::codegen::GenericBindings::ClientBinding::ClientMethods;
 use js::realm::CurrentRealm;
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
 };
+use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -180,6 +182,54 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             .send(ScriptToConstellationMessage::ScheduleJob(job));
 
         // A: Step 7
+        promise
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistration>
+    // fn GetRegistration(&self) -> Rc<Promise> {
+    //     // Step 1. Let client be this’s service worker client.
+    //     // self.client is the client.
+    //     // Step 2. Let storage key be the result of running obtain a storage key given client.
+    //     let storage_key = match self.client.obtain_storage_key() {
+    //         Ok(key) => key,
+    //         Err(()) => {
+    //             let promise = Promise::new(&*self.global(), CanGc::note());
+    //             promise.reject_error(Error::InvalidAccess, CanGc::note());
+    //             return promise;
+    //         },
+    //     };
+    //     // Step 3. Let clientURL be the result of parsing clientURL with this’s relevant settings object’s API base URL.
+    //     let client_url = self.client.url;
+    //     // TODO: Step 4. If clientURL is failure, return a promise rejected with a TypeError.
+    //     // TODO: Step 5. Set clientURL’s fragment to null.
+    //     // TODO: Step 6. If the origin of clientURL is not client’s origin, return a promise rejected with a "SecurityError" DOMException.
+    //     // Step 7. Let promise be a new promise.
+    //     let promise = Promise::new(&*self.global(), CanGc::note());
+    //     // Step 8. Run the following substeps in parallel:
+    //     // TODO: do in parallel
+    //     // Step 8.1. Let registration be the result of running Match Service Worker Registration given storage key and clientURL.
+    //     let registration = self.global().
+    //     // Step 8.2. If registration is null, resolve promise with undefined and abort these steps.
+    //     // Step 8.3. Resolve promise with the result of getting the service worker registration object that represents registration in promise’s relevant settings object.
+    //     // Step 9. Return promise.
+    //     promise
+    // }
+
+    /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistrations>
+    fn GetRegistrations(&self) -> Rc<Promise> {
+        // Step 1. Let client be this’s service worker client.
+        // Step 2. Let client storage key be the result of running obtain a storage key given client.
+        let storage_key = match self.client.obtain_storage_key() {
+            Ok(key) => key,
+            Err(()) => {
+                let promise = Promise::new(&*self.global(), CanGc::note());
+                promise.reject_error(Error::InvalidAccess, CanGc::note());
+                return promise;
+            },
+        };
+        // Step 3. Let promise be a new promise.
+        let promise = Promise::new(&*self.global(), CanGc::note());
+        // Step 4. Run the following steps in parallel:
         promise
     }
 }
