@@ -640,7 +640,7 @@ impl PermissionAlgorithm for Bluetooth {
         property
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
-        match BluetoothPermissionDescriptor::new(cx, property.handle()) {
+        match BluetoothPermissionDescriptor::new(cx, property.handle(), CanGc::note()) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             Err(_) => Err(Error::Type(String::from(BT_DESC_CONVERSION_ERROR))),

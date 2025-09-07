@@ -1973,7 +1973,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         // converted to an IDL value of type UnderlyingSource.
         let underlying_source_dict = if !underlying_source_obj.is_null() {
             rooted!(in(*cx) let obj_val = ObjectValue(underlying_source_obj.get()));
-            match JsUnderlyingSource::new(cx, obj_val.handle()) {
+            match JsUnderlyingSource::new(cx, obj_val.handle(), can_gc) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => return Err(Error::Type(error.to_string())),
                 _ => {

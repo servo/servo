@@ -7523,7 +7523,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             assert isinstance(d.parent, IDLDictionary)
             initParent = (
                 "{\n"
-                f"    match {self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}::new(cx, val)? {{\n"
+                f"    match {self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}::new(cx, val, can_gc)? {{\n"
                 "        ConversionResult::Success(v) => v,\n"
                 "        ConversionResult::Failure(error) => {\n"
                 "            throw_type_error(*cx, &error);\n"
@@ -7582,7 +7582,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         return (
             f"impl{self.generic} {selfName}{self.genericSuffix} {{\n"
             f"{CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define()}\n"
-            "    pub fn new(cx: SafeJSContext, val: HandleValue) \n"
+            "    pub fn new(cx: SafeJSContext, val: HandleValue, can_gc: CanGc) \n"
             f"                      -> Result<ConversionResult<{actualType}>, ()> {{\n"
             f"        {unsafe_if_necessary} {{\n"
             "            let object = if val.get().is_null_or_undefined() {\n"
@@ -7606,7 +7606,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "    type Config = ();\n"
             "    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ())\n"
             f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
-            f"        {selfName}::new(SafeJSContext::from_ptr(cx), value)\n"
+            f"        {selfName}::new(SafeJSContext::from_ptr(cx), value, CanGc::note())\n"
             "    }\n"
             "}\n"
             "\n"
@@ -7675,7 +7675,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "    rooted!(in(*cx) let mut rval = UndefinedValue());\n"
             "    if get_dictionary_property(*cx, object.handle(), "
             f'"{member.identifier.name}", '
-            "rval.handle_mut(), CanGc::note())? && !rval.is_undefined() {\n"
+            "rval.handle_mut(), can_gc)? && !rval.is_undefined() {\n"
             f"{indent(conversion)}\n"
             "    } else {\n"
             f"{indent(default)}\n"
