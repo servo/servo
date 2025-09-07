@@ -669,9 +669,8 @@ pub(crate) fn process_scroll_container_query(
     // - The element is the root element.
     // - The element is the body element.
     //
-    // Note: We only do this for `scrollParent`, as `scrollIntoView` on the `<body>` element should
-    // scroll the body by scrolling the viewport, but the `scrollParent` of the body is `null`. in
-    // `HTMLElement`.
+    // Note: We only do this for `scrollParent`, which needs to be null. But `scrollIntoView` on the
+    // `<body>` or root element should still bring it into view by scrolling the viewport.
     if query_type == ScrollContainerQueryType::ForScrollParent &&
         flags.intersects(
             FragmentFlags::IS_ROOT_ELEMENT | FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT,
