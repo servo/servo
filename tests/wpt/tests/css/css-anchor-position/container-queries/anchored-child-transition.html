@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: Transition on anchored element child with anchored() query</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #anchor {
+    anchor-name: --a;
+  }
+  #container {
+    container-type: anchored;
+    position: absolute;
+    position-anchor: --a;
+    position-area: top;
+    position-try-fallbacks: flip-block;
+  }
+  #child {
+    scale: 1;
+  }
+  #child.large {
+    scale: 2;
+  }
+  @container anchored(fallback: flip-block) {
+    #child {
+      transition: scale 1000s steps(2, start);
+    }
+  }
+</style>
+<div id="anchor"></div>
+<div id="container">
+  <div id="child"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).scale, "1");
+  }, "Initial scale is 1");
+
+  test(() => {
+    container.style.height = "200px"; // Trigger fallback which sets the transition property
+    child.classList.toggle("large"); // Trigger scale transition
+    assert_equals(getComputedStyle(child).scale, "1.5");
+  }, "Start transition of scale property on anchored child");
+</script>

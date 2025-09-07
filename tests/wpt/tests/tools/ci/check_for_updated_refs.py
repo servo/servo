@@ -2,10 +2,11 @@ import json
 import os
 import re
 import sys
-from typing import IO, Container, Dict, Iterable, List, Optional
+from typing import IO, Container, Dict, Iterable, Optional
+
 
 GIT_PUSH = re.compile(
-    r"^(?P<flag>.)\t(?P<from>[^\t:]*):(?P<to>[^\t:]*)\t(?P<summary>.*[^\)])(?: \((?P<reason>[^\)]*)\))?\n$"
+    r"^(?P<flag>.)\t(?P<from_ref>[^\t:]*):(?P<to_ref>[^\t:]*)\t(?P<summary>.*?)(?: \((?P<reason>.*)\))?\n$"
 )
 
 
@@ -16,18 +17,29 @@ def parse_push(fd: IO[str]) -> Iterable[Dict[str, Optional[str]]]:
             yield m.groupdict()
 
 
-def process_push(fd: IO[str], refs: Container[str]) -> List[str]:
-    updated_refs = []
+def process_push(fd: IO[str], refs: Container[str]) -> Dict[str, Optional[str]]:
+    updated_refs = {}
 
     for ref_status in parse_push(fd):
         flag = ref_status["flag"]
         if flag not in (" ", "+", "-", "*"):
             continue
 
-        to = ref_status["to"]
-        assert to is not None
-        if to in refs:
-            updated_refs.append(to)
+        to_ref = ref_status["to_ref"]
+        summary = ref_status["summary"]
+        assert to_ref is not None
+        assert summary is not None
+
+        if to_ref in refs:
+            sha = None
+
+            if flag in (" ", "+"):
+                if "..." in summary:
+                    _, sha = summary.split("...", maxsplit=1)
+                elif ".." in summary:
+                    _, sha = summary.split("..", maxsplit=1)
+
+            updated_refs[to_ref] = sha
 
     return updated_refs
 

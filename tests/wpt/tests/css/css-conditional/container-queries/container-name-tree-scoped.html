@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS Container Queries Test: Tree scoped container-name</title>
+<title>CSS Container Queries Test: Container names are not tree-scoped</title>
 <link rel="help" href="https://drafts.csswg.org/css-conditional-5/#query-container">
 <link rel="help" href="https://drafts.csswg.org/css-scoping-1/#shadow-names">
 <script src="/resources/testharness.js"></script>
@@ -21,9 +21,9 @@
     #container-name-host > div {
       container-type: inline-size;
     }
-    #t1 { color: green; }
+    #t1 { color: red; }
     @container foo (width > 0px) {
-      #t1 { color: red; }
+      #t1 { color: green; }
     }
   </style>
 </div>
@@ -46,9 +46,9 @@
     #container-name-slotted > div > div {
       container-type: inline-size;
     }
-    #t2 { color: green; }
+    #t2 { color: red; }
     @container foo (width > 0px) {
-      #t2 { color: red; }
+      #t2 { color: green; }
     }
   </style>
 
@@ -95,11 +95,11 @@
 
   test(() => {
     assert_equals(getComputedStyle(t1).color, green);
-  }, "Outer scope query should not match container-name set by :host rule in shadow tree");
+  }, "Outer scope query should match container-name set by :host rule in shadow tree");
 
   test(() => {
     assert_equals(getComputedStyle(t2).color, green);
-  }, "Outer scope query should not match container-name set by ::slotted rule in shadow tree");
+  }, "Outer scope query should match container-name set by ::slotted rule in shadow tree");
 
   test(() => {
     assert_equals(getComputedStyle(t3host.shadowRoot.querySelector('#t3')).color, green);

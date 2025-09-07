@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Conditional Test: @container anchored query parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<div style="container-name:name;container-type:anchored">
+  <main id="cq-main"></main>
+</div>
+<script>
+  test_cq_condition_known('anchored(fallback)');
+  test_cq_condition_known('anchored(fallback: none)');
+  test_cq_condition_known('(anchored(fallback: inline-start block-end))');
+  test_cq_condition_known('anchored(not ((fallback: --foo) or (fallback: --bar flip-inline)))');
+
+  test_cq_condition_unknown('anchored(fallback < none)');
+  test_cq_condition_unknown('anchored((fallback = none))');
+  test_cq_condition_unknown('anchored(fallback: 0)');
+  test_cq_condition_unknown('anchored(fallback: 1)');
+  test_cq_condition_unknown('anchored(style(fallback: top left))');
+  test_cq_condition_unknown('style(anchored(fallback: --foo))');
+  test_cq_condition_unknown('anchored(fallback:)');
+</script>

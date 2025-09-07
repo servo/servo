@@ -1914,11 +1914,5 @@ const lstmTests = [
   }
 ];
 
-if (navigator.ml) {
-  lstmTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getLstmPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    lstmTests, buildAndExecuteGraph, getLstmPrecisionTolerance);

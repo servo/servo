@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebPreferences Test: reducedTransparency attribute tests</title>
+    <link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" />
+    <link rel="help" href="https://drafts.csswg.org/mediaqueries-5/#auto-pref%E2%91%A0" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src=./resources/preferences-helper.js></script>
+  </head>
+  <body>
+    <script>
+      test(() => {
+        assert_true('preferences' in navigator, 'navigator.preferences defined');
+        assert_true('reducedTransparency' in navigator.preferences, 'navigator.preferences.reducedTransparency defined');
+      }, "navigator.preferences.reducedTransparency supported");
+      test(() => {
+        assert_true('override' in navigator.preferences.reducedTransparency, 'navigator.preferences.reducedTransparency.override defined');
+        assert_equals(navigator.preferences.reducedTransparency.override, null);
+      }, "navigator.preferences.reducedTransparency.override supported");
+      test(() => {
+        assert_true('value' in navigator.preferences.reducedTransparency, 'navigator.preferences.reducedTransparency.value defined');
+        assert_equals(navigator.preferences.reducedTransparency.value, 'no-preference');
+      }, "navigator.preferences.reducedTransparency.value supported");
+      test(() => {
+        assert_true('validValues' in navigator.preferences.reducedTransparency, 'navigator.preferences.reducedTransparency.validValues defined');
+        assert_true(navigator.preferences.reducedTransparency.validValues.includes('reduce'), 'navigator.preferences.reducedTransparency.validValues includes "reduce"');
+        assert_true(navigator.preferences.reducedTransparency.validValues.includes('no-preference'), 'navigator.preferences.reducedTransparency.validValues includes "no-preference"');
+      }, "navigator.preferences.reducedTransparency.validValues supported");
+      promise_test((t) => {
+        assert_true('requestOverride' in navigator.preferences.reducedTransparency, 'navigator.preferences.reducedTransparency.requestOverride defined');
+        return navigator.preferences.reducedTransparency.requestOverride('this-is-an-invalid-value')
+          .then(() => {
+            assert_not_reached('requestOverride with invalid value should not resolve');
+          })
+          .catch((e) => {
+            assert_true(e instanceof DOMException);
+            assert_equals(navigator.preferences.reducedTransparency.override, null);
+            t.done();
+          });
+      }, "navigator.preferences.reducedTransparency.requestOverride() with invalid value throws");
+      promise_test(async (t) => {
+        assert_true('clearOverride' in navigator.preferences.reducedTransparency, 'navigator.preferences.reducedTransparency.clearOverride() defined');
+        await navigator.preferences.reducedTransparency.requestOverride('reduce');
+        assert_equals(navigator.preferences.reducedTransparency.override, 'reduce');
+        navigator.preferences.reducedTransparency.clearOverride();
+        assert_equals(navigator.preferences.reducedTransparency.override, null);
+        t.done();
+      }, "navigator.preferences.reducedTransparency.clearOverride() supported");
+      promise_test(async (t) => {
+        await navigator.preferences.reducedTransparency.requestOverride('reduce');
+        assert_equals(navigator.preferences.reducedTransparency.override, 'reduce');
+        await navigator.preferences.reducedTransparency.requestOverride(null);
+        assert_equals(navigator.preferences.reducedTransparency.override, null);
+        t.done();
+      }, "navigator.preferences.reducedTransparency.requestOverride(null) works like clearOverride()");
+      promise_test(async (t) => {
+        await navigator.preferences.reducedTransparency.requestOverride('reduce');
+        assert_equals(navigator.preferences.reducedTransparency.override, 'reduce');
+        await navigator.preferences.reducedTransparency.requestOverride('');
+        assert_equals(navigator.preferences.reducedTransparency.override, null);
+        t.done();
+      }, "navigator.preferences.reducedTransparency.requestOverride('') works like clearOverride()");
+      promise_test(async (t) => {
+        await navigator.preferences.reducedTransparency.requestOverride('no-preference');
+        assert_true(window.matchMedia('(prefers-reduced-transparency: no-preference)').matches, '(prefers-reduced-transparency: no-preference) matches');
+        assert_equals(navigator.preferences.reducedTransparency.value, 'no-preference');
+        await navigator.preferences.reducedTransparency.requestOverride('reduce');
+        assert_true(window.matchMedia('(prefers-reduced-transparency: reduce)').matches, '(prefers-reduced-transparency: reduce) matches');
+        assert_equals(navigator.preferences.reducedTransparency.value, 'reduce');
+        navigator.preferences.reducedTransparency.clearOverride();
+        assert_true(window.matchMedia('(prefers-reduced-transparency: no-preference)').matches);
+        assert_equals(navigator.preferences.reducedTransparency.value, 'no-preference');
+        t.done();
+      }, "navigator.preferences.reducedTransparency.requestOverride() updates (prefers-reduced-transparency)");
+      async_test((t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedTransparency.clearOverride();
+          navigator.preferences.reducedTransparency.onchange = null;
+        });
+        navigator.preferences.reducedTransparency.onchange = t.step_func_done();
+        navigator.preferences.reducedTransparency.requestOverride('reduce');
+      }, "navigator.preferences.reducedTransparency fires change event when requesting override");
+      async_test((t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedTransparency.clearOverride();
+          navigator.preferences.reducedTransparency.onchange = null;
+        });
+        navigator.preferences.reducedTransparency.onchange = t.step_func_done();
+        navigator.preferences.reducedTransparency.requestOverride('no-preference');
+      }, "navigator.preferences.reducedTransparency fires change event when requesting override (without value change)");
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedTransparency.clearOverride();
+          navigator.preferences.reducedTransparency.onchange = null;
+        });
+        await navigator.preferences.reducedTransparency.requestOverride('reduce');
+        const eventPromise = changeEventPromise("reducedTransparency", t);
+        await navigator.preferences.reducedTransparency.clearOverride();
+        await eventPromise;
+      }, "navigator.preferences.reducedTransparency fires change event when clearing override");
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedTransparency.clearOverride();
+          navigator.preferences.reducedTransparency.onchange = null;
+        });
+        await navigator.preferences.reducedTransparency.requestOverride('no-preference');
+        const eventPromise = changeEventPromise("reducedTransparency", t);
+        await navigator.preferences.reducedTransparency.clearOverride();
+        await eventPromise;
+      }, "navigator.preferences.reducedTransparency fires change event when clearing override (without value change)");
+    </script>
+  </body>
+</html>

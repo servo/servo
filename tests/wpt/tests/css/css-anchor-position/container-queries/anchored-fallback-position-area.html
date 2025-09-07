@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>CSS Conditional Test: @container anchored(fallback) matching &lt;position-area&gt;</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  #anchor {
+    anchor-name: --a;
+    width: 100px;
+    height: 100px;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: top;
+    position-try-fallbacks: bottom;
+    width: 100px;
+    /* Too tall to fit over the anchor to trigger fallback */
+    height: 100px;
+    container-type: anchored;
+  }
+  #target {
+    /* Logical values are resolved against anchored / anchor container elements.
+       Changing the writing-mode for the target should have no effect. */
+    writing-mode: vertical-lr;
+    @container anchored(fallback: bottom) { --bottom: yes; }
+    @container anchored(fallback: span-all bottom) { --span-all-bottom: yes; }
+    @container anchored(fallback: block-end) { --block-end: yes; }
+    @container anchored(fallback: block-end span-all) { --block-end-span-all: yes; }
+    @container anchored(fallback: self-block-end) { --self-block-end: yes; }
+    @container anchored(fallback: span-all self-block-end) { --span-all-self-block-end: yes; }
+  }
+</style>
+<div id="anchor"></div>
+<div id="anchored">
+  <div id="target"></div>
+</div>
+<script>
+  test(() => {
+    const style = getComputedStyle(target);
+    assert_equals(style.getPropertyValue("--bottom"), "yes");
+    assert_equals(style.getPropertyValue("--span-all-bottom"), "yes");
+    assert_equals(style.getPropertyValue("--block-end"), "yes");
+    assert_equals(style.getPropertyValue("--block-end-span-all"), "yes");
+    assert_equals(style.getPropertyValue("--self-block-end"), "yes");
+    assert_equals(style.getPropertyValue("--span-all-self-block-end"), "yes");
+  }, "@container anchored(fallback) with <position-area> fallback applied");
+</script>

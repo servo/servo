@@ -1837,11 +1837,5 @@ const whereTests = [
   }
 ];
 
-if (navigator.ml) {
-  whereTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getWherePrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    whereTests, buildAndExecuteGraph, getWherePrecisionTolerance);

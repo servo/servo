@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Conditional Test: Parsing of container-type with 'anchored'</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_valid_value('container-type', 'anchored');
+  test_valid_value('container-type', 'size anchored');
+  test_valid_value('container-type', 'anchored inline-size', 'inline-size anchored');
+
+  test_invalid_value('container-type', 'anchored anchored');
+  test_invalid_value('container-type', 'normal anchored');
+</script>

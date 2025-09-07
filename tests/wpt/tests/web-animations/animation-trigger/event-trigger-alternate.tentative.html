@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/web-animations-2#animation-trigger">
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+  </head>
+  <body>
+    <div id="event-target">Click me!</div>
+
+    <div id="animation-target">Watch me!</div>
+    <script>
+      promise_test(async (test) => {
+        const eventTarget = document.getElementById("event-target");
+        const animationTarget = document.getElementById("animation-target");
+        const ANIMATION_DURATION_MS = 100000;
+        const animation = new Animation(
+          new KeyframeEffect(
+            animationTarget,
+            [
+              { transform: "translateY(0)" },
+              { transform: "translateY(3rem)" },
+            ],
+            { duration: ANIMATION_DURATION_MS, fill: "both" }
+          ));
+        const trigger = new EventTrigger({
+          behavior: "alternate",
+          eventType: "click",
+          eventTarget: eventTarget
+        });
+        trigger.addAnimation(animation);
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "idle", "animation is idle");
+        assert_equals(animation.playbackRate, 1, "playbackRate is initially 1");
+        await test_driver.click(eventTarget);
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "running", "animation is running after first click");
+        assert_equals(animation.playbackRate, 1, "playbackRate is 1 after first click");
+
+        // Advance to middle of duration so that animation doesn't finish too
+        // quickly after reversing.
+        animation.currentTime = animation.startTime + (ANIMATION_DURATION_MS/2);
+        await waitForAnimationFrames(1);
+
+        await test_driver.click(eventTarget);
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "running", "animation is running after second click");
+        assert_equals(animation.playbackRate, -1, "playbackRate is -1 after second click");
+        animation.pause();
+        await waitForAnimationFrames(1);
+        await test_driver.click(eventTarget);
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "running", "animation is running after third click");
+        assert_equals(animation.playbackRate, 1, "playbackRate is 1 after third click");
+      }, "Basic event-based animation-trigger with 'alternate' behavior");
+    </script>
+  </body>
+</html>

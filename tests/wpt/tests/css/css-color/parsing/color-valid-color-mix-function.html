@@ -389,7 +389,7 @@
     fuzzy_test_valid_color(`color-mix(in oklab, oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7 / 0.5))`, `color-mix(in oklab, oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7 / 0.5))`);
     fuzzy_test_valid_color(`color-mix(in oklab, oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7 / none))`, `color-mix(in oklab, oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7 / none))`);
 
-    for (const colorSpace of [ "srgb", "srgb-linear", "display-p3", "a98-rgb", "prophoto-rgb", "rec2020", "xyz", "xyz-d50", "xyz-d65" ]) {
+    for (const colorSpace of [ "srgb", "srgb-linear", "display-p3", "display-p3-linear", "a98-rgb", "prophoto-rgb", "rec2020", "xyz", "xyz-d50", "xyz-d65" ]) {
       const resultColorSpace = colorSpace == "xyz" ? "xyz-d65" : colorSpace;
 
       fuzzy_test_valid_color(`color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3), color(${colorSpace} .5 .6 .7))`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3), color(${resultColorSpace} 0.5 0.6 0.7))`);

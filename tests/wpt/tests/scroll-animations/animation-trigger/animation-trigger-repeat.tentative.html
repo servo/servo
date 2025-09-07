@@ -24,15 +24,15 @@
       }
 
       #scroll_target {
-        animation-trigger: --scrolltrigger;
+        animation-trigger: trigger(--scrolltrigger, enter play-forwards, exit reset);
         timeline-trigger: --scrolltrigger scroll() repeat 250px 300px 200px 350px;
       }
       #view_target {
-        animation-trigger: --viewtrigger;
+        animation-trigger: trigger(--viewtrigger, enter play-forwards, exit reset);
         timeline-trigger: --viewtrigger view() repeat 250px 300px 200px 350px;
       }
       #deferred_target {
-        animation-trigger: --deferredtrigger;
+        animation-trigger: trigger(--deferredtrigger, enter play-forwards, exit reset);
       }
       #deferred_subject {
         view-timeline: --viewtimeline;

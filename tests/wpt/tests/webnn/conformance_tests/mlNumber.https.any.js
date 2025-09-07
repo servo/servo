@@ -267,11 +267,5 @@ const mlNumberTests = [
   },
 ];
 
-if (navigator.ml) {
-  mlNumberTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getClampPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    mlNumberTests, buildAndExecuteGraph, getClampPrecisionTolerance);

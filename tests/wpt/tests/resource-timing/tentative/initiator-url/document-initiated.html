@@ -44,7 +44,14 @@
   <script>
     display_paragraph();
 
-    // Load arbitrary stylesheet with inline script
+    // TODO(crbug.com/40919714): The two elements below are not initiated by html.
+    // They are initiated by script. They should be moved out of this test.
+    // As of 08/2025 the two below are passing for chromium but because of wrong
+    // reasons. They are not recognized to be resources initaited by scripts, so they
+    // are thought to be initiated from main html, for which the url happens to be
+    // correct for inline scripts.
+
+    // Load arbitrary stylesheet with inline script.
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = "../../resources/empty_style.css?inline-script";
@@ -69,27 +76,15 @@
       "Ahem.ttf?initiator-html",
       "blue.png?using-Img-tag",
         /*        "green.html",
-        TODO(guohuideng@microsoft.com): report initiator for iframe element.
+        TODO(crbug.com/40919714): report initiator for iframe element.
         */
       "empty_style.css?inline-script",
       "blue.png?inline-script",
     ];
     for (const resource of resources) {
-      initiator_url_test(resource, expectedInitiatorUrl, resource+" initiatorUrl from document-initiated");
+      initiator_url_test(resource, expectedInitiatorUrl, resource+
+        " initiatorUrl from document-initiated", resource+" timeout");
     }
-
-    write_to_doc = '<img id="img_written" src="/images/blue.png?inline-script-doc-write">';
-    resource = "blue.png?inline-script-doc-write";
-    initiator_url_doc_write_test(write_to_doc, resource, expectedInitiatorUrl,
-      resource+" initiatorUrl from document-initiated");
-
-    write_to_doc = '<link id="css_written" rel="stylesheet" href="../../resources/empty_style.css?inline-script-doc-write">';
-    resource = "empty_style.css?inline-script-doc-write";
-    initiator_url_doc_write_test(write_to_doc, resource, expectedInitiatorUrl, resource+" initiatorUrl from document-initiated");
-
-    write_to_doc = '<script id="script_written" src="../../resources/empty.js?doc-write"><\/script>';
-    resource = "empty.js?doc-write";
-    initiator_url_doc_write_test(write_to_doc, resource, expectedInitiatorUrl, resource+" initiatorUrl from document-initiated");
 
   </script>
 </body>

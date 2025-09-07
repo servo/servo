@@ -258,11 +258,6 @@ const cumulativeSumTests = [
   }
 ];
 
-if (navigator.ml) {
-  cumulativeSumTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getCumulativeSumPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    cumulativeSumTests, buildAndExecuteGraph,
+    getCumulativeSumPrecisionTolerance);

@@ -1744,10 +1744,5 @@ const averagePool2dTests = [
   }
 ];
 
-if (navigator.ml) {
-  averagePool2dTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    averagePool2dTests, buildAndExecuteGraph, getPrecisionTolerance);

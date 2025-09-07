@@ -43,7 +43,11 @@ main () {
     done
     # This is safe because `git push` will by default fail for a non-fast-forward
     # push, for example if the remote branch is ahead of the local branch.
-    git push --porcelain --tags ${REMOTE} ${ALL_BRANCHES_NAMES} | tee "${RUNNER_TEMP}/git-push-output.txt"
+    # We save the output so that GitHub Actions workflows can find out what got
+    # pushed, as workflows are not triggered by push events caused by another
+    # workflow. We need to pass core.abbrev as actions/checkout only allows refs to
+    # be specified as an object id if they are exactly 40 characters.
+    git -c core.abbrev=40 push --porcelain --tags ${REMOTE} ${ALL_BRANCHES_NAMES} | tee "${RUNNER_TEMP}/git-push-output.txt"
 }
 
 cd $WPT_ROOT

@@ -509,11 +509,5 @@ const logTests = [
   }
 ];
 
-if (navigator.ml) {
-  logTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getLogPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    logTests, buildAndExecuteGraph, getLogPrecisionTolerance);

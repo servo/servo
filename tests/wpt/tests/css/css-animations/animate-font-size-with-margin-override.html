@@ -1,0 +1,18 @@
+<link rel="help" href="https://drafts.csswg.org/css-animations">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=284527">
+<link rel="match" href="animate-font-size-with-margin-override-ref.html">
+<style>
+@keyframes anim {
+    from, to { font-size: 30px; }
+}
+h2 {
+    margin: 0;
+    background-color: lightblue;
+    animation: anim both;
+}
+div { border: 2px solid green; }
+</style>
+
+<div>
+<h2>This should not have any margins.</h2>
+</div>

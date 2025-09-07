@@ -635,11 +635,5 @@ const negTests = [
   }
 ];
 
-if (navigator.ml) {
-  negTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getNegPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    negTests, buildAndExecuteGraph, getNegPrecisionTolerance, test);

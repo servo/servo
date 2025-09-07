@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: Parsing text-decoration-trim with invalid values</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-trim">
+<meta name="assert" content="text-decoration-trim supports the full grammar '<length>{1,2} | auto'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_invalid_value("text-decoration-trim", "none");
+test_invalid_value("text-decoration-trim", "normal");
+test_invalid_value("text-decoration-trim", "auto auto");
+test_invalid_value("text-decoration-trim", "0 auto");
+test_invalid_value("text-decoration-trim", "auto none");
+test_invalid_value("text-decoration-trim", "1px auto");
+test_invalid_value("text-decoration-trim", "auto -1px");
+test_invalid_value("text-decoration-trim", "10%");
+test_invalid_value("text-decoration-trim", "45deg");
+</script>
