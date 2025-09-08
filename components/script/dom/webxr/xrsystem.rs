@@ -323,7 +323,7 @@ impl XRSystem {
                 task!(fire_sessionavailable_event: move || {
                     // The sessionavailable event indicates user intent to enter an XR session
                     let xr = xr.root();
-                        let _ = ScriptThread::user_iteracting_guard();
+                        let _guard = ScriptThread::user_interacting_guard();
                         xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"), CanGc::note());
                 })
             );

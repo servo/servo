@@ -250,7 +250,7 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
     ) -> Fallible<DomRoot<MutationObserver>> {
         global.set_exists_mut_observer();
         let observer = MutationObserver::new_with_proto(global, proto, callback, can_gc);
-        ScriptThread::add_mutation_observer(&observer);
+        ScriptThread::mutation_observers().add_mutation_observer(&observer);
         Ok(observer)
     }
 

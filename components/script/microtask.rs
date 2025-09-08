@@ -117,8 +117,7 @@ impl MicrotaskQueue {
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
-                            let _ = ScriptThread::is_user_interacting();
-                            let _ = ScriptThread::user_iteracting_guard();
+                            let _guard = ScriptThread::user_interacting_guard();
                             let _realm = enter_realm(&*target);
                             let _ = job
                                 .callback

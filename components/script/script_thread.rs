@@ -128,7 +128,6 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
-use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::NodeTraits;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
@@ -501,16 +500,6 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn add_mutation_observer(observer: &MutationObserver) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .mutation_observers
-                .mutation_observers
-                .borrow_mut()
-                .push(Dom::from_ref(observer));
-        })
-    }
-
     pub(crate) fn mutation_observers() -> Rc<ScriptMutationObservers> {
         with_script_thread(|script_thread| script_thread.mutation_observers.clone())
     }
@@ -729,7 +718,9 @@ impl ScriptThread {
 
     /// Creates a guard that sets user_is_interacting to true and returns the
     /// state of user_is_interacting on drop of the guard.
-    pub(crate) fn user_iteracting_guard() -> ScriptUserInteractingGuard {
+    /// Notice that you need to use `let _guard = ...` as `let _ = ...` is not enough
+    #[must_use]
+    pub(crate) fn user_interacting_guard() -> ScriptUserInteractingGuard {
         with_script_thread(|script_thread| {
             ScriptUserInteractingGuard::new(script_thread.is_user_interacting.clone())
         })
@@ -1010,7 +1001,6 @@ impl ScriptThread {
             microtask_queue,
             js_runtime,
             closed_pipelines: DomRefCell::new(FxHashSet::default()),
-            mutation_observer_microtask_queued: Default::default(),
             mutation_observers: Default::default(),
             signal_slots: Default::default(),
             system_font_service,
@@ -1089,7 +1079,7 @@ impl ScriptThread {
             return;
         }
 
-        let _ = ScriptUserInteractingGuard::new(self.is_user_interacting.clone());
+        let _guard = ScriptUserInteractingGuard::new(self.is_user_interacting.clone());
         document.event_handler().handle_pending_input_events(can_gc);
     }
 

@@ -16,19 +16,25 @@ use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, Mutation
 use crate::microtask::{Microtask, MicrotaskQueue};
 
 /// A helper struct for mutation observers used in `ScriptThread`
-/// Since the Rc is always stored in ScriptThread, so it's always reachable by the GC.
+/// Since the Rc is always stored in ScriptThread, it's always reachable by the GC.
 #[derive(JSTraceable, Default)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ScriptMutationObservers {
     /// Microtask Queue for adding support for mutation observer microtasks
-    pub(crate) mutation_observer_microtask_queued: Rc<Cell<bool>>,
+    mutation_observer_microtask_queued: Cell<bool>,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
-    pub(crate) mutation_observers: Rc<DomRefCell<Vec<Dom<MutationObserver>>>>,
+    mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
 }
 
 impl ScriptMutationObservers {
+    pub(crate) fn add_mutation_observer(&self, observer: &MutationObserver) {
+        self.mutation_observers
+            .borrow_mut()
+            .push(Dom::from_ref(observer));
+    }
+
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
     pub(crate) fn notify_mutation_observers(&self, can_gc: CanGc) {
         // Step 1. Set the surrounding agent’s mutation observer microtask queued to false.

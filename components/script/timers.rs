@@ -589,7 +589,7 @@ impl JsTimerTask {
         // prep for step ? in nested set_timeout_or_interval calls
         timers.nesting_level.set(self.nesting_level);
 
-        let _ = ScriptThread::user_iteracting_guard();
+        let _guard = ScriptThread::user_interacting_guard();
         match self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
                 // Step 6.4. Let settings object be global's relevant settings object.
