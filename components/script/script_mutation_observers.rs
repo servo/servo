@@ -19,6 +19,7 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 /// Since the Rc is always stored in ScriptThread, so it's always reachable by the GC.
 #[derive(JSTraceable, Default)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ScriptMutationObservers {
     /// Microtask Queue for adding support for mutation observer microtasks
     pub(crate) mutation_observer_microtask_queued: Rc<Cell<bool>>,
