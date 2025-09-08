@@ -928,7 +928,7 @@ impl LayoutThread {
         image_resolver: &Arc<ImageResolver>,
     ) -> (ReflowPhasesRun, RestyleDamage, IFrameSizes) {
         let mut snapshot_map = SnapshotMap::new();
-        let _snapshot_setter = match reflow_request.restyle.as_mut() {
+        let snapshot_setter = match reflow_request.restyle.as_mut() {
             Some(restyle) => SnapshotSetter::new(restyle, &mut snapshot_map),
             None => return Default::default(),
         };
@@ -1009,11 +1009,19 @@ impl LayoutThread {
             };
 
             if !token.should_traverse() {
-                layout_context.style_context.stylist.rule_tree().maybe_gc();
-                return Default::default();
+                dirty_root = None;
+            } else {
+                dirty_root = Some(
+                    driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node(),
+                );
             }
+        }
 
-            dirty_root = driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node();
+        // If we don't run restyle and there is no damage from DOM mutations, then there is
+        // nothing to do.
+        if dirty_root.is_none() && !snapshot_setter.has_damage_from_dom_mutation {
+            layout_context.style_context.stylist.rule_tree().maybe_gc();
+            return Default::default();
         }
 
         let root_node = root_element.as_node();
@@ -1023,7 +1031,7 @@ impl LayoutThread {
             Default::default()
         };
         let damage = compute_damage_and_repair_style(
-            &layout_context.style_context,
+            &layout_context,
             root_node.to_threadsafe(),
             damage_from_environment,
         );
@@ -1036,9 +1044,9 @@ impl LayoutThread {
         let mut box_tree = self.box_tree.borrow_mut();
         let box_tree = &mut *box_tree;
         let layout_damage: LayoutDamage = damage.into();
-        if box_tree.is_none() || layout_damage.has_box_damage() {
+        if dirty_root.is_some() && (box_tree.is_none() || layout_damage.has_box_damage()) {
             let mut build_box_tree = || {
-                if !BoxTree::update(recalc_style_traversal.context(), dirty_root) {
+                if !BoxTree::update(recalc_style_traversal.context(), dirty_root.unwrap()) {
                     *box_tree = Some(Arc::new(BoxTree::construct(
                         recalc_style_traversal.context(),
                         root_node,
@@ -1543,6 +1551,7 @@ impl Debug for LayoutFontMetricsProvider {
 
 struct SnapshotSetter<'dom> {
     elements_with_snapshot: Vec<ServoLayoutElement<'dom>>,
+    has_damage_from_dom_mutation: bool,
 }
 
 impl SnapshotSetter<'_> {
@@ -1555,6 +1564,7 @@ impl SnapshotSetter<'_> {
             .filter(|r| r.1.snapshot.is_some())
             .map(|r| unsafe { ServoLayoutNode::new(&r.0).as_element().unwrap() })
             .collect();
+        let mut has_damage_from_dom_mutation = false;
 
         for (element, restyle) in restyles {
             let element = unsafe { ServoLayoutNode::new(&element).as_element().unwrap() };
@@ -1575,9 +1585,11 @@ impl SnapshotSetter<'_> {
             // Stash the data on the element for processing by the style system.
             style_data.hint.insert(restyle.hint);
             style_data.damage = restyle.damage;
+            has_damage_from_dom_mutation |= !restyle.damage.is_empty();
         }
         Self {
             elements_with_snapshot,
+            has_damage_from_dom_mutation,
         }
     }
 }

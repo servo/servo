@@ -181,7 +181,6 @@ bitflags! {
         /// Whether or not this is a table cell that is part of a collapsed row or column.
         /// In that case it should not be painted.
         const IS_COLLAPSED = 1 << 11;
-
     }
 }
 

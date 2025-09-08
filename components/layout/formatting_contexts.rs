@@ -238,6 +238,14 @@ impl IndependentFormattingContext {
         }
     }
 
+    pub(crate) fn repair_replaced_contents(&mut self, new_contents: ReplacedContents) {
+        if let IndependentFormattingContextContents::Replaced(contents) = &mut self.contents {
+            *contents = new_contents;
+        } else {
+            unreachable!("Called repair_replaced_contents on a non-replaced IFC");
+        }
+    }
+
     #[inline]
     pub(crate) fn is_block_container(&self) -> bool {
         matches!(self.contents, IndependentFormattingContextContents::Flow(_))

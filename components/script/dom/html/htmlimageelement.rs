@@ -495,7 +495,7 @@ impl HTMLImageElement {
         self.current_request.borrow_mut().state = State::CompletelyAvailable;
         LoadBlocker::terminate(&self.current_request.borrow().blocker, can_gc);
         // Mark the node dirty
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(NodeDamage::ReplacedContents);
         self.resolve_image_decode_promises();
     }
 

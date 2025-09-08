@@ -940,7 +940,7 @@ impl Document {
 
         // FIXME(emilio): This is very inefficient, ideally the flag above would
         // be enough and incremental layout could figure out from there.
-        node.dirty(NodeDamage::ContentOrHeritage);
+        node.dirty(NodeDamage::NonReplacedContentsOrHeritage);
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
@@ -4174,7 +4174,9 @@ impl Document {
                 if !node.get_flag(NodeFlags::IS_CONNECTED) {
                     return None;
                 }
-                node.note_dirty_descendants();
+                if !restyle.0.hint.is_empty() || restyle.0.snapshot.is_some() {
+                    node.note_dirty_descendants();
+                }
                 Some((node.to_trusted_node_address(), restyle.0))
             })
             .collect()
