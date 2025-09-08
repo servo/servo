@@ -123,7 +123,8 @@ where
 
             let local_font_identifier = LocalFontIdentifier {
                 path: Atom::from(c_str_to_string(path as *const c_char)),
-                variation_index: index as i32,
+                face_index: (index & 0xFFFF) as u16,
+                named_instance_index: (index >> 16) as u16,
             };
             let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
 

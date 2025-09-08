@@ -444,7 +444,8 @@ where
     let mut produce_font = |font: &Font| {
         let local_font_identifier = LocalFontIdentifier {
             path: Atom::from(font.filepath.clone()),
-            variation_index: 0,
+            face_index: 0,
+            named_instance_index: 0,
         };
         let stretch = font.width.into();
         let weight = font

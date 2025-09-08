@@ -41,18 +41,26 @@ mod platform {
         /// The path to the font.
         pub path: Atom,
         /// The variation index within the font.
-        pub variation_index: i32,
+        pub face_index: u16,
+        /// The index of the named instance within the font.
+        ///
+        /// For non-variable fonts, this is ignored.
+        pub named_instance_index: u16,
     }
 
     impl LocalFontIdentifier {
         pub fn index(&self) -> u32 {
-            self.variation_index.try_into().unwrap()
+            self.face_index as u32
+        }
+
+        pub fn named_instance_index(&self) -> u32 {
+            self.named_instance_index as u32
         }
 
         pub fn native_font_handle(&self) -> NativeFontHandle {
             NativeFontHandle {
                 path: PathBuf::from(&*self.path),
-                index: self.variation_index as u32,
+                index: self.face_index as u32,
             }
         }
 
@@ -64,8 +72,19 @@ mod platform {
 
             Some(FontDataAndIndex {
                 data,
-                index: self.variation_index as u32,
+                index: self.face_index as u32,
             })
+        }
+
+        /// Fontconfig and FreeType use a packed format to represent face and
+        /// named instance indexes in a single integer. The first 16 bits make
+        /// up the named instance index and the second 16 bits make up the
+        /// face index.
+        ///
+        /// See <https://freetype.org/freetype2/docs/reference/ft2-face_creation.html#ft_open_face>
+        /// for more information.
+        pub fn face_index_for_freetype(&self) -> u32 {
+            ((self.named_instance_index()) << 16) | self.index()
         }
     }
 }
