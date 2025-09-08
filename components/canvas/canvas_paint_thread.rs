@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::collections::HashMap;
 use std::{f32, thread};
 
 use base::Epoch;
@@ -16,12 +15,13 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
 use pixels::Snapshot;
+use rustc_hash::FxHashMap;
 use webrender_api::ImageKey;
 
 use crate::canvas_data::*;
 
 pub struct CanvasPaintThread {
-    canvases: HashMap<CanvasId, Canvas>,
+    canvases: FxHashMap<CanvasId, Canvas>,
     next_canvas_id: CanvasId,
     compositor_api: CrossProcessCompositorApi,
 }
@@ -29,7 +29,7 @@ pub struct CanvasPaintThread {
 impl CanvasPaintThread {
     fn new(compositor_api: CrossProcessCompositorApi) -> CanvasPaintThread {
         CanvasPaintThread {
-            canvases: HashMap::new(),
+            canvases: FxHashMap::default(),
             next_canvas_id: CanvasId(0),
             compositor_api: compositor_api.clone(),
         }

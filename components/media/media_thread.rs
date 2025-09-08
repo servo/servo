@@ -6,9 +6,9 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use compositing_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
-use fnv::FnvHashMap;
 use ipc_channel::ipc::{IpcSender, channel};
 use log::{trace, warn};
+use rustc_hash::FxHashMap;
 use webrender_api::ExternalImageId;
 
 /// GL player threading API entry point that lives in the
@@ -19,7 +19,7 @@ use crate::{GLPlayerMsg, GLPlayerMsgForward};
 /// a set of video players with GL render.
 pub struct GLPlayerThread {
     /// Map of live players.
-    players: FnvHashMap<u64, IpcSender<GLPlayerMsgForward>>,
+    players: FxHashMap<u64, IpcSender<GLPlayerMsgForward>>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new players.
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,

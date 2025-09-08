@@ -15,6 +15,7 @@ path = "lib.rs"
 arrayvec = { workspace = true, features = ["serde"] }
 base = { workspace = true }
 compositing_traits = { workspace = true }
+rustc-hash = { workspace = true }
 euclid = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }

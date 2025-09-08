@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::WebViewId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId};
+use rustc_hash::FxHashMap;
 
 use crate::ConstellationProxy;
 
@@ -17,7 +16,7 @@ struct PendingEvaluation {
 pub(crate) struct JavaScriptEvaluator {
     current_id: JavaScriptEvaluationId,
     constellation_proxy: ConstellationProxy,
-    pending_evaluations: HashMap<JavaScriptEvaluationId, PendingEvaluation>,
+    pending_evaluations: FxHashMap<JavaScriptEvaluationId, PendingEvaluation>,
 }
 
 impl JavaScriptEvaluator {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::thread::{self, Builder, JoinHandle};
 use std::time::{Duration, Instant};
 
@@ -14,6 +14,7 @@ use background_hang_monitor_api::{
 use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use rustc_hash::FxHashMap;
 
 use crate::sampler::{NativeStack, Sampler};
 
@@ -208,8 +209,8 @@ struct MonitoredComponent {
 struct Sample(MonitoredComponentId, Instant, NativeStack);
 
 struct BackgroundHangMonitorWorker {
-    component_names: HashMap<MonitoredComponentId, String>,
-    monitored_components: HashMap<MonitoredComponentId, MonitoredComponent>,
+    component_names: FxHashMap<MonitoredComponentId, String>,
+    monitored_components: FxHashMap<MonitoredComponentId, MonitoredComponent>,
     constellation_chan: IpcSender<HangMonitorAlert>,
     port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
     control_port: Receiver<BackgroundHangMonitorControlMsg>,

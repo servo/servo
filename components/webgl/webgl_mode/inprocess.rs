@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::default::Default;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
@@ -13,8 +12,8 @@ use compositing_traits::{
     WebrenderExternalImageRegistry,
 };
 use euclid::default::Size2D;
-use fnv::FnvHashMap;
 use log::debug;
+use rustc_hash::FxHashMap;
 use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{Device, SurfaceTexture};
 use webrender::RenderApiSender;
@@ -87,7 +86,7 @@ impl WebGLComm {
 struct WebGLExternalImages {
     rendering_context: Rc<dyn RenderingContext>,
     swap_chains: SwapChains<WebGLContextId, Device>,
-    locked_front_buffers: FnvHashMap<WebGLContextId, SurfaceTexture>,
+    locked_front_buffers: FxHashMap<WebGLContextId, SurfaceTexture>,
 }
 
 impl WebGLExternalImages {
@@ -98,7 +97,7 @@ impl WebGLExternalImages {
         Self {
             rendering_context,
             swap_chains,
-            locked_front_buffers: FnvHashMap::default(),
+            locked_front_buffers: FxHashMap::default(),
         }
     }
 
