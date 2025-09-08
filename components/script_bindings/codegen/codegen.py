@@ -979,30 +979,18 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         else:
             unwrapFailureCode = failureCode
 
-        if conversionFunction == "root_from_handlevalue":
-            templateBody = fill(
-            """
-            match ${function}($${val}, cx) {
-                Ok(val) => val,
-                Err(()) => {
-                    $*{failureCode}
-                }
+        templateBody = fill(
+        """
+        match ${function}($${val}, cx) {
+            Ok(val) => val,
+            Err(()) => {
+                $*{failureCode}
             }
-            """,
-            failureCode=unwrapFailureCode + "\n",
-            function=conversionFunction)
-        else:
-            templateBody = fill(
-                """
-                match ${function}($${val}, *cx) {
-                    Ok(val) => val,
-                    Err(()) => {
-                        $*{failureCode}
-                    }
-                }
-                """,
-                failureCode=unwrapFailureCode + "\n",
-                function=conversionFunction)
+        }
+        """,
+        failureCode=unwrapFailureCode + "\n",
+        function=conversionFunction)
+
 
         declType = CGGeneric(descriptorType)
         if type.nullable():
