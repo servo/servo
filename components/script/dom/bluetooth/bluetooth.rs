@@ -635,12 +635,13 @@ impl PermissionAlgorithm for Bluetooth {
     fn create_descriptor(
         cx: JSContext,
         permission_descriptor_obj: *mut JSObject,
+        can_gc: CanGc,
     ) -> Result<BluetoothPermissionDescriptor, Error> {
         rooted!(in(*cx) let mut property = UndefinedValue());
         property
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
-        match BluetoothPermissionDescriptor::new(cx, property.handle(), CanGc::note()) {
+        match BluetoothPermissionDescriptor::new(cx, property.handle(), can_gc) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             Err(_) => Err(Error::Type(String::from(BT_DESC_CONVERSION_ERROR))),
