@@ -27,6 +27,8 @@ use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::{ConstellationProxy, Servo, WebRenderDebugOption};
 
+pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1, 1);
+
 /// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
 /// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
 /// considers that the webview has closed and will clean up all associated resources related
@@ -343,6 +345,9 @@ impl WebView {
             return;
         }
 
+        let rect =
+            DeviceRect::from_origin_and_size(rect.min, rect.size().max(Size2D::new(1.0, 1.0)));
+
         self.inner_mut().rect = rect;
         self.inner()
             .compositor
@@ -350,7 +355,15 @@ impl WebView {
             .move_resize_webview(self.id(), rect);
     }
 
+    /// Request that the given [`WebView`]'s rendering area be resized. Note that the
+    /// minimum size for a WebView is 1 pixel by 1 pixel so any requested size will be
+    /// clamped by that value.
     pub fn resize(&self, new_size: PhysicalSize<u32>) {
+        let new_size = PhysicalSize {
+            width: new_size.width.max(MINIMUM_WEBVIEW_SIZE.width as u32),
+            height: new_size.height.max(MINIMUM_WEBVIEW_SIZE.height as u32),
+        };
+
         self.inner()
             .compositor
             .borrow_mut()

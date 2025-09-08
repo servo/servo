@@ -132,6 +132,7 @@ use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 use crate::webrender_api::FrameReadyParams;
+use crate::webview::MINIMUM_WEBVIEW_SIZE;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, ColorPicker, FormControl, NavigationRequest,
@@ -693,7 +694,9 @@ impl Servo {
             },
             EmbedderMsg::ResizeTo(webview_id, size) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().request_resize_to(webview, size);
+                    webview
+                        .delegate()
+                        .request_resize_to(webview, size.max(MINIMUM_WEBVIEW_SIZE));
                 }
             },
             EmbedderMsg::ShowSimpleDialog(webview_id, prompt_definition) => {

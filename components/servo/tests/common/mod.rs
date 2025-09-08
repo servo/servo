@@ -56,7 +56,7 @@ pub(crate) fn run_test(
 }
 
 pub struct ServoTest {
-    servo: Servo,
+    pub servo: Rc<Servo>,
     #[allow(dead_code)]
     pub rendering_context: Rc<dyn RenderingContext>,
 }
@@ -101,7 +101,7 @@ impl ServoTest {
         let builder = ServoBuilder::new(rendering_context.clone())
             .event_loop_waker(Box::new(EventLoopWakerImpl(user_event_triggered)));
         let builder = customize(builder);
-        let servo = builder.build();
+        let servo = Rc::new(builder.build());
         Self {
             servo,
             rendering_context,
