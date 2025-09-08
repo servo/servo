@@ -1405,7 +1405,8 @@ enum KeyWrapAlgorithm {
 
 macro_rules! value_from_js_object {
     ($t: ty, $cx: ident, $value: ident) => {{
-        let params_result = <$t>::new($cx, $value.handle()).map_err(|_| Error::JSFailed)?;
+        let params_result =
+            <$t>::new($cx, $value.handle(), CanGc::note()).map_err(|_| Error::JSFailed)?;
         let ConversionResult::Success(params) = params_result else {
             return Err(Error::Syntax(None));
         };
@@ -3218,7 +3219,7 @@ impl JsonWebKeyExt for JsonWebKey {
         }
 
         // Step 5. Let key be the result of converting result to the IDL dictionary type of JsonWebKey.
-        let key = match JsonWebKey::new(cx, result.handle()) {
+        let key = match JsonWebKey::new(cx, result.handle(), CanGc::note()) {
             Ok(ConversionResult::Success(key)) => key,
             Ok(ConversionResult::Failure(error)) => {
                 return Err(Error::Type(error.to_string()));

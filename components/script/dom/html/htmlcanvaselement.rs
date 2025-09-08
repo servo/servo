@@ -260,7 +260,7 @@ impl HTMLCanvasElement {
         let canvas =
             RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let size = self.get_size();
-        let attrs = Self::get_gl_attributes(cx, options)?;
+        let attrs = Self::get_gl_attributes(cx, options, can_gc)?;
         let context = WebGLRenderingContext::new(
             &window,
             &canvas,
@@ -293,7 +293,7 @@ impl HTMLCanvasElement {
         let canvas =
             RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let size = self.get_size();
-        let attrs = Self::get_gl_attributes(cx, options)?;
+        let attrs = Self::get_gl_attributes(cx, options, can_gc)?;
         let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs, can_gc)?;
         *self.context_mode.borrow_mut() = Some(RenderingContext::WebGL2(Dom::from_ref(&*context)));
         Some(context)
@@ -338,9 +338,13 @@ impl HTMLCanvasElement {
     }
 
     #[allow(unsafe_code)]
-    fn get_gl_attributes(cx: JSContext, options: HandleValue) -> Option<GLContextAttributes> {
+    fn get_gl_attributes(
+        cx: JSContext,
+        options: HandleValue,
+        can_gc: CanGc,
+    ) -> Option<GLContextAttributes> {
         unsafe {
-            match WebGLContextAttributes::new(cx, options) {
+            match WebGLContextAttributes::new(cx, options, can_gc) {
                 Ok(ConversionResult::Success(attrs)) => Some(attrs.convert()),
                 Ok(ConversionResult::Failure(error)) => {
                     throw_type_error(*cx, &error);
