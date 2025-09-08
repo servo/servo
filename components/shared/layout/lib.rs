@@ -154,6 +154,13 @@ pub enum PendingImageState {
     PendingResponse,
 }
 
+/// The destination in layout where an image is needed.
+#[derive(Debug, MallocSizeOf)]
+pub enum LayoutImageDestination {
+    BoxTreeConstruction,
+    DisplayListBuilding,
+}
+
 /// The data associated with an image that is not yet present in the image cache.
 /// Used by the script thread to hold on to DOM elements that need to be repainted
 /// when an image fetch is complete.
@@ -163,6 +170,7 @@ pub struct PendingImage {
     pub node: UntrustedNodeAddress,
     pub id: PendingImageId,
     pub origin: ImmutableOrigin,
+    pub destination: LayoutImageDestination,
 }
 
 /// A data structure to tarck vector image that are fully loaded (i.e has a parsed SVG
@@ -289,6 +297,9 @@ pub trait Layout {
 
     /// Returns true if this layout needs to produce a new display list for rendering updates.
     fn needs_new_display_list(&self) -> bool;
+
+    /// Marks that this layout needs to produce a new display list for rendering updates.
+    fn set_needs_new_display_list(&self);
 
     fn query_box_area(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Option<Rect<Au>>;
     fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<Rect<Au>>;

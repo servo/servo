@@ -7,8 +7,8 @@ use base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
-use layout_api::IFrameSize;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
+use layout_api::{IFrameSize, LayoutImageDestination};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, UsePlaceholder, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
@@ -189,7 +189,12 @@ impl ReplacedContents {
 
                 let result = context
                     .image_resolver
-                    .get_cached_image_for_url(node.opaque(), svg_source, UsePlaceholder::No)
+                    .get_cached_image_for_url(
+                        node.opaque(),
+                        svg_source,
+                        UsePlaceholder::No,
+                        LayoutImageDestination::BoxTreeConstruction,
+                    )
                     .ok();
 
                 let vector_image = result.map(|result| match result {
@@ -230,6 +235,7 @@ impl ReplacedContents {
                 node.opaque(),
                 image_url.clone().into(),
                 UsePlaceholder::No,
+                LayoutImageDestination::BoxTreeConstruction,
             ) {
                 LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                     ImageOrMetadataAvailable::ImageAvailable { image, .. } => {

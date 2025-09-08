@@ -55,9 +55,10 @@ use js::rust::{
 };
 use layout_api::{
     BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout,
-    PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg, ReflowGoal,
-    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason, ScrollContainerQueryType,
-    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
+    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
+    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason,
+    ScrollContainerQueryType, ScrollContainerResponse, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -235,6 +236,17 @@ pub(crate) struct OngoingNavigation(u32);
 
 type PendingImageRasterizationKey = (PendingImageId, DeviceIntSize);
 
+/// Ancillary data of pending image request that was initiated by layout during a reflow.
+/// This data is used to faciliate invalidating layout when the image data becomes available
+/// at some point in the future.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(JSTraceable, MallocSizeOf)]
+struct PendingLayoutImageAncillaryData {
+    node: Dom<Node>,
+    #[no_trace]
+    destination: LayoutImageDestination,
+}
+
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
@@ -360,7 +372,8 @@ pub(crate) struct Window {
     /// initiated by layout during a reflow. They are stored in the [`ScriptThread`]
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
-    pending_layout_images: DomRefCell<HashMapTracedValues<PendingImageId, Vec<Dom<Node>>>>,
+    pending_layout_images:
+        DomRefCell<HashMapTracedValues<PendingImageId, Vec<PendingLayoutImageAncillaryData>>>,
 
     /// Vector images for which layout has intiated rasterization at a specific size
     /// and whose results are not yet available. They are stored in the [`ScriptThread`]
@@ -643,11 +656,22 @@ impl Window {
             Entry::Occupied(nodes) => nodes,
             Entry::Vacant(_) => return,
         };
-        if matches!(response.response, ImageResponse::Loaded(_, _)) {
-            for node in nodes.get() {
-                node.dirty(NodeDamage::Other);
+        if matches!(
+            response.response,
+            ImageResponse::Loaded(_, _) | ImageResponse::PlaceholderLoaded(_, _)
+        ) {
+            for ancillary_data in nodes.get() {
+                match ancillary_data.destination {
+                    LayoutImageDestination::BoxTreeConstruction => {
+                        ancillary_data.node.dirty(NodeDamage::Other);
+                    },
+                    LayoutImageDestination::DisplayListBuilding => {
+                        self.layout().set_needs_new_display_list();
+                    },
+                }
             }
         }
+
         match response.response {
             ImageResponse::MetadataLoaded(_) => {},
             ImageResponse::Loaded(_, _) |
@@ -3106,8 +3130,11 @@ impl Window {
             }
 
             let nodes = images.entry(id).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
-                nodes.push(Dom::from_ref(&*node));
+            if !nodes.iter().any(|n| std::ptr::eq(&*(n.node), &*node)) {
+                nodes.push(PendingLayoutImageAncillaryData {
+                    node: Dom::from_ref(&*node),
+                    destination: image.destination,
+                });
             }
         }
 

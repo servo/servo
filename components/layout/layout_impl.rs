@@ -539,6 +539,10 @@ impl Layout for LayoutThread {
         self.need_new_display_list.get()
     }
 
+    fn set_needs_new_display_list(&self) {
+        self.need_new_display_list.set(true);
+    }
+
     /// <https://drafts.css-houdini.org/css-properties-values-api-1/#the-registerproperty-function>
     fn register_custom_property(
         &mut self,
