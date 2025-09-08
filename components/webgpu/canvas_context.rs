@@ -4,7 +4,6 @@
 
 //! Main process implementation of [GPUCanvasContext](https://www.w3.org/TR/webgpu/#canvas-context)
 
-use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::sync::{Arc, Mutex};
 
@@ -18,6 +17,7 @@ use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::{IpcSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use rustc_hash::FxHashMap;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPUContextId, WebGPUMsg,
 };
@@ -40,7 +40,7 @@ use wgpu_types::{
     TextureAspect,
 };
 
-pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, ContextData>>>;
+pub type WGPUImageMap = Arc<Mutex<FxHashMap<WebGPUContextId, ContextData>>>;
 
 const fn image_data(context_id: WebGPUContextId) -> ExternalImageData {
     ExternalImageData {
@@ -311,7 +311,7 @@ impl Drop for StagingBuffer {
 #[derive(Default)]
 pub struct WGPUExternalImages {
     pub images: WGPUImageMap,
-    pub locked_ids: HashMap<WebGPUContextId, PresentationStagingBuffer>,
+    pub locked_ids: FxHashMap<WebGPUContextId, PresentationStagingBuffer>,
 }
 
 impl WebrenderExternalImageApi for WGPUExternalImages {
