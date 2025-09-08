@@ -509,7 +509,6 @@ where
 /// `cx` must point to a valid, non-null JSContext.
 #[allow(clippy::result_unit_err)]
 pub fn native_from_handlevalue<T>(v: HandleValue, cx: SafeJSContext) -> Result<*const T, ()>
-pub fn native_from_handlevalue<T>(v: HandleValue, cx: SafeJSContext) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -597,7 +596,6 @@ pub unsafe fn is_array_like<D: crate::DomTypes>(cx: *mut JSContext, value: Handl
 /// Caller is responsible for throwing a JS exception if needed in case of error.
 pub(crate) unsafe fn windowproxy_from_handlevalue<D: crate::DomTypes>(
     v: HandleValue,
-    _cx: SafeJSContext,
     _cx: SafeJSContext,
 ) -> Result<DomRoot<D::WindowProxy>, ()> {
     if !v.get().is_object() {

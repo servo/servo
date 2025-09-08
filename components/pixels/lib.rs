@@ -287,7 +287,20 @@ pub struct RasterImage {
     pub frames: Vec<ImageFrame>,
 }
 
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+fn sensible_delay(delay: Duration) -> Duration {
+    // Very small timeout values are problematic for two reasons: we don't want
+    // to burn energy redrawing animated images extremely fast, and broken tools
+    // generate these values when they actually want a "default" value, so such
+    // images won't play back right without normalization.
+    // https://searchfox.org/firefox-main/rev/c79acad610ddbb31bd92e837e056b53716f5ccf2/image/FrameTimeout.h#35
+    if delay <= Duration::from_millis(10) {
+        Duration::from_millis(100)
+    } else {
+        delay
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ImageFrame {
     pub delay: Option<Duration>,
     /// References a range of the `bytes` field from the image that this
@@ -297,12 +310,24 @@ pub struct ImageFrame {
     pub height: u32,
 }
 
+impl ImageFrame {
+    pub fn delay(&self) -> Option<Duration> {
+        self.delay.map(sensible_delay)
+    }
+}
+
 /// A non-owning reference to the data of an [ImageFrame]
 pub struct ImageFrameView<'a> {
     pub delay: Option<Duration>,
     pub bytes: &'a [u8],
     pub width: u32,
     pub height: u32,
+}
+
+impl ImageFrameView<'_> {
+    pub fn delay(&self) -> Option<Duration> {
+        self.delay.map(sensible_delay)
+    }
 }
 
 impl RasterImage {
