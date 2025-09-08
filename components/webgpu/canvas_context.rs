@@ -34,8 +34,11 @@ use wgpu_core::id::{
 use wgpu_core::resource::{
     BufferAccessError, BufferDescriptor, BufferMapOperation, CreateBufferError,
 };
-
-use crate::wgt;
+use wgpu_types::{
+    BufferUsages, COPY_BYTES_PER_ROW_ALIGNMENT, CommandBufferDescriptor, CommandEncoderDescriptor,
+    Extent3d, Origin3d, TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfo,
+    TextureAspect,
+};
 
 pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, ContextData>>>;
 
@@ -58,7 +61,7 @@ struct Buffer {
 
 impl Buffer {
     /// Returns true if buffer is compatible with provided configuration
-    fn has_config(&self, config: &ContextConfiguration) -> bool {
+    fn has_compatible_config(&self, config: &ContextConfiguration) -> bool {
         config.device_id == self.device_id && self.size == config.buffer_size()
     }
 }
@@ -83,28 +86,26 @@ impl MappedBuffer {
         unsafe { std::slice::from_raw_parts(self.data.as_ptr(), self.len as usize) }
     }
 
-    pub fn stride(&self) -> u32 {
+    fn stride(&self) -> u32 {
         (self.image_size.width * self.image_format.bytes_per_pixel() as u32)
-            .next_multiple_of(wgt::COPY_BYTES_PER_ROW_ALIGNMENT)
+            .next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT)
     }
 }
 
-/// State of staging buffer
 #[derive(Debug)]
 enum StagingBufferState {
-    /// Initial state, buffer has yet to be created,
-    /// only it's id is reserved
+    /// The Initial state: the buffer has yet to be created with only an
+    /// id reserved for it.
     Unassigned,
-    /// Buffer is allocated on GPUDevice and ready to be used immediately
+    /// The buffer is allocated in the WGPU Device and is ready to be used.
     Available(Buffer),
-    /// Buffer is running mapAsync
+    /// `mapAsync` is currently running on the buffer.
     Mapping(Buffer),
-    /// Buffer is currently actively mapped
+    /// The buffer is currently mapped.
     Mapped(MappedBuffer),
 }
 
-/// Staging buffer used for
-/// Texture to Buffer to CPU copying
+/// A staging buffer used for texture to buffer to CPU copy operations.
 #[derive(Debug)]
 struct StagingBuffer {
     global: Arc<Global>,
@@ -131,29 +132,29 @@ impl StagingBuffer {
 
     /// Return true if buffer can be used directly with provided config
     /// without any additional work
-    fn is_available_with_config(&self, config: &ContextConfiguration) -> bool {
+    fn is_available_and_has_compatible_config(&self, config: &ContextConfiguration) -> bool {
         let StagingBufferState::Available(buffer) = &self.state else {
             return false;
         };
-        buffer.has_config(config)
+        buffer.has_compatible_config(config)
     }
 
     /// Return true if buffer is not mapping or being mapped
-    const fn needs_assign(&self) -> bool {
+    const fn needs_assignment(&self) -> bool {
         matches!(
             self.state,
             StagingBufferState::Unassigned | StagingBufferState::Available(_)
         )
     }
 
-    /// Make buffer available by unmap/destroy and recreating it if needed
+    /// Make buffer available by unmapping / destroying it and then recreating it if needed.
     fn ensure_available(&mut self, config: &ContextConfiguration) -> Result<(), CreateBufferError> {
         let recreate = match &self.state {
             StagingBufferState::Unassigned => true,
             StagingBufferState::Available(buffer) |
             StagingBufferState::Mapping(buffer) |
             StagingBufferState::Mapped(MappedBuffer { buffer, .. }) => {
-                if buffer.has_config(config) {
+                if buffer.has_compatible_config(config) {
                     let _ = self.global.buffer_unmap(self.buffer_id);
                     false
                 } else {
@@ -169,7 +170,7 @@ impl StagingBuffer {
                 &BufferDescriptor {
                     label: None,
                     size: buffer_size,
-                    usage: wgt::BufferUsages::MAP_READ | wgt::BufferUsages::COPY_DST,
+                    usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
                     mapped_at_creation: false,
                 },
                 Some(self.buffer_id),
@@ -201,7 +202,7 @@ impl StagingBuffer {
             unreachable!("Should be made available by `ensure_available`")
         };
         let device_id = buffer.device_id;
-        let command_descriptor = wgt::CommandEncoderDescriptor { label: None };
+        let command_descriptor = CommandEncoderDescriptor { label: None };
         let (encoder_id, error) = self.global.device_create_command_encoder(
             device_id,
             &command_descriptor,
@@ -210,21 +211,21 @@ impl StagingBuffer {
         if let Some(error) = error {
             return Err(error.into());
         };
-        let buffer_info = wgt::TexelCopyBufferInfo {
+        let buffer_info = TexelCopyBufferInfo {
             buffer: self.buffer_id,
-            layout: wgt::TexelCopyBufferLayout {
+            layout: TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(config.stride()),
                 rows_per_image: None,
             },
         };
-        let texture_info = wgt::TexelCopyTextureInfo {
+        let texture_info = TexelCopyTextureInfo {
             texture: texture_id,
             mip_level: 0,
-            origin: wgt::Origin3d::ZERO,
-            aspect: wgt::TextureAspect::All,
+            origin: Origin3d::ZERO,
+            aspect: TextureAspect::All,
         };
-        let copy_size = wgt::Extent3d {
+        let copy_size = Extent3d {
             width: config.size.width,
             height: config.size.height,
             depth_or_array_layers: 1,
@@ -237,14 +238,14 @@ impl StagingBuffer {
         )?;
         let (command_buffer_id, error) = self
             .global
-            .command_encoder_finish(encoder_id, &wgt::CommandBufferDescriptor::default());
+            .command_encoder_finish(encoder_id, &CommandBufferDescriptor::default());
         if let Some(error) = error {
             return Err(error.into());
         };
         Ok(command_buffer_id)
     }
 
-    /// Unmaps buffer or cancel mapping if in progress
+    /// Unmaps the buffer or cancels a mapping operation if one is in progress.
     fn unmap(&mut self) {
         match self.state {
             StagingBufferState::Unassigned | StagingBufferState::Available(_) => {},
@@ -256,7 +257,7 @@ impl StagingBuffer {
         }
     }
 
-    /// Obtains snapshot from mapped buffer
+    /// Obtain a snapshot from this buffer if is mapped or return `None` if it is not mapped.
     fn snapshot(&self) -> Option<Snapshot> {
         let StagingBufferState::Mapped(mapped) = &self.state else {
             return None;
@@ -264,7 +265,7 @@ impl StagingBuffer {
         let format = match mapped.image_format {
             ImageFormat::RGBA8 => SnapshotPixelFormat::RGBA,
             ImageFormat::BGRA8 => SnapshotPixelFormat::BGRA,
-            _ => unimplemented!(),
+            _ => unreachable!("GPUCanvasContext does not support other formats per spec"),
         };
         let alpha_mode = if mapped.is_opaque {
             SnapshotAlphaMode::AsOpaque {
@@ -344,10 +345,11 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
         };
         let mut webgpu_contexts = self.images.lock().unwrap();
         if let Some(context_data) = webgpu_contexts.get_mut(&id) {
-            // we use this to return staging buffer if newer exists
+            // We use this to return staging buffer if a newer one exists.
             presentation.maybe_destroy(context_data);
         } else {
-            // this will not free this adapter id in script, but that's okay
+            // This will not free this buffer id in script,
+            // but that's okay because we still have many free ids.
             drop(presentation);
         }
     }
@@ -355,7 +357,7 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
 
 /// Staging buffer currently used for presenting the epoch.
 ///
-/// Users should `put_presentation` to destroy
+/// Users should [`ContextData::replace_presentation`] when done.
 #[derive(Clone)]
 pub struct PresentationStagingBuffer {
     epoch: Epoch,
@@ -380,14 +382,14 @@ impl PresentationStagingBuffer {
     }
 }
 
-/// Main process structure of GPUCanvasContext
+/// The embedder process-side representation of what is the `GPUCanvasContext` in script.
 pub struct ContextData {
-    /// Associated WebRender image
+    /// The [`ImageKey`] of the WebRender image associated with this context.
     image_key: ImageKey,
     /// Staging buffers that are not actively used.
     ///
     /// Staging buffer here are either [`StagingBufferState::Unassigned`] or [`StagingBufferState::Available`].
-    /// They are removed from here when they are in process of mapping or mapped.
+    /// They are removed from here when they are in process of being mapped or are already mapped.
     inactive_staging_buffers: ArrayVec<StagingBuffer, PRESENTATION_BUFFER_COUNT>,
     /// The [`PresentationStagingBuffer`] of the most recent presentation. This will
     /// be `None` directly after initialization, as clearing is handled completely in
@@ -421,15 +423,17 @@ impl ContextData {
     ) -> Option<StagingBuffer> {
         self.inactive_staging_buffers
             .iter()
-            // try to get first preallocated GPUBuffer
-            .position(|staging_buffer| staging_buffer.is_available_with_config(config))
-            // fallback to first unallocated
+            // Try to get first preallocated GPUBuffer.
+            .position(|staging_buffer| {
+                staging_buffer.is_available_and_has_compatible_config(config)
+            })
+            // Fall back to the first inactive staging buffer.
             .or_else(|| {
                 self.inactive_staging_buffers
                     .iter()
-                    .position(|staging_buffer| staging_buffer.needs_assign())
+                    .position(|staging_buffer| staging_buffer.needs_assignment())
             })
-            // or use first one
+            // Or just the use first one.
             .or_else(|| {
                 if self.inactive_staging_buffers.is_empty() {
                     None
@@ -437,12 +441,12 @@ impl ContextData {
                     Some(0)
                 }
             })
-            .and_then(|pos| {
-                let mut staging_buffer = self.inactive_staging_buffers.remove(pos);
+            .and_then(|index| {
+                let mut staging_buffer = self.inactive_staging_buffers.remove(index);
                 if staging_buffer.ensure_available(config).is_ok() {
                     Some(staging_buffer)
                 } else {
-                    // if we fail to make it available, return it
+                    // If we fail to make it available, return it to the list of inactive staging buffers.
                     self.inactive_staging_buffers.push(staging_buffer);
                     None
                 }
@@ -450,26 +454,26 @@ impl ContextData {
     }
 
     /// Destroy the context that this [`ContextData`] represents,
-    /// freeing all of its buffers,
-    /// and deleting the associated WebRender image.
+    /// freeing all of its buffers, and deleting the associated WebRender image.
     fn destroy(
         self,
         script_sender: &IpcSender<WebGPUMsg>,
         compositor_api: &CrossProcessCompositorApi,
     ) {
-        // free ids on script
+        // This frees the id in the `ScriptThread`.
         for staging_buffer in self.inactive_staging_buffers {
-            if let Err(e) = script_sender.send(WebGPUMsg::FreeBuffer(staging_buffer.buffer_id)) {
+            if let Err(error) = script_sender.send(WebGPUMsg::FreeBuffer(staging_buffer.buffer_id))
+            {
                 warn!(
-                    "Unable to send FreeBuffer({:?}) ({:?})",
-                    staging_buffer.buffer_id, e
+                    "Unable to send FreeBuffer({:?}) ({error})",
+                    staging_buffer.buffer_id
                 );
             };
         }
         compositor_api.delete_image(self.image_key);
     }
 
-    /// Returns new epoch
+    /// Advance the [`Epoch`] and return the new one.
     fn next_epoch(&mut self) -> Epoch {
         let epoch = self.next_epoch;
         self.next_epoch.next();
@@ -477,7 +481,7 @@ impl ContextData {
     }
 
     /// If the given [`PresentationStagingBuffer`] is for a newer presentation, replace the existing
-    /// one. Deallocate the older one and call by calling [`Self::return_staging_buffer`] on it.
+    /// one. Deallocate the older one by calling [`Self::return_staging_buffer`] on it.
     fn replace_presentation(&mut self, presentation: PresentationStagingBuffer) {
         let stale_presentation = if presentation.epoch >=
             self.presentation
@@ -605,8 +609,8 @@ impl crate::WGPU {
         }
     }
 
-    /// Reads texture to staging buffer maps it to CPU
-    /// and updates image in WR when done
+    /// Read the texture to the staging buffer, map it to CPU memory, and update the
+    /// image in WebRender when complete.
     pub(crate) fn present(
         &self,
         context_id: WebGPUContextId,
@@ -681,11 +685,12 @@ impl crate::WGPU {
         );
     }
 
-    /// Copies data from provided texture using encoder_id to provided staging buffer.
+    /// Copies data from provided texture using `encoder_id` to the provided [`StagingBuffer`].
     ///
-    /// Callback is guaranteed to be called.
-    /// Returns [`StagingBuffer`] with [`StagingBufferState::Mapped`] state on success
-    /// or [`StagingBufferState::Available`] on failure.
+    /// `callback` is guaranteed to be called.
+    ///
+    /// Returns a [`StagingBuffer`] with the [`StagingBufferState::Mapped`] state
+    /// on success or [`StagingBufferState::Available`] on failure.
     fn texture_download(
         &self,
         texture_id: TextureId,

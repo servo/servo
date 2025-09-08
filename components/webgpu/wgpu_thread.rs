@@ -1183,11 +1183,11 @@ impl WGPU {
                                     Err(PopError::Empty)
                                 }
                             } else {
-                                // device lost
+                                // This means the device has been lost.
                                 Err(PopError::Lost)
                             };
-                        if let Err(e) = sender.send(result) {
-                            warn!("Error while sending PopErrorScope result: {e:?}");
+                        if let Err(error) = sender.send(result) {
+                            warn!("Error while sending PopErrorScope result: {error}");
                         }
                     },
                     WebGPURequest::ComputeGetBindGroupLayout {

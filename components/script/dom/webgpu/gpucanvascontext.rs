@@ -171,6 +171,8 @@ impl GPUCanvasContext {
             // because we already copied content when doing present
             // or current texture is getting cleared
         }
+        // We skip marking the canvas as dirty again if we are already
+        // in the process of updating the rendering.
         if !skip_dirty {
             // texture is either cleared or applied to canvas
             self.mark_as_dirty();
@@ -199,7 +201,7 @@ impl GPUCanvasContext {
             format: match configuration.format {
                 GPUTextureFormat::Bgra8unorm => ImageFormat::BGRA8,
                 GPUTextureFormat::Rgba8unorm => ImageFormat::RGBA8,
-                _ => unreachable!("Not be reachable due to configure"),
+                _ => unreachable!("Configure method should set valid texture format"),
             },
             is_opaque: matches!(configuration.alphaMode, GPUCanvasAlphaMode::Opaque),
             size: self.size(),
@@ -230,18 +232,17 @@ impl CanvasContext for GPUCanvasContext {
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
     fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
-        // Present by updating image in WR.
-        // This will copy texture into the presentation buffer and use it for presenting
-        // or send cleared image to WR.
-        if let Err(e) = self.channel.0.send(WebGPURequest::Present {
+        // Present by updating the image in WebRender. This will copy the texture into
+        // the presentation buffer and use it for presenting or send a cleared image to WebRender.
+        if let Err(error) = self.channel.0.send(WebGPURequest::Present {
             context_id: self.context_id,
             pending_texture: self.pending_texture(),
             size: self.size(),
             canvas_epoch,
         }) {
             warn!(
-                "Failed to send WebGPURequest::Present({:?}) ({})",
-                self.context_id, e
+                "Failed to send WebGPURequest::Present({:?}) ({error})",
+                self.context_id
             );
         }
 
@@ -325,8 +326,8 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
         // 2. Validate texture format required features of configuration.format with device.[[device]].
         // 3. Validate texture format required features of each element of configuration.viewFormats with device.[[device]].
-        let (mut desc, _) = convert_texture_descriptor(&descriptor, device)?;
-        desc.label = Some(Cow::Borrowed(
+        let (mut wgpu_descriptor, _) = convert_texture_descriptor(&descriptor, device)?;
+        wgpu_descriptor.label = Some(Cow::Borrowed(
             "dummy texture for texture descriptor validation",
         ));
 
@@ -354,7 +355,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
             .send(WebGPURequest::ValidateTextureDescriptor {
                 device_id: device.id().0,
                 texture_id,
-                descriptor: desc,
+                descriptor: wgpu_descriptor,
             })
             .expect("Failed to create WebGPU SwapChain");
 
@@ -394,7 +395,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
             let current_texture = device.CreateTexture(texture_descriptor)?;
             self.current_texture.set(Some(&current_texture));
 
-            // content of texture is content of canvas
+            // The content of the texture is the content of the canvas.
             self.cleared.set(false);
 
             current_texture

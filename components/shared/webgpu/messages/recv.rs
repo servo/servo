@@ -168,7 +168,7 @@ pub enum WebGPURequest {
         canvas_epoch: Epoch,
     },
     /// Create [`pixels::Snapshot`] with contents of the last present operation
-    /// or provided pending texture and send it over provided [`ipc_channel::ipc::IpcSender`].
+    /// or provided pending texture and send it over provided [`IpcSender`].
     GetImage {
         context_id: WebGPUContextId,
         pending_texture: Option<PendingTexture>,
