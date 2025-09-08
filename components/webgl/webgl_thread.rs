@@ -29,7 +29,6 @@ use compositing_traits::{
     WebrenderImageHandlerType,
 };
 use euclid::default::Size2D;
-use fnv::FnvHashMap;
 use glow::{
     self as gl, ActiveTransformFeedback, Context as Gl, HasContext, NativeTransformFeedback,
     NativeUniformLocation, NativeVertexArray, PixelUnpackData, ShaderPrecisionFormat,
@@ -40,6 +39,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use itertools::Itertools;
 use log::{debug, error, trace, warn};
 use pixels::{self, PixelFormat, SnapshotAlphaMode, unmultiply_inplace};
+use rustc_hash::FxHashMap;
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
 use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
@@ -210,9 +210,9 @@ pub(crate) struct WebGLThread {
     compositor_api: CrossProcessCompositorApi,
     webrender_api: RenderApi,
     /// Map of live WebGLContexts.
-    contexts: FnvHashMap<WebGLContextId, GLContextData>,
+    contexts: FxHashMap<WebGLContextId, GLContextData>,
     /// Cached information for WebGLContexts.
-    cached_context_info: FnvHashMap<WebGLContextId, WebGLContextInfo>,
+    cached_context_info: FxHashMap<WebGLContextId, WebGLContextInfo>,
     /// Current bound context.
     bound_context_id: Option<WebGLContextId>,
     /// List of registered webrender external images.
@@ -863,7 +863,7 @@ impl WebGLThread {
     pub(crate) fn make_current_if_needed<'a>(
         device: &Device,
         context_id: WebGLContextId,
-        contexts: &'a FnvHashMap<WebGLContextId, GLContextData>,
+        contexts: &'a FxHashMap<WebGLContextId, GLContextData>,
         bound_id: &mut Option<WebGLContextId>,
     ) -> Option<&'a GLContextData> {
         let data = contexts.get(&context_id);
@@ -882,7 +882,7 @@ impl WebGLThread {
     pub(crate) fn make_current_if_needed_mut<'a>(
         device: &Device,
         context_id: WebGLContextId,
-        contexts: &'a mut FnvHashMap<WebGLContextId, GLContextData>,
+        contexts: &'a mut FxHashMap<WebGLContextId, GLContextData>,
         bound_id: &mut Option<WebGLContextId>,
     ) -> Option<&'a mut GLContextData> {
         let data = contexts.get_mut(&context_id);
