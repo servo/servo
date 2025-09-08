@@ -1748,13 +1748,9 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
 
     server.close();
 
-    assert!(
-        response
-            .internal_response
-            .unwrap()
-            .status
-            .code()
-            .is_success()
+    assert_eq!(
+        response.internal_response.unwrap().status.code(),
+        StatusCode::OK
     );
 }
 
@@ -1792,7 +1788,9 @@ fn test_dont_prompt_credentials_when_unauthorized_response_contains_no_www_authe
             };
             match msg {
                 embedder_traits::EmbedderMsg::RequestAuthentication(..) => {
-                    panic!("Should not have requested authentication as there's no www-authenticate header");
+                    panic!(
+                        "Should not have requested authentication as there's no www-authenticate header"
+                    );
                 },
                 embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},
                 _ => unreachable!(),

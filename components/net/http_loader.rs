@@ -27,7 +27,7 @@ use headers::{
 };
 use http::header::{
     self, ACCEPT, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION, CONTENT_ENCODING,
-    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE,
+    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE, WWW_AUTHENTICATE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use http_body_util::combinators::BoxBody;
@@ -1719,8 +1719,12 @@ async fn http_network_or_cache_fetch(
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
     // includeCredentials is true, and request’s window is an environment settings object, then:
     // TODO(#33616): Figure out what to do with request window objects
-    if let (Some(StatusCode::UNAUTHORIZED), false, true) =
-        (response.status.try_code(), cors_flag, include_credentials)
+    // NOTE: Requiring a WWW-Authenticate header here is ad-hoc, but seems to match what other browsers are
+    // doing. See Step 14.1.
+    if response.status.try_code() == Some(StatusCode::UNAUTHORIZED) &&
+        !cors_flag &&
+        include_credentials &&
+        response.headers.contains_key(WWW_AUTHENTICATE)
     {
         // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
 
