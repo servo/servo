@@ -186,7 +186,8 @@ mod font_context {
 
             let local_font_identifier = LocalFontIdentifier {
                 path: path.to_str().expect("Could not load test font").into(),
-                variation_index: 0,
+                face_index: 0,
+                named_instance_index: 0,
             };
             let handle = PlatformFont::new_from_local_font_identifier(
                 local_font_identifier.clone(),
