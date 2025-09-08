@@ -108,6 +108,9 @@ pub(crate) trait CanvasContext {
 
     /// Request that the [`CanvasContext`] update the rendering of its contents,
     /// returning `true` if new image was produced.
+    /// Note: If this function returns true, script will wait for all images to be updated
+    /// before calling next round of update the rendering, so be sure that image updates are always sent
+    /// even in case of failures by sending transparent black image.
     fn update_rendering(&self, _canvas_epoch: Epoch) -> bool {
         false
     }
