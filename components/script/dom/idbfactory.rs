@@ -58,7 +58,9 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
 
         // Step 5: Runs in parallel
-        request.open_database(name, version);
+        if request.open_database(name, version).is_err() {
+            return Err(Error::Operation);
+        }
 
         // Step 6
         Ok(request)
@@ -81,7 +83,9 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
 
         // Step 4: Runs in parallel
-        request.delete_database(name.to_string());
+        if request.delete_database(name.to_string()).is_err() {
+            return Err(Error::Operation);
+        }
 
         // Step 5: Return request
         Ok(request)

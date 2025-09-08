@@ -19,14 +19,25 @@ def main(request, response):
         if maybe_registration_url is not None:
             registration_url = maybe_registration_url
 
-    authorization_value = session_manager.find_for_request(request).get_authorization_value()
-    authorization_header = ""
+    test_session_manager = session_manager.find_for_request(request)
+
+    header_items = ["(RS256)",'challenge="login_challenge_value"',f'path="{registration_url}"']
+    authorization_value = test_session_manager.get_authorization_value()
     if authorization_value is not None:
-        authorization_header = f';authorization="{authorization_value}"'
+        header_items.append(f'authorization="{authorization_value}"')
+    provider_session_id = test_session_manager.get_provider_session_id()
+    if provider_session_id is not None:
+        header_items.append(f'provider_session_id="{provider_session_id}"')
+    provider_url = test_session_manager.get_provider_url()
+    if provider_url is not None:
+        header_items.append(f'provider_url="{provider_url}"')
+    provider_key = test_session_manager.get_provider_key()
+    if provider_key is not None:
+        header_items.append(f'provider_key="{provider_key}"')
 
     registrations = []
     for i in range(num_sessions):
-        registrations.append(('Sec-Session-Registration', f'(RS256);challenge="login_challenge_value";path="{registration_url}"{authorization_header}'))
+        registrations.append(('Sec-Session-Registration', ";".join(header_items)))
 
     headers = []
     if request.headers.get(b"origin") is not None:

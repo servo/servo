@@ -290,12 +290,9 @@ pub unsafe fn get_dictionary_property(
 /// Set the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure, or null object,
 /// and Ok(()) otherwise
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
 #[allow(clippy::result_unit_err)]
-pub unsafe fn set_dictionary_property(
-    cx: *mut JSContext,
+pub fn set_dictionary_property(
+    cx: SafeJSContext,
     object: HandleObject,
     property: &str,
     value: HandleValue,
@@ -305,8 +302,10 @@ pub unsafe fn set_dictionary_property(
     }
 
     let property = CString::new(property).unwrap();
-    if !JS_SetProperty(cx, object, property.as_ptr(), value) {
-        return Err(());
+    unsafe {
+        if !JS_SetProperty(*cx, object, property.as_ptr(), value) {
+            return Err(());
+        }
     }
 
     Ok(())

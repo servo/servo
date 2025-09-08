@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-trim</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-trim">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<link rel="match" href="reference/text-decoration-trim-009-ref.html">
+
+<style>
+body {
+  background: white;
+  color: black;
+}
+div {
+  position: relative;
+}
+h1 {
+  position: absolute;
+}
+u {
+  text-decoration-color: black;
+  text-decoration-trim: 0.25em;
+}
+u.green {
+  text-decoration-color: green;
+  text-underline-offset: 10px;
+  text-decoration-trim: -0.5em;
+}
+</style>
+
+<p>The underline for "ultra-quick brown" should be trimmed by .25em at each end;
+the additional green underline for "quick" should be extended by .5em at each end:</p>
+
+<div>
+  <h1>
+    the <u>ultra-<u class="green">quick</u> brown</u> fox
+  </h1>
+</div>

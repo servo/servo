@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/device-bound-session-credentials/helper.js" type="module"></script>
+
+<script type="module">
+  import {
+    addCookieAndSessionCleanup,
+    configureServer,
+    documentHasCookie,
+    expireCookie,
+    setupShardedServerState,
+    waitForCookie
+  } from "/device-bound-session-credentials/helper.js";
+
+  async function registerProviderSession(t) {
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+  }
+
+  async function getKey(id) {
+    const keyResponse = await fetch(`get_key.py?${id}`);
+    assert_equals(keyResponse.status, 200);
+    return keyResponse.text();
+  }
+
+  async function getSessionIds() {
+    const response = await fetch('get_session_ids.py');
+    assert_equals(response.status, 200);
+    return response.json();
+  }
+
+  async function registerRelyingSession(t, host, sessionId, key, expectSuccess) {
+    const expectedCookieAndValue = "relying_auth_cookie=abcdef0123";
+    const expectedCookieAttributes = `Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};${expectedCookieAttributes}`;
+
+    // Despite registration happening on a subdomain, make the session
+    // visible on the parent domain. This makes it easier to test for
+    // its presence.
+    await configureServer({
+      cookieDetails: [
+        {
+          nameAndValue: expectedCookieAndValue,
+          attributes: expectedCookieAttributes,
+        }
+      ],
+      scopeOrigin: location.origin,
+      providerUrl: location.origin + "/",
+      providerSessionId: sessionId,
+      providerKey: key
+    });
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch(`https://${host}/device-bound-session-credentials/login.py`, {credentials: "include"});
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/expectSuccess);
+
+    if (!expectSuccess) {
+      return;
+    }
+
+    // Confirm that expiring the cookie still leads to a request with the cookie set (refresh occurs).
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponse = await fetch('verify_authenticated.py', {
+      method: 'POST',
+      body: expectedCookieAndValue
+    });
+    assert_equals(authResponse.status, 200);
+    assert_true(documentHasCookie(expectedCookieAndValue));
+
+    // Confirm that the relying session shares keys
+    const sessionIds = await getSessionIds();
+    const relyingSessionIds = sessionIds.filter(id => id !== sessionId);
+    assert_equals(relyingSessionIds.length, 1);
+    const relyingSessionId = relyingSessionIds[0];
+
+    const newKey = await getKey(relyingSessionId);
+    assert_equals(key, newKey);
+  }
+
+  promise_test(async t => {
+    addCookieAndSessionCleanup(t);
+
+    await setupShardedServerState();
+
+    await registerProviderSession(t);
+    const sessionIds = await getSessionIds();
+    assert_equals(sessionIds.length, 1);
+
+    const keyThumbprint = await getKey(sessionIds[0]);
+    await registerRelyingSession(t, "www." + location.host, sessionIds[0], keyThumbprint, /*expect_success=*/true);
+  }, "Successful federated session registration");
+
+  promise_test(async t => {
+    addCookieAndSessionCleanup(t);
+
+    await setupShardedServerState();
+
+    await registerProviderSession(t);
+    const sessionIds = await getSessionIds();
+    assert_equals(sessionIds.length, 1);
+
+    await registerRelyingSession(t, "www." + location.host, sessionIds[0], "not-the-thumbprint", /*expect_success=*/false);
+  }, "Invalid thumbprint")
+
+  promise_test(async t => {
+    addCookieAndSessionCleanup(t);
+
+    await setupShardedServerState();
+
+    await registerProviderSession(t);
+    const sessionIds = await getSessionIds();
+    assert_equals(sessionIds.length, 1);
+
+    const keyThumbprint = await getKey(sessionIds[0]);
+    await registerRelyingSession(t, "www." + location.host, "not-the-session-id", keyThumbprint, /*expect_success=*/false);
+  }, "Invalid provider session id");
+
+  promise_test(async t => {
+    addCookieAndSessionCleanup(t);
+
+    await setupShardedServerState();
+
+    await registerProviderSession(t);
+    const sessionIds = await getSessionIds();
+    assert_equals(sessionIds.length, 1);
+
+    const keyThumbprint = await getKey(sessionIds[0]);
+    await registerRelyingSession(t, "www1." + location.host, sessionIds[0], keyThumbprint, /*expect_success=*/false);
+  }, "Not authorized by .well-known");
+</script>

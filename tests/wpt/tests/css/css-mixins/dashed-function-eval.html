@@ -1161,6 +1161,20 @@
   </style>
 </template>
 
+<!-- https://github.com/w3c/csswg-drafts/issues/10443 -->
+<template data-name="Local with the revert-rule keyword">
+  <style>
+    @function --f() {
+      --x: revert-rule;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
 <!-- Keywords in 'result' descriptor -->
 
 <template data-name="initial keyword left unresolved on result descriptor">
@@ -1240,6 +1254,23 @@
         --actual: var(--tmp, FAIL);
         --expected: PASS;
       }
+    }
+  </style>
+</template>
+
+<!-- https://github.com/w3c/csswg-drafts/issues/10443 -->
+<template data-name="revert-rule keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: revert-rule;
+    }
+    #target {
+      --tmp: PASS;
+    }
+    #target {
+      --tmp: --f();
+      --actual: var(--tmp, FAIL);
+      --expected: PASS;
     }
   </style>
 </template>

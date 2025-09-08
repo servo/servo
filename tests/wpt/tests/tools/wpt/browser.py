@@ -7,11 +7,12 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta, timezone
 from shutil import which
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlsplit, quote
 
 import html5lib
@@ -202,6 +203,235 @@ class Browser:
         return NotImplemented
 
 
+class FirefoxPrefs:
+    def __init__(self, logger):
+        self.logger = logger
+
+    def install_prefs(self, binary: Optional[str], dest: Optional[str] = None, channel: Optional[str] = None) -> str:
+        if binary and not binary.endswith(".apk"):
+            version, channel_, rev = self.get_version_and_channel(binary)
+            if channel is not None and channel != channel_:
+                # Beta doesn't always seem to have the b in the version string, so allow the
+                # manually supplied value to override the one from the binary
+                self.logger.warning("Supplied channel doesn't match binary, using supplied channel")
+            elif channel is None:
+                channel = channel_
+        else:
+            rev = None
+            version = None
+
+        if channel is None:
+            self.logger.warning("No browser channel passed to install_prefs, taking prefs from main branch")
+            channel = "nightly"
+
+        if dest is None:
+            dest = os.curdir
+
+        dest = os.path.join(dest, "profiles", rev if rev is not None else channel)
+        if version:
+            dest = os.path.join(dest, version)
+        have_cache = False
+        if os.path.exists(dest) and os.path.exists(os.path.join(dest, "profiles.json")):
+            if channel != "nightly":
+                have_cache = True
+            else:
+                now = datetime.now()
+                have_cache = (datetime.fromtimestamp(os.stat(dest).st_mtime) >
+                              now - timedelta(days=1))
+
+        # If we don't have a recent download, grab and extract the latest one
+        if not have_cache:
+            if os.path.exists(dest):
+                rmtree(dest)
+            os.makedirs(dest)
+
+            self.get_profile_github(version, channel, dest, rev)
+            self.logger.info(f"Test prefs downloaded to {dest}")
+        else:
+            self.logger.info(f"Using cached test prefs from {dest}")
+
+        return dest
+
+    def get_profile_github(self, version: Optional[str], channel: str, dest: str, rev: Optional[str]) -> None:
+        """Read the testing/profiles data from firefox source on GitHub"""
+
+        # There are several possible approaches here, none of which are great:
+        # 1. Shallow, sparse, clone of the repo with no history and just the testing/profiles
+        #    directory. This is too slow to be usable.
+        # 2. Use the Github repository contents API to read all the files under that directory.
+        #    This requires auth to not run into rate limits.
+        # 3. Gitub tree API has basically the same problems
+        # 4. Download a full archive of the relevant commit from Github and extract only the
+        #    required directory. This is also too slow to be useful.
+        #
+        # In the end we use githubusercontent.com, which has the problem that it doesn't allow
+        # directory listings. So we have to hardcode in all the files we need. In particular
+        # for each profile we are currently just downloading the user.js file and ignoring the
+        # extensions/ directory, which is currently unused.
+        ref = self.get_git_ref(version, channel, rev)
+        self.logger.info(f"Getting profile data from git ref {ref}")
+        file_data = {}
+        profiles_bytes = get_file_github("mozilla-firefox/firefox", ref, "testing/profiles/profiles.json")
+        profiles = json.loads(profiles_bytes)
+        file_data["profiles.json"] = profiles_bytes
+        for subdir in profiles["web-platform-tests"]:
+            rel_path = os.path.join(subdir, "user.js")
+            file_data[rel_path] = get_file_github("mozilla-firefox/firefox",
+                                                  ref,
+                                                  f"testing/profiles/{subdir}/user.js")
+
+        for path, data in file_data.items():
+            dest_path = os.path.join(dest, path)
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+            with open(dest_path, "wb") as f:
+                f.write(data)
+
+    def get_version_and_channel(self, binary: str) -> Tuple[Optional[str], str, Optional[str]]:
+        application_ini_path = os.path.join(os.path.dirname(binary), "application.ini")
+        if os.path.exists(application_ini_path):
+            try:
+                return self.get_version_and_channel_application_ini(application_ini_path)
+            except ValueError as e:
+                self.logger.info(f"Reading application ini file failed: {e}")
+                # Fall back to calling the binary
+        version_string: str = call(binary, "--version").strip()  # type: ignore
+        version_re = re.compile(r"Mozilla Firefox (.*)")
+        m = version_re.match(version_string)
+        if not m:
+            return None, "nightly", None
+        version, channel = self.extract_version_number(m.group(1))
+        return version, channel, None
+
+    def get_version_and_channel_application_ini(self, path: str) -> Tuple[Optional[str], str, Optional[str]]:
+        """Try to read application version from an ini file
+
+        This doesn't work in all cases e.g. local builds don't have
+        all the information, or builds where the binary path is a shell
+        script or similar."""
+        config = configparser.ConfigParser()
+        paths = config.read(path)
+        if path not in paths:
+            raise ValueError("Failed to read config file")
+
+        version = config.get("App", "Version", fallback=None)
+        if version is None:
+            raise ValueError("Failed to find Version key")
+        version, channel = self.extract_version_number(version)
+
+        rev = None
+        if channel == "nightly":
+            source_repo = config.get("App", "SourceRepository", fallback=None)
+            commit = config.get("App", "SourceStamp", fallback=None)
+            if source_repo is not None and commit is not None:
+                if source_repo.startswith("https://hg.mozilla.org"):
+                    try:
+                        commit_data: Dict[str, Any] = get(
+                            f"https://hg-edge.mozilla.org/integration/autoland/json-rev/{commit}"
+                        ).json()  # type: ignore
+                        rev = commit_data.get("git_commit")
+                    except Exception:
+                        pass
+                else:
+                    rev = commit
+
+        return version, channel, rev
+
+    def extract_version_number(self, version_string: str) -> Tuple[Optional[str], str]:
+        version_parser = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?((a|b)\d+)?")
+        m = version_parser.match(version_string)
+        if not m:
+            return None, "nightly"
+        major, minor, patch, pre, channel_id = m.groups()
+        version = f"{major}.{minor}"
+        if patch is not None:
+            version += f".{patch}"
+        if pre is not None:
+            version += pre
+        channel = {"a": "nightly", "b": "beta"}.get(channel_id, "stable")
+        return version, channel
+
+    def get_git_tags(self, ref_prefix: str) -> List[str]:
+        tags = []
+        for tag_data in get(
+                f"https://api.github.com/repos/mozilla-firefox/firefox/git/matching-refs/tags/{ref_prefix}"
+        ).json():  # type: ignore
+            tag = tag_data["ref"].rsplit("/", 1)[1]
+            tags.append(tag)
+        return tags
+
+    def get_git_ref(self, version: Optional[str], channel: str, rev: Optional[str]) -> str:
+        if rev is not None:
+            return rev
+
+        ref_prefix = "FIREFOX_"
+        ref_re = None
+        tags = []
+
+        if channel == "stable":
+            if version:
+                return "FIREFOX_%s_RELEASE" % version.replace(".", "_")
+            ref_re = re.compile(r"FIREFOX_(\d+)_(\d+)(?:_(\d+))?_RELEASE")
+        elif channel == "beta":
+            if version:
+                ref_prefix = "FIREFOX_%s" % version.replace(".", "_")
+                if "b" not in version:
+                    ref_re = re.compile(fr"{ref_prefix}b(\d+)_(?:BUILD(\d+)|RELEASE)")
+                else:
+                    ref_re = re.compile(fr"{ref_prefix}_(?:BUILD(\d+)|RELEASE)")
+            else:
+                ref_re = re.compile(r"FIREFOX_(\d+)_(\d+)b(\d+)_(?:BUILD(\d+)|RELEASE)")
+        else:
+            return "main"
+
+        assert ref_re is not None
+
+        for tag in self.get_git_tags(ref_prefix):
+            m = ref_re.match(tag)
+            if not m:
+                continue
+            order = [int(item) for item in m.groups() if item is not None]
+            if channel == "beta" and tag.endswith("_RELEASE"):
+                order[-1] = sys.maxsize
+            tags.append((tuple(order), tag))
+        if not tags:
+            raise ValueError(f"No tag found for version {version} channel {channel}")
+        return max(tags)[1]
+
+
+class FirefoxAndroidPrefs(FirefoxPrefs):
+    def get_git_ref(self, version: Optional[str], channel: str, rev: Optional[str]) -> str:
+        if rev is not None:
+            return rev
+
+        tags = []
+        ref_prefix = "FIREFOX-ANDROID_"
+        ref_re = None
+        if channel == "stable":
+            if version is not None:
+                return "FIREFOX-ANDROID_%s_RELEASE" % version.replace(".", "_")
+
+            ref_re = re.compile(r"FIREFOX-ANDROID_(\d+)_(\d+)(?:_(\d+))?_RELEASE")
+
+        elif channel == "beta":
+            if version:
+                ref_prefix = "FIREFOX-ANDROID_%s" % version.replace(".", "_")
+            ref_re = re.compile(r"FIREFOX-ANDROID_(\d+)_(\d+)b(\d+)_RELEASE")
+        else:
+            return "main"
+
+        assert ref_re is not None
+        for tag in self.get_git_tags(ref_prefix):
+            m = ref_re.match(tag)
+            if m is None:
+                continue
+            order = tuple(int(item) for item in m.groups() if item is not None)
+            tags.append((order, tag))
+
+        if not tags:
+            raise ValueError(f"No tag found for {version} beta")
+        return max(tags)[1]
+
+
 class Firefox(Browser):
     """Firefox-specific interface.
 
@@ -303,6 +533,9 @@ class Firefox(Browser):
         os.remove(installer_path)
         return self.find_binary_path(dest)
 
+    def install_prefs(self, binary, dest=None, channel=None):
+        return FirefoxPrefs(self.logger).install_prefs(binary, dest, channel)
+
     def find_binary_path(self, path=None, channel="nightly"):
         """Looks for the firefox binary in the virtual environment"""
 
@@ -365,172 +598,6 @@ class Firefox(Browser):
 
     def find_webdriver(self, venv_path=None, channel=None):
         return which("geckodriver")
-
-    def extract_version_number(self, version_string: str) -> Tuple[Optional[str], str]:
-        version_parser = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?((a|b)\d+)?")
-        m = version_parser.match(version_string)
-        if not m:
-            return None, "nightly"
-        major, minor, patch, pre, channel_id = m.groups()
-        version = f"{major}.{minor}"
-        if patch is not None:
-            version += f".{patch}"
-        if pre is not None:
-            version += pre
-        channel = {"a": "nightly", "b": "beta"}.get(channel_id, "stable")
-        return version, channel
-
-    def get_version_and_channel(self, binary: str) -> Tuple[Optional[str], str, Optional[str]]:
-        application_ini_path = os.path.join(os.path.dirname(binary), "application.ini")
-        if os.path.exists(application_ini_path):
-            try:
-                return self.get_version_and_channel_application_ini(application_ini_path)
-            except ValueError as e:
-                self.logger.info(f"Reading application ini file failed: {e}")
-                # Fall back to calling the binary
-        version_string: str = call(binary, "--version").strip()  # type: ignore
-        version_re = re.compile(r"Mozilla Firefox (.*)")
-        m = version_re.match(version_string)
-        if not m:
-            return None, "nightly", None
-        version, channel = self.extract_version_number(m.group(1))
-        return version, channel, None
-
-    def get_version_and_channel_application_ini(self, path: str) -> Tuple[Optional[str], str, Optional[str]]:
-        """Try to read application version from an ini file
-
-        This doesn't work in all cases e.g. local builds don't have
-        all the information, or builds where the binary path is a shell
-        script or similar."""
-        config = configparser.ConfigParser()
-        paths = config.read(path)
-        if path not in paths:
-            raise ValueError("Failed to read config file")
-
-        version = config.get("App", "Version", fallback=None)
-        if version is None:
-            raise ValueError("Failed to find Version key")
-        version, channel = self.extract_version_number(version)
-
-        rev = None
-        if channel == "nightly":
-            source_repo = config.get("App", "SourceRepository", fallback=None)
-            commit = config.get("App", "SourceStamp", fallback=None)
-            if source_repo is not None and commit is not None:
-                if source_repo.startswith("https://hg.mozilla.org"):
-                    try:
-                        commit_data: Dict[str, Any] = get(
-                            f"https://hg-edge.mozilla.org/integration/autoland/json-rev/{commit}"
-                        ).json()  # type: ignore
-                        rev = commit_data.get("git_commit")
-                    except Exception:
-                        pass
-                else:
-                    rev = commit
-
-        return version, channel, rev
-
-    def get_git_ref(self, version: str, channel: str, rev: Optional[str]) -> str:
-        if rev is not None:
-            return rev
-
-        if channel == "stable":
-            return "FIREFOX_%s_RELEASE" % version.replace(".", "_")
-
-        if channel == "beta":
-            ref_prefix = "FIREFOX_%s" % version.replace(".", "_")
-            tags = []
-            build_re = re.compile(fr"{ref_prefix}_BUILD(\d)+")
-            for tag_data in get(
-                    f"https://api.github.com/repos/mozilla-firefox/firefox/git/matching-refs/tags/{ref_prefix}"
-            ).json():  # type: ignore
-                tag = tag_data["ref"].rsplit("/", 1)[1]
-                if tag.endswith("_RELEASE"):
-                    tags = [(0, tag)]
-                    break
-                m = build_re.match(tag)
-                if m:
-                    tags.append((int(m.group(1)), tag))
-            tags.sort()
-            if not tags:
-                raise ValueError(f"No tag found for {version} beta")
-            return f"{tags[-1][1]}"
-
-        return "main"
-
-    def get_profile_github(self, version: str, channel: str, dest: str, rev: Optional[str]) -> None:
-        """Read the testing/profiles data from firefox source on GitHub"""
-
-        # There are several possible approaches here, none of which are great:
-        # 1. Shallow, sparse, clone of the repo with no history and just the testing/profiles
-        #    directory. This is too slow to be usable.
-        # 2. Use the Github repository contents API to read all the files under that directory.
-        #    This requires auth to not run into rate limits.
-        # 3. Gitub tree API has basically the same problems
-        # 4. Download a full archive of the relevant commit from Github and extract only the
-        #    required directory. This is also too slow to be useful.
-        #
-        # In the end we use githubusercontent.com, which has the problem that it doesn't allow
-        # directory listings. So we have to hardcode in all the files we need. In particular
-        # for each profile we are currently just downloading the user.js file and ignoring the
-        # extensions/ directory, which is currently unused.
-        ref = self.get_git_ref(version, channel, rev)
-        file_data = {}
-        profiles_bytes = get_file_github("mozilla-firefox/firefox", ref, "testing/profiles/profiles.json")
-        profiles = json.loads(profiles_bytes)
-        file_data["profiles.json"] = profiles_bytes
-        for subdir in profiles["web-platform-tests"]:
-            rel_path = os.path.join(subdir, "user.js")
-            file_data[rel_path] = get_file_github("mozilla-firefox/firefox",
-                                                  ref,
-                                                  f"testing/profiles/{subdir}/user.js")
-
-        for path, data in file_data.items():
-            dest_path = os.path.join(dest, path)
-            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-            with open(dest_path, "wb") as f:
-                f.write(data)
-
-    def install_prefs(self, binary, dest=None, channel=None):
-        if binary and not binary.endswith(".apk"):
-            version, channel_, rev = self.get_version_and_channel(binary)
-            if channel is not None and channel != channel_:
-                # Beta doesn't always seem to have the b in the version string, so allow the
-                # manually supplied value to override the one from the binary
-                self.logger.warning("Supplied channel doesn't match binary, using supplied channel")
-            elif channel is None:
-                channel = channel_
-        else:
-            rev = None
-            version = None
-
-        if dest is None:
-            dest = os.curdir
-
-        dest = os.path.join(dest, "profiles", rev if rev is not None else channel)
-        if version:
-            dest = os.path.join(dest, version)
-        have_cache = False
-        if os.path.exists(dest) and os.path.exists(os.path.join(dest, "profiles.json")):
-            if channel != "nightly":
-                have_cache = True
-            else:
-                now = datetime.now()
-                have_cache = (datetime.fromtimestamp(os.stat(dest).st_mtime) >
-                              now - timedelta(days=1))
-
-        # If we don't have a recent download, grab and extract the latest one
-        if not have_cache:
-            if os.path.exists(dest):
-                rmtree(dest)
-            os.makedirs(dest)
-
-            self.get_profile_github(version, channel, dest, rev)
-            self.logger.info(f"Test prefs downloaded to {dest}")
-        else:
-            self.logger.info(f"Using cached test prefs from {dest}")
-
-        return dest
 
     def _latest_geckodriver_version(self):
         """Get and return latest version number for geckodriver."""
@@ -654,7 +721,7 @@ class FirefoxAndroid(Browser):
         return self.download(dest, channel)
 
     def install_prefs(self, binary, dest=None, channel=None):
-        return self._fx_browser.install_prefs(binary, dest, channel)
+        return FirefoxAndroidPrefs(self.logger).install_prefs(binary, dest, channel)
 
     def find_binary(self, venv_path=None, channel=None):
         return self.apk_path

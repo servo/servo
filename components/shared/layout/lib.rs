@@ -154,6 +154,13 @@ pub enum PendingImageState {
     PendingResponse,
 }
 
+/// The destination in layout where an image is needed.
+#[derive(Debug, MallocSizeOf)]
+pub enum LayoutImageDestination {
+    BoxTreeConstruction,
+    DisplayListBuilding,
+}
+
 /// The data associated with an image that is not yet present in the image cache.
 /// Used by the script thread to hold on to DOM elements that need to be repainted
 /// when an image fetch is complete.
@@ -163,6 +170,7 @@ pub struct PendingImage {
     pub node: UntrustedNodeAddress,
     pub id: PendingImageId,
     pub origin: ImmutableOrigin,
+    pub destination: LayoutImageDestination,
 }
 
 /// A data structure to tarck vector image that are fully loaded (i.e has a parsed SVG
@@ -290,12 +298,19 @@ pub trait Layout {
     /// Returns true if this layout needs to produce a new display list for rendering updates.
     fn needs_new_display_list(&self) -> bool;
 
+    /// Marks that this layout needs to produce a new display list for rendering updates.
+    fn set_needs_new_display_list(&self);
+
     fn query_box_area(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Option<Rect<Au>>;
     fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
-    fn query_scroll_parent(&self, node: TrustedNodeAddress) -> Option<ScrollParentResponse>;
+    fn query_scroll_container(
+        &self,
+        node: TrustedNodeAddress,
+        query_type: ScrollContainerQueryType,
+    ) -> Option<ScrollContainerResponse>;
     fn query_resolved_style(
         &self,
         node: TrustedNodeAddress,
@@ -352,9 +367,15 @@ pub struct OffsetParentResponse {
     pub rect: Rect<Au>,
 }
 
+#[derive(PartialEq)]
+pub enum ScrollContainerQueryType {
+    ForScrollParent,
+    ForScrollIntoView,
+}
+
 #[derive(Clone)]
-pub enum ScrollParentResponse {
-    DocumentScrollingElement,
+pub enum ScrollContainerResponse {
+    Viewport,
     Element(UntrustedNodeAddress),
 }
 

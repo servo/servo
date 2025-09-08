@@ -45,8 +45,8 @@
             }
 
             function checkPointerEventCoordinates(event) {
-              if (event.clientX != Math.floor(event.clientX) ||
-                    event.clientY != Math.floor(event.clientY))
+              if ((event.clientX != Math.floor(event.clientX) || event.clientY != Math.floor(event.clientY))
+                    && (event.pageX != Math.floor(event.pageX) || event.pageY != Math.floor(event.pageY)))
                 eventsWithFractions[event.type] = true;
             }
 

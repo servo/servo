@@ -276,6 +276,11 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         self.context.FillText(text, x, y, max_width)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroketext
+    fn StrokeText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
+        self.context.StrokeText(text, x, y, max_width)
+    }
+
     // https://html.spec.whatwg.org/multipage/#textmetrics
     fn MeasureText(&self, text: DOMString, can_gc: CanGc) -> DomRoot<TextMetrics> {
         self.context.MeasureText(text, can_gc)

@@ -20,8 +20,8 @@ use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JS_NewObject, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use js::rust::MutableHandleObject;
 use js::rust::wrappers::JS_ParseJSON;
+use js::rust::{HandleValue, MutableHandleObject};
 use js::typedarray::ArrayBufferU8;
 use servo_rand::{RngCore, ServoRng};
 
@@ -1403,14 +1403,103 @@ enum KeyWrapAlgorithm {
     AesGcm(SubtleAesGcmParams),
 }
 
-macro_rules! value_from_js_object {
-    ($t: ty, $cx: ident, $value: ident) => {{
-        let params_result = <$t>::new($cx, $value.handle()).map_err(|_| Error::JSFailed)?;
-        let ConversionResult::Success(params) = params_result else {
-            return Err(Error::Syntax(None));
-        };
-        params
-    }};
+/// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
+trait DictionaryFromJSVal: Sized {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()>;
+}
+
+impl DictionaryFromJSVal for Algorithm {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        Self::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for AesDerivedKeyParams {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        Self::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for AesKeyGenParams {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        Self::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for RootedTraceableBox<HmacImportParams> {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        HmacImportParams::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for RootedTraceableBox<HmacKeyGenParams> {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        HmacKeyGenParams::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for HmacKeyAlgorithm {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        Self::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for RootedTraceableBox<AesCbcParams> {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        AesCbcParams::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for RootedTraceableBox<AesCtrParams> {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        AesCtrParams::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for RootedTraceableBox<AesGcmParams> {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        AesGcmParams::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for RootedTraceableBox<Pbkdf2Params> {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        Pbkdf2Params::new(cx, value, CanGc::note())
+    }
+}
+
+impl DictionaryFromJSVal for RootedTraceableBox<HkdfParams> {
+    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
+        HkdfParams::new(cx, value, CanGc::note())
+    }
+}
+
+fn extract_native_dict<T>(converted: Result<ConversionResult<T>, ()>) -> Fallible<T> {
+    let params_result = converted.map_err(|_| Error::JSFailed)?;
+    let ConversionResult::Success(params) = params_result else {
+        return Err(Error::Syntax(None));
+    };
+    Ok(params)
+}
+
+fn value_from_js_object<T: DictionaryFromJSVal>(cx: JSContext, value: HandleValue) -> Fallible<T> {
+    extract_native_dict(T::create(cx, value))
+}
+
+trait DictionaryFromJSValType: crate::JSTraceable {}
+impl<T: crate::JSTraceable + 'static> DictionaryFromJSValType for T where
+    RootedTraceableBox<T>: DictionaryFromJSVal
+{
+}
+
+fn boxed_value_from_js_object<T: DictionaryFromJSValType>(
+    cx: JSContext,
+    value: HandleValue,
+) -> Fallible<RootedTraceableBox<T>>
+where
+    RootedTraceableBox<T>: DictionaryFromJSVal,
+{
+    extract_native_dict(<RootedTraceableBox<T>>::create(cx, value))
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"get key length"`
@@ -1421,17 +1510,17 @@ fn normalize_algorithm_for_get_key_length(
     match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object!(Algorithm, cx, value);
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
 
             let name = algorithm.name.str();
             let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
                 name.eq_ignore_ascii_case(ALG_AES_CTR) ||
                 name.eq_ignore_ascii_case(ALG_AES_GCM)
             {
-                let params = value_from_js_object!(AesDerivedKeyParams, cx, value);
+                let params = value_from_js_object::<AesDerivedKeyParams>(cx, value.handle())?;
                 GetKeyLengthAlgorithm::Aes(params.length)
             } else if name.eq_ignore_ascii_case(ALG_HMAC) {
-                let params = value_from_js_object!(HmacImportParams, cx, value);
+                let params = boxed_value_from_js_object::<HmacImportParams>(cx, value.handle())?;
                 let subtle_params = SubtleHmacImportParams::new(cx, params)?;
                 return Ok(GetKeyLengthAlgorithm::Hmac(subtle_params));
             } else {
@@ -1455,7 +1544,7 @@ fn normalize_algorithm_for_digest(
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object!(Algorithm, cx, value);
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
 
             algorithm.name.str().to_uppercase()
         },
@@ -1481,11 +1570,11 @@ fn normalize_algorithm_for_import_key(
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object!(Algorithm, cx, value);
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
 
             let name = algorithm.name.str().to_uppercase();
             if name == ALG_HMAC {
-                let params = value_from_js_object!(HmacImportParams, cx, value);
+                let params = boxed_value_from_js_object::<HmacImportParams>(cx, value.handle())?;
                 let subtle_params = SubtleHmacImportParams::new(cx, params)?;
                 return Ok(ImportKeyAlgorithm::Hmac(subtle_params));
             }
@@ -1519,14 +1608,14 @@ fn normalize_algorithm_for_derive_bits(
     };
 
     rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let algorithm = value_from_js_object!(Algorithm, cx, value);
+    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
 
     let normalized_algorithm = if algorithm.name.str().eq_ignore_ascii_case(ALG_PBKDF2) {
-        let params = value_from_js_object!(Pbkdf2Params, cx, value);
+        let params = boxed_value_from_js_object::<Pbkdf2Params>(cx, value.handle())?;
         let subtle_params = SubtlePbkdf2Params::new(cx, params)?;
         DeriveBitsAlgorithm::Pbkdf2(subtle_params)
     } else if algorithm.name.str().eq_ignore_ascii_case(ALG_HKDF) {
-        let params = value_from_js_object!(HkdfParams, cx, value);
+        let params = boxed_value_from_js_object::<HkdfParams>(cx, value.handle())?;
         let subtle_params = SubtleHkdfParams::new(cx, params)?;
         DeriveBitsAlgorithm::Hkdf(subtle_params)
     } else {
@@ -1547,17 +1636,17 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
     };
 
     rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let algorithm = value_from_js_object!(Algorithm, cx, value);
+    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
 
     let name = algorithm.name.str();
     let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) {
-        let params = value_from_js_object!(AesCbcParams, cx, value);
+        let params = boxed_value_from_js_object::<AesCbcParams>(cx, value.handle())?;
         EncryptionAlgorithm::AesCbc(params.into())
     } else if name.eq_ignore_ascii_case(ALG_AES_CTR) {
-        let params = value_from_js_object!(AesCtrParams, cx, value);
+        let params = boxed_value_from_js_object::<AesCtrParams>(cx, value.handle())?;
         EncryptionAlgorithm::AesCtr(params.into())
     } else if name.eq_ignore_ascii_case(ALG_AES_GCM) {
-        let params = value_from_js_object!(AesGcmParams, cx, value);
+        let params = boxed_value_from_js_object::<AesGcmParams>(cx, value.handle())?;
         EncryptionAlgorithm::AesGcm(params.into())
     } else {
         return Err(Error::NotSupported);
@@ -1575,7 +1664,7 @@ fn normalize_algorithm_for_sign_or_verify(
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object!(Algorithm, cx, value);
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
 
             algorithm.name.str().to_uppercase()
         },
@@ -1601,7 +1690,7 @@ fn normalize_algorithm_for_generate_key(
     };
 
     rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let algorithm = value_from_js_object!(Algorithm, cx, value);
+    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
 
     let name = algorithm.name.str();
     let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
@@ -1609,10 +1698,10 @@ fn normalize_algorithm_for_generate_key(
         name.eq_ignore_ascii_case(ALG_AES_KW) ||
         name.eq_ignore_ascii_case(ALG_AES_GCM)
     {
-        let params = value_from_js_object!(AesKeyGenParams, cx, value);
+        let params = value_from_js_object::<AesKeyGenParams>(cx, value.handle())?;
         KeyGenerationAlgorithm::Aes(params.into())
     } else if name.eq_ignore_ascii_case(ALG_HMAC) {
-        let params = value_from_js_object!(HmacKeyGenParams, cx, value);
+        let params = boxed_value_from_js_object::<HmacKeyGenParams>(cx, value.handle())?;
         let subtle_params = SubtleHmacKeyGenParams::new(cx, params)?;
         KeyGenerationAlgorithm::Hmac(subtle_params)
     } else {
@@ -1630,7 +1719,7 @@ fn normalize_algorithm_for_key_wrap(
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object!(Algorithm, cx, value);
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
 
             algorithm.name.str().to_uppercase()
         },
@@ -1644,21 +1733,27 @@ fn normalize_algorithm_for_key_wrap(
                 return Err(Error::Syntax(None));
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            KeyWrapAlgorithm::AesCbc(value_from_js_object!(AesCbcParams, cx, value).into())
+            KeyWrapAlgorithm::AesCbc(
+                boxed_value_from_js_object::<AesCbcParams>(cx, value.handle())?.into(),
+            )
         },
         ALG_AES_CTR => {
             let AlgorithmIdentifier::Object(obj) = algorithm else {
                 return Err(Error::Syntax(None));
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            KeyWrapAlgorithm::AesCtr(value_from_js_object!(AesCtrParams, cx, value).into())
+            KeyWrapAlgorithm::AesCtr(
+                boxed_value_from_js_object::<AesCtrParams>(cx, value.handle())?.into(),
+            )
         },
         ALG_AES_GCM => {
             let AlgorithmIdentifier::Object(obj) = algorithm else {
                 return Err(Error::Syntax(None));
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            KeyWrapAlgorithm::AesGcm(value_from_js_object!(AesGcmParams, cx, value).into())
+            KeyWrapAlgorithm::AesGcm(
+                boxed_value_from_js_object::<AesGcmParams>(cx, value.handle())?.into(),
+            )
         },
         _ => return Err(Error::NotSupported),
     };
@@ -3004,7 +3099,7 @@ fn sign_hmac(cx: JSContext, key: &CryptoKey, data: &[u8]) -> Result<impl AsRef<[
     // using the key represented by [[handle]] internal slot of key, the hash function identified by the hash attribute
     // of the [[algorithm]] internal slot of key and message as the input data text.
     rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
-    let params = value_from_js_object!(HmacKeyAlgorithm, cx, algorithm_slot);
+    let params = value_from_js_object::<HmacKeyAlgorithm>(cx, algorithm_slot.handle())?;
 
     let hash_algorithm = match params.hash.name.str() {
         ALG_SHA1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
@@ -3218,7 +3313,7 @@ impl JsonWebKeyExt for JsonWebKey {
         }
 
         // Step 5. Let key be the result of converting result to the IDL dictionary type of JsonWebKey.
-        let key = match JsonWebKey::new(cx, result.handle()) {
+        let key = match JsonWebKey::new(cx, result.handle(), CanGc::note()) {
             Ok(ConversionResult::Success(key)) => key,
             Ok(ConversionResult::Failure(error)) => {
                 return Err(Error::Type(error.to_string()));

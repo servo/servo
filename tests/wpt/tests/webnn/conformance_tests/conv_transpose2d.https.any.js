@@ -3245,10 +3245,5 @@ const convTranspose2dTests = [
   }
 ];
 
-if (navigator.ml) {
-  convTranspose2dTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    convTranspose2dTests, buildAndExecuteGraph, getPrecisionTolerance);

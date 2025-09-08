@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // Check HSTS tracking prevention functionality that is common to all major
+  // browsers. Note that this test must be run on an insecure origin because it
+  // relies on insecure iframes being loadable. If it's instead run on a secure
+  // origin then mixed content blocking will prevent HSTS from working.
+
+  // 0) Confirm that insecure iframes can be loaded and that the page's
+  //    window.location.host corresponds to {{hosts[][]}}:{{ports[http][0]}}.
+  // 1) Pin the alt hostname to the HSTS via hsts.html
+  // 2) Attempt to load an iframe via http. This should fail because the WPT
+  //    server only accepts HTTPS requests on the specified HTTPS port in
+  //    http://{{hosts[alt][]}}:{{ports[https][0]}} *and*
+  //    HSTS should not upgrade the iframe navigation to https.
+  //    This is true for all major browsers as part of their tracking protection
+  //    mitigations such as not allowing third-party loads to set HSTS state
+  //    or not performing HSTS upgrades for anything but top-level navigations.
+  // 3) Pin the hostname to the HSTS via hsts.html
+  // 4) Open a new window and navigate it to the same http origin. This should
+  //    successfully be upgraded to https, load, and then postMessage its origin
+  //    since it is top level and also not third party it should pass for all
+  //    the browsers.
+
+  const CURRENT_HOST_HTTP_PORT = "{{hosts[][]}}:{{ports[http][0]}}";
+  const CURRENT_HOST_HTTPS_PORT = "{{hosts[][]}}:{{ports[https][0]}}";
+  const ALTERNATE_HOST_HTTPS_PORT = "{{hosts[alt][]}}:{{ports[https][0]}}";
+
+  promise_test(async() => {
+
+    function onMessageWithTimeout(name) {
+      return new Promise((resolve, reject) => {
+
+      const timeoutID = step_timeout(() => {
+        reject(new Error("Timeout: Didn't receive message for " + name));
+        onmessage = null;
+      }, 3000);
+
+      onmessage = (event) => {
+        clearTimeout(timeoutID);
+        resolve(event);
+      };
+    });
+    };
+
+    // Step 0.
+    const iframeLoadable = document.createElement('iframe');
+    const iframeLoadablePromise = onMessageWithTimeout("Step 0");
+    assert_equals(window.location.host, CURRENT_HOST_HTTP_PORT,
+    "this test assumes that the page's window.location.host corresponds to " +
+    "hosts[][]");
+
+    iframeLoadable.src = `http://${CURRENT_HOST_HTTP_PORT}/hsts/resources/hsts.html`;
+    document.body.appendChild(iframeLoadable);
+    await iframeLoadablePromise;
+
+    // Step 1.
+    // Add HSTS pin for domain.
+    await fetch(`https://${ALTERNATE_HOST_HTTPS_PORT}/hsts/resources/hsts.html?as-fetch`);
+
+    // Step 2.
+    // Note: HTTP, not HTTPS:
+    const hstsIframe = document.createElement('iframe');
+    const hstsIframePromise = onMessageWithTimeout("Step 2")
+    .then(resolve => assert_false(true, "HSTS iframe unexpectedly loaded"),
+                                  reject => {/*frame didn't load, as expected */});
+
+    hstsIframe.src = `http://${ALTERNATE_HOST_HTTPS_PORT}/hsts/resources/hsts.html`;
+    document.body.appendChild(hstsIframe);
+    await hstsIframePromise;
+
+    // Step 3.
+    // Add HSTS pin for current domain.
+    await fetch(`https://${CURRENT_HOST_HTTPS_PORT}/hsts/resources/hsts.html?as-fetch`);
+
+    // Step 4.
+    const hstsWindowPromise = onMessageWithTimeout("Step 3")
+    .then((event) =>
+      assert_equals(event.data.origin,
+                    `https://${CURRENT_HOST_HTTPS_PORT}`));
+
+    const w = window.open(`http://${CURRENT_HOST_HTTPS_PORT}/hsts/resources/post-origin-to-opener.html`, "_blank");
+    if(!w) {
+      assert_false(true, "Window didn't open. Is there a popup blocker?");
+    }
+
+    await hstsWindowPromise;
+}, "Third-party subframe navigations don't result in HSTS upgrade");
+
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/web-animations-2#animation-trigger">
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+  </head>
+  <body>
+    <div id="event-target">Click me!</div>
+
+    <div id="animation-target">Watch me!</div>
+    <script>
+      promise_test(async (test) => {
+        const eventTarget = document.getElementById("event-target");
+        const animationTarget = document.getElementById("animation-target");
+        const ANIMATION_DURATION_MS = 10000;
+        const animation = new Animation(
+          new KeyframeEffect(
+            animationTarget,
+            [
+              { transform: "translateY(0)" },
+              { transform: "translateY(3rem)" },
+            ],
+            { duration: ANIMATION_DURATION_MS, fill: "both" }
+          ));
+        let listenerRan = false;
+        eventTarget.addEventListener("click", evt => {
+          listenerRan = true;
+          assert_equals(
+            animation.playState, "running",
+            "Animation is already running when event listener runs");
+        });
+        const trigger = new EventTrigger({
+          behavior: "once",
+          eventType: "click",
+          eventTarget: eventTarget
+        });
+        trigger.addAnimation(animation);
+        await waitForAnimationFrames(2);
+        assert_equals(animation.playState, "idle", "animation is idle");
+        await test_driver.click(eventTarget);
+        await waitForAnimationFrames(1);
+        assert_true(listenerRan, "Click event listener ran.");
+      }, "Animation triggers are handled before registered event listeners");
+    </script>
+  </body>
+</html>

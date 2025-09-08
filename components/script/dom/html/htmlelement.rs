@@ -9,7 +9,8 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
-use layout_api::QueryMsg;
+use layout_api::{QueryMsg, ScrollContainerQueryType, ScrollContainerResponse};
+use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
@@ -48,7 +49,9 @@ use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::node::{
+    BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext, from_untrusted_node_address,
+};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -445,8 +448,17 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
+    #[allow(unsafe_code)]
     fn GetScrollParent(&self) -> Option<DomRoot<Element>> {
-        self.owner_window().scroll_parent_query(self.upcast())
+        self.owner_window()
+            .scroll_container_query(self.upcast(), ScrollContainerQueryType::ForScrollParent)
+            .and_then(|response| match response {
+                ScrollContainerResponse::Viewport => self.owner_document().GetScrollingElement(),
+                ScrollContainerResponse::Element(parent_node_address) => {
+                    let node = unsafe { from_untrusted_node_address(parent_node_address) };
+                    DomRoot::downcast(node)
+                },
+            })
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent>

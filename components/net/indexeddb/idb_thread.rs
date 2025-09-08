@@ -224,9 +224,6 @@ impl IndexedDBManager {
 
 impl IndexedDBManager {
     fn start(&mut self) {
-        if !pref!(dom_indexeddb_enabled) {
-            return;
-        }
         loop {
             // FIXME:(arihant2math) No message *most likely* means that
             // the ipc sender has been dropped, so we break the look

@@ -119,6 +119,33 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         );
     }
 
+    pub(crate) fn stroke_text(
+        &mut self,
+        text_bounds: Rect<f64>,
+        text_runs: Vec<TextRun>,
+        fill_or_stroke_style: FillOrStrokeStyle,
+        line_options: LineOptions,
+        _shadow_options: ShadowOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f64>,
+    ) {
+        self.maybe_bound_shape_with_pattern(
+            fill_or_stroke_style,
+            composition_options,
+            &text_bounds,
+            transform,
+            |self_, style| {
+                self_.drawtarget.stroke_text(
+                    text_runs,
+                    style,
+                    line_options,
+                    composition_options,
+                    transform,
+                );
+            },
+        );
+    }
+
     pub(crate) fn fill_rect(
         &mut self,
         rect: &Rect<f32>,

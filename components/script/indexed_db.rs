@@ -236,10 +236,8 @@ pub(crate) fn evaluate_key_path_on_value(
                 // Step 1.3.4. Let p be ! ToString(i).
                 // Step 1.3.5. Let status be CreateDataProperty(result, p, key).
                 // Step 1.3.6. Assert: status is true.
-                unsafe {
-                    set_dictionary_property(*cx, result.handle(), &i.to_string(), key.handle())
-                        .map_err(|_| Error::JSFailed)?;
-                }
+                set_dictionary_property(cx, result.handle(), &i.to_string(), key.handle())
+                    .map_err(|_| Error::JSFailed)?;
 
                 // Step 1.3.7. Increase i by 1.
                 // Done by for loop with enumerate()

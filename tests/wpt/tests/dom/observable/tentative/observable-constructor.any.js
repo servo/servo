@@ -1199,3 +1199,33 @@ test(() => {
     'after final abort'
   ]);
 }, "Teardown runs after last unsubscribe regardless of unsubscription order");
+
+test(() => {
+  const results = [];
+  const source = new Observable(subscriber => {
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.complete();
+  });
+
+  source.subscribe(v => {
+    results.push(`${v}-first-sub`);
+    if (v === 1) {
+      // This new subscription adds a new internal observer to the subscriber's
+      // internal observer list, but it does not get the value `1` that the
+      // subscriber is currently pushing. This is because the Subscriber
+      // iterates over a snapshot of its internal observers to push values to.
+      // The first value that this new subscription will see is `2`.
+      //
+      // See https://github.com/WICG/observable/pull/214.
+      source.subscribe(v => results.push(`${v}-second-sub`));
+    }
+  });
+
+  assert_array_equals(results, [
+    "1-first-sub",
+
+    "2-first-sub",
+    "2-second-sub",
+  ]);
+}, "Subscriber iterates over a snapshot of its internal observers");

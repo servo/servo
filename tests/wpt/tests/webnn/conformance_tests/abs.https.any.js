@@ -654,11 +654,5 @@ const absTests = [
   }
 ];
 
-if (navigator.ml) {
-  absTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getAbsPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    absTests, buildAndExecuteGraph, getAbsPrecisionTolerance);

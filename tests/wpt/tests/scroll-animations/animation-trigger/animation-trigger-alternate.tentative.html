@@ -24,15 +24,18 @@
       }
 
       #scroll_target {
-        animation-trigger: --scrolltrigger;
+        animation-trigger:
+             trigger(--scrolltrigger, enter play-forwards, exit play-backwards);
         timeline-trigger: --scrolltrigger scroll() alternate 150px 200px;
       }
       #view_target {
-        animation-trigger: --viewtrigger;
+        animation-trigger:
+               trigger(--viewtrigger, enter play-forwards, exit play-backwards);
         timeline-trigger: --viewtrigger view() alternate 150px 200px;
       }
       #deferred_target {
-        animation-trigger: --deferredtrigger;
+        animation-trigger:
+           trigger(--deferredtrigger, enter play-forwards, exit play-backwards);
       }
       #deferred_subject {
         view-timeline: --viewtimeline;

@@ -78,6 +78,14 @@ pub(crate) trait GenericDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     );
+    fn stroke_text(
+        &mut self,
+        text_runs: Vec<TextRun>,
+        style: FillOrStrokeStyle,
+        line_options: LineOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f64>,
+    );
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,

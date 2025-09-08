@@ -1,8 +1,25 @@
 import json
 
 def main(request, response):
-    response_body = {
-        "registering_origins": ['https://www.' + request.headers.get('host').decode("utf-8")],
-    }
+    # Since the path to this file is .well-known, we can't use
+    # server-side substitution directly. Instead, get the value
+    # substitution would give us from `request`.
+    provider_domain = request.server.config.all_domains['']['']
+    relying_domain = request.server.config.all_domains['']['www']
+
+    provider_origin = f'https://{provider_domain}:{request.url_parts.port}'
+    relying_origin = f'https://{relying_domain}:{request.url_parts.port}'
+
+    host = request.headers.get('host').decode('utf-8')
+    response_body = None
+    if host.startswith(provider_domain):
+        response_body = {
+            "registering_origins": [relying_origin],
+            "relying_origins": [relying_origin],
+        }
+    elif host.startswith(relying_domain):
+        response_body = {
+            "provider_origin": provider_origin,
+        }
     return (200, [('Content-Type', 'application/json'), ('Set-Cookie', 'well_known_fetched=true; Path=/device-bound-session-credentials')],
             json.dumps(response_body))

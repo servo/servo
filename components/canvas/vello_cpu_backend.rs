@@ -384,6 +384,50 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         })
     }
 
+    fn stroke_text(
+        &mut self,
+        text_runs: Vec<TextRun>,
+        style: FillOrStrokeStyle,
+        line_options: LineOptions,
+        composition_options: CompositionOptions,
+        transform: Transform2D<f64>,
+    ) {
+        self.ensure_drawing();
+        self.ctx.set_paint(paint(style, composition_options.alpha));
+        self.ctx.set_stroke(line_options.convert());
+        self.ctx.set_transform(transform.cast().into());
+        self.with_composition(composition_options.composition_operation, |self_| {
+            for text_run in text_runs.iter() {
+                SHARED_FONT_CACHE.with(|font_cache| {
+                    let identifier = &text_run.font.identifier;
+                    if !font_cache.borrow().contains_key(identifier) {
+                        let Some(font_data_and_index) = text_run.font.font_data_and_index() else {
+                            return;
+                        };
+                        let font = font_data_and_index.convert();
+                        font_cache.borrow_mut().insert(identifier.clone(), font);
+                    }
+
+                    let font_cache = font_cache.borrow();
+                    let Some(font) = font_cache.get(identifier) else {
+                        return;
+                    };
+                    self_
+                        .ctx
+                        .glyph_run(font)
+                        .font_size(text_run.pt_size)
+                        .stroke_glyphs(text_run.glyphs_and_positions.iter().map(
+                            |glyph_and_position| vello_cpu::Glyph {
+                                id: glyph_and_position.id,
+                                x: glyph_and_position.point.x,
+                                y: glyph_and_position.point.y,
+                            },
+                        ));
+                });
+            }
+        })
+    }
+
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,

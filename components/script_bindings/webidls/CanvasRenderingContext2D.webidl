@@ -149,8 +149,9 @@ interface mixin CanvasText {
   [Pref="dom_canvas_text_enabled"]
   undefined fillText(DOMString text, unrestricted double x, unrestricted double y,
                 optional unrestricted double maxWidth);
-  //void strokeText(DOMString text, unrestricted double x, unrestricted double y,
-  //                optional unrestricted double maxWidth);
+  [Pref="dom_canvas_text_enabled"]
+  undefined strokeText(DOMString text, unrestricted double x, unrestricted double y,
+                  optional unrestricted double maxWidth);
   [Pref="dom_canvas_text_enabled"]
   TextMetrics measureText(DOMString text);
 };

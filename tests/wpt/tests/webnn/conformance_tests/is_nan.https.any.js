@@ -285,12 +285,4 @@ const isNaNTests = [
   },
 ]
 
-if (navigator.ml) {
-  isNaNTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getZeroULPTolerance, test,
-        /*cast_to_supported_type=*/true);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(isNaNTests, buildAndExecuteGraph, getZeroULPTolerance);

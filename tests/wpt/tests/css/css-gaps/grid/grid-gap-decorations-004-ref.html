@@ -6,51 +6,54 @@
     margin: 0px;
   }
 
-  .container {
-    width: 108px;
+  .grid-container {
     height: 108px;
-    background: green;
-
-    column-count: 2;
+    width: 108px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     column-gap: 12px;
+    row-gap: 12px;
+    background-color: green;
 
-    column-rule-color: pink;
-    column-rule-style: double;
-    column-rule-width: 12px;
-
-    overflow: hidden;
   }
 
-  .item {
+  .grid-item {
     background: skyblue;
-    height: 48px;
-    width: 100%;
-    margin: 0;
   }
 
-  /* For 2x2 grid-like layout, add a 10px bottom margin to
-    odd children(#1 & #3) to simulate a horizontal row gap.*/
-  .item:nth-child(odd) {
-    margin-bottom: 12px;
-  }
-
-  .row-gap {
+  .col-rule {
     margin: 0px;
     padding: 0px;
-    height: 4px;
-    background: pink;
-    width: 108px;
+    width: 0px;
+
+
+    height: 108px;
+    border-right: 12px double;
+    border-color: pink;
     position: absolute;
+    left: 48px;
+    top: 0px;
+
   }
 
+  .row-rule {
+    margin: 0px;
+    padding: 0px;
+    height: 0px;
+
+    width: 108px;
+    border-bottom: 12px double;
+    border-color: pink;
+    position: absolute;
+    top: 48px;
+  }
 </style>
-<div class="container">
-  <div class="item"></div>
-  <div class="item"></div>
-  <div class="item"></div>
-  <div class="item"></div>
+<div class="grid-container">
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
 </div>
 
-<!-- Two horizontal bars to simulate row gaps with style double -->
-<div id="horizontal1" class="row-gap" style="top: 48px;"></div>
-<div id="horizontal2" class="row-gap" style="top: 56px;"></div>
+<div class="row-rule"> </div>
+<div class="col-rule"> </div>

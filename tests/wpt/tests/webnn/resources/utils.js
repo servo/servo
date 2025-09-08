@@ -199,6 +199,17 @@ const searchParams = new URLSearchParams(location.search);
 const variant = searchParams.get('device') || location.search.substring(1);
 const contextOptions = kContextOptionsForVariant[variant];
 
+async function getContext() {
+  let context;
+  try {
+    context = await navigator.ml.createContext(contextOptions);
+  } catch (e) {
+    throw new AssertionError(
+        `Unable to create context for ${variant} variant. ${e}`);
+  }
+  return context;
+}
+
 const tcNameArray = searchParams.getAll('tc');
 
 function isTargetTest(test) {
@@ -1284,34 +1295,26 @@ function getOutputMinimumLimits(operatorsResources, outputOperandName) {
   return minimumDataTypeSet[operatorName][outputsName];
 }
 
-function getMinimumDataTypeSetJson() {
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', '../resources/minimum_datatype_set.json', false);
-
+async function getMinimumDataTypeSetJson() {
   try {
-    xhr.send();
+    const response = await fetch('/webnn/resources/minimum_datatype_set.json');
 
-    if (xhr.status !== 200) {
-      throw new Error(`HTTP error! Status: ${xhr.status}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    const text = xhr.responseText;
+    const text = await response.text();
     const jsonText =
         text.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '');  // Remove comments
-    const data = JSON.parse(jsonText);
-    return data;
+    minimumDataTypeSet = JSON.parse(jsonText);
   } catch (error) {
-    throw new AssertionError(
-        `Error fetching and parsing JSON, ${error.message}`);
+    throw new Error(`Error fetching and parsing JSON: ${error.message}`);
   }
+  return minimumDataTypeSet;
 }
 
 function isMinimumTest(test) {
   let isMinimum = false;
-  if (minimumDataTypeSet === undefined) {
-    minimumDataTypeSet = getMinimumDataTypeSetJson();
-  }
-
   const graphResources = test.graph;
   const inputsResources = graphResources.inputs;
 
@@ -1373,31 +1376,44 @@ function isMinimumTest(test) {
   return isMinimum;
 }
 
-const webnn_conformance_test =
-    (buildAndExecuteGraphFunc, toleranceFunc, testResources) => {
-      promise_test(
-          async () => {
-            let context;
-            try {
-              context = await navigator.ml.createContext(contextOptions);
-            } catch (e) {
-              throw new AssertionError(
-                  `Unable to create context for ${variant} variant. ${e}`);
-            }
-            if (!validateContextSupportsGraph(context, testResources.graph) &&
-                !isMinimumTest(testResources)) {
-              // Skip run the non-minimum test that isn't supported by the
-              // context
-              return;
-            }
-            const builder = new MLGraphBuilder(context);
-            const {result, intermediateOperands} =
-                await buildAndExecuteGraphFunc(
-                    context, builder, testResources.graph);
-            assertResultsEquals(
-                toleranceFunc, result, testResources.graph,
-                intermediateOperands);
-          },
-          `${isMinimumTest(testResources) ? '[required]' : '[optional]'} ${
-              testResources.name}`);
-    };
+// This array is to save skipped tests which are optional tests unsupported by
+// the context. It's helpful to debug to get detail skipped tests in browser
+// console by typing testsToSkip after running tests.
+const testsToSkip = [];
+
+async function webnn_conformance_test(
+    tests, buildAndExecuteGraphFunc, toleranceFunc) {
+  if (navigator.ml === undefined) {
+    test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
+  } else {
+    const testsToRun = [];
+    promise_setup(async () => {
+      // Create a context for checking whether tests are supported.
+      const context = await getContext();
+      minimumDataTypeSet = await getMinimumDataTypeSetJson();
+      tests.filter(isTargetTest).forEach((test) => {
+        if (validateContextSupportsGraph(context, test.graph) ||
+            isMinimumTest(test)) {
+          testsToRun.push(test);
+        } else {
+          // This test is optional so it can be skipped.
+          testsToSkip.push(test);
+        }
+      });
+    });
+
+    promise_test(async () => {
+      testsToRun.map((test) => {
+        promise_test(async () => {
+          // Create a context for each test.
+          const context = await getContext();
+          const builder = new MLGraphBuilder(context);
+          const {result, intermediateOperands} =
+              await buildAndExecuteGraphFunc(context, builder, test.graph);
+          assertResultsEquals(
+              toleranceFunc, result, test.graph, intermediateOperands);
+        }, `${isMinimumTest(test) ? '[required]' : '[optional]'} ${test.name}`);
+      });
+    });
+  }
+}

@@ -357,9 +357,6 @@ pub(crate) struct Document {
     asap_in_order_scripts_list: PendingInOrderScriptVec,
     /// <https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible>
     asap_scripts_set: DomRefCell<Vec<Dom<HTMLScriptElement>>>,
-    /// <https://html.spec.whatwg.org/multipage/#concept-n-noscript>
-    /// True if scripting is enabled for all scripts in this document
-    scripting_enabled: bool,
     /// <https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier>
     /// Current identifier of animation frame callback
     animation_frame_ident: Cell<u32>,
@@ -1115,14 +1112,17 @@ impl Document {
     }
 
     /// Return whether scripting is enabled or not
-    pub(crate) fn is_scripting_enabled(&self) -> bool {
-        self.scripting_enabled
-    }
-
-    /// Return whether scripting is enabled or not
-    /// <https://html.spec.whatwg.org/multipage/#concept-n-noscript>
+    /// <https://html.spec.whatwg.org/multipage/#concept-n-script>
     pub(crate) fn scripting_enabled(&self) -> bool {
-        self.has_browsing_context()
+        // Scripting is enabled for a node node if node's node document's browsing context is non-null,
+        // and scripting is enabled for node's relevant settings object.
+        self.has_browsing_context() &&
+        // Either settings's global object is not a Window object,
+        // or settings's global object's associated Document's active sandboxing flag
+        // set does not have its sandboxed scripts browsing context flag set.
+            !self.has_active_sandboxing_flag(
+                SandboxingFlagSet::SANDBOXED_SCRIPTS_BROWSING_CONTEXT_FLAG,
+            )
     }
 
     /// Return the element that currently has focus.
@@ -1797,6 +1797,18 @@ impl Document {
 
     pub(crate) fn policy_container(&self) -> Ref<'_, PolicyContainer> {
         self.policy_container.borrow()
+    }
+
+    pub(crate) fn set_policy_container(&self, policy_container: PolicyContainer) {
+        *self.policy_container.borrow_mut() = policy_container;
+    }
+
+    pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
+        self.policy_container.borrow_mut().set_csp_list(csp_list);
+    }
+
+    pub(crate) fn get_csp_list(&self) -> Option<CspList> {
+        self.policy_container.borrow().csp_list.clone()
     }
 
     /// Add the policy container and HTTPS state to a given request.
@@ -3365,7 +3377,6 @@ impl Document {
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
             asap_scripts_set: Default::default(),
-            scripting_enabled: has_browsing_context,
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DomRefCell::new(VecDeque::new()),
             running_animation_callbacks: Cell::new(false),
@@ -3478,14 +3489,6 @@ impl Document {
 
     pub(crate) fn set_resize_observer_started_observing_target(&self, value: bool) {
         self.resize_observer_started_observing_target.set(value);
-    }
-
-    pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
-        self.policy_container.borrow_mut().set_csp_list(csp_list);
-    }
-
-    pub(crate) fn get_csp_list(&self) -> Option<CspList> {
-        self.policy_container.borrow().csp_list.clone()
     }
 
     /// Prevent any JS or layout from running until the corresponding call to

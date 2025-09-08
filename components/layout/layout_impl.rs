@@ -29,8 +29,8 @@ use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
     BoxAreaType, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory,
     OffsetParentResponse, PropertyRegistration, QueryMsg, ReflowGoal, ReflowPhasesRun,
-    ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError, ScrollParentResponse,
-    TrustedNodeAddress,
+    ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
+    ScrollContainerQueryType, ScrollContainerResponse, TrustedNodeAddress,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -92,8 +92,8 @@ use crate::display_list::{DisplayListBuilder, HitTest, StackingContextTree};
 use crate::query::{
     get_the_text_steps, process_box_area_request, process_box_areas_request,
     process_client_rect_request, process_node_scroll_area_request, process_offset_parent_query,
-    process_resolved_font_style_query, process_resolved_style_request, process_scroll_parent_query,
-    process_text_index_request,
+    process_resolved_font_style_query, process_resolved_style_request,
+    process_scroll_container_query, process_text_index_request,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
 use crate::{BoxTree, FragmentTree};
@@ -326,9 +326,13 @@ impl Layout for LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn query_scroll_parent(&self, node: TrustedNodeAddress) -> Option<ScrollParentResponse> {
+    fn query_scroll_container(
+        &self,
+        node: TrustedNodeAddress,
+        query_type: ScrollContainerQueryType,
+    ) -> Option<ScrollContainerResponse> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_scroll_parent_query(node)
+        process_scroll_container_query(node, query_type)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -533,6 +537,10 @@ impl Layout for LayoutThread {
 
     fn needs_new_display_list(&self) -> bool {
         self.need_new_display_list.get()
+    }
+
+    fn set_needs_new_display_list(&self) {
+        self.need_new_display_list.set(true);
     }
 
     /// <https://drafts.css-houdini.org/css-properties-values-api-1/#the-registerproperty-function>

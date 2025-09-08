@@ -10,7 +10,8 @@ use fnv::FnvHashMap;
 use fonts::FontContext;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{
-    IFrameSizes, ImageAnimationState, PendingImage, PendingImageState, PendingRasterizationImage,
+    IFrameSizes, ImageAnimationState, LayoutImageDestination, PendingImage, PendingImageState,
+    PendingRasterizationImage,
 };
 use net_traits::image_cache::{
     Image as CachedImage, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, PendingImageId,
@@ -128,6 +129,7 @@ impl ImageResolver {
         node: OpaqueNode,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
+        destination: LayoutImageDestination,
     ) -> LayoutImageCacheResult {
         // Check for available image or start tracking.
         let cache_result = self.image_cache.get_cached_image_status(
@@ -149,6 +151,7 @@ impl ImageResolver {
                     node: node.into(),
                     id,
                     origin: self.origin.clone(),
+                    destination,
                 };
                 self.pending_images.lock().push(image);
                 LayoutImageCacheResult::Pending
@@ -160,6 +163,7 @@ impl ImageResolver {
                     node: node.into(),
                     id,
                     origin: self.origin.clone(),
+                    destination,
                 };
                 self.pending_images.lock().push(image);
                 LayoutImageCacheResult::Pending
@@ -192,6 +196,7 @@ impl ImageResolver {
         node: OpaqueNode,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
+        destination: LayoutImageDestination,
     ) -> Result<CachedImage, ResolveImageError> {
         if let Some(cached_image) = self
             .resolved_images_cache
@@ -201,7 +206,8 @@ impl ImageResolver {
             return cached_image.clone();
         }
 
-        let result = self.get_or_request_image_or_meta(node, url.clone(), use_placeholder);
+        let result =
+            self.get_or_request_image_or_meta(node, url.clone(), use_placeholder, destination);
         match result {
             LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
@@ -280,6 +286,7 @@ impl ImageResolver {
                     node,
                     image_url.clone().into(),
                     UsePlaceholder::No,
+                    LayoutImageDestination::DisplayListBuilding,
                 )?;
                 let metadata = image.metadata();
                 let size = Size2D::new(metadata.width, metadata.height).to_f32();

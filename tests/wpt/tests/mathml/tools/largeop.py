@@ -81,3 +81,16 @@ f[nAryWhiteVerticalBarCodePoint].verticalComponents = \
      )
 f[nAryWhiteVerticalBarCodePoint].verticalComponentItalicCorrection = v2
 mathfont.save(f)
+
+v1 = int(1.25 * mathfont.em)
+f = mathfont.create("largeop-displayoperatorminheight%d" % v1,
+                    "Copyright (c) 2025 Igalia S.L.")
+f.math.DisplayOperatorMinHeight = v1
+f.math.AxisHeight = int(v1 / 2)
+mathfont.createSquareGlyph(f, nAryWhiteVerticalBarCodePoint)
+g = f.createChar(-1, "uni2AFF.v1")
+mathfont.drawRectangleGlyph(g, mathfont.em, v1, 0)
+g = f.createChar(-1, "uni2AFF.v2")
+mathfont.drawRectangleGlyph(g, mathfont.em, 2 * mathfont.em, 0)
+f[nAryWhiteVerticalBarCodePoint].verticalVariants = "uni2AFF uni2AFF.v1 uni2AFF.v2"
+mathfont.save(f)

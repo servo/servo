@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>The revert-rule keyword: basic behavior</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10443">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #test1 {
+    color: green;
+  }
+  #test1 {
+    color: red;
+    color: revert-rule;
+  }
+</style>
+<div id=test1></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test1).color, 'rgb(0, 128, 0)')
+  }, 'The revert-rule keyword rolls back to the previous rule');
+</script>
+
+
+<style>
+  #test2 { /* Specificity: (0, 0, 1) */
+    color: red;
+  }
+  #test2#test2#test2 { /* Specificity: (0, 0, 3) */
+    color: red;
+    color: revert-rule;
+  }
+  #test2#test2 { /* Specificity: (0, 0, 2) */
+    color: green;
+  }
+</style>
+<div id=test2></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test2).color, 'rgb(0, 128, 0)')
+  }, 'Cascade order determines the previous rule, not order of appearance');
+</script>
+
+
+<style>
+  #test3 {
+    color: red;
+  }
+  #test3 {
+    color: green;
+  }
+</style>
+<div id=test3 style="color:red; color:revert-rule"></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test3).color, 'rgb(0, 128, 0)')
+  }, 'Reverting from style attribute reverts to regular rules');
+</script>
+
+
+<style>
+  #test4 {              z-index: 1; }
+  #test4 {              z-index: 2; }
+  #test4 { z-index: -1; z-index: revert-rule; }
+  #test4 { z-index: -1; z-index: revert-rule; }
+  #test4 { z-index: -1; z-index: revert-rule; }
+</style>
+<div id=test4></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('z-index:revert-rule'));
+    assert_equals(getComputedStyle(test4).zIndex, '2')
+  }, 'A chain of revert-rule works');
+</script>
