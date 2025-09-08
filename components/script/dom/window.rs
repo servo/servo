@@ -72,6 +72,7 @@ use num_traits::ToPrimitive;
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
@@ -366,20 +367,22 @@ pub(crate) struct Window {
     /// `ImageCache` it adds an entry to this list. When those loads are triggered from
     /// layout, they also add an etry to [`Self::pending_layout_images`].
     #[no_trace]
-    pending_image_callbacks: DomRefCell<HashMap<PendingImageId, Vec<PendingImageCallback>>>,
+    pending_image_callbacks: DomRefCell<FxHashMap<PendingImageId, Vec<PendingImageCallback>>>,
 
     /// All of the elements that have an outstanding image request that was
     /// initiated by layout during a reflow. They are stored in the [`ScriptThread`]
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
-    pending_layout_images:
-        DomRefCell<HashMapTracedValues<PendingImageId, Vec<PendingLayoutImageAncillaryData>>>,
+    pending_layout_images: DomRefCell<
+        HashMapTracedValues<PendingImageId, Vec<PendingLayoutImageAncillaryData>, FxBuildHasher>,
+    >,
 
     /// Vector images for which layout has intiated rasterization at a specific size
     /// and whose results are not yet available. They are stored in the [`ScriptThread`]
     /// so that the element can be marked dirty once the rasterization is completed.
-    pending_images_for_rasterization:
-        DomRefCell<HashMapTracedValues<PendingImageRasterizationKey, Vec<Dom<Node>>>>,
+    pending_images_for_rasterization: DomRefCell<
+        HashMapTracedValues<PendingImageRasterizationKey, Vec<Dom<Node>>, FxBuildHasher>,
+    >,
 
     /// Directory to store unminified css for this window if unminify-css
     /// opt is enabled.

@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{
     MediaMetadata as EmbedderMediaMetadata, MediaSessionActionType, MediaSessionEvent,
 };
+use rustc_hash::FxBuildHasher;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::conversions::Convert;
@@ -44,8 +45,9 @@ pub(crate) struct MediaSession {
     playback_state: DomRefCell<MediaSessionPlaybackState>,
     /// <https://w3c.github.io/mediasession/#supported-media-session-actions>
     #[ignore_malloc_size_of = "Rc"]
-    action_handlers:
-        DomRefCell<HashMapTracedValues<MediaSessionActionType, Rc<MediaSessionActionHandler>>>,
+    action_handlers: DomRefCell<
+        HashMapTracedValues<MediaSessionActionType, Rc<MediaSessionActionHandler>, FxBuildHasher>,
+    >,
     /// The media instance controlled by this media session.
     /// For now only HTMLMediaElements are controlled by media sessions.
     media_instance: MutNullableDom<HTMLMediaElement>,
@@ -58,7 +60,7 @@ impl MediaSession {
             reflector_: Reflector::new(),
             metadata: DomRefCell::new(None),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
-            action_handlers: DomRefCell::new(HashMapTracedValues::new()),
+            action_handlers: DomRefCell::new(HashMapTracedValues::new_fx()),
             media_instance: Default::default(),
         }
     }

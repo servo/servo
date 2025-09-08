@@ -8,14 +8,13 @@
 mod serializable;
 mod transferable;
 
-use std::collections::HashMap;
-
 use base::id::{
     BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
     MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
 };
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use serde::{Deserialize, Serialize};
 pub use serializable::*;
 use strum::IntoEnumIterator;
@@ -28,35 +27,35 @@ pub struct StructuredSerializedData {
     /// Data serialized by SpiderMonkey.
     pub serialized: Vec<u8>,
     /// Serialized in a structured callback,
-    pub blobs: Option<HashMap<BlobId, BlobImpl>>,
+    pub blobs: Option<FxHashMap<BlobId, BlobImpl>>,
     /// Serialized point objects.
-    pub points: Option<HashMap<DomPointId, DomPoint>>,
+    pub points: Option<FxHashMap<DomPointId, DomPoint>>,
     /// Serialized rect objects.
-    pub rects: Option<HashMap<DomRectId, DomRect>>,
+    pub rects: Option<FxHashMap<DomRectId, DomRect>>,
     /// Serialized quad objects.
-    pub quads: Option<HashMap<DomQuadId, DomQuad>>,
+    pub quads: Option<FxHashMap<DomQuadId, DomQuad>>,
     /// Serialized matrix objects.
-    pub matrices: Option<HashMap<DomMatrixId, DomMatrix>>,
+    pub matrices: Option<FxHashMap<DomMatrixId, DomMatrix>>,
     /// Serialized exception objects.
-    pub exceptions: Option<HashMap<DomExceptionId, DomException>>,
+    pub exceptions: Option<FxHashMap<DomExceptionId, DomException>>,
     /// Serialized quota exceeded errors.
     pub quota_exceeded_errors:
-        Option<HashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
+        Option<FxHashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
     /// Transferred objects.
-    pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    pub ports: Option<FxHashMap<MessagePortId, MessagePortImpl>>,
     /// Transform streams transferred objects.
-    pub transform_streams: Option<HashMap<MessagePortId, TransformStreamData>>,
+    pub transform_streams: Option<FxHashMap<MessagePortId, TransformStreamData>>,
     /// Serialized image bitmap objects.
-    pub image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
+    pub image_bitmaps: Option<FxHashMap<ImageBitmapId, SerializableImageBitmap>>,
     /// Transferred image bitmap objects.
-    pub transferred_image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
+    pub transferred_image_bitmaps: Option<FxHashMap<ImageBitmapId, SerializableImageBitmap>>,
     /// Transferred offscreen canvas objects.
-    pub offscreen_canvases: Option<HashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
+    pub offscreen_canvases: Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
 }
 
 impl StructuredSerializedData {
     fn is_empty(&self, val: Transferrable) -> bool {
-        fn is_field_empty<K, V>(field: &Option<HashMap<K, V>>) -> bool {
+        fn is_field_empty<K, V>(field: &Option<FxHashMap<K, V>>) -> bool {
             field.as_ref().is_none_or(|h| h.is_empty())
         }
         match val {
@@ -74,7 +73,7 @@ impl StructuredSerializedData {
     fn clone_all_of_type<T: BroadcastClone>(&self, cloned: &mut StructuredSerializedData) {
         let existing = T::source(self);
         let Some(existing) = existing else { return };
-        let mut clones = HashMap::with_capacity(existing.len());
+        let mut clones = FxHashMap::with_capacity_and_hasher(existing.len(), FxBuildHasher);
 
         for (original_id, obj) in existing.iter() {
             if let Some(clone) = obj.clone_for_broadcast() {

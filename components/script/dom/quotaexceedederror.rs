@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::{QuotaExceededErrorId, QuotaExceededErrorIndex};
 use constellation_traits::SerializableQuotaExceededError;
 use dom_struct::dom_struct;
 use js::gc::HandleObject;
+use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
     QuotaExceededErrorMethods, QuotaExceededErrorOptions,
 };
@@ -165,7 +164,7 @@ impl Serializable for QuotaExceededError {
     /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<QuotaExceededErrorId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<QuotaExceededErrorId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.quota_exceeded_errors,
             StructuredData::Writer(writer) => &mut writer.quota_exceeded_errors,

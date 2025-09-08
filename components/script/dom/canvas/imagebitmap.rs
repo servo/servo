@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref};
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use base::id::{ImageBitmapId, ImageBitmapIndex};
@@ -11,6 +10,7 @@ use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use pixels::{CorsStatus, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use rustc_hash::FxHashMap;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::realms::{AlreadyInRealm, InRealm};
 
@@ -663,7 +663,7 @@ impl Serializable for ImageBitmap {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<ImageBitmapId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<ImageBitmapId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.image_bitmaps,
             StructuredData::Writer(w) => &mut w.image_bitmaps,
@@ -716,7 +716,7 @@ impl Transferable for ImageBitmap {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<ImageBitmapId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<ImageBitmapId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.transferred_image_bitmaps,
             StructuredData::Writer(w) => &mut w.transferred_image_bitmaps,

@@ -18,7 +18,7 @@
 //! loop.
 
 use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
@@ -83,6 +83,7 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
@@ -204,7 +205,8 @@ pub struct ScriptThread {
     documents: DomRefCell<DocumentCollection>,
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
-    window_proxies: DomRefCell<HashMapTracedValues<BrowsingContextId, Dom<WindowProxy>>>,
+    window_proxies:
+        DomRefCell<HashMapTracedValues<BrowsingContextId, Dom<WindowProxy>, FxBuildHasher>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
@@ -249,7 +251,7 @@ pub struct ScriptThread {
 
     /// List of pipelines that have been owned and closed by this script thread.
     #[no_trace]
-    closed_pipelines: DomRefCell<HashSet<PipelineId>>,
+    closed_pipelines: DomRefCell<FxHashSet<PipelineId>>,
 
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     microtask_queue: Rc<MicrotaskQueue>,
@@ -311,7 +313,7 @@ pub struct ScriptThread {
 
     /// A map from pipelines to all owned nodes ever created in this script thread
     #[no_trace]
-    pipeline_to_node_ids: DomRefCell<HashMap<PipelineId, NodeIdSet>>,
+    pipeline_to_node_ids: DomRefCell<FxHashMap<PipelineId, NodeIdSet>>,
 
     /// Code is running as a consequence of a user interaction
     is_user_interacting: Cell<bool>,
@@ -726,7 +728,7 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.is_user_interacting.get())
     }
 
-    pub(crate) fn get_fully_active_document_ids(&self) -> HashSet<PipelineId> {
+    pub(crate) fn get_fully_active_document_ids(&self) -> FxHashSet<PipelineId> {
         self.documents
             .borrow()
             .iter()
@@ -737,7 +739,7 @@ impl ScriptThread {
                     None
                 }
             })
-            .fold(HashSet::new(), |mut set, id| {
+            .fold(FxHashSet::default(), |mut set, id| {
                 let _ = set.insert(id);
                 set
             })
@@ -983,7 +985,7 @@ impl ScriptThread {
         ScriptThread {
             documents: DomRefCell::new(DocumentCollection::default()),
             last_render_opportunity_time: Default::default(),
-            window_proxies: DomRefCell::new(HashMapTracedValues::new()),
+            window_proxies: DomRefCell::new(HashMapTracedValues::new_fx()),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
             senders,
@@ -996,7 +998,7 @@ impl ScriptThread {
             timer_scheduler: Default::default(),
             microtask_queue,
             js_runtime,
-            closed_pipelines: DomRefCell::new(HashSet::new()),
+            closed_pipelines: DomRefCell::new(FxHashSet::default()),
             mutation_observer_microtask_queued: Default::default(),
             mutation_observers: Default::default(),
             signal_slots: Default::default(),

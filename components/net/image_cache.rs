@@ -27,6 +27,7 @@ use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, lo
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use resvg::{tiny_skia, usvg};
+use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::units::DeviceIntSize;
@@ -185,7 +186,7 @@ type ImageKey = (ServoUrl, ImmutableOrigin, Option<CorsSettings>);
 struct AllPendingLoads {
     // The loads, indexed by a load key. Used during most operations,
     // for performance reasons.
-    loads: HashMap<LoadKey, PendingLoad>,
+    loads: FxHashMap<LoadKey, PendingLoad>,
 
     // Get a load key from its url and requesting origin. Used ony when starting and
     // finishing a load or when adding a new listener.
@@ -198,8 +199,8 @@ struct AllPendingLoads {
 impl AllPendingLoads {
     fn new() -> AllPendingLoads {
         AllPendingLoads {
-            loads: HashMap::new(),
-            url_to_load_key: HashMap::new(),
+            loads: FxHashMap::default(),
+            url_to_load_key: HashMap::default(),
             keygen: LoadKeyGenerator::new(),
         }
     }

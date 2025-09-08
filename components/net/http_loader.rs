@@ -59,6 +59,7 @@ use net_traits::{
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
+use rustc_hash::FxHashMap;
 use servo_arc::Arc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
@@ -102,7 +103,7 @@ pub struct HttpState {
     /// or whether a concurrent pending store should be awaited.
     pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
-    pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
+    pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, crate::connector::BoxedBody>,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,

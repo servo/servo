@@ -42,6 +42,7 @@ use profile_traits::mem::{
 };
 use profile_traits::path;
 use profile_traits::time::ProfilerChan;
+use rustc_hash::FxHashMap;
 use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -182,8 +183,8 @@ struct ResourceChannelManager {
     config_dir: Option<PathBuf>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
-    cancellation_listeners: HashMap<RequestId, Weak<CancellationListener>>,
-    cookie_listeners: HashMap<CookieStoreId, IpcSender<CookieAsyncResponse>>,
+    cancellation_listeners: FxHashMap<RequestId, Weak<CancellationListener>>,
+    cookie_listeners: FxHashMap<CookieStoreId, IpcSender<CookieAsyncResponse>>,
 }
 
 fn create_http_states(
@@ -207,7 +208,7 @@ fn create_http_states(
         hsts_list: RwLock::new(hsts_list),
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
-        history_states: RwLock::new(HashMap::new()),
+        history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
@@ -224,7 +225,7 @@ fn create_http_states(
         hsts_list: RwLock::new(HstsList::default()),
         cookie_jar: RwLock::new(CookieStorage::new(150)),
         auth_cache: RwLock::new(AuthCache::default()),
-        history_states: RwLock::new(HashMap::new()),
+        history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
