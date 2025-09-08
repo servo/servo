@@ -25,7 +25,7 @@ use headers::authorization::Basic;
 use headers::{
     Authorization, ContentLength, Date, HeaderMapExt, Host, StrictTransportSecurity, UserAgent,
 };
-use http::header::{self, HeaderMap, HeaderValue};
+use http::header::{self, HeaderMap, HeaderValue, WWW_AUTHENTICATE};
 use http::uri::Authority;
 use http::{HeaderName, Method, StatusCode};
 use http_body_util::combinators::BoxBody;
@@ -1717,6 +1717,10 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
             } else {
                 *response.status_mut() = StatusCode::UNAUTHORIZED;
             }
+
+            response
+                .headers_mut()
+                .insert(WWW_AUTHENTICATE, HeaderValue::from_static("Basic"));
         };
     let (server, url) = make_server(handler);
 
@@ -1752,6 +1756,63 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
             .code()
             .is_success()
     );
+}
+
+#[test]
+fn test_dont_prompt_credentials_when_unauthorized_response_contains_no_www_authenticate_header() {
+    let handler =
+        move |request: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            assert!(
+                request
+                    .headers()
+                    .typed_get::<Authorization<Basic>>()
+                    .is_none()
+            );
+            *response.status_mut() = StatusCode::UNAUTHORIZED;
+        };
+
+    let (server, url) = make_server(handler);
+
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .mode(RequestMode::Navigate)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let handle = std::thread::spawn(move || {
+        loop {
+            let Ok(msg) = embedder_receiver.recv() else {
+                return;
+            };
+            match msg {
+                embedder_traits::EmbedderMsg::RequestAuthentication(..) => {
+                    panic!("Should not have requested authentication as there's no www-authenticate header");
+                },
+                embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},
+                _ => unreachable!(),
+            }
+        }
+    });
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+
+    let response = fetch_with_context(request, &mut context);
+
+    server.close();
+
+    assert_eq!(
+        response.internal_response.unwrap().status.code(),
+        StatusCode::UNAUTHORIZED
+    );
+
+    // Without this join we won't notice if the mock embedder thread panics!
+    drop(context); // Dropping this context causes the embedder thread to exit.
+    handle.join().unwrap();
 }
 
 #[test]
