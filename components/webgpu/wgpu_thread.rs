@@ -5,7 +5,6 @@
 //! Data and main loop of WebGPU thread.
 
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
@@ -15,6 +14,7 @@ use compositing_traits::{
 };
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
+use rustc_hash::FxHashMap;
 use servo_config::pref;
 use webgpu_traits::{
     Adapter, ComputePassId, DeviceLostReason, Error, ErrorScope, Mapping, Pipeline, PopError,
@@ -98,21 +98,21 @@ pub(crate) struct WGPU {
     sender: IpcSender<WebGPURequest>,
     pub(crate) script_sender: IpcSender<WebGPUMsg>,
     pub(crate) global: Arc<wgc::global::Global>,
-    devices: Arc<Mutex<HashMap<DeviceId, DeviceScope>>>,
+    devices: Arc<Mutex<FxHashMap<DeviceId, DeviceScope>>>,
     // TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     /// This stores first error on command encoder,
     /// because wgpu does not invalidate command encoder object
     /// (this is also reused for invalidation of command buffers)
-    error_command_encoders: HashMap<id::CommandEncoderId, String>,
+    error_command_encoders: FxHashMap<id::CommandEncoderId, String>,
     pub(crate) compositor_api: CrossProcessCompositorApi,
     pub(crate) external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     pub(crate) wgpu_image_map: WGPUImageMap,
     /// Provides access to poller thread
     pub(crate) poller: Poller,
     /// Store compute passes
-    compute_passes: HashMap<ComputePassId, Pass<ComputePass>>,
+    compute_passes: FxHashMap<ComputePassId, Pass<ComputePass>>,
     /// Store render passes
-    render_passes: HashMap<RenderPassId, Pass<RenderPass>>,
+    render_passes: FxHashMap<RenderPassId, Pass<RenderPass>>,
 }
 
 impl WGPU {
@@ -147,13 +147,13 @@ impl WGPU {
             sender,
             script_sender,
             global,
-            devices: Arc::new(Mutex::new(HashMap::new())),
-            error_command_encoders: HashMap::new(),
+            devices: Arc::new(Mutex::new(FxHashMap::default())),
+            error_command_encoders: FxHashMap::default(),
             compositor_api,
             external_images,
             wgpu_image_map,
-            compute_passes: HashMap::new(),
-            render_passes: HashMap::new(),
+            compute_passes: FxHashMap::default(),
+            render_passes: FxHashMap::default(),
         }
     }
 

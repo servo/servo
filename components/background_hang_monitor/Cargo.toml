@@ -17,6 +17,7 @@ doctest = false
 background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
 base = { workspace = true }
+rustc-hash = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }

@@ -19,11 +19,11 @@ webxr = ["dep:webxr", "dep:webxr-api"]
 base = { workspace = true }
 bitflags = { workspace = true }
 byteorder = { workspace = true }
+rustc-hash = { workspace = true }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
-fnv = { workspace = true }
 glow = { workspace = true }
 half = "2"
 ipc-channel = { workspace = true }

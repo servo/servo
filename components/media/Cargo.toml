@@ -14,7 +14,7 @@ path = "lib.rs"
 [dependencies]
 compositing_traits = { workspace = true }
 euclid = { workspace = true }
-fnv = { workspace = true }
+rustc-hash = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }

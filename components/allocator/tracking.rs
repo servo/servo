@@ -12,7 +12,7 @@ use std::collections::hash_map::Entry;
 use std::os::raw::c_void;
 use std::sync::Mutex;
 
-use fnv::{FnvBuildHasher, FnvHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap};
 
 /// The maximum number of allocations that we'll keep track of. Once the limit
 /// is reached, we'll evict the first allocation that is smaller than the new addition.
@@ -54,8 +54,8 @@ impl AllocSite {
 unsafe impl Send for AllocSite {}
 
 /// A map of pointers to allocation callsite metadata.
-static ALLOCATION_SITES: Mutex<FnvHashMap<usize, AllocSite>> =
-    const { Mutex::new(FnvHashMap::with_hasher(FnvBuildHasher::new())) };
+static ALLOCATION_SITES: Mutex<FxHashMap<usize, AllocSite>> =
+    const { Mutex::new(FxHashMap::default()) };
 
 #[derive(Default)]
 pub struct AccountingAlloc<A = System> {

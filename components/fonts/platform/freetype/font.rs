@@ -96,7 +96,11 @@ impl PlatformFontMethods for PlatformFont {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
 
-        let face = FreeTypeFace::new_from_file(&library, &filename, font_identifier.index())?;
+        let face = FreeTypeFace::new_from_file(
+            &library,
+            &filename,
+            font_identifier.face_index_for_freetype(),
+        )?;
 
         let normalized_variations = face.set_variations_for_font(variations, &library)?;
 

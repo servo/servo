@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::slice;
 use std::sync::{Arc, Mutex};
@@ -17,6 +16,7 @@ use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
 use log::{error, warn};
 use pixels::{IpcSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use webgpu_traits::{
     ContextConfiguration, Error, PRESENTATION_BUFFER_COUNT, WebGPUContextId, WebGPUMsg,
@@ -35,7 +35,7 @@ use crate::wgt;
 
 const DEFAULT_IMAGE_FORMAT: ImageFormat = ImageFormat::RGBA8;
 
-pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, ContextData>>>;
+pub type WGPUImageMap = Arc<Mutex<FxHashMap<WebGPUContextId, ContextData>>>;
 
 /// Presentation id encodes current configuration and current image
 /// so that async presentation does not update context with older data
@@ -80,7 +80,7 @@ impl Drop for GPUPresentationBuffer {
 #[derive(Default)]
 pub struct WGPUExternalImages {
     pub images: WGPUImageMap,
-    pub locked_ids: HashMap<WebGPUContextId, Vec<u8>>,
+    pub locked_ids: FxHashMap<WebGPUContextId, Vec<u8>>,
 }
 
 impl WebrenderExternalImageApi for WGPUExternalImages {

@@ -27,7 +27,6 @@ mod webview_delegate;
 
 use std::cell::{Cell, RefCell};
 use std::cmp::max;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
@@ -96,6 +95,7 @@ use net_traits::{exit_fetch_thread, start_fetch_thread};
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time};
+use rustc_hash::FxHashMap;
 use script::{JSEngineSetup, ServiceWorkerManager};
 use servo_config::opts::Opts;
 pub use servo_config::prefs::PrefValue;
@@ -209,7 +209,7 @@ pub struct Servo {
     /// as `Weak` references so that the embedding application can control their lifetime.
     /// When accessed, `Servo` will be reponsible for cleaning up the invalid `Weak`
     /// references.
-    webviews: RefCell<HashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
+    webviews: RefCell<FxHashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
     servo_errors: ServoErrorChannel,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their

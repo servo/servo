@@ -67,6 +67,7 @@ vello_cpu = ["constellation/vello_cpu"]
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
 base = { workspace = true }
+rustc-hash = { workspace = true }
 bincode = { workspace = true }
 bluetooth = { path = "../bluetooth", optional = true }
 bluetooth_traits = { workspace = true, optional = true }

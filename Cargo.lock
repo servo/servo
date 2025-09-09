@@ -259,12 +259,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc7eb209b1518d6bb87b283c20095f5228ecda460da70b44f0802523dea6da04"
 
 [[package]]
-name = "android-tzdata"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e999941b234f3131b00bc13c22d06e8c5ff726d1b6318ac7eb276997bbb4fef0"
-
-[[package]]
 name = "android_log-sys"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -738,6 +732,7 @@ dependencies = [
  "mach2",
  "nix 0.30.1",
  "rustc-demangle",
+ "rustc-hash 2.1.1",
  "serde_json",
 ]
 
@@ -1171,6 +1166,7 @@ dependencies = [
  "pixels",
  "pollster",
  "range",
+ "rustc-hash 2.1.1",
  "servo-tracing",
  "servo_arc",
  "servo_config",
@@ -1261,9 +1257,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.35"
+version = "1.2.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "590f9024a68a8c40351881787f1934dc11afd69090f5edb6831464694d836ea3"
+checksum = "5252b3d2648e5eedbc1a6f501e3c795e07025c1e93bbf8bbdd6eef7f447a6d54"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1329,17 +1325,16 @@ dependencies = [
 
 [[package]]
 name = "chrono"
-version = "0.4.41"
+version = "0.4.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c469d952047f47f91b68d1cba3f10d63c11d73e4636f24f08daf0278abf01c4d"
+checksum = "145052bdd345b87320e369255277e3fb5152762ad123a901ef5c262dd38fe8d2"
 dependencies = [
- "android-tzdata",
  "iana-time-zone",
  "js-sys",
  "num-traits",
  "serde",
  "wasm-bindgen",
- "windows-link 0.1.3",
+ "windows-link 0.2.0",
 ]
 
 [[package]]
@@ -2665,9 +2660,9 @@ dependencies = [
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e178e4fba8a2726903f6ba98a6d221e76f9c12c650d5dc0e6afdc50677b49650"
+checksum = "7fd99930f64d146689264c637b5af2f0233a933bef0d8570e2526bf9e083192d"
 
 [[package]]
 name = "fixed_decimal"
@@ -4064,7 +4059,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.61.2",
+ "windows-core 0.58.0",
 ]
 
 [[package]]
@@ -5044,6 +5039,7 @@ dependencies = [
  "profile",
  "profile_traits",
  "rayon",
+ "rustc-hash 2.1.1",
  "rustls",
  "script",
  "script_traits",
@@ -5248,9 +5244,9 @@ version = "0.0.1"
 dependencies = [
  "compositing_traits",
  "euclid",
- "fnv",
  "ipc-channel",
  "log",
+ "rustc-hash 2.1.1",
  "serde",
  "servo-media",
  "servo_config",
@@ -7863,8 +7859,8 @@ name = "servo_allocator"
 version = "0.0.1"
 dependencies = [
  "backtrace",
- "fnv",
  "libc",
+ "rustc-hash 2.1.1",
  "tikv-jemalloc-sys",
  "tikv-jemallocator",
  "windows-sys 0.61.0",
@@ -9834,13 +9830,13 @@ dependencies = [
  "compositing_traits",
  "crossbeam-channel",
  "euclid",
- "fnv",
  "glow",
  "half",
  "ipc-channel",
  "itertools 0.14.0",
  "log",
  "pixels",
+ "rustc-hash 2.1.1",
  "surfman",
  "webrender",
  "webrender_api",
@@ -9859,6 +9855,7 @@ dependencies = [
  "ipc-channel",
  "log",
  "pixels",
+ "rustc-hash 2.1.1",
  "serde",
  "servo_config",
  "webgpu_traits",
@@ -10182,7 +10179,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.0",
 ]
 
 [[package]]

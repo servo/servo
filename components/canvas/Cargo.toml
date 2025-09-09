@@ -28,6 +28,7 @@ euclid = { workspace = true }
 fonts = { path = "../fonts" }
 ipc-channel = { workspace = true }
 kurbo = { workspace = true }
+rustc-hash = { workspace = true }
 log = { workspace = true }
 net_traits = { workspace = true }
 peniko = { workspace = true, optional = true }
