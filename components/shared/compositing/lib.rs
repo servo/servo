@@ -523,13 +523,9 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
             },
             WebrenderImageHandlerType::WebGPU => {
                 let (source, size) = self.webgpu_handler.as_mut().unwrap().lock(key.0);
-                let buffer = match source {
-                    ExternalImageSource::RawData(b) => b,
-                    _ => panic!("Wrong type"),
-                };
                 ExternalImage {
                     uv: TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
-                    source: ExternalImageSource::RawData(buffer),
+                    source,
                 }
             },
         }
