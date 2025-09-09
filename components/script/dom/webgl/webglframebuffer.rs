@@ -37,10 +37,6 @@ pub(crate) enum CompleteForRendering {
     MissingColorAttachment,
 }
 
-fn log2(n: u32) -> u32 {
-    31 - n.leading_zeros()
-}
-
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 enum WebGLFramebufferAttachment {
@@ -786,7 +782,7 @@ impl WebGLFramebuffer {
             } else {
                 context.limits().max_tex_size
             };
-            if level < 0 || level as u32 > log2(max_tex_size) {
+            if level < 0 || level as u32 > max_tex_size.ilog2() {
                 return Err(WebGLError::InvalidValue);
             }
         }
@@ -856,11 +852,11 @@ impl WebGLFramebuffer {
             Some(texture) => {
                 let (max_level, max_layer) = match texture.target() {
                     Some(constants::TEXTURE_3D) => (
-                        log2(context.limits().max_3d_texture_size),
+                        context.limits().max_3d_texture_size.ilog2(),
                         context.limits().max_3d_texture_size - 1,
                     ),
                     Some(constants::TEXTURE_2D) => (
-                        log2(context.limits().max_tex_size),
+                        context.limits().max_tex_size.ilog2(),
                         context.limits().max_array_texture_layers - 1,
                     ),
                     _ => return Err(WebGLError::InvalidOperation),
