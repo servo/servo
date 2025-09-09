@@ -8,21 +8,26 @@ use std::rc::Rc;
 use crossbeam_channel::Receiver;
 use dpi::PhysicalSize;
 use embedder_traits::webdriver::WebDriverSenders;
+use embedder_traits::{
+    ContextMenuResult, InputMethodType, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
+    MouseButton, MouseButtonAction, ScreenGeometry, TouchEvent, TouchEventType, TouchId,
+    WebDriverJSResult,
+};
+use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
-use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use servo::ipc_channel::ipc::IpcSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    AllowOrDenyRequest, CompositionEvent, CompositionState, ContextMenuResult, ImeEvent,
-    InputEvent, InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
-    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NamedKey,
-    NavigationRequest, PermissionRequest, RenderingContext, ScreenGeometry, Servo, ServoDelegate,
-    ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, WebDriverCommandMsg, WebView,
-    WebViewBuilder, WebViewDelegate, WindowRenderingContext,
+    AllowOrDenyRequest, FocusId, ImeEvent, InputEvent, LoadStatus, MouseButtonEvent,
+    MouseMoveEvent, NavigationRequest, PermissionRequest, RenderingContext, Servo, ServoDelegate,
+    ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverLoadStatus,
+    WebDriverScriptCommand, WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -154,10 +159,21 @@ impl WebViewDelegate for RunningAppState {
             .on_url_changed(entries[current].clone().to_string());
     }
 
-    fn notify_load_status_changed(&self, _webview: WebView, load_status: LoadStatus) {
+    fn notify_load_status_changed(&self, webview: WebView, load_status: LoadStatus) {
         self.callbacks
             .host_callbacks
             .notify_load_status_changed(load_status);
+
+        if load_status == LoadStatus::Complete {
+            if let Some(sender) = self
+                .webdriver_senders
+                .borrow_mut()
+                .load_status_senders
+                .remove(&webview.id())
+            {
+                let _ = sender.send(WebDriverLoadStatus::Complete);
+            }
+        }
 
         #[cfg(feature = "tracing")]
         if load_status == LoadStatus::Complete {
@@ -199,6 +215,26 @@ impl WebViewDelegate for RunningAppState {
             webview.show(true);
         } else if self.inner().focused_webview_id == Some(webview.id()) {
             self.inner_mut().focused_webview_id = None;
+        }
+    }
+
+    fn notify_focus_complete(&self, webview: servo::WebView, focus_id: FocusId) {
+        let mut webdriver_state = self.webdriver_senders.borrow_mut();
+        if let std::collections::hash_map::Entry::Occupied(entry) =
+            webdriver_state.pending_focus.entry(focus_id)
+        {
+            let sender = entry.remove();
+            let _ = sender.send(webview.focused());
+        }
+    }
+
+    fn notify_traversal_complete(&self, _webview: servo::WebView, traversal_id: TraversalId) {
+        let mut webdriver_state = self.webdriver_senders.borrow_mut();
+        if let std::collections::hash_map::Entry::Occupied(entry) =
+            webdriver_state.pending_traversals.entry(traversal_id)
+        {
+            let sender = entry.remove();
+            let _ = sender.send(WebDriverLoadStatus::Complete);
         }
     }
 
@@ -348,7 +384,43 @@ impl RunningAppState {
         app_state
     }
 
-    pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) {
+    pub(crate) fn set_script_command_interrupt_sender(
+        &self,
+        sender: Option<IpcSender<WebDriverJSResult>>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .script_evaluation_interrupt_sender = sender;
+    }
+
+    pub(crate) fn set_pending_focus(&self, focus_id: FocusId, sender: IpcSender<bool>) {
+        self.webdriver_senders
+            .borrow_mut()
+            .pending_focus
+            .insert(focus_id, sender);
+    }
+
+    pub(crate) fn set_pending_traversal(
+        &self,
+        traversal_id: TraversalId,
+        sender: GenericSender<WebDriverLoadStatus>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .pending_traversals
+            .insert(traversal_id, sender);
+    }
+
+    pub fn webviews(&self) -> Vec<(WebViewId, WebView)> {
+        let inner = self.inner();
+        inner
+            .creation_order
+            .iter()
+            .map(|id| (*id, inner.webviews.get(id).unwrap().clone()))
+            .collect()
+    }
+
+    pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
         let webview = WebViewBuilder::new(&self.servo)
             .url(url)
             .hidpi_scale_factor(self.inner().hidpi_scale_factor)
@@ -357,11 +429,18 @@ impl RunningAppState {
 
         webview.focus();
         self.add(webview.clone());
+        webview
     }
 
     pub(crate) fn add(&self, webview: WebView) {
-        self.inner_mut().creation_order.push(webview.id());
-        self.inner_mut().webviews.insert(webview.id(), webview);
+        let webview_id = webview.id();
+        self.inner_mut().creation_order.push(webview_id);
+        self.inner_mut().webviews.insert(webview_id, webview);
+        info!(
+            "Added webview with ID: {:?}, total webviews: {}",
+            webview_id,
+            self.inner().webviews.len()
+        );
     }
 
     /// The focused webview will not be immediately valid via `active_webview()`
@@ -379,6 +458,14 @@ impl RunningAppState {
 
     fn inner_mut(&self) -> RefMut<'_, RunningAppStateInner> {
         self.inner.borrow_mut()
+    }
+
+    pub(crate) fn servo(&self) -> &Servo {
+        &self.servo
+    }
+
+    pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
+        self.webdriver_receiver.as_ref()
     }
 
     fn get_browser_id(&self) -> Result<WebViewId, &'static str> {
@@ -402,6 +489,27 @@ impl RunningAppState {
             .and_then(|id| self.inner().webviews.get(&id).cloned())
             .or(self.newest_webview())
             .expect("Should always have an active WebView")
+    }
+
+    fn handle_webdriver_script_command(&self, msg: &WebDriverScriptCommand) {
+        match msg {
+            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) |
+            WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
+                // Give embedder a chance to interrupt the script command.
+                // Webdriver only handles 1 script command at a time, so we can
+                // safely set a new interrupt sender and remove the previous one here.
+                self.set_script_command_interrupt_sender(Some(response_sender.clone()));
+            },
+            WebDriverScriptCommand::AddLoadStatusSender(webview_id, load_status_sender) => {
+                self.set_load_status_sender(*webview_id, load_status_sender.clone());
+            },
+            WebDriverScriptCommand::RemoveLoadStatusSender(webview_id) => {
+                self.remove_load_status_sender(*webview_id);
+            },
+            _ => {
+                self.set_script_command_interrupt_sender(None);
+            },
+        }
     }
 
     /// Request shutdown. Will call on_shutdown_complete.
@@ -494,8 +602,8 @@ impl RunningAppState {
     }
 
     /// WebDriver message handling methods
-    pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
-        self.webdriver_receiver.as_ref()
+    pub fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
+        self.inner().webviews.get(&id).cloned()
     }
 
     pub fn handle_webdriver_messages(self: &Rc<Self>) {
@@ -503,25 +611,166 @@ impl RunningAppState {
             while let Ok(msg) = webdriver_receiver.try_recv() {
                 match msg {
                     WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
-                        info!(
-                            "(Not Implemented) Loading URL in webview {}: {}",
-                            webview_id, url
-                        );
+                        info!("Loading URL in webview {}: {}", webview_id, url);
+
+                        if let Some(webview) = self.webview_by_id(webview_id) {
+                            self.set_load_status_sender(webview_id, load_status_sender.clone());
+                            self.inner_mut().focused_webview_id = Some(webview_id);
+                            webview.focus();
+                            let url_string = url.to_string();
+                            webview.load(url.into_url());
+                            info!(
+                                "Successfully loaded URL {} in focused webview {}",
+                                url_string, webview_id
+                            );
+                        } else {
+                            warn!("WebView {} not found for LoadUrl command", webview_id);
+                        }
                     },
                     WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
-                        info!("(Not Implemented) Creating new webview");
+                        info!("Creating new webview via WebDriver");
+                        let new_webview = self
+                            .create_and_focus_toplevel_webview(Url::parse("about:blank").unwrap());
+
+                        if let Err(error) = response_sender.send(new_webview.id()) {
+                            warn!("Failed to send response of NewWebview: {error}");
+                        }
+                        if let Some(load_status_sender) = load_status_sender {
+                            self.set_load_status_sender(new_webview.id(), load_status_sender);
+                        }
+                    },
+                    WebDriverCommandMsg::CloseWebView(webview_id, response_sender) => {
+                        info!("(Not Implemented) Closing webview {}", webview_id);
                     },
                     WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
-                        info!("(Not Implemented) Focusing webview {}", webview_id);
+                        if self.inner().webviews.contains_key(&webview_id) {
+                            if let Some(webview) = self.webview_by_id(webview_id) {
+                                let focus_id = webview.focus();
+                                info!("Successfully focused webview {}", webview_id);
+                                self.set_pending_focus(focus_id, response_sender.clone());
+                            } else {
+                                warn!("Webview {} not found after cleanup", webview_id);
+                                let _ = response_sender.send(false);
+                            }
+                        } else {
+                            warn!("Webview {} not found for focusing", webview_id);
+                            let _ = response_sender.send(false);
+                        }
+                    },
+                    WebDriverCommandMsg::IsWebViewOpen(webview_id, response_sender) => {
+                        let context = self.webview_by_id(webview_id);
+
+                        if let Err(error) = response_sender.send(context.is_some()) {
+                            warn!("Failed to send response of IsWebViewOpen: {error}");
+                        }
+                    },
+                    WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
+                        self.servo().execute_webdriver_command(msg);
+                    },
+                    WebDriverCommandMsg::GetFocusedWebView(response_sender) => {
+                        let focused_id = self
+                            .inner()
+                            .focused_webview_id
+                            .and_then(|id| self.inner().webviews.get(&id).cloned());
+
+                        if let Err(error) = response_sender.send(focused_id.map(|w| w.id())) {
+                            warn!("Failed to send response of GetFocusedWebView: {error}");
+                        }
+                    },
+                    WebDriverCommandMsg::Refresh(webview_id, load_status_sender) => {
+                        info!("Refreshing webview {}", webview_id);
+                        if let Some(webview) = self.webview_by_id(webview_id) {
+                            self.set_load_status_sender(webview_id, load_status_sender);
+                            webview.reload();
+                        } else {
+                            warn!("WebView {} not found for Refresh command", webview_id);
+                        }
+                    },
+                    WebDriverCommandMsg::GoBack(webview_id, load_status_sender) => {
+                        info!("Going back in webview {}", webview_id);
+                        if let Some(webview) = self.webview_by_id(webview_id) {
+                            let traversal_id = webview.go_back(1);
+                            self.set_pending_traversal(traversal_id, load_status_sender);
+                        } else {
+                            warn!("WebView {} not found for GoBack command", webview_id);
+                        }
+                    },
+                    WebDriverCommandMsg::GoForward(webview_id, load_status_sender) => {
+                        info!("Going forward in webview {}", webview_id);
+                        if let Some(webview) = self.webview_by_id(webview_id) {
+                            let traversal_id = webview.go_forward(1);
+                            self.set_pending_traversal(traversal_id, load_status_sender);
+                        } else {
+                            warn!("WebView {} not found for GoForward command", webview_id);
+                        }
+                    },
+                    WebDriverCommandMsg::GetAllWebViews(response_sender) => {
+                        let webviews = self
+                            .webviews()
+                            .iter()
+                            .map(|(id, _)| *id)
+                            .collect::<Vec<_>>();
+
+                        if let Err(error) = response_sender.send(webviews) {
+                            warn!("Failed to send response of GetAllWebViews: {error}");
+                        }
+                    },
+                    WebDriverCommandMsg::ScriptCommand(_, ref webdriver_script_command) => {
+                        info!("Handling ScriptCommand: {:?}", webdriver_script_command);
+                        self.handle_webdriver_script_command(webdriver_script_command);
+                        self.servo().execute_webdriver_command(msg);
+                    },
+                    WebDriverCommandMsg::CurrentUserPrompt(webview_id, response_sender) => {
+                        info!("Handling CurrentUserPrompt for webview {}", webview_id);
+                        if let Err(error) = response_sender.send(None) {
+                            warn!("Failed to send response of CurrentUserPrompt: {error}");
+                        };
+                    },
+                    WebDriverCommandMsg::HandleUserPrompt(webview_id, action, response_sender) => {
+                        info!(
+                            "Handling HandleUserPrompt for webview {} with action {:?}",
+                            webview_id, action
+                        );
+
+                        if let Err(error) = response_sender.send(Err(())) {
+                            warn!("Failed to send response of HandleUserPrompt: {error}");
+                        };
+                    },
+                    WebDriverCommandMsg::GetAlertText(webview_id, response_sender) => {
+                        info!("Handling GetAlertText for webview {}", webview_id);
+                        let _ = response_sender.send(Err(()));
+                    },
+                    WebDriverCommandMsg::SendAlertText(webview_id, text) => {
+                        info!(
+                            "Handling SendAlertText for webview {} with text: {}",
+                            webview_id, text
+                        );
                     },
                     _ => {
-                        info!("(Not Implemented) Received WebDriver command: {:?}", msg);
+                        info!("Received WebDriver command: {:?}", msg);
                     },
                 }
             }
         }
     }
 
+    pub(crate) fn set_load_status_sender(
+        &self,
+        webview_id: WebViewId,
+        sender: GenericSender<WebDriverLoadStatus>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .insert(webview_id, sender);
+    }
+
+    pub(crate) fn remove_load_status_sender(&self, webview_id: WebViewId) {
+        self.webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .remove(&webview_id);
+    }
     /// Touch event: press down
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
         self.active_webview()
