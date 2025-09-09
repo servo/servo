@@ -986,17 +986,17 @@ impl InlineFormattingContextLayout<'_> {
             justification_adjustment,
         );
 
+        if line_to_layout.has_content {
+            let baseline = baseline_offset + block_start_position;
+            self.baselines.first.get_or_insert(baseline);
+            self.baselines.last = Some(baseline);
+        }
+
         // If the line doesn't have any fragments, we don't need to add a containing fragment for it.
         if fragments.is_empty() &&
             self.positioning_context.len() == start_positioning_context_length
         {
             return;
-        }
-
-        if line_to_layout.has_content {
-            let baseline = baseline_offset + block_start_position;
-            self.baselines.first.get_or_insert(baseline);
-            self.baselines.last = Some(baseline);
         }
 
         // The inline part of this start offset was taken into account when determining
