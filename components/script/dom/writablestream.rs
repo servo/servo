@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::mem;
 use std::ptr::{self};
 use std::rc::Rc;
@@ -17,6 +17,7 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
 };
+use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
 
@@ -1293,7 +1294,7 @@ impl Transferable for WritableStream {
     /// Note: we are relying on the port transfer, so the data returned here are related to the port.
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,

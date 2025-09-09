@@ -5,7 +5,6 @@
 use core::fmt;
 #[cfg(feature = "webgpu")]
 use std::cell::RefCell;
-use std::collections::HashSet;
 use std::option::Option;
 use std::result::Result;
 
@@ -22,6 +21,7 @@ use net_traits::FetchResponseMsg;
 use net_traits::image_cache::ImageCacheResponseMessage;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
+use rustc_hash::FxHashSet;
 use script_traits::{Painter, ScriptThreadMessage};
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
@@ -403,7 +403,7 @@ impl ScriptThreadReceivers {
         &self,
         task_queue: &TaskQueue<MainThreadScriptMsg>,
         timer_scheduler: &TimerScheduler,
-        fully_active: &HashSet<PipelineId>,
+        fully_active: &FxHashSet<PipelineId>,
     ) -> MixedMessage {
         select! {
             recv(task_queue.select()) -> msg => {
@@ -444,7 +444,7 @@ impl ScriptThreadReceivers {
     pub(crate) fn try_recv(
         &self,
         task_queue: &TaskQueue<MainThreadScriptMsg>,
-        fully_active: &HashSet<PipelineId>,
+        fully_active: &FxHashSet<PipelineId>,
     ) -> Option<MixedMessage> {
         if let Ok(message) = self.constellation_receiver.try_recv() {
             let message = message

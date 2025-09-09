@@ -8,7 +8,6 @@
 //! be passed through the Constellation.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 use base::id::{
@@ -19,6 +18,7 @@ use euclid::default::Transform3D;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use pixels::Snapshot;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
 use strum::EnumIter;
@@ -36,9 +36,9 @@ where
     /// Only return None if cloning is impossible.
     fn clone_for_broadcast(&self) -> Option<Self>;
     /// The field from which to clone values.
-    fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>>;
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>>;
     /// The field into which to place cloned values.
-    fn destination(data: &mut StructuredSerializedData) -> &mut Option<HashMap<Self::Id, Self>>;
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>>;
 }
 
 /// All the DOM interfaces that can be serialized.
@@ -168,15 +168,11 @@ impl FileBlob {
 impl BroadcastClone for BlobImpl {
     type Id = BlobId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.blobs
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.blobs
     }
 
@@ -304,15 +300,11 @@ pub struct DomPoint {
 impl BroadcastClone for DomPoint {
     type Id = DomPointId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.points
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.points
     }
 
@@ -337,15 +329,11 @@ pub struct DomRect {
 impl BroadcastClone for DomRect {
     type Id = DomRectId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.rects
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.rects
     }
 
@@ -370,15 +358,11 @@ pub struct DomQuad {
 impl BroadcastClone for DomQuad {
     type Id = DomQuadId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.quads
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.quads
     }
 
@@ -399,15 +383,11 @@ pub struct DomMatrix {
 impl BroadcastClone for DomMatrix {
     type Id = DomMatrixId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.matrices
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.matrices
     }
 
@@ -426,15 +406,11 @@ pub struct DomException {
 impl BroadcastClone for DomException {
     type Id = DomExceptionId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.exceptions
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.exceptions
     }
 
@@ -454,11 +430,11 @@ pub struct SerializableQuotaExceededError {
 impl BroadcastClone for SerializableQuotaExceededError {
     type Id = QuotaExceededErrorId;
 
-    fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.quota_exceeded_errors
     }
 
-    fn destination(data: &mut StructuredSerializedData) -> &mut Option<HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.quota_exceeded_errors
     }
 
@@ -476,15 +452,11 @@ pub struct SerializableImageBitmap {
 impl BroadcastClone for SerializableImageBitmap {
     type Id = ImageBitmapId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.image_bitmaps
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.image_bitmaps
     }
 

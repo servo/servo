@@ -47,6 +47,7 @@ use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
+use rustc_hash::FxBuildHasher;
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::script_runtime::JSContext;
@@ -474,15 +475,17 @@ pub(crate) struct Document {
     /// hosting the media controls UI.
     media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
     /// List of all context 2d IDs that need flushing.
-    dirty_2d_contexts: DomRefCell<HashMapTracedValues<CanvasId, Dom<CanvasRenderingContext2D>>>,
+    dirty_2d_contexts:
+        DomRefCell<HashMapTracedValues<CanvasId, Dom<CanvasRenderingContext2D>, FxBuildHasher>>,
     /// List of all WebGL context IDs that need flushing.
     dirty_webgl_contexts:
-        DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
+        DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>, FxBuildHasher>>,
     /// Whether or not animated images need to have their contents updated.
     has_pending_animated_image_update: Cell<bool>,
     /// List of all WebGPU contexts that need flushing.
     #[cfg(feature = "webgpu")]
-    dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
+    dirty_webgpu_contexts:
+        DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>, FxBuildHasher>>,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
@@ -3418,11 +3421,11 @@ impl Document {
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
-            dirty_2d_contexts: DomRefCell::new(HashMapTracedValues::new()),
-            dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
+            dirty_2d_contexts: DomRefCell::new(HashMapTracedValues::new_fx()),
+            dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new_fx()),
             has_pending_animated_image_update: Cell::new(false),
             #[cfg(feature = "webgpu")]
-            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
+            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new_fx()),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout_animations_test_enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())

@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::{DomMatrixId, DomMatrixIndex};
 use constellation_traits::DomMatrix;
 use dom_struct::dom_struct;
 use euclid::default::Transform3D;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
+use rustc_hash::FxHashMap;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
@@ -574,7 +573,7 @@ impl Serializable for DOMMatrix {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<DomMatrixId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<DomMatrixId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.matrices,
             StructuredData::Writer(writer) => &mut writer.matrices,

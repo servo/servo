@@ -5,9 +5,9 @@
 use core::cell::RefCell;
 use core::sync::atomic::Ordering;
 use std::cell::Ref;
-use std::collections::HashMap;
 
 use base::id::PipelineId;
+use rustc_hash::FxHashMap;
 use strum::VariantArray;
 
 use crate::messaging::ScriptEventLoopSender;
@@ -20,7 +20,7 @@ enum TaskCancellers {
     /// of them need to have the same canceller flag for all task sources.
     Shared(TaskCanceller),
     /// For `Window` each `TaskSource` has its own canceller.
-    OnePerTaskSource(RefCell<HashMap<TaskSourceName, TaskCanceller>>),
+    OnePerTaskSource(RefCell<FxHashMap<TaskSourceName, TaskCanceller>>),
 }
 
 impl TaskCancellers {

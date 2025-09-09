@@ -5,10 +5,10 @@
 //! Trait representing the concept of [transferable objects]
 //! (<https://html.spec.whatwg.org/multipage/#transferable-objects>).
 
-use std::collections::HashMap;
 use std::hash::Hash;
 
 use base::id::NamespaceIndex;
+use rustc_hash::FxHashMap;
 use script_bindings::structuredclone::MarkedAsTransferableInIdl;
 
 use crate::dom::bindings::error::Fallible;
@@ -40,7 +40,7 @@ where
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<NamespaceIndex<Self::Index>, Self::Data>>;
+    ) -> &'a mut Option<FxHashMap<NamespaceIndex<Self::Index>, Self::Data>>;
 }
 
 pub(crate) fn assert_transferable<T: Transferable>() {}

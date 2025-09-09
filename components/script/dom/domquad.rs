@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::{DomQuadId, DomQuadIndex};
 use constellation_traits::{DomPoint, DomQuad};
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use rustc_hash::FxHashMap;
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
 use crate::dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods};
@@ -255,7 +254,7 @@ impl Serializable for DOMQuad {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<DomQuadId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<DomQuadId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.quads,
             StructuredData::Writer(writer) => &mut writer.quads,

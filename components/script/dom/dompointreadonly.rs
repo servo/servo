@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::HashMap;
 
 use base::id::{DomPointId, DomPointIndex};
 use constellation_traits::DomPoint;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use rustc_hash::FxHashMap;
 
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrixInit;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
@@ -213,7 +213,7 @@ impl Serializable for DOMPointReadOnly {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<DomPointId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<DomPointId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.points,
             StructuredData::Writer(w) => &mut w.points,

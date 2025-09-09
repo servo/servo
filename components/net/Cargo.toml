@@ -31,6 +31,7 @@ data-url = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 fst = "0.4"
+rustc-hash = { workspace = true }
 futures = { version = "0.3", package = "futures" }
 futures-core = { version = "0.3.30", default-features = false }
 futures-util = { version = "0.3.30", default-features = false }

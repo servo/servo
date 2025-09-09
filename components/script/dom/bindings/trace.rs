@@ -40,6 +40,7 @@ use js::glue::{CallScriptTracer, CallStringTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSScript, JSString, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use rustc_hash::FxBuildHasher;
 pub(crate) use script_bindings::trace::*;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -92,6 +93,9 @@ impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
 /// HashMap wrapper, that has non-jsmanaged keys
 ///
 /// Not all methods are reexposed, but you can access inner type via .0
+/// If you need cryptographic secure hashs, or your keys are arbitrary large inputs
+/// stick with the default hasher. Otherwise, stronlgy think about using FxHashBuilder
+/// with `new_fx()`
 #[cfg_attr(crown, crown::trace_in_no_trace_lint::must_not_have_traceable(0))]
 #[derive(Clone, Debug)]
 pub(crate) struct HashMapTracedValues<K, V, S = RandomState>(pub(crate) HashMap<K, V, S>);
@@ -108,6 +112,14 @@ impl<K, V> HashMapTracedValues<K, V, RandomState> {
     #[must_use]
     pub(crate) fn new() -> HashMapTracedValues<K, V, RandomState> {
         Self(HashMap::new())
+    }
+}
+
+impl<K, V> HashMapTracedValues<K, V, FxBuildHasher> {
+    #[inline]
+    #[must_use]
+    pub(crate) fn new_fx() -> HashMapTracedValues<K, V, FxBuildHasher> {
+        Self(HashMap::with_hasher(FxBuildHasher))
     }
 }
 
