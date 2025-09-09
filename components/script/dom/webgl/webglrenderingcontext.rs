@@ -55,10 +55,12 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
+#[cfg(feature = "webgl_backtrace")]
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 #[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
@@ -366,14 +368,12 @@ impl WebGLRenderingContext {
     #[inline]
     pub(crate) fn send_command(&self, command: WebGLCommand) {
         self.webgl_sender
-            .send(command, capture_webgl_backtrace(self))
+            .send(command, capture_webgl_backtrace())
             .unwrap();
     }
 
     pub(crate) fn send_command_ignored(&self, command: WebGLCommand) {
-        let _ = self
-            .webgl_sender
-            .send(command, capture_webgl_backtrace(self));
+        let _ = self.webgl_sender.send(command, capture_webgl_backtrace());
     }
 
     pub(crate) fn webgl_error(&self, err: WebGLError) {
@@ -2059,16 +2059,16 @@ impl CanvasContext for WebGLRenderingContext {
 
 #[cfg(not(feature = "webgl_backtrace"))]
 #[inline]
-pub(crate) fn capture_webgl_backtrace<T: DomObject>(_: &T) -> WebGLCommandBacktrace {
+pub(crate) fn capture_webgl_backtrace() -> WebGLCommandBacktrace {
     WebGLCommandBacktrace {}
 }
 
 #[cfg(feature = "webgl_backtrace")]
 #[cfg_attr(feature = "webgl_backtrace", allow(unsafe_code))]
-pub(crate) fn capture_webgl_backtrace<T: DomObject>(obj: &T) -> WebGLCommandBacktrace {
+pub(crate) fn capture_webgl_backtrace() -> WebGLCommandBacktrace {
     let bt = Backtrace::new();
     unsafe {
-        capture_stack!(in(*obj.global().get_cx()) let stack);
+        capture_stack!(in(*GlobalScope::get_cx()) let stack);
         WebGLCommandBacktrace {
             backtrace: format!("{:?}", bt),
             js_backtrace: stack.and_then(|s| s.as_string(None, js::jsapi::StackFormat::Default)),
@@ -2485,7 +2485,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         let (sender, receiver) = webgl_channel().unwrap();
 
         // If the send does not succeed, assume context lost
-        let backtrace = capture_webgl_backtrace(self);
+        let backtrace = capture_webgl_backtrace();
         if self
             .webgl_sender
             .send(WebGLCommand::GetContextAttributes(sender), backtrace)
