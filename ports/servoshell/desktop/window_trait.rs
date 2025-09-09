@@ -24,8 +24,7 @@ pub(crate) const PIXEL_DELTA_FACTOR: f64 = 4.0;
 
 /// <https://github.com/web-platform-tests/wpt/blob/9320b1f724632c52929a3fdb11bdaf65eafc7611/webdriver/tests/classic/set_window_rect/set.py#L287-L290>
 /// "A window size of 10x10px shouldn't be supported by any browser."
-pub(crate) const MIN_INNER_WIDTH: i32 = 20;
-pub(crate) const MIN_INNER_HEIGHT: i32 = 20;
+pub(crate) const MIN_WINDOW_INNER_SIZE: DeviceIntSize = DeviceIntSize::new(100, 100);
 
 pub trait WindowPortsMethods {
     fn id(&self) -> winit::window::WindowId;

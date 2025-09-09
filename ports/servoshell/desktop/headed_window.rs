@@ -49,12 +49,10 @@ use {
 use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
-use super::window_trait::{
-    LINE_HEIGHT, LINE_WIDTH, MIN_INNER_HEIGHT, MIN_INNER_WIDTH, PIXEL_DELTA_FACTOR,
-    WindowPortsMethods,
-};
+use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, PIXEL_DELTA_FACTOR, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
+use crate::desktop::window_trait::MIN_WINDOW_INNER_SIZE;
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
@@ -99,7 +97,10 @@ impl Window {
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
             .with_inner_size(LogicalSize::new(inner_size.width, inner_size.height))
-            .with_min_inner_size(LogicalSize::new(MIN_INNER_WIDTH, MIN_INNER_HEIGHT))
+            .with_min_inner_size(LogicalSize::new(
+                MIN_WINDOW_INNER_SIZE.width,
+                MIN_WINDOW_INNER_SIZE.height,
+            ))
             // Must be invisible at startup; accesskit_winit setup needs to
             // happen before the window is shown for the first time.
             .with_visible(false);
@@ -489,26 +490,36 @@ impl WindowPortsMethods for Window {
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
+        // Allocate space for the window deocrations, but do not let the inner size get
+        // smaller than `MIN_WINDOW_INNER_SIZE` or larger than twice the screen size.
+        let inner_size = self.winit_window.inner_size();
         let outer_size = self.winit_window.outer_size();
+        let decoration_size: DeviceIntSize = Size2D::new(
+            outer_size.height - inner_size.height,
+            outer_size.width - inner_size.width,
+        )
+        .cast();
+
+        let screen_size = (self.screen_size.to_f32() * self.hidpi_scale_factor()).to_i32();
+        let new_outer_size =
+            new_outer_size.clamp(MIN_WINDOW_INNER_SIZE + decoration_size, screen_size * 2);
+
         if outer_size.width == new_outer_size.width as u32 &&
             outer_size.height == new_outer_size.height as u32
         {
             return Some(new_outer_size);
         }
 
-        let inner_size = self.winit_window.inner_size();
-        let decoration_height = outer_size.height - inner_size.height;
-        let decoration_width = outer_size.width - inner_size.width;
-
+        let new_inner_size = new_outer_size - decoration_size;
         self.winit_window
-            .request_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(
-                new_outer_size.width - decoration_width as i32,
-                new_outer_size.height - decoration_height as i32,
+            .request_inner_size(PhysicalSize::new(
+                new_inner_size.width,
+                new_inner_size.height,
             ))
             .map(|resulting_size| {
                 DeviceIntSize::new(
-                    (resulting_size.width + decoration_width) as i32,
-                    (resulting_size.height + decoration_height) as i32,
+                    resulting_size.width as i32 + decoration_size.width,
+                    resulting_size.height as i32 + decoration_size.height,
                 )
             })
     }
@@ -777,12 +788,6 @@ impl WindowPortsMethods for Window {
             return;
         }
         self.toolbar_height.set(height);
-        // Prevent the inner area from being 0 pixels wide or tall
-        // this prevents a crash in the compositor due to invalid surface size
-        self.winit_window.set_min_inner_size(Some(PhysicalSize::new(
-            MIN_INNER_WIDTH,
-            MIN_INNER_HEIGHT.max((self.toolbar_height() * self.hidpi_scale_factor()).0 as i32),
-        )));
     }
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {

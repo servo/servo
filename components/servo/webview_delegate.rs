@@ -474,7 +474,11 @@ pub trait WebViewDelegate {
     fn request_unload(&self, _webview: WebView, _unload_request: AllowOrDenyRequest) {}
     /// Move the window to a point.
     fn request_move_to(&self, _webview: WebView, _: DeviceIntPoint) {}
-    /// Try to resize the window that contains this [`WebView`] to the provided outer size.
+    /// Try to resize the window that contains this [`WebView`] to the provided outer
+    /// size. These resize requests can come from page content. Servo will ensure that the
+    /// values are greater than zero, but it is up to the embedder to limit the maximum
+    /// size. For instance, a reasonable limitation might be that the final size is no
+    /// larger than the screen size.
     fn request_resize_to(&self, _webview: WebView, _requested_outer_size: DeviceIntSize) {}
     /// Whether or not to allow script to open a new `WebView`. If not handled by the
     /// embedder, these requests are automatically denied.

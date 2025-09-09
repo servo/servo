@@ -11,16 +11,19 @@
 
 mod common;
 
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use anyhow::ensure;
 use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript, run_api_tests};
-use euclid::Point2D;
+use dpi::PhysicalSize;
+use euclid::{Point2D, Size2D};
 use servo::{
     Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MouseLeftViewportEvent,
-    MouseMoveEvent, Theme, WebViewBuilder,
+    MouseMoveEvent, Servo, Theme, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
+use webrender_api::units::DeviceIntSize;
 
 fn test_create_webview(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
     let delegate = Rc::new(WebViewDelegateImpl::default());
@@ -199,6 +202,94 @@ fn test_cursor_change(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+/// A test that ensure that negative resize requests do not get passed to the embedder.
+fn test_negative_resize_to_request(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
+    struct WebViewResizeTestDelegate {
+        servo: Rc<Servo>,
+        popup: RefCell<Option<WebView>>,
+        resize_request: Cell<Option<DeviceIntSize>>,
+    }
+
+    impl WebViewDelegate for WebViewResizeTestDelegate {
+        fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
+            let webview = WebViewBuilder::new_auxiliary(&self.servo)
+                .delegate(parent_webview.delegate())
+                .build();
+            self.popup.borrow_mut().replace(webview.clone());
+            Some(webview)
+        }
+
+        fn request_resize_to(&self, _: WebView, requested_outer_size: DeviceIntSize) {
+            self.resize_request.set(Some(requested_outer_size));
+        }
+    }
+
+    let delegate = Rc::new(WebViewResizeTestDelegate {
+        servo: servo_test.servo.clone(),
+        popup: None.into(),
+        resize_request: None.into(),
+    });
+
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html><script>\
+                    let popup = window.open('about:blank');\
+                    popup.resizeTo(-100, -100);\
+                </script></body>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
+
+    let popup = delegate
+        .popup
+        .borrow()
+        .clone()
+        .expect("Should have created popup");
+
+    let load_webview = popup.clone();
+    let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
+
+    // Resize requests should be floored to 1.
+    ensure!(delegate.resize_request.get() == Some(DeviceIntSize::new(1, 1)));
+
+    // Ensure that the popup WebView is released before the end of the test.
+    *delegate.popup.borrow_mut() = None;
+
+    Ok(())
+}
+
+/// This test verifies that trying to set the WebView size to a negative value does
+/// not crash Servo.
+fn test_resize_webview_zero(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html><style> html { cursor: crosshair; margin: 0}</style><body>hello</body>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    webview.focus();
+    webview.show(true);
+
+    webview.move_resize(Size2D::new(-100.0, -100.0).into());
+    webview.resize(PhysicalSize::new(0, 0));
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
+
+    Ok(())
+}
+
 fn main() {
     run_api_tests!(
         test_create_webview,
@@ -206,6 +297,8 @@ fn main() {
         test_evaluate_javascript_basic,
         test_evaluate_javascript_panic,
         test_theme_change,
+        test_negative_resize_to_request,
+        test_resize_webview_zero,
         // This test needs to be last, as it tests creating and dropping
         // a WebView right before shutdown.
         test_create_webview_and_immediately_drop_webview_before_shutdown
