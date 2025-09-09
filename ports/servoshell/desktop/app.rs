@@ -381,10 +381,9 @@ impl App {
                         warn!("Failed to send response of CloseWebView: {error}");
                     }
                 },
-                WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
+                WebDriverCommandMsg::FocusWebView(webview_id) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        let focus_id = webview.focus_and_raise_to_top(true);
-                        running_state.set_pending_focus(focus_id, response_sender);
+                        webview.focus_and_raise_to_top(true);
                     }
                 },
                 WebDriverCommandMsg::FocusBrowsingContext(..) => {

@@ -2515,15 +2515,8 @@ impl Handler {
         }
     }
 
-    fn focus_webview(&self, webview_id: WebViewId) -> Result<(), WebDriverError> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.send_message_to_embedder(WebDriverCommandMsg::FocusWebView(webview_id, sender))?;
-        if wait_for_ipc_response(receiver)? {
-            debug!("Focus new webview {webview_id} successfully");
-        } else {
-            debug!("Focus new webview failed, it may not exist anymore");
-        }
-        Ok(())
+    fn focus_webview(&self, webview_id: WebViewId) -> WebDriverResult<()> {
+        self.send_message_to_embedder(WebDriverCommandMsg::FocusWebView(webview_id))
     }
 
     fn focus_browsing_context(&self, browsing_cotext_id: BrowsingContextId) -> WebDriverResult<()> {
