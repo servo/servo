@@ -981,7 +981,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         templateBody = fill(
             """
-            match ${function}($${val}, *cx) {
+            match ${function}($${val}, cx) {
                 Ok(val) => val,
                 Err(()) => {
                     $*{failureCode}
@@ -990,6 +990,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             """,
             failureCode=unwrapFailureCode + "\n",
             function=conversionFunction)
+
 
         declType = CGGeneric(descriptorType)
         if type.nullable():
