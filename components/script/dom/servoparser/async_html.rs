@@ -21,6 +21,7 @@ use html5ever::tree_builder::{
 };
 use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName, local_name, ns};
 use markup5ever::TokenizerResult;
+use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
 
@@ -697,7 +698,7 @@ struct ParseNodeData {
 
 pub(crate) struct Sink {
     current_line: Cell<u64>,
-    parse_node_data: RefCell<HashMap<ParseNodeId, ParseNodeData>>,
+    parse_node_data: RefCell<FxHashMap<ParseNodeId, ParseNodeData>>,
     next_parse_node_id: Cell<ParseNodeId>,
     document_node: ParseNode,
     sender: Sender<ToTokenizerMsg>,
@@ -708,7 +709,7 @@ impl Sink {
     fn new(sender: Sender<ToTokenizerMsg>, allow_declarative_shadow_roots: bool) -> Sink {
         let sink = Sink {
             current_line: Cell::new(1),
-            parse_node_data: RefCell::new(HashMap::new()),
+            parse_node_data: RefCell::new(FxHashMap::default()),
             next_parse_node_id: Cell::new(1),
             document_node: ParseNode {
                 id: 0,

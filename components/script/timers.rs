@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 use std::cmp::{Ord, Ordering};
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::default::Default;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -14,6 +14,7 @@ use deny_public_fields::DenyPublicFields;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use timers::{BoxedTimerCallback, TimerEventRequest};
@@ -361,7 +362,7 @@ pub(crate) struct JsTimerHandle(i32);
 pub(crate) struct JsTimers {
     next_timer_handle: Cell<JsTimerHandle>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-active-timers>
-    active_timers: DomRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
+    active_timers: DomRefCell<FxHashMap<JsTimerHandle, JsTimerEntry>>,
     /// The nesting level of the currently executing timer task or 0.
     nesting_level: Cell<u32>,
     /// Used to introduce a minimum delay in event intervals
@@ -415,7 +416,7 @@ impl Default for JsTimers {
     fn default() -> Self {
         JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
-            active_timers: DomRefCell::new(HashMap::new()),
+            active_timers: DomRefCell::new(FxHashMap::default()),
             nesting_level: Cell::new(0),
             min_duration: Cell::new(None),
         }

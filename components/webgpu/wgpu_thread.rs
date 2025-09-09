@@ -36,8 +36,8 @@ use wgpu_types::MemoryHints;
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
+use crate::canvas_context::WGPUImageMap;
 use crate::poll_thread::Poller;
-use crate::swapchain::WGPUImageMap;
 
 #[derive(Eq, Hash, PartialEq)]
 pub(crate) struct DeviceScope {
@@ -509,32 +509,19 @@ impl WGPU {
                         };
                         self.create_context(context_id, image_key, size, buffer_ids);
                     },
-                    WebGPURequest::UpdateContext {
+                    WebGPURequest::Present {
                         context_id,
+                        pending_texture,
                         size,
-                        configuration,
-                    } => {
-                        self.update_context(context_id, size, configuration);
-                    },
-                    WebGPURequest::SwapChainPresent {
-                        context_id,
-                        texture_id,
-                        encoder_id,
                         canvas_epoch,
                     } => {
-                        let result = self.swapchain_present(
-                            context_id,
-                            encoder_id,
-                            texture_id,
-                            canvas_epoch,
-                        );
-                        if let Err(e) = result {
-                            log::error!("Error occured in SwapChainPresent: {e:?}");
-                        }
+                        self.present(context_id, pending_texture, size, canvas_epoch);
                     },
-                    WebGPURequest::GetImage { context_id, sender } => {
-                        sender.send(self.get_image(context_id)).unwrap()
-                    },
+                    WebGPURequest::GetImage {
+                        context_id,
+                        pending_texture,
+                        sender,
+                    } => self.get_image(context_id, pending_texture, sender),
                     WebGPURequest::ValidateTextureDescriptor {
                         device_id,
                         texture_id,
@@ -1185,25 +1172,22 @@ impl WGPU {
                         let device_scope = devices
                             .get_mut(&device_id)
                             .expect("Device should not be dropped by this point");
-                        if let Some(error_scope_stack) = &mut device_scope.error_scope_stack {
-                            if let Some(error_scope) = error_scope_stack.pop() {
-                                if let Err(e) = sender.send(Ok(
-                                    // TODO: Do actual selection instead of selecting first error
-                                    error_scope.errors.first().cloned(),
-                                )) {
-                                    warn!(
-                                        "Unable to send {:?} to poperrorscope: {e:?}",
-                                        error_scope.errors
-                                    );
+                        let result =
+                            if let Some(error_scope_stack) = &mut device_scope.error_scope_stack {
+                                if let Some(error_scope) = error_scope_stack.pop() {
+                                    Ok(
+                                        // TODO: Do actual selection instead of selecting first error
+                                        error_scope.errors.first().cloned(),
+                                    )
+                                } else {
+                                    Err(PopError::Empty)
                                 }
-                            } else if let Err(e) = sender.send(Err(PopError::Empty)) {
-                                warn!("Unable to send PopError::Empty: {e:?}");
-                            }
-                        } else {
-                            // device lost
-                            if let Err(e) = sender.send(Err(PopError::Lost)) {
-                                warn!("Unable to send PopError::Lost due {e:?}");
-                            }
+                            } else {
+                                // This means the device has been lost.
+                                Err(PopError::Lost)
+                            };
+                        if let Err(error) = sender.send(result) {
+                            warn!("Error while sending PopErrorScope result: {error}");
                         }
                     },
                     WebGPURequest::ComputeGetBindGroupLayout {

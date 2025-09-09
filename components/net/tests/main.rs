@@ -51,6 +51,7 @@ use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use net_traits::{AsyncRuntime, FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
+use rustc_hash::FxHashMap;
 use rustls_pemfile::{certs, pkcs8_private_keys};
 use rustls_pki_types::{CertificateDer, PrivateKeyDer};
 use servo_arc::Arc as ServoArc;
@@ -146,7 +147,7 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
         hsts_list: RwLock::new(net::hsts::HstsList::default()),
         cookie_jar: RwLock::new(net::cookie_storage::CookieStorage::new(150)),
         auth_cache: RwLock::new(net::resource_thread::AuthCache::default()),
-        history_states: RwLock::new(HashMap::new()),
+        history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(net::http_cache::HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(

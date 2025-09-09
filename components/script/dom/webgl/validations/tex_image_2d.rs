@@ -85,10 +85,6 @@ impl fmt::Display for TexImageValidationError {
     }
 }
 
-fn log2(n: u32) -> u32 {
-    31 - n.leading_zeros()
-}
-
 pub(crate) struct CommonTexImage2DValidator<'a> {
     context: &'a WebGLRenderingContext,
     target: u32,
@@ -204,7 +200,7 @@ impl WebGLValidator for CommonTexImage2DValidator<'_> {
         // log_2(max), where max is the returned value of GL_MAX_TEXTURE_SIZE
         // when target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE when
         // target is not GL_TEXTURE_2D.
-        if level > log2(max_size) {
+        if level > max_size.ilog2() {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::LevelTooHigh);
         }
@@ -772,7 +768,7 @@ impl WebGLValidator for TexStorageValidator<'_> {
             return Err(TexImageValidationError::InvalidTextureFormat);
         }
 
-        let max_level = log2(cmp::max(width, height)) + 1;
+        let max_level = cmp::max(width, height).ilog2() + 1;
         if level > max_level {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::LevelTooHigh);

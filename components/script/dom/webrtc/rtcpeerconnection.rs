@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use rustc_hash::FxHashMap;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
@@ -73,7 +73,7 @@ pub(crate) struct RTCPeerConnection {
     ice_connection_state: Cell<RTCIceConnectionState>,
     signaling_state: Cell<RTCSignalingState>,
     #[ignore_malloc_size_of = "defined in servo-media"]
-    data_channels: DomRefCell<HashMap<DataChannelId, Dom<RTCDataChannel>>>,
+    data_channels: DomRefCell<FxHashMap<DataChannelId, Dom<RTCDataChannel>>>,
 }
 
 struct RTCSignaller {
@@ -171,7 +171,7 @@ impl RTCPeerConnection {
             gathering_state: Cell::new(RTCIceGatheringState::New),
             ice_connection_state: Cell::new(RTCIceConnectionState::New),
             signaling_state: Cell::new(RTCSignalingState::Stable),
-            data_channels: DomRefCell::new(HashMap::new()),
+            data_channels: DomRefCell::new(FxHashMap::default()),
         }
     }
 

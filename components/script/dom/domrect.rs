@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::{DomRectId, DomRectIndex};
 use constellation_traits::DomRect;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use rustc_hash::FxHashMap;
 
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
@@ -162,7 +161,7 @@ impl Serializable for DOMRect {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<DomRectId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<DomRectId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.rects,
             StructuredData::Writer(writer) => &mut writer.rects,

@@ -14,6 +14,7 @@ use net_traits::indexeddb_thread::{
     AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
     IndexedDBTxnMode, KeyPath, SyncOperation,
 };
+use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use uuid::Uuid;
@@ -78,7 +79,7 @@ impl IndexedDBDescription {
 
 struct IndexedDBEnvironment<E: KvsEngine> {
     engine: E,
-    transactions: HashMap<u64, KvsTransaction>,
+    transactions: FxHashMap<u64, KvsTransaction>,
     serial_number_counter: u64,
 }
 
@@ -86,7 +87,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     fn new(engine: E) -> IndexedDBEnvironment<E> {
         IndexedDBEnvironment {
             engine,
-            transactions: HashMap::new(),
+            transactions: FxHashMap::default(),
             serial_number_counter: 0,
         }
     }

@@ -15,6 +15,7 @@ use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
 };
 use profile_traits::path;
+use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 
 use crate::resource_thread;
@@ -52,7 +53,7 @@ type OriginEntry = (usize, BTreeMap<String, String>);
 
 struct StorageManager {
     port: GenericReceiver<StorageThreadMsg>,
-    session_data: HashMap<WebViewId, HashMap<String, OriginEntry>>,
+    session_data: FxHashMap<WebViewId, HashMap<String, OriginEntry>>,
     local_data: HashMap<String, OriginEntry>,
     config_dir: Option<PathBuf>,
 }
@@ -65,7 +66,7 @@ impl StorageManager {
         }
         StorageManager {
             port,
-            session_data: HashMap::new(),
+            session_data: FxHashMap::default(),
             local_data,
             config_dir,
         }

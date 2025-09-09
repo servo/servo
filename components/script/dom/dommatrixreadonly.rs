@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::{f64, ptr};
 
 use base::id::{DomMatrixId, DomMatrixIndex};
@@ -17,6 +16,7 @@ use js::jsapi::JSObject;
 use js::jsval;
 use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
 use js::typedarray::{Float32Array, Float64Array};
+use rustc_hash::FxHashMap;
 use style::parser::ParserContext;
 use url::Url;
 
@@ -1033,7 +1033,7 @@ impl Serializable for DOMMatrixReadOnly {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<DomMatrixId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<DomMatrixId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.matrices,
             StructuredData::Writer(writer) => &mut writer.matrices,

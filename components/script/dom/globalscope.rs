@@ -57,6 +57,7 @@ use net_traits::{
     ResourceThreads, fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventRequest, TimerId};
@@ -204,18 +205,22 @@ pub(crate) struct GlobalScope {
     broadcast_channel_state: DomRefCell<BroadcastChannelState>,
 
     /// The blobs managed by this global, if any.
-    blob_state: DomRefCell<HashMapTracedValues<BlobId, BlobInfo>>,
+    blob_state: DomRefCell<HashMapTracedValues<BlobId, BlobInfo, FxBuildHasher>>,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-registration-object-map>
     registration_map: DomRefCell<
-        HashMapTracedValues<ServiceWorkerRegistrationId, Dom<ServiceWorkerRegistration>>,
+        HashMapTracedValues<
+            ServiceWorkerRegistrationId,
+            Dom<ServiceWorkerRegistration>,
+            FxBuildHasher,
+        >,
     >,
 
     /// <https://cookiestore.spec.whatwg.org/#globals>
     cookie_store: MutNullableDom<CookieStore>,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>
-    worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>>>,
+    worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>, FxBuildHasher>>,
 
     /// Pipeline id associated with this global.
     #[no_trace]
@@ -234,7 +239,7 @@ pub(crate) struct GlobalScope {
     module_map: DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>>,
 
     #[ignore_malloc_size_of = "mozjs"]
-    inline_module_map: DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>>,
+    inline_module_map: DomRefCell<FxHashMap<ScriptId, Rc<ModuleTree>>>,
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
@@ -336,7 +341,7 @@ pub(crate) struct GlobalScope {
 
     /// WebGPU devices
     #[cfg(feature = "webgpu")]
-    gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>>>,
+    gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>, FxBuildHasher>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
@@ -510,7 +515,7 @@ pub(crate) enum MessagePortState {
     /// The message-port router id for this global, and a map of managed ports.
     Managed(
         #[no_trace] MessagePortRouterId,
-        HashMapTracedValues<MessagePortId, ManagedMessagePort>,
+        HashMapTracedValues<MessagePortId, ManagedMessagePort, FxBuildHasher>,
     ),
     /// This global is not managing any ports at this time.
     UnManaged,
@@ -765,9 +770,9 @@ impl GlobalScope {
             blob_state: Default::default(),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
-            registration_map: DomRefCell::new(HashMapTracedValues::new()),
+            registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             cookie_store: Default::default(),
-            worker_map: DomRefCell::new(HashMapTracedValues::new()),
+            worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
@@ -793,7 +798,7 @@ impl GlobalScope {
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             #[cfg(feature = "webgpu")]
-            gpu_devices: DomRefCell::new(HashMapTracedValues::new()),
+            gpu_devices: DomRefCell::new(HashMapTracedValues::new_fx()),
             frozen_supported_performance_entry_types: CachedFrozenArray::new(),
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
@@ -1703,7 +1708,7 @@ impl GlobalScope {
                 }),
             );
             let router_id = MessagePortRouterId::new();
-            *current_state = MessagePortState::Managed(router_id, HashMapTracedValues::new());
+            *current_state = MessagePortState::Managed(router_id, HashMapTracedValues::new_fx());
             let _ = self.script_to_constellation_chan().send(
                 ScriptToConstellationMessage::NewMessagePortRouter(router_id, port_control_sender),
             );
@@ -2373,7 +2378,7 @@ impl GlobalScope {
             .insert(script_id, Rc::new(module));
     }
 
-    pub(crate) fn get_inline_module_map(&self) -> &DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>> {
+    pub(crate) fn get_inline_module_map(&self) -> &DomRefCell<FxHashMap<ScriptId, Rc<ModuleTree>>> {
         &self.inline_module_map
     }
 

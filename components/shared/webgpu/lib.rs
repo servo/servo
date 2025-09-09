@@ -11,7 +11,8 @@ use std::ops::Range;
 
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use serde::{Deserialize, Serialize};
-use webrender_api::ImageFormat;
+use webrender_api::euclid::default::Size2D;
+use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 use wgpu_core::device::HostMap;
 pub use wgpu_core::id::markers::{
     ComputePassEncoder as ComputePass, RenderPassEncoder as RenderPass,
@@ -22,7 +23,7 @@ pub use wgpu_core::id::{
 use wgpu_core::id::{ComputePipelineId, DeviceId, QueueId, RenderPipelineId};
 use wgpu_core::instance::FailedLimit;
 use wgpu_core::pipeline::CreateShaderModuleError;
-use wgpu_types::{AdapterInfo, DeviceDescriptor, Features, Limits, TextureFormat};
+use wgpu_types::{AdapterInfo, COPY_BYTES_PER_ROW_ALIGNMENT, DeviceDescriptor, Features, Limits};
 
 pub use crate::error::*;
 pub use crate::ids::*;
@@ -60,17 +61,34 @@ pub struct Adapter {
 pub struct ContextConfiguration {
     pub device_id: DeviceId,
     pub queue_id: QueueId,
-    pub format: TextureFormat,
+    pub format: ImageFormat,
     pub is_opaque: bool,
+    pub size: Size2D<u32>,
 }
 
 impl ContextConfiguration {
-    pub fn format(&self) -> ImageFormat {
-        match self.format {
-            TextureFormat::Rgba8Unorm => ImageFormat::RGBA8,
-            TextureFormat::Bgra8Unorm => ImageFormat::BGRA8,
-            // TODO: wgt::TextureFormat::Rgba16Float
-            _ => unreachable!("Unsupported canvas context format in configuration"),
+    pub fn stride(&self) -> u32 {
+        (self.size.width * self.format.bytes_per_pixel() as u32)
+            .next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT)
+    }
+
+    pub fn buffer_size(&self) -> u64 {
+        self.stride() as u64 * self.size.height as u64
+    }
+}
+
+impl From<ContextConfiguration> for ImageDescriptor {
+    fn from(config: ContextConfiguration) -> Self {
+        ImageDescriptor {
+            format: config.format,
+            size: config.size.cast().cast_unit(),
+            stride: Some(config.stride() as i32),
+            offset: 0,
+            flags: if config.is_opaque {
+                ImageDescriptorFlags::IS_OPAQUE
+            } else {
+                ImageDescriptorFlags::empty()
+            },
         }
     }
 }

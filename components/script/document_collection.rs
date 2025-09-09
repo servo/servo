@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, hash_map};
+use std::collections::hash_map;
 
 use base::id::{BrowsingContextId, PipelineId};
+use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -20,7 +21,7 @@ use crate::dom::window::Window;
 #[derive(JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DocumentCollection {
-    map: HashMapTracedValues<PipelineId, Dom<Document>>,
+    map: HashMapTracedValues<PipelineId, Dom<Document>, FxBuildHasher>,
 }
 
 impl DocumentCollection {
@@ -95,7 +96,7 @@ impl Default for DocumentCollection {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn default() -> Self {
         Self {
-            map: HashMapTracedValues::new(),
+            map: HashMapTracedValues::new_fx(),
         }
     }
 }
@@ -133,7 +134,7 @@ struct DocumentTreeNode {
 /// [st]: crate::script_thread::ScriptThread
 #[derive(Default)]
 struct DocumentTree {
-    tree: HashMap<PipelineId, DocumentTreeNode>,
+    tree: FxHashMap<PipelineId, DocumentTreeNode>,
 }
 
 impl DocumentTree {
