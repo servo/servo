@@ -145,14 +145,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_encrypt_or_decrypt(cx, &algorithm)
-        {
-            Ok(algorithm) => algorithm,
-            Err(e) => {
-                promise.reject_error(e, can_gc);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm_for_encrypt_or_decrypt(cx, &algorithm, can_gc) {
+                Ok(algorithm) => algorithm,
+                Err(e) => {
+                    promise.reject_error(e, can_gc);
+                    return promise;
+                },
+            };
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -206,14 +206,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_encrypt_or_decrypt(cx, &algorithm)
-        {
-            Ok(algorithm) => algorithm,
-            Err(e) => {
-                promise.reject_error(e, can_gc);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm_for_encrypt_or_decrypt(cx, &algorithm, can_gc) {
+                Ok(algorithm) => algorithm,
+                Err(e) => {
+                    promise.reject_error(e, can_gc);
+                    return promise;
+                },
+            };
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -278,14 +278,15 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to algorithm and
         // op set to "sign".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_sign_or_verify(cx, &algorithm) {
-            Ok(algorithm) => algorithm,
-            Err(e) => {
-                // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e, can_gc);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm_for_sign_or_verify(cx, &algorithm, can_gc) {
+                Ok(algorithm) => algorithm,
+                Err(e) => {
+                    // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+                    promise.reject_error(e, can_gc);
+                    return promise;
+                },
+            };
 
         // Step 5. Let promise be a new Promise.
         // NOTE: We did that in preparation of Step 4.
@@ -320,7 +321,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 10.  Let result be the result of performing the sign operation specified by normalizedAlgorithm
                 // using key and algorithm and with data as message.
                 let cx = GlobalScope::get_cx();
-                let result = match normalized_algorithm.sign(cx, &key, &data) {
+                let result = match normalized_algorithm.sign(cx, &key, &data, CanGc::note()) {
                     Ok(signature) => signature,
                     Err(e) => {
                         promise.reject_error(e, CanGc::note());
@@ -370,14 +371,15 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 4. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to
         // algorithm and op set to "verify".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_sign_or_verify(cx, &algorithm) {
-            Ok(algorithm) => algorithm,
-            Err(e) => {
-                // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e, can_gc);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm_for_sign_or_verify(cx, &algorithm, can_gc) {
+                Ok(algorithm) => algorithm,
+                Err(e) => {
+                    // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+                    promise.reject_error(e, can_gc);
+                    return promise;
+                },
+            };
 
         // Step 6. Let promise be a new Promise.
         // NOTE: We did that in preparation of Step 6.
@@ -412,7 +414,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 1. Let result be the result of performing the verify operation specified by normalizedAlgorithm
                 // using key, algorithm and signature and with data as message.
                 let cx = GlobalScope::get_cx();
-                let result = match normalized_algorithm.verify(cx, &key, &data, &signature) {
+                let result = match normalized_algorithm.verify(cx, &key, &data, &signature, CanGc::note()) {
                     Ok(result) => result,
                     Err(e) => {
                         promise.reject_error(e, CanGc::note());
@@ -448,7 +450,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm,
         // with alg set to algorithm and op set to "digest".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_digest(cx, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm_for_digest(cx, &algorithm, can_gc) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(e) => {
                 // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
@@ -504,13 +506,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_generate_key(cx, &algorithm) {
-            Ok(algorithm) => algorithm,
-            Err(e) => {
-                promise.reject_error(e, can_gc);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm_for_generate_key(cx, &algorithm, can_gc) {
+                Ok(algorithm) => algorithm,
+                Err(e) => {
+                    promise.reject_error(e, can_gc);
+                    return promise;
+                },
+            };
 
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
@@ -549,7 +552,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to algorithm
         // and op set to "deriveBits".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_derive_bits(cx, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm_for_derive_bits(cx, &algorithm, can_gc)
+        {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
@@ -561,7 +565,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 4. Let normalizedDerivedKeyAlgorithmImport be the result of normalizing an algorithm,
         // with alg set to derivedKeyType and op set to "importKey".
         let normalized_derived_key_algorithm_import =
-            match normalize_algorithm_for_import_key(cx, &derived_key_type) {
+            match normalize_algorithm_for_import_key(cx, &derived_key_type, can_gc) {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
                     // Step 5. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmImport.
@@ -573,7 +577,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 6. Let normalizedDerivedKeyAlgorithmLength be the result of normalizing an algorithm, with alg set
         // to derivedKeyType and op set to "get key length".
         let normalized_derived_key_algorithm_length =
-            match normalize_algorithm_for_get_key_length(cx, &derived_key_type) {
+            match normalize_algorithm_for_get_key_length(cx, &derived_key_type, can_gc) {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
                     // Step 7. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmLength.
@@ -677,7 +681,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm,
         // with alg set to algorithm and op set to "deriveBits".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_derive_bits(cx, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm_for_derive_bits(cx, &algorithm, can_gc)
+        {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
@@ -747,7 +752,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_import_key(cx, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm_for_import_key(cx, &algorithm, can_gc)
+        {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 promise.reject_error(e, can_gc);
@@ -870,13 +876,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_key_wrap(cx, &wrap_algorithm) {
-            Ok(algorithm) => algorithm,
-            Err(e) => {
-                promise.reject_error(e, can_gc);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm_for_key_wrap(cx, &wrap_algorithm, can_gc) {
+                Ok(algorithm) => algorithm,
+                Err(e) => {
+                    promise.reject_error(e, can_gc);
+                    return promise;
+                },
+            };
 
         let this = Trusted::new(self);
         let trusted_key = Trusted::new(key);
@@ -1000,15 +1007,16 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
-        let normalized_algorithm = match normalize_algorithm_for_key_wrap(cx, &unwrap_algorithm) {
-            Ok(algorithm) => algorithm,
-            Err(e) => {
-                promise.reject_error(e, can_gc);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm_for_key_wrap(cx, &unwrap_algorithm, can_gc) {
+                Ok(algorithm) => algorithm,
+                Err(e) => {
+                    promise.reject_error(e, can_gc);
+                    return promise;
+                },
+            };
         let normalized_key_algorithm =
-            match normalize_algorithm_for_import_key(cx, &unwrapped_key_algorithm) {
+            match normalize_algorithm_for_import_key(cx, &unwrapped_key_algorithm, can_gc) {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
                     promise.reject_error(e, can_gc);
@@ -1205,8 +1213,12 @@ struct SubtleHmacImportParams {
 }
 
 impl SubtleHmacImportParams {
-    fn new(cx: JSContext, params: RootedTraceableBox<HmacImportParams>) -> Fallible<Self> {
-        let hash = normalize_algorithm_for_digest(cx, &params.hash)?;
+    fn new(
+        cx: JSContext,
+        params: RootedTraceableBox<HmacImportParams>,
+        can_gc: CanGc,
+    ) -> Fallible<Self> {
+        let hash = normalize_algorithm_for_digest(cx, &params.hash, can_gc)?;
         let params = Self {
             hash,
             length: params.length,
@@ -1255,8 +1267,12 @@ struct SubtleHmacKeyGenParams {
 }
 
 impl SubtleHmacKeyGenParams {
-    fn new(cx: JSContext, params: RootedTraceableBox<HmacKeyGenParams>) -> Fallible<Self> {
-        let hash = normalize_algorithm_for_digest(cx, &params.hash)?;
+    fn new(
+        cx: JSContext,
+        params: RootedTraceableBox<HmacKeyGenParams>,
+        can_gc: CanGc,
+    ) -> Fallible<Self> {
+        let hash = normalize_algorithm_for_digest(cx, &params.hash, can_gc)?;
         let params = Self {
             hash,
             length: params.length,
@@ -1278,8 +1294,8 @@ pub(crate) struct SubtleHkdfParams {
 }
 
 impl SubtleHkdfParams {
-    fn new(cx: JSContext, params: RootedTraceableBox<HkdfParams>) -> Fallible<Self> {
-        let hash = normalize_algorithm_for_digest(cx, &params.hash)?;
+    fn new(cx: JSContext, params: RootedTraceableBox<HkdfParams>, can_gc: CanGc) -> Fallible<Self> {
+        let hash = normalize_algorithm_for_digest(cx, &params.hash, can_gc)?;
         let salt = match &params.salt {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -1309,7 +1325,11 @@ pub(crate) struct SubtlePbkdf2Params {
 }
 
 impl SubtlePbkdf2Params {
-    fn new(cx: JSContext, params: RootedTraceableBox<Pbkdf2Params>) -> Fallible<Self> {
+    fn new(
+        cx: JSContext,
+        params: RootedTraceableBox<Pbkdf2Params>,
+        can_gc: CanGc,
+    ) -> Fallible<Self> {
         let salt = match &params.salt {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -1318,7 +1338,7 @@ impl SubtlePbkdf2Params {
         let params = Self {
             salt,
             iterations: params.iterations,
-            hash: normalize_algorithm_for_digest(cx, &params.hash)?,
+            hash: normalize_algorithm_for_digest(cx, &params.hash, can_gc)?,
         };
 
         Ok(params)
@@ -1405,72 +1425,120 @@ enum KeyWrapAlgorithm {
 
 /// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
 trait DictionaryFromJSVal: Sized {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()>;
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()>;
 }
 
 impl DictionaryFromJSVal for Algorithm {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        Self::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        Self::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for AesDerivedKeyParams {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        Self::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        Self::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for AesKeyGenParams {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        Self::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        Self::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for RootedTraceableBox<HmacImportParams> {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        HmacImportParams::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        HmacImportParams::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for RootedTraceableBox<HmacKeyGenParams> {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        HmacKeyGenParams::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        HmacKeyGenParams::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for HmacKeyAlgorithm {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        Self::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        Self::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for RootedTraceableBox<AesCbcParams> {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        AesCbcParams::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        AesCbcParams::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for RootedTraceableBox<AesCtrParams> {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        AesCtrParams::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        AesCtrParams::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for RootedTraceableBox<AesGcmParams> {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        AesGcmParams::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        AesGcmParams::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for RootedTraceableBox<Pbkdf2Params> {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        Pbkdf2Params::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        Pbkdf2Params::new(cx, value, can_gc)
     }
 }
 
 impl DictionaryFromJSVal for RootedTraceableBox<HkdfParams> {
-    fn create(cx: JSContext, value: HandleValue) -> Result<ConversionResult<Self>, ()> {
-        HkdfParams::new(cx, value, CanGc::note())
+    fn create(
+        cx: JSContext,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> Result<ConversionResult<Self>, ()> {
+        HkdfParams::new(cx, value, can_gc)
     }
 }
 
@@ -1482,8 +1550,12 @@ fn extract_native_dict<T>(converted: Result<ConversionResult<T>, ()>) -> Fallibl
     Ok(params)
 }
 
-fn value_from_js_object<T: DictionaryFromJSVal>(cx: JSContext, value: HandleValue) -> Fallible<T> {
-    extract_native_dict(T::create(cx, value))
+fn value_from_js_object<T: DictionaryFromJSVal>(
+    cx: JSContext,
+    value: HandleValue,
+    can_gc: CanGc,
+) -> Fallible<T> {
+    extract_native_dict(T::create(cx, value, can_gc))
 }
 
 trait DictionaryFromJSValType: crate::JSTraceable {}
@@ -1495,33 +1567,37 @@ impl<T: crate::JSTraceable + 'static> DictionaryFromJSValType for T where
 fn boxed_value_from_js_object<T: DictionaryFromJSValType>(
     cx: JSContext,
     value: HandleValue,
+    can_gc: CanGc,
 ) -> Fallible<RootedTraceableBox<T>>
 where
     RootedTraceableBox<T>: DictionaryFromJSVal,
 {
-    extract_native_dict(<RootedTraceableBox<T>>::create(cx, value))
+    extract_native_dict(<RootedTraceableBox<T>>::create(cx, value, can_gc))
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"get key length"`
 fn normalize_algorithm_for_get_key_length(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
+    can_gc: CanGc,
 ) -> Result<GetKeyLengthAlgorithm, Error> {
     match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
 
             let name = algorithm.name.str();
             let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
                 name.eq_ignore_ascii_case(ALG_AES_CTR) ||
                 name.eq_ignore_ascii_case(ALG_AES_GCM)
             {
-                let params = value_from_js_object::<AesDerivedKeyParams>(cx, value.handle())?;
+                let params =
+                    value_from_js_object::<AesDerivedKeyParams>(cx, value.handle(), can_gc)?;
                 GetKeyLengthAlgorithm::Aes(params.length)
             } else if name.eq_ignore_ascii_case(ALG_HMAC) {
-                let params = boxed_value_from_js_object::<HmacImportParams>(cx, value.handle())?;
-                let subtle_params = SubtleHmacImportParams::new(cx, params)?;
+                let params =
+                    boxed_value_from_js_object::<HmacImportParams>(cx, value.handle(), can_gc)?;
+                let subtle_params = SubtleHmacImportParams::new(cx, params, can_gc)?;
                 return Ok(GetKeyLengthAlgorithm::Hmac(subtle_params));
             } else {
                 return Err(Error::NotSupported);
@@ -1540,11 +1616,12 @@ fn normalize_algorithm_for_get_key_length(
 fn normalize_algorithm_for_digest(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
+    can_gc: CanGc,
 ) -> Result<DigestAlgorithm, Error> {
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
 
             algorithm.name.str().to_uppercase()
         },
@@ -1566,16 +1643,18 @@ fn normalize_algorithm_for_digest(
 fn normalize_algorithm_for_import_key(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
+    can_gc: CanGc,
 ) -> Result<ImportKeyAlgorithm, Error> {
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
 
             let name = algorithm.name.str().to_uppercase();
             if name == ALG_HMAC {
-                let params = boxed_value_from_js_object::<HmacImportParams>(cx, value.handle())?;
-                let subtle_params = SubtleHmacImportParams::new(cx, params)?;
+                let params =
+                    boxed_value_from_js_object::<HmacImportParams>(cx, value.handle(), can_gc)?;
+                let subtle_params = SubtleHmacImportParams::new(cx, params, can_gc)?;
                 return Ok(ImportKeyAlgorithm::Hmac(subtle_params));
             }
 
@@ -1601,6 +1680,7 @@ fn normalize_algorithm_for_import_key(
 fn normalize_algorithm_for_derive_bits(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
+    can_gc: CanGc,
 ) -> Result<DeriveBitsAlgorithm, Error> {
     let AlgorithmIdentifier::Object(obj) = algorithm else {
         // All algorithms that support "deriveBits" require additional parameters
@@ -1608,15 +1688,15 @@ fn normalize_algorithm_for_derive_bits(
     };
 
     rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
+    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
 
     let normalized_algorithm = if algorithm.name.str().eq_ignore_ascii_case(ALG_PBKDF2) {
-        let params = boxed_value_from_js_object::<Pbkdf2Params>(cx, value.handle())?;
-        let subtle_params = SubtlePbkdf2Params::new(cx, params)?;
+        let params = boxed_value_from_js_object::<Pbkdf2Params>(cx, value.handle(), can_gc)?;
+        let subtle_params = SubtlePbkdf2Params::new(cx, params, can_gc)?;
         DeriveBitsAlgorithm::Pbkdf2(subtle_params)
     } else if algorithm.name.str().eq_ignore_ascii_case(ALG_HKDF) {
-        let params = boxed_value_from_js_object::<HkdfParams>(cx, value.handle())?;
-        let subtle_params = SubtleHkdfParams::new(cx, params)?;
+        let params = boxed_value_from_js_object::<HkdfParams>(cx, value.handle(), can_gc)?;
+        let subtle_params = SubtleHkdfParams::new(cx, params, can_gc)?;
         DeriveBitsAlgorithm::Hkdf(subtle_params)
     } else {
         return Err(Error::NotSupported);
@@ -1629,6 +1709,7 @@ fn normalize_algorithm_for_derive_bits(
 fn normalize_algorithm_for_encrypt_or_decrypt(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
+    can_gc: CanGc,
 ) -> Result<EncryptionAlgorithm, Error> {
     let AlgorithmIdentifier::Object(obj) = algorithm else {
         // All algorithms that support "encrypt" or "decrypt" require additional parameters
@@ -1636,17 +1717,17 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
     };
 
     rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
+    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
 
     let name = algorithm.name.str();
     let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) {
-        let params = boxed_value_from_js_object::<AesCbcParams>(cx, value.handle())?;
+        let params = boxed_value_from_js_object::<AesCbcParams>(cx, value.handle(), can_gc)?;
         EncryptionAlgorithm::AesCbc(params.into())
     } else if name.eq_ignore_ascii_case(ALG_AES_CTR) {
-        let params = boxed_value_from_js_object::<AesCtrParams>(cx, value.handle())?;
+        let params = boxed_value_from_js_object::<AesCtrParams>(cx, value.handle(), can_gc)?;
         EncryptionAlgorithm::AesCtr(params.into())
     } else if name.eq_ignore_ascii_case(ALG_AES_GCM) {
-        let params = boxed_value_from_js_object::<AesGcmParams>(cx, value.handle())?;
+        let params = boxed_value_from_js_object::<AesGcmParams>(cx, value.handle(), can_gc)?;
         EncryptionAlgorithm::AesGcm(params.into())
     } else {
         return Err(Error::NotSupported);
@@ -1660,11 +1741,12 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
 fn normalize_algorithm_for_sign_or_verify(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
+    can_gc: CanGc,
 ) -> Result<SignatureAlgorithm, Error> {
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
 
             algorithm.name.str().to_uppercase()
         },
@@ -1683,6 +1765,7 @@ fn normalize_algorithm_for_sign_or_verify(
 fn normalize_algorithm_for_generate_key(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
+    can_gc: CanGc,
 ) -> Result<KeyGenerationAlgorithm, Error> {
     let AlgorithmIdentifier::Object(obj) = algorithm else {
         // All algorithms that support "generateKey" require additional parameters
@@ -1690,7 +1773,7 @@ fn normalize_algorithm_for_generate_key(
     };
 
     rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
+    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
 
     let name = algorithm.name.str();
     let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
@@ -1698,11 +1781,11 @@ fn normalize_algorithm_for_generate_key(
         name.eq_ignore_ascii_case(ALG_AES_KW) ||
         name.eq_ignore_ascii_case(ALG_AES_GCM)
     {
-        let params = value_from_js_object::<AesKeyGenParams>(cx, value.handle())?;
+        let params = value_from_js_object::<AesKeyGenParams>(cx, value.handle(), can_gc)?;
         KeyGenerationAlgorithm::Aes(params.into())
     } else if name.eq_ignore_ascii_case(ALG_HMAC) {
-        let params = boxed_value_from_js_object::<HmacKeyGenParams>(cx, value.handle())?;
-        let subtle_params = SubtleHmacKeyGenParams::new(cx, params)?;
+        let params = boxed_value_from_js_object::<HmacKeyGenParams>(cx, value.handle(), can_gc)?;
+        let subtle_params = SubtleHmacKeyGenParams::new(cx, params, can_gc)?;
         KeyGenerationAlgorithm::Hmac(subtle_params)
     } else {
         return Err(Error::NotSupported);
@@ -1715,11 +1798,12 @@ fn normalize_algorithm_for_generate_key(
 fn normalize_algorithm_for_key_wrap(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
+    can_gc: CanGc,
 ) -> Result<KeyWrapAlgorithm, Error> {
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle())?;
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
 
             algorithm.name.str().to_uppercase()
         },
@@ -1734,7 +1818,7 @@ fn normalize_algorithm_for_key_wrap(
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
             KeyWrapAlgorithm::AesCbc(
-                boxed_value_from_js_object::<AesCbcParams>(cx, value.handle())?.into(),
+                boxed_value_from_js_object::<AesCbcParams>(cx, value.handle(), can_gc)?.into(),
             )
         },
         ALG_AES_CTR => {
@@ -1743,7 +1827,7 @@ fn normalize_algorithm_for_key_wrap(
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
             KeyWrapAlgorithm::AesCtr(
-                boxed_value_from_js_object::<AesCtrParams>(cx, value.handle())?.into(),
+                boxed_value_from_js_object::<AesCtrParams>(cx, value.handle(), can_gc)?.into(),
             )
         },
         ALG_AES_GCM => {
@@ -1752,7 +1836,7 @@ fn normalize_algorithm_for_key_wrap(
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
             KeyWrapAlgorithm::AesGcm(
-                boxed_value_from_js_object::<AesGcmParams>(cx, value.handle())?.into(),
+                boxed_value_from_js_object::<AesGcmParams>(cx, value.handle(), can_gc)?.into(),
             )
         },
         _ => return Err(Error::NotSupported),
@@ -3058,9 +3142,15 @@ impl SignatureAlgorithm {
         }
     }
 
-    fn sign(&self, cx: JSContext, key: &CryptoKey, data: &[u8]) -> Result<Vec<u8>, Error> {
+    fn sign(
+        &self,
+        cx: JSContext,
+        key: &CryptoKey,
+        data: &[u8],
+        can_gc: CanGc,
+    ) -> Result<Vec<u8>, Error> {
         match self {
-            Self::Hmac => sign_hmac(cx, key, data).map(|s| s.as_ref().to_vec()),
+            Self::Hmac => sign_hmac(cx, key, data, can_gc).map(|s| s.as_ref().to_vec()),
         }
     }
 
@@ -3070,9 +3160,10 @@ impl SignatureAlgorithm {
         key: &CryptoKey,
         data: &[u8],
         signature: &[u8],
+        can_gc: CanGc,
     ) -> Result<bool, Error> {
         match self {
-            Self::Hmac => verify_hmac(cx, key, data, signature),
+            Self::Hmac => verify_hmac(cx, key, data, signature, can_gc),
         }
     }
 }
@@ -3094,12 +3185,17 @@ impl KeyGenerationAlgorithm {
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations>
-fn sign_hmac(cx: JSContext, key: &CryptoKey, data: &[u8]) -> Result<impl AsRef<[u8]>, Error> {
+fn sign_hmac(
+    cx: JSContext,
+    key: &CryptoKey,
+    data: &[u8],
+    can_gc: CanGc,
+) -> Result<impl AsRef<[u8]>, Error> {
     // Step 1. Let mac be the result of performing the MAC Generation operation described in Section 4 of [FIPS-198-1]
     // using the key represented by [[handle]] internal slot of key, the hash function identified by the hash attribute
     // of the [[algorithm]] internal slot of key and message as the input data text.
     rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
-    let params = value_from_js_object::<HmacKeyAlgorithm>(cx, algorithm_slot.handle())?;
+    let params = value_from_js_object::<HmacKeyAlgorithm>(cx, algorithm_slot.handle(), can_gc)?;
 
     let hash_algorithm = match params.hash.name.str() {
         ALG_SHA1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
@@ -3123,11 +3219,12 @@ fn verify_hmac(
     key: &CryptoKey,
     data: &[u8],
     signature: &[u8],
+    can_gc: CanGc,
 ) -> Result<bool, Error> {
     // Step 1. Let mac be the result of performing the MAC Generation operation described in Section 4 of [FIPS-198-1]
     // using the key represented by [[handle]] internal slot of key, the hash function identified by the hash attribute
     // of the [[algorithm]] internal slot of key and message as the input data text.
-    let mac = sign_hmac(cx, key, data)?;
+    let mac = sign_hmac(cx, key, data, can_gc)?;
 
     // Step 2. Return true if mac is equal to signature and false otherwise.
     let is_valid = mac.as_ref() == signature;
