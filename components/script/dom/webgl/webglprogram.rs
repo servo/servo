@@ -4,13 +4,13 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
+use std::collections::HashSet;
 
 use canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
     WebGLProgramId, WebGLResult, webgl_channel,
 };
 use dom_struct::dom_struct;
-use fnv::FnvHashSet;
 
 use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -180,8 +180,8 @@ impl WebGLProgram {
         let link_info = receiver.recv().unwrap();
 
         {
-            let mut used_locs = FnvHashSet::default();
-            let mut used_names = FnvHashSet::default();
+            let mut used_locs = HashSet::new();
+            let mut used_names = HashSet::new();
             for active_attrib in &*link_info.active_attribs {
                 let Some(location) = active_attrib.location else {
                     continue;

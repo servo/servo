@@ -21,7 +21,6 @@ use embedder_traits::{
     ViewportDetails, WebDriverMessageId,
 };
 use euclid::default::Size2D as UntypedSize2D;
-use fnv::FnvHashMap;
 use fonts_traits::SystemFontServiceProxySender;
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
@@ -32,6 +31,7 @@ use net_traits::storage_thread::StorageType;
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum_macros::IntoStaticStr;
@@ -492,7 +492,7 @@ pub enum ScriptToConstellationMessage {
         /* The ids of ports transferred successfully */
         Vec<MessagePortId>,
         /* The ids, and buffers, of ports whose transfer failed */
-        FnvHashMap<MessagePortId, PortTransferInfo>,
+        FxHashMap<MessagePortId, PortTransferInfo>,
     ),
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortRouterId, MessagePortId),

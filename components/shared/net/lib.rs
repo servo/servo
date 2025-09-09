@@ -4,7 +4,6 @@
 
 #![deny(unsafe_code)]
 
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
@@ -26,6 +25,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use request::RequestId;
+use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_rand::RngCore;
@@ -604,7 +604,7 @@ pub type BoxedFetchCallback = Box<dyn FnMut(FetchResponseMsg) + Send + 'static>;
 struct FetchThread {
     /// A list of active fetches. A fetch is no longer active once the
     /// [`FetchResponseMsg::ProcessResponseEOF`] is received.
-    active_fetches: HashMap<RequestId, BoxedFetchCallback>,
+    active_fetches: FxHashMap<RequestId, BoxedFetchCallback>,
     /// A crossbeam receiver attached to the router proxy which converts incoming fetch
     /// updates from IPC messages to crossbeam messages as well as another sender which
     /// handles requests from clients wanting to do fetches.
@@ -631,7 +631,7 @@ impl FetchThread {
             .name("FetchThread".to_owned())
             .spawn(move || {
                 let mut fetch_thread = FetchThread {
-                    active_fetches: HashMap::new(),
+                    active_fetches: FxHashMap::default(),
                     receiver,
                     to_fetch_sender,
                 };

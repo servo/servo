@@ -15,6 +15,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use pixels::RasterImage;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
@@ -295,7 +296,7 @@ pub enum WebDriverLoadStatus {
 /// to a WebDriver server with information about application state.
 #[derive(Clone, Default)]
 pub struct WebDriverSenders {
-    pub load_status_senders: HashMap<WebViewId, GenericSender<WebDriverLoadStatus>>,
+    pub load_status_senders: FxHashMap<WebViewId, GenericSender<WebDriverLoadStatus>>,
     pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
     pub pending_traversals: HashMap<TraversalId, GenericSender<WebDriverLoadStatus>>,
     pub pending_focus: HashMap<FocusId, IpcSender<bool>>,

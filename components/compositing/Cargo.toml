@@ -28,9 +28,9 @@ compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
+rustc-hash = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-fnv = { workspace = true }
 gleam = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }

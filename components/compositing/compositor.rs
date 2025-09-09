@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref, RefCell};
+use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs::create_dir_all;
 use std::iter::once;
@@ -28,7 +28,6 @@ use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{CompositorHitTestResult, InputEvent, ShutdownState, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
-use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
@@ -37,6 +36,7 @@ use profile_traits::mem::{
 };
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_config::{opts, pref};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
@@ -1184,7 +1184,7 @@ impl IOCompositor {
                 // complete (i.e. has *all* layers painted to the requested epoch).
                 // This gets sent to the constellation for comparison with the current
                 // frame tree.
-                let mut pipeline_epochs = FnvHashMap::default();
+                let mut pipeline_epochs = FxHashMap::default();
                 for id in self
                     .webview_renderers
                     .iter()
@@ -1702,7 +1702,7 @@ struct FrameDelayer {
     pending_frame: bool,
     /// A list of pipelines that should be notified when we are no longer waiting for
     /// canvas images.
-    waiting_pipelines: HashSet<PipelineId>,
+    waiting_pipelines: FxHashSet<PipelineId>,
 }
 
 impl FrameDelayer {

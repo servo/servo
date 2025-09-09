@@ -16,13 +16,13 @@ no-wgl = ["surfman/sm-angle-default"]
 
 [dependencies]
 base = { workspace = true }
+rustc-hash = { workspace = true }
 bincode = { workspace = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { version = "0.1" }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-fnv = { workspace = true }
 gleam = { workspace = true }
 glow = { workspace = true }
 image = { workspace = true }

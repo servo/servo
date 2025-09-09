@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 use std::collections::hash_map::{Entry, Values, ValuesMut};
 
 use base::id::WebViewId;
+use rustc_hash::FxHashMap;
 
 use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
 
@@ -13,7 +13,7 @@ use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
 pub struct WebViewManager<WebView> {
     /// Our top-level browsing contexts. In the WebRender scene, their pipelines are the children of
     /// a single root pipeline that also applies any pinch zoom transformation.
-    webviews: HashMap<WebViewId, WebView>,
+    webviews: FxHashMap<WebViewId, WebView>,
 
     /// The order to paint them in, topmost last.
     pub(crate) painting_order: Vec<WebViewId>,

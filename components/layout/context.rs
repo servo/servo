@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use embedder_traits::UntrustedNodeAddress;
 use euclid::Size2D;
-use fnv::FnvHashMap;
 use fonts::FontContext;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{
@@ -102,8 +102,7 @@ pub(crate) struct ImageResolver {
 
     // A cache that maps image resources used in CSS (e.g as the `url()` value
     // for `background-image` or `content` property) to the final resolved image data.
-    pub resolved_images_cache:
-        Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
+    pub resolved_images_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
 
     /// The current animation timeline value used to properly initialize animating images.
     pub animation_timeline_value: f64,

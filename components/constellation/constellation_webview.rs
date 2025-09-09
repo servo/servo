@@ -5,8 +5,8 @@
 use base::id::{BrowsingContextId, PipelineId};
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
-use fnv::FnvHashMap;
 use log::warn;
+use rustc_hash::FxHashMap;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use style_traits::CSSPixel;
 
@@ -63,7 +63,7 @@ impl ConstellationWebView {
     fn target_pipeline_id_for_input_event(
         &self,
         event: &ConstellationInputEvent,
-        browsing_contexts: &FnvHashMap<BrowsingContextId, BrowsingContext>,
+        browsing_contexts: &FxHashMap<BrowsingContextId, BrowsingContext>,
     ) -> Option<PipelineId> {
         if let Some(hit_test_result) = &event.hit_test_result {
             return Some(hit_test_result.pipeline_id);
@@ -84,8 +84,8 @@ impl ConstellationWebView {
     pub(crate) fn forward_input_event(
         &mut self,
         event: ConstellationInputEvent,
-        pipelines: &FnvHashMap<PipelineId, Pipeline>,
-        browsing_contexts: &FnvHashMap<BrowsingContextId, BrowsingContext>,
+        pipelines: &FxHashMap<PipelineId, Pipeline>,
+        browsing_contexts: &FxHashMap<BrowsingContextId, BrowsingContext>,
     ) {
         let Some(pipeline_id) = self.target_pipeline_id_for_input_event(&event, browsing_contexts)
         else {

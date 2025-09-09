@@ -29,8 +29,8 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::{Arc, Weak};
 
-use fnv::FnvHashMap;
 use js::jsapi::JSTracer;
+use rustc_hash::FxHashMap;
 use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::conversions::ToJSValConvertible;
@@ -47,14 +47,14 @@ mod dummy {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use fnv::{FnvBuildHasher, FnvHashMap};
+    use rustc_hash::FxHashMap;
 
     use super::LiveDOMReferences;
     thread_local!(pub(crate) static LIVE_REFERENCES: Rc<RefCell<LiveDOMReferences>> =
         Rc::new(RefCell::new(
         LiveDOMReferences {
-            reflectable_table: RefCell::new(FnvHashMap::with_hasher(FnvBuildHasher::new())),
-            promise_table: RefCell::new(FnvHashMap::with_hasher(FnvBuildHasher::new())),
+            reflectable_table: RefCell::new(FxHashMap::default()),
+            promise_table: RefCell::new(FxHashMap::default()),
         }
     )));
 }
@@ -232,8 +232,8 @@ impl<T: DomObject> Clone for Trusted<T> {
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
-    reflectable_table: RefCell<FnvHashMap<*const libc::c_void, Weak<TrustedReference>>>,
-    promise_table: RefCell<FnvHashMap<*const Promise, Vec<Rc<Promise>>>>,
+    reflectable_table: RefCell<FxHashMap<*const libc::c_void, Weak<TrustedReference>>>,
+    promise_table: RefCell<FxHashMap<*const Promise, Vec<Rc<Promise>>>>,
 }
 
 impl LiveDOMReferences {
@@ -283,7 +283,7 @@ impl LiveDOMReferences {
 }
 
 /// Remove null entries from the live references table
-fn remove_nulls<K: Eq + Hash + Clone, V>(table: &mut FnvHashMap<K, Weak<V>>) {
+fn remove_nulls<K: Eq + Hash + Clone, V>(table: &mut FxHashMap<K, Weak<V>>) {
     let to_remove: Vec<K> = table
         .iter()
         .filter(|&(_, value)| Weak::upgrade(value).is_none())

@@ -6,7 +6,6 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, Ref, RefCell, RefMut};
-use std::collections::HashMap;
 use std::collections::vec_deque::VecDeque;
 use std::rc::Rc;
 use std::thread;
@@ -226,8 +225,8 @@ pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
-    #[ignore_malloc_size_of = "Defined in std"]
-    nodes: RefCell<HashMap<ParseNodeId, Dom<Node>>>,
+    //#[ignore_malloc_size_of = "Defined in std"]
+    nodes: RefCell<FxHashMap<ParseNodeId, Dom<Node>>>,
     #[no_trace]
     url: ServoUrl,
     parsing_algorithm: ParsingAlgorithm,
@@ -256,7 +255,7 @@ impl Tokenizer {
             document: Dom::from_ref(document),
             receiver: tokenizer_receiver,
             html_tokenizer_sender: to_html_tokenizer_sender,
-            nodes: RefCell::new(HashMap::new()),
+            nodes: RefCell::new(FxHashMap::default()),
             url,
             parsing_algorithm: algorithm,
             custom_element_reaction_stack,

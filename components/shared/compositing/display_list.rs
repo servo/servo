@@ -12,8 +12,8 @@ use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use embedder_traits::ViewportDetails;
 use euclid::SideOffsets2D;
-use fnv::FnvHashMap;
 use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
@@ -561,7 +561,7 @@ impl ScrollTree {
     /// for nodes that actually exist in this tree.
     pub fn set_all_scroll_offsets(
         &mut self,
-        offsets: &FnvHashMap<ExternalScrollId, LayoutVector2D>,
+        offsets: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         for node in self.nodes.iter_mut() {
             if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
@@ -587,7 +587,7 @@ impl ScrollTree {
 
     /// Collect all of the scroll offsets of the scrolling nodes of this tree into a
     /// [`HashMap`] which can be applied to another tree.
-    pub fn scroll_offsets(&self) -> FnvHashMap<ExternalScrollId, LayoutVector2D> {
+    pub fn scroll_offsets(&self) -> FxHashMap<ExternalScrollId, LayoutVector2D> {
         HashMap::from_iter(self.nodes.iter().filter_map(|node| match node.info {
             SpatialTreeNodeInfo::Scroll(ref scroll_info) => {
                 Some((scroll_info.external_id, scroll_info.offset))

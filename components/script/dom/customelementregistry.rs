@@ -15,6 +15,7 @@ use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, 
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
+use rustc_hash::FxBuildHasher;
 use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
 
 use super::bindings::trace::HashMapTracedValues;
@@ -68,12 +69,15 @@ pub(crate) struct CustomElementRegistry {
     window: Dom<Window>,
 
     #[ignore_malloc_size_of = "Rc"]
-    when_defined: DomRefCell<HashMapTracedValues<LocalName, Rc<Promise>>>,
+    /// It is safe to use FxBuildHasher here as `LocalName` is an `Atom` in the string_cache.
+    /// These get a u32 hashed instead of a string.
+    when_defined: DomRefCell<HashMapTracedValues<LocalName, Rc<Promise>, FxBuildHasher>>,
 
     element_definition_is_running: Cell<bool>,
 
     #[ignore_malloc_size_of = "Rc"]
-    definitions: DomRefCell<HashMapTracedValues<LocalName, Rc<CustomElementDefinition>>>,
+    definitions:
+        DomRefCell<HashMapTracedValues<LocalName, Rc<CustomElementDefinition>, FxBuildHasher>>,
 }
 
 impl CustomElementRegistry {
@@ -81,9 +85,9 @@ impl CustomElementRegistry {
         CustomElementRegistry {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
-            when_defined: DomRefCell::new(HashMapTracedValues::new()),
+            when_defined: DomRefCell::new(HashMapTracedValues::new_fx()),
             element_definition_is_running: Cell::new(false),
-            definitions: DomRefCell::new(HashMapTracedValues::new()),
+            definitions: DomRefCell::new(HashMapTracedValues::new_fx()),
         }
     }
 

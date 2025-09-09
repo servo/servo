@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use rustc_hash::FxBuildHasher;
 use stylo_atoms::Atom;
 
 use super::bindings::trace::HashMapTracedValues;
@@ -29,7 +30,7 @@ use crate::script_runtime::CanGc;
 pub(crate) struct DocumentFragment {
     node: Node,
     /// Caches for the getElement methods
-    id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
+    id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
 }
 
 impl DocumentFragment {
@@ -37,7 +38,7 @@ impl DocumentFragment {
     pub(crate) fn new_inherited(document: &Document) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(document),
-            id_map: DomRefCell::new(HashMapTracedValues::new()),
+            id_map: DomRefCell::new(HashMapTracedValues::new_fx()),
         }
     }
 
@@ -58,7 +59,9 @@ impl DocumentFragment {
         )
     }
 
-    pub(crate) fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
+    pub(crate) fn id_map(
+        &self,
+    ) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>> {
         &self.id_map
     }
 }

@@ -139,7 +139,6 @@ use embedder_traits::{
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
-use fnv::{FnvHashMap, FnvHashSet};
 use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -157,6 +156,7 @@ use net_traits::{
 };
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
+use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, ProgressiveWebMetricType,
     ScriptThreadMessage, UpdatePipelineIdReason,
@@ -190,7 +190,7 @@ use crate::session_history::{
 };
 use crate::webview_manager::WebViewManager;
 
-type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
+type PendingApprovalNavigations = FxHashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
 
 #[derive(Debug)]
 /// The state used by MessagePortInfo to represent the various states the port can be in.
@@ -241,7 +241,7 @@ struct WebrenderWGPU {
 #[derive(Clone, Default)]
 struct BrowsingContextGroup {
     /// A browsing context group holds a set of top-level browsing contexts.
-    top_level_browsing_context_set: FnvHashSet<WebViewId>,
+    top_level_browsing_context_set: FxHashSet<WebViewId>,
 
     /// The set of all event loops in this BrowsingContextGroup.
     /// We store the event loops in a map
@@ -385,25 +385,25 @@ pub struct Constellation<STF, SWF> {
     webrender_wgpu: WebrenderWGPU,
 
     /// A map of message-port Id to info.
-    message_ports: FnvHashMap<MessagePortId, MessagePortInfo>,
+    message_ports: FxHashMap<MessagePortId, MessagePortInfo>,
 
     /// A map of router-id to ipc-sender, to route messages to ports.
-    message_port_routers: FnvHashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
+    message_port_routers: FxHashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
 
     /// Bookkeeping for BroadcastChannel functionnality.
     broadcast_channels: BroadcastChannels,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
-    pipelines: FnvHashMap<PipelineId, Pipeline>,
+    pipelines: FxHashMap<PipelineId, Pipeline>,
 
     /// The set of all the browsing contexts in the browser.
-    browsing_contexts: FnvHashMap<BrowsingContextId, BrowsingContext>,
+    browsing_contexts: FxHashMap<BrowsingContextId, BrowsingContext>,
 
     /// A user agent holds a a set of browsing context groups.
     ///
     /// <https://html.spec.whatwg.org/multipage/#browsing-context-group-set>
-    browsing_context_group_set: FnvHashMap<BrowsingContextGroupId, BrowsingContextGroup>,
+    browsing_context_group_set: FxHashMap<BrowsingContextGroupId, BrowsingContextGroup>,
 
     /// The Id counter for BrowsingContextGroup.
     browsing_context_group_next_id: u32,
@@ -426,7 +426,7 @@ pub struct Constellation<STF, SWF> {
     webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
-    document_states: FnvHashMap<PipelineId, DocumentState>,
+    document_states: FxHashMap<PipelineId, DocumentState>,
 
     /// Are we shutting down?
     shutting_down: bool,
@@ -482,7 +482,7 @@ pub struct Constellation<STF, SWF> {
     async_runtime: Box<dyn AsyncRuntime>,
 
     /// When in single-process mode, join handles for script-threads.
-    script_join_handles: FnvHashMap<WebViewId, JoinHandle<()>>,
+    script_join_handles: FxHashMap<WebViewId, JoinHandle<()>>,
 
     /// A list of URLs that can access privileged internal APIs.
     privileged_urls: Vec<ServoUrl>,
@@ -2120,7 +2120,7 @@ where
 
     fn handle_message_port_transfer_failed(
         &mut self,
-        ports: FnvHashMap<MessagePortId, PortTransferInfo>,
+        ports: FxHashMap<MessagePortId, PortTransferInfo>,
     ) {
         for (port_id, mut transfer_info) in ports.into_iter() {
             let entry = match self.message_ports.remove(&port_id) {
@@ -2202,7 +2202,7 @@ where
         router_id: MessagePortRouterId,
         ports: Vec<MessagePortId>,
     ) {
-        let mut response = FnvHashMap::default();
+        let mut response = FxHashMap::default();
         for port_id in ports.into_iter() {
             let entry = match self.message_ports.remove(&port_id) {
                 None => {
@@ -3785,11 +3785,10 @@ where
         webview_id: WebViewId,
         direction: TraversalDirection,
     ) {
-        let mut browsing_context_changes =
-            FnvHashMap::<BrowsingContextId, NeedsToReload>::default();
+        let mut browsing_context_changes = FxHashMap::<BrowsingContextId, NeedsToReload>::default();
         let mut pipeline_changes =
-            FnvHashMap::<PipelineId, (Option<HistoryStateId>, ServoUrl)>::default();
-        let mut url_to_load = FnvHashMap::<PipelineId, ServoUrl>::default();
+            FxHashMap::<PipelineId, (Option<HistoryStateId>, ServoUrl)>::default();
+        let mut url_to_load = FxHashMap::<PipelineId, ServoUrl>::default();
         {
             let session_history = self.get_joint_session_history(webview_id);
             match direction {
@@ -4795,7 +4794,7 @@ where
                     };
 
                     let mut pipelines_to_close = vec![];
-                    let mut states_to_close = FnvHashMap::default();
+                    let mut states_to_close = FxHashMap::default();
 
                     let diffs_to_close = self
                         .get_joint_session_history(change.webview_id)
@@ -5052,7 +5051,7 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_is_ready_to_save_image(
         &mut self,
-        pipeline_states: FnvHashMap<PipelineId, Epoch>,
+        pipeline_states: FxHashMap<PipelineId, Epoch>,
     ) -> ReadyToSave {
         // Note that this function can panic, due to ipc-channel creation
         // failure. Avoiding this panic would require a mechanism for dealing
@@ -5596,7 +5595,7 @@ where
     fn handle_set_scroll_states(
         &self,
         pipeline_id: PipelineId,
-        scroll_states: FnvHashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             warn!("Discarding scroll offset update for unknown pipeline");

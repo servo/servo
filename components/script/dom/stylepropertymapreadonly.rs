@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 use std::iter::Iterator;
 
 use dom_struct::dom_struct;
+use rustc_hash::FxBuildHasher;
 use style::custom_properties;
 use stylo_atoms::Atom;
 
@@ -21,7 +22,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct StylePropertyMapReadOnly {
     reflector: Reflector,
-    entries: HashMapTracedValues<Atom, Dom<CSSStyleValue>>,
+    entries: HashMapTracedValues<Atom, Dom<CSSStyleValue>, FxBuildHasher>,
 }
 
 impl StylePropertyMapReadOnly {

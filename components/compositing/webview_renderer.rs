@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::collections::hash_map::{Entry, Keys};
 use std::rc::Rc;
 
@@ -20,9 +19,9 @@ use embedder_traits::{
     TouchEvent, TouchEventResult, TouchEventType, TouchId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Vector2D};
-use fnv::FnvHashSet;
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
@@ -80,7 +79,7 @@ pub(crate) struct WebViewRenderer {
     /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     pub rect: DeviceRect,
     /// Tracks details about each active pipeline that the compositor knows about.
-    pub pipelines: HashMap<PipelineId, PipelineDetails>,
+    pub pipelines: FxHashMap<PipelineId, PipelineDetails>,
     /// Data that is shared by all WebView renderers.
     pub(crate) global: Rc<RefCell<ServoRenderer>>,
     /// Pending scroll/zoom events.
@@ -228,7 +227,7 @@ impl WebViewRenderer {
         // state for some unattached pipelines in order to preserve scroll position when
         // navigating backward and forward.
         fn collect_pipelines(
-            pipelines: &mut FnvHashSet<PipelineId>,
+            pipelines: &mut FxHashSet<PipelineId>,
             frame_tree: &SendableFrameTree,
         ) {
             pipelines.insert(frame_tree.pipeline.id);
@@ -237,7 +236,7 @@ impl WebViewRenderer {
             }
         }
 
-        let mut attached_pipelines: FnvHashSet<PipelineId> = FnvHashSet::default();
+        let mut attached_pipelines: FxHashSet<PipelineId> = FxHashSet::default();
         collect_pipelines(&mut attached_pipelines, frame_tree);
 
         self.pipelines

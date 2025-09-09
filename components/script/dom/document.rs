@@ -30,7 +30,6 @@ use embedder_traits::{AllowOrDeny, AnimationState, EmbedderMsg, FocusSequenceNum
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
 use euclid::default::{Rect, Size2D};
-use fnv::FnvHashMap;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -47,7 +46,7 @@ use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
-use rustc_hash::FxBuildHasher;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::script_runtime::JSContext;
@@ -304,11 +303,12 @@ pub(crate) struct Document {
     quirks_mode: Cell<QuirksMode>,
     /// A helper used to process and store data related to input event handling.
     event_handler: DocumentEventHandler,
-    /// Caches for the getElement methods
-    id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
-    name_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
-    tag_map: DomRefCell<HashMapTracedValues<LocalName, Dom<HTMLCollection>>>,
-    tagns_map: DomRefCell<HashMapTracedValues<QualName, Dom<HTMLCollection>>>,
+    /// Caches for the getElement methods. It is safe to use FxHash for these maps
+    /// as Atoms are `string_cache` items that will have the hash computed from a u32.
+    id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
+    name_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
+    tag_map: DomRefCell<HashMapTracedValues<LocalName, Dom<HTMLCollection>, FxBuildHasher>>,
+    tagns_map: DomRefCell<HashMapTracedValues<QualName, Dom<HTMLCollection>, FxBuildHasher>>,
     classes_map: DomRefCell<HashMapTracedValues<Vec<Atom>, Dom<HTMLCollection>>>,
     images: MutNullableDom<HTMLCollection>,
     embeds: MutNullableDom<HTMLCollection>,
@@ -375,7 +375,7 @@ pub(crate) struct Document {
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
     /// Information on elements needing restyle to ship over to layout when the
     /// time comes.
-    pending_restyles: DomRefCell<FnvHashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
+    pending_restyles: DomRefCell<FxHashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
     /// A collection of reasons that the [`Document`] needs to be restyled at the next
     /// opportunity for a reflow. If this is empty, then the [`Document`] does not need to
     /// be restyled.
@@ -436,7 +436,9 @@ pub(crate) struct Document {
     /// whenever any element with the same ID as the form attribute
     /// is inserted or removed from the document.
     /// See <https://html.spec.whatwg.org/multipage/#form-owner>
-    form_id_listener_map: DomRefCell<HashMapTracedValues<Atom, HashSet<Dom<Element>>>>,
+    /// It is safe to use FxBuildHasher here as Atoms are in the string_cache
+    form_id_listener_map:
+        DomRefCell<HashMapTracedValues<Atom, HashSet<Dom<Element>>, FxBuildHasher>>,
     #[no_trace]
     interactive_time: DomRefCell<ProgressiveWebMetrics>,
     #[no_trace]
@@ -2796,11 +2798,15 @@ impl Document {
         fonts.fulfill_ready_promise_if_needed(can_gc)
     }
 
-    pub(crate) fn id_map(&self) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
+    pub(crate) fn id_map(
+        &self,
+    ) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>> {
         self.id_map.borrow()
     }
 
-    pub(crate) fn name_map(&self) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
+    pub(crate) fn name_map(
+        &self,
+    ) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>> {
         self.name_map.borrow()
     }
 
@@ -3332,14 +3338,14 @@ impl Document {
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
             event_handler: DocumentEventHandler::new(window),
-            id_map: DomRefCell::new(HashMapTracedValues::new()),
-            name_map: DomRefCell::new(HashMapTracedValues::new()),
+            id_map: DomRefCell::new(HashMapTracedValues::new_fx()),
+            name_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             activity: Cell::new(activity),
-            tag_map: DomRefCell::new(HashMapTracedValues::new()),
-            tagns_map: DomRefCell::new(HashMapTracedValues::new()),
+            tag_map: DomRefCell::new(HashMapTracedValues::new_fx()),
+            tagns_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             classes_map: DomRefCell::new(HashMapTracedValues::new()),
             images: Default::default(),
             embeds: Default::default(),
@@ -3383,7 +3389,7 @@ impl Document {
             current_parser: Default::default(),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
-            pending_restyles: DomRefCell::new(FnvHashMap::default()),
+            pending_restyles: DomRefCell::new(FxHashMap::default()),
             needs_restyle: Cell::new(RestyleReason::DOMChanged),
             dom_interactive: Cell::new(Default::default()),
             dom_content_loaded_event_start: Cell::new(Default::default()),

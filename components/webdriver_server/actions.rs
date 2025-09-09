@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashSet;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -11,6 +10,7 @@ use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCom
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use log::{error, info};
+use rustc_hash::FxHashSet;
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
     KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerDownAction,
@@ -64,7 +64,7 @@ pub(crate) enum InputSourceState {
 #[allow(dead_code)]
 pub(crate) struct PointerInputState {
     subtype: PointerType,
-    pressed: HashSet<u64>,
+    pressed: FxHashSet<u64>,
     x: f64,
     y: f64,
 }
@@ -73,7 +73,7 @@ impl PointerInputState {
     pub fn new(subtype: PointerType) -> PointerInputState {
         PointerInputState {
             subtype,
-            pressed: HashSet::new(),
+            pressed: FxHashSet::default(),
             x: 0.0,
             y: 0.0,
         }

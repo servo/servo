@@ -16,6 +16,7 @@ use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
+use rustc_hash::FxBuildHasher;
 use servo_rand::random;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
@@ -93,8 +94,10 @@ pub(crate) struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     controls: DomRefCell<Vec<Dom<Element>>>,
 
+    /// It is safe to use FxBuildHasher here as `Atom` is in the string_cache.
     #[allow(clippy::type_complexity)]
-    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<usize>)>>,
+    past_names_map:
+        DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<usize>), FxBuildHasher>>,
 
     /// The current generation of past names, i.e., the number of name changes to the name.
     current_name_generation: Cell<usize>,
@@ -126,7 +129,7 @@ impl HTMLFormElement {
             constructing_entry_list: Cell::new(false),
             elements: Default::default(),
             controls: DomRefCell::new(Vec::new()),
-            past_names_map: DomRefCell::new(HashMapTracedValues::new()),
+            past_names_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             current_name_generation: Cell::new(0),
             firing_submission_events: Cell::new(false),
             rel_list: Default::default(),
