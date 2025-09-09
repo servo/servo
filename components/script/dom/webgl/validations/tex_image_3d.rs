@@ -14,10 +14,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgl::webgltexture::WebGLTexture;
 
-fn log2(n: u32) -> u32 {
-    31 - n.leading_zeros()
-}
-
 pub(crate) struct CommonTexImage3DValidator<'a> {
     context: &'a WebGLRenderingContext,
     target: u32,
@@ -107,7 +103,7 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::NegativeLevel);
         }
-        if level > log2(max_size) {
+        if level > max_size.ilog2() {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::LevelTooHigh);
         }
