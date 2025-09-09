@@ -51,7 +51,7 @@ pub fn init(
     let mut args = mem::take(&mut init_opts.args);
     args.insert(0, "servo".to_string());
 
-    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+    let (opts, mut preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
         ArgumentParsingResult::ContentProcess(..) => {
             unreachable!("Android does not have support for multiprocess yet.")
         },
@@ -63,6 +63,8 @@ pub fn init(
         },
         ArgumentParsingResult::ErrorParsing => std::process::exit(1),
     };
+
+    preferences.set_value("viewport_meta_enabled", servo::PrefValue::Bool(true));
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
