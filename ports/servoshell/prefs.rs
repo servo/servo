@@ -669,11 +669,9 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         userscripts_directory: cmd_args.userscripts,
         experimental_prefs_enabled: cmd_args.enable_experimental_web_platform_features,
         #[cfg(target_env = "ohos")]
-        log_filter: Some(
-            cmd_args
-                .log_filter
-                .unwrap_or(preferences.log_filter.clone()),
-        ),
+        log_filter: cmd_args.log_filter.or_else(|| {
+            (!preferences.log_filter.is_empty()).then(|| preferences.log_filter.clone())
+        }),
         #[cfg(target_env = "ohos")]
         log_to_file: cmd_args.log_to_file,
         ..Default::default()
