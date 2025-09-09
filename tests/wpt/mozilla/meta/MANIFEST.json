@@ -189,6 +189,19 @@
       ],
       {}
      ]
+    ],
+    "input-textual-vertical-align.html": [
+     "ff0be80938ca5dd59e8eb58db81aba5390b6c771",
+     [
+      "appearance/input-textual-vertical-align.html",
+      [
+       [
+        "/_mozilla/appearance/input-textual-vertical-align-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
     ]
    },
    "css": {
@@ -8178,9 +8191,13 @@
      "c2c99bc0751afd0aea3479a54df5f1d107fff38d",
      []
     ],
+    "input-textual-vertical-align-ref.html": [
+     "f03297e4cf5daf04ed10ddcae3db9a694d47f12f",
+     []
+    ],
     "supports": {
      "input-textual-ref.css": [
-      "7cdabb05d5dd7eb39df521fcb5ce24e39fea840f",
+      "2aa42d2fc6877665357bc2f46a5fbb309230b507",
       []
      ]
     }
