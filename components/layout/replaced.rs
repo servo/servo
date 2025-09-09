@@ -540,7 +540,7 @@ impl ComputeInlineContentSizes for ReplacedContents {
             Direction::Inline,
             constraint_space.preferred_aspect_ratio,
             &|| constraint_space.block_size,
-            &|| self.fallback_inline_size(constraint_space.writing_mode),
+            &|| self.fallback_inline_size(constraint_space.style.writing_mode),
         );
         InlineContentSizesResult {
             sizes: inline_content_size.into(),

@@ -2349,7 +2349,7 @@ impl ComputeInlineContentSizes for InlineFormattingContext {
 /// A struct which takes care of computing [`ContentSizes`] for an [`InlineFormattingContext`].
 struct ContentSizesComputation<'layout_data> {
     layout_context: &'layout_data LayoutContext<'layout_data>,
-    constraint_space: &'layout_data ConstraintSpace,
+    constraint_space: &'layout_data ConstraintSpace<'layout_data>,
     paragraph: ContentSizes,
     current_line: ContentSizes,
     /// Size for whitespace pending to be added to this line.
@@ -2394,7 +2394,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
                 let inline_box = inline_box.borrow();
                 let zero = Au::zero();
-                let writing_mode = self.constraint_space.writing_mode;
+                let writing_mode = self.constraint_space.style.writing_mode;
                 let layout_style = inline_box.layout_style();
                 let padding = layout_style
                     .padding(writing_mode)

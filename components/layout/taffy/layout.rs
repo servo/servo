@@ -128,7 +128,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 // TODO: re-evaluate sizing constraint conversions in light of recent layout changes
                 let containing_block = &self.content_box_size_override;
                 let style = independent_context.style();
-                let writing_mode = style.writing_mode;
 
                 // Adjust known_dimensions from border box to content box
                 let pbm = independent_context
@@ -160,7 +159,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 let inline_size = content_box_known_dimensions.width.unwrap_or_else(|| {
                     let constraint_space = ConstraintSpace {
                         block_size: tentative_block_size,
-                        writing_mode,
+                        style,
                         preferred_aspect_ratio,
                     };
 
