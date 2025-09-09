@@ -20,7 +20,7 @@ use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext, WebView}
 use winit::dpi::PhysicalSize;
 
 use super::app_state::RunningAppState;
-use crate::desktop::window_trait::{MIN_INNER_HEIGHT, MIN_INNER_WIDTH, WindowPortsMethods};
+use crate::desktop::window_trait::{MIN_WINDOW_INNER_SIZE, WindowPortsMethods};
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
@@ -87,15 +87,10 @@ impl WindowPortsMethods for Window {
         self.window_position.set(point);
     }
 
-    fn request_resize(
-        &self,
-        webview: &WebView,
-        outer_size: DeviceIntSize,
-    ) -> Option<DeviceIntSize> {
-        let new_size = DeviceIntSize::new(
-            outer_size.width.max(MIN_INNER_WIDTH),
-            outer_size.height.max(MIN_INNER_HEIGHT),
-        );
+    fn request_resize(&self, webview: &WebView, new_size: DeviceIntSize) -> Option<DeviceIntSize> {
+        // Do not let the window size get smaller than `MIN_WINDOW_INNER_SIZE` or larger
+        // than twice the screen size.
+        let new_size = new_size.clamp(MIN_WINDOW_INNER_SIZE, self.screen_size * 2);
         if self.inner_size.get() == new_size {
             return Some(new_size);
         }
@@ -105,10 +100,10 @@ impl WindowPortsMethods for Window {
         // Because we are managing the rendering surface ourselves, there will be no other
         // notification (such as from the display manager) that it has changed size, so we
         // must notify the compositor here.
-        webview.move_resize(outer_size.to_f32().into());
+        webview.move_resize(new_size.to_f32().into());
         webview.resize(PhysicalSize::new(
-            outer_size.width as u32,
-            outer_size.height as u32,
+            new_size.width as u32,
+            new_size.height as u32,
         ));
 
         Some(new_size)
