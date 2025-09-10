@@ -218,16 +218,6 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn notify_focus_complete(&self, webview: servo::WebView, focus_id: FocusId) {
-        let mut webdriver_state = self.webdriver_senders.borrow_mut();
-        if let std::collections::hash_map::Entry::Occupied(entry) =
-            webdriver_state.pending_focus.entry(focus_id)
-        {
-            let sender = entry.remove();
-            let _ = sender.send(webview.focused());
-        }
-    }
-
     fn notify_traversal_complete(&self, _webview: servo::WebView, traversal_id: TraversalId) {
         let mut webdriver_state = self.webdriver_senders.borrow_mut();
         if let std::collections::hash_map::Entry::Occupied(entry) =
@@ -391,13 +381,6 @@ impl RunningAppState {
         self.webdriver_senders
             .borrow_mut()
             .script_evaluation_interrupt_sender = sender;
-    }
-
-    pub(crate) fn set_pending_focus(&self, focus_id: FocusId, sender: IpcSender<bool>) {
-        self.webdriver_senders
-            .borrow_mut()
-            .pending_focus
-            .insert(focus_id, sender);
     }
 
     pub(crate) fn set_pending_traversal(
@@ -643,18 +626,9 @@ impl RunningAppState {
                         info!("(Not Implemented) Closing webview {}", webview_id);
                     },
                     WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
-                        if self.inner().webviews.contains_key(&webview_id) {
-                            if let Some(webview) = self.webview_by_id(webview_id) {
-                                let focus_id = webview.focus();
-                                info!("Successfully focused webview {}", webview_id);
-                                self.set_pending_focus(focus_id, response_sender.clone());
-                            } else {
-                                warn!("Webview {} not found after cleanup", webview_id);
-                                let _ = response_sender.send(false);
-                            }
-                        } else {
-                            warn!("Webview {} not found for focusing", webview_id);
-                            let _ = response_sender.send(false);
+                        if let Some(webview) = self.webview_by_id(webview_id) {
+                            let focus_id = webview.focus();
+                            info!("Successfully focused webview {}", webview_id);
                         }
                     },
                     WebDriverCommandMsg::IsWebViewOpen(webview_id, response_sender) => {
