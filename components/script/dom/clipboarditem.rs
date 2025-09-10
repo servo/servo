@@ -302,4 +302,9 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         // Step 10 Return p.
         Ok(p)
     }
+
+    /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-supports>
+    fn Supports(_: &Window, type_: DOMString) -> bool {
+        type_ == "text/plain"
+    }
 }

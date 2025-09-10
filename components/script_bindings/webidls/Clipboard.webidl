@@ -26,7 +26,7 @@ interface ClipboardItem {
 
   [Throws] Promise<Blob> getType(DOMString type);
 
-  // static boolean supports(DOMString type);
+  static boolean supports(DOMString type);
 };
 
 enum PresentationStyle { "unspecified", "inline", "attachment" };
