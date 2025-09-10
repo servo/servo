@@ -487,12 +487,12 @@ struct ImageCacheStore {
     /// Vector (e.g. SVG) images that have been sucessfully loaded and parsed
     /// but are yet to be rasterized. Since the same SVG data can be used for
     /// rasterizing at different sizes, we use this hasmap to share the data.
-    vector_images: HashMap<PendingImageId, VectorImageData>,
+    vector_images: FxHashMap<PendingImageId, VectorImageData>,
 
     /// Vector images for which rasterization at a particular size has started
     /// or completed. If completed, the `result` member of `RasterizationTask`
     /// contains the rasterized image.
-    rasterized_vector_images: HashMap<(PendingImageId, DeviceIntSize), RasterizationTask>,
+    rasterized_vector_images: FxHashMap<(PendingImageId, DeviceIntSize), RasterizationTask>,
 
     /// The placeholder image used when an image fails to load
     #[conditional_malloc_size_of]
@@ -722,8 +722,8 @@ impl ImageCache for ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
                 completed_loads: HashMap::new(),
-                vector_images: HashMap::new(),
-                rasterized_vector_images: HashMap::new(),
+                vector_images: FxHashMap::default(),
+                rasterized_vector_images: FxHashMap::default(),
                 placeholder_image: get_placeholder_image(&compositor_api, &rippy_data),
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 compositor_api: compositor_api.clone(),
@@ -1083,8 +1083,8 @@ impl ImageCache for ImageCacheImpl {
                 placeholder_image,
                 placeholder_url,
                 compositor_api,
-                vector_images: HashMap::new(),
-                rasterized_vector_images: HashMap::new(),
+                vector_images: FxHashMap::default(),
+                rasterized_vector_images: FxHashMap::default(),
                 key_cache: KeyCache::new(),
                 pipeline_id,
             })),

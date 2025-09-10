@@ -30,6 +30,7 @@ use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::IpcSender;
 use log::{trace, warn};
 use resource::{ResourceArrayType, ResourceAvailable};
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use servo_rand::RngCore;
 
@@ -116,12 +117,12 @@ pub(crate) struct StreamId(u32);
 struct DevtoolsInstance {
     actors: Arc<Mutex<ActorRegistry>>,
     id_map: Arc<Mutex<IdMap>>,
-    browsing_contexts: HashMap<BrowsingContextId, String>,
+    browsing_contexts: FxHashMap<BrowsingContextId, String>,
     receiver: Receiver<DevtoolsControlMsg>,
-    pipelines: HashMap<PipelineId, BrowsingContextId>,
-    actor_workers: HashMap<WorkerId, String>,
+    pipelines: FxHashMap<PipelineId, BrowsingContextId>,
+    actor_workers: FxHashMap<WorkerId, String>,
     actor_requests: HashMap<String, String>,
-    connections: HashMap<StreamId, TcpStream>,
+    connections: FxHashMap<StreamId, TcpStream>,
     next_resource_id: u64,
 }
 
@@ -179,12 +180,12 @@ impl DevtoolsInstance {
         let instance = Self {
             actors,
             id_map: Arc::new(Mutex::new(IdMap::default())),
-            browsing_contexts: HashMap::new(),
-            pipelines: HashMap::new(),
+            browsing_contexts: FxHashMap::default(),
+            pipelines: FxHashMap::default(),
             receiver,
             actor_requests: HashMap::new(),
-            actor_workers: HashMap::new(),
-            connections: HashMap::new(),
+            actor_workers: FxHashMap::default(),
+            connections: FxHashMap::default(),
             next_resource_id: 1,
         };
 

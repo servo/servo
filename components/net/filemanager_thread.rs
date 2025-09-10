@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::ops::Index;
@@ -25,6 +24,7 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
@@ -54,7 +54,7 @@ struct FileStoreEntry {
     is_valid_url: AtomicBool,
     /// UUIDs of fetch instances that acquired an interest in this file,
     /// when the url was still valid.
-    outstanding_tokens: HashSet<Uuid>,
+    outstanding_tokens: FxHashSet<Uuid>,
 }
 
 #[derive(Clone)]
@@ -433,13 +433,13 @@ enum BlobBounds {
 /// from FileID to FileStoreEntry which might have different backend implementation.
 /// Access to the content is encapsulated as methods of this struct.
 struct FileManagerStore {
-    entries: RwLock<HashMap<Uuid, FileStoreEntry>>,
+    entries: RwLock<FxHashMap<Uuid, FileStoreEntry>>,
 }
 
 impl FileManagerStore {
     fn new() -> Self {
         FileManagerStore {
-            entries: RwLock::new(HashMap::new()),
+            entries: RwLock::new(FxHashMap::default()),
         }
     }
 

@@ -26,6 +26,7 @@ log = { workspace = true }
 pixels = { path = "../pixels" }
 serde = { workspace = true }
 serde_json = { workspace = true }
+rustc-hash = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }

@@ -28,7 +28,6 @@ use constellation_traits::LoadData;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::Point2D;
 use euclid::default::{Point2D as UntypedPoint2D, Rect};
-use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
 pub use layout_damage::LayoutDamage;
 use libc::c_void;
@@ -288,7 +287,7 @@ pub trait Layout {
     /// Set the scroll states of this layout after a compositor scroll.
     fn set_scroll_offsets_from_renderer(
         &mut self,
-        scroll_states: &FnvHashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     );
 
     /// Get the scroll offset of the given scroll node with id of [`ExternalScrollId`] or `None` if it does
@@ -425,7 +424,7 @@ pub struct IFrameSize {
     pub viewport_details: ViewportDetails,
 }
 
-pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
+pub type IFrameSizes = FxHashMap<BrowsingContextId, IFrameSize>;
 
 bitflags! {
     /// Conditions which cause a [`Document`] to need to be restyled during reflow, which

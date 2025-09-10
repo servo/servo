@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
-use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -12,7 +12,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use app_units::Au;
 use base::id::WebViewId;
 use compositing_traits::CrossProcessCompositorApi;
-use fnv::FnvHasher;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
     FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
@@ -22,6 +21,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
 use parking_lot::{Mutex, RwLock};
+use rustc_hash::FxHashSet;
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -78,8 +78,7 @@ pub struct FontContext {
     /// A caching map between the specification of a font in CSS style and
     /// resolved [`FontGroup`] which contains information about all fonts that
     /// can be selected with that style.
-    resolved_font_groups:
-        RwLock<HashMap<FontGroupCacheKey, FontGroupRef, BuildHasherDefault<FnvHasher>>>,
+    resolved_font_groups: RwLock<HashMap<FontGroupCacheKey, FontGroupRef>>,
 
     web_fonts: CrossThreadFontStore,
 
@@ -612,7 +611,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
 
         self.have_removed_web_fonts.store(false, Ordering::Relaxed);
 
-        let mut removed_keys: HashSet<FontKey> = HashSet::new();
+        let mut removed_keys: FxHashSet<FontKey> = FxHashSet::default();
         webrender_font_keys.retain(|identifier, font_key| {
             if unused_identifiers.contains(identifier) {
                 removed_keys.insert(*font_key);

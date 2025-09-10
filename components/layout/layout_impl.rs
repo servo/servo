@@ -5,6 +5,7 @@
 #![allow(unsafe_code)]
 
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::process;
 use std::rc::Rc;
@@ -21,10 +22,8 @@ use cssparser::ParserInput;
 use embedder_traits::{Theme, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D};
-use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
-use fxhash::FxHashMap;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
     BoxAreaType, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory,
@@ -41,6 +40,7 @@ use profile_traits::time::{
     self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::{path, time_profile};
+use rustc_hash::FxHashMap;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
@@ -181,7 +181,7 @@ pub struct LayoutThread {
     // A cache that maps image resources specified in CSS (e.g as the `url()` value
     // for `background-image` or `content` properties) to either the final resolved
     // image data, or an error if the image cache failed to load/decode the image.
-    resolved_images_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
+    resolved_images_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
 
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
@@ -514,7 +514,7 @@ impl Layout for LayoutThread {
 
     fn set_scroll_offsets_from_renderer(
         &mut self,
-        scroll_states: &FnvHashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
@@ -1422,7 +1422,7 @@ struct RegisteredPainterImpl {
     painter: Box<dyn Painter>,
     name: Atom,
     // FIXME: Should be a PrecomputedHashMap.
-    properties: FxHashMap<Atom, PropertyId>,
+    properties: fxhash::FxHashMap<Atom, PropertyId>,
 }
 
 impl SpeculativePainter for RegisteredPainterImpl {
@@ -1437,7 +1437,7 @@ impl SpeculativePainter for RegisteredPainterImpl {
 }
 
 impl RegisteredSpeculativePainter for RegisteredPainterImpl {
-    fn properties(&self) -> &FxHashMap<Atom, PropertyId> {
+    fn properties(&self) -> &fxhash::FxHashMap<Atom, PropertyId> {
         &self.properties
     }
     fn name(&self) -> Atom {
@@ -1458,7 +1458,7 @@ impl Painter for RegisteredPainterImpl {
     }
 }
 
-struct RegisteredPaintersImpl(FnvHashMap<Atom, RegisteredPainterImpl>);
+struct RegisteredPaintersImpl(HashMap<Atom, RegisteredPainterImpl>);
 
 impl RegisteredSpeculativePainters for RegisteredPaintersImpl {
     fn get(&self, name: &Atom) -> Option<&dyn RegisteredSpeculativePainter> {

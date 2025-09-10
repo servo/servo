@@ -7,9 +7,9 @@ use std::iter::FromIterator;
 use std::ptr::NonNull;
 
 use canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
-use fnv::{FnvHashMap, FnvHashSet};
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
+use rustc_hash::{FxHashMap, FxHashSet};
 type GLenum = u32;
 
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
@@ -81,25 +81,25 @@ const DEFAULT_DISABLED_GET_VERTEX_ATTRIB_NAMES_WEBGL1: [GLenum; 1] =
 /// WebGL features that are enabled/disabled by WebGL Extensions.
 #[derive(JSTraceable, MallocSizeOf)]
 struct WebGLExtensionFeatures {
-    gl_extensions: FnvHashSet<String>,
-    disabled_tex_types: FnvHashSet<GLenum>,
-    not_filterable_tex_types: FnvHashSet<GLenum>,
+    gl_extensions: FxHashSet<String>,
+    disabled_tex_types: FxHashSet<GLenum>,
+    not_filterable_tex_types: FxHashSet<GLenum>,
     #[no_trace]
-    effective_tex_internal_formats: FnvHashMap<TexFormatType, TexFormat>,
+    effective_tex_internal_formats: FxHashMap<TexFormatType, TexFormat>,
     /// WebGL Hint() targets enabled by extensions.
-    hint_targets: FnvHashSet<GLenum>,
+    hint_targets: FxHashSet<GLenum>,
     /// WebGL GetParameter() names enabled by extensions.
-    disabled_get_parameter_names: FnvHashSet<GLenum>,
+    disabled_get_parameter_names: FxHashSet<GLenum>,
     /// WebGL GetTexParameter() names enabled by extensions.
-    disabled_get_tex_parameter_names: FnvHashSet<GLenum>,
+    disabled_get_tex_parameter_names: FxHashSet<GLenum>,
     /// WebGL GetAttribVertex() names enabled by extensions.
-    disabled_get_vertex_attrib_names: FnvHashSet<GLenum>,
+    disabled_get_vertex_attrib_names: FxHashSet<GLenum>,
     /// WebGL OES_element_index_uint extension.
     element_index_uint_enabled: bool,
     /// WebGL EXT_blend_minmax extension.
     blend_minmax_enabled: bool,
     /// WebGL supported texture compression formats enabled by extensions.
-    tex_compression_formats: FnvHashMap<GLenum, TexCompression>,
+    tex_compression_formats: FxHashMap<GLenum, TexCompression>,
 }
 
 impl WebGLExtensionFeatures {
@@ -199,7 +199,7 @@ impl WebGLExtensions {
         if self.extensions.borrow().is_empty() {
             let gl_str = cb();
             self.features.borrow_mut().gl_extensions =
-                FnvHashSet::from_iter(gl_str.split(&[',', ' '][..]).map(|s| s.into()));
+                FxHashSet::from_iter(gl_str.split(&[',', ' '][..]).map(|s| s.into()));
             self.register_all_extensions();
         }
     }
@@ -382,7 +382,7 @@ impl WebGLExtensions {
     }
 
     pub(crate) fn add_tex_compression_formats(&self, formats: &[TexCompression]) {
-        let formats: FnvHashMap<GLenum, TexCompression> = formats
+        let formats: FxHashMap<GLenum, TexCompression> = formats
             .iter()
             .map(|&compression| (compression.format.as_gl_constant(), compression))
             .collect();

@@ -6,19 +6,18 @@ use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::ffi::CString;
-use std::hash::BuildHasherDefault;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
-use fnv::FnvHasher;
 use js::jsapi::JS::CompileFunction;
 use js::jsapi::{JS_GetFunctionObject, SupportUnscopables};
 use js::jsval::JSVal;
 use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text};
 use libc::c_char;
+use rustc_hash::FxBuildHasher;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
@@ -512,7 +511,7 @@ impl EventListeners {
 #[dom_struct]
 pub struct EventTarget {
     reflector_: Reflector,
-    handlers: DomRefCell<HashMapTracedValues<Atom, EventListeners, BuildHasherDefault<FnvHasher>>>,
+    handlers: DomRefCell<HashMapTracedValues<Atom, EventListeners, FxBuildHasher>>,
 }
 
 impl EventTarget {

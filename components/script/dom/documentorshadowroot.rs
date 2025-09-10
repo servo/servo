@@ -9,6 +9,7 @@ use std::fmt;
 use embedder_traits::UntrustedNodeAddress;
 use js::rust::HandleValue;
 use layout_api::ElementsFromPointFlags;
+use rustc_hash::FxBuildHasher;
 use script_bindings::error::{Error, ErrorResult};
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
@@ -307,7 +308,7 @@ impl DocumentOrShadowRoot {
     /// Remove any existing association between the provided id/name and any elements in this document.
     pub(crate) fn unregister_named_element(
         &self,
-        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
+        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
         to_unregister: &Element,
         id: &Atom,
     ) {
@@ -335,7 +336,7 @@ impl DocumentOrShadowRoot {
     /// Associate an element present in this document with the provided id/name.
     pub(crate) fn register_named_element(
         &self,
-        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
+        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
         element: &Element,
         id: &Atom,
         root: DomRoot<Node>,

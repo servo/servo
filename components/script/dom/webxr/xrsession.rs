@@ -17,6 +17,7 @@ use js::jsapi::JSObject;
 use js::rust::MutableHandleValue;
 use js::typedarray::Float32Array;
 use profile_traits::ipc;
+use rustc_hash::FxBuildHasher;
 use stylo_atoms::Atom;
 use webxr_api::{
     self, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
@@ -103,7 +104,8 @@ pub(crate) struct XRSession {
     #[no_trace]
     next_hit_test_id: Cell<HitTestId>,
     #[ignore_malloc_size_of = "defined in webxr"]
-    pending_hit_test_promises: DomRefCell<HashMapTracedValues<HitTestId, Rc<Promise>>>,
+    pending_hit_test_promises:
+        DomRefCell<HashMapTracedValues<HitTestId, Rc<Promise>, FxBuildHasher>>,
     /// Opaque framebuffers need to know the session is "outside of a requestAnimationFrame"
     /// <https://immersive-web.github.io/webxr/#opaque-framebuffer>
     outside_raf: Cell<bool>,
@@ -142,7 +144,7 @@ impl XRSession {
             end_promises: DomRefCell::new(vec![]),
             ended: Cell::new(false),
             next_hit_test_id: Cell::new(HitTestId(0)),
-            pending_hit_test_promises: DomRefCell::new(HashMapTracedValues::new()),
+            pending_hit_test_promises: DomRefCell::new(HashMapTracedValues::new_fx()),
             outside_raf: Cell::new(true),
             input_frames: DomRefCell::new(HashMap::new()),
             framerate: Cell::new(0.0),

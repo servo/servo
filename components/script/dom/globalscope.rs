@@ -27,7 +27,6 @@ use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan};
-use fnv::FnvHashMap;
 use fonts::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -567,7 +566,7 @@ impl MessageListener {
                         };
 
                         let mut succeeded = vec![];
-                        let mut failed = FnvHashMap::default();
+                        let mut failed = FxHashMap::default();
 
                         for (id, info) in ports.into_iter() {
                             if global.is_managing_port(&id) {

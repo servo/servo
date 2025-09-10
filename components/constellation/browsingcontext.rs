@@ -4,8 +4,8 @@
 
 use base::id::{BrowsingContextGroupId, BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::ViewportDetails;
-use fnv::{FnvHashMap, FnvHashSet};
 use log::warn;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::pipeline::Pipeline;
 
@@ -70,7 +70,7 @@ pub struct BrowsingContext {
 
     /// All the pipelines that have been presented or will be presented in
     /// this browsing context.
-    pub pipelines: FnvHashSet<PipelineId>,
+    pub pipelines: FxHashSet<PipelineId>,
 }
 
 impl BrowsingContext {
@@ -88,7 +88,7 @@ impl BrowsingContext {
         inherited_secure_context: Option<bool>,
         throttled: bool,
     ) -> BrowsingContext {
-        let mut pipelines = FnvHashSet::default();
+        let mut pipelines = FxHashSet::default();
         pipelines.insert(pipeline_id);
         BrowsingContext {
             bc_group_id,
@@ -122,12 +122,12 @@ pub struct FullyActiveBrowsingContextsIterator<'a> {
     pub stack: Vec<BrowsingContextId>,
 
     /// The set of all browsing contexts.
-    pub browsing_contexts: &'a FnvHashMap<BrowsingContextId, BrowsingContext>,
+    pub browsing_contexts: &'a FxHashMap<BrowsingContextId, BrowsingContext>,
 
     /// The set of all pipelines.  We use this to find the active
     /// children of a frame, which are the iframes in the currently
     /// active document.
-    pub pipelines: &'a FnvHashMap<PipelineId, Pipeline>,
+    pub pipelines: &'a FxHashMap<PipelineId, Pipeline>,
 }
 
 impl<'a> Iterator for FullyActiveBrowsingContextsIterator<'a> {
@@ -169,12 +169,12 @@ pub struct AllBrowsingContextsIterator<'a> {
     pub stack: Vec<BrowsingContextId>,
 
     /// The set of all browsing contexts.
-    pub browsing_contexts: &'a FnvHashMap<BrowsingContextId, BrowsingContext>,
+    pub browsing_contexts: &'a FxHashMap<BrowsingContextId, BrowsingContext>,
 
     /// The set of all pipelines.  We use this to find the
     /// children of a browsing context, which are the iframes in all documents
     /// in the session history.
-    pub pipelines: &'a FnvHashMap<PipelineId, Pipeline>,
+    pub pipelines: &'a FxHashMap<PipelineId, Pipeline>,
 }
 
 impl<'a> Iterator for AllBrowsingContextsIterator<'a> {

@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Default)]
 pub(crate) struct IdMap {
-    pub(crate) browser_ids: HashMap<WebViewId, u32>,
-    pub(crate) browsing_context_ids: HashMap<BrowsingContextId, u32>,
-    pub(crate) outer_window_ids: HashMap<PipelineId, u32>,
+    pub(crate) browser_ids: FxHashMap<WebViewId, u32>,
+    pub(crate) browsing_context_ids: FxHashMap<BrowsingContextId, u32>,
+    pub(crate) outer_window_ids: FxHashMap<PipelineId, u32>,
 }
 
 impl IdMap {
