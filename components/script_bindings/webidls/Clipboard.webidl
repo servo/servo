@@ -24,7 +24,7 @@ interface ClipboardItem {
   readonly attribute PresentationStyle presentationStyle;
   readonly attribute /* FrozenArray<DOMString> */ any types;
 
-  // Promise<Blob> getType(DOMString type);
+  [Throws] Promise<Blob> getType(DOMString type);
 
   // static boolean supports(DOMString type);
 };
