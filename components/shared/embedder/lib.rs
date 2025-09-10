@@ -434,9 +434,8 @@ pub enum EmbedderMsg {
     ),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
-    /// A webview potentially gained focus for keyboard events, as initiated
-    /// by the provided focus id. If the boolean value is false, the webiew
-    /// could not be focused.
+    /// A webview potentially gained focus for keyboard events.
+    /// If the boolean value is false, the webiew could not be focused.
     WebViewFocused(WebViewId, bool),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
