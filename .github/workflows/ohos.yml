@@ -2,6 +2,10 @@ name: OpenHarmony
 on:
   workflow_call:
     inputs:
+      workflow:
+        required: false
+        default: "ohos"
+        type: string
       profile:
         required: false
         default: "release"
@@ -134,6 +138,37 @@ jobs:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 2
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Bootstrap dependencies
+        run: sudo apt update && ./mach bootstrap --skip-lints
+      - name: Setup OpenHarmony SDK
+        id: setup_sdk
+        uses: openharmony-rs/setup-ohos-sdk@v0.2.3
+        with:
+          version: "5.0.2"
+          fixup-path: true
+      - name: Lint (OpenHarmony ${{ inputs.profile }})
+        env:
+          OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}
+          OHOS_BASE_SDK_HOME: ${{ steps.setup_sdk.outputs.ohos-base-sdk-home }}
+        run: ./mach clippy --${{ inputs.workflow}} --${{ inputs.profile }} --locked --github-annotations -- -- --deny warnings
+  
   bencher:
     needs: ["build"]
     strategy:
