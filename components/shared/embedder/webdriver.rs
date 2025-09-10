@@ -155,7 +155,6 @@ pub enum WebDriverCommandMsg {
     /// Close the webview associated with the provided id.
     CloseWebView(WebViewId, IpcSender<()>),
     /// Focus the webview associated with the provided id.
-    /// Sends back a bool indicating whether the focus was successfully set.
     FocusWebView(WebViewId),
     /// Get focused webview. For now, this is only used when start new session.
     GetFocusedWebView(IpcSender<Option<WebViewId>>),
