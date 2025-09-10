@@ -245,7 +245,8 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         anchor: Option<&HTMLElement>,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // Steps 1-2: Check form-associated custom element
+        // Step 1. Let element be this's target element.
+        // Step 2: If element is not a form-associated custom element, then throw a "NotSupportedError" DOMException.
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
@@ -282,21 +283,26 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
             self.set_custom_validity_error_message(DOMString::new());
         }
 
-        // Step 7: Set element's validation anchor to null if anchor is not given.
-        match anchor {
-            None => self.validation_anchor.set(None),
-            Some(a) => {
-                if a == &*self.target_element ||
-                    !self
-                        .target_element
-                        .upcast::<Node>()
-                        .is_shadow_including_inclusive_ancestor_of(a.upcast::<Node>())
+        let anchor = match anchor {
+            // Step 7: If anchor is not given, then set it to element.
+            None => &self.target_element,
+            // Step 8. Otherwise, if anchor is not a shadow-including inclusive descendant of element,
+            // then throw a "NotFoundError" DOMException.
+            Some(anchor) => {
+                if !self
+                    .target_element
+                    .upcast::<Node>()
+                    .is_shadow_including_inclusive_ancestor_of(anchor.upcast::<Node>())
                 {
                     return Err(Error::NotFound);
                 }
-                self.validation_anchor.set(Some(a));
+                anchor
             },
-        }
+        };
+
+        // Step 9. Set element's validation anchor to anchor.
+        self.validation_anchor.set(Some(anchor));
+
         Ok(())
     }
 
