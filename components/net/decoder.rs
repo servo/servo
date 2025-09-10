@@ -21,7 +21,7 @@ use std::fmt;
 use std::io::{self};
 use std::pin::Pin;
 
-use async_compression::tokio::bufread::{BrotliDecoder, GzipDecoder, ZlibDecoder};
+use async_compression::tokio::bufread::{BrotliDecoder, GzipDecoder, ZlibDecoder, ZstdDecoder};
 use bytes::Bytes;
 use futures::stream::Peekable;
 use futures::task::{Context, Poll};
@@ -51,6 +51,7 @@ enum DecoderType {
     Gzip,
     Brotli,
     Deflate,
+    Zstd,
 }
 
 enum Inner {
@@ -62,6 +63,8 @@ enum Inner {
     Deflate(FramedRead<ZlibDecoder<StreamReader<Peekable<BodyStream>, Bytes>>, BytesCodec>),
     /// A `Brotli` decoder will uncompress the brotli-encoded response content before returning it.
     Brotli(FramedRead<BrotliDecoder<StreamReader<Peekable<BodyStream>, Bytes>>, BytesCodec>),
+    /// A `Zstd` decoder will uncompress the zstd-encoded response content before returning it.
+    Zstd(FramedRead<ZstdDecoder<StreamReader<Peekable<BodyStream>, Bytes>>, BytesCodec>),
     /// A decoder that doesn't have a value yet.
     Pending(Pending),
 }
@@ -131,6 +134,8 @@ impl Decoder {
                     Some(DecoderType::Brotli)
                 } else if enc == HeaderValue::from_static("deflate") {
                     Some(DecoderType::Deflate)
+                } else if enc == HeaderValue::from_static("zstd") {
+                    Some(DecoderType::Zstd)
                 } else {
                     None
                 }
@@ -182,6 +187,13 @@ impl Stream for Decoder {
                     None => Poll::Ready(None),
                 }
             },
+            Inner::Zstd(ref mut decoder) => {
+                match futures_core::ready!(Pin::new(decoder).poll_next(cx)) {
+                    Some(Ok(bytes)) => Poll::Ready(Some(Ok(bytes.freeze()))),
+                    Some(Err(err)) => Poll::Ready(Some(Err(err))),
+                    None => Poll::Ready(None),
+                }
+            },
         }
     }
 }
@@ -220,6 +232,11 @@ impl Future for Pending {
             )))),
             DecoderType::Deflate => Poll::Ready(Ok(Inner::Deflate(FramedRead::with_capacity(
                 ZlibDecoder::new(StreamReader::new(body)),
+                BytesCodec::new(),
+                DECODER_BUFFER_SIZE,
+            )))),
+            DecoderType::Zstd => Poll::Ready(Ok(Inner::Zstd(FramedRead::with_capacity(
+                ZstdDecoder::new(StreamReader::new(body)),
                 BytesCodec::new(),
                 DECODER_BUFFER_SIZE,
             )))),

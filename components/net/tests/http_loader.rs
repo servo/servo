@@ -189,7 +189,7 @@ fn test_check_default_headers_loaded_in_every_request() {
 
     headers.insert(
         header::ACCEPT_ENCODING,
-        HeaderValue::from_static("gzip, deflate, br"),
+        HeaderValue::from_static("gzip, deflate, br, zstd"),
     );
 
     headers.typed_insert(Host::from(
@@ -369,7 +369,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     headers.insert(
         header::ACCEPT_ENCODING,
-        HeaderValue::from_static("gzip, deflate, br"),
+        HeaderValue::from_static("gzip, deflate, br, zstd"),
     );
 
     // Append fetch metadata headers
@@ -1128,7 +1128,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
                     .unwrap()
                     .to_str()
                     .unwrap(),
-                "gzip, deflate, br"
+                "gzip, deflate, br, zstd"
             );
             *response.body_mut() = make_body(b"Yay!".to_vec());
         };
