@@ -24,10 +24,10 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    AllowOrDenyRequest, FocusId, ImeEvent, InputEvent, LoadStatus, MouseButtonEvent,
-    MouseMoveEvent, NavigationRequest, PermissionRequest, RenderingContext, Servo, ServoDelegate,
-    ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverLoadStatus,
-    WebDriverScriptCommand, WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
+    AllowOrDenyRequest, ImeEvent, InputEvent, LoadStatus, MouseButtonEvent, MouseMoveEvent,
+    NavigationRequest, PermissionRequest, RenderingContext, Servo, ServoDelegate, ServoError,
+    SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -625,7 +625,7 @@ impl RunningAppState {
                     WebDriverCommandMsg::CloseWebView(webview_id, response_sender) => {
                         info!("(Not Implemented) Closing webview {}", webview_id);
                     },
-                    WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
+                    WebDriverCommandMsg::FocusWebView(webview_id) => {
                         if let Some(webview) = self.webview_by_id(webview_id) {
                             let focus_id = webview.focus();
                             info!("Successfully focused webview {}", webview_id);
