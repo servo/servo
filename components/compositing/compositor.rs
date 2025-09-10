@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref, RefCell};
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::env;
 use std::fs::create_dir_all;
@@ -1695,9 +1694,9 @@ struct FrameDelayer {
     /// The latest [`Epoch`] of canvas images that have been sent to WebRender. Note
     /// that this only records the `Epoch`s for canvases and only ones that are involved
     /// in "update the rendering".
-    image_epochs: HashMap<ImageKey, Epoch>,
+    image_epochs: FxHashMap<ImageKey, Epoch>,
     /// A map of all pending canvas images
-    pending_canvas_images: HashMap<ImageKey, Epoch>,
+    pending_canvas_images: FxHashMap<ImageKey, Epoch>,
     /// Whether or not we have a pending frame.
     pending_frame: bool,
     /// A list of pipelines that should be notified when we are no longer waiting for
