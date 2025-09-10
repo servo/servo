@@ -22,7 +22,7 @@ use style_traits::CSSPixel;
 use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
-use crate::{FocusId, JSValue, MouseButton, MouseButtonAction, TraversalId};
+use crate::{JSValue, MouseButton, MouseButtonAction, TraversalId};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
@@ -155,8 +155,7 @@ pub enum WebDriverCommandMsg {
     /// Close the webview associated with the provided id.
     CloseWebView(WebViewId, IpcSender<()>),
     /// Focus the webview associated with the provided id.
-    /// Sends back a bool indicating whether the focus was successfully set.
-    FocusWebView(WebViewId, IpcSender<bool>),
+    FocusWebView(WebViewId),
     /// Get focused webview. For now, this is only used when start new session.
     GetFocusedWebView(IpcSender<Option<WebViewId>>),
     /// Get webviews state
@@ -298,5 +297,4 @@ pub struct WebDriverSenders {
     pub load_status_senders: HashMap<WebViewId, GenericSender<WebDriverLoadStatus>>,
     pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
     pub pending_traversals: HashMap<TraversalId, GenericSender<WebDriverLoadStatus>>,
-    pub pending_focus: HashMap<FocusId, IpcSender<bool>>,
 }

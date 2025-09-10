@@ -13,7 +13,7 @@ use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, FocusId, Image, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
+    Cursor, Image, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
     MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
@@ -287,10 +287,6 @@ impl WebView {
         self.delegate().notify_focus_changed(self, new_value);
     }
 
-    pub(crate) fn complete_focus(self, focus_id: FocusId) {
-        self.delegate().notify_focus_complete(self, focus_id);
-    }
-
     pub fn cursor(&self) -> Cursor {
         self.inner().cursor
     }
@@ -303,15 +299,10 @@ impl WebView {
         self.delegate().notify_cursor_changed(self, new_value);
     }
 
-    pub fn focus(&self) -> FocusId {
-        let focus_id = FocusId::new();
+    pub fn focus(&self) {
         self.inner()
             .constellation_proxy
-            .send(EmbedderToConstellationMessage::FocusWebView(
-                self.id(),
-                focus_id.clone(),
-            ));
-        focus_id
+            .send(EmbedderToConstellationMessage::FocusWebView(self.id()));
     }
 
     pub fn blur(&self) {
@@ -413,10 +404,9 @@ impl WebView {
             .expect("BUG: invalid WebView instance");
     }
 
-    pub fn focus_and_raise_to_top(&self, hide_others: bool) -> FocusId {
-        let focus_id = self.focus();
+    pub fn focus_and_raise_to_top(&self, hide_others: bool) {
+        self.focus();
         self.raise_to_top(hide_others);
-        focus_id
     }
 
     pub fn notify_theme_change(&self, theme: Theme) {

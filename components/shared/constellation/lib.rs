@@ -19,8 +19,8 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
-    CompositorHitTestResult, FocusId, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
+    CompositorHitTestResult, InputEvent, JavaScriptEvaluationId, MediaSessionActionType, Theme,
+    TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
 };
 use fnv::FnvHashMap;
 pub use from_script_message::*;
@@ -76,7 +76,7 @@ pub enum EmbedderToConstellationMessage {
     SendError(Option<WebViewId>, String),
     /// Make a webview focused. [EmbedderMsg::WebViewFocused] will be sent with
     /// the result of this operation.
-    FocusWebView(WebViewId, FocusId),
+    FocusWebView(WebViewId),
     /// Make none of the webviews focused.
     BlurWebView,
     /// Forward an input event to an appropriate ScriptTask.

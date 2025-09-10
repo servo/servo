@@ -21,10 +21,10 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FocusId, FormControl,
-    GamepadHapticEffectType, JSValue, KeyboardEvent, LoadStatus, PermissionRequest, Servo,
-    ServoDelegate, ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
+    JSValue, KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError,
+    SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -466,13 +466,6 @@ impl RunningAppState {
             });
     }
 
-    pub(crate) fn set_pending_focus(&self, focus_id: FocusId, sender: IpcSender<bool>) {
-        self.webdriver_senders
-            .borrow_mut()
-            .pending_focus
-            .insert(focus_id, sender);
-    }
-
     pub(crate) fn set_pending_traversal(
         &self,
         traversal_id: TraversalId,
@@ -666,14 +659,6 @@ impl WebViewDelegate for RunningAppState {
 
     fn notify_closed(&self, webview: servo::WebView) {
         self.close_webview(webview.id());
-    }
-
-    fn notify_focus_complete(&self, webview: servo::WebView, focus_id: FocusId) {
-        let mut webdriver_state = self.webdriver_senders.borrow_mut();
-        if let Entry::Occupied(entry) = webdriver_state.pending_focus.entry(focus_id) {
-            let sender = entry.remove();
-            let _ = sender.send(webview.focused());
-        }
     }
 
     fn notify_focus_changed(&self, webview: servo::WebView, focused: bool) {

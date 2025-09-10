@@ -738,7 +738,7 @@ impl Servo {
                     webview.delegate().notify_closed(webview);
                 }
             },
-            EmbedderMsg::WebViewFocused(webview_id, focus_id, focus_result) => {
+            EmbedderMsg::WebViewFocused(webview_id, focus_result) => {
                 if focus_result {
                     for id in self.webviews.borrow().keys() {
                         if let Some(webview) = self.get_webview_handle(*id) {
@@ -746,9 +746,6 @@ impl Servo {
                             webview.set_focused(focused);
                         }
                     }
-                }
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.complete_focus(focus_id);
                 }
             },
             EmbedderMsg::WebViewBlurred => {
