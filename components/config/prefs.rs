@@ -264,7 +264,8 @@ pub struct Preferences {
     /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
     /// order to set the value to the default value for the given platform.
     pub user_agent: String,
-
+    /// Whether or not the viewport meta tag is enabled.
+    pub viewport_meta_enabled: bool,
     pub log_filter: String,
 }
 
@@ -431,6 +432,7 @@ impl Preferences {
             threadpools_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),
+            viewport_meta_enabled: false,
             log_filter: String::new(),
         }
     }
