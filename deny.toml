@@ -193,6 +193,13 @@ skip = [
     "cfg-expr",
     "system-deps",
     "target-lexicon",
+
+    # duplicated by oxc-syntax
+    "hashbrown",
+    "phf",
+    "phf_generator",
+    "phf_macros",
+    "phf_shared",
 ]
 
 # github.com organizations to allow git sources for
