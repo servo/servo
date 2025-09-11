@@ -137,7 +137,9 @@ pub fn convert_value_to_key(
         if input.to_number().is_nan() {
             return Ok(ConversionResult::Invalid);
         }
-        return Ok(ConversionResult::Valid(IndexedDBKeyType::Number(input.to_number())));
+        return Ok(ConversionResult::Valid(IndexedDBKeyType::Number(
+            input.to_number(),
+        )));
     }
 
     if input.is_string() {
@@ -169,7 +171,9 @@ pub fn convert_value_to_key(
             if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
                 // FIXME:(arihant2math) implement it the correct way (is this correct?)
                 let key = structuredclone::write(cx, input, None)?;
-                return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(key.serialized.clone())));
+                return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(
+                    key.serialized.clone(),
+                )));
             }
 
             if let ESClass::Array = built_in_class {
@@ -452,7 +456,6 @@ pub(crate) fn extract_key(
             ConversionResult::Invalid => return Ok(ExtractionResult::Invalid),
         },
     };
-
 
     // Step 5. Return key.
     Ok(ExtractionResult::Key(key))
