@@ -240,7 +240,7 @@ impl IDBObjectStore {
         let serialized_key: Option<IndexedDBKeyType>;
 
         if !key.is_undefined() {
-            serialized_key = Some(convert_value_to_key(cx, key, None)?);
+            serialized_key = Some(convert_value_to_key(cx, key, None)?.into_result()?);
         } else {
             // Step 11: We should use in-line keys instead
             if let Some(Ok(ExtractionResult::Key(kpk))) = self
@@ -316,7 +316,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 6
         // TODO: Convert to key range instead
-        let serialized_query = convert_value_to_key(cx, query, None);
+        let serialized_query = convert_value_to_key(cx, query, None)?.into_result();
         // Step 7. Let operation be an algorithm to run delete records from an object store with store and range.
         // Stpe 8. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         let (sender, receiver) = indexed_db::create_channel(self.global());

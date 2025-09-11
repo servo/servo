@@ -71,7 +71,7 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         global: &GlobalScope,
         value: HandleValue,
     ) -> Fallible<DomRoot<IDBKeyRange>> {
-        let key = convert_value_to_key(cx, value, None)?;
+        let key = convert_value_to_key(cx, value, None)?.into_result()?;
         let inner = IndexedDBKeyRange::only(key);
         Ok(IDBKeyRange::new(global, inner, CanGc::note()))
     }
@@ -83,7 +83,7 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         lower: HandleValue,
         open: bool,
     ) -> Fallible<DomRoot<IDBKeyRange>> {
-        let key = convert_value_to_key(cx, lower, None)?;
+        let key = convert_value_to_key(cx, lower, None)?.into_result()?;
         let inner = IndexedDBKeyRange::lower_bound(key, open);
         Ok(IDBKeyRange::new(global, inner, CanGc::note()))
     }
@@ -95,7 +95,7 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         upper: HandleValue,
         open: bool,
     ) -> Fallible<DomRoot<IDBKeyRange>> {
-        let key = convert_value_to_key(cx, upper, None)?;
+        let key = convert_value_to_key(cx, upper, None)?.into_result()?;
         let inner = IndexedDBKeyRange::upper_bound(key, open);
         Ok(IDBKeyRange::new(global, inner, CanGc::note()))
     }
@@ -112,12 +112,12 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         // Step 1. Let lowerKey be the result of running the steps to convert a value to a key with
         // lower. Rethrow any exceptions.
         // Step 2. If lowerKey is invalid, throw a "DataError" DOMException.
-        let lower_key = convert_value_to_key(cx, lower, None)?;
+        let lower_key = convert_value_to_key(cx, lower, None)?.into_result()?;
 
         // Step 3. Let upperKey be the result of running the steps to convert a value to a key with
         // upper. Rethrow any exceptions.
         // Step 4. If upperKey is invalid, throw a "DataError" DOMException.
-        let upper_key = convert_value_to_key(cx, upper, None)?;
+        let upper_key = convert_value_to_key(cx, upper, None)?.into_result()?;
 
         // Step 5. If lowerKey is greater than upperKey, throw a "DataError" DOMException.
         if lower_key > upper_key {
@@ -134,7 +134,7 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-_includes
     fn Includes(&self, cx: SafeJSContext, value: HandleValue) -> Fallible<bool> {
-        let key = convert_value_to_key(cx, value, None)?;
+        let key = convert_value_to_key(cx, value, None)?.into_result()?;
         if self.inner.contains(&key) {
             return Ok(true);
         }
