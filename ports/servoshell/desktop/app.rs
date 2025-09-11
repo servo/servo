@@ -254,7 +254,7 @@ impl App {
                     .and_then(|w| {
                         w.page_title()
                             .filter(|t| !t.is_empty())
-                            .or_else(|| w.url().map(|u| u.to_string()))
+                            .or_else(|| w.url().map(|url| url.to_string()))
                     })
                     .unwrap_or_else(|| "Servo".to_string());
 
