@@ -133,13 +133,21 @@ impl ResizeObserver {
             has_active_observation_targets = true;
 
             // #create-and-populate-a-resizeobserverentry
-
-            // Note: only calculating content box size.
-            let width = box_size.width().to_f64_px();
-            let height = box_size.height().to_f64_px();
-            let size_impl = ResizeObserverSizeImpl::new(width, height);
             let window = target.owner_window();
-            let observer_size = ResizeObserverSize::new(&window, size_impl, can_gc);
+
+
+            let (content_width, content_height) = {
+                let content_box = target
+                    .upcast::<Node>()
+                    .content_box()
+                    .unwrap_or_else(Rect::zero);
+                (content_box.width().to_f64_px(), content_box.height().to_f64_px())
+            };
+            let content_size = {
+                let size_impl = ResizeObserverSizeImpl::new(content_width, content_height);
+                observation.last_reported_sizes[0] = size_impl;
+                ResizeObserverSize::new(&window, size_impl, can_gc)
+            };
 
             // Note: content rect is built from content box size.
             let content_rect = DOMRectReadOnly::new(
@@ -147,16 +155,29 @@ impl ResizeObserver {
                 None,
                 box_size.origin.x.to_f64_px(),
                 box_size.origin.y.to_f64_px(),
-                width,
-                height,
+                content_width,
+                content_height,
                 can_gc,
             );
+
+            let (border_width, border_height) = {
+                let border_box = target
+                    .upcast::<Node>()
+                    .border_box()
+                    .unwrap_or_else(Rect::zero);
+                (border_box.width().to_f64_px(), border_box.height().to_f64_px())
+            };
+            let border_box_size = {
+                let size_impl = ResizeObserverSizeImpl::new(border_width, border_height);
+                ResizeObserverSize::new(&window, size_impl, can_gc)
+            };
+
             let entry = ResizeObserverEntry::new(
                 &window,
                 target,
                 &content_rect,
-                &[],
-                &[&*observer_size],
+                &[&*border_box_size],
+                &[&*content_size],
                 &[],
                 can_gc,
             );
@@ -166,7 +187,6 @@ impl ResizeObserver {
             // initialized with one reported size (zero).
             // The spec plans to store multiple reported sizes,
             // but for now there can be only one.
-            observation.last_reported_sizes[0] = size_impl;
             observation.state = ObservationState::Done;
             let target_depth = calculate_depth_for_node(target);
             if target_depth < *shallowest_target_depth {
