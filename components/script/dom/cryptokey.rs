@@ -10,6 +10,7 @@ use js::jsapi::{Heap, JSObject, Value};
 use js::rust::HandleObject;
 use script_bindings::conversions::SafeToJSValConvertible;
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
@@ -54,7 +55,7 @@ pub(crate) struct CryptoKey {
     algorithm_object: Heap<*mut JSObject>,
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
-    usages: Vec<KeyUsage>,
+    usages: DomRefCell<Vec<KeyUsage>>,
     #[no_trace]
     handle: Handle,
 }
@@ -73,7 +74,7 @@ impl CryptoKey {
             extractable: Cell::new(extractable),
             algorithm,
             algorithm_object: Heap::default(),
-            usages,
+            usages: DomRefCell::new(usages),
             handle,
         }
     }
@@ -110,12 +111,20 @@ impl CryptoKey {
         self.algorithm.to_string()
     }
 
-    pub(crate) fn usages(&self) -> &[KeyUsage] {
-        &self.usages
+    pub(crate) fn usages(&self) -> Vec<KeyUsage> {
+        self.usages.borrow().clone()
     }
 
     pub(crate) fn handle(&self) -> &Handle {
         &self.handle
+    }
+
+    pub(crate) fn set_extractable(&self, extractable: bool) {
+        self.extractable.set(extractable);
+    }
+
+    pub(crate) fn set_usages(&self, usages: &[KeyUsage]) {
+        *self.usages.borrow_mut() = usages.to_owned();
     }
 }
 
@@ -138,7 +147,7 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
     fn Usages(&self, cx: JSContext) -> NonNull<JSObject> {
         rooted!(in(*cx) let mut usages: Value);
-        self.usages.safe_to_jsval(cx, usages.handle_mut());
+        self.usages.borrow().safe_to_jsval(cx, usages.handle_mut());
         NonNull::new(usages.to_object()).unwrap()
     }
 }
