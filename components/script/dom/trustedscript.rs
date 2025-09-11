@@ -72,9 +72,9 @@ impl TrustedScript {
         global: &GlobalScope,
         code_string: DOMString,
         compilation_type: CompilationType,
-        _parameter_strings: u8, // FIXME in bindings generation
+        parameter_strings: Vec<DOMString>,
         body_string: DOMString,
-        _parameter_args: u8, // FIXME in bindings generation
+        parameter_args: Vec<TrustedScriptOrString>,
         body_arg: HandleValue,
         can_gc: CanGc,
     ) -> bool {
@@ -87,7 +87,7 @@ impl TrustedScript {
         };
         // Step 2.2. Let isTrusted be true if bodyArg implements TrustedScript,
         // and false otherwise.
-        let is_trusted = match TrustedTypePolicyFactory::is_trusted_script(cx, body_arg) {
+        let mut is_trusted = match TrustedTypePolicyFactory::is_trusted_script(cx, body_arg) {
             // Step 2.3. If isTrusted is true then:
             Ok(trusted_script) => {
                 // Step 2.3.1. If bodyString is not equal to bodyArg’s data, set isTrusted to false.
@@ -96,13 +96,28 @@ impl TrustedScript {
             _ => false,
         };
         // Step 2.4. If isTrusted is true, then:
-        // Step 2.4.1. Assert: parameterArgs’ [list/size=] is equal to [parameterStrings]' size.
-        // Step 2.4.2. For each index of the range 0 to |parameterArgs]' [list/size=]:
-        // Step 2.4.2.1. Let arg be parameterArgs[index].
-        // Step 2.4.2.2. If arg implements TrustedScript, then:
-        // Step 2.4.2.2.1. if parameterStrings[index] is not equal to arg’s data,
-        // set isTrusted to false.
-        // Step 2.4.2.3. Otherwise, set isTrusted to false.
+        if is_trusted {
+            // Step 2.4.1. Assert: parameterArgs’ [list/size=] is equal to [parameterStrings]' size.
+            assert!(parameter_args.len() == parameter_strings.len());
+            // Step 2.4.2. For each index of the range 0 to |parameterArgs]' [list/size=]:
+            for index in 0..parameter_args.len() {
+                // Step 2.4.2.1. Let arg be parameterArgs[index].
+                match &parameter_args[index] {
+                    // Step 2.4.2.2. If arg implements TrustedScript, then:
+                    TrustedScriptOrString::TrustedScript(trusted_script) => {
+                        // Step 2.4.2.2.1. if parameterStrings[index] is not equal to arg’s data,
+                        // set isTrusted to false.
+                        if parameter_strings[index] != trusted_script.data() {
+                            is_trusted = false;
+                        }
+                    },
+                    // Step 2.4.2.3. Otherwise, set isTrusted to false.
+                    TrustedScriptOrString::String(_) => {
+                        is_trusted = false;
+                    },
+                }
+            }
+        }
         // Step 2.5. Let sourceToValidate be a new TrustedScript object created in realm
         // whose data is set to codeString if isTrusted is true, and codeString otherwise.
         let source_string = if is_trusted {
