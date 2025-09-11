@@ -101,13 +101,27 @@ pub fn is_valid_key_path(key_path: &StrOrStringSequence) -> bool {
     }
 }
 
+pub(crate) enum ConversionResult {
+    Valid(IndexedDBKeyType),
+    Invalid,
+}
+
+impl ConversionResult {
+    pub fn into_result(self) -> Result<IndexedDBKeyType, Error> {
+        match self {
+            ConversionResult::Valid(key) => Ok(key),
+            ConversionResult::Invalid => Err(Error::Data),
+        }
+    }
+}
+
 // https://www.w3.org/TR/IndexedDB-2/#convert-value-to-key
 #[allow(unsafe_code)]
 pub fn convert_value_to_key(
     cx: SafeJSContext,
     input: HandleValue,
     seen: Option<Vec<HandleValue>>,
-) -> Result<IndexedDBKeyType, Error> {
+) -> Result<ConversionResult, Error> {
     // Step 1: If seen was not given, then let seen be a new empty set.
     let _seen = seen.unwrap_or_default();
 
@@ -121,15 +135,17 @@ pub fn convert_value_to_key(
     // FIXME:(arihant2math) Accept array as well
     if input.is_number() {
         if input.to_number().is_nan() {
-            return Err(Error::Data);
+            return Ok(ConversionResult::Invalid);
         }
-        return Ok(IndexedDBKeyType::Number(input.to_number()));
+        return Ok(ConversionResult::Valid(IndexedDBKeyType::Number(
+            input.to_number(),
+        )));
     }
 
     if input.is_string() {
         let string_ptr = std::ptr::NonNull::new(input.to_string()).unwrap();
         let key = unsafe { jsstr_to_string(*cx, string_ptr) };
-        return Ok(IndexedDBKeyType::String(key));
+        return Ok(ConversionResult::Valid(IndexedDBKeyType::String(key)));
     }
 
     if input.is_object() {
@@ -149,13 +165,15 @@ pub fn convert_value_to_key(
                 if f.is_nan() {
                     return Err(Error::Data);
                 }
-                return Ok(IndexedDBKeyType::Date(f));
+                return Ok(ConversionResult::Valid(IndexedDBKeyType::Date(f)));
             }
 
             if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
                 // FIXME:(arihant2math) implement it the correct way (is this correct?)
                 let key = structuredclone::write(cx, input, None)?;
-                return Ok(IndexedDBKeyType::Binary(key.serialized.clone()));
+                return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(
+                    key.serialized.clone(),
+                )));
             }
 
             if let ESClass::Array = built_in_class {
@@ -166,7 +184,7 @@ pub fn convert_value_to_key(
         }
     }
 
-    Err(Error::Data)
+    Ok(ConversionResult::Invalid)
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range
@@ -191,7 +209,7 @@ pub fn convert_value_to_key_range(
     if (input.get().is_undefined() || input.get().is_null()) && null_disallowed {
         return Err(Error::Data);
     }
-    let key = convert_value_to_key(cx, input, None)?;
+    let key = convert_value_to_key(cx, input, None)?.into_result()?;
     Ok(IndexedDBKeyRange::only(key))
 }
 
@@ -403,8 +421,6 @@ pub(crate) fn evaluate_key_path_on_value(
 /// <https://www.w3.org/TR/IndexedDB-2/#extract-a-key-from-a-value-using-a-key-path>
 pub(crate) enum ExtractionResult {
     Key(IndexedDBKeyType),
-    // NOTE: Invalid is not used for now. Remove the unused annotation when it is used.
-    #[expect(unused)]
     Invalid,
     Failure,
 }
@@ -434,10 +450,12 @@ pub(crate) fn extract_key(
             // TODO: implement convert_value_to_multientry_key
             unimplemented!("multiEntry keys are not yet supported");
         },
-        _ => convert_value_to_key(cx, r.handle(), None)?,
+        _ => match convert_value_to_key(cx, r.handle(), None)? {
+            ConversionResult::Valid(key) => key,
+            // Step 4. If key is invalid, return invalid.
+            ConversionResult::Invalid => return Ok(ExtractionResult::Invalid),
+        },
     };
-
-    // TODO: Step 4. If key is invalid, return invalid.
 
     // Step 5. Return key.
     Ok(ExtractionResult::Key(key))

@@ -98,8 +98,8 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp
     fn Cmp(&self, cx: SafeJSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
-        let first_key = convert_value_to_key(cx, first, None)?;
-        let second_key = convert_value_to_key(cx, second, None)?;
+        let first_key = convert_value_to_key(cx, first, None)?.into_result()?;
+        let second_key = convert_value_to_key(cx, second, None)?.into_result()?;
         let cmp = first_key.partial_cmp(&second_key);
         if let Some(cmp) = cmp {
             match cmp {
