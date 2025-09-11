@@ -320,6 +320,31 @@ impl ServiceWorkerManager {
                     // TODO: https://w3c.github.io/ServiceWorker/#unregister-algorithm
                 },
             },
+            ServiceWorkerMsg::MatchRegistration {
+                storage_key,
+                url,
+                sender,
+            } => {
+                let reg = self.match_service_worker_registration(storage_key, url);
+                let _ = sender.send(reg.map(|reg| reg.id));
+            },
+            ServiceWorkerMsg::GetRegistrations {
+                storage_key,
+                sender,
+            } => {
+                let regs: Vec<ServiceWorkerRegistrationId> = self
+                    .registrations
+                    .iter()
+                    .filter_map(|(scope, reg)| {
+                        if scope.origin() == storage_key.0 {
+                            Some(reg.id)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                let _ = sender.send(regs);
+            },
             ServiceWorkerMsg::Exit => return false,
         }
         true
@@ -452,7 +477,11 @@ impl ServiceWorkerManager {
 
     /// <https://w3c.github.io/ServiceWorker/#match-service-worker-registration>
     #[expect(dead_code)]
-    fn match_service_worker_registration(&self, storage_key: (ImmutableOrigin,), client_url: ServoUrl) -> Option<&ServiceWorkerRegistration> {
+    fn match_service_worker_registration(
+        &self,
+        storage_key: (ImmutableOrigin,),
+        client_url: ServoUrl,
+    ) -> Option<&ServiceWorkerRegistration> {
         // Step 1. Run the following steps atomically.
         // Step 2. Let clientURLString be serialized clientURL.
         let client_url_string = client_url.as_str();
@@ -482,7 +511,10 @@ impl ServiceWorkerManager {
             // Step 8.1. Set matchingScope to the result of parsing matchingScopeString.
             matching_scope = Some(ServoUrl::parse(&matching_scope_string).ok()?);
             // Step 8.2. Assert: matchingScope’s origin and clientURL’s origin are same origin.
-            assert_eq!(matching_scope.as_ref().unwrap().origin(), client_url.origin());
+            assert_eq!(
+                matching_scope.as_ref().unwrap().origin(),
+                client_url.origin()
+            );
         }
         // Step 9. Return the result of running Get Registration given storage key and matchingScope.
         // TODO: implement https://w3c.github.io/ServiceWorker/#get-registration
