@@ -803,7 +803,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         //
                         // NOTE: Serialize JsonWebKey throught stringifying it.
                         // JsonWebKey::stringify internally relies on ToJSON, so it will raise an
-                        // example when a JS error is thrown. When this happens, we report the
+                        // exception when a JS error is thrown. When this happens, we report the
                         // error.
                         match jwk.stringify(cx) {
                             Ok(stringified) => stringified.as_bytes().to_vec(),
