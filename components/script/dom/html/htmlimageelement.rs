@@ -1960,6 +1960,7 @@ fn image_dimension_setter(element: &Element, attr: LocalName, value: u32, can_gc
 }
 
 /// Collect sequence of code points
+/// <https://infra.spec.whatwg.org/#collect-a-sequence-of-code-points>
 pub(crate) fn collect_sequence_characters(
     s: &str,
     mut predicate: impl FnMut(&char) -> bool,
@@ -1983,17 +1984,13 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
         // > 4. Splitting loop: Collect a sequence of code points that are ASCII whitespace or
         // > U+002C COMMA characters from input given position. If any U+002C COMMA
         // > characters were collected, that is a parse error.
-        let mut collected_comma = false;
+        // NOTE: A parse error indicating a non-fatal mismatch between the input and the
+        // requirements will be silently ignored to match the behavior of other browsers.
+        // <https://html.spec.whatwg.org/multipage/#concept-microsyntax-parse-error>
         let (collected_characters, string_after_whitespace) =
             collect_sequence_characters(remaining_string, |character| {
-                if *character == ',' {
-                    collected_comma = true;
-                }
                 *character == ',' || character.is_ascii_whitespace()
             });
-        if collected_comma {
-            return Vec::new();
-        }
 
         // Add the length of collected whitespace, to find the start of the URL we are going
         // to parse.
@@ -2222,6 +2219,9 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
             error = true;
         }
 
+        // Step 15. If error is still no, then append a new image source to candidates whose URL is
+        // url, associated with a width width if not absent and a pixel density density if not
+        // absent. Otherwise, there is a parse error.
         if !error {
             let image_source = ImageSource {
                 url: url.into(),
@@ -2229,6 +2229,8 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
             };
             candidates.push(image_source);
         }
+
+        // Step 16. Return to the step labeled splitting loop.
     }
     candidates
 }
