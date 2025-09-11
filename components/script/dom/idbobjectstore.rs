@@ -298,7 +298,7 @@ impl IDBObjectStore {
                 ObjectStoreOrIndex::ObjectStore(Dom::from_ref(self)),
                 range.clone(),
                 key_only,
-                CanGc::note(),
+                can_gc,
             )
         } else {
             DomRoot::upcast(IDBCursorWithValue::new(
@@ -309,7 +309,7 @@ impl IDBObjectStore {
                 ObjectStoreOrIndex::ObjectStore(Dom::from_ref(self)),
                 range.clone(),
                 key_only,
-                CanGc::note(),
+                can_gc,
             ))
         };
 
