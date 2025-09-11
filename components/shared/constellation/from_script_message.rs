@@ -252,6 +252,16 @@ pub enum ServiceWorkerMsg {
     ForwardDOMMessage(DOMMessage, ServoUrl),
     /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
     ScheduleJob(Job),
+    MatchRegistration {
+        storage_key: (ImmutableOrigin,),
+        url: ServoUrl,
+        sender: IpcSender<Option<ServiceWorkerRegistrationId>>,
+    },
+    GetRegistrations {
+        /// The origin to get registrations for.
+        storage_key: (ImmutableOrigin,),
+        sender: IpcSender<Vec<ServiceWorkerRegistrationId>>,
+    },
     /// Exit the service worker manager
     Exit,
 }
@@ -682,6 +692,16 @@ pub enum ScriptToConstellationMessage {
     ForwardDOMMessage(DOMMessage, ServoUrl),
     /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
     ScheduleJob(Job),
+    MatchRegistration {
+        storage_key: (ImmutableOrigin,),
+        url: ServoUrl,
+        sender: IpcSender<Option<ServiceWorkerRegistrationId>>,
+    },
+    GetRegistrations {
+        /// The origin to get registrations for.
+        storage_key: (ImmutableOrigin,),
+        sender: IpcSender<Vec<ServiceWorkerRegistrationId>>,
+    },
     /// Notifies the constellation about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
     MediaSessionEvent(PipelineId, MediaSessionEvent),

@@ -1863,6 +1863,34 @@ where
             ScriptToConstellationMessage::ScheduleJob(job) => {
                 self.handle_schedule_serviceworker_job(source_pipeline_id, job);
             },
+            ScriptToConstellationMessage::MatchRegistration {
+                url,
+                storage_key,
+                sender,
+            } => {
+                if let Some(mgr) = self.sw_managers.get(&storage_key.0) {
+                    let _ = mgr.send(ServiceWorkerMsg::MatchRegistration {
+                        storage_key,
+                        url,
+                        sender,
+                    });
+                } else {
+                    let _ = sender.send(None);
+                }
+            },
+            ScriptToConstellationMessage::GetRegistrations {
+                storage_key,
+                sender,
+            } => {
+                if let Some(mgr) = self.sw_managers.get(&storage_key.0) {
+                    let _ = mgr.send(ServiceWorkerMsg::GetRegistrations {
+                        storage_key,
+                        sender,
+                    });
+                } else {
+                    let _ = sender.send(vec![]);
+                }
+            },
             ScriptToConstellationMessage::ForwardDOMMessage(msg_vec, scope_url) => {
                 if let Some(mgr) = self.sw_managers.get(&scope_url.origin()) {
                     let _ = mgr.send(ServiceWorkerMsg::ForwardDOMMessage(msg_vec, scope_url));

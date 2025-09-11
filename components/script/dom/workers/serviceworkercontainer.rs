@@ -10,15 +10,17 @@ use constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
 };
 use dom_struct::dom_struct;
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
+
 use script_bindings::codegen::GenericBindings::ClientBinding::ClientMethods;
 use js::realm::CurrentRealm;
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
 };
-use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::refcounted::TrustedPromise;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
@@ -216,20 +218,58 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
     // }
 
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistrations>
+    #[allow(unsafe_code)]
     fn GetRegistrations(&self) -> Rc<Promise> {
+        let global = self.global();
         // Step 1. Let client be this’s service worker client.
         // Step 2. Let client storage key be the result of running obtain a storage key given client.
         let storage_key = match self.client.obtain_storage_key() {
             Ok(key) => key,
             Err(()) => {
-                let promise = Promise::new(&*self.global(), CanGc::note());
+                let promise = Promise::new(&*global, CanGc::note());
                 promise.reject_error(Error::InvalidAccess, CanGc::note());
                 return promise;
             },
         };
         // Step 3. Let promise be a new promise.
-        let promise = Promise::new(&*self.global(), CanGc::note());
+        let promise = Promise::new(&*global, CanGc::note());
         // Step 4. Run the following steps in parallel:
+        let (sender, receiver) = ipc::channel().unwrap();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        let message = ScriptToConstellationMessage::GetRegistrations {
+            storage_key,
+            sender,
+        };
+        let _ = script_to_constellation_chan.send(message);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let creation_url = self.client.creation_url();
+        let trusted_self = Trusted::new(self);
+
+        ROUTER.add_typed_route(
+            receiver,
+            Box::new(move |message| {
+                let registration_ids = message.unwrap_or_default();
+                let mut registrations = Vec::with_capacity(registration_ids.len());
+                for registration in registration_ids {
+                    let reg = trusted_self.root().global().get_serviceworker_registration(
+                        &creation_url,
+                        &creation_url,
+                        registration,
+                        None,
+                        None,
+                        None,
+                        CanGc::note(),
+                    );
+                    registrations.push(reg);
+                }
+                trusted_promise
+                    .resolve_task(&registrations);
+            }),
+        );
         promise
     }
 }
