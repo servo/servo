@@ -94,6 +94,7 @@ jobs:
   runner-timeout:
     needs:
       - runner-select
+    if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -102,7 +103,6 @@ jobs:
           sparse-checkout: '.github'
       - name: Runner timeout
         uses: ./.github/actions/runner-timeout
-        if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         with:
           github_token: '${{ secrets.GITHUB_TOKEN }}'
           unique-id: '${{ needs.runner-select.outputs.unique-id }}'
