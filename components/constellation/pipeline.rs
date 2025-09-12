@@ -212,6 +212,9 @@ pub struct InitialPipelineState {
 
     /// A list of URLs that can access privileged internal APIs.
     pub privileged_urls: Vec<ServoUrl>,
+
+    /// The image cache for the single-process mode
+    pub image_cache: Arc<dyn ImageCache>,
 }
 
 pub struct NewPipeline {
@@ -338,6 +341,7 @@ impl Pipeline {
                         false,
                         state.layout_factory,
                         register,
+                        Some(state.image_cache),
                     );
                     (None, None, Some(join_handle))
                 };
@@ -517,15 +521,20 @@ impl UnprivilegedPipelineContent {
         wait_for_completion: bool,
         layout_factory: Arc<dyn LayoutFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+        image_cache: Option<Arc<dyn ImageCache>>,
     ) -> JoinHandle<()> {
         // Setup pipeline-namespace-installing for all threads in this process.
         // Idempotent in single-process mode.
         PipelineNamespace::set_installer_sender(self.namespace_request_sender);
 
-        let image_cache = Arc::new(ImageCacheImpl::new(
-            self.cross_process_compositor_api.clone(),
-            self.rippy_data,
-        ));
+        let image_cache = image_cache.unwrap_or_else(|| {
+            // Create a new image cache (in the multiprocess case)
+            Arc::new(ImageCacheImpl::new(
+                self.cross_process_compositor_api.clone(),
+                self.rippy_data,
+            ))
+        });
+
         let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         let join_handle = STF::create(
             InitialScriptState {
@@ -542,7 +551,7 @@ impl UnprivilegedPipelineContent {
                 #[cfg(feature = "bluetooth")]
                 bluetooth_sender: self.bluetooth_thread,
                 resource_threads: self.resource_threads,
-                image_cache: image_cache.clone(),
+                image_cache,
                 time_profiler_sender: self.time_profiler_chan.clone(),
                 memory_profiler_sender: self.mem_profiler_chan.clone(),
                 devtools_server_sender: self.devtools_ipc_sender,
