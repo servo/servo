@@ -61,7 +61,6 @@ impl Client {
     }
 
     /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
-    #[expect(dead_code)]
     pub(crate) fn obtain_storage_key_for_non_storage_purposes(&self) -> (ImmutableOrigin,) {
         // Step 1. Let origin be environment’s origin if environment is an environment settings object;
         // otherwise environment’s creation URL’s origin.
@@ -71,7 +70,6 @@ impl Client {
     }
 
     /// <https://storage.spec.whatwg.org/#obtain-a-storage-key>
-    #[expect(dead_code)]
     pub(crate) fn obtain_storage_key(&self) -> Result<(ImmutableOrigin,), ()> {
         // Step 1. Let key be the result of running obtain a storage key for non-storage purposes with environment.
         let key = self.obtain_storage_key_for_non_storage_purposes();
