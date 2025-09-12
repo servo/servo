@@ -2400,8 +2400,9 @@ impl Handler {
         self.handle_any_user_prompts(webview_id)?;
 
         // Step 3 - 4
-        let cmd = WebDriverScriptCommand::GetBoundingClientRect(element.to_string(), sender);
-        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+        let cmd =
+            WebDriverScriptCommand::ScrollAndGetBoundingClientRect(element.to_string(), sender);
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         match wait_for_ipc_response(receiver)? {
             Ok(rect) => {
