@@ -49,7 +49,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptio
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::{
+    ScrollBehavior, ScrollOptions, WindowMethods,
+};
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
     XPathResultConstants, XPathResultMethods,
@@ -1933,7 +1935,8 @@ pub(crate) fn handle_element_click(
         .send(
             // Step 3
             get_known_element(documents, pipeline, element_id).and_then(|element| {
-                // Step 4
+                // Step 4. If the element is an input element in the file upload state
+                // return error with error code invalid argument.
                 if let Some(input_element) = element.downcast::<HTMLInputElement>() {
                     if input_element.input_type() == InputType::File {
                         return Err(ErrorStatus::InvalidArgument);
@@ -1944,7 +1947,7 @@ pub(crate) fn handle_element_click(
                     return Err(ErrorStatus::UnknownError);
                 };
 
-                // Step 5
+                // Step 5. Scroll into view the element's container.
                 scroll_into_view(&container, documents, &pipeline, can_gc);
 
                 // Step 6. If element's container is still not in view
@@ -2169,10 +2172,13 @@ fn scroll_into_view(
     }
 
     // Step 1. Let options be the following ScrollIntoViewOptions:
+    // - "behavior": instant
     // - Logical scroll position "block": end
     // - Logical scroll position "inline": nearest
     let options = BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(ScrollIntoViewOptions {
-        parent: Default::default(),
+        parent: ScrollOptions {
+            behavior: ScrollBehavior::Instant,
+        },
         block: ScrollLogicalPosition::End,
         inline: ScrollLogicalPosition::Nearest,
         container: Default::default(),
