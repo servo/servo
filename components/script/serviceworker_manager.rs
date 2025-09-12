@@ -476,7 +476,6 @@ impl ServiceWorkerManager {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#match-service-worker-registration>
-    #[expect(dead_code)]
     fn match_service_worker_registration(
         &self,
         storage_key: (ImmutableOrigin,),

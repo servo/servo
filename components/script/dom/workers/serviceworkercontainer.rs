@@ -245,29 +245,40 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             sender,
         };
         let _ = script_to_constellation_chan.send(message);
-        let trusted_promise = TrustedPromise::new(promise.clone());
-        let creation_url = self.client.creation_url();
-        let trusted_self = Trusted::new(self);
 
         ROUTER.add_typed_route(
             receiver,
-            Box::new(move |message| {
-                let registration_ids = message.unwrap_or_default();
-                let mut registrations = Vec::with_capacity(registration_ids.len());
-                for registration in registration_ids {
-                    let reg = trusted_self.root().global().get_serviceworker_registration(
-                        &creation_url,
-                        &creation_url,
-                        registration,
-                        None,
-                        None,
-                        None,
-                        CanGc::note(),
-                    );
-                    registrations.push(reg);
+            Box::new({
+                let mut trusted_promise = Some(TrustedPromise::new(promise.clone()));
+                let creation_url = self.client.creation_url();
+                let trusted_self = Trusted::new(self);
+
+                move |message| {
+                    let creation_url = creation_url.clone();
+                    // FIXME(arihant2math): Can be made more ergonomic once servo/ipc-channel#418 is merged.
+                    let trusted_self = trusted_self.clone();
+                    let trusted_promise = trusted_promise
+                        .take()
+                        .expect("router handler is only called once");
+
+                    task_source.queue(task!(resolve_promise: move || {
+                        let registration_ids = message.unwrap_or_default();
+                        let mut registrations = Vec::with_capacity(registration_ids.len());
+                        for registration in registration_ids {
+                            let reg = trusted_self.root().global().get_serviceworker_registration(
+                                &creation_url,
+                                &creation_url,
+                                registration,
+                                None,
+                                None,
+                                None,
+                                CanGc::note(),
+                            );
+                            registrations.push(reg);
+                        }
+                        trusted_promise.root().resolve_native(&registrations, CanGc::note())
+                    }));
                 }
-                trusted_promise
-                    .resolve_task(&registrations);
             }),
         );
         promise
