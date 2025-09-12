@@ -17,7 +17,6 @@ use js::jsval::{DoubleValue, UndefinedValue};
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::indexeddb_thread::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
-use oxc_syntax::identifier::is_identifier_name;
 use profile_traits::ipc;
 use profile_traits::ipc::IpcReceiver;
 use serde::{Deserialize, Serialize};
@@ -79,24 +78,23 @@ pub fn key_type_to_jsval(
     }
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#valid-key-path>
-pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> bool {
-    // A valid key path is one of:
+// https://www.w3.org/TR/IndexedDB-2/#valid-key-path
+pub fn is_valid_key_path(key_path: &StrOrStringSequence) -> bool {
+    fn is_identifier(_s: &str) -> bool {
+        // FIXME: (arihant2math)
+        true
+    }
 
     let is_valid = |path: &DOMString| {
-        // An empty string.
-        // An identifier, which is a string matching the IdentifierName production from the
-        // ECMAScript Language Specification [ECMA-262].
-        // A string consisting of two or more identifiers separated by periods (U+002E FULL STOP).
-        path.is_empty() || is_identifier_name(path) || path.split(".").all(is_identifier_name)
+        path.is_empty() || is_identifier(path) || path.split(".").all(is_identifier)
     };
 
     match key_path {
         StrOrStringSequence::StringSequence(paths) => {
-            // A non-empty list containing only strings conforming to the above requirements.
             if paths.is_empty() {
                 return false;
             }
+
             paths.iter().all(is_valid)
         },
         StrOrStringSequence::String(path) => is_valid(path),
