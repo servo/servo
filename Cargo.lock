@@ -1643,7 +1643,7 @@ dependencies = [
 [[package]]
 name = "content-security-policy"
 version = "0.5.4"
-source = "git+https://github.com/servo/rust-content-security-policy?branch=servo-csp#b437ae2001616161ce4729b49408e7785b2f6960"
+source = "git+https://github.com/servo/rust-content-security-policy?branch=servo-csp#7b7bbb54905f44fb6b001fcd4d7ad45503c2e664"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.9.4",
@@ -5349,7 +5349,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#af903e0fc6f634699a8a7fc021adcbb3389beefd"
+source = "git+https://github.com/servo/mozjs#ae642f8cd3d2b462b40b99a11da06df9912ecc2c"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -5361,8 +5361,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "0.140.0-1"
-source = "git+https://github.com/servo/mozjs#af903e0fc6f634699a8a7fc021adcbb3389beefd"
+version = "0.140.0-3"
+source = "git+https://github.com/servo/mozjs#ae642f8cd3d2b462b40b99a11da06df9912ecc2c"
 dependencies = [
  "bindgen 0.71.1",
  "cargo_metadata",
