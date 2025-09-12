@@ -211,7 +211,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 5
         if let Some(path) = key_path {
-            if !is_valid_key_path(path) {
+            if !is_valid_key_path(path)? {
                 return Err(Error::Syntax(None));
             }
         }

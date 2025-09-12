@@ -7,6 +7,7 @@ use std::iter::repeat_n;
 use std::ptr;
 
 use ipc_channel::ipc::IpcSender;
+use itertools::Itertools;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandle;
 use js::jsapi::{
@@ -14,7 +15,7 @@ use js::jsapi::{
     JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
 };
 use js::jsval::{DoubleValue, UndefinedValue};
-use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty};
+use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty, JS_IsIdentifier};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::indexeddb_thread::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
 use profile_traits::ipc;
@@ -78,24 +79,58 @@ pub fn key_type_to_jsval(
     }
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#valid-key-path
-pub fn is_valid_key_path(key_path: &StrOrStringSequence) -> bool {
-    fn is_identifier(_s: &str) -> bool {
-        // FIXME: (arihant2math)
-        true
-    }
+/// <https://www.w3.org/TR/IndexedDB-2/#valid-key-path>
+pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> Result<bool, Error> {
+    // <https://tc39.es/ecma262/#prod-IdentifierName>
+    #[allow(unsafe_code)]
+    let is_identifier_name = |name: &str| -> Result<bool, Error> {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut value = UndefinedValue());
+        name.safe_to_jsval(cx, value.handle_mut());
+        rooted!(in(*cx) let string = value.to_string());
 
-    let is_valid = |path: &DOMString| {
-        path.is_empty() || is_identifier(path) || path.split(".").all(is_identifier)
+        unsafe {
+            let mut is_identifier = false;
+            if !JS_IsIdentifier(*cx, string.handle(), &mut is_identifier) {
+                return Err(Error::JSFailed);
+            }
+            Ok(is_identifier)
+        }
+    };
+
+    // A valid key path is one of:
+    let is_valid = |path: &DOMString| -> Result<bool, Error> {
+        // An empty string.
+        let is_empty_string = path.is_empty();
+
+        // An identifier, which is a string matching the IdentifierName production from the
+        // ECMAScript Language Specification [ECMA-262].
+        let is_identifier = is_identifier_name(path)?;
+
+        // A string consisting of two or more identifiers separated by periods (U+002E FULL STOP).
+        let is_identifier_list = path
+            .split(".")
+            .map(is_identifier_name)
+            .try_collect::<bool, Vec<bool>, Error>()?
+            .iter()
+            .all(|&value| value);
+
+        Ok(is_empty_string || is_identifier || is_identifier_list)
     };
 
     match key_path {
         StrOrStringSequence::StringSequence(paths) => {
+            // A non-empty list containing only strings conforming to the above requirements.
             if paths.is_empty() {
-                return false;
+                Ok(false)
+            } else {
+                Ok(paths
+                    .iter()
+                    .map(is_valid)
+                    .try_collect::<bool, Vec<bool>, Error>()?
+                    .iter()
+                    .all(|&value| value))
             }
-
-            paths.iter().all(is_valid)
         },
         StrOrStringSequence::String(path) => is_valid(path),
     }
