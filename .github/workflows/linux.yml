@@ -122,7 +122,9 @@ jobs:
           # You can disable self-hosted runners globally by creating a repository variable named
           # NO_SELF_HOSTED_RUNNERS with any non-empty value.
           # <https://github.com/servo/servo/settings/variables/actions>
-          force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner || ((vars.NO_SELF_HOSTED_RUNNERS || false) && true) }}
+          NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
+          # Any other boolean conditions that disable self-hosted runners go here.
+          force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner }}
   runner-timeout:
     needs:
       - runner-select
