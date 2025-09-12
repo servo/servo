@@ -76,12 +76,27 @@ jobs:
   # Runs the underlying job (“workload”) on a self-hosted runner if available,
   # with the help of a `runner-select` job and a `runner-timeout` job.
   runner-select:
-    uses: ./.github/workflows/self-hosted-runner-select.yml
-    secrets: inherit
-    with:
-      github-hosted-runner-label: windows-2022
-      self-hosted-image-name: servo-windows10
-      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+    runs-on: ubuntu-22.04
+    outputs:
+      unique-id: ${{ steps.select.outputs.unique-id }}
+      selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
+      is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: '.github'
+      - name: Runner select
+        id: select
+        uses: ./.github/actions/runner-select
+        with:
+          monitor-api-token: ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}
+          github-hosted-runner-label: windows-2022
+          self-hosted-image-name: servo-windows10
+          # You can disable self-hosted runners globally by creating a repository variable named
+          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
+          # <https://github.com/servo/servo/settings/variables/actions>
+          force-github-hosted-runner: ${{ inputs.force-github-hosted-runner || vars.NO_SELF_HOSTED_RUNNERS }}
   runner-timeout:
     needs:
       - runner-select
