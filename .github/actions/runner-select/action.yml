@@ -76,6 +76,8 @@ runs:
           https://ci0.servo.org \
           https://ci1.servo.org \
           https://ci2.servo.org \
+          https://ci3.servo.org \
+          https://ci4.servo.org \
         | shuf); do
           # Use the monitor API to reserve a runner. If we get an object with
           # runner details, we succeeded. If we get null, we failed.
