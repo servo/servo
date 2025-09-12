@@ -234,7 +234,7 @@ pub fn convert_value_to_key(
                         return Err(Error::JSFailed);
                     }
                     if !has_own {
-                        return Err(Error::InvalidState);
+                        return Ok(ConversionResult::Invalid);
                     }
                     rooted!(in(*cx) let mut item = UndefinedValue());
                     if !js::jsapi::JS_GetPropertyById(
@@ -245,9 +245,13 @@ pub fn convert_value_to_key(
                     ) {
                         return Err(Error::JSFailed);
                     }
-                    values.push(convert_value_to_key(cx, item.handle(), Some(seen.clone()))?);
+                    let key = match convert_value_to_key(cx, item.handle(), Some(seen.clone()))? {
+                        ConversionResult::Valid(key) => key,
+                        ConversionResult::Invalid => return Ok(ConversionResult::Invalid),
+                    };
+                    values.push(key);
                 }
-                return Ok(IndexedDBKeyType::Array(values));
+                return Ok(ConversionResult::Valid(IndexedDBKeyType::Array(values)));
             }
         }
     }
