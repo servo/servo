@@ -707,7 +707,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.has_key_generator()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-createindex
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-createindex>
     fn CreateIndex(
         &self,
         name: DOMString,
