@@ -109,6 +109,9 @@ pub(super) enum ServoAction {
         width: i32,
         height: i32,
     },
+    KeyboardHeightChange {
+        height: i32,
+    },
     FocusWebview(u32),
     NewWebview(XComponentWrapper, WindowWrapper),
 }
@@ -208,6 +211,7 @@ impl ServoAction {
                 servo.present_if_needed();
             },
             Resize { width, height } => servo.resize(Coordinates::new(0, 0, *width, *height)),
+            KeyboardHeightChange { height } => servo.handle_keyboard_height_change(*height),
             FocusWebview(arkts_id) => {
                 if let Some(native_webview_components) =
                     NATIVE_WEBVIEWS.lock().unwrap().get(*arkts_id as usize)
@@ -743,6 +747,13 @@ pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
 fn focus_webview(id: u32) {
     debug!("Focusing webview {id} from napi");
     call(ServoAction::FocusWebview(id)).expect("Could not focus webview");
+}
+
+#[napi(js_name = "keyboardHeightChange")]
+fn keyboard_height_change(height: i32) {
+    debug!("Keyboard height changed to: {height}");
+    call(ServoAction::KeyboardHeightChange { height })
+        .expect("Could not handle keyboard height change");
 }
 
 struct OhosImeOptions {
