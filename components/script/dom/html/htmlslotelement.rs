@@ -352,11 +352,11 @@ impl HTMLSlotElement {
         }
         self.is_in_agents_signal_slots.set(true);
 
+        let mutation_observers = ScriptThread::mutation_observers();
         // Step 1. Append slot to slot’s relevant agent’s signal slots.
-        ScriptThread::add_signal_slot(self);
+        mutation_observers.add_signal_slot(self);
 
         // Step 2. Queue a mutation observer microtask.
-        let mutation_observers = ScriptThread::mutation_observers();
         mutation_observers.queue_mutation_observer_microtask(ScriptThread::microtask_queue());
     }
 

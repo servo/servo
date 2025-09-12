@@ -10,7 +10,6 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
 
-use crate::ScriptThread;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
 use crate::microtask::{Microtask, MicrotaskQueue};
@@ -26,6 +25,9 @@ pub(crate) struct ScriptMutationObservers {
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
+
+    /// <https://dom.spec.whatwg.org/#signal-slot-list>
+    signal_slots: DomRefCell<Vec<Dom<HTMLSlotElement>>>,
 }
 
 impl ScriptMutationObservers {
@@ -46,7 +48,7 @@ impl ScriptMutationObservers {
 
         // Step 4. Let signalSet be a clone of the surrounding agent’s signal slots.
         // Step 5. Empty the surrounding agent’s signal slots.
-        let signal_set: Vec<DomRoot<HTMLSlotElement>> = ScriptThread::take_signal_slots();
+        let signal_set: Vec<DomRoot<HTMLSlotElement>> = self.take_signal_slots();
 
         // Step 6. For each mo of notifySet:
         for mo in notify_list.iter() {
@@ -92,5 +94,20 @@ impl ScriptMutationObservers {
         crate::script_thread::with_script_thread(|script_thread| {
             microtask_queue.enqueue(Microtask::NotifyMutationObservers, script_thread.get_cx());
         });
+    }
+
+    pub(crate) fn add_signal_slot(&self, observer: &HTMLSlotElement) {
+        self.signal_slots.borrow_mut().push(Dom::from_ref(observer));
+    }
+
+    pub(crate) fn take_signal_slots(&self) -> Vec<DomRoot<HTMLSlotElement>> {
+        self.signal_slots
+            .take()
+            .into_iter()
+            .inspect(|slot| {
+                slot.remove_from_signal_slots();
+            })
+            .map(|slot| slot.as_rooted())
+            .collect()
     }
 }

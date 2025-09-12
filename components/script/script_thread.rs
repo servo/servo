@@ -126,7 +126,6 @@ use crate::dom::document::{
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
-use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::NodeTraits;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
@@ -280,9 +279,6 @@ pub struct ScriptThread {
     microtask_queue: Rc<MicrotaskQueue>,
 
     mutation_observers: Rc<ScriptMutationObservers>,
-
-    /// <https://dom.spec.whatwg.org/#signal-slot-list>
-    signal_slots: DomRefCell<Vec<Dom<HTMLSlotElement>>>,
 
     /// A handle to the WebGL thread
     #[no_trace]
@@ -505,29 +501,6 @@ impl ScriptThread {
 
     pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
         with_script_thread(|script_thread| script_thread.microtask_queue.clone())
-    }
-
-    pub(crate) fn add_signal_slot(observer: &HTMLSlotElement) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .signal_slots
-                .borrow_mut()
-                .push(Dom::from_ref(observer));
-        })
-    }
-
-    pub(crate) fn take_signal_slots() -> Vec<DomRoot<HTMLSlotElement>> {
-        with_script_thread(|script_thread| {
-            script_thread
-                .signal_slots
-                .take()
-                .into_iter()
-                .inspect(|slot| {
-                    slot.remove_from_signal_slots();
-                })
-                .map(|slot| slot.as_rooted())
-                .collect()
-        })
     }
 
     pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
@@ -1001,7 +974,6 @@ impl ScriptThread {
             js_runtime,
             closed_pipelines: DomRefCell::new(FxHashSet::default()),
             mutation_observers: Default::default(),
-            signal_slots: Default::default(),
             system_font_service,
             webgl_chan: state.webgl_chan,
             #[cfg(feature = "webxr")]
