@@ -82,7 +82,7 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
-use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
@@ -115,7 +115,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
+use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
@@ -133,7 +133,7 @@ use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
-use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
+use crate::dom::windowproxy::WindowProxy;
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
@@ -151,6 +151,7 @@ use crate::script_runtime::{
     CanGc, IntroductionType, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory,
     ThreadSafeJSContext,
 };
+use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_queue::TaskQueue;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::webdriver_handlers::jsval_to_webdriver;
@@ -227,9 +228,7 @@ pub struct ScriptThread {
     /// The documents for pipelines managed by this thread
     documents: DomRefCell<DocumentCollection>,
     /// The window proxies known by this thread
-    /// TODO: this map grows, but never shrinks. Issue #15258.
-    window_proxies:
-        DomRefCell<HashMapTracedValues<BrowsingContextId, Dom<WindowProxy>, FxBuildHasher>>,
+    window_proxies: Rc<ScriptWindowProxies>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
@@ -746,24 +745,13 @@ impl ScriptThread {
             })
     }
 
-    pub(crate) fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
-        with_script_thread(|script_thread| {
-            script_thread
-                .window_proxies
-                .borrow()
-                .get(&id)
-                .map(|context| DomRoot::from_ref(&**context))
-        })
+    pub(crate) fn window_proxies() -> Rc<ScriptWindowProxies> {
+        with_script_thread(|script_thread| script_thread.window_proxies.clone())
     }
 
     pub(crate) fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
         with_script_thread(|script_thread| {
-            for (_, proxy) in script_thread.window_proxies.borrow().iter() {
-                if proxy.get_name() == *name {
-                    return Some(DomRoot::from_ref(&**proxy));
-                }
-            }
-            None
+            script_thread.window_proxies.find_window_proxy_by_name(name)
         })
     }
 
@@ -986,7 +974,7 @@ impl ScriptThread {
         ScriptThread {
             documents: DomRefCell::new(DocumentCollection::default()),
             last_render_opportunity_time: Default::default(),
-            window_proxies: DomRefCell::new(HashMapTracedValues::new_fx()),
+            window_proxies: Default::default(),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
             senders,
@@ -2760,7 +2748,8 @@ impl ScriptThread {
             Some(window) => {
                 // FIXME: synchronously talks to constellation.
                 // send the required info as part of postmessage instead.
-                let source = match self.remote_window_proxy(
+                let source = match self.window_proxies.remote_window_proxy(
+                    &self.senders,
                     window.upcast::<GlobalScope>(),
                     source_browsing_context,
                     source_pipeline_id,
@@ -2820,7 +2809,9 @@ impl ScriptThread {
         if let Some(window) = self.documents.borrow().find_window(new_pipeline_id) {
             // Ensure that the state of any local window proxies accurately reflects
             // the new pipeline.
-            let _ = self.local_window_proxy(
+            let _ = self.window_proxies.local_window_proxy(
+                &self.senders,
+                &self.documents,
                 &window,
                 browsing_context_id,
                 webview_id,
@@ -3113,21 +3104,6 @@ impl ScriptThread {
         }
     }
 
-    fn ask_constellation_for_browsing_context_info(
-        &self,
-        pipeline_id: PipelineId,
-    ) -> Option<(BrowsingContextId, Option<PipelineId>)> {
-        let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptToConstellationMessage::GetBrowsingContextInfo(pipeline_id, result_sender);
-        self.senders
-            .pipeline_to_constellation_sender
-            .send((pipeline_id, msg))
-            .expect("Failed to send to constellation.");
-        result_receiver
-            .recv()
-            .expect("Failed to get browsing context info from constellation.")
-    }
-
     fn ask_constellation_for_top_level_info(
         &self,
         sender_pipeline: PipelineId,
@@ -3145,104 +3121,6 @@ impl ScriptThread {
         result_receiver
             .recv()
             .expect("Failed to get top-level id from constellation.")
-    }
-
-    // Get the browsing context for a pipeline that may exist in another
-    // script thread.  If the browsing context already exists in the
-    // `window_proxies` map, we return it, otherwise we recursively
-    // get the browsing context for the parent if there is one,
-    // construct a new dissimilar-origin browsing context, add it
-    // to the `window_proxies` map, and return it.
-    fn remote_window_proxy(
-        &self,
-        global_to_clone: &GlobalScope,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        opener: Option<BrowsingContextId>,
-    ) -> Option<DomRoot<WindowProxy>> {
-        let (browsing_context_id, parent_pipeline_id) =
-            self.ask_constellation_for_browsing_context_info(pipeline_id)?;
-        if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
-            return Some(DomRoot::from_ref(window_proxy));
-        }
-
-        let parent_browsing_context = parent_pipeline_id.and_then(|parent_id| {
-            self.remote_window_proxy(global_to_clone, webview_id, parent_id, opener)
-        });
-
-        let opener_browsing_context = opener.and_then(ScriptThread::find_window_proxy);
-
-        let creator = CreatorBrowsingContextInfo::from(
-            parent_browsing_context.as_deref(),
-            opener_browsing_context.as_deref(),
-        );
-
-        let window_proxy = WindowProxy::new_dissimilar_origin(
-            global_to_clone,
-            browsing_context_id,
-            webview_id,
-            parent_browsing_context.as_deref(),
-            opener,
-            creator,
-        );
-        self.window_proxies
-            .borrow_mut()
-            .insert(browsing_context_id, Dom::from_ref(&*window_proxy));
-        Some(window_proxy)
-    }
-
-    // Get the browsing context for a pipeline that exists in this
-    // script thread.  If the browsing context already exists in the
-    // `window_proxies` map, we return it, otherwise we recursively
-    // get the browsing context for the parent if there is one,
-    // construct a new similar-origin browsing context, add it
-    // to the `window_proxies` map, and return it.
-    fn local_window_proxy(
-        &self,
-        window: &Window,
-        browsing_context_id: BrowsingContextId,
-        webview_id: WebViewId,
-        parent_info: Option<PipelineId>,
-        opener: Option<BrowsingContextId>,
-    ) -> DomRoot<WindowProxy> {
-        if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
-            // Note: we do not set the window to be the currently-active one,
-            // this will be done instead when the script-thread handles the `SetDocumentActivity` msg.
-            return DomRoot::from_ref(window_proxy);
-        }
-        let iframe = parent_info.and_then(|parent_id| {
-            self.documents
-                .borrow()
-                .find_iframe(parent_id, browsing_context_id)
-        });
-        let parent_browsing_context = match (parent_info, iframe.as_ref()) {
-            (_, Some(iframe)) => Some(iframe.owner_window().window_proxy()),
-            (Some(parent_id), _) => {
-                self.remote_window_proxy(window.upcast(), webview_id, parent_id, opener)
-            },
-            _ => None,
-        };
-
-        let opener_browsing_context = opener.and_then(ScriptThread::find_window_proxy);
-
-        let creator = CreatorBrowsingContextInfo::from(
-            parent_browsing_context.as_deref(),
-            opener_browsing_context.as_deref(),
-        );
-
-        let window_proxy = WindowProxy::new(
-            window,
-            browsing_context_id,
-            webview_id,
-            iframe.as_deref().map(Castable::upcast),
-            parent_browsing_context.as_deref(),
-            opener,
-            creator,
-        );
-        self.window_proxies
-            .borrow_mut()
-            .insert(browsing_context_id, Dom::from_ref(&*window_proxy));
-        window_proxy
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
@@ -3358,7 +3236,9 @@ impl ScriptThread {
         let _realm = enter_realm(&*window);
 
         // Initialize the browsing context for the window.
-        let window_proxy = self.local_window_proxy(
+        let window_proxy = self.window_proxies.local_window_proxy(
+            &self.senders,
+            &self.documents,
             &window,
             incomplete.browsing_context_id,
             incomplete.webview_id,
