@@ -97,16 +97,27 @@ jobs:
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
       - uses: actions/checkout@v4
-        if: github.event_name != 'pull_request_target'
-        with:
-          fetch-depth: 0
+        if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
       - uses: actions/checkout@v4
-        if: github.event_name == 'pull_request_target'
+        if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
         with:
-          ref: refs/pull/${{ github.event.number }}/head
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      # Faster checkout for self-hosted runner that uses prebaked repo.
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
+        # NOTE: bencher workflow requires --depth=2, since we may need to do `git rev-parse HEAD~1`
+        run: git fetch --depth=2 origin $GITHUB_SHA
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
+        # NOTE: bencher workflow requires --depth=2, since we may need to do `git rev-parse HEAD~1`
+        run: git fetch --depth=2 origin ${{ github.event.pull_request.head.sha }}
+      - if: ${{ runner.environment == 'self-hosted' }}
+        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
+        # trees, in case the runner image was baked with a dirty working tree.
+        run: |
+          git switch --detach
+          git reset --hard FETCH_HEAD
+
       - uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}
@@ -119,9 +130,10 @@ jobs:
         if: ${{ inputs.compressed-file-path != '' && !contains(inputs.compressed-file-path, '.tar.gz') }}
         run: unzip ${{ inputs.compressed-file-path }}
       - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
-        if: ${{ inputs.speedometer == true || inputs.dromaeo == true }}
+        if: ${{ runner.environment != 'self-hosted' && (inputs.speedometer || inputs.dromaeo) }}
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
