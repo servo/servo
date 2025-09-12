@@ -694,7 +694,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames>
     fn IndexNames(&self) -> DomRoot<DOMStringList> {
-        self.index_names.clone()
+        DOMStringList::new(&*self.global(), self.index_names.borrow().clone(), CanGc::note())
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction>
@@ -771,7 +771,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         ))
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-deleteindex
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-deleteindex>
     fn DeleteIndex(&self, name: DOMString) -> Fallible<()> {
         // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if self.transaction.Mode() != IDBTransactionMode::Versionchange {
