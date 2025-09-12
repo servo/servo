@@ -23,3 +23,7 @@
 # Reviewers for WebGPU related code
 /components/webgpu @sagudev
 /components/script/dom/webgpu @sagudev
+
+# Reviewers for WebDriver related code
+/components/webdriver_server @yezhizhen
+/components/script/webdriver_handlers.rs @yezhizhen
