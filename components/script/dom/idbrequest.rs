@@ -8,12 +8,12 @@ use std::iter::repeat_n;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
-use js::jsval::{DoubleValue, JSVal, UndefinedValue};
+use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, BackendError, BackendResult, IndexedDBKeyType, IndexedDBThreadMsg,
-    IndexedDBTxnMode, PutItemResult,
+    AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
+    IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,
 };
 use profile_traits::ipc::IpcReceiver;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -27,13 +27,15 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransacti
 use crate::dom::bindings::error::{Error, Fallible, create_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::structuredclone;
 use crate::dom::domexception::DOMException;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::idbcursor::{IterationParam, iterate_cursor};
+use crate::dom::idbcursorwithvalue::IDBCursorWithValue;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::indexed_db::key_type_to_jsval;
@@ -43,6 +45,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 #[derive(Clone)]
 struct RequestListener {
     request: Trusted<IDBRequest>,
+    iteration_param: Option<IterationParam>,
 }
 
 pub enum IdbResult {
@@ -51,6 +54,7 @@ pub enum IdbResult {
     Value(Vec<u8>),
     Values(Vec<Vec<u8>>),
     Count(u64),
+    Iterate(Vec<IndexedDBRecord>),
     Error(Error),
     None,
 }
@@ -85,6 +89,12 @@ impl From<PutItemResult> for IdbResult {
             PutItemResult::Success => Self::None,
             PutItemResult::CannotOverwrite => Self::Error(Error::Constraint),
         }
+    }
+}
+
+impl From<Vec<IndexedDBRecord>> for IdbResult {
+    fn from(value: Vec<IndexedDBRecord>) -> Self {
+        Self::Iterate(value)
     }
 }
 
@@ -170,6 +180,33 @@ impl RequestListener {
                 },
                 IdbResult::Count(count) => {
                     answer.handle_mut().set(DoubleValue(count as f64));
+                },
+                IdbResult::Iterate(records) => {
+                    let param = self.iteration_param.as_ref().expect(
+                        "iteration_param must be provided by IDBRequest::execute_async for Iterate",
+                    );
+                    let cursor = match iterate_cursor(&global, cx, param, records) {
+                        Ok(cursor) => cursor,
+                        Err(e) => {
+                            warn!("Error reading structuredclone data");
+                            Self::handle_async_request_error(&global, cx, request, e);
+                            return;
+                        },
+                    };
+                    if let Some(cursor) = cursor {
+                        match cursor.downcast::<IDBCursorWithValue>() {
+                            Some(cursor_with_value) => {
+                                answer.handle_mut().set(ObjectValue(
+                                    *cursor_with_value.reflector().get_jsobject(),
+                                ));
+                            },
+                            None => {
+                                answer
+                                    .handle_mut()
+                                    .set(ObjectValue(*cursor.reflector().get_jsobject()));
+                            },
+                        }
+                    }
                 },
                 IdbResult::None => {
                     // no-op
@@ -313,6 +350,7 @@ impl IDBRequest {
         operation: AsyncOperation,
         receiver: IpcReceiver<BackendResult<T>>,
         request: Option<DomRoot<IDBRequest>>,
+        iteration_param: Option<IterationParam>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>>
     where
@@ -346,8 +384,24 @@ impl IDBRequest {
             IDBTransactionMode::Versionchange => IndexedDBTxnMode::Versionchange,
         };
 
+        if matches!(
+            operation,
+            AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate { .. })
+        ) {
+            assert!(
+                iteration_param.is_some(),
+                "iteration_param must be provided for Iterate"
+            );
+        } else {
+            assert!(
+                iteration_param.is_none(),
+                "iteration_param should not be provided for operation other than Iterate"
+            );
+        }
+
         let response_listener = RequestListener {
             request: Trusted::new(&request),
+            iteration_param,
         };
 
         let task_source = global

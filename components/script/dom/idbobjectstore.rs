@@ -16,6 +16,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::ErrorResult;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreParameters;
 use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding::IDBObjectStoreMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
@@ -24,12 +25,15 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
 // We need to alias this name, otherwise test-tidy complains at &String reference.
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::idbcursor::{IDBCursor, IterationParam, ObjectStoreOrIndex};
+use crate::dom::idbcursorwithvalue::IDBCursorWithValue;
 use crate::dom::idbrequest::IDBRequest;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::indexed_db::{
@@ -248,8 +252,90 @@ impl IDBObjectStore {
             }),
             receiver,
             None,
+            None,
             can_gc,
         )
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-opencursor>
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-openkeycursor>
+    fn open_cursor(
+        &self,
+        cx: SafeJSContext,
+        query: HandleValue,
+        direction: IDBCursorDirection,
+        key_only: bool,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 1. Let transaction be this object store handle's transaction.
+        // Step 2. Let store be this object store handle's object store.
+
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction is not active, throw a "TransactionInactiveError" DOMException.
+        self.check_transaction_active()?;
+
+        // Step 5. Let range be the result of running the steps to convert a value to a key range
+        // with query. Rethrow any exceptions.
+        //
+        // The query parameter may be a key or an IDBKeyRange to use as the cursor's range. If null
+        // or not given, an unbounded key range is used.
+        let range = convert_value_to_key_range(cx, query, Some(false))?;
+
+        // Step 6. Let cursor be a new cursor with transaction set to transaction, an undefined
+        // position, direction set to direction, got value flag unset, and undefined key and value.
+        // The source of cursor is store. The range of cursor is range.
+        //
+        // NOTE: A cursor that has the key only flag unset implements the IDBCursorWithValue
+        // interface as well.
+        let cursor = if key_only {
+            IDBCursor::new(
+                &self.global(),
+                &self.transaction,
+                direction,
+                false,
+                ObjectStoreOrIndex::ObjectStore(Dom::from_ref(self)),
+                range.clone(),
+                key_only,
+                can_gc,
+            )
+        } else {
+            DomRoot::upcast(IDBCursorWithValue::new(
+                &self.global(),
+                &self.transaction,
+                direction,
+                false,
+                ObjectStoreOrIndex::ObjectStore(Dom::from_ref(self)),
+                range.clone(),
+                key_only,
+                can_gc,
+            ))
+        };
+
+        // Step 7. Run the steps to asynchronously execute a request and return the IDBRequest
+        // created by these steps. The steps are run with this object store handle as source and
+        // the steps to iterate a cursor as operation, using the current Realm as targetRealm, and
+        // cursor.
+        let iteration_param = IterationParam {
+            cursor: Trusted::new(&cursor),
+            key: None,
+            primary_key: None,
+            count: None,
+        };
+        let (sender, receiver) = indexed_db::create_channel(self.global());
+        IDBRequest::execute_async(
+            self,
+            AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
+                sender,
+                key_range: range,
+            }),
+            receiver,
+            None,
+            Some(iteration_param),
+            can_gc,
+        )
+        .inspect(|request| cursor.set_request(request))
     }
 }
 
@@ -297,6 +383,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem { sender, key: q }),
                 receiver,
                 None,
+                None,
                 CanGc::note(),
             )
         })
@@ -321,6 +408,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             self,
             AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(sender)),
             receiver,
+            None,
             None,
             CanGc::note(),
         )
@@ -350,6 +438,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                     key_range: q,
                 }),
                 receiver,
+                None,
                 None,
                 CanGc::note(),
             )
@@ -381,6 +470,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                     key_range: q,
                 }),
                 receiver,
+                None,
                 None,
                 CanGc::note(),
             )
@@ -419,6 +509,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 }),
                 receiver,
                 None,
+                None,
                 CanGc::note(),
             )
         })
@@ -456,6 +547,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 }),
                 receiver,
                 None,
+                None,
                 CanGc::note(),
             )
         })
@@ -486,9 +578,30 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 }),
                 receiver,
                 None,
+                None,
                 CanGc::note(),
             )
         })
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-opencursor>
+    fn OpenCursor(
+        &self,
+        cx: SafeJSContext,
+        query: HandleValue,
+        direction: IDBCursorDirection,
+    ) -> Fallible<DomRoot<IDBRequest>> {
+        self.open_cursor(cx, query, direction, false, CanGc::note())
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-openkeycursor>
+    fn OpenKeyCursor(
+        &self,
+        cx: SafeJSContext,
+        query: HandleValue,
+        direction: IDBCursorDirection,
+    ) -> Fallible<DomRoot<IDBRequest>> {
+        self.open_cursor(cx, query, direction, true, CanGc::note())
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-name>

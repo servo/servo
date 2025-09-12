@@ -42,7 +42,6 @@ impl IDBCursorWithValue {
         }
     }
 
-    #[expect(unused)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
