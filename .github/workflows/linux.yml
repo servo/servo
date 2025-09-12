@@ -105,10 +105,6 @@ jobs:
       selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
       is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: '.github'
       - name: Runner select
         id: select
         uses: ./.github/actions/runner-select
