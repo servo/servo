@@ -249,22 +249,26 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         ROUTER.add_typed_route(
             receiver,
             Box::new(move |message| {
-                let registration_ids = message.unwrap_or_default();
-                let mut registrations = Vec::with_capacity(registration_ids.len());
-                for registration in registration_ids {
-                    let reg = trusted_self.root().global().get_serviceworker_registration(
-                        &creation_url,
-                        &creation_url,
-                        registration,
-                        None,
-                        None,
-                        None,
-                        CanGc::note(),
-                    );
-                    registrations.push(reg);
-                }
-                trusted_promise
-                    .resolve_task(&registrations);
+                task_source.queue(
+                    task!(resolve_promise: move || {
+                        let registration_ids = message.unwrap_or_default();
+                        let mut registrations = Vec::with_capacity(registration_ids.len());
+                        for registration in registration_ids {
+                            let reg = trusted_self.root().global().get_serviceworker_registration(
+                                &creation_url,
+                                &creation_url,
+                                registration,
+                                None,
+                                None,
+                                None,
+                                CanGc::note(),
+                            );
+                            registrations.push(reg);
+                        }
+                        trusted_promise
+                            .resolve_task(registrations);
+                    }),
+                );
             }),
         );
         promise
