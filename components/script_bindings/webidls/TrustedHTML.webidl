@@ -6,7 +6,7 @@
  * https://www.w3.org/TR/trusted-types/#trusted-html
  */
 
-[Exposed=(Window,Worker), Pref="dom_trusted_types_enabled"]
+[Exposed=(Window,Worker)]
 interface TrustedHTML {
   stringifier;
   DOMString toJSON();
