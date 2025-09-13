@@ -78,7 +78,10 @@ pub enum RequestMode {
     SameOrigin,
     NoCors,
     CorsMode,
-    WebSocket { protocols: Vec<String> },
+    WebSocket {
+        protocols: Vec<String>,
+        original_url: ServoUrl,
+    },
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
@@ -690,6 +693,26 @@ impl Request {
     /// <https://fetch.spec.whatwg.org/#concept-request-url>
     pub fn url(&self) -> ServoUrl {
         self.url_list.first().unwrap().clone()
+    }
+
+    pub fn original_url(&self) -> ServoUrl {
+        match self.mode {
+            RequestMode::WebSocket {
+                protocols: _,
+                ref original_url,
+            } => original_url.clone(),
+            _ => self.current_url(),
+        }
+    }
+
+    pub fn original_url_mut(&mut self) -> &mut ServoUrl {
+        match self.mode {
+            RequestMode::WebSocket {
+                protocols: _,
+                ref mut original_url,
+            } => original_url,
+            _ => self.current_url_mut(),
+        }
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
