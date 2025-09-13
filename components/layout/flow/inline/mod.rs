@@ -79,6 +79,7 @@ use std::mem;
 use std::rc::Rc;
 
 use app_units::{Au, MAX_AU};
+use base::id::RenderingGroupId;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{ByteIndex, FontMetrics, GlyphStore};
@@ -1657,6 +1658,7 @@ impl InlineFormattingContext {
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         starting_bidi_level: Level,
+        rendering_group_id: RenderingGroupId,
     ) -> Self {
         // This is to prevent a double borrow.
         let text_content: String = builder.text_segments.into_iter().collect();
@@ -1675,6 +1677,7 @@ impl InlineFormattingContext {
                         &mut new_linebreaker,
                         &mut font_metrics,
                         &bidi_info,
+                        rendering_group_id,
                     );
                 },
                 InlineItem::StartInlineBox(inline_box) => {
@@ -1687,6 +1690,7 @@ impl InlineFormattingContext {
                             &font,
                             &mut font_metrics,
                             &layout_context.font_context,
+                            rendering_group_id,
                         ));
                     }
                 },
