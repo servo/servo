@@ -31,3 +31,33 @@ macro_rules! time_profile {
         $crate::time::profile($category, meta, $profiler_chan, span, $($callback)+)
     }};
 }
+
+/// Constructs a span at the trace level and immediately enters it.
+///
+/// Attention: This macro requires the user crate to have a `tracing` feature,
+/// which can be used to disable the effects of this macro.
+/// This instruments code to measure the time between here and the end of
+/// the current scope.
+/// This macro is intended for performance measurement purposes and may
+/// use a different mechanism to record spans in the future.
+#[macro_export]
+macro_rules! trace_span {
+    ($span_name:literal, $($field:tt)*) => {
+        #[cfg(feature = "tracing")]
+        let _servo_profile_span = ::profile_traits::servo_tracing::trace_span!(
+            $span_name,
+            servo_profiling = true,
+            $($field)*
+        ).entered();
+    };
+    ($span_name:literal) => {
+        #[cfg(feature = "tracing")]
+        let _servo_profile_span = ::profile_traits::servo_tracing::trace_span!(
+            $span_name,
+            servo_profiling = true,
+        ).entered();
+    };
+}
+
+#[cfg(feature = "tracing")]
+pub use tracing as servo_tracing;
