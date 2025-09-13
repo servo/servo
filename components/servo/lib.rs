@@ -41,8 +41,8 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
-pub use compositing::WebRenderDebugOption;
 use compositing::{IOCompositor, InitialCompositorState};
+pub use compositing::{PageZoom, WebRenderDebugOption};
 pub use compositing_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
 };

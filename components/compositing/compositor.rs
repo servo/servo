@@ -86,6 +86,12 @@ pub enum WebRenderDebugOption {
     RenderTargetDebug,
 }
 
+pub enum PageZoom {
+    ZoomOut,
+    ZoomReset,
+    ZoomIn,
+}
+
 /// Data that is shared by all WebView renderers.
 pub struct ServoRenderer {
     /// The [`RefreshDriver`] which manages the rythym of painting.
@@ -1144,24 +1150,13 @@ impl IOCompositor {
         self.set_needs_repaint(RepaintReason::Resize);
     }
 
-    pub fn on_zoom_reset_window_event(&mut self, webview_id: WebViewId) {
+    pub fn on_zoom_window_event(&mut self, webview_id: WebViewId, new_zoom: PageZoom) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.set_page_zoom(Scale::new(1.0));
-        }
-    }
-
-    pub fn on_zoom_window_event(&mut self, webview_id: WebViewId, magnification: f32) {
-        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
-        }
-
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            let current_page_zoom = webview_renderer.page_zoom();
-            webview_renderer.set_page_zoom(current_page_zoom * Scale::new(magnification));
+            webview_renderer.process_and_set_page_zoom(new_zoom);
         }
     }
 

@@ -22,9 +22,9 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
-    JSValue, KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError,
-    SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
+    JSValue, KeyboardEvent, LoadStatus, PageZoom, PermissionRequest, Servo, ServoDelegate,
+    ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -416,17 +416,14 @@ impl RunningAppState {
     fn handle_overridable_key_bindings(&self, webview: ::servo::WebView, event: KeyboardEvent) {
         let origin = webview.rect().min.ceil().to_i32();
         ShortcutMatcher::from_event(event.event)
-            .shortcut(CMD_OR_CONTROL, '=', || {
-                webview.set_zoom(1.1);
-            })
             .shortcut(CMD_OR_CONTROL, '+', || {
-                webview.set_zoom(1.1);
+                webview.apply_zoom(PageZoom::ZoomIn);
             })
             .shortcut(CMD_OR_CONTROL, '-', || {
-                webview.set_zoom(1.0 / 1.1);
+                webview.apply_zoom(PageZoom::ZoomOut);
             })
             .shortcut(CMD_OR_CONTROL, '0', || {
-                webview.reset_zoom();
+                webview.apply_zoom(PageZoom::ZoomReset);
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageDown), || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
