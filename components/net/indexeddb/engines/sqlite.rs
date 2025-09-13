@@ -11,7 +11,7 @@ use net_traits::indexeddb_thread::{
     CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTxnMode,
     KeyPath, PutItemResult,
 };
-use rusqlite::{Connection, Error, OptionalExtension, params};
+use rusqlite::{Connection, Error, OptionalExtension, params, DropBehavior, TransactionBehavior};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
 use serde::Serialize;
@@ -386,9 +386,12 @@ impl KvsEngine for SqliteEngine {
         };
         let path = self.db_path.clone();
         spawning_pool.spawn(move || {
-            let connection = Connection::open(path).unwrap();
+            let mut connection = Connection::open(path).unwrap();
+            connection.set_transaction_behavior(TransactionBehavior::Deferred);
+            let mut db_transaction = connection.transaction().unwrap();
+            db_transaction.set_drop_behavior(DropBehavior::Rollback);
             for request in transaction.requests {
-                let object_store = connection
+                let object_store = db_transaction
                     .prepare("SELECT * FROM object_store WHERE name = ?")
                     .and_then(|mut stmt| {
                         stmt.query_row(params![request.store_name.to_string()], |row| {
@@ -428,7 +431,7 @@ impl KvsEngine for SqliteEngine {
                         };
                         let key = match key
                             .map(Ok)
-                            .unwrap_or_else(|| Self::generate_key(&connection, &object_store))
+                            .unwrap_or_else(|| Self::generate_key(&db_transaction, &object_store))
                         {
                             Ok(key) => key,
                             Err(e) => {
@@ -439,7 +442,7 @@ impl KvsEngine for SqliteEngine {
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         let _ = sender.send(
                             Self::put_item(
-                                &connection,
+                                &db_transaction,
                                 object_store,
                                 serialized_key,
                                 value,
@@ -456,7 +459,7 @@ impl KvsEngine for SqliteEngine {
                             continue;
                         };
                         let _ = sender.send(
-                            Self::get_item(&connection, object_store, key_range)
+                            Self::get_item(&db_transaction, object_store, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
@@ -469,7 +472,7 @@ impl KvsEngine for SqliteEngine {
                             continue;
                         };
                         let _ = sender.send(
-                            Self::get_all_keys(&connection, object_store, key_range, count)
+                            Self::get_all_keys(&db_transaction, object_store, key_range, count)
                                 .map(|keys| {
                                     keys.into_iter()
                                         .map(|k| bincode::deserialize(&k).unwrap())
@@ -487,7 +490,7 @@ impl KvsEngine for SqliteEngine {
                             continue;
                         };
                         let _ = sender.send(
-                            Self::get_all_items(&connection, object_store, key_range, count)
+                            Self::get_all_items(&db_transaction, object_store, key_range, count)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
@@ -500,7 +503,7 @@ impl KvsEngine for SqliteEngine {
                         };
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         let _ = sender.send(
-                            Self::delete_item(&connection, object_store, serialized_key)
+                            Self::delete_item(&db_transaction, object_store, serialized_key)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
@@ -512,7 +515,7 @@ impl KvsEngine for SqliteEngine {
                             continue;
                         };
                         let _ = sender.send(
-                            Self::count(&connection, object_store, key_range)
+                            Self::count(&db_transaction, object_store, key_range)
                                 .map(|r| r as u64)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
@@ -525,7 +528,7 @@ impl KvsEngine for SqliteEngine {
                             continue;
                         };
                         let _ = sender.send(
-                            Self::get_all_records(&connection, object_store, key_range)
+                            Self::get_all_records(&db_transaction, object_store, key_range)
                                 .map(|records| {
                                     records
                                         .into_iter()
@@ -544,7 +547,7 @@ impl KvsEngine for SqliteEngine {
                             continue;
                         };
                         let _ = sender.send(
-                            Self::clear(&connection, object_store)
+                            Self::clear(&db_transaction, object_store)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
@@ -556,13 +559,14 @@ impl KvsEngine for SqliteEngine {
                             continue;
                         };
                         let _ = sender.send(
-                            Self::get_key(&connection, object_store, key_range)
+                            Self::get_key(&db_transaction, object_store, key_range)
                                 .map(|key| key.map(|k| bincode::deserialize(&k).unwrap()))
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
                 }
             }
+            db_transaction.commit().unwrap();
             let _ = tx.send(None);
         });
         rx
