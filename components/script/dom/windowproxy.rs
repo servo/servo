@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::ptr;
+use std::rc::Rc;
 
 use base::generic_channel;
 use base::generic_channel::GenericSend;
@@ -59,6 +60,7 @@ use crate::dom::window::Window;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
+use crate::script_window_proxies::ScriptWindowProxies;
 
 #[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:
@@ -127,6 +129,10 @@ pub(crate) struct WindowProxy {
     /// The creator browsing context's origin.
     #[no_trace]
     creator_origin: Option<ImmutableOrigin>,
+
+    /// The window proxies the script thread knows.
+    #[ignore_malloc_size_of = "Rc"]
+    script_window_proxies: Rc<ScriptWindowProxies>,
 }
 
 impl WindowProxy {
@@ -158,6 +164,7 @@ impl WindowProxy {
             creator_base_url: creator.base_url,
             creator_url: creator.url,
             creator_origin: creator.origin,
+            script_window_proxies: ScriptThread::window_proxies(),
         }
     }
 
@@ -442,7 +449,7 @@ impl WindowProxy {
             None => return retval.set(NullValue()),
         };
         let parent_browsing_context = self.parent.as_deref();
-        let opener_proxy = match ScriptThread::find_window_proxy(opener_id) {
+        let opener_proxy = match self.script_window_proxies.find_window_proxy(opener_id) {
             Some(window_proxy) => window_proxy,
             None => {
                 let sender_pipeline_id = self.currently_active().unwrap();
@@ -915,6 +922,7 @@ unsafe fn GetSubframeWindowProxy(
         let mut slot = UndefinedValue();
         GetProxyPrivate(*proxy, &mut slot);
         rooted!(in(cx) let target = slot.to_object());
+        let script_window_proxies = ScriptThread::window_proxies();
         if let Ok(win) = root_from_handleobject::<Window>(target.handle(), cx) {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
@@ -930,7 +938,7 @@ unsafe fn GetSubframeWindowProxy(
                 .recv()
                 .ok()
                 .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(ScriptThread::find_window_proxy)
+                .and_then(|id| script_window_proxies.find_window_proxy(id))
                 .map(|proxy| (proxy, (JSPROP_ENUMERATE | JSPROP_READONLY) as u32));
         } else if let Ok(win) =
             root_from_handleobject::<DissimilarOriginWindow>(target.handle(), cx)
@@ -949,7 +957,7 @@ unsafe fn GetSubframeWindowProxy(
                 .recv()
                 .ok()
                 .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(ScriptThread::find_window_proxy)
+                .and_then(|id| script_window_proxies.find_window_proxy(id))
                 .map(|proxy| (proxy, JSPROP_READONLY as u32));
         }
     }
