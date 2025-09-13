@@ -590,7 +590,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    // https://fetch.spec.whatwg.org/#fetch-method
+    /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
     fn Fetch(
         &self,
         input: RequestOrUSVString,
