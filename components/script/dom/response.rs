@@ -48,6 +48,7 @@ pub(crate) struct Response {
     #[ignore_malloc_size_of = "StreamConsumer"]
     stream_consumer: DomRefCell<Option<StreamConsumer>>,
     redirected: DomRefCell<bool>,
+    is_body_empty: DomRefCell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -69,6 +70,7 @@ impl Response {
             body_stream: MutNullableDom::new(Some(&*stream)),
             stream_consumer: DomRefCell::new(None),
             redirected: DomRefCell::new(false),
+            is_body_empty: DomRefCell::new(true),
         }
     }
 
@@ -153,6 +155,9 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         // 1. Set this’s response to a new response.
         // Our Response/Body types don't actually hold onto an internal fetch Response.
         let response = Response::new_with_proto(global, proto, can_gc);
+        if body_init.is_some() {
+            *response.is_body_empty.borrow_mut() = false;
+        }
 
         // 2. Set this’s headers to a new Headers object with this’s relevant realm,
         // whose header list is this’s response’s header list and guard is "response".
@@ -324,6 +329,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         if let Some(stream) = self.body_stream.get().clone() {
             new_response.body_stream.set(Some(&*stream));
         }
+        *new_response.is_body_empty.borrow_mut() = *self.is_body_empty.borrow();
 
         // Step 3
         // TODO: This step relies on promises, which are still unimplemented.
@@ -334,7 +340,8 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-body-bodyused>
     fn BodyUsed(&self) -> bool {
-        self.is_disturbed()
+        // bodyUsed returns true only if body is non-null
+        !self.is_body_empty() && self.is_disturbed()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-body>
@@ -421,6 +428,7 @@ fn initialize_response(
 
         // 6.2 Set response’s body to body’s body.
         response.body_stream.set(Some(&*body.stream));
+        *response.is_body_empty.borrow_mut() = false;
 
         // 6.3 If body’s type is non-null and response’s header list does not contain `Content-Type`,
         // then append (`Content-Type`, body’s type) to response’s header list.
@@ -509,6 +517,7 @@ impl Response {
     }
 
     pub(crate) fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
+        *self.is_body_empty.borrow_mut() = false;
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
@@ -526,5 +535,9 @@ impl Response {
         if let Some(stream_consumer) = stream_consumer {
             stream_consumer.stream_end();
         }
+    }
+
+    pub(crate) fn is_body_empty(&self) -> bool {
+        *self.is_body_empty.borrow()
     }
 }
