@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -31,6 +30,7 @@ use num_traits::ToPrimitive;
 use pixels::{
     CorsStatus, ImageMetadata, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat,
 };
+use rustc_hash::FxHashSet;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_integer, parse_length};
@@ -806,7 +806,8 @@ impl HTMLImageElement {
         }
 
         // Step 4
-        let mut repeat_indices = HashSet::new();
+        // Using FxHash is ok here as the indices are just 0..len
+        let mut repeat_indices = FxHashSet::default();
         for outer_index in 0..len {
             if repeat_indices.contains(&outer_index) {
                 continue;
