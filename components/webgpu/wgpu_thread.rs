@@ -246,7 +246,7 @@ impl WGPU {
                             source_offset,
                             destination_id,
                             destination_offset,
-                            size,
+                            Some(size),
                         );
                         self.encoder_record_error(command_encoder_id, &result);
                     },
@@ -378,9 +378,7 @@ impl WGPU {
                         if let Some(sender) = sender {
                             let res = match error {
                                 // if device is lost we must return pipeline and not raise any error
-                                Some(CreateComputePipelineError::Device(
-                                    DeviceError::Lost | DeviceError::Invalid(_),
-                                )) |
+                                Some(CreateComputePipelineError::Device(DeviceError::Lost)) |
                                 None => Ok(Pipeline {
                                     id: compute_pipeline_id,
                                     label: descriptor.label.unwrap_or_default().to_string(),
@@ -437,9 +435,7 @@ impl WGPU {
                         if let Some(sender) = sender {
                             let res = match error {
                                 // if device is lost we must return pipeline and not raise any error
-                                Some(CreateRenderPipelineError::Device(
-                                    DeviceError::Lost | DeviceError::Invalid(_),
-                                )) |
+                                Some(CreateRenderPipelineError::Device(DeviceError::Lost)) |
                                 None => Ok(Pipeline {
                                     id: render_pipeline_id,
                                     label: descriptor.label.unwrap_or_default().to_string(),
@@ -576,7 +572,7 @@ impl WGPU {
                     },
                     WebGPURequest::DestroyBuffer(buffer) => {
                         let global = &self.global;
-                        let _result = global.buffer_destroy(buffer);
+                        global.buffer_destroy(buffer);
                     },
                     WebGPURequest::DestroyDevice(device) => {
                         let global = &self.global;
@@ -586,7 +582,7 @@ impl WGPU {
                     },
                     WebGPURequest::DestroyTexture(texture_id) => {
                         let global = &self.global;
-                        let _ = global.texture_destroy(texture_id);
+                        global.texture_destroy(texture_id);
                     },
                     WebGPURequest::Exit(sender) => {
                         if let Err(e) = sender.send(()) {
