@@ -6,7 +6,7 @@
  * https://www.w3.org/TR/trusted-types/#trusted-type-policy-factory
  */
 
-[Exposed=(Window,Worker), Pref="dom_trusted_types_enabled"]
+[Exposed=(Window,Worker)]
 interface TrustedTypePolicyFactory {
     [Throws]
     TrustedTypePolicy createPolicy(
