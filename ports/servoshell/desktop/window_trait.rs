@@ -66,4 +66,5 @@ pub trait WindowPortsMethods {
     }
     fn window_rect(&self) -> DeviceIndependentIntRect;
     fn maximize(&self, webview: &WebView);
+    fn show_context_menu(&self, menu: muda::Menu);
 }

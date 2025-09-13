@@ -16,6 +16,7 @@ use std::time::Duration;
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
+use muda::ContextMenu;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
@@ -827,6 +828,41 @@ impl WindowPortsMethods for Window {
 
     fn maximize(&self, _webview: &WebView) {
         self.winit_window.set_maximized(true);
+    }
+
+    fn show_context_menu(&self, menu: muda::Menu) {
+        #[cfg(target_os = "windows")]
+        {
+            let menu_theme = match self.theme() {
+                Theme::Light => {
+                    muda::MenuTheme::Light
+                }
+                Theme::Dark => {
+                    muda::MenuTheme::Dark
+                }
+            };
+            let handle = match self.winit_window.window_handle().unwrap().as_raw() {
+                RawWindowHandle::Win32(n) => n.hwnd.as_ptr(),
+                _ => {
+                    return;
+                },
+            };
+            unsafe {
+                menu.init_for_hwnd_with_theme(handle);
+                menu.show_context_menu_for_hwnd(handle, None);
+            }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let handle = match self.winit_window.window_handle().unwrap().as_raw() {
+                RawWindowHandle::AppKit(n) => n.ns_view.as_ptr(),
+                _ => {
+                    return;
+                },
+            };
+            menu.init_for_nsapp();
+            unsafe { menu.show_context_menu_for_nsview(handle, None) };
+        }
     }
 }
 

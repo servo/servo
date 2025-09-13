@@ -706,11 +706,18 @@ impl Servo {
                         .show_simple_dialog(webview, prompt_definition);
                 }
             },
-            EmbedderMsg::ShowContextMenu(webview_id, ipc_sender, title, items) => {
+            EmbedderMsg::ShowNativeContextMenu(webview_id, ipc_sender, options) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
                         .delegate()
-                        .show_context_menu(webview, ipc_sender, title, items);
+                        .show_native_context_menu(webview, ipc_sender, options);
+                }
+            },
+            EmbedderMsg::ShowCustomContextMenu(webview_id, ipc_sender, items) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .show_custom_context_menu(webview, ipc_sender, items);
                 }
             },
             EmbedderMsg::AllowNavigationRequest(webview_id, pipeline_id, servo_url) => {

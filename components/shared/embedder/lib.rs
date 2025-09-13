@@ -134,9 +134,22 @@ impl Clone for EmbedderProxy {
 
 #[derive(Deserialize, Serialize)]
 pub enum ContextMenuResult {
+    Opaque,
     Dismissed,
     Ignored,
     Selected(usize),
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct ContextMenuItem {
+    pub label: String,
+    pub disabled: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct NativeContextMenu {
+    pub link: Option<String>,
+    // pub selected_text: Option<String>,
 }
 
 /// [Simple dialogs](https://html.spec.whatwg.org/multipage/#simple-dialogs) are synchronous dialogs
@@ -419,11 +432,15 @@ pub enum EmbedderMsg {
         GenericSender<Option<AuthenticationResponse>>,
     ),
     /// Show a context menu to the user
-    ShowContextMenu(
+    ShowCustomContextMenu(
         WebViewId,
         GenericSender<ContextMenuResult>,
-        Option<String>,
-        Vec<String>,
+        Vec<ContextMenuItem>,
+    ),
+    ShowNativeContextMenu(
+        WebViewId,
+        GenericSender<ContextMenuResult>,
+        NativeContextMenu,
     ),
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),

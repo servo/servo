@@ -11,9 +11,11 @@ use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
 use embedder_traits::webdriver::WebDriverSenders;
+use embedder_traits::{ContextMenuResult, NativeContextMenu};
 use euclid::Vector2D;
 use keyboard_types::{Key, Modifiers, NamedKey, ShortcutMatcher};
 use log::{error, info};
+use muda::MenuEvent;
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::config::pref;
@@ -816,4 +818,63 @@ impl WebViewDelegate for RunningAppState {
         inner.pending_favicon_loads.push(webview.id());
         inner.need_repaint = true;
     }
+
+    fn show_native_context_menu(
+        &self,
+        webview: WebView,
+        result_sender: GenericSender<ContextMenuResult>,
+        options: NativeContextMenu,
+    ) {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
+            let _ = result_sender.send(ContextMenuResult::Ignored);
+            return;
+        }
+        let items = if options.link.is_none() {
+            vec![
+                muda::MenuItem::with_id("back", "Back", true, None),
+                muda::MenuItem::with_id("forward", "Forward", true, None),
+                muda::MenuItem::with_id("reload", "Reload", true, None),
+            ]
+        } else {
+            vec![
+                muda::MenuItem::with_id("open_link_new_tab", "Open Link in New Tab", false, None),
+                muda::MenuItem::with_id(
+                    "open_link_new_window",
+                    "Open Link in New Window",
+                    false,
+                    None,
+                ),
+                muda::MenuItem::with_id("copy_link", "Copy Link Address", true, None),
+            ]
+        };
+        let native_menu = muda::Menu::new();
+        for item in &items {
+            native_menu.append(item).unwrap();
+        }
+        self.inner().window.show_context_menu(native_menu);
+        if let Ok(event) = MenuEvent::receiver().try_recv() {
+            match &*event.id.0 {
+                "back" => {
+                    webview.go_back(1);
+                },
+                "forward" => {
+                    webview.go_forward(1);
+                },
+                "reload" => {
+                    webview.reload();
+                },
+                "copy_link" => {
+                    if let Some(link) = options.link {
+                        webview.clipboard_delegate().set_text(webview, link);
+                    }
+                },
+                _ => {},
+            }
+        }
+        let _ = result_sender.send(ContextMenuResult::Opaque);
+    }
+
+    // FIXME(arihant2math): show_custom_context_menu
 }

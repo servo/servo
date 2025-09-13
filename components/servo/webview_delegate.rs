@@ -8,10 +8,11 @@ use base::generic_channel::{GenericSender, SendResult};
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
-    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
+    AllowOrDeny, AuthenticationResponse, ContextMenuItem, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, KeyboardEvent, LoadStatus, MediaSessionEvent,
-    Notification, PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
-    SimpleDialog, TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    NativeContextMenu, Notification, PermissionFeature, RgbColor, ScreenGeometry,
+    SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
+    WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
@@ -515,12 +516,20 @@ pub trait WebViewDelegate {
     }
 
     /// Show a context menu to the user
-    fn show_context_menu(
+    fn show_native_context_menu(
         &self,
         _webview: WebView,
         result_sender: GenericSender<ContextMenuResult>,
-        _: Option<String>,
-        _: Vec<String>,
+        _options: NativeContextMenu,
+    ) {
+        let _ = result_sender.send(ContextMenuResult::Ignored);
+    }
+
+    fn show_custom_context_menu(
+        &self,
+        _webview: WebView,
+        result_sender: GenericSender<ContextMenuResult>,
+        _items: Vec<ContextMenuItem>,
     ) {
         let _ = result_sender.send(ContextMenuResult::Ignored);
     }
