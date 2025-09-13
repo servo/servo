@@ -82,42 +82,48 @@ impl AbortSignal {
     ) {
         let global = self.global();
 
-        // If signal is aborted, then return.
+        // Step 1. If signal is aborted, then return.
         if self.Aborted() {
             return;
         }
 
+        // Step 2. Set signal’s abort reason to reason if it is given;
+        // otherwise to a new "AbortError" DOMException.
         let abort_reason = reason.get();
-
-        // Set signal’s abort reason to reason if it is given;
         if !abort_reason.is_undefined() {
             self.abort_reason.set(abort_reason);
         } else {
-            // otherwise to a new "AbortError" DOMException.
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
             Error::Abort.to_jsval(cx, &global, rooted_error.handle_mut(), can_gc);
             self.abort_reason.set(rooted_error.get())
         }
 
-        // Let dependentSignalsToAbort be a new list.
-        // For each dependentSignal of signal’s dependent signals:
-        // TODO: #36936
+        // Step 3. Let dependentSignalsToAbort be a new list.
+        // TODO
+        // Step 4. For each dependentSignal of signal’s dependent signals:
+        // TODO
+        // Step 4.1. If dependentSignal is not aborted:
+        // TODO
+        // Step 4.1.1. Set dependentSignal’s abort reason to signal’s abort reason.
+        // TODO
+        // Step 4.1.2. Append dependentSignal to dependentSignalsToAbort.
+        // TODO
 
-        // Run the abort steps for signal.
+        // Step 5. Run the abort steps for signal.
         self.run_the_abort_steps(cx, &global, realm, can_gc);
 
-        // For each dependentSignal of dependentSignalsToAbort, run the abort steps for dependentSignal.
-        // TODO: #36936
+        // Step 6. For each dependentSignal of dependentSignalsToAbort, run the abort steps for dependentSignal.
+        // TODO
     }
 
     /// <https://dom.spec.whatwg.org/#abortsignal-add>
     pub(crate) fn add(&self, algorithm: &AbortAlgorithm) {
-        // If signal is aborted, then return.
+        // Step 1. If signal is aborted, then return.
         if self.aborted() {
             return;
         }
 
-        // Append algorithm to signal’s abort algorithms.
+        // Step 2. Append algorithm to signal’s abort algorithms.
         self.abort_algorithms.borrow_mut().push(algorithm.clone());
     }
 
@@ -151,15 +157,14 @@ impl AbortSignal {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        // For each algorithm of signal’s abort algorithms: run algorithm.
+        // Step 1. For each algorithm of signal’s abort algorithms: run algorithm.
         for algo in self.abort_algorithms.borrow().iter() {
             self.run_abort_algorithm(cx, global, algo, realm, can_gc);
         }
-
-        // Empty signal’s abort algorithms.
+        // Step 2. Empty signal’s abort algorithms.
         self.abort_algorithms.borrow_mut().clear();
 
-        // Fire an event named abort at signal.
+        // Step 3. Fire an event named abort at signal.
         self.upcast::<EventTarget>()
             .fire_event(atom!("abort"), can_gc);
     }
@@ -185,21 +190,21 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
         reason: HandleValue,
         can_gc: CanGc,
     ) -> DomRoot<AbortSignal> {
-        // Let signal be a new AbortSignal object.
+        // Step 1. Let signal be a new AbortSignal object.
         let signal = AbortSignal::new_with_proto(global, None, can_gc);
 
+        // Step 2. Set signal’s abort reason to reason if it is given;
+        // otherwise to a new "AbortError" DOMException.
         let abort_reason = reason.get();
-        // Set signal’s abort reason to reason if it is given;
         if !abort_reason.is_undefined() {
             signal.abort_reason.set(abort_reason);
         } else {
-            // otherwise to a new "AbortError" DOMException.
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
             Error::Abort.to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
             signal.abort_reason.set(rooted_error.get())
         }
 
-        // Return signal.
+        // Step 3. Return signal.
         signal
     }
 

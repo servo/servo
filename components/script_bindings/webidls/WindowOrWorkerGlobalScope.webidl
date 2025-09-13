@@ -49,5 +49,10 @@ partial interface mixin WindowOrWorkerGlobalScope {
   readonly attribute TrustedTypePolicyFactory trustedTypes;
 };
 
+// https://fetch.spec.whatwg.org/#fetch-method
+partial interface mixin WindowOrWorkerGlobalScope {
+  [NewObject] Promise<Response> fetch(RequestInfo input, optional RequestInit init = {});
+};
+
 Window includes WindowOrWorkerGlobalScope;
 WorkerGlobalScope includes WindowOrWorkerGlobalScope;
