@@ -3033,7 +3033,7 @@ impl ColspanToDistribute {
     fn comparison_for_sort(a: &Self, b: &Self) -> Ordering {
         a.span
             .cmp(&b.span)
-            .then_with(|| b.starting_column.cmp(&b.starting_column))
+            .then_with(|| a.starting_column.cmp(&b.starting_column))
     }
 
     fn range(&self) -> Range<usize> {
