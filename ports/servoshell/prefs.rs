@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 #[cfg(any(target_os = "android", target_env = "ohos"))]
 use std::sync::OnceLock;
-use std::{env, process};
+use std::{env, fmt, process};
 
 use bpaf::*;
 use euclid::Size2D;
@@ -221,18 +221,48 @@ pub(crate) enum ArgumentParsingResult {
     ErrorParsing,
 }
 
+enum ParseResolutionError {
+    InvalidFormat,
+    ZeroDimension,
+    ParseError(std::num::ParseIntError),
+}
+
+impl fmt::Display for ParseResolutionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseResolutionError::InvalidFormat => write!(f, "invalid resolution format"),
+            ParseResolutionError::ZeroDimension => {
+                write!(f, "width and height must be greater than 0")
+            },
+            ParseResolutionError::ParseError(e) => write!(f, "{e}"),
+        }
+    }
+}
+
 /// Parse a resolution string into a Size2D.
 fn parse_resolution_string(
     string: String,
-) -> Result<Option<Size2D<u32, DeviceIndependentPixel>>, std::num::ParseIntError> {
+) -> Result<Option<Size2D<u32, DeviceIndependentPixel>>, ParseResolutionError> {
     if string.is_empty() {
         Ok(None)
     } else {
-        let components = string
-            .split('x')
-            .map(|component| component.parse::<u32>())
-            .collect::<Result<Vec<_>, std::num::ParseIntError>>()?;
-        Ok(Some(Size2D::new(components[0], components[1])))
+        let (width, height) = string
+            .split_once(['x', 'X'])
+            .ok_or(ParseResolutionError::InvalidFormat)?;
+
+        let width = width.trim();
+        let height = height.trim();
+        if width.is_empty() || height.is_empty() {
+            return Err(ParseResolutionError::InvalidFormat);
+        }
+
+        let width = width.parse().map_err(ParseResolutionError::ParseError)?;
+        let height = height.parse().map_err(ParseResolutionError::ParseError)?;
+        if width == 0 || height == 0 {
+            return Err(ParseResolutionError::ZeroDimension);
+        }
+
+        Ok(Some(Size2D::new(width, height)))
     }
 }
 
@@ -269,7 +299,7 @@ fn flag_with_default_parser<S, T>(
 ) -> impl Parser<Option<T>>
 where
     S: FromStr + 'static,
-    <S as FromStr>::Err: std::fmt::Display,
+    <S as FromStr>::Err: fmt::Display,
     T: Clone + 'static,
 {
     let just_flag = if let Some(c) = short_cmd {
