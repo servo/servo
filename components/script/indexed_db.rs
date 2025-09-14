@@ -190,13 +190,13 @@ pub fn convert_value_to_key(
             let mut built_in_class = ESClass::Other;
 
             if !GetBuiltinClass(*cx, object.handle().into(), &mut built_in_class) {
-                return Err(Error::Data);
+                return Err(Error::JSFailed);
             }
 
             if let ESClass::Date = built_in_class {
                 let mut f = f64::NAN;
                 if !js::jsapi::DateGetMsecSinceEpoch(*cx, object.handle().into(), &mut f) {
-                    return Err(Error::Data);
+                    return Err(Error::JSFailed);
                 }
                 if f.is_nan() {
                     return Err(Error::Data);
