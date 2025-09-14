@@ -14,6 +14,7 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Size2D};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};
@@ -217,12 +218,15 @@ impl HTMLImageElement {
             premultiplied: false,
         };
 
-        let snapshot = Snapshot::from_vec(
-            size.cast(),
-            format,
-            alpha_mode,
-            img.first_frame().bytes.to_vec(),
-        );
+        let bytes = if !img.should_animate() {
+            img.bytes.clone()
+        } else {
+            IpcSharedMemory::from_bytes(img.first_frame().bytes)
+        };
+
+        #[allow(unsafe_code)]
+        let snapshot =
+            unsafe { Snapshot::from_shared_memory(size.cast(), format, alpha_mode, bytes) };
 
         Some(snapshot)
     }

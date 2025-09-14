@@ -459,15 +459,18 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         (image_desc, data)
     }
 
+    #[allow(unsafe_code)]
     fn snapshot(&mut self) -> pixels::Snapshot {
-        Snapshot::from_vec(
-            self.size().cast(),
-            SnapshotPixelFormat::RGBA,
-            SnapshotAlphaMode::Transparent {
-                premultiplied: true,
-            },
-            self.pixmap().to_vec(),
-        )
+        unsafe {
+            Snapshot::from_shared_memory(
+                self.size().cast(),
+                SnapshotPixelFormat::RGBA,
+                SnapshotAlphaMode::Transparent {
+                    premultiplied: true,
+                },
+                IpcSharedMemory::from_bytes(self.pixmap()),
+            )
+        }
     }
 
     fn surface(&mut self) -> Self::SourceSurface {

@@ -9,6 +9,7 @@ use base::id::{ImageBitmapId, ImageBitmapIndex};
 use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
+use ipc_channel::ipc::IpcSharedMemory;
 use pixels::{CorsStatus, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::error::{Error, Fallible};
@@ -554,13 +555,15 @@ impl ImageBitmap {
                 let alpha_mode = SnapshotAlphaMode::Transparent {
                     premultiplied: false,
                 };
+                let bytes = if !img.should_animate() {
+                    img.bytes.clone()
+                } else {
+                    IpcSharedMemory::from_bytes(img.first_frame().bytes)
+                };
 
-                let snapshot = Snapshot::from_vec(
-                    size.cast(),
-                    format,
-                    alpha_mode,
-                    img.first_frame().bytes.to_vec(),
-                );
+                #[allow(unsafe_code)]
+                let snapshot =
+                    unsafe { Snapshot::from_shared_memory(size.cast(), format, alpha_mode, bytes) };
 
                 // Step 6.4. Set imageBitmap's bitmap data to imageData, cropped
                 // to the source rectangle with formatting.

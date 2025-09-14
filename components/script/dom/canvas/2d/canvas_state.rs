@@ -23,7 +23,7 @@ use fonts::{
     ByteIndex, FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
     LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
@@ -413,13 +413,14 @@ impl CanvasState {
         let alpha_mode = SnapshotAlphaMode::Transparent {
             premultiplied: false,
         };
+        let bytes = if !img.should_animate() {
+            img.bytes.clone()
+        } else {
+            IpcSharedMemory::from_bytes(img.first_frame().bytes)
+        };
 
-        Some(Snapshot::from_vec(
-            size.cast(),
-            format,
-            alpha_mode,
-            img.first_frame().bytes.to_vec(),
-        ))
+        #[allow(unsafe_code)]
+        Some(unsafe { Snapshot::from_shared_memory(size.cast(), format, alpha_mode, bytes) })
     }
 
     fn request_image_from_cache(
