@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.test {
+  font-family: Ahem;
+  font-size: 40px;
+}
+.no-autospace {
+  text-autospace: no-autospace;
+}
+.normal {
+  text-autospace: normal;
+}
+.spacing {
+  margin: 5px;
+}
+.spacing-left {
+  margin-left: 5px;
+}
+</style>
+<div id="container">
+  <div class="test no-autospace">&#x20000;&#x20000;<span class="spacing">XX</span>&#x20000;</div>
+  <div class="test no-autospace">&#x20000;。XX<span class="spacing-left">&#x20000;</span></div>
+  <div dir="rtl" class="test no-autospace">&#x20000;&#x20000;<span class="spacing">XX</span>&#x20000;</div>
+  <div dir="rtl" class="test no-autospace">&#x20000;。XX<span class="spacing-left">&#x20000;</span></div>
+</div>

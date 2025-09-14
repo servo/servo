@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: Parameters</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins/#mixin-args">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      @mixin --m1() {
+        color: green;
+      }
+      @mixin --m1(junk-in-parameter-list) {  /* Will be ignored. */
+        color: red;
+      }
+      #e1 {
+        @apply --m1;
+      }
+
+      @mixin --m2(--my-color) {
+        color: env(--my-color);
+      }
+      #e2 {
+        @apply --m2(green);
+      }
+      #e2b {
+        @apply --m2(navy);
+      }
+
+      @mixin --m3(--my-color) {
+        color: env(--my-color);
+      }
+      #e3 {
+        @apply --m3({green});
+      }
+
+      @mixin --m4(--my-color: green) {
+        color: env(--my-color);
+      }
+      #e4 {
+        @apply --m4;
+      }
+
+      @mixin --m5() {
+        color: red;
+      }
+      #e5 {
+        color: green;
+        @apply --m5(too-many-parameters);
+      }
+    </style>
+  </head>
+  <body>
+    <div><div id="e1">This text should be green.</div></div>
+    <div><div id="e2">This text should be green.</div></div>
+    <div><div id="e2b">This text should be navy.</div></div>
+    <div><div id="e3">This text should be green.</div></div>
+    <div><div id="e4">This text should be green.</div></div>
+    <div><div id="e5">This text should be green.</div></div>
+  <script>
+    test(() => {
+      let target = document.getElementById('e1');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'Mixins with invalid parameter lists are ignored');
+
+    test(() => {
+      let target = document.getElementById('e2');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'Basic mixin parameter passing');
+
+    test(() => {
+      let target = document.getElementById('e2b');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 0, 128)');
+    }, 'Mixins can be called multiple times with different parameters');
+
+    test(() => {
+      let target = document.getElementById('e3');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'Mixin argument parsing with arguments wrapped in {}');
+
+    test(() => {
+      let target = document.getElementById('e4');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'Defaults in mixin parameters');
+
+    test(() => {
+      let target = document.getElementById('e5');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, '@apply with too many parameters is ignored');
+  </script>
+  </body>
+</html>

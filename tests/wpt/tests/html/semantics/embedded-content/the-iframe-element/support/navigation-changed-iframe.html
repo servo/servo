@@ -4,6 +4,7 @@
         function fireSentinel()
         {
             document.getElementsByTagName('h4')[0].innerHTML = document.domain;
+            opener.postMessage("NAVIGATED", "*");
         }
     </script>
 </head>

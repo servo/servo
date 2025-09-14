@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+test(() => {
+  [
+    { html: '<textarea>Hello world</textarea>', name: 'textarea' },
+    { html: '<input type="text" value="Sample text">', name: 'input[type=text]' },
+    { html: '<input type="search" value="search query">', name: 'input[type=search]' },
+    { html: '<input type="password" value="secret123">', name: 'input[type=password]' },
+    { html: '<input type="url" value="https://example.com">', name: 'input[type=url]' },
+    { html: '<input type="tel" value="+1-555-123-4567">', name: 'input[type=tel]' }
+  ].forEach(({ html, name }) => {
+    test(() => {
+      document.body.innerHTML = html;
+      const element = document.body.firstElementChild;
+      const range = new FormControlRange();
+      const value = element.value || element.textContent;
+
+      range.setFormControlRange(element, 0, value.length);
+
+      assert_equals(range.startContainer, element);
+      assert_equals(range.endContainer, element);
+      assert_equals(range.toString(), value);
+    }, `FormControlRange should support ${name}.`);
+  });
+}, "FormControlRange supported elements.");
+</script>

@@ -7,8 +7,8 @@ typedef (MediaList or boolean) CustomMediaQuery;
 
 [Exposed=Window]
 interface CSSCustomMediaRule : CSSRule {
-    readonly attribute CSSOMString name;
-    readonly attribute CustomMediaQuery query;
+  readonly attribute CSSOMString name;
+  readonly attribute CustomMediaQuery query;
 };
 
 [Exposed=Window, SecureContext]

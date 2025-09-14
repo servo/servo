@@ -112,10 +112,10 @@ function runTest() {
     let scrollendPromise = null;
     if (testInfo.target == document.scrollingElement) {
       targetDiv.addEventListener("scrollend", onInvalidScrollEnd);
-      scrollendPromise = createScrollendPromiseForTarget(t, document, 700, true);
+      scrollendPromise = createScrollendPromiseForTarget(t, document, 2000, true);
     } else {
       document.addEventListener("scrollend", onInvalidScrollEnd);
-      scrollendPromise = createScrollendPromiseForTarget(t, targetDiv, 700, false);
+      scrollendPromise = createScrollendPromiseForTarget(t, targetDiv, 2000, false);
     }
 
     testInfo.target[testInfo.fn]({ top: 200, left: 200,

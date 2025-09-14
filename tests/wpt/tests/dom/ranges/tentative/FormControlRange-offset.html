@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+const controls = ["textarea", "input"];
+
+function setupControl(control, value) {
+  document.body.innerHTML = (control === "input") ? '<input type="text">' : '<textarea></textarea>';
+  const element = document.body.firstElementChild;
+  element.value = value;
+  return element;
+}
+
+controls.forEach(control => {
+  test(() => {
+    const element = setupControl(control, "A");
+    const range = new FormControlRange();
+
+    [[0, 0, "", true], [0, 1, "A", false], [1, 1, "", true]].forEach(([start, end, text, collapsed]) => {
+      range.setFormControlRange(element, start, end);
+      assert_equals(range.toString(), text);
+      assert_equals(range.collapsed, collapsed);
+    });
+  }, `FormControlRange with single character in ${control}.`);
+
+  test(() => {
+    const element = setupControl(control, "");
+    const range = new FormControlRange();
+
+    range.setFormControlRange(element, 0, 0);
+    assert_equals(range.toString(), "");
+    assert_true(range.collapsed);
+  }, `FormControlRange with empty control in ${control}.`);
+
+  test(() => {
+    const element = setupControl(control, "Hello World");
+    const range = new FormControlRange();
+
+    [[0, 5, "Hello"], [5, 6, " "], [6, 11, "World"], [11, 11, ""]].forEach(([start, end, expected]) => {
+      range.setFormControlRange(element, start, end);
+      assert_equals(range.toString(), expected);
+    });
+  }, `FormControlRange boundary positions in ${control}.`);
+
+  test(() => {
+    const testCases = [
+      {
+        // Emoji 😊 with length 2 in UTF-16 ('\uD83D\uDE0A').
+        text: '\u{1F60A}',
+        ranges: [[0, 0, ""], [0, 2, "😊"], [2, 2, ""], [0, 1, "\uD83D"], [1, 2, "\uDE0A"]]
+      },
+      {
+        // ZWJ emoji (👨‍👩‍👧) with length 8 in UTF-16 ('\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67').
+        text: '\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}',
+        ranges: [[0, 0, ""], [0, 8, "👨‍👩‍👧"], [8, 8, ""], [0, 2, "👨"], [3, 5, "👩"], [6, 8, "👧"],
+          [1, 2, "\uDC68"], [2, 3, "\u200D"]]
+      },
+      {
+        // Mixed ASCII and emoji 😊.
+        text: 'Hello\u{1F60A}World',
+        ranges: [[0, 5, "Hello"], [5, 7, "😊"], [7, 12, "World"], [0, 12, "Hello😊World"], [3, 6, "lo\uD83D"],
+          [6, 9, "\uDE0AWo"],  [4, 8, "o😊W"]]
+      }
+    ];
+
+    testCases.forEach(testCase => {
+      const element = setupControl(control, testCase.text);
+      const range = new FormControlRange();
+      testCase.ranges.forEach(([start, end, expected]) => {
+        range.setFormControlRange(element, start, end);
+        assert_equals(range.toString(), expected);
+      });
+    });
+  }, `FormControlRange with Unicode characters in ${control}.`);
+});
+
+
+test(() => {
+  // Test textarea with mixed whitespace in light DOM.
+  document.body.innerHTML = '<textarea>  \n\t  Line1\n  Line2  \t\n  </textarea>';
+  const textarea = document.body.firstElementChild;
+  const range = new FormControlRange();
+
+  // Whitespace is preserved in textarea.value.
+  range.setFormControlRange(textarea, 0, textarea.value.length);
+  assert_equals(range.toString(), textarea.value);
+  assert_true(range.toString().includes('\n'));
+  assert_true(range.toString().includes('\t'));
+}, "FormControlRange preserves whitespace in textarea light DOM.");
+
+test(() => {
+  document.body.innerHTML = '<textarea>Hello World</textarea>';
+  const textarea = document.body.firstElementChild;
+
+  // Create a complex DOM structure inside the textarea.
+  // Child nodes don't affect the textarea's .value, only text content does.
+  textarea.append(document.createElement("video"));
+  textarea.append(document.createElement("iframe"));
+
+  const span = document.createElement("span");
+  span.innerHTML = "more text";
+  textarea.append(span);
+
+  textarea.append(document.createTextNode("Some rendered content"));
+  textarea.append(document.createTextNode("Some more rendered content"));
+
+  const range = new FormControlRange();
+
+  // FormControlRange uses element.value, which includes text nodes but ignores element children.
+  assert_equals(textarea.value, "Hello WorldSome rendered contentSome more rendered content");
+  range.setFormControlRange(textarea, 0, textarea.value.length);
+  assert_equals(range.toString(), "Hello WorldSome rendered contentSome more rendered content");
+}, "FormControlRange should work correctly with weirdly formed light DOM structure.");
+
+test(() => {
+  // Test input with child nodes (which shouldn't exist but might)
+  document.body.innerHTML = '<input type="text" value="Original">';
+  const input = document.body.firstElementChild;
+
+  // Malformed: add child nodes to input (shouldn't affect value).
+  input.appendChild(document.createTextNode("Ignored"));
+  input.appendChild(document.createElement("span")).textContent = "AlsoIgnored";
+
+  const range = new FormControlRange();
+  range.setFormControlRange(input, 0, input.value.length);
+
+  // Input.value is unaffected by child nodes.
+  assert_equals(range.toString(), "Original");
+}, "FormControlRange ignores malformed input child nodes.");
+</script>

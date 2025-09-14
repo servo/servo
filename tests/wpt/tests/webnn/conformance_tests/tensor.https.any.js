@@ -1401,11 +1401,12 @@ const testExportToGPU = (testName) => {
 
     // Check if WebNN interop is supported.
     try {
-      await mlContext.createTensor({
+      let mlTensor = await mlContext.createTensor({
         dataType: 'float32',
         shape: shape,
         exportableToGPU: true,
       });
+      await mlContext.exportToGPU(mlTensor);
     } catch (e) {
       if (e.name === 'NotSupportedError') {
         isExportToGPUSupported = false;

@@ -186,7 +186,7 @@
   <template shadowrootmode=open>
     <main>
       Main
-      <a href="">
+      <a href="" class="with_class_outer">
         Visited1
       </a>
     </main>
@@ -198,6 +198,17 @@
       @scope (:visited) {
         :scope > :visited { background-color: coral; }
       }
+      @scope (:visited) {
+        :visited > :scope { background-color: lightgrey; }
+      }
+      @scope(.with_class_inner) {
+        :visited > :scope { color: yellow;  }
+      }
+
+      /* Should match */
+      @scope(.with_class_outer) {
+        :scope > :visited { color: green; }
+      }
     </style>
   </template>
 </div>
@@ -207,8 +218,10 @@
     // Insert the inner :visited link with JS, since the parser
     // can't produce this.
     let outer_a = visited_in_visited.shadowRoot.querySelector('main > a');
+
     let inner_a = document.createElement('a');
     inner_a.setAttribute('href', '');
+    inner_a.setAttribute('class', 'with_class_inner');
     inner_a.textContent = 'Visited2';
     outer_a.append(inner_a);
   }

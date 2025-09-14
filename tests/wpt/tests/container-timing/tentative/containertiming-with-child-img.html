@@ -25,20 +25,19 @@ body {
       })
     );
     observer.observe({entryTypes: ['container']});
-    // Add the image during onload to be sure that the observer is registered
-    // in time.
-    window.onload = () => {
-      // Add a div that is the container timing root
-      const div = document.createElement('div');
-      div.setAttribute('containertiming', 'div_ct');
-      document.body.appendChild(div);
-      // Add image of width equal to 100 and height equal to 100.
-      const img = document.createElement('img');
-      img.src = '/container-timing/resources/square100.png';
-      img.setAttribute('id', 'img_id');
-      div.appendChild(img);
-      beforeRender = performance.now();
-    };
+
+    // Add a div that is the container timing root
+    const div = document.createElement('div');
+    div.setAttribute('containertiming', 'div_ct');
+    document.body.appendChild(div);
+
+    // Add image of width equal to 100 and height equal to 100.
+    const img = document.createElement('img');
+    img.src = '/container-timing/resources/square100.png';
+    img.setAttribute('id', 'img_id');
+    div.appendChild(img);
+
+    beforeRender = performance.now();
   }, 'Paint of the image child of container timing is reported.');
 </script>
 

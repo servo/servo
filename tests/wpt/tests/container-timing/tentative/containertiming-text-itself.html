@@ -23,16 +23,14 @@ body {
       })
     );
     observer.observe({entryTypes: ['container']});
-    // Add the text during onload to be sure that the observer is registered
-    // in time.
-    window.onload = () => {
-      const p = document.createElement('p');
-      p.setAttribute('containertiming', 'p_ct');
-      p.id = 'my_id';
-      p.innerText = "This is a text";
-      document.body.appendChild(p);
-      beforeRender = performance.now();
-    };
+
+    const p = document.createElement('p');
+    p.setAttribute('containertiming', 'p_ct');
+    p.id = 'my_id';
+    p.innerText = "This is a text";
+    document.body.appendChild(p);
+
+    beforeRender = performance.now();
   }, 'Element with containertiming attribute is observable and reports the text paint.');
 </script>
 

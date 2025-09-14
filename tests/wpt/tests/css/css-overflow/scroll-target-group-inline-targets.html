@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: dynamic setting of scroll-target-group with inline scroll targets</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<link rel="match" href="scroll-target-group-inline-targets-ref.html">
+<style>
+  .stg {
+    scroll-target-group: auto;
+
+    a:target-current {
+      color: green;
+    }
+  }
+
+  #scroller {
+    height: 100px;
+    overflow: auto;
+  }
+</style>
+<div id="group">
+  <a href="#a">a</a>
+  <a href="#b">b</a>
+</div>
+<div id="scroller">
+  <a id="a">aa</a>
+  <div style="height: 200px;"></div>
+  <a id="b">bb</a>
+  <div style="height: 200px;"></div>
+</div>
+<script>
+  scroller.scrollTop = 200;
+  document.documentElement.offsetTop;
+  group.classList.add("stg");
+</script>

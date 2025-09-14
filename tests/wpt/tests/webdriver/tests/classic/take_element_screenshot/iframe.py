@@ -3,7 +3,7 @@ import pytest
 from tests.support.asserts import assert_success
 from tests.support.image import png_dimensions
 
-from . import element_dimensions
+from . import element_dimensions, take_element_screenshot
 
 DEFAULT_CONTENT = "<div id='content'>Lorem ipsum dolor sit amet.</div>"
 
@@ -55,16 +55,6 @@ INNER_IFRAME_STYLE = """
       }
     </style>
 """
-
-
-def take_element_screenshot(session, element_id):
-    return session.transport.send(
-        "GET",
-        "session/{session_id}/element/{element_id}/screenshot".format(
-            session_id=session.session_id,
-            element_id=element_id,
-        )
-    )
 
 
 def test_frame_element(session, inline, iframe):

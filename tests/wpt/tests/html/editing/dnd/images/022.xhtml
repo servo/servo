@@ -7,7 +7,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="../resources/test-helper.js"></script>
 <head>
-  <title>Dropping image on vertical iframe scrollbar</title>
+  <title>Dropping image on the root scrollbar of an iframe. No drop event should be sent.</title>
   <style type="text/css">
     p:first-child {
       padding-left: 1em;
@@ -33,22 +33,20 @@
   <p><img
       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg=="
       alt="PNG green pixel" ondragstart="dragImage()" /></p>
-  <p>Drag little square above and drop it on vertical scrollbar. Word PASS should appear once you drop it.</p>
+  <p>Drag little square above and drop it on vertical scrollbar. The drop event should not be sent, and the word PASS should not appear in the iframe.</p>
   <iframe src="helper-drop-vertical-scrollbar.xhtml">XHTML document</iframe>
   <script>
     async function test() {
       await new Promise(loaded => window.addEventListener("load", loaded));
+
       const img = document.querySelector('img');
       const iframe = document.querySelector('iframe');
       const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
       const div = innerDoc.querySelector('div');
 
-      function onDropCallBack(event) {
-        assert_equals(innerDoc.querySelector('div').textContent, 'PASS');
-        return true;
-      }
-      dragDropTest(img, div, onDropCallBack,
-        'Dragging the image to the vertical iframe scrollbar should copy it there', /*dragIframe=*/ null, iframe);
+      dragDropTestNoDropEvent(img, div,
+        'Dragging the image to the vertical iframe scrollbar should NOT trigger drop event',
+        /*dragIframe=*/ null, iframe, DropPosition.RIGHT_SCROLLBAR);
     }
     test();
   </script>

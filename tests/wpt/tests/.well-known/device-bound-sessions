@@ -21,5 +21,5 @@ def main(request, response):
         response_body = {
             "provider_origin": provider_origin,
         }
-    return (200, [('Content-Type', 'application/json'), ('Set-Cookie', 'well_known_fetched=true; Path=/device-bound-session-credentials')],
+    return (200, [('Content-Type', 'application/json')],
             json.dumps(response_body))

@@ -11,7 +11,7 @@ async_test(t => {
     assert_equals(location.hash, "#1");
     assert_equals(e.constructor, ErrorEvent);
     assert_true(e.error === err);
-    assert_equals(e.message, "Uncaught TypeError: a message");
+    assert_true(e.message.includes("TypeError: a message"));
     assert_equals(e.filename, start_href);
     assert_greater_than(e.colno, 0);
     assert_greater_than(e.lineno, 0);

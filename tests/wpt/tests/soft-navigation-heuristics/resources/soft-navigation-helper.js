@@ -33,7 +33,7 @@ function getNextEntry(type) {
       observer.disconnect();
       assert_equals(entries.length, 1, 'Only one entry.');
       resolve(entries[0]);
-    }).observe({ type, includeSoftNavigationObservations: true });
+    }).observe({ type });
   });
 }
 
@@ -45,7 +45,7 @@ function getBufferedEntries(type) {
       }
       resolve(list.getEntries());
       observer.disconnect();
-    }).observe({ type, buffered: true, includeSoftNavigationObservations: true });
+    }).observe({ type, buffered: true });
   });
 }
 
