@@ -32,7 +32,7 @@
         smallLcpIssued = true;
         observer.disconnect();
       }
-    }).observe({ type: "interaction-contentful-paint", includeSoftNavigationObservations: true });
+    }).observe({ type: "interaction-contentful-paint" });
 
     document.body.innerHTML = `
           <div id='small-lcp'>Hello, world.</div>
@@ -57,7 +57,6 @@
     const helper = new SoftNavigationTestHelper(t);
     const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
       /*type=*/ "largest-contentful-paint",
-      /*includeSoftNavigationObservations=*/ false,
       /*minNumEntries=*/ 1,
     );
     assert_equals(lcpEntries.length, 1, "There should be only one LCP entry");
@@ -66,12 +65,10 @@
     const promise = Promise.all([
       SoftNavigationTestHelper.getPerformanceEntries(
         /*type=*/ "soft-navigation",
-        /*includeSoftNavigationObservations=*/ false,
         /*minNumEntries=*/ 1,
       ),
       SoftNavigationTestHelper.getPerformanceEntries(
         /*type=*/ "interaction-contentful-paint",
-        /*includeSoftNavigationObservations=*/ true,
         /*minNumEntries=*/ 2,
       ),
     ]);

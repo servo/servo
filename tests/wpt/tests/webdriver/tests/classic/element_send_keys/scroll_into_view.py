@@ -31,13 +31,32 @@ def test_element_outside_of_not_scrollable_viewport(session, inline):
 
 
 def test_element_outside_of_scrollable_viewport(session, inline):
-    session.url = inline('<input style="margin-top: 102vh;">')
-    element = session.find.css("input", all=False)
+    session.url = inline("""
+        <style>
+            .scroll-container {
+                display: block;
+                overflow-y: scroll;
+                scroll-behavior: smooth;
+                height: 200px;
+            }
 
-    response = element_send_keys(session, element, "foo")
+            input {
+                margin-top: 2000vh;
+            }
+        </style>
+
+        <div class="scroll-container">
+            <input type="text" size="20" value="foo"></input>
+        </div>
+        """)
+
+    element = session.find.css("input", all=False)
+    response = element_send_keys(session, element, " bar")
     assert_success(response)
 
     assert is_element_in_viewport(session, element)
+
+    assert element.property("value") == "foo bar"
 
 
 def test_contenteditable_element_outside_of_scrollable_viewport(session, inline):

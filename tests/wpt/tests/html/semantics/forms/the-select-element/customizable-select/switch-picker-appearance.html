@@ -119,6 +119,8 @@ promise_test(async (t) => {
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
   await new Promise(requestAnimationFrame);
   await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
   assert_false(select1.matches(':open'),'changing appearance while the picker is open should close it');
 }, 'Switching appearance in JS after picker is open should close the picker');
 </script>
@@ -151,10 +153,10 @@ promise_test(async (t) => {
   assert_false(select2.matches(':open'),'setup');
   assert_equals(select2.value,'option one');
   assert_equals(getComputedStyle(select2).appearance,'base-select');
-  await test_driver.click(select2);
+  await clickOn(select2);
   assert_true(select2.matches(':open'),'picker should open when clicked');
   assert_equals(secondOption.textContent,'option two');
-  await test_driver.click(secondOption);
+  await clickOn(secondOption);
   assert_false(select2.matches(':open'));
   assert_equals(select2.value,'option two');
 },'Test of the test harness');
@@ -163,16 +165,16 @@ promise_test(async (t) => {
   assert_false(select2.matches(':open'),'setup');
   assert_equals(select2.className,'');
   assert_equals(getComputedStyle(select2).appearance,'base-select');
-  await test_driver.click(select2);
+  await clickOn(select2);
   assert_true(select2.matches(':open'),'picker should open when clicked');
   assert_equals(getComputedStyle(select2).appearance,'base-select');
-  await test_driver.click(secondOption); // Choose an option
+  await clickOn(secondOption); // Choose an option
   assert_false(select2.matches(':open'));
   t.add_cleanup(() => select2.removeAttribute('class'));
   select2.classList.add('controlswitch');
   assert_false(select2.matches(':open'));
   assert_equals(getComputedStyle(select2).appearance,'base-select','appearance should not have changed yet');
-  await test_driver.click(select2);
+  await clickOn(select2);
   assert_false(select2.matches(':open'),'picker should get closed when the appearance value changes');
   assert_equals(getComputedStyle(select2).appearance,'base-select','appearance should be back to base-select');
 },'The select picker is closed if the <select> appearance value is changed via CSS while the picker is open');
@@ -181,14 +183,14 @@ promise_test(async (t) => {
   assert_false(select2.matches(':open'),'setup');
   assert_equals(select2.className,'');
   assert_equals(getComputedStyle(select2).appearance,'base-select');
-  await test_driver.click(select2);
+  await clickOn(select2);
   assert_true(select2.matches(':open'),'picker should open when clicked');
   assert_equals(getComputedStyle(select2).appearance,'base-select');
-  await test_driver.click(secondOption); // Choose an option
+  await clickOn(secondOption); // Choose an option
   assert_false(select2.matches(':open'));
   t.add_cleanup(() => select2.removeAttribute('class'));
   select2.classList.add('pickerswitch');
-  await test_driver.click(select2);
+  await clickOn(select2);
   assert_false(select2.matches(':open'),'picker should get closed when the appearance value changes');
   assert_equals(getComputedStyle(select2).appearance,'base-select','appearance should be back to base-select');
 },'The select picker is closed if the ::picker() appearance value is changed via CSS while the picker is open');
@@ -197,7 +199,7 @@ promise_test(async (t) => {
   assert_false(select2.matches(':open'),'setup');
   assert_equals(select2.className,'');
   assert_equals(getComputedStyle(select2).appearance,'base-select');
-  await test_driver.click(select2);
+  await clickOn(select2);
   assert_true(select2.matches(':open'),'picker should open when clicked');
   assert_equals(getComputedStyle(select2).appearance,'base-select');
   t.add_cleanup(() => select2.removeAttribute('style'));

@@ -77,7 +77,7 @@
     await fetch(`https://${CURRENT_HOST_HTTPS_PORT}/hsts/resources/hsts.html?as-fetch`);
 
     // Step 4.
-    const hstsWindowPromise = onMessageWithTimeout("Step 3")
+    const hstsWindowPromise = onMessageWithTimeout("Step 4")
     .then((event) =>
       assert_equals(event.data.origin,
                     `https://${CURRENT_HOST_HTTPS_PORT}`));

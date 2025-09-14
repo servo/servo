@@ -8,3 +8,13 @@ def element_dimensions(session, element):
           Math.floor(height * devicePixelRatio),
         ];
         """, args=(element,)))
+
+
+def take_element_screenshot(session, element_id):
+    return session.transport.send(
+        "GET",
+        "session/{session_id}/element/{element_id}/screenshot".format(
+            session_id=session.session_id,
+            element_id=element_id,
+        )
+    )

@@ -88,6 +88,18 @@ test(function() {
   assert_equals(document.getElementsByTagName("head").length, 1, "Should still have one head");
   assert_equals(document.getElementsByTagName("body").length, 1, "Should still have one body");
 }, "Inserting kids of the <html> element should not do weird things with implied <body>/<head> tags")
+
+test(function() {
+  let div = document.createElement("div");
+  div.appendChild(document.createTextNode("A"));
+  div.insertAdjacentHTML("beforeEnd", "B");
+  assert_true(div.firstChild && div.firstChild.nextSibling &&
+              !div.firstChild.nextSibling.nextSibling,
+              "div has two children");
+  assert_equals(div.firstChild.textContent, "A");
+  assert_equals(div.lastChild.textContent, "B");
+}, "A text node inserted via insertAdjacentHTML should not be merged with a sibling text node.");
+
 </script>
 <div id="log"></div>
 </body>

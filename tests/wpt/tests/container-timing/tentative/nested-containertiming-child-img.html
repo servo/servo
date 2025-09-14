@@ -25,26 +25,24 @@ body {
       })
     );
     observer.observe({entryTypes: ['container']});
-    // Add the image during onload to be sure that the observer is registered
-    // in time.
-    window.onload = () => {
-      // Add a div that is the container timing root
-      const div1 = document.createElement('div');
-      div1.setAttribute('containertiming', 'div1_ct');
-      document.body.appendChild(div1);
 
-      // Add another div, child of the first, that is also a container root
-      const div2 = document.createElement('div');
-      div2.setAttribute('containertiming', 'div2_ct');
-      div1.appendChild(div2);
+    // Add a div that is the container timing root
+    const div1 = document.createElement('div');
+    div1.setAttribute('containertiming', 'div1_ct');
+    document.body.appendChild(div1);
 
-      // Add image of width equal to 100 and height equal to 100.
-      img = document.createElement('img');
-      img.src = '/container-timing/resources/square100.png';
-      img.setAttribute('id', 'img_id');
-      div2.appendChild(img);
-      beforeRender = performance.now();
-    };
+    // Add another div, child of the first, that is also a container root
+    const div2 = document.createElement('div');
+    div2.setAttribute('containertiming', 'div2_ct');
+    div1.appendChild(div2);
+
+    // Add image of width equal to 100 and height equal to 100.
+    img = document.createElement('img');
+    img.src = '/container-timing/resources/square100.png';
+    img.setAttribute('id', 'img_id');
+    div2.appendChild(img);
+
+    beforeRender = performance.now();
   }, 'A parent containertiming root with default nesting policy does not get paints from children containertiming roots.');
 </script>
 

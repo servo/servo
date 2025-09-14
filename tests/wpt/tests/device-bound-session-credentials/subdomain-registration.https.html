@@ -14,6 +14,31 @@
     waitForCookie
   } from "/device-bound-session-credentials/helper.js";
 
+  async function waitForRefresh(cookieAndAttributes, cookieAndValue, expectRefreshed) {
+    const startTime = Date.now();
+    const refreshed = await new Promise(resolve => {
+      async function tryRefresh() {
+        expireCookie(cookieAndAttributes);
+        assert_false(documentHasCookie(cookieAndValue));
+        const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+        if (authResponseAfterExpiry.status == 200) {
+          resolve(true);
+          return;
+        }
+        if (!expectRefreshed && Date.now() - startTime >= 1000) {
+          resolve(false);
+          return;
+        }
+
+        step_timeout(tryRefresh, 100);
+      }
+
+      tryRefresh();
+    });
+
+    assert_equals(refreshed, expectRefreshed);
+  }
+
   async function runTest(t, subdomain, expectRegistration) {
     await setupShardedServerState();
     const expectedCookieAndValue = "auth_cookie=abcdef0123";
@@ -39,23 +64,13 @@
 
     const loginResponse = await fetch(loginUrl.toString(), {credentials: "include"});
     assert_equals(loginResponse.status, 200);
-    // The registration request happens, which sets the auth_cookie. Then the
-    // .well-known is fetched, which may cause registration to fail
-    // (depending on `expectRegistration`).
-    await waitForCookie('well_known_fetched=true', /*expectCookie=*/ true);
-
-    // Expire the cookie, and check whether a refresh has occurred.
-    expireCookie(expectedCookieAndAttributes);
-    assert_false(documentHasCookie(expectedCookieAndValue));
-    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
-    const authResponseBody = await authResponseAfterExpiry.text();
-    if (expectRegistration) {
-      assert_equals(authResponseAfterExpiry.status, 200, "(response body: " + authResponseBody + ")");
-      assert_true(documentHasCookie(expectedCookieAndValue));
-    } else {
-      assert_equals(authResponseAfterExpiry.status, 401, "(response body: " + authResponseBody + ")");
-      assert_false(documentHasCookie(expectedCookieAndValue));
-    }
+    // Wait for the cookie returned by the server providing the session config to
+    // the user agent.
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+    // There is still well-known fetching after that, so we can't conclude yet that
+    // registration is finished and has either succeeded or failed as expected.
+    // Trigger repeated refresh attempts to confirm this instead.
+    await waitForRefresh(expectedCookieAndAttributes, expectedCookieAndValue, /*expectRefresh=*/expectRegistration);
   }
 
   promise_test(async t => {

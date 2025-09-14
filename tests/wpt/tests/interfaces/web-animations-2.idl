@@ -134,17 +134,4 @@ dictionary AnimationTriggerOptions {
   (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) exitRangeEnd = "auto";
 };
 
-[Exposed=Window]
-interface EventTrigger : AnimationTrigger {
-  constructor(optional EventTriggerOptions options = {});
-  readonly attribute DOMString eventType;
-  readonly attribute EventTarget eventTarget;
-};
-
-dictionary EventTriggerOptions {
-  AnimationTriggerBehavior? behavior = "once";
-  DOMString eventType;
-  EventTarget eventTarget;
-};
-
 enum AnimationTriggerBehavior { "once", "repeat", "alternate", "state" };

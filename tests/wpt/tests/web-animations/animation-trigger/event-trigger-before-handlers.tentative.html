@@ -38,7 +38,7 @@
           eventType: "click",
           eventTarget: eventTarget
         });
-        trigger.addAnimation(animation);
+        trigger.addAnimation(animation, "click", "play");
         await waitForAnimationFrames(2);
         assert_equals(animation.playState, "idle", "animation is idle");
         await test_driver.click(eventTarget);

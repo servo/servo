@@ -861,12 +861,9 @@ test_scope_invalidation(document.currentScript, () => {
   assert_green(c);
   let scope_rule = main.querySelector('style').sheet.cssRules[1];
   assert_true(scope_rule instanceof CSSScopeRule);
-  // Note: relative selectors imply a :where(:scope) selector to the left,
-  // which is observably different from an implicit '&' selector through
-  // specificity.
   scope_rule.cssRules[0].selectorText = '> .b'; /* Still (0, 1, 0) */
-  scope_rule.cssRules[1].selectorText = '& > .c'; /* (0, 3, 0) */
+  scope_rule.cssRules[1].selectorText = '& > .c'; /* Still (0, 1, 0) */
   assert_green(b);
-  assert_red(c);
-}, 'Relative selectors set with selectorText are relative to :scope, not &');
+  assert_green(c);
+}, 'Relative selectors set with selectorText are relative to :scope and &');
 </script>

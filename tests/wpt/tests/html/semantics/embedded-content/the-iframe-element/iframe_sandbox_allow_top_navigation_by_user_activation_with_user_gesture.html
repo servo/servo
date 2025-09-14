@@ -1,0 +1,30 @@
+<!doctype html>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  async_test(function (t) {
+    let beforeunloadFired = false;
+
+    window.addEventListener(
+      "message",
+      t.step_func_done(function (e) {
+        assert_equals(e.data, "NAVIGATED", "The parent should be navigated");
+        assert_equals(
+          beforeunloadFired,
+          true,
+          "An beforeunload event should have been fired in the parent"
+        );
+      })
+    );
+
+    let parent = open(
+      "support/iframe-that-performs-top-navigation-parent-with-user-gesture-with-sandbox.sub.html"
+    );
+    parent.addEventListener("beforeunload", () => {
+      beforeunloadFired = true;
+    });
+  });
+</script>
