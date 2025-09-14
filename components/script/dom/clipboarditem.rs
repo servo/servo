@@ -305,6 +305,9 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-supports>
     fn Supports(_: &Window, type_: DOMString) -> bool {
+        // TODO Step 1 If type is in mandatory data types or optional data types, then return true.
+        // Step 2 If not, then return false.
+        // NOTE: We only supports text/plain
         type_ == "text/plain"
     }
 }
