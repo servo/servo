@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<head>
+  <title>CSP header applied to image document</title>
+  <link rel="help" href="https://github.com/servo/servo/issues/38180">
+  <script src='/resources/testharness.js'></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <iframe id="iframe" src="../support/pass.png?pipe=header(Content-Security-Policy,default-src 'none')"></iframe>
+  <script>
+    let iframe = document.getElementById("iframe");
+    promise_test(async t => {
+      await t.step_wait(() => {
+        return iframe.contentDocument.querySelector("img") !== null;
+      }, "Wait for image document to be loaded", 5000, 100);
+      return new Promise((resolve, reject) => {
+        let newImg = iframe.contentDocument.createElement("img");
+        newImg.onload = reject;
+        newImg.onerror = resolve;
+        newImg.src = "../support/fail.png";
+        iframe.contentDocument.body.appendChild(newImg);
+      });
+    }, "Image document correctly applies CSP to other subresources.");
+  </script>
+</body>

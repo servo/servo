@@ -129,7 +129,7 @@ use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
-use crate::{ConstraintSpace, ContainingBlock, SharedStyle};
+use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SharedStyle};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -1725,6 +1725,21 @@ impl InlineFormattingContext {
         *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
     }
 
+    pub(crate) fn inline_start_for_first_line(
+        &self,
+        containing_block: IndefiniteContainingBlock,
+    ) -> Au {
+        if !self.has_first_formatted_line {
+            return Au::zero();
+        }
+        containing_block
+            .style
+            .get_inherited_text()
+            .text_indent
+            .length
+            .to_used_value(containing_block.size.inline.unwrap_or_default())
+    }
+
     pub(super) fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -1733,17 +1748,6 @@ impl InlineFormattingContext {
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
     ) -> CacheableLayoutResult {
-        let first_line_inline_start = if self.has_first_formatted_line {
-            containing_block
-                .style
-                .get_inherited_text()
-                .text_indent
-                .length
-                .to_used_value(containing_block.size.inline)
-        } else {
-            Au::zero()
-        };
-
         // Clear any cached inline fragments from previous layouts.
         for inline_box in self.inline_boxes.iter() {
             inline_box.borrow().base.clear_fragments();
@@ -1775,7 +1779,7 @@ impl InlineFormattingContext {
             ifc: self,
             fragments: Vec::new(),
             current_line: LineUnderConstruction::new(LogicalVec2 {
-                inline: first_line_inline_start,
+                inline: self.inline_start_for_first_line(containing_block.into()),
                 block: Au::zero(),
             }),
             root_nesting_level: InlineContainerState::new(
@@ -2349,7 +2353,7 @@ impl ComputeInlineContentSizes for InlineFormattingContext {
 /// A struct which takes care of computing [`ContentSizes`] for an [`InlineFormattingContext`].
 struct ContentSizesComputation<'layout_data> {
     layout_context: &'layout_data LayoutContext<'layout_data>,
-    constraint_space: &'layout_data ConstraintSpace,
+    constraint_space: &'layout_data ConstraintSpace<'layout_data>,
     paragraph: ContentSizes,
     current_line: ContentSizes,
     /// Size for whitespace pending to be added to this line.
@@ -2371,6 +2375,9 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         mut self,
         inline_formatting_context: &InlineFormattingContext,
     ) -> InlineContentSizesResult {
+        self.add_inline_size(
+            inline_formatting_context.inline_start_for_first_line(self.constraint_space.into()),
+        );
         for inline_item in inline_formatting_context.inline_items.iter() {
             self.process_item(&inline_item.borrow(), inline_formatting_context);
         }
@@ -2394,7 +2401,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
                 let inline_box = inline_box.borrow();
                 let zero = Au::zero();
-                let writing_mode = self.constraint_space.writing_mode;
+                let writing_mode = self.constraint_space.style.writing_mode;
                 let layout_style = inline_box.layout_style();
                 let padding = layout_style
                     .padding(writing_mode)
@@ -2430,7 +2437,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
                     // TODO: This should take account whether or not the first and last character prevent
                     // linebreaks after atomics as in layout.
-                    if can_wrap && segment.break_at_start {
+                    if can_wrap && segment.break_at_start && self.had_content_yet_for_min_content {
                         self.line_break_opportunity()
                     }
 
@@ -2447,10 +2454,12 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                                 style_text.white_space_collapse,
                                 WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
                             ) {
-                                if can_wrap {
-                                    self.line_break_opportunity();
-                                } else if self.had_content_yet_for_min_content {
-                                    self.pending_whitespace.min_content += advance;
+                                if self.had_content_yet_for_min_content {
+                                    if can_wrap {
+                                        self.line_break_opportunity();
+                                    } else {
+                                        self.pending_whitespace.min_content += advance;
+                                    }
                                 }
                                 if self.had_content_yet_for_max_content {
                                     self.pending_whitespace.max_content += advance;
@@ -2479,13 +2488,6 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 }
             },
             InlineItem::Atomic(atomic, offset_in_text, _level) => {
-                // TODO: need to handle TextWrapMode::Nowrap.
-                if !inline_formatting_context
-                    .previous_character_prevents_soft_wrap_opportunity(*offset_in_text)
-                {
-                    self.line_break_opportunity();
-                }
-
                 let InlineContentSizesResult {
                     sizes: outer,
                     depends_on_block_constraints,
@@ -2497,14 +2499,23 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 );
                 self.depends_on_block_constraints |= depends_on_block_constraints;
 
-                if !inline_formatting_context
-                    .next_character_prevents_soft_wrap_opportunity(*offset_in_text)
+                // TODO: need to handle TextWrapMode::Nowrap.
+                if self.had_content_yet_for_min_content &&
+                    !inline_formatting_context
+                        .previous_character_prevents_soft_wrap_opportunity(*offset_in_text)
                 {
                     self.line_break_opportunity();
                 }
 
                 self.commit_pending_whitespace();
                 self.current_line += outer;
+
+                // TODO: need to handle TextWrapMode::Nowrap.
+                if !inline_formatting_context
+                    .next_character_prevents_soft_wrap_opportunity(*offset_in_text)
+                {
+                    self.line_break_opportunity();
+                }
             },
             _ => {},
         }

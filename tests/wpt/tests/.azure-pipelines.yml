@@ -158,7 +158,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   variables:
     HYPOTHESIS_PROFILE: ci
   steps:
@@ -177,7 +177,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -194,7 +194,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -211,7 +211,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -228,7 +228,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   steps:
   # full checkout required
   - task: UsePythonVersion@0
@@ -250,7 +250,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   steps:
   # full checkout required
   - task: UsePythonVersion@0
@@ -274,10 +274,10 @@ jobs:
        eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_stable'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_stable']))
   strategy:
-    parallel: 8 # chosen to make runtime ~2h
+    parallel: 10 # chosen to make runtime ~2h
   timeoutInMinutes: 180
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -310,10 +310,10 @@ jobs:
        eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_dev'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_dev']))
   strategy:
-    parallel: 8 # chosen to make runtime ~2h
+    parallel: 10 # chosen to make runtime ~2h
   timeoutInMinutes: 180
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -324,6 +324,7 @@ jobs:
   - template: tools/ci/azure/install_edge.yml
     parameters:
       channel: dev
+  - template: tools/ci/azure/configure_watson.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel dev edge
@@ -346,10 +347,10 @@ jobs:
        eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_canary'),
        and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_canary']))
   strategy:
-    parallel: 8 # chosen to make runtime ~2h
+    parallel: 10 # chosen to make runtime ~2h
   timeoutInMinutes: 180
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   steps:
   - task: UsePythonVersion@0
     inputs:

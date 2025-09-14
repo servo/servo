@@ -31,7 +31,7 @@
           eventType: "click",
           eventTarget: eventTarget
         });
-        trigger.addAnimation(animation);
+        trigger.addAnimation(animation, "click", "play-alternate");
         await waitForAnimationFrames(1);
         assert_equals(animation.playState, "idle", "animation is idle");
         assert_equals(animation.playbackRate, 1, "playbackRate is initially 1");

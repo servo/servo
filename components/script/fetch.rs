@@ -139,7 +139,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
     }
 }
 
-/// <https://fetch.spec.whatwg.org/#fetch-method>
+/// <https://fetch.spec.whatwg.org/#dom-global-fetch>
 #[allow(non_snake_case)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) fn Fetch(
@@ -176,7 +176,12 @@ pub(crate) fn Fetch(
     request_init.policy_container =
         RequestPolicyContainer::PolicyContainer(global.policy_container());
 
-    // TODO: Step 4. If requestObject’s signal is aborted, then: [..]
+    // Step 4. If requestObject’s signal is aborted, then:
+    // TODO
+    // Step 4.1. Abort the fetch() call with p, request, null, and requestObject’s signal’s abort reason.
+    // TODO
+    // Step 4.2. Return p.
+    // TODO
 
     // Step 5. Let globalObject be request’s client’s global object.
     // NOTE:   We already get the global object as an argument
@@ -187,16 +192,48 @@ pub(crate) fn Fetch(
         request_init.service_workers_mode = ServiceWorkersMode::None;
     }
 
-    // TODO: Steps 8-11, abortcontroller stuff
+    // Step 8. Let relevantRealm be this’s relevant realm.
+    //
+    // Is `comp` as argument
+
+    // Step 9. Let locallyAborted be false.
+    // TODO
+    // Step 10. Let controller be null.
+    // TODO
+    // Step 11. Add the following abort steps to requestObject’s signal:
+    // TODO
+    // Step 11.1. Set locallyAborted to true.
+    // TODO
+    // Step 11.2. Assert: controller is non-null.
+    // TODO
+    // Step 11.3. Abort controller with requestObject’s signal’s abort reason.
+    // TODO
+    // Step 11.4. Abort the fetch() call with p, request, responseObject, and requestObject’s signal’s abort reason.
+    // TODO
 
     // Step 12. Set controller to the result of calling fetch given request and
-    //           processResponse given response being these steps: [..]
+    // processResponse given response being these steps:
     let fetch_context = Arc::new(Mutex::new(FetchContext {
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
         resource_timing: ResourceFetchTiming::new(timing_type),
     }));
 
+    // Step 12.1. If locallyAborted is true, then abort these steps.
+    // TODO
+    // Step 12.2. If response’s aborted flag is set, then:
+    // TODO
+    // Step 12.2.1. Let deserializedError be the result of deserialize a serialized
+    // abort reason given controller’s serialized abort reason and relevantRealm.
+    // TODO
+    // Step 12.2.2. Abort the fetch() call with p, request, responseObject, and deserializedError.
+    // TODO
+    // Step 12.2.3. Abort these steps.
+    // TODO
+
+    // Step 12.3. If response is a network error, then reject p with a TypeError and abort these steps.
+    // Step 12.4. Set responseObject to the result of creating a Response object, given response, "immutable", and relevantRealm.
+    // Step 12.5. Resolve p with responseObject.
     global.fetch(
         request_init,
         fetch_context,

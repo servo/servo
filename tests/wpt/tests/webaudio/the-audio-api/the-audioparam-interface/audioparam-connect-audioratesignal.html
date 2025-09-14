@@ -16,25 +16,25 @@ to check that the resultant signal should be equal to the gain-scaling curve.
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let audit = Audit.createTaskRunner();
+    <script>
+      const sampleRate = 44100.0;
+      const lengthInSeconds = 1;
 
-      let sampleRate = 44100.0;
-      let lengthInSeconds = 1;
+      let context;
+      let constantOneBuffer;
+      let linearRampBuffer;
 
-      let context = 0;
-      let constantOneBuffer = 0;
-      let linearRampBuffer = 0;
+      function checkResult(renderedBuffer) {
+        const renderedData = renderedBuffer.getChannelData(0);
+        const expectedData = linearRampBuffer.getChannelData(0);
+        const n = renderedBuffer.length;
 
-      function checkResult(renderedBuffer, should) {
-        let renderedData = renderedBuffer.getChannelData(0);
-        let expectedData = linearRampBuffer.getChannelData(0);
-        let n = renderedBuffer.length;
-
-        should(n, 'Rendered signal length').beEqualTo(linearRampBuffer.length);
+        assert_equals(
+            n,
+            linearRampBuffer.length,
+            'Rendered signal length should match control buffer length');
 
         // Check that the rendered result exactly matches the buffer used to
         // control gain.  This is because we're changing the gain of a signal
@@ -47,14 +47,14 @@ to check that the resultant signal should be equal to the gain-scaling curve.
           }
         }
 
-        should(
+        assert_true(
             success,
-            'Rendered signal exactly matches the audio-rate gain changing signal')
-            .beTrue();
+            `Rendered signal exactly matches ` +
+                `the audio-rate gain changing signal`);
       }
 
-      audit.define('test', function(task, should) {
-        let sampleFrameLength = sampleRate * lengthInSeconds;
+      promise_test(async t => {
+        const sampleFrameLength = sampleRate * lengthInSeconds;
 
         // Create offline audio context.
         context = new OfflineAudioContext(1, sampleFrameLength, sampleRate);
@@ -67,37 +67,32 @@ to check that the resultant signal should be equal to the gain-scaling curve.
 
         // Create the two sources.
 
-        let constantSource = context.createBufferSource();
-        constantSource.buffer = constantOneBuffer;
+        const constantSource = new AudioBufferSourceNode(context, {
+          buffer: constantOneBuffer,
+        });
 
-        let gainChangingSource = context.createBufferSource();
-        gainChangingSource.buffer = linearRampBuffer;
+        const gainChangingSource = new AudioBufferSourceNode(context, {
+          buffer: linearRampBuffer,
+        });
 
         // Create a gain node controlling the gain of constantSource and make
         // the connections.
-        let gainNode = context.createGain();
+        const gainNode = new GainNode(context, {gain: 0});
 
-        // Intrinsic baseline gain of zero.
-        gainNode.gain.value = 0;
-
-        constantSource.connect(gainNode);
-        gainNode.connect(context.destination);
+        constantSource.connect(gainNode).connect(context.destination);
 
         // Connect an audio-rate signal to control the .gain AudioParam.
         // This is the heart of what is being tested.
         gainChangingSource.connect(gainNode.gain);
 
         // Start both sources at time 0.
-        constantSource.start(0);
-        gainChangingSource.start(0);
+        constantSource.start();
+        gainChangingSource.start();
 
-        context.startRendering().then(buffer => {
-          checkResult(buffer, should);
-          task.done();
-        });
-      });
-
-      audit.run();
+        const renderedBuffer = await context.startRendering();
+        checkResult(renderedBuffer);
+      }, `AudioParam accepts an audio-rate signal from an AudioNode` +
+          ` and scales a constant source exactly`);
     </script>
   </body>
 </html>

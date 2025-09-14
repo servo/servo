@@ -532,11 +532,8 @@ impl HoistedAbsolutelyPositionedBox {
         // The inline axis can be fully resolved, computing intrinsic sizes using the
         // extrinsic block size.
         let get_inline_content_size = || {
-            let constraint_space = ConstraintSpace::new(
-                tentative_block_size,
-                style.writing_mode,
-                preferred_aspect_ratio,
-            );
+            let constraint_space =
+                ConstraintSpace::new(tentative_block_size, &style, preferred_aspect_ratio);
             context
                 .inline_content_sizes(layout_context, &constraint_space)
                 .sizes

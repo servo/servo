@@ -32,7 +32,6 @@
         // we may later observe the soft navigation LCP entry in addition.
         const initial_lcp = await helper.getBufferedPerformanceEntriesWithTimeout(
           /*type=*/ "largest-contentful-paint",
-          /*include_soft_navigation_observations=*/ false,
           /*min_num_entries=*/ 1,
         );
 
@@ -52,12 +51,10 @@
         const results = await Promise.allSettled([
           helper.getBufferedPerformanceEntriesWithTimeout(
             /*type=*/ "soft-navigation",
-            /*include_soft_navigation_observations=*/ true,
             /*min_num_entries=*/ 1,
           ),
           helper.getBufferedPerformanceEntriesWithTimeout(
             /*type=*/ "interaction-contentful-paint",
-            /*include_soft_navigation_observations=*/ true,
             /*min_num_entries=*/ 1,
           ),
         ]);

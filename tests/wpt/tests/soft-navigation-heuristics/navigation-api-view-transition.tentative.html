@@ -27,8 +27,7 @@
           async handler() {
             const lcp_promise = new Promise(resolve => {
              (new PerformanceObserver(list => resolve())).observe(
-               {type: 'largest-contentful-paint',
-                includeSoftNavigationObservations: true});
+               {type: 'largest-contentful-paint'});
              });
             const transition = document.startViewTransition(async () => {
               const main = document.getElementById('main');

@@ -42,7 +42,6 @@ promise_test(async (t) => {
   const helper = new SoftNavigationTestHelper(t);
   const entries = await helper.getBufferedPerformanceEntriesWithTimeout(
       /*type=*/ 'soft-navigation',
-      /*includeSoftNavigationObservations=*/ false,
       /*minNumEntries=*/ 1,
       /*timeout=*/ 3000
   );

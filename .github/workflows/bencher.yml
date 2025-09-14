@@ -76,7 +76,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
-          python3 ./mach bootstrap --skip-lints
+          ./mach bootstrap --skip-lints
       - uses: bencherdev/bencher@main
       - name: File size
         if: ${{ inputs.file-size == true }}
@@ -101,12 +101,12 @@ jobs:
       - name: Speedometer
         if: ${{ inputs.speedometer == true }}
         run: |
-            python3 ./mach test-speedometer -r --bmf-output speedometer.json
+            ./mach test-speedometer -r --bmf-output speedometer.json
             echo "SERVO_SPEEDOMETER_RESULT=speedometer.json" >> "$GITHUB_ENV"
       - name: Dromaeo
         if: ${{ inputs.dromaeo == true }}
         run: |
-            python3 ./mach test-dromaeo -r dom --bmf-output dromaeo.json
+            ./mach test-dromaeo -r dom --bmf-output dromaeo.json
             echo "SERVO_DROMAEO_RESULT=dromaeo.json" >> "$GITHUB_ENV"
       # set options
       - name: Set bencher opts for PRs (label try run)

@@ -30,7 +30,7 @@
         const actual = resultBuffer.getChannelData(0);
         const expected = resultBuffer.getChannelData(1);
 
-        assert_array_approximately_equals(
+        assert_array_equal_within_eps(
             actual,
             expected,
             errorThreshold,
@@ -65,7 +65,7 @@
         const actual = resultBuffer.getChannelData(0);
         const expected = resultBuffer.getChannelData(1);
 
-        assert_array_approximately_equals(
+        assert_array_equal_within_eps(
             actual,
             expected,
             errorThreshold,

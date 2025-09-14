@@ -85,6 +85,7 @@ jobs:
   runner-timeout:
     needs:
       - runner-select
+    if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -93,7 +94,6 @@ jobs:
           sparse-checkout: '.github'
       - name: Runner timeout
         uses: ./.github/actions/runner-timeout
-        if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         with:
           github_token: '${{ secrets.GITHUB_TOKEN }}'
           unique-id: '${{ needs.runner-select.outputs.unique-id }}'
@@ -187,6 +187,9 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
           command: .\mach test-unit --${{ inputs.profile }} -- -- --test-threads=1
+      - name: Devtools tests
+        if: ${{ inputs.unit-tests }}
+        run: .\mach test-devtools --${{ inputs.profile }}
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:

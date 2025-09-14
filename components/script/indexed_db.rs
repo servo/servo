@@ -7,6 +7,7 @@ use std::iter::repeat_n;
 use std::ptr;
 
 use ipc_channel::ipc::IpcSender;
+use itertools::Itertools;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandle;
 use js::jsapi::{
@@ -14,7 +15,7 @@ use js::jsapi::{
     JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
 };
 use js::jsval::{DoubleValue, UndefinedValue};
-use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty};
+use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty, JS_IsIdentifier};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::indexeddb_thread::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
 use profile_traits::ipc;
@@ -78,26 +79,74 @@ pub fn key_type_to_jsval(
     }
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#valid-key-path
-pub fn is_valid_key_path(key_path: &StrOrStringSequence) -> bool {
-    fn is_identifier(_s: &str) -> bool {
-        // FIXME: (arihant2math)
-        true
-    }
+/// <https://www.w3.org/TR/IndexedDB-2/#valid-key-path>
+pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> Result<bool, Error> {
+    // <https://tc39.es/ecma262/#prod-IdentifierName>
+    #[allow(unsafe_code)]
+    let is_identifier_name = |name: &str| -> Result<bool, Error> {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut value = UndefinedValue());
+        name.safe_to_jsval(cx, value.handle_mut());
+        rooted!(in(*cx) let string = value.to_string());
 
-    let is_valid = |path: &DOMString| {
-        path.is_empty() || is_identifier(path) || path.split(".").all(is_identifier)
+        unsafe {
+            let mut is_identifier = false;
+            if !JS_IsIdentifier(*cx, string.handle(), &mut is_identifier) {
+                return Err(Error::JSFailed);
+            }
+            Ok(is_identifier)
+        }
+    };
+
+    // A valid key path is one of:
+    let is_valid = |path: &DOMString| -> Result<bool, Error> {
+        // An empty string.
+        let is_empty_string = path.is_empty();
+
+        // An identifier, which is a string matching the IdentifierName production from the
+        // ECMAScript Language Specification [ECMA-262].
+        let is_identifier = is_identifier_name(path)?;
+
+        // A string consisting of two or more identifiers separated by periods (U+002E FULL STOP).
+        let is_identifier_list = path
+            .split(".")
+            .map(is_identifier_name)
+            .try_collect::<bool, Vec<bool>, Error>()?
+            .iter()
+            .all(|&value| value);
+
+        Ok(is_empty_string || is_identifier || is_identifier_list)
     };
 
     match key_path {
         StrOrStringSequence::StringSequence(paths) => {
+            // A non-empty list containing only strings conforming to the above requirements.
             if paths.is_empty() {
-                return false;
+                Ok(false)
+            } else {
+                Ok(paths
+                    .iter()
+                    .map(is_valid)
+                    .try_collect::<bool, Vec<bool>, Error>()?
+                    .iter()
+                    .all(|&value| value))
             }
-
-            paths.iter().all(is_valid)
         },
         StrOrStringSequence::String(path) => is_valid(path),
+    }
+}
+
+pub(crate) enum ConversionResult {
+    Valid(IndexedDBKeyType),
+    Invalid,
+}
+
+impl ConversionResult {
+    pub fn into_result(self) -> Result<IndexedDBKeyType, Error> {
+        match self {
+            ConversionResult::Valid(key) => Ok(key),
+            ConversionResult::Invalid => Err(Error::Data),
+        }
     }
 }
 
@@ -107,7 +156,7 @@ pub fn convert_value_to_key(
     cx: SafeJSContext,
     input: HandleValue,
     seen: Option<Vec<HandleValue>>,
-) -> Result<IndexedDBKeyType, Error> {
+) -> Result<ConversionResult, Error> {
     // Step 1: If seen was not given, then let seen be a new empty set.
     let _seen = seen.unwrap_or_default();
 
@@ -121,15 +170,17 @@ pub fn convert_value_to_key(
     // FIXME:(arihant2math) Accept array as well
     if input.is_number() {
         if input.to_number().is_nan() {
-            return Err(Error::Data);
+            return Ok(ConversionResult::Invalid);
         }
-        return Ok(IndexedDBKeyType::Number(input.to_number()));
+        return Ok(ConversionResult::Valid(IndexedDBKeyType::Number(
+            input.to_number(),
+        )));
     }
 
     if input.is_string() {
         let string_ptr = std::ptr::NonNull::new(input.to_string()).unwrap();
         let key = unsafe { jsstr_to_string(*cx, string_ptr) };
-        return Ok(IndexedDBKeyType::String(key));
+        return Ok(ConversionResult::Valid(IndexedDBKeyType::String(key)));
     }
 
     if input.is_object() {
@@ -149,13 +200,15 @@ pub fn convert_value_to_key(
                 if f.is_nan() {
                     return Err(Error::Data);
                 }
-                return Ok(IndexedDBKeyType::Date(f));
+                return Ok(ConversionResult::Valid(IndexedDBKeyType::Date(f)));
             }
 
             if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
                 // FIXME:(arihant2math) implement it the correct way (is this correct?)
                 let key = structuredclone::write(cx, input, None)?;
-                return Ok(IndexedDBKeyType::Binary(key.serialized.clone()));
+                return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(
+                    key.serialized.clone(),
+                )));
             }
 
             if let ESClass::Array = built_in_class {
@@ -166,18 +219,17 @@ pub fn convert_value_to_key(
         }
     }
 
-    Err(Error::Data)
+    Ok(ConversionResult::Invalid)
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range
+/// <https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range>
 #[allow(unsafe_code)]
 pub fn convert_value_to_key_range(
     cx: SafeJSContext,
     input: HandleValue,
     null_disallowed: Option<bool>,
 ) -> Result<IndexedDBKeyRange, Error> {
-    let null_disallowed = null_disallowed.unwrap_or(false);
-    // Step 1.
+    // Step 1. If value is a key range, return value.
     if input.is_object() {
         rooted!(in(*cx) let object = input.to_object());
         unsafe {
@@ -187,11 +239,30 @@ pub fn convert_value_to_key_range(
             }
         }
     }
-    // Step 2.
-    if (input.get().is_undefined() || input.get().is_null()) && null_disallowed {
-        return Err(Error::Data);
+
+    // Step 2. If value is undefined or is null, then throw a "DataError" DOMException if null
+    // disallowed flag is set, or return an unbounded key range otherwise.
+    if input.get().is_undefined() || input.get().is_null() {
+        if null_disallowed.is_some_and(|flag| flag) {
+            return Err(Error::Data);
+        } else {
+            return Ok(IndexedDBKeyRange {
+                lower: None,
+                upper: None,
+                lower_open: Default::default(),
+                upper_open: Default::default(),
+            });
+        }
     }
+
+    // Step 3. Let key be the result of running the steps to convert a value to a key with value.
+    // Rethrow any exceptions.
     let key = convert_value_to_key(cx, input, None)?;
+
+    // Step 4. If key is invalid, throw a "DataError" DOMException.
+    let key = key.into_result()?;
+
+    // Step 5. Return a key range containing only key.
     Ok(IndexedDBKeyRange::only(key))
 }
 
@@ -403,8 +474,6 @@ pub(crate) fn evaluate_key_path_on_value(
 /// <https://www.w3.org/TR/IndexedDB-2/#extract-a-key-from-a-value-using-a-key-path>
 pub(crate) enum ExtractionResult {
     Key(IndexedDBKeyType),
-    // NOTE: Invalid is not used for now. Remove the unused annotation when it is used.
-    #[expect(unused)]
     Invalid,
     Failure,
 }
@@ -434,10 +503,12 @@ pub(crate) fn extract_key(
             // TODO: implement convert_value_to_multientry_key
             unimplemented!("multiEntry keys are not yet supported");
         },
-        _ => convert_value_to_key(cx, r.handle(), None)?,
+        _ => match convert_value_to_key(cx, r.handle(), None)? {
+            ConversionResult::Valid(key) => key,
+            // Step 4. If key is invalid, return invalid.
+            ConversionResult::Invalid => return Ok(ExtractionResult::Invalid),
+        },
     };
-
-    // TODO: Step 4. If key is invalid, return invalid.
 
     // Step 5. Return key.
     Ok(ExtractionResult::Key(key))

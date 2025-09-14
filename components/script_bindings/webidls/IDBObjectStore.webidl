@@ -11,8 +11,8 @@
 [Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBObjectStore {
   [SetterThrows] attribute DOMString name;
-  // readonly attribute any keyPath;
-  // readonly attribute DOMStringList indexNames;
+  readonly attribute any keyPath;
+  readonly attribute DOMStringList indexNames;
   [SameObject] readonly attribute IDBTransaction transaction;
   readonly attribute boolean autoIncrement;
 
@@ -28,10 +28,10 @@ interface IDBObjectStore {
                                     optional [EnforceRange] unsigned long count);
   [NewObject, Throws] IDBRequest count(optional any query);
 
-  // [NewObject] IDBRequest openCursor(optional any query,
-  //                                   optional IDBCursorDirection direction = "next");
-  // [NewObject] IDBRequest openKeyCursor(optional any query,
-  //                                      optional IDBCursorDirection direction = "next");
+  [NewObject, Throws] IDBRequest openCursor(optional any query,
+                                    optional IDBCursorDirection direction = "next");
+  [NewObject, Throws] IDBRequest openKeyCursor(optional any query,
+                                       optional IDBCursorDirection direction = "next");
 
   // IDBIndex index(DOMString name);
 

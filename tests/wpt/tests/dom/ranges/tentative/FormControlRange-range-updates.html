@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+test(() => {
+  document.body.innerHTML = '<textarea>Hello World</textarea>';
+  const textarea = document.body.firstElementChild;
+  const range = new FormControlRange();
+
+  range.setFormControlRange(textarea, 0, 5);
+  assert_equals(range.toString(), "Hello");
+
+  range.setFormControlRange(textarea, 6, 11);
+  assert_equals(range.toString(), "World");
+  assert_equals(range.startOffset, 6);
+  assert_equals(range.endOffset, 11);
+}, "FormControlRange allows updating range on same element.");
+
+test(() => {
+  document.body.innerHTML = '<input type="text" value="Test"><textarea>Other</textarea>';
+  const input = document.body.children[0];
+  const textarea = document.body.children[1];
+  const range = new FormControlRange();
+
+  // Set range on <input>.
+  range.setFormControlRange(input, 0, 4);
+  assert_equals(range.startContainer, input);
+  assert_equals(range.endContainer, input);
+  assert_equals(range.toString(), "Test");
+
+  // Switch to different element <textarea>.
+  range.setFormControlRange(textarea, 0, 5);
+  assert_equals(range.startContainer, textarea);
+  assert_equals(range.endContainer, textarea);
+  assert_equals(range.toString(), "Other");
+}, "FormControlRange can switch between different form controls.");
+
+test(() => {
+  // Create disconnected form controls (not in document).
+  const container = document.createElement("div");
+  container.innerHTML = '<input type="text" value="Disconnected"><textarea>NotConnected</textarea>';
+  const input = container.children[0];
+  const textarea = container.children[1];
+  const range = new FormControlRange();
+
+  // Verify disconnected <input>.
+  range.setFormControlRange(input, 0, 12);
+  assert_equals(range.startContainer, input);
+  assert_equals(range.endContainer, input);
+  assert_equals(range.toString(), "Disconnected");
+
+  // Verify disconnected <textarea>.
+  range.setFormControlRange(textarea, 3, 12);
+  assert_equals(range.startContainer, textarea);
+  assert_equals(range.endContainer, textarea);
+  assert_equals(range.toString(), "Connected");
+
+  // Connect to document.
+  document.body.appendChild(container);
+
+  range.setFormControlRange(input, 0, 4);
+  assert_equals(range.toString(), "Disc");
+
+  range.setFormControlRange(textarea, 0, 3);
+  assert_equals(range.toString(), "Not");
+}, "FormControlRange works with disconnected and then connected form controls.");
+
+test(() => {
+  document.body.innerHTML = '<textarea>Connected</textarea>';
+  const connectedTextarea = document.body.firstElementChild;
+
+  const disconnectedInput = document.createElement("input");
+  disconnectedInput.type = "text";
+  disconnectedInput.value = "Floating";
+
+  const range = new FormControlRange();
+
+  // Start verifying with connected element.
+  range.setFormControlRange(connectedTextarea, 0, 9);
+  assert_equals(range.toString(), "Connected");
+
+  // Switch to disconnected element.
+  range.setFormControlRange(disconnectedInput, 0, 8);
+  assert_equals(range.toString(), "Floating");
+  assert_equals(range.startContainer, disconnectedInput);
+
+  // Switch back to connected element.
+  range.setFormControlRange(connectedTextarea, 3, 6);
+  assert_equals(range.toString(), "nec");
+  assert_equals(range.startContainer, connectedTextarea);
+}, "FormControlRange can switch between connected and disconnected form controls.");
+
+test(() => {
+  document.body.innerHTML = '<textarea>Original</textarea>';
+  const textarea = document.body.firstElementChild;
+  const range = new FormControlRange();
+
+  range.setFormControlRange(textarea, 1, 5);
+  assert_equals(range.toString(), "rigi");
+
+  textarea.value = "Modified";
+  assert_equals(range.toString(), "odif");
+}, "FormControlRange reflects value changes on same element.");
+</script>

@@ -878,8 +878,8 @@ fn validate_range_header(value: &str) -> bool {
 }
 
 /// <https://fetch.spec.whatwg.org/#cors-safelisted-method>
-pub fn is_cors_safelisted_method(m: &Method) -> bool {
-    matches!(*m, Method::GET | Method::HEAD | Method::POST)
+pub fn is_cors_safelisted_method(method: &Method) -> bool {
+    matches!(*method, Method::GET | Method::HEAD | Method::POST)
 }
 
 /// <https://fetch.spec.whatwg.org/#cors-non-wildcard-request-header-name>

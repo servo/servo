@@ -8,6 +8,7 @@ use compositing_traits::viewport_description::ViewportDescription;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
+use servo_config::pref;
 use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::attr::Attr;
@@ -64,9 +65,7 @@ impl HTMLMetaElement {
             if name == "referrer" {
                 self.apply_referrer();
             }
-            if (cfg!(target_os = "android") || cfg!(target_os = "ios") || cfg!(target_env = "ohos")) &&
-                name == "viewport"
-            {
+            if name == "viewport" {
                 self.parse_and_send_viewport_if_necessary();
             }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
@@ -125,6 +124,10 @@ impl HTMLMetaElement {
 
     /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
     fn parse_and_send_viewport_if_necessary(&self) {
+        if !pref!(viewport_meta_enabled) {
+            return;
+        }
+
         // Skip processing if this isn't the top level frame
         if !self.owner_window().is_top_level() {
             return;

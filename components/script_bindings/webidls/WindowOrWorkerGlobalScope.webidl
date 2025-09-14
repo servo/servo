@@ -46,8 +46,12 @@ partial interface mixin WindowOrWorkerGlobalScope {
 
 // https://www.w3.org/TR/trusted-types/#extensions-to-the-windoworworkerglobalscope-interface
 partial interface mixin WindowOrWorkerGlobalScope {
-  [Pref="dom_trusted_types_enabled"]
   readonly attribute TrustedTypePolicyFactory trustedTypes;
+};
+
+// https://fetch.spec.whatwg.org/#fetch-method
+partial interface mixin WindowOrWorkerGlobalScope {
+  [NewObject] Promise<Response> fetch(RequestInfo input, optional RequestInit init = {});
 };
 
 Window includes WindowOrWorkerGlobalScope;

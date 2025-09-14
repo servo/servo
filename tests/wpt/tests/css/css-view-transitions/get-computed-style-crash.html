@@ -10,7 +10,7 @@ async function start() {
  var el = document.createElement(undefined);
  document.body.appendChild(el);
 
- var style = self.getComputedStyle(el, ':view-transition');
+ var style = self.getComputedStyle(el, '::view-transition');
  style.getPropertyValue("--child");
 }
 </script>

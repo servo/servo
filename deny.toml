@@ -121,6 +121,9 @@ skip = [
     "windows_x86_64_gnullvm",
     "windows_x86_64_msvc",
 
+    # Duplicated by zbus.
+    "windows_i686_gnullvm",
+
     # wgpu has the latest and greatest.
     "windows-core",
 

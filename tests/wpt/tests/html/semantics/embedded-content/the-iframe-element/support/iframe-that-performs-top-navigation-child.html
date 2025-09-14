@@ -1,0 +1,11 @@
+<!doctype html>
+
+<script>
+  window.onload = function () {
+    try {
+      top.location = "navigation-changed-iframe.html";
+    } catch (e) {
+      top.opener.postMessage("ERROR", "*");
+    }
+  };
+</script>

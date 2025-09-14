@@ -50,6 +50,7 @@ class SessionManager:
         self.provider_session_id = None
         self.provider_url = None
         self.provider_key = None
+        self.use_empty_response = False
 
     def next_session_id(self):
         return len(self.session_to_key_map)
@@ -147,6 +148,10 @@ class SessionManager:
         if provider_key is not None:
             self.provider_key = provider_key
 
+        use_empty_response = configuration.get("useEmptyResponse")
+        if use_empty_response is not None:
+            self.use_empty_response = use_empty_response
+
     def get_should_refresh_end_session(self):
         return self.should_refresh_end_session
 
@@ -226,7 +231,8 @@ class SessionManager:
             ("Cache-Control", "no-store")
         ]
 
-        return (200, headers, json.dumps(response_body))
+        response_body = "" if self.use_empty_response else json.dumps(response_body)
+        return (200, headers, response_body)
 
     def get_refresh_endpoint_unavailable(self):
         return self.refresh_endpoint_unavailable

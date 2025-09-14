@@ -472,3 +472,24 @@ promise_test(async t => {
   decoder.reset();
   assert_equals(decoder.decodeQueueSize, 0);
 }, 'VideoDecoder decodeQueueSize test');
+
+promise_test(async t => {
+  await checkImplements();
+  const callbacks = {};
+  const decoder = createVideoDecoder(t, callbacks);
+  decoder.configure(CONFIG);
+  decoder.reset();
+  decoder.configure(CONFIG);
+  decoder.decode(CHUNKS[0]);
+
+  let outputs = 0;
+  callbacks.output = frame => {
+    outputs++;
+    assert_equals(frame.timestamp, CHUNKS[0].timestamp, 'timestamp');
+    assert_equals(frame.duration, CHUNKS[0].duration, 'duration');
+    frame.close();
+  };
+
+  await decoder.flush();
+  assert_equals(outputs, 1, 'outputs');
+}, 'Test configure, reset, configure does not stall');

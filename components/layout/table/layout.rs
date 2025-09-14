@@ -709,7 +709,7 @@ impl<'a> TableLayout<'a> {
     fn compute_caption_minimum_inline_size(&self, layout_context: &LayoutContext) -> Au {
         let containing_block = IndefiniteContainingBlock {
             size: LogicalVec2::default(),
-            writing_mode: self.table.style.writing_mode,
+            style: &self.table.style,
         };
         self.table
             .captions
@@ -2709,7 +2709,7 @@ impl ComputeInlineContentSizes for Table {
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        let writing_mode = constraint_space.writing_mode;
+        let writing_mode = constraint_space.style.writing_mode;
         let mut layout = TableLayout::new(self);
         layout.compute_border_collapse(writing_mode);
         layout.pbm = self

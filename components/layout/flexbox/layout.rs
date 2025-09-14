@@ -2050,7 +2050,7 @@ impl FlexItemBox {
         let flex_axis = config.flex_axis;
         let style = self.style();
         let cross_axis_is_item_block_axis = cross_axis_is_item_block_axis(
-            containing_block.writing_mode.is_horizontal(),
+            containing_block.style.writing_mode.is_horizontal(),
             style.writing_mode.is_horizontal(),
             flex_axis,
         );
@@ -2180,7 +2180,7 @@ impl FlexItemBox {
                 // The main axis is the inline axis, so we can get the content size from the normal
                 // preferred widths calculation.
                 let constraint_space =
-                    ConstraintSpace::new(cross_size, style.writing_mode, preferred_aspect_ratio);
+                    ConstraintSpace::new(cross_size, style, preferred_aspect_ratio);
                 let content_sizes = flex_item
                     .inline_content_sizes(layout_context, &constraint_space)
                     .sizes;
@@ -2586,9 +2586,8 @@ impl FlexItemBox {
         block_size: SizeConstraint,
         preferred_aspect_ratio: Option<AspectRatio>,
     ) -> ContentSizes {
-        let writing_mode = self.independent_formatting_context.style().writing_mode;
-        let constraint_space =
-            ConstraintSpace::new(block_size, writing_mode, preferred_aspect_ratio);
+        let style = self.independent_formatting_context.style();
+        let constraint_space = ConstraintSpace::new(block_size, style, preferred_aspect_ratio);
         self.independent_formatting_context
             .inline_content_sizes(flex_context.layout_context, &constraint_space)
             .sizes

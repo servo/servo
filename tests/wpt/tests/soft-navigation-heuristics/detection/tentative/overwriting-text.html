@@ -47,11 +47,9 @@
         waitForExactlyOneElementTimingEntry(url, /*buffered=*/false);
     const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
         "soft-navigation",
-        /* includeSoftNavigationObservations= */true,
         /* minNumEntries= */ 1);
     const icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
         "interaction-contentful-paint",
-        /* includeSoftNavigationObservations= */true,
         /* minNumEntries= */ 1);
 
     if (test_driver) {

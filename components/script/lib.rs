@@ -51,6 +51,7 @@ mod realms;
 mod routed_promise;
 #[allow(dead_code)]
 mod script_module;
+mod script_mutation_observers;
 pub(crate) mod script_runtime;
 #[allow(unsafe_code)]
 pub(crate) mod script_thread;

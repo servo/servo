@@ -27,17 +27,15 @@ body {
       );
       observer.observe({type: 'container', buffered: true });
     }, 2000);
-    // Add the image during onload to be sure that the observer is registered
-    // in time.
-    window.onload = () => {
-      // Add image of width equal to 100 and height equal to 100.
-      const img = document.createElement('img');
-      img.src = '/container-timing/resources/square100.png';
-      img.setAttribute('containertiming', 'image_ct');
-      img.setAttribute('id', 'my_id');
-      document.body.appendChild(img);
-      beforeRender = performance.now();
-    };
+
+    // Add image of width equal to 100 and height equal to 100.
+    const img = document.createElement('img');
+    img.src = '/container-timing/resources/square100.png';
+    img.setAttribute('containertiming', 'image_ct');
+    img.setAttribute('id', 'my_id');
+    document.body.appendChild(img);
+
+    beforeRender = performance.now();
   }, 'Paint is reported when observation starts after image paint if buffering is enabled.');
 </script>
 

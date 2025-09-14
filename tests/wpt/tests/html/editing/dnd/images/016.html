@@ -43,6 +43,7 @@
   <script>
     async function test() {
       await new Promise(loaded => window.addEventListener("load", loaded));
+
       const img = document.querySelector('img');
       const div = document.querySelector('div');
 
@@ -52,7 +53,8 @@
       }
 
       dragDropTest(img, div, onDropCallBack,
-        'Dragging the image to the vertical scrollbar within a scrollable block element should copy it there');
+        'Dragging the image to the vertical scrollbar within a scrollable block element should copy it there',
+        /*dragIframe=*/ null, /*dropIframe=*/ null, DropPosition.RIGHT_SCROLLBAR);
     }
     test();
   </script>

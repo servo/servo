@@ -417,7 +417,7 @@
     fuzzy_test_valid_color(`oklab(from currentColor l a b)`, `oklab(from currentcolor l a b)`);
 
     // color-mix
-    fuzzy_test_valid_color(`oklab(from color-mix(in oklab, oklab(0.25 0.2 0.5), oklab(0.25 0.2 0.5)) l a b / alpha)`);
+    fuzzy_test_valid_color(`oklab(from color-mix(in oklab, oklab(0.25 0.2 0.5), oklab(0.25 0.2 0.5)) l a b / alpha)`, `oklab(from color-mix(oklab(0.25 0.2 0.5), oklab(0.25 0.2 0.5)) l a b / alpha)`);
 
     // lch()
 

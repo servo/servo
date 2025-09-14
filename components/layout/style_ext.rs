@@ -1092,7 +1092,7 @@ impl LayoutStyle<'_> {
         // we instead resolve indefinite percentages against zero.
         let containing_block_size_or_zero =
             containing_block.size.map(|value| value.unwrap_or_default());
-        let writing_mode = containing_block.writing_mode;
+        let writing_mode = containing_block.style.writing_mode;
         let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             writing_mode,
             containing_block_size_or_zero.inline,

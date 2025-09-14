@@ -28,7 +28,6 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -353,11 +352,12 @@ impl HTMLSlotElement {
         }
         self.is_in_agents_signal_slots.set(true);
 
+        let mutation_observers = ScriptThread::mutation_observers();
         // Step 1. Append slot to slot’s relevant agent’s signal slots.
-        ScriptThread::add_signal_slot(self);
+        mutation_observers.add_signal_slot(self);
 
         // Step 2. Queue a mutation observer microtask.
-        MutationObserver::queue_mutation_observer_microtask();
+        mutation_observers.queue_mutation_observer_microtask(ScriptThread::microtask_queue());
     }
 
     pub(crate) fn remove_from_signal_slots(&self) {

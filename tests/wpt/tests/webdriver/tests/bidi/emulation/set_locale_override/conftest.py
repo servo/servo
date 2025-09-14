@@ -8,10 +8,10 @@ LOCALES = ["de-DE", "es-ES", "fr-FR", "it-IT"]
 
 @pytest_asyncio.fixture
 async def get_current_locale(bidi_session):
-    async def get_current_locale(context):
+    async def get_current_locale(context, sandbox=None):
         result = await bidi_session.script.evaluate(
             expression="new Intl.DateTimeFormat().resolvedOptions().locale",
-            target=ContextTarget(context["context"]),
+            target=ContextTarget(context["context"], sandbox=sandbox),
             await_promise=False,
         )
 
