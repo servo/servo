@@ -7303,6 +7303,7 @@ dependencies = [
  "bincode",
  "bitflags 2.9.4",
  "bluetooth_traits",
+ "byteorder",
  "canvas_traits",
  "cbc",
  "chrono",
@@ -7392,6 +7393,7 @@ dependencies = [
  "url",
  "urlpattern",
  "utf-8",
+ "utf16string",
  "uuid",
  "webdriver",
  "webgpu_traits",
@@ -7436,6 +7438,7 @@ dependencies = [
  "stylo_atoms",
  "tendril",
  "tracing",
+ "utf16string",
  "webxr-api",
  "xml5ever",
 ]
@@ -7448,6 +7451,7 @@ dependencies = [
  "keyboard-types",
  "script",
  "servo_url",
+ "utf16string",
 ]
 
 [[package]]
@@ -7935,6 +7939,7 @@ dependencies = [
  "unicode-script",
  "url",
  "urlpattern",
+ "utf16string",
  "uuid",
  "webrender",
  "webrender_api",
@@ -9354,6 +9359,11 @@ name = "utf16_iter"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8232dd3cdaed5356e0f716d285e4b40b932ac434100fe9b7e0e8e935b9e6246"
+
+[[package]]
+name = "utf16string"
+version = "0.1.0"
+source = "git+https://github.com/simonwuelker/utf16string#e92dc5f3fce2d7cad04285276631b89e68f587d1"
 
 [[package]]
 name = "utf8_iter"
