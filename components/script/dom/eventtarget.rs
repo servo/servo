@@ -885,7 +885,7 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+    pub(crate) fn fire_event(&self, name: Atom, can_gc: CanGc) -> bool {
         self.fire_event_with_params(
             name,
             EventBubbles::DoesNotBubble,
@@ -896,7 +896,7 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_bubbling_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+    pub(crate) fn fire_bubbling_event(&self, name: Atom, can_gc: CanGc) -> bool {
         self.fire_event_with_params(
             name,
             EventBubbles::Bubbles,
@@ -907,7 +907,7 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_cancelable_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+    pub(crate) fn fire_cancelable_event(&self, name: Atom, can_gc: CanGc) -> bool {
         self.fire_event_with_params(
             name,
             EventBubbles::DoesNotBubble,
@@ -918,11 +918,7 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_bubbling_cancelable_event(
-        &self,
-        name: Atom,
-        can_gc: CanGc,
-    ) -> DomRoot<Event> {
+    pub(crate) fn fire_bubbling_cancelable_event(&self, name: Atom, can_gc: CanGc) -> bool {
         self.fire_event_with_params(
             name,
             EventBubbles::Bubbles,
@@ -940,11 +936,10 @@ impl EventTarget {
         cancelable: EventCancelable,
         composed: EventComposed,
         can_gc: CanGc,
-    ) -> DomRoot<Event> {
+    ) -> bool {
         let event = Event::new(&self.global(), name, bubbles, cancelable, can_gc);
         event.set_composed(composed.into());
-        event.fire(self, can_gc);
-        event
+        event.fire(self, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>

@@ -1148,7 +1148,7 @@ impl HTMLFormElement {
                 }
             })
             .collect::<Vec<DomRoot<Element>>>();
-        // Step 4
+        // Step 4: If invalid controls is empty, then return a positive result.
         if invalid_controls.is_empty() {
             return Ok(());
         }
@@ -1156,10 +1156,13 @@ impl HTMLFormElement {
         let unhandled_invalid_controls = invalid_controls
             .into_iter()
             .filter_map(|field| {
-                let event = field
+                // Step 6.1: Let notCanceled be the result of firing an event named invalid at
+                // field, with the cancelable attribute initialized to true.
+                let not_canceled = field
                     .upcast::<EventTarget>()
                     .fire_cancelable_event(atom!("invalid"), can_gc);
-                if !event.DefaultPrevented() {
+                // Step 6.2: If notCanceled is true, then add field to unhandled invalid controls.
+                if not_canceled {
                     return Some(field);
                 }
                 None
@@ -1302,6 +1305,7 @@ impl HTMLFormElement {
         Some(form_data.datums())
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-form-reset>
     pub(crate) fn reset(&self, _reset_method_flag: ResetFrom, can_gc: CanGc) {
         // https://html.spec.whatwg.org/multipage/#locked-for-reset
         if self.marked_for_reset.get() {
@@ -1310,10 +1314,13 @@ impl HTMLFormElement {
             self.marked_for_reset.set(true);
         }
 
-        let event = self
+        // https://html.spec.whatwg.org/multipage/#concept-form-reset
+        // Let reset be the result of firing an event named reset at form,
+        // with the bubbles and cancelable attributes initialized to true.
+        let reset = self
             .upcast::<EventTarget>()
             .fire_bubbling_cancelable_event(atom!("reset"), can_gc);
-        if event.DefaultPrevented() {
+        if !reset {
             return;
         }
 
