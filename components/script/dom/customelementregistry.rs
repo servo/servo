@@ -816,11 +816,12 @@ pub(crate) fn upgrade_element(
     // Step 4. For each attribute in element's attribute list, in order, enqueue a custom element callback reaction
     // with element, callback name "attributeChangedCallback", and « attribute's local name, null, attribute's value,
     // attribute's namespace ».
+    let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
     for attr in element.attrs().iter() {
         let local_name = attr.local_name().clone();
         let value = DOMString::from(&**attr.value());
         let namespace = attr.namespace().clone();
-        ScriptThread::enqueue_callback_reaction(
+        custom_element_reaction_stack.enqueue_callback_reaction(
             element,
             CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace),
             Some(definition.clone()),
