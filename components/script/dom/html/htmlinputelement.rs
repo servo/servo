@@ -19,6 +19,7 @@ use embedder_traits::{
 use encoding_rs::Encoding;
 use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use itertools::Itertools;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
@@ -31,10 +32,11 @@ use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg};
 use net_traits::{CoreResourceMsg, IpcSend};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::lazydomstring::{EncodedBytes, LazyDOMString, StringTrait};
 use servo_config::pref;
 use style::attr::AttrValue;
 use style::selector_parser::PseudoElement;
-use style::str::{split_commas, str_join};
+use style::str::split_commas;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
@@ -295,19 +297,19 @@ impl InputType {
     pub(crate) fn is_textual(&self) -> bool {
         matches!(
             *self,
-            InputType::Date |
-                InputType::DatetimeLocal |
-                InputType::Email |
-                InputType::Hidden |
-                InputType::Month |
-                InputType::Number |
-                InputType::Range |
-                InputType::Search |
-                InputType::Tel |
-                InputType::Text |
-                InputType::Time |
-                InputType::Url |
-                InputType::Week
+            InputType::Date
+                | InputType::DatetimeLocal
+                | InputType::Email
+                | InputType::Hidden
+                | InputType::Month
+                | InputType::Number
+                | InputType::Range
+                | InputType::Search
+                | InputType::Tel
+                | InputType::Text
+                | InputType::Time
+                | InputType::Url
+                | InputType::Week
         )
     }
 
@@ -416,6 +418,36 @@ enum ValueMode {
 enum StepDirection {
     Up,
     Down,
+}
+
+trait ToRGB {
+    fn to_rgb(self) -> RgbColor;
+}
+
+impl<'a> ToRGB for EncodedBytes<'a> {
+    fn to_rgb(self) -> RgbColor {
+        match self {
+            EncodedBytes::Latin1Bytes(items) => {
+                if items.is_ascii() {
+                    // For latin1 utf8 and latin1 encoding are the same, hence, this is ok.
+                    RgbColor {
+                        red: u8::from_str_radix(str::from_utf8(&items[1..3]).unwrap(), 16).unwrap(),
+                        green: u8::from_str_radix(str::from_utf8(&items[3..5]).unwrap(), 16)
+                            .unwrap(),
+                        blue: u8::from_str_radix(str::from_utf8(&items[5..6]).unwrap(), 16)
+                            .unwrap(),
+                    }
+                } else {
+                    panic!("Not ascii we would break anyway");
+                }
+            },
+            EncodedBytes::Utf8Bytes(items) => RgbColor {
+                red: u8::from_str_radix(&items[1..3], 16).unwrap(),
+                green: u8::from_str_radix(&items[3..5], 16).unwrap(),
+                blue: u8::from_str_radix(&items[5..7], 16).unwrap(),
+            },
+        }
+    }
 }
 
 #[dom_struct]
@@ -557,28 +589,28 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-apply
     fn value_mode(&self) -> ValueMode {
         match self.input_type() {
-            InputType::Submit |
-            InputType::Reset |
-            InputType::Button |
-            InputType::Image |
-            InputType::Hidden => ValueMode::Default,
+            InputType::Submit
+            | InputType::Reset
+            | InputType::Button
+            | InputType::Image
+            | InputType::Hidden => ValueMode::Default,
 
             InputType::Checkbox | InputType::Radio => ValueMode::DefaultOn,
 
-            InputType::Color |
-            InputType::Date |
-            InputType::DatetimeLocal |
-            InputType::Email |
-            InputType::Month |
-            InputType::Number |
-            InputType::Password |
-            InputType::Range |
-            InputType::Search |
-            InputType::Tel |
-            InputType::Text |
-            InputType::Time |
-            InputType::Url |
-            InputType::Week => ValueMode::Value,
+            InputType::Color
+            | InputType::Date
+            | InputType::DatetimeLocal
+            | InputType::Email
+            | InputType::Month
+            | InputType::Number
+            | InputType::Password
+            | InputType::Range
+            | InputType::Search
+            | InputType::Tel
+            | InputType::Text
+            | InputType::Time
+            | InputType::Url
+            | InputType::Week => ValueMode::Value,
 
             InputType::File => ValueMode::Filename,
         }
@@ -593,16 +625,16 @@ impl HTMLInputElement {
     pub(crate) fn is_nontypeable(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Button |
-                InputType::Checkbox |
-                InputType::Color |
-                InputType::File |
-                InputType::Hidden |
-                InputType::Image |
-                InputType::Radio |
-                InputType::Range |
-                InputType::Reset |
-                InputType::Submit
+            InputType::Button
+                | InputType::Checkbox
+                | InputType::Color
+                | InputType::File
+                | InputType::Hidden
+                | InputType::Image
+                | InputType::Radio
+                | InputType::Range
+                | InputType::Reset
+                | InputType::Submit
         )
     }
 
@@ -628,24 +660,24 @@ impl HTMLInputElement {
     fn does_minmaxlength_apply(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Email |
-                InputType::Password
+            InputType::Text
+                | InputType::Search
+                | InputType::Url
+                | InputType::Tel
+                | InputType::Email
+                | InputType::Password
         )
     }
 
     fn does_pattern_apply(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Email |
-                InputType::Password
+            InputType::Text
+                | InputType::Search
+                | InputType::Url
+                | InputType::Tel
+                | InputType::Email
+                | InputType::Password
         )
     }
 
@@ -658,13 +690,13 @@ impl HTMLInputElement {
     fn does_value_as_number_apply(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Date |
-                InputType::Month |
-                InputType::Week |
-                InputType::Time |
-                InputType::DatetimeLocal |
-                InputType::Number |
-                InputType::Range
+            InputType::Date
+                | InputType::Month
+                | InputType::Week
+                | InputType::Time
+                | InputType::DatetimeLocal
+                | InputType::Number
+                | InputType::Range
         )
     }
 
@@ -700,7 +732,7 @@ impl HTMLInputElement {
             .get_attribute(&ns!(), &local_name!("min"))
         {
             if let Some(min) =
-                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
+                self.convert_string_to_number(&LazyDOMString::from(attr.summarize().value))
             {
                 return Some(min);
             }
@@ -715,7 +747,7 @@ impl HTMLInputElement {
             .get_attribute(&ns!(), &local_name!("max"))
         {
             if let Some(max) =
-                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
+                self.convert_string_to_number(&LazyDOMString::from(attr.summarize().value))
             {
                 return Some(max);
             }
@@ -814,7 +846,7 @@ impl HTMLInputElement {
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("min"))
         {
-            let minstr = &DOMString::from(attr.summarize().value);
+            let minstr = &LazyDOMString::from(attr.summarize().value);
             if let Some(min) = self.convert_string_to_number(minstr) {
                 return min;
             }
@@ -824,7 +856,7 @@ impl HTMLInputElement {
             .get_attribute(&ns!(), &local_name!("value"))
         {
             if let Some(value) =
-                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
+                self.convert_string_to_number(&LazyDOMString::from(attr.summarize().value))
             {
                 return value;
             }
@@ -952,7 +984,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-missing>
-    fn suffers_from_being_missing(&self, value: &DOMString) -> bool {
+    fn suffers_from_being_missing(&self, value: &LazyDOMString) -> bool {
         match self.input_type() {
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type%3Dcheckbox)%3Asuffering-from-being-missing
             InputType::Checkbox => self.Required() && !self.Checked(),
@@ -984,30 +1016,33 @@ impl HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#the-required-attribute%3Asuffering-from-being-missing
             _ => {
-                self.Required() &&
-                    self.value_mode() == ValueMode::Value &&
-                    self.is_mutable() &&
-                    value.is_empty()
+                self.Required()
+                    && self.value_mode() == ValueMode::Value
+                    && self.is_mutable()
+                    && value.is_empty()
             },
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-a-type-mismatch
-    fn suffers_from_type_mismatch(&self, value: &DOMString) -> bool {
+    fn suffers_from_type_mismatch(&self, value: &LazyDOMString) -> bool {
         if value.is_empty() {
             return false;
         }
 
         match self.input_type() {
             // https://html.spec.whatwg.org/multipage/#url-state-(type%3Durl)%3Asuffering-from-a-type-mismatch
-            InputType::Url => Url::parse(value).is_err(),
+            InputType::Url => Url::parse(&value.rust_str()).is_err(),
             // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-a-type-mismatch
             // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-a-type-mismatch-2
             InputType::Email => {
                 if self.Multiple() {
-                    !split_commas(value).all(|string| string.is_valid_email_address_string())
+                    !value
+                        .bytes()
+                        .split_commas()
+                        .all(|string| string.is_valid_email_address_string())
                 } else {
-                    !value.str().is_valid_email_address_string()
+                    !value.bytes().is_valid_email_address_string()
                 }
             },
             // Other input types don't suffer from type mismatch
@@ -1016,7 +1051,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-a-pattern-mismatch
-    fn suffers_from_pattern_mismatch(&self, value: &DOMString) -> bool {
+    fn suffers_from_pattern_mismatch(&self, value: &LazyDOMString) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch
         // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch-2
         let pattern_str = self.Pattern();
@@ -1031,10 +1066,12 @@ impl HTMLInputElement {
 
         if compile_pattern(cx, &pattern_str, pattern.handle_mut()) {
             if self.Multiple() && self.does_multiple_apply() {
-                !split_commas(value)
+                !value
+                    .bytes()
+                    .split_commas()
                     .all(|s| matches_js_regex(cx, pattern.handle(), s).unwrap_or(true))
             } else {
-                !matches_js_regex(cx, pattern.handle(), value).unwrap_or(true)
+                !matches_js_regex(cx, pattern.handle(), value.bytes()).unwrap_or(true)
             }
         } else {
             // Element doesn't suffer from pattern mismatch if pattern is invalid.
@@ -1043,7 +1080,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-bad-input
-    fn suffers_from_bad_input(&self, value: &DOMString) -> bool {
+    fn suffers_from_bad_input(&self, value: &LazyDOMString) -> bool {
         if value.is_empty() {
             return false;
         }
@@ -1079,7 +1116,7 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long
     // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short
-    fn suffers_from_length_issues(&self, value: &DOMString) -> ValidationFlags {
+    fn suffers_from_length_issues(&self, value: &LazyDOMString) -> ValidationFlags {
         // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
         // https://html.spec.whatwg.org/multipage/#setting-minimum-input-length-requirements%3A-the-minlength-attribute%3Asuffering-from-being-too-short
         let value_dirty = self.value_dirty.get();
@@ -1109,7 +1146,7 @@ impl HTMLInputElement {
     /// * <https://html.spec.whatwg.org/multipage/#suffering-from-an-underflow>
     /// * <https://html.spec.whatwg.org/multipage/#suffering-from-an-overflow>
     /// * <https://html.spec.whatwg.org/multipage/#suffering-from-a-step-mismatch>
-    fn suffers_from_range_issues(&self, value: &DOMString) -> ValidationFlags {
+    fn suffers_from_range_issues(&self, value: &LazyDOMString) -> ValidationFlags {
         if value.is_empty() || !self.does_value_as_number_apply() {
             return ValidationFlags::empty();
         }
@@ -1300,19 +1337,19 @@ impl HTMLInputElement {
     pub(crate) fn is_textual_widget(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Date |
-                InputType::DatetimeLocal |
-                InputType::Email |
-                InputType::Month |
-                InputType::Number |
-                InputType::Password |
-                InputType::Range |
-                InputType::Search |
-                InputType::Tel |
-                InputType::Text |
-                InputType::Time |
-                InputType::Url |
-                InputType::Week
+            InputType::Date
+                | InputType::DatetimeLocal
+                | InputType::Email
+                | InputType::Month
+                | InputType::Number
+                | InputType::Password
+                | InputType::Range
+                | InputType::Search
+                | InputType::Tel
+                | InputType::Text
+                | InputType::Time
+                | InputType::Url
+                | InputType::Week
         )
     }
 
@@ -1337,6 +1374,7 @@ impl HTMLInputElement {
         let value_text = match (value.is_empty(), self.input_type()) {
             // For a password input, we replace all of the character with its replacement char.
             (false, InputType::Password) => value
+                .bytes()
                 .chars()
                 .map(|_| PASSWORD_REPLACEMENT_CHAR)
                 .collect::<String>()
@@ -1353,7 +1391,7 @@ impl HTMLInputElement {
             .expect("UA widget text container without child")
             .downcast::<CharacterData>()
             .expect("First child is not a CharacterData node")
-            .SetData(value_text);
+            .SetData(value_text.to_domstring());
     }
 
     fn update_color_shadow_tree(&self, can_gc: CanGc) {
@@ -1365,7 +1403,7 @@ impl HTMLInputElement {
         if value.str().is_valid_simple_color_string() {
             value.make_ascii_lowercase();
         } else {
-            value = DOMString::from("#000000");
+            value = LazyDOMString::from("#000000");
         }
         let style = format!("background-color: {value}");
         color_shadow_tree.color_value.set_string_attribute(
@@ -1399,6 +1437,7 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
                 .textinput
                 .borrow_for_layout()
                 .get_content()
+                .to_domstring()
         }
     }
     fn get_filelist(self) -> Option<LayoutDom<'dom, FileList>> {
@@ -1514,11 +1553,11 @@ impl TextControlElement for HTMLInputElement {
     fn selection_api_applies(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Password
+            InputType::Text
+                | InputType::Search
+                | InputType::Url
+                | InputType::Tel
+                | InputType::Password
         )
     }
 
@@ -1531,29 +1570,29 @@ impl TextControlElement for HTMLInputElement {
     // rendered as a text control: file
     fn has_selectable_text(&self) -> bool {
         match self.input_type() {
-            InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Password |
-            InputType::Email |
-            InputType::Date |
-            InputType::Month |
-            InputType::Week |
-            InputType::Time |
-            InputType::DatetimeLocal |
-            InputType::Number => true,
+            InputType::Text
+            | InputType::Search
+            | InputType::Url
+            | InputType::Tel
+            | InputType::Password
+            | InputType::Email
+            | InputType::Date
+            | InputType::Month
+            | InputType::Week
+            | InputType::Time
+            | InputType::DatetimeLocal
+            | InputType::Number => true,
 
-            InputType::Button |
-            InputType::Checkbox |
-            InputType::Color |
-            InputType::File |
-            InputType::Hidden |
-            InputType::Image |
-            InputType::Radio |
-            InputType::Range |
-            InputType::Reset |
-            InputType::Submit => false,
+            InputType::Button
+            | InputType::Checkbox
+            | InputType::Color
+            | InputType::File
+            | InputType::Hidden
+            | InputType::Image
+            | InputType::Radio
+            | InputType::Range
+            | InputType::Reset
+            | InputType::Submit => false,
         }
     }
 
@@ -1637,31 +1676,31 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     make_limited_uint_setter!(SetSize, "size", DEFAULT_INPUT_SIZE);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
-    fn Type(&self) -> DOMString {
-        DOMString::from(self.input_type().as_str())
+    fn Type(&self) -> LazyDOMString {
+        LazyDOMString::from(self.input_type().as_str())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
-    make_atomic_setter!(SetType, "type");
+    make_atomic_setter_lazy!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn Value(&self) -> DOMString {
+    fn Value(&self) -> LazyDOMString {
         match self.value_mode() {
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => self
                 .upcast::<Element>()
                 .get_attribute(&ns!(), &local_name!("value"))
-                .map_or(DOMString::from(""), |a| {
-                    DOMString::from(a.summarize().value)
+                .map_or(LazyDOMString::from(""), |a| {
+                    LazyDOMString::from(a.summarize().value)
                 }),
             ValueMode::DefaultOn => self
                 .upcast::<Element>()
                 .get_attribute(&ns!(), &local_name!("value"))
-                .map_or(DOMString::from("on"), |a| {
-                    DOMString::from(a.summarize().value)
+                .map_or(LazyDOMString::from("on"), |a| {
+                    LazyDOMString::from(a.summarize().value)
                 }),
             ValueMode::Filename => {
-                let mut path = DOMString::from("");
+                let mut path = LazyDOMString::from("");
                 match self.filelist.get() {
                     Some(ref fl) => match fl.Item(0) {
                         Some(ref f) => {
@@ -1678,7 +1717,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn SetValue(&self, mut value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetValue(&self, mut value: LazyDOMString, can_gc: CanGc) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
                 {
@@ -1706,8 +1745,11 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 self.update_placeholder_shown_state();
             },
             ValueMode::Default | ValueMode::DefaultOn => {
-                self.upcast::<Element>()
-                    .set_string_attribute(&local_name!("value"), value, can_gc);
+                self.upcast::<Element>().set_string_attribute(
+                    &local_name!("value"),
+                    value.to_domstring(),
+                    can_gc,
+                );
             },
             ValueMode::Filename => {
                 if value.is_empty() {
@@ -1767,7 +1809,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             return Err(Error::InvalidState);
         }
         if value.is_null() {
-            return self.SetValue(DOMString::from(""), can_gc);
+            return self.SetValue(LazyDOMString::from(""), can_gc);
         }
         let mut msecs: f64 = 0.0;
         // We need to go through unsafe code to interrogate jsapi about a Date.
@@ -1785,12 +1827,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 return Err(Error::JSFailed);
             }
             if !msecs.is_finite() {
-                return self.SetValue(DOMString::from(""), can_gc);
+                return self.SetValue(LazyDOMString::from(""), can_gc);
             }
         }
 
         let Ok(date_time) = OffsetDateTime::from_unix_timestamp_nanos((msecs * 1e6) as i128) else {
-            return self.SetValue(DOMString::from(""), can_gc);
+            return self.SetValue(LazyDOMString::from(""), can_gc);
         };
         self.SetValue(self.convert_datetime_to_dom_string(date_time), can_gc)
     }
@@ -1808,7 +1850,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         } else if !self.does_value_as_number_apply() {
             Err(Error::InvalidState)
         } else if value.is_nan() {
-            self.SetValue(DOMString::from(""), can_gc)
+            self.SetValue(LazyDOMString::from(""), can_gc)
         } else if let Some(converted) = self.convert_number_to_string(value) {
             self.SetValue(converted, can_gc)
         } else {
@@ -1816,7 +1858,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             // overflow is impossible, but just setting an overflow to the empty string
             // matches Firefox's behavior. For example, try input.valueAsNumber=1e30 on
             // a type="date" input.
-            self.SetValue(DOMString::from(""), can_gc)
+            self.SetValue(LazyDOMString::from(""), can_gc)
         }
     }
 
@@ -2107,9 +2149,9 @@ fn in_same_group(
         return false;
     }
 
-    if other.input_type() != InputType::Radio ||
-        other.form_owner().as_deref() != owner ||
-        other.radio_group_name().as_ref() != group
+    if other.input_type() != InputType::Radio
+        || other.form_owner().as_deref() != owner
+        || other.radio_group_name().as_ref() != group
     {
         return false;
     }
@@ -2177,7 +2219,7 @@ impl HTMLInputElement {
                     Some(fl) => {
                         for f in fl.iter_files() {
                             datums.push(FormDatum {
-                                ty: ty.clone(),
+                                ty: ty.to_domstring(),
                                 name: name.clone(),
                                 value: FormDatumValue::File(DomRoot::from_ref(f)),
                             });
@@ -2187,7 +2229,7 @@ impl HTMLInputElement {
                         datums.push(FormDatum {
                             // XXX(izgzhen): Spec says 'application/octet-stream' as the type,
                             // but this is _type_ of element rather than content right?
-                            ty: ty.clone(),
+                            ty: ty.to_domstring(),
                             name: name.clone(),
                             value: FormDatumValue::String(DOMString::from("")),
                         })
@@ -2203,7 +2245,7 @@ impl HTMLInputElement {
             InputType::Hidden => {
                 if name.to_ascii_lowercase() == "_charset_" {
                     return vec![FormDatum {
-                        ty: ty.clone(),
+                        ty: ty.to_domstring(),
                         name,
                         value: FormDatumValue::String(match encoding {
                             None => DOMString::from("UTF-8"),
@@ -2223,9 +2265,9 @@ impl HTMLInputElement {
 
         // Step 5.12
         vec![FormDatum {
-            ty: ty.clone(),
+            ty: ty.to_domstring(),
             name,
-            value: FormDatumValue::String(self.Value()),
+            value: FormDatumValue::String(self.Value().to_domstring()),
         }]
     }
 
@@ -2269,7 +2311,9 @@ impl HTMLInputElement {
             InputType::Image => (),
             _ => (),
         }
-        self.textinput.borrow_mut().set_content(self.DefaultValue());
+        self.textinput
+            .borrow_mut()
+            .set_content(LazyDOMString::from(self.DefaultValue().to_string()));
         self.value_dirty.set(false);
         self.upcast::<Node>().dirty(NodeDamage::Other);
     }
@@ -2281,7 +2325,9 @@ impl HTMLInputElement {
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
-        self.textinput.borrow_mut().set_content(DOMString::from(""));
+        self.textinput
+            .borrow_mut()
+            .set_content(LazyDOMString::from(""));
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checked_state(self.DefaultChecked(), false);
         self.value_changed(can_gc);
@@ -2439,7 +2485,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
-    fn sanitize_value(&self, value: &mut DOMString) {
+    fn sanitize_value(&self, value: &mut LazyDOMString) {
         // if sanitization_flag is false, we are setting content attributes
         // on an element we haven't really finished creating; we will
         // enable the flag and really sanitize before this element becomes
@@ -2488,7 +2534,9 @@ impl HTMLInputElement {
                     .parse_local_date_time_string()
                     .map(|date_time| date_time.to_local_date_time_string())
                 {
-                    Some(normalized_string) => *value = DOMString::from_string(normalized_string),
+                    Some(normalized_string) => {
+                        *value = LazyDOMString::from_string(normalized_string)
+                    },
                     None => value.clear(),
                 }
             },
@@ -2506,7 +2554,7 @@ impl HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#range-state-(type=range):value-sanitization-algorithm
             InputType::Range => {
                 if !value.is_valid_floating_point_number_string() {
-                    *value = DOMString::from(self.default_range_value().to_string());
+                    *value = LazyDOMString::from(self.default_range_value().to_string());
                 }
                 if let Ok(fval) = &value.parse::<f64>() {
                     let mut fval = *fval;
@@ -2551,7 +2599,7 @@ impl HTMLInputElement {
                             }
                         }
                     }
-                    *value = DOMString::from(fval.to_string());
+                    *value = LazyDOMString::from(fval.to_string());
                 };
             },
             InputType::Email => {
@@ -2559,29 +2607,30 @@ impl HTMLInputElement {
                     value.strip_newlines();
                     value.strip_leading_and_trailing_ascii_whitespace();
                 } else {
-                    let sanitized = str_join(
-                        split_commas(value).map(|token| {
-                            let mut token = DOMString::from_string(token.to_string());
+                    let sanitized = value
+                        .bytes()
+                        .split_commas()
+                        .map(|s| LazyDOMString::from(s))
+                        .map(|mut token| {
                             token.strip_newlines();
                             token.strip_leading_and_trailing_ascii_whitespace();
                             token
-                        }),
-                        ",",
-                    );
+                        })
+                        .join(",");
                     value.clear();
                     value.push_str(sanitized.as_str());
                 }
             },
             // The following inputs don't have a value sanitization algorithm.
             // See https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
-            InputType::Button |
-            InputType::Checkbox |
-            InputType::File |
-            InputType::Hidden |
-            InputType::Image |
-            InputType::Radio |
-            InputType::Reset |
-            InputType::Submit => (),
+            InputType::Button
+            | InputType::Checkbox
+            | InputType::File
+            | InputType::Hidden
+            | InputType::Image
+            | InputType::Radio
+            | InputType::Reset
+            | InputType::Submit => (),
         }
     }
 
@@ -2625,21 +2674,21 @@ impl HTMLInputElement {
                     .unwrap()
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
-                        input.form_owner() == owner &&
-                            matches!(
+                        input.form_owner() == owner
+                            && matches!(
                                 input.input_type(),
-                                InputType::Text |
-                                    InputType::Search |
-                                    InputType::Url |
-                                    InputType::Tel |
-                                    InputType::Email |
-                                    InputType::Password |
-                                    InputType::Date |
-                                    InputType::Month |
-                                    InputType::Week |
-                                    InputType::Time |
-                                    InputType::DatetimeLocal |
-                                    InputType::Number
+                                InputType::Text
+                                    | InputType::Search
+                                    | InputType::Url
+                                    | InputType::Tel
+                                    | InputType::Email
+                                    | InputType::Password
+                                    | InputType::Date
+                                    | InputType::Month
+                                    | InputType::Week
+                                    | InputType::Time
+                                    | InputType::DatetimeLocal
+                                    | InputType::Number
                             )
                     });
 
@@ -2657,7 +2706,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-string-number>
-    fn convert_string_to_number(&self, value: &DOMString) -> Option<f64> {
+    fn convert_string_to_number(&self, value: &LazyDOMString) -> Option<f64> {
         match self.input_type() {
             // > The algorithm to convert a string to a number, given a string input, is as
             // > follows: If parsing a date from input results in an error, then return an
@@ -2703,9 +2752,12 @@ impl HTMLInputElement {
             // > "1970-01-01T00:00:00.0") to the parsed local date and time, ignoring leap
             // > seconds.
             InputType::DatetimeLocal => {
-                value.str().parse_local_date_time_string().map(|date_time| {
-                    (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64
-                })
+                value
+                    .bytes()
+                    .parse_local_date_time_string()
+                    .map(|date_time| {
+                        (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64
+                    })
             },
             InputType::Number | InputType::Range => value.parse_floating_point_number(),
             // min/max/valueAsNumber/stepDown/stepUp do not apply to
@@ -2715,7 +2767,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-string-number>
-    fn convert_number_to_string(&self, value: f64) -> Option<DOMString> {
+    fn convert_number_to_string(&self, value: f64) -> Option<LazyDOMString> {
         match self.input_type() {
             InputType::Date | InputType::Week | InputType::Time | InputType::DatetimeLocal => {
                 OffsetDateTime::from_unix_timestamp_nanos((value * 1e6) as i128)
@@ -2744,7 +2796,7 @@ impl HTMLInputElement {
                 Some(self.convert_datetime_to_dom_string(date))
             },
             InputType::Number | InputType::Range => {
-                let mut value = DOMString::from(value.to_string());
+                let mut value = LazyDOMString::from(value.to_string());
                 value.set_best_representation_of_the_floating_point_number();
                 Some(value)
             },
@@ -2755,13 +2807,13 @@ impl HTMLInputElement {
     // <https://html.spec.whatwg.org/multipage/#concept-input-value-string-date>
     // This does the safe Rust part of conversion; the unsafe JS Date part
     // is in GetValueAsDate
-    fn convert_string_to_naive_datetime(&self, value: DOMString) -> Option<OffsetDateTime> {
+    fn convert_string_to_naive_datetime(&self, value: LazyDOMString) -> Option<OffsetDateTime> {
         match self.input_type() {
-            InputType::Date => value.str().parse_date_string(),
-            InputType::Time => value.str().parse_time_string(),
-            InputType::Week => value.str().parse_week_string(),
-            InputType::Month => value.str().parse_month_string(),
-            InputType::DatetimeLocal => value.str().parse_local_date_time_string(),
+            InputType::Date => value.bytes().parse_date_string(),
+            InputType::Time => value.bytes().parse_time_string(),
+            InputType::Week => value.bytes().parse_week_string(),
+            InputType::Month => value.bytes().parse_month_string(),
+            InputType::DatetimeLocal => value.bytes().parse_local_date_time_string(),
             // does not apply to other types
             _ => None,
         }
@@ -2770,8 +2822,8 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-date-string>
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in SetValueAsDate
-    fn convert_datetime_to_dom_string(&self, value: OffsetDateTime) -> DOMString {
-        DOMString::from_string(match self.input_type() {
+    fn convert_datetime_to_dom_string(&self, value: OffsetDateTime) -> LazyDOMString {
+        LazyDOMString::from_string(match self.input_type() {
             InputType::Date => value.to_date_string(),
             InputType::Month => value.to_month_string(),
             InputType::Week => value.to_week_string(),
@@ -2820,12 +2872,7 @@ impl HTMLInputElement {
                 Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
                 Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
             );
-            let current_value = self.Value();
-            let current_color = RgbColor {
-                red: u8::from_str_radix(&current_value[1..3], 16).unwrap(),
-                green: u8::from_str_radix(&current_value[3..5], 16).unwrap(),
-                blue: u8::from_str_radix(&current_value[5..7], 16).unwrap(),
-            };
+            let current_color = self.Value().bytes().to_rgb();
             document.send_to_embedder(EmbedderMsg::ShowFormControl(
                 document.webview_id(),
                 DeviceIntRect::from_untyped(&rect.to_box2d()),
@@ -2923,8 +2970,8 @@ impl VirtualMethods for HTMLInputElement {
                         let new_value_mode = self.value_mode();
                         match (&old_value_mode, old_idl_value.is_empty(), new_value_mode) {
                             // Step 1
-                            (&ValueMode::Value, false, ValueMode::Default) |
-                            (&ValueMode::Value, false, ValueMode::DefaultOn) => {
+                            (&ValueMode::Value, false, ValueMode::Default)
+                            | (&ValueMode::Value, false, ValueMode::DefaultOn) => {
                                 self.SetValue(old_idl_value, can_gc)
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
@@ -2934,8 +2981,8 @@ impl VirtualMethods for HTMLInputElement {
                                 self.SetValue(
                                     self.upcast::<Element>()
                                         .get_attribute(&ns!(), &local_name!("value"))
-                                        .map_or(DOMString::from(""), |a| {
-                                            DOMString::from(a.summarize().value)
+                                        .map_or(LazyDOMString::from(""), |a| {
+                                            LazyDOMString::from(a.summarize().value)
                                         }),
                                     can_gc,
                                 )
@@ -2949,7 +2996,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""), can_gc)
+                                self.SetValue(LazyDOMString::from(""), can_gc)
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -2991,7 +3038,7 @@ impl VirtualMethods for HTMLInputElement {
             //                       are being handled in [Self::SetValue]. Should we merge this two together?
             local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
-                let mut value = value.map_or(DOMString::new(), DOMString::from);
+                let mut value = value.map_or(LazyDOMString::new(), LazyDOMString::from);
 
                 self.sanitize_value(&mut value);
                 self.textinput.borrow_mut().set_content(value);
@@ -3170,9 +3217,9 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
             }
-        } else if event.type_() == atom!("keydown") &&
-            !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password()
+        } else if event.type_() == atom!("keydown")
+            && !event.DefaultPrevented()
+            && self.input_type().is_textual_or_password()
         {
             if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
@@ -3206,17 +3253,17 @@ impl VirtualMethods for HTMLInputElement {
                     Nothing => (),
                 }
             }
-        } else if event.type_() == atom!("keypress") &&
-            !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password()
+        } else if event.type_() == atom!("keypress")
+            && !event.DefaultPrevented()
+            && self.input_type().is_textual_or_password()
         {
             // keypress should be deprecated and replaced by beforeinput.
             // keypress was supposed to fire "blur" and "focus" events
             // but already done in `document.rs`
-        } else if (event.type_() == atom!("compositionstart") ||
-            event.type_() == atom!("compositionupdate") ||
-            event.type_() == atom!("compositionend")) &&
-            self.input_type().is_textual_or_password()
+        } else if (event.type_() == atom!("compositionstart")
+            || event.type_() == atom!("compositionupdate")
+            || event.type_() == atom!("compositionend"))
+            && self.input_type().is_textual_or_password()
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
@@ -3320,9 +3367,9 @@ impl Validatable for HTMLInputElement {
         match self.input_type() {
             InputType::Hidden | InputType::Button | InputType::Reset => false,
             _ => {
-                !(self.upcast::<Element>().disabled_state() ||
-                    self.ReadOnly() ||
-                    is_barred_by_datalist_ancestor(self.upcast()))
+                !(self.upcast::<Element>().disabled_state()
+                    || self.ReadOnly()
+                    || is_barred_by_datalist_ancestor(self.upcast()))
             },
         }
     }
@@ -3335,26 +3382,26 @@ impl Validatable for HTMLInputElement {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 
-        if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
-            self.suffers_from_being_missing(&value)
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING)
+            && self.suffers_from_being_missing(&value)
         {
             failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }
 
-        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) &&
-            self.suffers_from_type_mismatch(&value)
+        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH)
+            && self.suffers_from_type_mismatch(&value)
         {
             failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
-            self.suffers_from_pattern_mismatch(&value)
+        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH)
+            && self.suffers_from_pattern_mismatch(&value)
         {
             failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::BAD_INPUT) &&
-            self.suffers_from_bad_input(&value)
+        if validate_flags.contains(ValidationFlags::BAD_INPUT)
+            && self.suffers_from_bad_input(&value)
         {
             failed_flags.insert(ValidationFlags::BAD_INPUT);
         }
@@ -3364,9 +3411,9 @@ impl Validatable for HTMLInputElement {
         }
 
         if validate_flags.intersects(
-            ValidationFlags::RANGE_UNDERFLOW |
-                ValidationFlags::RANGE_OVERFLOW |
-                ValidationFlags::STEP_MISMATCH,
+            ValidationFlags::RANGE_UNDERFLOW
+                | ValidationFlags::RANGE_OVERFLOW
+                | ValidationFlags::STEP_MISMATCH,
         ) {
             failed_flags |= self.suffers_from_range_issues(&value);
         }
@@ -3670,8 +3717,12 @@ pub(crate) fn new_js_regex(
 }
 
 #[allow(unsafe_code)]
-fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> Result<bool, ()> {
-    let mut value: Vec<u16> = value.encode_utf16().collect();
+fn matches_js_regex<'a>(
+    cx: SafeJSContext,
+    regex_obj: HandleObject,
+    value: EncodedBytes<'a>,
+) -> Result<bool, ()> {
+    let mut value: Vec<u16> = value.encode_utf16();
 
     unsafe {
         let mut is_regex = false;

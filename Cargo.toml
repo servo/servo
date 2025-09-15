@@ -24,6 +24,7 @@ rust-version = "1.86.0"
 accountable-refcell = "0.2.2"
 aes = "0.8.4"
 aes-gcm = "0.10.3"
+ascii = "1.1.0"
 aes-kw = { version = "0.2.1", features = ["alloc"] }
 app_units = "0.7"
 arboard = "3"
@@ -60,6 +61,7 @@ embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
 env_logger = "0.11"
 euclid = "0.22"
+fnv = "1.0"
 fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
 fxhash = "0.2"

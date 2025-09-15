@@ -27,6 +27,7 @@ pub mod inheritance;
 pub mod interface;
 pub mod interfaces;
 pub mod iterable;
+pub mod lazydomstring;
 pub mod like;
 mod lock;
 mod mem;

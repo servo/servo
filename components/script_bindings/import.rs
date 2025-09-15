@@ -32,6 +32,7 @@ pub(crate) mod base {
     pub(crate) use crate::error::Error::JSFailed;
     pub(crate) use crate::error::Fallible;
     pub(crate) use crate::interfaces::*;
+    pub(crate) use crate::lazydomstring::LazyDOMString;
     pub(crate) use crate::lock::ThreadUnsafeOnceLock;
     pub(crate) use crate::num::Finite;
     pub(crate) use crate::proxyhandler::CrossOriginProperties;

@@ -67,11 +67,11 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions]
            attribute DOMString step;
   [CEReactions]
-           attribute DOMString type;
+           attribute [Lazy] DOMString type;
   [CEReactions]
            attribute DOMString defaultValue;
   [CEReactions, SetterThrows]
-           attribute [LegacyNullToEmptyString] DOMString value;
+           attribute [LegacyNullToEmptyString, Lazy] DOMString value;
   [SetterThrows]
            attribute object? valueAsDate;
   [SetterThrows]
