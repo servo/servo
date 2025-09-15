@@ -12,6 +12,7 @@ from concurrent.futures import Future
 from dataclasses import dataclass
 import logging
 import socket
+import sys
 from geckordp.actors.root import RootActor
 from geckordp.actors.descriptors.tab import TabActor
 from geckordp.actors.watcher import WatcherActor
@@ -763,13 +764,13 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         sleep_per_try = 1 / 8  # seconds
         remaining_tries = 5 / sleep_per_try  # 5 seconds
         while True:
-            print(".", end="", flush=True)
+            print(".", end="", file=sys.stderr)
             stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 stream.connect(("127.0.0.1", 6080))
                 stream.recv(4096)  # FIXME: without this, geckordp RDPClient.connect() may fail
                 stream.shutdown(socket.SHUT_RDWR)
-                print("+", end="", flush=True)
+                print("+", end="", file=sys.stderr)
                 break
             except Exception:
                 time.sleep(sleep_per_try)
@@ -781,6 +782,11 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         # Terminate servoshell, but do not stop the web servers.
         if self.servoshell is not None:
             self.servoshell.terminate()
+            try:
+                self.servoshell.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                print("Warning: servoshell did not terminate", file=sys.stderr)
+                self.servoshell.kill()
             self.servoshell = None
 
     @classmethod
@@ -943,8 +949,8 @@ def run_tests(script_path, servo_binary: str, test_names: list[str]):
                 patterns.append(f"*{pattern}*")
         loader.testNamePatterns = patterns
     suite = loader.loadTestsFromTestCase(DevtoolsTests)
-    print(f"Running {suite.countTestCases()} tests:")
+    print(f"Running {suite.countTestCases()} tests:", file=sys.stderr)
     for test in suite:
-        print(f"- {test}")
-    print()
+        print(f"- {test}", file=sys.stderr)
+    print(file=sys.stderr)
     return unittest.TextTestRunner(verbosity=verbosity).run(suite).wasSuccessful()
