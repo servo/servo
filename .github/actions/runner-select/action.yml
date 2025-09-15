@@ -26,6 +26,8 @@ outputs:
     value: ${{ steps.select.outputs.unique_id }}
   selected-runner-label:
     value: ${{ steps.select.outputs.selected_runner_label }}
+  selected-runner-host:
+    value: ${{ steps.select.outputs.selected_runner_host }}
   is-self-hosted:
     value: ${{ steps.select.outputs.is_self_hosted }}
 
@@ -48,6 +50,7 @@ runs:
         fall_back_to_github_hosted() {
           echo 'Falling back to GitHub-hosted runner'
           echo "selected_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+          echo 'selected_runner_host=' | tee -a $GITHUB_OUTPUT
           echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
           exit 0
         }
@@ -90,6 +93,7 @@ runs:
               && jq -e . $result > /dev/null; then
             echo
             echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
+            echo "selected_runner_host=${monitor_api_base_url##https://}" | tee -a $GITHUB_OUTPUT
             echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
             exit 0
           fi
