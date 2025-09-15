@@ -18,7 +18,7 @@ use embedder_traits::{
 };
 use encoding_rs::Encoding;
 use euclid::{Point2D, Rect, Size2D};
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
@@ -60,14 +60,15 @@ use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueStr
 use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
+};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::filelist::{FileList, LayoutFileListHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
-use crate::dom::html::htmldivelement::HTMLDivElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
@@ -123,9 +124,9 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 //                      TextNode within an inline flow. Another example is the horizontal scroll.
 // FIXME(#38263): Refactor these logics into a TextControl wrapper that would decouple all textual input.
 struct InputTypeTextShadowTree {
-    inner_container: Dom<HTMLDivElement>,
-    text_container: Dom<HTMLDivElement>,
-    placeholder_container: DomRefCell<Option<Dom<HTMLDivElement>>>,
+    inner_container: Dom<Element>,
+    text_container: Dom<Element>,
+    placeholder_container: DomRefCell<Option<Dom<Element>>>,
 }
 
 impl InputTypeTextShadowTree {
@@ -158,7 +159,7 @@ impl InputTypeTextShadowTree {
 /// The shadow tree consists of a single div with the currently selected color as
 /// the background.
 struct InputTypeColorShadowTree {
-    color_value: Dom<HTMLDivElement>,
+    color_value: Dom<Element>,
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -178,8 +179,17 @@ fn create_ua_widget_div_with_text_node(
     implemented_pseudo: PseudoElement,
     as_first_child: bool,
     can_gc: CanGc,
-) -> DomRoot<HTMLDivElement> {
-    let el = HTMLDivElement::new(local_name!("div"), None, document, None, can_gc);
+) -> DomRoot<Element> {
+    let el = Element::create(
+        QualName::new(None, ns!(html), local_name!("div")),
+        None,
+        document,
+        ElementCreator::ScriptCreated,
+        CustomElementCreationMode::Asynchronous,
+        None,
+        can_gc,
+    );
+
     parent
         .upcast::<Node>()
         .AppendChild(el.upcast::<Node>(), can_gc)
@@ -1168,8 +1178,15 @@ impl HTMLInputElement {
         let shadow_root = self.shadow_root(can_gc);
         Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
 
-        let inner_container =
-            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let inner_container = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
         shadow_root
             .upcast::<Node>()
             .AppendChild(inner_container.upcast::<Node>(), can_gc)
@@ -1223,7 +1240,15 @@ impl HTMLInputElement {
         let shadow_root = self.shadow_root(can_gc);
         Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
 
-        let color_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let color_value = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
         shadow_root
             .upcast::<Node>()
             .AppendChild(color_value.upcast::<Node>(), can_gc)
@@ -1343,10 +1368,11 @@ impl HTMLInputElement {
             value = DOMString::from("#000000");
         }
         let style = format!("background-color: {value}");
-        color_shadow_tree
-            .color_value
-            .upcast::<Element>()
-            .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+        color_shadow_tree.color_value.set_string_attribute(
+            &local_name!("style"),
+            style.into(),
+            can_gc,
+        );
     }
 
     fn update_shadow_tree(&self, can_gc: CanGc) {

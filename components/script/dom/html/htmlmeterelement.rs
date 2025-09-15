@@ -6,7 +6,7 @@ use std::cell::Ref;
 use std::ops::{Add, Div};
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 use stylo_dom::ElementState;
 
@@ -20,7 +20,6 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::html::htmldivelement::HTMLDivElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
@@ -38,7 +37,7 @@ pub(crate) struct HTMLMeterElement {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ShadowTree {
-    meter_value: Dom<HTMLDivElement>,
+    meter_value: Dom<Element>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#the-meter-element>
@@ -77,7 +76,15 @@ impl HTMLMeterElement {
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
-        let meter_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let meter_value = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            crate::dom::element::ElementCreator::ScriptCreated,
+            crate::dom::element::CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
         root.upcast::<Node>()
             .AppendChild(meter_value.upcast::<Node>(), can_gc)
             .unwrap();
@@ -153,7 +160,6 @@ impl HTMLMeterElement {
         let style = format!("width: {position}%");
         shadow_tree
             .meter_value
-            .upcast::<Element>()
             .set_string_attribute(&local_name!("style"), style.into(), can_gc);
     }
 }

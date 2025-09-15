@@ -5,7 +5,7 @@
 use std::cell::Ref;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 
 use crate::dom::attr::Attr;
@@ -18,8 +18,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::html::htmldivelement::HTMLDivElement;
+use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
@@ -37,7 +36,7 @@ pub(crate) struct HTMLProgressElement {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ShadowTree {
-    progress_bar: Dom<HTMLDivElement>,
+    progress_bar: Dom<Element>,
 }
 
 impl HTMLProgressElement {
@@ -75,11 +74,18 @@ impl HTMLProgressElement {
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
-        let progress_bar = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let progress_bar = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
         // FIXME: This should use ::-moz-progress-bar
-        progress_bar
-            .upcast::<Element>()
-            .SetId("-servo-progress-bar".into(), can_gc);
+        progress_bar.SetId("-servo-progress-bar".into(), can_gc);
         root.upcast::<Node>()
             .AppendChild(progress_bar.upcast::<Node>(), can_gc)
             .unwrap();
@@ -109,7 +115,6 @@ impl HTMLProgressElement {
 
         shadow_tree
             .progress_bar
-            .upcast::<Element>()
             .set_string_attribute(&local_name!("style"), style.into(), can_gc);
     }
 }

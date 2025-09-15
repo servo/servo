@@ -5,7 +5,7 @@
 use std::cell::{Cell, Ref};
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 
 use crate::dom::attr::Attr;
@@ -18,7 +18,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
@@ -105,13 +105,30 @@ impl HTMLDetailsElement {
             .upcast::<Element>()
             .attach_ua_shadow_root(false, can_gc);
 
-        let summary = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        let summary = Element::create(
+            QualName::new(None, ns!(html), local_name!("slot")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+        let summary = DomRoot::downcast::<HTMLSlotElement>(summary).unwrap();
         root.upcast::<Node>()
             .AppendChild(summary.upcast::<Node>(), can_gc)
             .unwrap();
 
-        let fallback_summary =
-            HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
+        let fallback_summary = Element::create(
+            QualName::new(None, ns!(html), local_name!("summary")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+        let fallback_summary = DomRoot::downcast::<HTMLElement>(fallback_summary).unwrap();
         fallback_summary
             .upcast::<Node>()
             .set_text_content_for_element(Some(DEFAULT_SUMMARY.into()), can_gc);
@@ -120,7 +137,16 @@ impl HTMLDetailsElement {
             .AppendChild(fallback_summary.upcast::<Node>(), can_gc)
             .unwrap();
 
-        let descendants = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        let descendants = Element::create(
+            QualName::new(None, ns!(html), local_name!("slot")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+        let descendants = DomRoot::downcast::<HTMLSlotElement>(descendants).unwrap();
         root.upcast::<Node>()
             .AppendChild(descendants.upcast::<Node>(), can_gc)
             .unwrap();
