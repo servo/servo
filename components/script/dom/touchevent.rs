@@ -12,21 +12,36 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{DomRoot, MutDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{EventBubbles, EventCancelable};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::touchlist::TouchList;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
+/// <https://w3c.github.io/touch-events/#dom-touchevent>
 #[dom_struct]
 pub(crate) struct TouchEvent {
     uievent: UIEvent,
+
+    /// <https://w3c.github.io/touch-events/#dom-touchevent-touches>
     touches: MutDom<TouchList>,
+
+    /// <https://w3c.github.io/touch-events/#dom-touchevent-targettouches>
     target_touches: MutDom<TouchList>,
+
+    /// <https://w3c.github.io/touch-events/#dom-touchevent-changedtouches>
     changed_touches: MutDom<TouchList>,
+
+    /// <https://w3c.github.io/touch-events/#dom-touchevent-altkey>
     alt_key: Cell<bool>,
+
+    /// <https://w3c.github.io/touch-events/#dom-touchevent-metakey>
     meta_key: Cell<bool>,
+
+    /// <https://w3c.github.io/touch-events/#dom-touchevent-ctrlkey>
     ctrl_key: Cell<bool>,
+
+    /// <https://w3c.github.io/touch-events/#dom-touchevent-shiftkey>
     shift_key: Cell<bool>,
 }
 
@@ -72,6 +87,7 @@ impl TouchEvent {
         type_: DOMString,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
+        composed: EventComposed,
         view: Option<&Window>,
         detail: i32,
         touches: &TouchList,
@@ -92,6 +108,7 @@ impl TouchEvent {
             view,
             detail,
         );
+        ev.upcast::<Event>().set_composed(bool::from(composed));
         ev.ctrl_key.set(ctrl_key);
         ev.alt_key.set(alt_key);
         ev.shift_key.set(shift_key);

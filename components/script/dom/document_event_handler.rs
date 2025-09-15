@@ -44,7 +44,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::{FireMouseEventType, FocusInitiator, TouchEventResult};
-use crate::dom::event::{EventBubbles, EventCancelable, EventDefault};
+use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventDefault};
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
@@ -870,6 +870,7 @@ impl DocumentEventHandler {
             DOMString::from(event_name),
             EventBubbles::Bubbles,
             EventCancelable::from(event.is_cancelable()),
+            EventComposed::Composed,
             Some(window),
             0i32,
             &touches,
