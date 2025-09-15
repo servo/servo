@@ -1812,16 +1812,16 @@ impl Element {
         Ref::map(self.attrs.borrow(), |attrs| &**attrs)
     }
 
-    // Element branch of https://dom.spec.whatwg.org/#locate-a-namespace
+    /// Element branch of <https://dom.spec.whatwg.org/#locate-a-namespace>
     pub(crate) fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
         let namespace_prefix = prefix.clone().map(|s| Prefix::from(&*s));
 
-        // "1. If prefix is "xml", then return the XML namespace."
+        // Step 1. If prefix is "xml", then return the XML namespace.
         if namespace_prefix == Some(namespace_prefix!("xml")) {
             return ns!(xml);
         }
 
-        // "2. If prefix is "xmlns", then return the XMLNS namespace."
+        // Step 2. If prefix is "xmlns", then return the XMLNS namespace.
         if namespace_prefix == Some(namespace_prefix!("xmlns")) {
             return ns!(xmlns);
         }
@@ -1833,21 +1833,20 @@ impl Element {
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Self>);
 
-        // "5. If its parent element is null, then return null."
-        // "6. Return the result of running locate a namespace on its parent element using prefix."
+        // Step 5. If its parent element is null, then return null.
+        // Step 6. Return the result of running locate a namespace on its parent element using prefix.
         for element in inclusive_ancestor_elements {
-            // "3. If its namespace is non-null and its namespace prefix is prefix, then return
-            // namespace."
+            // Step 3. If its namespace is non-null and its namespace prefix is prefix, then return namespace.
             if element.namespace() != &ns!() &&
-                element.prefix().as_ref().map(|p| &**p) == prefix.as_deref()
+                dbg!(element.prefix()).as_ref().map(|p| &**p) == prefix.as_deref()
             {
                 return element.namespace().clone();
             }
 
-            // "4. If it has an attribute whose namespace is the XMLNS namespace, namespace prefix
+            // Step 4. If it has an attribute whose namespace is the XMLNS namespace, namespace prefix
             // is "xmlns", and local name is prefix, or if prefix is null and it has an attribute
             // whose namespace is the XMLNS namespace, namespace prefix is null, and local name is
-            // "xmlns", then return its value if it is not the empty string, and null otherwise."
+            // "xmlns", then return its value if it is not the empty string, and null otherwise.
             let attr = Ref::filter_map(self.attrs(), |attrs| {
                 attrs.iter().find(|attr| {
                     if attr.namespace() != &ns!(xmlns) {
@@ -3088,18 +3087,18 @@ impl Element {
 
 #[allow(non_snake_case)]
 impl ElementMethods<crate::DomTypeHolder> for Element {
-    // https://dom.spec.whatwg.org/#dom-element-namespaceuri
+    /// <https://dom.spec.whatwg.org/#dom-element-namespaceuri>
     fn GetNamespaceURI(&self) -> Option<DOMString> {
         Node::namespace_to_string(self.namespace.clone())
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-localname
+    /// <https://dom.spec.whatwg.org/#dom-element-localname>
     fn LocalName(&self) -> DOMString {
         // FIXME(ajeffrey): Convert directly from LocalName to DOMString
         DOMString::from(&*self.local_name)
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-prefix
+    /// <https://dom.spec.whatwg.org/#dom-element-prefix>
     fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.borrow().as_ref().map(|p| DOMString::from(&**p))
     }
