@@ -26,11 +26,11 @@ mod parser;
 pub(crate) fn parse(xpath: &str) -> Fallible<Expr> {
     match parse_impl(xpath) {
         Ok(expr) => {
-            debug!("Parsed XPath: {:?}", expr);
+            debug!("Parsed XPath: {expr:?}");
             Ok(expr)
         },
         Err(error) => {
-            debug!("Unable to parse XPath: {}", error);
+            debug!("Unable to parse XPath: {error}");
             Err(Error::Operation)
         },
     }
@@ -45,11 +45,11 @@ pub(crate) fn evaluate_parsed_xpath(
     let context = EvaluationCtx::new(context_node, resolver);
     match expr.evaluate(&context) {
         Ok(value) => {
-            debug!("Evaluated XPath: {:?}", value);
+            debug!("Evaluated XPath: {value:?}");
             Ok(value)
         },
         Err(error) => {
-            debug!("Unable to evaluate XPath: {}", error);
+            debug!("Unable to evaluate XPath: {error}");
 
             let error = match error {
                 EvaluationError::JsException(exception) => exception,

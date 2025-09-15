@@ -1838,7 +1838,7 @@ impl Element {
         for element in inclusive_ancestor_elements {
             // Step 3. If its namespace is non-null and its namespace prefix is prefix, then return namespace.
             if element.namespace() != &ns!() &&
-                dbg!(element.prefix()).as_ref().map(|p| &**p) == prefix.as_deref()
+                element.prefix().as_ref().map(|p| &**p) == prefix.as_deref()
             {
                 return element.namespace().clone();
             }
