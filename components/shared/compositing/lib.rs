@@ -13,6 +13,7 @@ use embedder_traits::{AnimationState, EventLoopWaker, TouchEventResult};
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use strum_macros::IntoStaticStr;
 use webrender_api::{DocumentId, FontVariation};
@@ -21,7 +22,6 @@ pub mod display_list;
 pub mod rendering_context;
 pub mod viewport_description;
 
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use base::generic_channel::{self, GenericCallback, GenericSender};
@@ -427,7 +427,7 @@ pub enum WebrenderImageHandlerType {
 #[derive(Default)]
 pub struct WebrenderExternalImageRegistry {
     /// Map of all generated external images.
-    external_images: HashMap<ExternalImageId, WebrenderImageHandlerType>,
+    external_images: FxHashMap<ExternalImageId, WebrenderImageHandlerType>,
     /// Id generator for the next external image identifier.
     next_image_id: u64,
 }

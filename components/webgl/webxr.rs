@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 use std::num::NonZeroU32;
 
 use canvas_traits::webgl::{
@@ -25,7 +24,7 @@ use crate::webgl_thread::{GLContextData, WebGLThread};
 /// Bridge between WebGL and WebXR
 pub(crate) struct WebXRBridge {
     factory_receiver: crossbeam_channel::Receiver<WebXRLayerManagerFactory<WebXRSurfman>>,
-    managers: HashMap<WebXRLayerManagerId, Box<dyn WebXRLayerManagerAPI<WebXRSurfman>>>,
+    managers: FxHashMap<WebXRLayerManagerId, Box<dyn WebXRLayerManagerAPI<WebXRSurfman>>>,
     next_manager_id: NonZeroU32,
 }
 
@@ -34,7 +33,7 @@ impl WebXRBridge {
         let WebXRBridgeInit {
             factory_receiver, ..
         } = init;
-        let managers = HashMap::new();
+        let managers = FxHashMap::default();
         let next_manager_id = NonZeroU32::MIN;
         WebXRBridge {
             factory_receiver,
