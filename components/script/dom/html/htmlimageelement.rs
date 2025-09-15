@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::{char, mem};
 
 use app_units::{AU_PER_PX, Au};
@@ -31,9 +31,10 @@ use num_traits::ToPrimitive;
 use pixels::{
     CorsStatus, ImageMetadata, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat,
 };
+use regex::Regex;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
-use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_integer, parse_length};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_length, parse_unsigned_integer};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
@@ -1969,6 +1970,21 @@ pub(crate) fn collect_sequence_characters(
     (&s[0..i], &s[i..])
 }
 
+/// <https://html.spec.whatwg.org/multipage/#valid-non-negative-integer>
+/// TODO(#39315): Use the validation rule from Stylo
+fn is_valid_non_negative_integer_string(s: &str) -> bool {
+    s.chars().all(|c| c.is_ascii_digit())
+}
+
+/// <https://html.spec.whatwg.org/multipage/#valid-floating-point-number>
+/// TODO(#39315): Use the validation rule from Stylo
+fn is_valid_floating_point_number_string(s: &str) -> bool {
+    static RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^-?(?:\d+\.\d+|\d+|\.\d+)(?:(e|E)(\+|\-)?\d+)?$").unwrap());
+
+    RE.is_match(s)
+}
+
 /// Parse an `srcset` attribute:
 /// <https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute>.
 pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
@@ -2152,10 +2168,13 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
                 // > 2. If width and density are not both absent, then let error be yes.
                 // > 3. Apply the rules for parsing non-negative integers to the descriptor.
                 // >    If the result is 0, let error be yes. Otherwise, let width be the result.
-                'w' if density.is_none() && width.is_none() => {
-                    match parse_integer(first_part_of_string.chars()) {
+                'w' if is_valid_non_negative_integer_string(first_part_of_string) &&
+                    density.is_none() &&
+                    width.is_none() =>
+                {
+                    match parse_unsigned_integer(first_part_of_string.chars()) {
                         Ok(number) if number > 0 => {
-                            width = Some(number as u32);
+                            width = Some(number);
                             continue;
                         },
                         _ => error = true,
@@ -2175,10 +2194,13 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
                 // what Gecko does, but it also checks to see if the number is a valid HTML-spec compliant
                 // number first. Not doing that means that we might be parsing numbers that otherwise
                 // wouldn't parse.
-                // TODO: Do what Gecko does and first validate the number passed to the Rust float parser.
-                'x' if width.is_none() && density.is_none() && future_compat_h.is_none() => {
+                'x' if is_valid_floating_point_number_string(first_part_of_string) &&
+                    width.is_none() &&
+                    density.is_none() &&
+                    future_compat_h.is_none() =>
+                {
                     match first_part_of_string.parse::<f64>() {
-                        Ok(number) if number.is_normal() && number > 0. => {
+                        Ok(number) if number.is_finite() && number >= 0. => {
                             density = Some(number);
                             continue;
                         },
@@ -2194,10 +2216,13 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
                 // > 2. Apply the rules for parsing non-negative integers to the descriptor.
                 // >    If the result is 0, let error be yes. Otherwise, let future-compat-h be the
                 // >    result.
-                'h' if future_compat_h.is_none() && density.is_none() => {
-                    match parse_integer(first_part_of_string.chars()) {
+                'h' if is_valid_non_negative_integer_string(first_part_of_string) &&
+                    future_compat_h.is_none() &&
+                    density.is_none() =>
+                {
+                    match parse_unsigned_integer(first_part_of_string.chars()) {
                         Ok(number) if number > 0 => {
-                            future_compat_h = Some(number as u32);
+                            future_compat_h = Some(number);
                             continue;
                         },
                         _ => error = true,
