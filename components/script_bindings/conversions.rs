@@ -28,6 +28,7 @@ use num_traits::Float;
 use crate::JSTraceable;
 use crate::codegen::GenericBindings::EventModifierInitBinding::EventModifierInit;
 use crate::inheritance::Castable;
+use crate::lazydomstring::LazyDOMString;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
@@ -76,6 +77,23 @@ pub enum StringificationBehavior {
 impl ToJSValConvertible for DOMString {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         (**self).to_jsval(cx, rval);
+    }
+}
+
+impl FromJSValConvertible for LazyDOMString {
+    type Config = StringificationBehavior;
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        null_behavior: StringificationBehavior,
+    ) -> Result<ConversionResult<LazyDOMString>, ()> {
+        if null_behavior == StringificationBehavior::Empty && value.get().is_null() {
+            Ok(ConversionResult::Success(LazyDOMString::new()))
+        } else {
+            Ok(ConversionResult::Success(LazyDOMString::from_js_string(
+                cx, value,
+            )))
+        }
     }
 }
 

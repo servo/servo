@@ -6,11 +6,16 @@ use std::sync::LazyLock;
 
 use num_traits::Zero;
 use regex::Regex;
+use script_bindings::lazydomstring::StringTrait;
 pub use script_bindings::str::*;
 use time::{Date, Month, OffsetDateTime, Time, Weekday};
 
 /// <https://html.spec.whatwg.org/multipage/#parse-a-month-component>
-fn parse_month_component(value: &str) -> Option<(i32, u32)> {
+fn parse_month_component<'a, 'b, T>(value: T) -> Option<(i32, u32)>
+where
+    T: Copy + StringTrait<'b>,
+    'a: 'b,
+{
     // Step 3
     let mut iterator = value.split('-');
     let year = iterator.next()?;
@@ -33,7 +38,11 @@ fn parse_month_component(value: &str) -> Option<(i32, u32)> {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#parse-a-date-component>
-fn parse_date_component(value: &str) -> Option<(i32, u32, u32)> {
+fn parse_date_component<'a, 'b, T>(value: T) -> Option<(i32, u32, u32)>
+where
+    T: Copy + StringTrait<'b>,
+    'a: 'b,
+{
     // Step 1
     let (year_int, month_int) = parse_month_component(value)?;
 
@@ -55,7 +64,11 @@ fn parse_date_component(value: &str) -> Option<(i32, u32, u32)> {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#parse-a-time-component>
-fn parse_time_component(value: &str) -> Option<(u8, u8, u8, u16)> {
+fn parse_time_component<'a, 'b, T>(value: T) -> Option<(u8, u8, u8, u16)>
+where
+    T: Copy + StringTrait<'b>,
+    'a: 'b,
+{
     // Step 1: Collect a sequence of code points that are ASCII digits from input given
     // position. If the collected sequence is not exactly two characters long, then fail.
     // Otherwise, interpret the resulting sequence as a base-ten integer. Let that number
@@ -212,7 +225,10 @@ impl ToInputValueString for OffsetDateTime {
     }
 }
 
-pub(crate) trait FromInputValueString {
+pub(crate) trait FromInputValueString
+where
+    Self: Sized,
+{
     /// <https://html.spec.whatwg.org/multipage/#parse-a-date-string>
     ///
     /// Parse the date string and return an [`OffsetDateTime`] on midnight of the
@@ -221,7 +237,7 @@ pub(crate) trait FromInputValueString {
     /// A valid date string should be "YYYY-MM-DD"
     /// YYYY must be four or more digits, MM and DD both must be two digits
     /// <https://html.spec.whatwg.org/multipage/#valid-date-string>
-    fn parse_date_string(&self) -> Option<OffsetDateTime>;
+    fn parse_date_string(self) -> Option<OffsetDateTime>;
 
     /// <https://html.spec.whatwg.org/multipage/#parse-a-month-string>
     ///
@@ -230,7 +246,7 @@ pub(crate) trait FromInputValueString {
     ///
     /// A valid month string should be "YYYY-MM" YYYY must be four or more digits, MM both
     /// must be two digits <https://html.spec.whatwg.org/multipage/#valid-month-string>
-    fn parse_month_string(&self) -> Option<OffsetDateTime>;
+    fn parse_month_string(self) -> Option<OffsetDateTime>;
 
     /// <https://html.spec.whatwg.org/multipage/#parse-a-week-string>
     ///
@@ -240,52 +256,56 @@ pub(crate) trait FromInputValueString {
     /// A valid week string should be like {YYYY}-W{WW}, such as "2017-W52" YYYY must be
     /// four or more digits, WW both must be two digits
     /// <https://html.spec.whatwg.org/multipage/#valid-week-string>
-    fn parse_week_string(&self) -> Option<OffsetDateTime>;
+    fn parse_week_string(self) -> Option<OffsetDateTime>;
 
     /// Parse this value as a time string according to
     /// <https://html.spec.whatwg.org/multipage/#valid-time-string>.
-    fn parse_time_string(&self) -> Option<OffsetDateTime>;
+    fn parse_time_string(self) -> Option<OffsetDateTime>;
 
     /// <https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string>
     ///
     /// Parse the local date and time, returning an [`OffsetDateTime`] in UTC or None.
-    fn parse_local_date_time_string(&self) -> Option<OffsetDateTime>;
+    fn parse_local_date_time_string(self) -> Option<OffsetDateTime>;
 
     /// Validates whether or not this value is a valid date string according to
     /// <https://html.spec.whatwg.org/multipage/#valid-date-string>.
-    fn is_valid_date_string(&self) -> bool {
+    fn is_valid_date_string(self) -> bool {
         self.parse_date_string().is_some()
     }
 
     /// Validates whether or not this value is a valid month string according to
     /// <https://html.spec.whatwg.org/multipage/#valid-month-string>.
-    fn is_valid_month_string(&self) -> bool {
+    fn is_valid_month_string(self) -> bool {
         self.parse_month_string().is_some()
     }
     /// Validates whether or not this value is a valid week string according to
     /// <https://html.spec.whatwg.org/multipage/#valid-week-string>.
-    fn is_valid_week_string(&self) -> bool {
+    fn is_valid_week_string(self) -> bool {
         self.parse_week_string().is_some()
     }
     /// Validates whether or not this value is a valid time string according to
     /// <https://html.spec.whatwg.org/multipage/#valid-time-string>.
-    fn is_valid_time_string(&self) -> bool;
+    fn is_valid_time_string(self) -> bool;
 
     /// Validates whether or not this value is a valid local date time string according to
     /// <https://html.spec.whatwg.org/multipage/#valid-week-string>.
-    fn is_valid_local_date_time_string(&self) -> bool {
+    fn is_valid_local_date_time_string(self) -> bool {
         self.parse_local_date_time_string().is_some()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#valid-simple-colour>
-    fn is_valid_simple_color_string(&self) -> bool;
+    fn is_valid_simple_color_string(self) -> bool;
 
     /// <https://html.spec.whatwg.org/multipage/#valid-e-mail-address>
-    fn is_valid_email_address_string(&self) -> bool;
+    fn is_valid_email_address_string(self) -> bool;
 }
 
-impl FromInputValueString for &str {
-    fn parse_date_string(&self) -> Option<OffsetDateTime> {
+impl<'a, 'b, T> FromInputValueString for T
+where
+    T: StringTrait<'b> + Copy + std::cmp::PartialEq<&'a str>,
+    'b: 'a,
+{
+    fn parse_date_string(self) -> Option<OffsetDateTime> {
         // Step 1, 2, 3
         let (year_int, month_int, day_int) = parse_date_component(self)?;
 
@@ -300,7 +320,7 @@ impl FromInputValueString for &str {
         Some(OffsetDateTime::new_utc(date, Time::MIDNIGHT))
     }
 
-    fn parse_month_string(&self) -> Option<OffsetDateTime> {
+    fn parse_month_string(self) -> Option<OffsetDateTime> {
         // Step 1, 2, 3
         let (year_int, month_int) = parse_month_component(self)?;
 
@@ -314,7 +334,7 @@ impl FromInputValueString for &str {
         Some(OffsetDateTime::new_utc(date, Time::MIDNIGHT))
     }
 
-    fn parse_week_string(&self) -> Option<OffsetDateTime> {
+    fn parse_week_string(self) -> Option<OffsetDateTime> {
         // Step 1, 2, 3
         let mut iterator = self.split('-');
         let year = iterator.next()?;
@@ -356,7 +376,7 @@ impl FromInputValueString for &str {
         Some(OffsetDateTime::new_utc(date, Time::MIDNIGHT))
     }
 
-    fn parse_time_string(&self) -> Option<OffsetDateTime> {
+    fn parse_time_string(self) -> Option<OffsetDateTime> {
         // Step 1, 2, 3
         let (hour, minute, second, millisecond) = parse_time_component(self)?;
 
@@ -373,7 +393,7 @@ impl FromInputValueString for &str {
         ))
     }
 
-    fn parse_local_date_time_string(&self) -> Option<OffsetDateTime> {
+    fn parse_local_date_time_string(self) -> Option<OffsetDateTime> {
         // Step 1, 2, 4
         let mut iterator = if self.contains('T') {
             self.split('T')
@@ -402,7 +422,7 @@ impl FromInputValueString for &str {
         Some(OffsetDateTime::new_utc(date, time))
     }
 
-    fn is_valid_time_string(&self) -> bool {
+    fn is_valid_time_string(self) -> bool {
         enum State {
             HourHigh,
             HourLow09,
@@ -470,7 +490,7 @@ impl FromInputValueString for &str {
         }
     }
 
-    fn is_valid_simple_color_string(&self) -> bool {
+    fn is_valid_simple_color_string(self) -> bool {
         let mut chars = self.chars();
         if self.len() == 7 && chars.next() == Some('#') {
             chars.all(|c| c.is_ascii_hexdigit())
@@ -479,7 +499,7 @@ impl FromInputValueString for &str {
         }
     }
 
-    fn is_valid_email_address_string(&self) -> bool {
+    fn is_valid_email_address_string(self) -> bool {
         static RE: LazyLock<Regex> = LazyLock::new(|| {
             Regex::new(concat!(
                 r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?",
@@ -487,6 +507,8 @@ impl FromInputValueString for &str {
             ))
             .unwrap()
         });
-        RE.is_match(self)
+        // This should be safe to use unchecked but better safe than sorry.
+        let s = String::from_utf8(self.chars().map(|c| c as u8).collect::<Vec<u8>>()).unwrap();
+        RE.is_match(&s)
     }
 }

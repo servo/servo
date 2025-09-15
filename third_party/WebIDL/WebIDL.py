@@ -3899,6 +3899,7 @@ class IDLBuiltinType(IDLType):
         "_rangeEnforced",
         "_withLegacyNullToEmptyString",
         "_withAllowShared",
+        "_withLazy",
     )
 
     def __init__(
@@ -3910,6 +3911,7 @@ class IDLBuiltinType(IDLType):
         enforceRange=False,
         legacyNullToEmptyString=False,
         allowShared=False,
+        lazy = False,
         attrLocation=[],
     ):
         """
@@ -3926,6 +3928,7 @@ class IDLBuiltinType(IDLType):
         self._rangeEnforced = None
         self._withLegacyNullToEmptyString = None
         self._withAllowShared = None
+        self._withLazy = None
         if self.isInteger():
             if clamp:
                 self._clamp = True
@@ -3944,6 +3947,10 @@ class IDLBuiltinType(IDLType):
                 self.legacyNullToEmptyString = True
                 self.name = "NullIsEmpty" + self.name
                 self._extendedAttrDict["LegacyNullToEmptyString"] = True
+            if lazy:
+                self._withLazy = True
+                self.name = "Lazy"+self.name
+                self._extendedAttrDict["Lazy"] = True
         elif legacyNullToEmptyString:
             raise WebIDLError(
                 "Non-string types cannot be [LegacyNullToEmptyString]", attrLocation
@@ -4000,6 +4007,11 @@ class IDLBuiltinType(IDLType):
             )
         return self._withLegacyNullToEmptyString
 
+    def withLegacyNullToEmptyStringAndLazy(self, attrLocation):
+        self._withLazy = IDLBuiltinType(self.location, self.name, self._typeTag,
+                                        legacyNullToEmptyString=True, lazy = True, attrLocation = attrLocation)
+        return self._withLazy
+
     def withAllowShared(self, attrLocation):
         if not self._withAllowShared:
             self._withAllowShared = IDLBuiltinType(
@@ -4010,6 +4022,11 @@ class IDLBuiltinType(IDLType):
                 attrLocation=attrLocation,
             )
         return self._withAllowShared
+
+    def withLazy(self, attrLocation):
+        if not self._withLazy:
+            self._withLazy = IDLBuiltinType(self.location, self.name, self._typeTag, lazy = True, attrLocation = attrLocation)
+        return self._withLazy
 
     def isPrimitive(self):
         return self._typeTag <= IDLBuiltinType.Types.double
@@ -4210,7 +4227,14 @@ class IDLBuiltinType(IDLType):
                         [self.location, attribute.location],
                     )
                 ret = self.rangeEnforced([self.location, attribute.location])
-            elif identifier == "LegacyNullToEmptyString":
+            elif identifier == "LegacyNullToEmptyString":\
+                # hacky way to get both attributes in it.
+                all_identifiers = [attr.identifier() for attr in attrs]
+                if "Lazy" in all_identifiers:
+                    ret = self.withLegacyNullToEmptyStringAndLazy([self.location, attribute.location])
+                    break;
+
+
                 if not (self.isDOMString() or self.isUTF8String()):
                     raise WebIDLError(
                         "[LegacyNullToEmptyString] only allowed on DOMStrings and UTF8Strings",
@@ -4236,7 +4260,8 @@ class IDLBuiltinType(IDLType):
                         [self.location, attribute.location],
                     )
                 ret = self.withAllowShared([self.location, attribute.location])
-
+            elif identifier == "Lazy":
+                ret = self.withLazy([self.location, attribute.location])
             else:
                 raise WebIDLError(
                     "Unhandled extended attribute on type",

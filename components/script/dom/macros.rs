@@ -350,6 +350,19 @@ macro_rules! make_atomic_setter(
 );
 
 #[macro_export]
+macro_rules! make_atomic_setter_lazy(
+    ( $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self, value: LazyDOMString) {
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
+            let element = self.upcast::<Element>();
+            element.set_atomic_attribute(&html5ever::local_name!($htmlname), value.to_domstring(), CanGc::note())
+        }
+    );
+);
+
+#[macro_export]
 macro_rules! make_legacy_color_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {

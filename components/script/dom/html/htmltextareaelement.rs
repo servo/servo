@@ -9,6 +9,7 @@ use std::ops::Range;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
+use script_bindings::lazydomstring::LazyDOMString;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
@@ -75,6 +76,7 @@ impl<'dom> LayoutDom<'dom, HTMLTextAreaElement> {
                 .textinput
                 .borrow_for_layout()
                 .get_content()
+                .to_domstring()
         }
     }
 
@@ -322,12 +324,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
-    fn Value(&self) -> DOMString {
+    fn Value(&self) -> LazyDOMString {
         self.textinput.borrow().get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(&self, value: LazyDOMString) {
         {
             let mut textinput = self.textinput.borrow_mut();
 
@@ -454,13 +456,15 @@ impl HTMLTextAreaElement {
     /// Used by WebDriver to clear the textarea element.
     pub(crate) fn clear(&self) {
         self.value_dirty.set(false);
-        self.textinput.borrow_mut().set_content(DOMString::from(""));
+        self.textinput
+            .borrow_mut()
+            .set_content(LazyDOMString::from(""));
     }
 
     pub(crate) fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         let mut textinput = self.textinput.borrow_mut();
-        textinput.set_content(self.DefaultValue());
+        textinput.set_content(LazyDOMString::from(self.DefaultValue().to_string()));
         self.value_dirty.set(false);
     }
 

@@ -16,6 +16,7 @@ name = "script_bindings"
 path = "lib.rs"
 
 [dependencies]
+ascii = { workspace = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }

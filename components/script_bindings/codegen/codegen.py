@@ -1071,7 +1071,10 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             if type.nullable():
                 default = f"Some({default})"
 
-        declType = "DOMString"
+        if type.getExtendedAttribute("Lazy"):
+            declType = "LazyDOMString"
+        else:
+            declType = "DOMString"
         if type.nullable():
             declType = f"Option<{declType}>"
 
@@ -1550,6 +1553,8 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
         return builtin_return_type(returnType)
     if returnType.isDOMString():
         result = CGGeneric("DOMString")
+        if returnType.getExtendedAttribute("Lazy"):
+            result = CGGeneric("LazyDOMString")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result

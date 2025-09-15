@@ -10,7 +10,9 @@ use std::default::Default;
 use std::ops::{Add, AddAssign, Range};
 
 use bitflags::bitflags;
+use itertools::Itertools;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
+use script_bindings::lazydomstring::{EncodedBytes, LazyDOMString, StringTrait};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::clipboard_provider::ClipboardProvider;
@@ -84,6 +86,12 @@ impl StrExt for str {
     }
 }
 
+impl StrExt for LazyDOMString {
+    fn len_utf8(&self) -> UTF8Bytes {
+        UTF8Bytes(self.rust_str().len())
+    }
+}
+
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 pub struct UTF16CodeUnits(pub usize);
 
@@ -149,7 +157,7 @@ pub struct TextPoint {
 
 impl TextPoint {
     /// Returns a TextPoint constrained to be a valid location within lines
-    fn constrain_to(&self, lines: &[DOMString]) -> TextPoint {
+    fn constrain_to(&self, lines: &[LazyDOMString]) -> TextPoint {
         let line = min(self.line, lines.len() - 1);
 
         TextPoint {
@@ -170,7 +178,7 @@ pub(crate) struct SelectionState {
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct TextInput<T: ClipboardProvider> {
     /// Current text input content, split across lines without trailing '\n'
-    lines: Vec<DOMString>,
+    lines: Vec<LazyDOMString>,
 
     /// Current cursor input point
     edit_point: TextPoint,
@@ -246,7 +254,7 @@ pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 ///
 /// If the string has fewer than n characters, returns the length of the whole string.
 /// If n is 0, returns 0
-fn len_of_first_n_chars(text: &str, n: usize) -> UTF8Bytes {
+fn len_of_first_n_chars(text: EncodedBytes<'_>, n: usize) -> UTF8Bytes {
     match text.char_indices().take(n).last() {
         Some((index, ch)) => UTF8Bytes(index + ch.len_utf8()),
         None => UTF8Bytes::zero(),
@@ -290,7 +298,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             selection_direction,
             was_last_change_by_set_content: true,
         };
-        i.set_content(initial);
+        i.set_content(LazyDOMString::from_string(initial.to_string()));
         i
     }
 
@@ -460,15 +468,18 @@ impl<T: ClipboardProvider> TextInput<T> {
             let UTF8Bytes(end_offset) = end.index;
 
             if start.line == end.line {
-                f(&mut acc, &self.lines[start.line][start_offset..end_offset])
+                f(
+                    &mut acc,
+                    &self.lines[start.line].rust_str()[start_offset..end_offset],
+                )
             } else {
-                f(&mut acc, &self.lines[start.line][start_offset..]);
+                f(&mut acc, &self.lines[start.line].rust_str()[start_offset..]);
                 for line in &self.lines[start.line + 1..end.line] {
                     f(&mut acc, "\n");
-                    f(&mut acc, line);
+                    f(&mut acc, &line.rust_str());
                 }
                 f(&mut acc, "\n");
-                f(&mut acc, &self.lines[end.line][..end_offset])
+                f(&mut acc, &self.lines[end.line].rust_str()[..end_offset])
             }
         }
 
@@ -497,8 +508,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         let UTF8Bytes(end_offset) = end.index;
 
         let new_lines = {
-            let prefix = &self.lines[start.line][..start_offset];
-            let suffix = &self.lines[end.line][end_offset..];
+            let prefix = &self.lines[start.line].to_string()[..start_offset];
+            let suffix = &self.lines[end.line].to_string()[end_offset..];
             let lines_prefix = &self.lines[..start.line];
             let lines_suffix = &self.lines[end.line + 1..];
 
@@ -523,7 +534,12 @@ impl<T: ClipboardProvider> TextInput<T> {
 
             let mut new_lines = vec![];
             new_lines.extend_from_slice(lines_prefix);
-            new_lines.extend_from_slice(&insert_lines);
+            new_lines.extend_from_slice(
+                &insert_lines
+                    .into_iter()
+                    .map(|s| LazyDOMString::from_string(s.to_string()))
+                    .collect::<Vec<_>>(),
+            );
             new_lines.extend_from_slice(lines_suffix);
             new_lines
         };
@@ -583,12 +599,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
 
         let UTF8Bytes(edit_index) = self.edit_point.index;
-        let col = self.lines[self.edit_point.line][..edit_index]
+        let col = self.lines[self.edit_point.line].rust_str()[..edit_index]
             .chars()
             .count();
         self.edit_point.line = target_line as usize;
         // NOTE: this adjusts to the nearest complete Unicode codepoint, rather than grapheme cluster
-        self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
+        self.edit_point.index = len_of_first_n_chars(self.lines[self.edit_point.line].bytes(), col);
         if let Some(origin) = self.selection_origin {
             if ((self.selection_direction == SelectionDirection::None ||
                 self.selection_direction == SelectionDirection::Forward) &&
@@ -627,9 +643,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         let adjust = {
             let current_line = &self.lines[self.edit_point.line];
             let UTF8Bytes(current_offset) = self.edit_point.index;
+            let current_line_str = current_line.rust_str();
             let next_ch = match direction {
-                Direction::Forward => current_line[current_offset..].graphemes(true).next(),
-                Direction::Backward => current_line[..current_offset].graphemes(true).next_back(),
+                Direction::Forward => current_line_str[current_offset..].graphemes(true).next(),
+                Direction::Backward => current_line_str[..current_offset]
+                    .graphemes(true)
+                    .next_back(),
             };
             match next_ch {
                 Some(c) => UTF8Bytes(c.len()),
@@ -773,14 +792,13 @@ impl<T: ClipboardProvider> TextInput<T> {
             let mut shift_temp = UTF8Bytes::zero();
             match direction {
                 Direction::Backward => {
-                    let input: &str;
-                    if current_index == UTF8Bytes::zero() && current_line > 0 {
-                        input = &self.lines[current_line - 1];
+                    let input = if current_index == UTF8Bytes::zero() && current_line > 0 {
                         newline_adjustment = UTF8Bytes::one();
+                        &self.lines[current_line - 1].rust_str()
                     } else {
                         let UTF8Bytes(remaining) = current_index;
-                        input = &self.lines[current_line][..remaining];
-                    }
+                        &self.lines[current_line].rust_str()[..remaining]
+                    };
 
                     let mut iter = input.split_word_bounds().rev();
                     loop {
@@ -796,16 +814,16 @@ impl<T: ClipboardProvider> TextInput<T> {
                     }
                 },
                 Direction::Forward => {
-                    let input: &str;
                     let remaining = self.current_line_length().saturating_sub(current_index);
-                    if remaining == UTF8Bytes::zero() && self.lines.len() > self.edit_point.line + 1
+                    let input = if remaining == UTF8Bytes::zero() &&
+                        self.lines.len() > self.edit_point.line + 1
                     {
-                        input = &self.lines[current_line + 1];
                         newline_adjustment = UTF8Bytes::one();
+                        &self.lines[current_line + 1].rust_str()
                     } else {
                         let UTF8Bytes(current_offset) = current_index;
-                        input = &self.lines[current_line][current_offset..];
-                    }
+                        &self.lines[current_line].rust_str()[current_offset..]
+                    };
 
                     let mut iter = input.split_word_bounds();
                     loop {
@@ -836,8 +854,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             let current_line = &self.lines[self.edit_point.line];
             let UTF8Bytes(current_offset) = self.edit_point.index;
             match direction {
-                Direction::Backward => current_line[..current_offset].len(),
-                Direction::Forward => current_line[current_offset..].len(),
+                Direction::Backward => current_line.rust_str()[..current_offset].len(),
+                Direction::Forward => current_line.rust_str()[current_offset..].len(),
             }
         };
         self.perform_horizontal_adjustment(UTF8Bytes(shift), direction, select);
@@ -1077,7 +1095,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.lines
             .iter()
             .fold(UTF16CodeUnits::zero(), |m, l| {
-                m + UTF16CodeUnits(l.chars().map(char::len_utf16).sum::<usize>() + 1)
+                m + UTF16CodeUnits(l.bytes().chars().map(char::len_utf16).sum::<usize>() + 1)
                 // + 1 for the '\n'
             })
             .saturating_sub(UTF16CodeUnits::one())
@@ -1086,37 +1104,31 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// The length of the content in Unicode code points.
     pub(crate) fn char_count(&self) -> usize {
         self.lines.iter().fold(0, |m, l| {
-            m + l.chars().count() + 1 // + 1 for the '\n'
+            m + l.bytes().chars().count() + 1 // + 1 for the '\n'
         }) - 1
     }
 
     /// Get the current contents of the text input. Multiple lines are joined by \n.
-    pub fn get_content(&self) -> DOMString {
-        let mut content = "".to_owned();
-        for (i, line) in self.lines.iter().enumerate() {
-            content.push_str(line);
-            if i < self.lines.len() - 1 {
-                content.push('\n');
-            }
-        }
-        DOMString::from(content)
+    pub fn get_content(&self) -> LazyDOMString {
+        LazyDOMString::from_string(self.lines.iter().join("\n"))
     }
 
     /// Get a reference to the contents of a single-line text input. Panics if self is a multiline input.
-    pub(crate) fn single_line_content(&self) -> &DOMString {
+    pub(crate) fn single_line_content(&self) -> &LazyDOMString {
         assert!(!self.multiline);
         &self.lines[0]
     }
 
     /// Set the current contents of the text input. If this is control supports multiple lines,
     /// any \n encountered will be stripped and force a new logical line.
-    pub fn set_content(&mut self, content: DOMString) {
+    pub fn set_content(&mut self, content: LazyDOMString) {
         self.lines = if self.multiline {
             // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
             content
                 .replace("\r\n", "\n")
-                .split(['\n', '\r'])
-                .map(DOMString::from)
+                .split('\n')
+                .flat_map(|s| s.split('\r'))
+                .map(LazyDOMString::from)
                 .collect()
         } else {
             vec![content]
@@ -1201,6 +1213,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Set the edit point index position based off of a given grapheme cluster offset
     pub fn set_edit_point_index(&mut self, index: usize) {
         let byte_offset = self.lines[self.edit_point.line]
+            .rust_str()
             .graphemes(true)
             .take(index)
             .fold(UTF8Bytes::zero(), |acc, x| acc + x.len_utf8());
