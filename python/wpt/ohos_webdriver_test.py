@@ -13,7 +13,8 @@ import time
 import sys
 import urllib.request
 import urllib.error
-from typing import Dict, Optional, Any
+import glob
+from typing import Dict, Optional, Any, List
 
 
 class OHOSWebDriverController:
@@ -25,15 +26,51 @@ class OHOSWebDriverController:
         self.session_id: Optional[str] = None
         self.wpt_server_process: Optional[subprocess.Popen] = None
 
-    def setup_wpt_server_access(self) -> bool:
-        """Set up access to WPT server for OHOS device."""
+    def discover_tests(self, path: str) -> List[str]:
+        """Discover test files in a given path (file or directory)."""
+        tests = []
+
+        # The script is in python/wpt/, and tests are in tests/wpt/tests/
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        servo_root = os.path.dirname(os.path.dirname(script_dir))  # Go up from python/wpt/ to servo root
+        wpt_tests_dir = os.path.join(servo_root, "tests", "wpt", "tests")
+
+        # Convert relative paths to absolute paths based
+        if not os.path.isabs(path):
+            full_path = os.path.join(wpt_tests_dir, path)
+        else:
+            full_path = path
+
+        if os.path.isfile(full_path):
+            # Single test file - convert back to relative path for URL construction
+            rel_path = os.path.relpath(full_path, wpt_tests_dir)
+            tests.append(rel_path)
+        elif os.path.isdir(full_path):
+            # Find all .html, .htm, .xhtml test files
+            for ext in ["*.html", "*.htm", "*.xhtml"]:
+                pattern = os.path.join(full_path, "**", ext)
+                found_files = glob.glob(pattern, recursive=True)
+                for file_path in found_files:
+                    # Convert back to relative path for URL construction
+                    rel_path = os.path.relpath(file_path, wpt_tests_dir)
+                    tests.append(rel_path)
+        else:
+            logging.error(f"Path does not exist: {path} (resolved to: {full_path})")
+
+        # Normalize path separators for URLs
+        normalized_tests = []
+        for test in tests:
+            test = test.replace("\\", "/")
+            normalized_tests.append(test)
+
+        return sorted(normalized_tests)
+
+    def setup_hdc_reverse_forwarding(self) -> bool:
+        """Setting up HDC reverse port forwarding for WPT"""
         try:
             cmd = ["hdc", "rport", f"tcp:{self.wpt_server_port}", f"tcp:{self.wpt_server_port}"]
-            logging.info(f"Setting up HDC reverse port forwarding for WPT: {' '.join(cmd)}")
-
+            # logging.info(f"Setting up HDC reverse port forwarding for WPT: {' '.join(cmd)}")
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-
-            logging.info(f"HDC reverse port forwarding established for WPT server on port {self.wpt_server_port}")
             return True
 
         except FileNotFoundError:
@@ -50,11 +87,7 @@ class OHOSWebDriverController:
         """Set up HDC port forwarding for WebDriver communication."""
         try:
             cmd = ["hdc", "fport", f"tcp:{self.webdriver_port}", f"tcp:{self.webdriver_port}"]
-            logging.info(f"Setting up HDC port forwarding: {' '.join(cmd)}")
-
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-
-            logging.info(f"HDC port forwarding established on port {self.webdriver_port}")
             return True
 
         except FileNotFoundError:
@@ -70,9 +103,42 @@ class OHOSWebDriverController:
     def start_wpt_server(self) -> bool:
         """Start the WPT server on desktop."""
         try:
-            # For now, assume WPT server is already running or started manually
-            # In a complete implementation, this would start the WPT server
-            logging.info(f"Assuming WPT server is running on port {self.wpt_server_port}")
+            # Determine the servo root directory and WPT tests path
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            servo_root = os.path.dirname(os.path.dirname(script_dir))  # Go up from python/wpt/ to servo root
+            wpt_tests_dir = os.path.join(servo_root, "tests", "wpt", "tests")
+
+            if not os.path.exists(wpt_tests_dir):
+                logging.error(f"WPT tests directory not found: {wpt_tests_dir}")
+                return False
+
+            # Start WPT server using python wpt serve command
+            cmd = [
+                sys.executable,
+                "wpt",
+                "serve",
+            ]
+
+            logging.info(f"Starting WPT server: {' '.join(cmd)}")
+            logging.info(f"Working directory: {wpt_tests_dir}")
+
+            # Start the server process in the background
+            self.wpt_server_process = subprocess.Popen(
+                cmd, cwd=wpt_tests_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+
+            # Give the server a moment to start
+            time.sleep(3)
+
+            # Check if the process is running
+            if self.wpt_server_process.poll() is not None:
+                stdout, stderr = self.wpt_server_process.communicate()
+                logging.error(f"WPT server failed to start. Exit code: {self.wpt_server_process.returncode}")
+                logging.error(f"Stdout: {stdout}")
+                logging.error(f"Stderr: {stderr}")
+                return False
+
+            logging.info(f"WPT server started successfully on port {self.wpt_server_port}")
             return True
 
         except Exception as e:
@@ -108,33 +174,15 @@ class OHOSWebDriverController:
             logging.error(f"WebDriver request failed: {method} {path} - {e}")
             raise
 
-    def delete_session(self, session_id: str) -> bool:
+    def delete_session(self, session_id: str, timeout: int = 5) -> bool:
         """Delete a WebDriver session."""
         try:
-            self.webdriver_request("DELETE", f"/session/{session_id}")
+            self.webdriver_request("DELETE", f"/session/{session_id}", timeout=timeout)
             logging.info(f"Deleted WebDriver session: {session_id}")
             return True
         except Exception as e:
             logging.error(f"Failed to delete session {session_id}: {e}")
             return False
-
-    def create_session(self) -> bool:
-        """Create a new WebDriver session."""
-        try:
-            capabilities = {"capabilities": {"alwaysMatch": {"browserName": "servo"}}}
-
-            logging.debug(f"Sending session request: {json.dumps(capabilities, indent=2)}")
-            response = self.webdriver_request("POST", "/session", capabilities)
-            logging.debug(f"Session response: {json.dumps(response, indent=2)}")
-
-            self.session_id = response.get("value", {}).get("sessionId")
-
-            if self.session_id:
-                logging.info(f"WebDriver session created: {self.session_id}")
-                return True
-            else:
-                logging.error("Failed to create WebDriver session")
-                return False
 
         except urllib.error.HTTPError as e:
             error_response = getattr(e, "error_response", "No error response available")
@@ -149,117 +197,16 @@ class OHOSWebDriverController:
             logging.error(f"Failed to create WebDriver session: {e}")
             raise
 
-    def create_window(self) -> bool:
-        """Create a new window/webview if needed."""
-        try:
-            if not self.session_id:
-                raise RuntimeError("No WebDriver session")
-
-            try:
-                handles_response = self.webdriver_request("GET", f"/session/{self.session_id}/window/handles")
-                handles = handles_response.get("value", [])
-
-                if handles:
-                    logging.info(f"Found existing windows: {handles}")
-                    # Focus on the first window
-                    self.webdriver_request("POST", f"/session/{self.session_id}/window", {"handle": handles[0]})
-                    return True
-            except Exception as e:
-                logging.debug(f"Could not get window handles: {e}")
-
-            # Try to explicitly create a new window
-            try:
-                logging.info("Attempting to create new window via WebDriver")
-                new_window_response = self.webdriver_request(
-                    "POST", f"/session/{self.session_id}/window/new", {"type": "tab"}
-                )
-                if new_window_response:
-                    logging.info(f"Created new window: {new_window_response}")
-                    return True
-            except Exception as e:
-                logging.debug(f"New window creation failed: {e}")
-
-            logging.info("No existing windows found, assuming window will be created on navigation")
-            return True
-
-        except Exception as e:
-            logging.error(f"Failed to create window: {e}")
-            return False
-
-    def navigate_to_url(self, url: str, timeout: int = 10) -> bool:
-        """Navigate to a URL with OHOS-specific handling."""
-        if not self.session_id:
-            raise RuntimeError("No WebDriver session")
-
-        logging.info(f"Attempting to navigate to: {url}")
-        data = {"url": url}
-
-        try:
-            navigation_success = self.webdriver_request(
-                "POST", f"/session/{self.session_id}/url", data, timeout=timeout
-            )
-            logging.info(f"Navigation completed successfully: {navigation_success}")
-            return True
-        except Exception as nav_error:
-            logging.debug(f"Navigation request failed: {nav_error}")
-            return False
-
-    def run_test(self, test_path: str) -> Dict[str, Any]:
-        """Run a single WPT test."""
-        try:
-            if not self.create_session():
-                return {
-                    "status": "ERROR",
-                    "title": "",
-                    "details": "Failed to create WebDriver session",
-                    "passCount": 0,
-                    "failCount": 0,
-                    "failingTests": [],
-                }
-
-            if not self.create_window():
-                return {
-                    "status": "ERROR",
-                    "title": "",
-                    "details": "Failed to create window",
-                    "passCount": 0,
-                    "failCount": 0,
-                    "failingTests": [],
-                }
-
-            test_url = f"http://localhost:{self.wpt_server_port}/{test_path}"
-
-            logging.info(f"Navigating URL: {test_url}")
-
-            navigation_result = self.navigate_to_url(test_url, timeout=5)
-
-            if navigation_result:
-                logging.info("Navigation completed, proceeding to test completion check")
-            else:
-                logging.warning("Navigation may have failed, but continuing with test completion check")
-
-            return self.wait_for_test_completion_ohos()
-
-        except Exception as e:
-            logging.error(f"Error running test: {e}")
-            return {
-                "status": "ERROR",
-                "title": "",
-                "details": str(e),
-                "passCount": 0,
-                "failCount": 0,
-                "failingTests": [],
-            }
-
-    def wait_for_test_completion_ohos(self, timeout: int = 30) -> Dict[str, Any]:
+    def wait_for_test_completion_ohos(self, timeout: int = 15, test_start_time: float | None = None) -> Dict[str, Any]:
         """OHOS test completion handling"""
-        try:
-            logging.info("OHOS test completion handling...")
 
+        if test_start_time is None:
+            test_start_time = time.time()
+
+        try:
             logging.info("Waiting for page to load and test to complete...")
-            for i in range(6):
-                time.sleep(5)
-                logging.info(f"Waiting... ({(i + 1) * 5}/{timeout}s)")
+            for i in range(timeout):
+                logging.info(f"Waiting... ({(i)}/{timeout}s)")
 
                 try:
                     script_path = os.path.join(os.path.dirname(__file__), "ohos_test_parser.js")
@@ -276,41 +223,61 @@ class OHOSWebDriverController:
                             return {
                                 "status": result.get("status"),
                                 "title": result.get("title", ""),
-                                "details": result.get("bodyText", "")[:200] + "..."
-                                if len(result.get("bodyText", "")) > 200
+                                "details": result.get("bodyText", "")[:300] + "..."
+                                if len(result.get("bodyText", "")) > 300
                                 else result.get("bodyText", ""),
                                 "passCount": result.get("passCount", 0),
                                 "failCount": result.get("failCount", 0),
                                 "failingTests": result.get("failingTests", []),
+                                "duration": time.time() - test_start_time,
                             }
                         else:
-                            logging.info(
-                                f"Test still running, status: {result.get('status')}, body preview: {result.get('bodyText', '')[:100]}..."
-                            )
+                            logging.info("Test still running")
                 except Exception as api_error:
                     logging.debug(f"API request failed: {api_error}")
 
-            # If we get here, either test timed out or API is completely unresponsive
-            logging.warning("WebDriver API appears to be unresponsive - this is a known OHOS limitation")
+                if i != timeout - 1:
+                    time.sleep(1)
 
-            # Take screenshot for debugging
-            screenshot_path = f"test_output/servo_ohos_screenshot_{int(time.time())}.jpeg"
+            # If we get here, either test timed out or API is completely unresponsive
+            elapsed_time = time.time() - test_start_time
+            screenshot_path = f"test_output/servo_ohos_indeterminate_screenshot_{int(time.time())}.jpeg"
             self.take_screenshot(screenshot_path)
 
-            return {
-                "status": "INDETERMINATE",
-                "title": "OHOS WebDriver Limitation",
-                "details": (
-                    "Test was successfully loaded on OHOS device, but WebDriver API became "
-                    "unresponsive. Please check the test result manually on the device screen,"
-                    "or refer to the screenshot at of Desktop at: " + screenshot_path
-                ),
-                "passCount": 0,
-                "failCount": 0,
-                "failingTests": [],
-            }
+            script_data = {"script": script, "args": []}
+            script_response = self.webdriver_request(
+                "POST", f"/session/{self.session_id}/execute/sync", script_data, timeout=2
+            )
+            result = script_response.get("value", {})
+
+            if result.get("status") == "UNKNOWN":
+                return {
+                    "status": "TIMEOUT OR CRASH",
+                    "title": result.get("title", ""),
+                    "details": result.get("bodyText", "")[:300] + "..."
+                    if len(result.get("bodyText", "")) > 300
+                    else result.get("bodyText", ""),
+                    "passCount": 0,
+                    "failCount": 0,
+                    "failingTests": [],
+                    "duration": elapsed_time,
+                }
+            else:
+                # Test completed but with unexpected status
+                return {
+                    "status": result.get("status", "TIMEOUT"),
+                    "title": result.get("title", ""),
+                    "details": result.get("bodyText", "")[:300] + "..."
+                    if len(result.get("bodyText", "")) > 300
+                    else result.get("bodyText", ""),
+                    "passCount": result.get("passCount", 0),
+                    "failCount": result.get("failCount", 0),
+                    "failingTests": result.get("failingTests", []),
+                    "duration": elapsed_time,
+                }
 
         except Exception as e:
+            elapsed_time = time.time() - test_start_time
             logging.error(f"Error in OHOS test completion handling: {e}")
 
             # Take screenshot for debugging on error
@@ -318,13 +285,139 @@ class OHOSWebDriverController:
             self.take_screenshot(screenshot_path)
 
             return {
-                "status": "ERROR",
-                "title": "",
-                "details": str(e),
+                "status": "COMPLETION_ERROR",
+                "title": "Test Completion Error",
+                "details": f"Error during test completion check: {str(e)}. Screenshot saved to {screenshot_path}",
                 "passCount": 0,
                 "failCount": 0,
                 "failingTests": [],
+                "duration": elapsed_time,
             }
+
+    def kill_servo_instances(self) -> bool:
+        """Kill all servo instances on the OHOS device."""
+        success = True
+
+        try:
+            subprocess.run(["hdc", "shell", "killall org.servo.servo"], capture_output=True, text=True, timeout=10)
+        except Exception as e:
+            logging.debug(f"killall command failed (may be expected): {e}")
+            success = False
+
+        return success
+
+    def create_session(self) -> bool:
+        """Create a new WebDriver session."""
+        try:
+            capabilities = {"capabilities": {"alwaysMatch": {"browserName": "servo"}}}
+            response = self.webdriver_request("POST", "/session", capabilities)
+
+            self.session_id = response.get("value", {}).get("sessionId")
+
+            if self.session_id:
+                return True
+            else:
+                logging.error("Failed to create WebDriver session - no session ID in response")
+                return False
+        except urllib.error.HTTPError as e:
+            error_response = getattr(e, "error_response", "No error response available")
+
+            logging.debug(f"HTTP error during session creation: {e.code} - {error_response}")
+
+            if "session not created" in error_response:
+                raise RuntimeError(f"Session not created. Please restart the WebDriver server: {error_response}")
+            else:
+                raise
+        except urllib.error.URLError as e:
+            logging.error(f"WebDriver connection error: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"Failed to create WebDriver session: {e}")
+            raise
+
+    def start_servo_application(self, test_path: str) -> bool:
+        """Start the servo application on OHOS device."""
+        try:
+            subprocess.run(
+                [
+                    "hdc",
+                    "shell",
+                    f"aa start -a EntryAbility -b org.servo.servo -U http://localhost:{self.wpt_server_port}/{test_path}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            time.sleep(0.5)
+
+            if not self.create_session():
+                return False
+
+            return True
+        except Exception as e:
+            logging.error(f"Failed to start servo application: {e}")
+            return False
+
+    def run_tests(self, test_paths: List[str], timeout_per_test: int = 15) -> List[Dict[str, Any]]:
+        """Run tests consecutively with kill/restart cycle for each test."""
+        results = []
+        total_tests = len(test_paths)
+
+        logging.info(f"Starting test run: {total_tests} tests")
+
+        for i, test_path in enumerate(test_paths, 1):
+            logging.info(f"\n{'=' * 60}")
+            logging.info(f"Running test {i}/{total_tests}: {test_path}")
+            logging.info(f"{'=' * 60}")
+            test_start_time = time.time()
+
+            # Kill any existing servo instances
+            logging.info("Cleaning up existing servo instances...")
+            self.kill_servo_instances()
+
+            # Start fresh servo instance
+            logging.info("Starting fresh servo instance...")
+            if not self.start_servo_application(test_path):
+                result = {
+                    "status": "SERVO_START_FAILED",
+                    "title": test_path,
+                    "details": "Failed to start servo application",
+                    "passCount": 0,
+                    "failCount": 0,
+                    "failingTests": [],
+                    "duration": 0,
+                }
+                results.append(result)
+                continue
+
+            # Set up infrastructure for this test
+            if not self.setup_hdc_forwarding():
+                result = {
+                    "status": "HDC_SETUP_FAILED",
+                    "title": test_path,
+                    "details": "Failed to set up HDC forwarding",
+                    "passCount": 0,
+                    "failCount": 0,
+                    "failingTests": [],
+                    "duration": 0,
+                }
+                results.append(result)
+                continue
+
+            self.setup_hdc_reverse_forwarding()
+
+            # Run the actual test
+            result = self.wait_for_test_completion_ohos(timeout_per_test, test_start_time)
+            result["test_number"] = i
+            result["test_path"] = test_path
+            results.append(result)
+
+            # Clean up session for next test
+            self.cleanup()
+
+            logging.info(f"Test {i} completed with status: {result['status']} and duration: {result['duration']:.1f}s")
+
+        return results
 
     def take_screenshot(self, output_path: str) -> bool:
         """Take a screenshot from OHOS device for debugging."""
@@ -356,9 +449,9 @@ class OHOSWebDriverController:
         """Clean up resources."""
         if self.session_id:
             try:
-                self.webdriver_request("DELETE", f"/session/{self.session_id}")
-            except Exception:
-                pass
+                self.webdriver_request("DELETE", f"/session/{self.session_id}", timeout=5)
+            except Exception as e:
+                logging.debug(f"Failed to delete WebDriver session {self.session_id} during cleanup: {e}")
             self.session_id = None
 
         if self.wpt_server_process:
@@ -372,12 +465,101 @@ class OHOSWebDriverController:
                     pass
             self.wpt_server_process = None
 
+    def print_test_summary(self, results: List[Dict[str, Any]]) -> None:
+        """Print a summary of all test results."""
+        if not results:
+            print("No test results to display.")
+            return
+
+        print("\n" + "=" * 80)
+        print(" TEST RESULTS SUMMARY")
+        print("=" * 80)
+
+        # Count results by status
+        status_counts = {}
+        total_duration = 0
+        total_pass = 0
+        total_fail = 0
+
+        for result in results:
+            status = result.get("status", "UNKNOWN")
+            status_counts[status] = status_counts.get(status, 0) + 1
+            total_duration += result.get("duration", 0)
+            total_pass += result.get("passCount", 0)
+            total_fail += result.get("failCount", 0)
+
+        print(f"Total Tests: {len(results)}")
+        print(f"Total Duration: {total_duration:.1f} seconds")
+        print(f"Average Test Duration: {total_duration / len(results):.1f} seconds")
+
+        print("\nStatus Breakdown:")
+        for status, count in sorted(status_counts.items()):
+            percentage = (count / len(results)) * 100
+            print(f"  {status}: {count} ({percentage:.1f}%)")
+
+        if total_pass > 0 or total_fail > 0:
+            print("\nOverall Test Results:")
+            print(f"  Total Assertions Passed: {total_pass}")
+            print(f"  Total Assertions Failed: {total_fail}")
+            if total_pass + total_fail > 0:
+                pass_rate = (total_pass / (total_pass + total_fail)) * 100
+                print(f"  Overall Pass Rate: {pass_rate:.1f}%")
+
+        print(f"\n{'Test #':<6} {'Status':<18} {'Duration':<10} {'Test Path'}")
+        print("-" * 80)
+
+        for result in results:
+            test_num = result.get("test_number", "?")
+            status = result.get("status", "UNKNOWN")
+            duration = result.get("duration", 0)
+            test_path = result.get("test_path", result.get("title", "Unknown")) or "Unknown"
+
+            # Truncate long paths
+            if len(test_path) > 45:
+                test_path = "..." + test_path[-42:]
+
+            print(f"{test_num:<6} {status:<18} {duration:<9.1f}s {test_path}")
+
+        # Show detailed information for failed/problematic tests
+        problematic_statuses = [
+            "FAIL",
+            "TIMEOUT",
+            "ERROR",
+            "RUNTIME_ERROR",
+            "SESSION_ERROR",
+            "WINDOW_ERROR",
+            "NAVIGATION_ERROR",
+            "COMPLETION_ERROR",
+        ]
+
+        problematic_tests = [r for r in results if r.get("status") in problematic_statuses]
+
+        if problematic_tests:
+            print("\n" + "=" * 80)
+            print(" DETAILED FAILURE ANALYSIS")
+            print("=" * 80)
+
+            for result in problematic_tests:
+                test_num = result.get("test_number", "?")
+                status = result.get("status", "UNKNOWN")
+                test_path = result.get("test_path", result.get("title", "Unknown")) or "Unknown"
+
+                print(f"\nTest #{test_num}: {test_path}")
+                print(f"Status: {status}")
+
+                if result.get("failCount", 0) > 0:
+                    print(f"Failed Assertions: {result.get('failCount', 0)}")
+
+        print("\n" + "=" * 80)
+
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run a single WPT test on OHOS device")
-    parser.add_argument("--test", required=True, help="Path to WPT test (relative to tests/wpt/tests/)")
+    parser = argparse.ArgumentParser(description="Run WPT tests on OHOS device")
+
+    parser.add_argument("--test", required=True, help="Path to WPT test file or folder containing tests")
     parser.add_argument("--webdriver-port", type=int, default=7000, help="WebDriver server port")
     parser.add_argument("--wpt-server-port", type=int, default=8000, help="WPT server port")
+    parser.add_argument("--timeout", type=int, default=15, help="Timeout per test in seconds")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
@@ -388,85 +570,35 @@ def main() -> int:
     controller = OHOSWebDriverController(args.webdriver_port, args.wpt_server_port)
 
     try:
-        logging.info("Killing any existing servo instances and starting fresh...")
-
-        try:
-            subprocess.run(["hdc", "shell", "killall org.servo.servo"], capture_output=True, text=True, timeout=10)
-            logging.info("Killed existing servo processes")
-        except Exception as e:
-            logging.debug(f"killall command failed (may be expected): {e}")
-
-        try:
-            subprocess.run(
-                ["hdc", "shell", "aa force-stop org.servo.servo"], capture_output=True, text=True, timeout=10
-            )
-            logging.info("Force stopped servo application")
-        except Exception as e:
-            logging.debug(f"force-stop command failed (may be expected): {e}")
-
-        try:
-            subprocess.run(
-                ["hdc", "shell", "aa start -a EntryAbility -b org.servo.servo"],
-                capture_output=True,
-                text=True,
-                timeout=15,
-            )
-            logging.info("Started servo application")
-            time.sleep(3)
-        except Exception as e:
-            logging.error(f"Failed to start servo application: {e}")
+        # Determine tests to run - automatically detect if it's a file or folder
+        test_paths = controller.discover_tests(args.test)
+        if not test_paths:
+            logging.error(f"No test files found at: {args.test}")
             return 1
 
+        logging.info(f"Discovered {len(test_paths)} tests in: {args.test}")
+
+        # Set up infrastructure once
         logging.info("Setting up test infrastructure...")
-
-        if not controller.setup_hdc_forwarding():
-            logging.error("Failed to set up HDC forwarding")
-            return 1
-
-        controller.setup_wpt_server_access()
 
         if not controller.start_wpt_server():
             logging.error("Failed to start WPT server")
             return 1
 
-        logging.info(f"Running test: {args.test}")
-        result = controller.run_test(args.test)
+        results = controller.run_tests(test_paths, args.timeout)
 
-        print("\nTest Results:")
-        print("=" * 50)
-        print(f"Status: {result['status']}")
-        print(f"Title: {result['title']}")
+        # Print results using unified summary format
+        controller.print_test_summary(results)
 
-        if "passCount" in result and "failCount" in result:
-            total_tests = result["passCount"] + result["failCount"]
-            print(f"Total Tests: {total_tests}")
-            print(f"Passed: {result['passCount']}")
-            print(f"Failed: {result['failCount']}")
+        # Determine overall success
+        successful_statuses = ["PASS", "INDETERMINATE", "API_UNRESPONSIVE"]
+        successful_tests = sum(1 for r in results if r.get("status") in successful_statuses)
+        success_rate = (successful_tests / len(results)) * 100
 
-            if result["failCount"] > 0 and "failingTests" in result and result["failingTests"]:
-                print(f"\nFailing Tests ({len(result['failingTests'])} extracted):")
-                print("-" * 50)
-                actual_count = 0
-                for i, failing_test in enumerate(result["failingTests"], 1):
-                    if isinstance(failing_test, dict):
-                        test_name = failing_test.get("name", "Unknown")
-                        error_msg = failing_test.get("error", "No error message")
-                    else:
-                        test_name = str(failing_test)
-                        error_msg = "No error message"
-
-                    actual_count += 1
-                    print(f"{actual_count}. Test: {test_name}")
-                    print(f"   Error: {error_msg}")
-                    print()
-
-                    if actual_count >= result["failCount"]:
-                        break
-
-        return 0 if result["status"] == "PASS" else 1
+        print(f"\nOverall Success Rate: {successful_tests}/{len(results)} ({success_rate:.1f}%)")
 
     except KeyboardInterrupt:
-        logging.info("Test interrupted by user")
+        logging.info("Test execution interrupted by user")
         return 1
     except Exception as e:
         logging.error(f"Unexpected error: {e}")
@@ -474,20 +606,8 @@ def main() -> int:
     finally:
         controller.cleanup()
 
-        logging.info("Cleaning up servo instances...")
-        try:
-            subprocess.run(["hdc", "shell", "killall org.servo.servo"], capture_output=True, text=True, timeout=10)
-            logging.info("Killed servo processes")
-        except Exception as e:
-            logging.debug(f"killall command failed during cleanup: {e}")
-
-        try:
-            subprocess.run(
-                ["hdc", "shell", "aa force-stop org.servo.servo"], capture_output=True, text=True, timeout=10
-            )
-            logging.info("Force stopped servo application")
-        except Exception as e:
-            logging.debug(f"force-stop command failed during cleanup: {e}")
+        logging.info("Final cleanup - killing servo instances...")
+        controller.kill_servo_instances()
 
     # This should never be reached
     return 1
