@@ -531,8 +531,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     .generate_key(&subtle, key_usages, extractable, CanGc::note())
                 {
                     Ok(key) => key,
-                    Err(e) => {
-                        promise.reject_error(e, CanGc::note());
+                    Err(error) => {
+                        promise.reject_error(error, CanGc::note());
                         return;
                     }
                 };
