@@ -2957,13 +2957,15 @@ impl Element {
             },
             // set context to the result of creating an element
             // given this's node document, "body", and the HTML namespace.
-            _ => DomRoot::upcast(HTMLBodyElement::new(
-                local_name!("body"),
+            _ => Element::create(
+                QualName::new(None, ns!(html), local_name!("body")),
                 None,
                 owner_doc,
+                ElementCreator::ScriptCreated,
+                CustomElementCreationMode::Asynchronous,
                 None,
                 can_gc,
-            )),
+            ),
         }
     }
 

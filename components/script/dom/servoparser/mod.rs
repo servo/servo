@@ -78,7 +78,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
-use crate::dom::types::{HTMLAudioElement, HTMLMediaElement, HTMLVideoElement};
+use crate::dom::types::HTMLMediaElement;
 use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::PreInvoke;
 use crate::realms::enter_realm;
@@ -1035,27 +1035,43 @@ impl ParserContext {
         // Step 5. Set the appropriate attribute of the element host element, as described below,
         // to the address of the image, video, or audio resource.
         let node = if media_type == MediaType::Image {
-            let img = HTMLImageElement::new(
-                local_name!("img"),
+            let img = Element::create(
+                QualName::new(None, ns!(html), local_name!("img")),
                 None,
                 doc,
-                None,
                 ElementCreator::ParserCreated(1),
+                CustomElementCreationMode::Asynchronous,
+                None,
                 CanGc::note(),
             );
+            let img = DomRoot::downcast::<HTMLImageElement>(img).unwrap();
             img.SetSrc(USVString(self.url.to_string()));
             DomRoot::upcast::<Node>(img)
         } else if mime_type.type_() == mime::AUDIO {
-            let audio = HTMLAudioElement::new(local_name!("audio"), None, doc, None, CanGc::note());
-            audio
-                .upcast::<HTMLMediaElement>()
-                .SetSrc(USVString(self.url.to_string()));
+            let audio = Element::create(
+                QualName::new(None, ns!(html), local_name!("audio")),
+                None,
+                doc,
+                ElementCreator::ParserCreated(1),
+                CustomElementCreationMode::Asynchronous,
+                None,
+                CanGc::note(),
+            );
+            let audio = DomRoot::downcast::<HTMLMediaElement>(audio).unwrap();
+            audio.SetSrc(USVString(self.url.to_string()));
             DomRoot::upcast::<Node>(audio)
         } else {
-            let video = HTMLVideoElement::new(local_name!("video"), None, doc, None, CanGc::note());
-            video
-                .upcast::<HTMLMediaElement>()
-                .SetSrc(USVString(self.url.to_string()));
+            let video = Element::create(
+                QualName::new(None, ns!(html), local_name!("video")),
+                None,
+                doc,
+                ElementCreator::ParserCreated(1),
+                CustomElementCreationMode::Asynchronous,
+                None,
+                CanGc::note(),
+            );
+            let video = DomRoot::downcast::<HTMLMediaElement>(video).unwrap();
+            video.SetSrc(USVString(self.url.to_string()));
             DomRoot::upcast::<Node>(video)
         };
         // Step 4. Append an element host element for the media, as described below, to the body element.

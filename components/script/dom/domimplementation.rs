@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, ns};
+use html5ever::{QualName, local_name, ns};
 use script_bindings::error::Error;
 use script_traits::DocumentActivity;
 
@@ -22,12 +22,10 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
-use crate::dom::html::htmlbodyelement::HTMLBodyElement;
-use crate::dom::html::htmlheadelement::HTMLHeadElement;
-use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
-use crate::dom::html::htmltitleelement::HTMLTitleElement;
+use crate::dom::element::{CustomElementCreationMode, ElementCreator};
 use crate::dom::node::Node;
 use crate::dom::text::Text;
+use crate::dom::types::Element;
 use crate::dom::xmldocument::XMLDocument;
 use crate::script_runtime::CanGc;
 
@@ -199,10 +197,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         {
             // Step 4.
             let doc_node = doc.upcast::<Node>();
-            let doc_html = DomRoot::upcast::<Node>(HTMLHtmlElement::new(
-                local_name!("html"),
+            let doc_html = DomRoot::upcast::<Node>(Element::create(
+                QualName::new(None, ns!(html), local_name!("html")),
                 None,
                 &doc,
+                ElementCreator::ScriptCreated,
+                CustomElementCreationMode::Asynchronous,
                 None,
                 can_gc,
             ));
@@ -212,10 +212,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
 
             {
                 // Step 5.
-                let doc_head = DomRoot::upcast::<Node>(HTMLHeadElement::new(
-                    local_name!("head"),
+                let doc_head = DomRoot::upcast::<Node>(Element::create(
+                    QualName::new(None, ns!(html), local_name!("head")),
                     None,
                     &doc,
+                    ElementCreator::ScriptCreated,
+                    CustomElementCreationMode::Asynchronous,
                     None,
                     can_gc,
                 ));
@@ -224,10 +226,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 // Step 6.
                 if let Some(title_str) = title {
                     // Step 6.1.
-                    let doc_title = DomRoot::upcast::<Node>(HTMLTitleElement::new(
-                        local_name!("title"),
+                    let doc_title = DomRoot::upcast::<Node>(Element::create(
+                        QualName::new(None, ns!(html), local_name!("title")),
                         None,
                         &doc,
+                        ElementCreator::ScriptCreated,
+                        CustomElementCreationMode::Asynchronous,
                         None,
                         can_gc,
                     ));
@@ -240,7 +244,15 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             }
 
             // Step 7.
-            let doc_body = HTMLBodyElement::new(local_name!("body"), None, &doc, None, can_gc);
+            let doc_body = Element::create(
+                QualName::new(None, ns!(html), local_name!("body")),
+                None,
+                &doc,
+                ElementCreator::ScriptCreated,
+                CustomElementCreationMode::Asynchronous,
+                None,
+                can_gc,
+            );
             doc_html.AppendChild(doc_body.upcast(), can_gc).unwrap();
         }
 

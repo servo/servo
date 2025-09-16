@@ -5,7 +5,7 @@
 use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
-use html5ever::local_name;
+use html5ever::{QualName, local_name, ns};
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -20,7 +20,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::element::Element;
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
@@ -61,8 +61,15 @@ impl HTMLOptionsCollection {
         let document = root.owner_document();
 
         for _ in 0..count {
-            let element =
-                HTMLOptionElement::new(local_name!("option"), None, &document, None, can_gc);
+            let element = Element::create(
+                QualName::new(None, ns!(html), local_name!("option")),
+                None,
+                &document,
+                ElementCreator::ScriptCreated,
+                CustomElementCreationMode::Asynchronous,
+                None,
+                can_gc,
+            );
             let node = element.upcast::<Node>();
             root.AppendChild(node, can_gc)?;
         }

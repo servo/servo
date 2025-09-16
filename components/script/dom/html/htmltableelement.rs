@@ -5,7 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
 use style::color::AbsoluteColor;
@@ -19,7 +19,9 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
+};
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltablecaptionelement::HTMLTableCaptionElement;
@@ -150,8 +152,18 @@ impl HTMLTableElement {
             return section;
         }
 
-        let section =
-            HTMLTableSectionElement::new(atom.clone(), None, &self.owner_document(), None, can_gc);
+        let section = Element::create(
+            QualName::new(None, ns!(html), atom.clone()),
+            None,
+            &self.owner_document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        let section = DomRoot::downcast::<HTMLTableSectionElement>(section).unwrap();
+
         match *atom {
             local_name!("thead") => self.SetTHead(Some(&section)),
             local_name!("tfoot") => self.SetTFoot(Some(&section)),
@@ -227,13 +239,17 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         match self.GetCaption() {
             Some(caption) => caption,
             None => {
-                let caption = HTMLTableCaptionElement::new(
-                    local_name!("caption"),
+                let caption = Element::create(
+                    QualName::new(None, ns!(html), local_name!("caption")),
                     None,
                     &self.owner_document(),
+                    ElementCreator::ScriptCreated,
+                    CustomElementCreationMode::Asynchronous,
                     None,
                     can_gc,
                 );
+                let caption = DomRoot::downcast::<HTMLTableCaptionElement>(caption).unwrap();
+
                 self.SetCaption(Some(&caption))
                     .expect("Generated caption is invalid");
                 caption
@@ -329,13 +345,16 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
     fn CreateTBody(&self, can_gc: CanGc) -> DomRoot<HTMLTableSectionElement> {
-        let tbody = HTMLTableSectionElement::new(
-            local_name!("tbody"),
+        let tbody = Element::create(
+            QualName::new(None, ns!(html), local_name!("tbody")),
             None,
             &self.owner_document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
             None,
             can_gc,
         );
+        let tbody = DomRoot::downcast::<HTMLTableSectionElement>(tbody).unwrap();
         let node = self.upcast::<Node>();
         let last_tbody = node
             .rev_children()
@@ -357,13 +376,16 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             return Err(Error::IndexSize);
         }
 
-        let new_row = HTMLTableRowElement::new(
-            local_name!("tr"),
+        let new_row = Element::create(
+            QualName::new(None, ns!(html), local_name!("tr")),
             None,
             &self.owner_document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
             None,
             can_gc,
         );
+        let new_row = DomRoot::downcast::<HTMLTableRowElement>(new_row).unwrap();
         let node = self.upcast::<Node>();
 
         if number_of_row_elements == 0 {

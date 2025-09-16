@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::color::AbsoluteColor;
@@ -15,7 +15,9 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::element::{
+    CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
+};
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
@@ -81,7 +83,18 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
         node.insert_cell_or_row(
             index,
             || self.Rows(),
-            || HTMLTableRowElement::new(local_name!("tr"), None, &node.owner_doc(), None, can_gc),
+            || {
+                let row = Element::create(
+                    QualName::new(None, ns!(html), local_name!("tr")),
+                    None,
+                    &node.owner_doc(),
+                    ElementCreator::ScriptCreated,
+                    CustomElementCreationMode::Asynchronous,
+                    None,
+                    can_gc,
+                );
+                DomRoot::downcast::<HTMLTableRowElement>(row).unwrap()
+            },
             can_gc,
         )
     }

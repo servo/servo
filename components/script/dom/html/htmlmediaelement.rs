@@ -15,7 +15,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use http::StatusCode;
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc::{self, IpcSharedMemory, channel};
@@ -74,16 +74,14 @@ use crate::dom::blob::Blob;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{
-    AttributeMutation, Element, ElementCreator, cors_setting_for_element,
-    reflect_cross_origin_attribute, set_cross_origin_attribute,
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
+    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlsourceelement::HTMLSourceElement;
-use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::mediaerror::MediaError;
 use crate::dom::mediafragmentparser::MediaFragmentParser;
@@ -2061,12 +2059,13 @@ impl HTMLMediaElement {
             .upcast::<Element>()
             .attach_ua_shadow_root(false, can_gc);
         let document = self.owner_document();
-        let script = HTMLScriptElement::new(
-            local_name!("script"),
+        let script = Element::create(
+            QualName::new(None, ns!(html), local_name!("script")),
             None,
             &document,
-            None,
             ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
             can_gc,
         );
         // This is our hacky way to temporarily workaround the lack of a privileged
@@ -2088,14 +2087,16 @@ impl HTMLMediaElement {
             return;
         }
 
-        let style = HTMLStyleElement::new(
-            local_name!("script"),
+        let style = Element::create(
+            QualName::new(None, ns!(html), local_name!("style")),
             None,
             &document,
-            None,
             ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
             can_gc,
         );
+
         style
             .upcast::<Node>()
             .set_text_content_for_element(Some(DOMString::from(MEDIA_CONTROL_CSS)), can_gc);

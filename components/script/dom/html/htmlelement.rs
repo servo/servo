@@ -7,7 +7,7 @@ use std::default::Default;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 use layout_api::{QueryMsg, ScrollContainerQueryType, ScrollContainerResponse};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
@@ -36,12 +36,11 @@ use crate::dom::customelementregistry::{CallbackReaction, CustomElementState};
 use crate::dom::document::{Document, FocusInitiator};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlbodyelement::HTMLBodyElement;
-use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmldetailselement::HTMLDetailsElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::htmlframesetelement::HTMLFrameSetElement;
@@ -1060,7 +1059,15 @@ impl HTMLElement {
                         text = String::new();
                     }
 
-                    let br = HTMLBRElement::new(local_name!("br"), None, &document, None, can_gc);
+                    let br = Element::create(
+                        QualName::new(None, ns!(html), local_name!("br")),
+                        None,
+                        &document,
+                        ElementCreator::ScriptCreated,
+                        CustomElementCreationMode::Asynchronous,
+                        None,
+                        can_gc,
+                    );
                     fragment
                         .upcast::<Node>()
                         .AppendChild(br.upcast(), can_gc)
