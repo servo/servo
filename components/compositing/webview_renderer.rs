@@ -280,21 +280,31 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_input_event_with_hit_testing(&self, mut event: InputEventAndId) -> bool {
+    pub(crate) fn dispatch_input_event_with_hit_testing(
+        &mut self,
+        mut event: InputEventAndId,
+    ) -> bool {
         let event_point = event.event.point();
         let hit_test_result = match event_point {
             Some(point) => {
-                let hit_test_result = self
-                    .global
-                    .borrow()
-                    .hit_test_at_point(point)
-                    .into_iter()
-                    .nth(0);
-                if hit_test_result.is_none() {
-                    warn!("Empty hit test result for input event, ignoring.");
-                    return false;
+                if let InputEvent::Touch(_) = event.event {
+                    self.touch_handler
+                        .get_hit_test_result_cache_value(self.touch_handler.current_sequence_id)
+                        .or_else(|| {
+                            self.global
+                                .borrow()
+                                .hit_test_at_point(point)
+                                .into_iter()
+                                .nth(0)
+                        })
+                } else {
+                    // For non-touch events, we always do a hit test.
+                    self.global
+                        .borrow()
+                        .hit_test_at_point(point)
+                        .into_iter()
+                        .nth(0)
                 }
-                hit_test_result
             },
             None => None,
         };
@@ -750,7 +760,15 @@ impl WebViewRenderer {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let hit_test_results = self.global.borrow().hit_test_at_point(cursor);
+        let mut hit_test_results: Vec<_> = self
+            .touch_handler
+            .get_hit_test_result_cache_value(self.touch_handler.current_sequence_id)
+            .into_iter()
+            .collect();
+
+        if hit_test_results.is_empty() {
+            hit_test_results = self.global.borrow().hit_test_at_point(cursor);
+        }
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
@@ -767,6 +785,11 @@ impl WebViewRenderer {
                     ScrollType::InputEvents,
                 );
                 if let Some((external_scroll_id, offset)) = scroll_result {
+                    self.touch_handler.set_hit_test_result_cache_value(
+                        self.touch_handler.current_sequence_id,
+                        hit_test_result.clone(),
+                        self.device_pixels_per_page_pixel(),
+                    );
                     return Some(ScrollResult {
                         hit_test_result: hit_test_result.clone(),
                         external_scroll_id,
