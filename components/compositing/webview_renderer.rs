@@ -312,21 +312,38 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_input_event_with_hit_testing(&self, mut event: InputEvent) -> bool {
+    pub(crate) fn dispatch_input_event_with_hit_testing(&mut self, mut event: InputEvent) -> bool {
         let event_point = event.point();
         let hit_test_result = match event_point {
             Some(point) => {
-                let hit_test_result = self
-                    .global
-                    .borrow()
-                    .hit_test_at_point(point)
-                    .into_iter()
-                    .nth(0);
-                if hit_test_result.is_none() {
-                    warn!("Empty hit test result for input event, ignoring.");
-                    return false;
+                if let InputEvent::Touch(_) = event {
+                    self.touch_handler
+                        .get_hit_test_result_cache_value(self.touch_handler.current_sequence_id)
+                        .or_else(|| {
+                            // We only cache the hit test result for the first touch event in a sequence.
+                            // Subsequent touch events in the same sequence will reuse this cached value.
+                            let hit_test_result = self
+                                .global
+                                .borrow()
+                                .hit_test_at_point(point)
+                                .into_iter()
+                                .nth(0);
+                            if let Some(ref value) = hit_test_result {
+                                self.touch_handler.set_hit_test_result_cache_value(
+                                    self.touch_handler.current_sequence_id,
+                                    value.clone(),
+                                );
+                            }
+                            hit_test_result
+                        })
+                } else {
+                    // For non-touch events, we always do a hit test.
+                    self.global
+                        .borrow()
+                        .hit_test_at_point(point)
+                        .into_iter()
+                        .nth(0)
                 }
-                hit_test_result
             },
             None => None,
         };
