@@ -122,11 +122,6 @@ pub struct DebugOptions {
     /// Periodically print out on which events script threads spend their processing time.
     pub profile_script_events: bool,
 
-    /// True if each step of layout is traced to an external JSON file
-    /// for debugging purposes. Setting this implies sequential layout
-    /// and paint.
-    pub trace_layout: bool,
-
     /// Disable the style sharing cache.
     pub disable_share_style_cache: bool,
 
@@ -165,7 +160,6 @@ impl DebugOptions {
                 "relayout-event" => self.relayout_event = true,
                 "signpost" => self.signpost = true,
                 "dump-style-stats" => self.dump_style_statistics = true,
-                "trace-layout" => self.trace_layout = true,
                 "wr-stats" => self.webrender_stats = true,
                 "" => {},
                 _ => return Err(String::from(option)),
