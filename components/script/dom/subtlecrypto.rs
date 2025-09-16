@@ -46,7 +46,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
@@ -524,12 +524,49 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .queue(task!(generate_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
-                let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable, CanGc::note());
 
+                // Step 8. Let result be the result of performing the generate key operation
+                // specified by normalizedAlgorithm using algorithm, extractable and usages.
+                let key = match normalized_algorithm
+                    .generate_key(&subtle, key_usages, extractable, CanGc::note())
+                {
+                    Ok(key) => key,
+                    Err(error) => {
+                        promise.reject_error(error, CanGc::note());
+                        return;
+                    }
+                };
+
+                // Step 9.
+                // If result is a CryptoKey object:
+                //     If the [[type]] internal slot of result is "secret" or "private" and usages
+                //     is empty, then throw a SyntaxError.
+                // If result is a CryptoKeyPair object:
+                //     If the [[usages]] internal slot of the privateKey attribute of result is the
+                //     empty sequence, then throw a SyntaxError.
+                // TODO: Implement CryptoKeyPair case
+                match &key {
+                    CryptoKeyOrCryptoKeyPair::CryptoKey(crpyto_key) => {
+                        if matches!(crpyto_key.Type(), KeyType::Secret | KeyType::Private)
+                            && crpyto_key.usages().is_empty()
+                        {
+                            promise.reject_error(Error::Syntax(None), CanGc::note());
+                            return;
+                        }
+                    },
+                };
+
+                // TODO: Step 10. Queue a global task on the crypto task source, given realm's
+                // global object, to perform the remaining steps.
+
+                // Step 11. Let result be the result of converting result to an ECMAScript Object
+                // in realm, as defined by [WebIDL].
+                // Step 12. Resolve promise with result.
+                // TODO: Implement CryptoKeyPair case
                 match key {
-                    Ok(key) => promise.resolve_native(&key, CanGc::note()),
-                    Err(e) => promise.reject_error(e, CanGc::note()),
-                }
+                    CryptoKeyOrCryptoKeyPair::CryptoKey(crypto_key) =>
+                        promise.resolve_native(&crypto_key, CanGc::note()),
+                };
             }));
 
         promise
@@ -3531,11 +3568,21 @@ impl KeyGenerationAlgorithm {
         usages: Vec<KeyUsage>,
         extractable: bool,
         can_gc: CanGc,
-    ) -> Result<DomRoot<CryptoKey>, Error> {
-        match self {
-            Self::Aes(params) => subtle.generate_key_aes(usages, params, extractable, can_gc),
-            Self::Hmac(params) => subtle.generate_key_hmac(usages, params, extractable, can_gc),
-        }
+    ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
+        let key_or_key_pair =
+            match self {
+                Self::Aes(params) => CryptoKeyOrCryptoKeyPair::CryptoKey(subtle.generate_key_aes(
+                    usages,
+                    params,
+                    extractable,
+                    can_gc,
+                )?),
+                Self::Hmac(params) => CryptoKeyOrCryptoKeyPair::CryptoKey(
+                    subtle.generate_key_hmac(usages, params, extractable, can_gc)?,
+                ),
+            };
+
+        Ok(key_or_key_pair)
     }
 }
 

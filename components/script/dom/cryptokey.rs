@@ -20,6 +20,11 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
+pub(crate) enum CryptoKeyOrCryptoKeyPair {
+    CryptoKey(DomRoot<CryptoKey>),
+    // TODO: CryptoKeyPair(CryptoKeyPair),
+}
+
 /// The underlying cryptographic data this key represents
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
