@@ -1161,7 +1161,9 @@ impl Document {
         *self.focus_transaction.borrow_mut() = Some(FocusTransaction {
             element: self.focused.get().as_deref().map(Dom::from_ref),
             has_focus: self.has_focus.get(),
-            focus_options: FocusOptions::default(),
+            focus_options: FocusOptions {
+                preventScroll: true,
+            },
         });
     }
 
@@ -1199,7 +1201,14 @@ impl Document {
         focus_initiator: FocusInitiator,
         can_gc: CanGc,
     ) {
-        self.request_focus_with_options(elem, focus_initiator, FocusOptions::default(), can_gc);
+        self.request_focus_with_options(
+            elem,
+            focus_initiator,
+            FocusOptions {
+                preventScroll: true,
+            },
+            can_gc,
+        );
     }
 
     /// Request that the given element receive focus once the current
