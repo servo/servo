@@ -134,9 +134,6 @@ pub struct DebugOptions {
     /// Log GC passes and their durations.
     pub gc_profile: bool,
 
-    /// Show webrender profiling stats on screen.
-    pub webrender_stats: bool,
-
     /// True to use OS native signposting facilities. This makes profiling events (script activity,
     /// reflow, compositing, etc.) appear in Instruments.app on macOS.
     pub signpost: bool,
@@ -160,7 +157,6 @@ impl DebugOptions {
                 "relayout-event" => self.relayout_event = true,
                 "signpost" => self.signpost = true,
                 "dump-style-stats" => self.dump_style_statistics = true,
-                "wr-stats" => self.webrender_stats = true,
                 "" => {},
                 _ => return Err(String::from(option)),
             };
