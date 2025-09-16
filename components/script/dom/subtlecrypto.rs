@@ -544,20 +544,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // If result is a CryptoKeyPair object:
                 //     If the [[usages]] internal slot of the privateKey attribute of result is the
                 //     empty sequence, then throw a SyntaxError.
+                // TODO: Implement CryptoKeyPair case
                 match &key {
                     CryptoKeyOrCryptoKeyPair::CryptoKey(crpyto_key) => {
                         if matches!(crpyto_key.Type(), KeyType::Secret | KeyType::Private)
                             && crpyto_key.usages().is_empty()
-                        {
-                            promise.reject_error(Error::Syntax(None), CanGc::note());
-                            return;
-                        }
-                    },
-                    CryptoKeyOrCryptoKeyPair::CryptoKeyPair(crypto_key_pair) => {
-                        if crypto_key_pair
-                            .privateKey
-                            .as_ref()
-                            .is_none_or(|private_key| private_key.usages().is_empty())
                         {
                             promise.reject_error(Error::Syntax(None), CanGc::note());
                             return;
@@ -571,11 +562,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 11. Let result be the result of converting result to an ECMAScript Object
                 // in realm, as defined by [WebIDL].
                 // Step 12. Resolve promise with result.
+                // TODO: Implement CryptoKeyPair case
                 match key {
                     CryptoKeyOrCryptoKeyPair::CryptoKey(crypto_key) =>
                         promise.resolve_native(&crypto_key, CanGc::note()),
-                    CryptoKeyOrCryptoKeyPair::CryptoKeyPair(crypto_key_pair) =>
-                        promise.resolve_native(&crypto_key_pair, CanGc::note()),
                 };
             }));
 

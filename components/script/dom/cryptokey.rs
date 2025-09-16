@@ -12,7 +12,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
+    CryptoKeyMethods, KeyType, KeyUsage,
 };
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -22,10 +22,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 pub(crate) enum CryptoKeyOrCryptoKeyPair {
     CryptoKey(DomRoot<CryptoKey>),
-    // NOTE: CryptoKeyPair is used by some cryptographic algorithms that we have not yet
-    // implemented. Remove the #[expect(usused)] annotation when we implement those algorithms.
-    #[expect(unused)]
-    CryptoKeyPair(CryptoKeyPair),
+    // TODO: CryptoKeyPair(CryptoKeyPair),
 }
 
 /// The underlying cryptographic data this key represents
