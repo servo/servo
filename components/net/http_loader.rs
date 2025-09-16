@@ -430,9 +430,9 @@ pub fn send_request_to_devtools(
     msg: ChromeToDevtoolsControlMsg,
     devtools_chan: &Sender<DevtoolsControlMsg>,
 ) {
-    devtools_chan
-        .send(DevtoolsControlMsg::FromChrome(msg))
-        .unwrap();
+    if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)) {
+        error!("DevTools send failed: {e}");
+    }
 }
 
 pub fn send_response_to_devtools(
