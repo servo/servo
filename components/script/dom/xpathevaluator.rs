@@ -9,7 +9,6 @@ use js::rust::HandleObject;
 
 use super::bindings::error::Error;
 use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
-use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpression_Binding::XPathExpressionMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
@@ -91,7 +90,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         &self,
         expression_str: DOMString,
         context_node: &Node,
-        _resolver: Option<Rc<XPathNSResolver>>,
+        resolver: Option<Rc<XPathNSResolver>>,
         result_type: u16,
         result: Option<&XPathResult>,
         can_gc: CanGc,
@@ -101,12 +100,6 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         let parsed_expression =
             crate::xpath::parse(&expression_str).map_err(|_| Error::Syntax(None))?;
         let expression = XPathExpression::new(window, None, can_gc, parsed_expression);
-        XPathExpressionMethods::<crate::DomTypeHolder>::Evaluate(
-            &*expression,
-            context_node,
-            result_type,
-            result,
-            can_gc,
-        )
+        expression.evaluate_internal(context_node, result_type, result, resolver, can_gc)
     }
 }

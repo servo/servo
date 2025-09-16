@@ -3988,13 +3988,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri>
     fn LookupNamespaceURI(&self, prefix: Option<DOMString>) -> Option<DOMString> {
-        // Step 1.
-        let prefix = match prefix {
-            Some(ref p) if p.is_empty() => None,
-            pre => pre,
-        };
+        // Step 1. If prefix is the empty string, then set it to null.
+        let prefix = prefix.filter(|prefix| !prefix.is_empty());
 
-        // Step 2.
+        // Step 2. Return the result of running locate a namespace for this using prefix.
         Node::namespace_to_string(Node::locate_namespace(self, prefix))
     }
 

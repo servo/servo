@@ -5,6 +5,7 @@
 use std::fmt;
 
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
+use script_bindings::script_runtime::CanGc;
 
 use super::parser::{
     AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,
@@ -15,6 +16,7 @@ use super::{EvaluationCtx, Value};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::domname::namespace_from_domstring;
+use crate::dom::bindings::error::Error as JsError;
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -24,16 +26,30 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::xpath::context::PredicateCtx;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) enum Error {
     NotANodeset,
     InvalidPath,
-    UnknownFunction { name: QualName },
-    UnknownVariable { name: QualName },
-    UnknownNamespace { prefix: String },
-    InvalidQName { qname: ParserQualName },
-    FunctionEvaluation { fname: String },
-    Internal { msg: String },
+    UnknownFunction {
+        name: QualName,
+    },
+    UnknownVariable {
+        name: QualName,
+    },
+    UnknownNamespace {
+        prefix: String,
+    },
+    InvalidQName {
+        qname: ParserQualName,
+    },
+    FunctionEvaluation {
+        fname: String,
+    },
+    Internal {
+        msg: String,
+    },
+    /// A JS exception that needs to be propagated to the caller.
+    JsException(JsError),
 }
 
 impl std::fmt::Display for Error {
@@ -54,6 +70,9 @@ impl std::fmt::Display for Error {
             },
             Error::Internal { msg } => {
                 write!(f, "internal error: {}", msg)
+            },
+            Error::JsException(exception) => {
+                write!(f, "JS exception: {:?}", exception)
             },
         }
     }
@@ -360,27 +379,22 @@ fn validate_and_extract(
     }
 }
 
-pub(crate) struct QualNameConverter<'a> {
-    qname: &'a ParserQualName,
-    context: &'a EvaluationCtx,
-}
+pub(crate) fn convert_parsed_qname_to_qualified_name(
+    qname: &ParserQualName,
+    context: &EvaluationCtx,
+    can_gc: CanGc,
+) -> Result<QualName, Error> {
+    let qname_as_str = qname.to_string();
+    let namespace = context
+        .resolve_namespace(qname.prefix.as_deref(), can_gc)
+        .map_err(Error::JsException)?;
 
-impl<'a> TryFrom<QualNameConverter<'a>> for QualName {
-    type Error = Error;
-
-    fn try_from(converter: QualNameConverter<'a>) -> Result<Self, Self::Error> {
-        let qname_as_str = converter.qname.to_string();
-        let namespace = converter
-            .context
-            .resolve_namespace(converter.qname.prefix.as_deref());
-
-        if let Ok((ns, prefix, local)) = validate_and_extract(namespace, &qname_as_str) {
-            Ok(QualName { prefix, ns, local })
-        } else {
-            Err(Error::InvalidQName {
-                qname: converter.qname.clone(),
-            })
-        }
+    if let Ok((ns, prefix, local)) = validate_and_extract(namespace, &qname_as_str) {
+        Ok(QualName { prefix, ns, local })
+    } else {
+        Err(Error::InvalidQName {
+            qname: qname.clone(),
+        })
     }
 }
 
@@ -434,11 +448,16 @@ pub(crate) fn element_name_test(
     }
 }
 
-fn apply_node_test(context: &EvaluationCtx, test: &NodeTest, node: &Node) -> Result<bool, Error> {
+fn apply_node_test(
+    context: &EvaluationCtx,
+    test: &NodeTest,
+    node: &Node,
+    can_gc: CanGc,
+) -> Result<bool, Error> {
     let result = match test {
         NodeTest::Name(qname) => {
             // Convert the unvalidated "parser QualName" into the proper QualName structure
-            let wanted_name: QualName = QualNameConverter { qname, context }.try_into()?;
+            let wanted_name = convert_parsed_qname_to_qualified_name(qname, context, can_gc)?;
             match node.type_id() {
                 NodeTypeId::Element(_) => {
                     let element = node.downcast::<Element>().unwrap();
@@ -563,7 +582,9 @@ impl Evaluatable for StepExpr {
                 let filtered_nodes: Vec<DomRoot<Node>> = nodes
                     .into_iter()
                     .map(|node| {
-                        apply_node_test(context, &axis_step.node_test, &node)
+                        // FIXME: propagate this can_gc up further. This likely requires removing the "Evaluate"
+                        // trait or changing the signature of "evaluate". The trait is not really necessary anyways.
+                        apply_node_test(context, &axis_step.node_test, &node, CanGc::note())
                             .map(|matches| matches.then_some(node))
                     })
                     .collect::<Result<Vec<_>, _>>()?
@@ -613,6 +634,7 @@ impl Evaluatable for PredicateListExpr {
                         context_node: node.clone(),
                         predicate_nodes: context.predicate_nodes.clone(),
                         predicate_ctx: Some(PredicateCtx { index: i + 1, size }),
+                        resolver: context.resolver.clone(),
                     };
 
                     let eval_result = predicate_expr.expr.evaluate(&predicate_ctx);
