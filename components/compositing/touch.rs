@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::{TouchId, TouchSequenceId};
+use embedder_traits::{CompositorHitTestResult, TouchId, TouchSequenceId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
 use rustc_hash::FxHashMap;
@@ -39,6 +39,12 @@ pub enum TouchMoveAllowed {
     Pending,
 }
 
+/// Cache for the last touch hit test result.
+pub(crate) struct HitTestResultCache {
+    value: CompositorHitTestResult,
+    is_valid: bool,
+}
+
 pub struct TouchSequenceInfo {
     /// touch sequence state
     pub(crate) state: TouchSequenceState,
@@ -68,6 +74,8 @@ pub struct TouchSequenceInfo {
     /// touch move events. Presumably if we keep a history of previous touch points,
     /// this would allow a better fling algorithm and easier merging of zoom events.
     pending_touch_move_action: Option<TouchMoveAction>,
+    /// Cache for the last touch hit test result.
+    hit_test_result_cache: Option<HitTestResultCache>,
 }
 
 impl TouchSequenceInfo {
@@ -201,6 +209,7 @@ impl TouchHandler {
             prevent_click: false,
             prevent_move: TouchMoveAllowed::Pending,
             pending_touch_move_action: None,
+            hit_test_result_cache: None,
         };
         // We insert a simulated initial touch sequence, which is already finished,
         // so that we always have one element in the map, which simplifies creating
@@ -325,6 +334,7 @@ impl TouchHandler {
                     prevent_click: false,
                     prevent_move: TouchMoveAllowed::Pending,
                     pending_touch_move_action: None,
+                    hit_test_result_cache: None,
                 },
             );
         } else {
@@ -561,6 +571,43 @@ impl TouchHandler {
         }
         if touch_sequence.active_touch_points.is_empty() {
             touch_sequence.state = Finished;
+        }
+    }
+
+    pub(crate) fn get_hit_test_result_cache_value(
+        &self,
+        sequence_id: TouchSequenceId,
+    ) -> Option<CompositorHitTestResult> {
+        self.touch_sequence_map
+            .get(&sequence_id)?
+            .hit_test_result_cache
+            .as_ref()
+            .and_then(|cache| {
+                if cache.is_valid {
+                    Some(cache.value.clone())
+                } else {
+                    None
+                }
+            })
+    }
+
+    pub(crate) fn set_hit_test_result_cache_value(
+        &mut self,
+        sequence_id: TouchSequenceId,
+        value: CompositorHitTestResult,
+    ) {
+        if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
+            if let Some(ref mut hit_test_result_cache) = sequence.hit_test_result_cache {
+                if !hit_test_result_cache.is_valid {
+                    hit_test_result_cache.value = value;
+                }
+            } else {
+                sequence.hit_test_result_cache = Some(HitTestResultCache {
+                    value: value,
+                    // Only single touch points have a valid hit test result.
+                    is_valid: sequence.touch_count() == 1,
+                });
+            }
         }
     }
 }
