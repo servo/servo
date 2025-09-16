@@ -15,3 +15,10 @@ interface CryptoKey {
   readonly attribute object algorithm;
   readonly attribute object usages;
 };
+
+// https://w3c.github.io/webcrypto/#dfn-CryptoKeyPair
+
+dictionary CryptoKeyPair {
+  CryptoKey publicKey;
+  CryptoKey privateKey;
+};
