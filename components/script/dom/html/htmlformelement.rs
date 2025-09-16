@@ -1099,7 +1099,7 @@ impl HTMLFormElement {
     /// Interactively validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints>
     fn interactive_validation(&self, can_gc: CanGc) -> Result<(), ()> {
-        // Step 1-2
+        // Step 1-2: Statically validate, and return if the result is positive.
         let unhandled_invalid_controls = match self.static_validation(can_gc) {
             Ok(()) => return Ok(()),
             Err(err) => err,
@@ -1114,8 +1114,7 @@ impl HTMLFormElement {
             }
             if first {
                 if let Some(html_elem) = elem.downcast::<HTMLElement>() {
-                    // TODO: "Focusing steps" has a different meaning from the focus() method.
-                    // The actual focusing steps should be implemented
+                    // Step 3.1: Focusing steps and scroll element into view.
                     html_elem.Focus(&FocusOptions::default(), can_gc);
                     first = false;
                 }
