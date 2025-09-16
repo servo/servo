@@ -153,7 +153,7 @@ impl BlockLevelBox {
         }
     }
 
-    pub(crate) fn with_base_mut<T>(&mut self, callback: impl Fn(&mut LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {
                 callback(&mut independent_formatting_context.base)
