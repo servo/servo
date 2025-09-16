@@ -389,7 +389,7 @@ impl Node {
 
         // Step 12.
         let is_parent_connected = context.parent.is_connected();
-
+        let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
         for node in root.traverse_preorder(ShadowIncluding::Yes) {
             node.clean_up_style_and_layout_data();
 
@@ -402,7 +402,7 @@ impl Node {
             // Step 12 & 14.2. Enqueue disconnected custom element reactions.
             if is_parent_connected {
                 if let Some(element) = node.as_custom_element() {
-                    ScriptThread::enqueue_callback_reaction(
+                    custom_element_reaction_stack.enqueue_callback_reaction(
                         &element,
                         CallbackReaction::Disconnected,
                         None,
@@ -2294,11 +2294,12 @@ impl Node {
             // Step 3.2 For each inclusiveDescendant in node’s shadow-including inclusive descendants
             // that is custom, enqueue a custom element callback reaction with inclusiveDescendant,
             // callback name "adoptedCallback", and « oldDocument, document ».
+            let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
             for descendant in node
                 .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(|d| d.as_custom_element())
             {
-                ScriptThread::enqueue_callback_reaction(
+                custom_element_reaction_stack.enqueue_callback_reaction(
                     &descendant,
                     CallbackReaction::Adopted(old_doc.clone(), DomRoot::from_ref(document)),
                     None,
@@ -2541,6 +2542,7 @@ impl Node {
             SuppressObserver::Suppressed => None,
         };
 
+        let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
         // Step 7. For each node in nodes, in tree order:
         for kid in new_nodes {
             // Step 7.1. Adopt node into parent’s node document.
@@ -2589,7 +2591,7 @@ impl Node {
                 // Enqueue connected reactions for custom elements or try upgrade.
                 if descendant.is_custom() {
                     if descendant.is_connected() {
-                        ScriptThread::enqueue_callback_reaction(
+                        custom_element_reaction_stack.enqueue_callback_reaction(
                             &descendant,
                             CallbackReaction::Connected,
                             None,
