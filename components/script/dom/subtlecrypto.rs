@@ -538,11 +538,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 };
 
                 // Step 9.
+                // If result is a CryptoKey object:
+                //     If the [[type]] internal slot of result is "secret" or "private" and usages
+                //     is empty, then throw a SyntaxError.
+                // If result is a CryptoKeyPair object:
+                //     If the [[usages]] internal slot of the privateKey attribute of result is the
+                //     empty sequence, then throw a SyntaxError.
                 match &key {
-                    // If result is a CryptoKey object:
                     CryptoKeyOrCryptoKeyPair::CryptoKey(crpyto_key) => {
-                        // If the [[type]] internal slot of result is "secret" or "private" and
-                        // usages is empty, then throw a SyntaxError.
                         if matches!(crpyto_key.Type(), KeyType::Secret | KeyType::Private)
                             && crpyto_key.usages().is_empty()
                         {
@@ -550,10 +553,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                             return;
                         }
                     },
-                    // If result is a CryptoKeyPair object:
                     CryptoKeyOrCryptoKeyPair::CryptoKeyPair(crypto_key_pair) => {
-                        // If the [[usages]] internal slot of the privateKey attribute of result is
-                        // the empty sequence, then throw a SyntaxError.
                         if crypto_key_pair
                             .privateKey
                             .as_ref()
