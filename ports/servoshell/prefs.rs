@@ -732,10 +732,6 @@ fn print_debug_options_usage(app: &str) {
     );
 
     print_option(
-        "bubble-inline-sizes-separately",
-        "Bubble intrinsic widths separately like other engines.",
-    );
-    print_option(
         "convert-mouse-to-touch",
         "Send touch events instead of mouse events",
     );
@@ -770,24 +766,12 @@ fn print_debug_options_usage(app: &str) {
     print_option("dump-style-stats", "Print style statistics each restyle.");
     print_option("gc-profile", "Log GC passes and their durations.");
     print_option(
-        "parallel-display-list-building",
-        "Build display lists in parallel.",
-    );
-    print_option(
         "profile-script-events",
         "Enable profiling of script-related events.",
     );
     print_option(
         "relayout-event",
         "Print notifications when there is a relayout.",
-    );
-    print_option(
-        "show-fragment-borders",
-        "Paint borders along fragment boundaries.",
-    );
-    print_option(
-        "show-parallel-layout",
-        "Mark which thread laid each flow out with colors.",
     );
     print_option(
         "signpost",
