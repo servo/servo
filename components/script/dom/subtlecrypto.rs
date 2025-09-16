@@ -1168,23 +1168,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     KeyFormat::Jwk => {
                         // Let key be the result of executing the parse a JWK algorithm, with bytes
                         // as the data to be parsed.
-                        let jwk = match JsonWebKey::parse(cx, &bytes) {
-                            Ok(jwk) => jwk,
-                            Err(error) => {
-                                promise.reject_error(error, CanGc::note());
-                                return;
-                            },
-                        };
-
-                        // NOTE: Further convert the stringified JsonWebKey to the bytes so that we
-                        // can pass it to normialized algorithm.
-                        match jwk.stringify(cx) {
-                            Ok(stringified) => stringified.as_bytes().to_vec(),
-                            Err(error) => {
-                                promise.reject_error(error, CanGc::note());
-                                return;
-                            },
+                        if let Err(error) = JsonWebKey::parse(cx, &bytes) {
+                            promise.reject_error(error, CanGc::note());
+                            return;
                         }
+                        // NOTE: We can directly use bytes to perform the import key operation of
+                        // normailized key algorithm, instead of re-serializing the resultant
+                        // JsonWebKey dictionary.
+                        bytes
                     },
                 };
 
