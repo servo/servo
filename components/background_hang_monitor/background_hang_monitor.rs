@@ -11,9 +11,8 @@ use background_hang_monitor_api::{
     BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, HangAlert, HangAnnotation,
     HangMonitorAlert, MonitoredComponentId,
 };
-use base::generic_channel::{GenericReceiver, RoutedReceiver};
+use base::generic_channel::{GenericReceiver, GenericSender, RoutedReceiver};
 use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
-use ipc_channel::ipc::IpcSender;
 use rustc_hash::FxHashMap;
 
 use crate::sampler::{NativeStack, Sampler};
@@ -28,7 +27,7 @@ impl HangMonitorRegister {
     /// Start a new hang monitor worker, and return a handle to register components for monitoring,
     /// as well as a join handle on the worker thread.
     pub fn init(
-        constellation_chan: IpcSender<HangMonitorAlert>,
+        constellation_chan: GenericSender<HangMonitorAlert>,
         control_port: GenericReceiver<BackgroundHangMonitorControlMsg>,
         monitoring_enabled: bool,
     ) -> (Box<dyn BackgroundHangMonitorRegister>, JoinHandle<()>) {
@@ -211,7 +210,7 @@ struct Sample(MonitoredComponentId, Instant, NativeStack);
 struct BackgroundHangMonitorWorker {
     component_names: FxHashMap<MonitoredComponentId, String>,
     monitored_components: FxHashMap<MonitoredComponentId, MonitoredComponent>,
-    constellation_chan: IpcSender<HangMonitorAlert>,
+    constellation_chan: GenericSender<HangMonitorAlert>,
     port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
     control_port: RoutedReceiver<BackgroundHangMonitorControlMsg>,
     sampling_duration: Option<Duration>,
@@ -229,7 +228,7 @@ type MonitoredComponentReceiver = Receiver<(MonitoredComponentId, MonitoredCompo
 
 impl BackgroundHangMonitorWorker {
     fn new(
-        constellation_chan: IpcSender<HangMonitorAlert>,
+        constellation_chan: GenericSender<HangMonitorAlert>,
         control_port: GenericReceiver<BackgroundHangMonitorControlMsg>,
         port: MonitoredComponentReceiver,
         monitoring_enabled: bool,

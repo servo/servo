@@ -144,7 +144,7 @@ pub struct InitialPipelineState {
     pub background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
 
     /// A channel for the background hang monitor to send messages to the constellation.
-    pub background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
+    pub background_hang_monitor_to_constellation_chan: GenericSender<HangMonitorAlert>,
 
     /// A fatory for creating layouts to be used by the ScriptThread.
     pub layout_factory: Arc<dyn LayoutFactory>,
@@ -487,7 +487,7 @@ pub struct UnprivilegedPipelineContent {
     namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
     script_to_constellation_chan: ScriptToConstellationChan,
     script_to_embedder_chan: ScriptToEmbedderChan,
-    background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
+    background_hang_monitor_to_constellation_chan: GenericSender<HangMonitorAlert>,
     bhm_control_port: Option<GenericReceiver<BackgroundHangMonitorControlMsg>>,
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     #[cfg(feature = "bluetooth")]

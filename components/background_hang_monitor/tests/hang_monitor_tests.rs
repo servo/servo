@@ -25,7 +25,7 @@ fn test_hang_monitoring() {
     let _lock = SERIAL.lock().unwrap();
 
     let (background_hang_monitor_ipc_sender, background_hang_monitor_receiver) =
-        ipc::channel().expect("ipc channel failure");
+        generic_channel::channel().expect("ipc channel failure");
     let (_sampler_sender, sampler_receiver) =
         generic_channel::channel().expect("ipc channel failure");
 
@@ -142,7 +142,7 @@ fn test_hang_monitoring_unregister() {
     let _lock = SERIAL.lock().unwrap();
 
     let (background_hang_monitor_ipc_sender, background_hang_monitor_receiver) =
-        ipc::channel().expect("ipc channel failure");
+        generic_channel::channel().expect("ipc channel failure");
     let (_sampler_sender, sampler_receiver) =
         generic_channel::channel().expect("ipc channel failure");
 
@@ -228,7 +228,7 @@ fn test_hang_monitoring_exit_signal_inner(op_order: fn(&mut dyn FnMut(), &mut dy
     let _lock = SERIAL.lock().unwrap();
 
     let (background_hang_monitor_ipc_sender, _background_hang_monitor_receiver) =
-        ipc::channel().expect("ipc channel failure");
+        generic_channel::channel().expect("ipc channel failure");
     let (control_sender, control_receiver) =
         generic_channel::channel().expect("ipc channel failure");
 

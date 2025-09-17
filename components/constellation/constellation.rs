@@ -313,7 +313,7 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
-    background_hang_monitor_sender: IpcSender<HangMonitorAlert>,
+    background_hang_monitor_sender: GenericSender<HangMonitorAlert>,
 
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
@@ -627,11 +627,9 @@ where
                 let namespace_receiver = namespace_ipc_receiver.route_preserving_errors();
 
                 let (background_hang_monitor_ipc_sender, background_hang_monitor_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
+                    generic_channel::channel().expect("ipc channel failure");
                 let background_hang_monitor_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        background_hang_monitor_ipc_receiver,
-                    );
+                    background_hang_monitor_ipc_receiver.route_preserving_errors();
 
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
