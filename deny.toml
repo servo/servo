@@ -97,7 +97,6 @@ skip = [
 
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
-    "toml",
 
     # Duplicated by egui
     "nix",
