@@ -769,10 +769,6 @@ fn print_debug_options_usage(app: &str) {
         "relayout-event",
         "Print notifications when there is a relayout.",
     );
-    print_option(
-        "signpost",
-        "Emit native OS signposts for profile events (currently macOS only)",
-    );
 
     println!();
 

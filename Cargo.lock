@@ -6721,7 +6721,6 @@ dependencies = [
  "servo_allocator",
  "servo_config",
  "servo_malloc_size_of",
- "signpost",
  "time",
  "tracing",
 ]
@@ -8095,11 +8094,6 @@ checksum = "b2a4719bff48cee6b39d12c020eeb490953ad2443b7055bd0b21fca26bd8c28b"
 dependencies = [
  "libc",
 ]
-
-[[package]]
-name = "signpost"
-version = "0.1.0"
-source = "git+https://github.com/pcwalton/signpost.git#7ed712507f343c38646b9d1fefd049166f9c9a18"
 
 [[package]]
 name = "simd-adler32"
