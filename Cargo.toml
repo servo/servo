@@ -86,7 +86,7 @@ icu_segmenter = "1.5.0"
 image = "0.25"
 imsz = "0.2"
 indexmap = { version = "2.11.4", features = ["std"] }
-ipc-channel = "0.20"
+ipc-channel = "0.20.2"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 keyboard-types = { version = "0.8.1", features = ["serde", "webdriver"] }
