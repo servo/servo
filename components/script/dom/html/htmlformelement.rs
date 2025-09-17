@@ -1099,13 +1099,17 @@ impl HTMLFormElement {
     /// Interactively validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints>
     fn interactive_validation(&self, can_gc: CanGc) -> Result<(), ()> {
-        // Step 1-2
+        // Step 1 - 2: Statically validate the constraints of form,
+        // and let `unhandled invalid controls` be the list of elements
+        // returned if the result was negative.
+        // If the result was positive, then return that result.
         let unhandled_invalid_controls = match self.static_validation(can_gc) {
             Ok(()) => return Ok(()),
             Err(err) => err,
         };
 
-        // Step 3
+        // Step 3: Report the problems with the constraints of at least one of the elements
+        // given in unhandled invalid controls to the user.
         let mut first = true;
 
         for elem in unhandled_invalid_controls {
@@ -1114,8 +1118,12 @@ impl HTMLFormElement {
             }
             if first {
                 if let Some(html_elem) = elem.downcast::<HTMLElement>() {
-                    // TODO: "Focusing steps" has a different meaning from the focus() method.
-                    // The actual focusing steps should be implemented
+                    // Step 3.1: User agents may focus one of those elements in the process,
+                    // by running the focusing steps for that element,
+                    // and may change the scrolling position of the document, or perform
+                    // some other action that brings the element to the user's attention.
+
+                    // Here we run focusing steps and scroll element into view.
                     html_elem.Focus(&FocusOptions::default(), can_gc);
                     first = false;
                 }
