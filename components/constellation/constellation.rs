@@ -309,7 +309,7 @@ pub struct Constellation<STF, SWF> {
     /// Channels to control all background-hang monitors.
     /// TODO: store them on the relevant BrowsingContextGroup,
     /// so that they could be controlled on a "per-tab/event-loop" basis.
-    background_monitor_control_senders: Vec<IpcSender<BackgroundHangMonitorControlMsg>>,
+    background_monitor_control_senders: Vec<GenericSender<BackgroundHangMonitorControlMsg>>,
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
@@ -646,7 +646,7 @@ where
                     let (
                         background_hang_monitor_control_ipc_sender,
                         background_hang_monitor_control_ipc_receiver,
-                    ) = ipc::channel().expect("ipc channel failure");
+                    ) = generic_channel::channel().expect("ipc channel failure");
                     let (register, join_handle) = HangMonitorRegister::init(
                         background_hang_monitor_ipc_sender.clone(),
                         background_hang_monitor_control_ipc_receiver,
