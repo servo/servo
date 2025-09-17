@@ -83,8 +83,7 @@ impl SnapshotAlphaMode {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SnapshotData {
-    // TODO: https://github.com/servo/servo/issues/36594
-    // IPC(IpcSharedMemory),
+    Ipc(IpcSharedMemory),
     Owned(Vec<u8>),
 }
 
@@ -93,7 +92,7 @@ impl Deref for SnapshotData {
 
     fn deref(&self) -> &Self::Target {
         match &self {
-            // Data::IPC(ipc_shared_memory) => ipc_shared_memory,
+            SnapshotData::Ipc(ipc_shared_memory) => ipc_shared_memory,
             SnapshotData::Owned(items) => items,
         }
     }
@@ -102,7 +101,7 @@ impl Deref for SnapshotData {
 impl DerefMut for SnapshotData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            // Data::IPC(ipc_shared_memory) => unsafe { ipc_shared_memory.deref_mut() },
+            SnapshotData::Ipc(ipc_shared_memory) => unsafe { ipc_shared_memory.deref_mut() },
             SnapshotData::Owned(items) => items,
         }
     }
@@ -185,26 +184,23 @@ impl Snapshot<SnapshotData> {
         Self::from_vec(rect.size, self.format, self.alpha_mode, data)
     }
 
-    // TODO: https://github.com/servo/servo/issues/36594
-    /*
     /// # Safety
     ///
     /// This is safe if data is owned by this process only
     /// (ownership is transferred on send)
     pub unsafe fn from_shared_memory(
         size: Size2D<u32>,
-        format: PixelFormat,
-        alpha_mode: AlphaMode,
-        ism: IpcSharedMemory,
+        format: SnapshotPixelFormat,
+        alpha_mode: SnapshotAlphaMode,
+        ipc_shared_memory: IpcSharedMemory,
     ) -> Self {
         Self {
             size,
-            data: Data::IPC(ism),
+            data: SnapshotData::Ipc(ipc_shared_memory),
             format,
             alpha_mode,
         }
     }
-    */
 
     /// Convert inner data of snapshot to target format and alpha mode.
     /// If data is already in target format and alpha mode no work will be done.
@@ -276,7 +272,10 @@ impl Snapshot<SnapshotData> {
         let target_alpha_mode = target_alpha_mode.unwrap_or(self.alpha_mode);
         let target_format = target_format.unwrap_or(self.format);
         self.transform(target_alpha_mode, target_format);
-        let SnapshotData::Owned(data) = self.data;
+        let data = match self.data {
+            SnapshotData::Ipc(ipc_shared_memory) => ipc_shared_memory.to_vec(),
+            SnapshotData::Owned(data) => data,
+        };
         (data, target_alpha_mode, target_format)
     }
 
@@ -288,7 +287,7 @@ impl Snapshot<SnapshotData> {
             alpha_mode,
         } = self;
         let data = match data {
-            // Data::IPC(ipc_shared_memory) => ipc_shared_memory,
+            SnapshotData::Ipc(ipc_shared_memory) => ipc_shared_memory,
             SnapshotData::Owned(items) => IpcSharedMemory::from_bytes(&items),
         };
         Snapshot {
@@ -390,13 +389,11 @@ impl Snapshot<SnapshotData> {
 }
 
 impl Snapshot<IpcSharedMemory> {
-    // TODO: https://github.com/servo/servo/issues/36594
-    /*
     /// # Safety
     ///
     /// This is safe if data is owned by this process only
     /// (ownership is transferred on send)
-    pub unsafe fn to_data(self) -> Snapshot<Data> {
+    pub unsafe fn to_data(self) -> Snapshot<SnapshotData> {
         let Snapshot {
             size,
             data,
@@ -405,12 +402,12 @@ impl Snapshot<IpcSharedMemory> {
         } = self;
         Snapshot {
             size,
-            data: Data::IPC(data),
+            data: SnapshotData::Ipc(data),
             format,
             alpha_mode,
         }
     }
-    */
+
     pub fn to_owned(self) -> Snapshot<SnapshotData> {
         let Snapshot {
             size,

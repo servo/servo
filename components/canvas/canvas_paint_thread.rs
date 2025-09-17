@@ -210,6 +210,7 @@ impl CanvasPaintThread {
                 self.canvas(canvas_id)
                     .clip_path(&path, fill_rule, transform);
             },
+            #[allow(unsafe_code)]
             Canvas2dMsg::DrawImage(
                 snapshot,
                 dest_rect,
@@ -219,7 +220,7 @@ impl CanvasPaintThread {
                 composition_options,
                 transform,
             ) => self.canvas(canvas_id).draw_image(
-                snapshot.to_owned(),
+                unsafe { snapshot.to_data() },
                 dest_rect,
                 source_rect,
                 smoothing_enabled,
