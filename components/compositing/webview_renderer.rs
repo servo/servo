@@ -797,10 +797,18 @@ impl WebViewRenderer {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let hit_test_results = self
-            .global
-            .borrow()
-            .hit_test_at_point_with_flags(cursor, HitTestFlags::FIND_ALL);
+        let mut hit_test_results: Vec<_> = self
+            .touch_handler
+            .get_hit_test_result_cache_value(self.touch_handler.current_sequence_id)
+            .into_iter()
+            .collect();
+
+        if hit_test_results.is_empty() {
+            hit_test_results = self
+                .global
+                .borrow()
+                .hit_test_at_point_with_flags(cursor, HitTestFlags::FIND_ALL);
+        }
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
@@ -822,6 +830,12 @@ impl WebViewRenderer {
                         external_scroll_id,
                         offset,
                     });
+                } else {
+                    // If we attempted to scroll a node, but it didn't scroll, we should
+                    // not continue to try and scroll ancestor nodes.
+                    // And invalidate the hit test result cache for this touch sequence.
+                    self.touch_handler
+                        .set_hit_test_result_cache_invalid(self.touch_handler.current_sequence_id);
                 }
             }
         }

@@ -603,10 +603,18 @@ impl TouchHandler {
                 }
             } else {
                 sequence.hit_test_result_cache = Some(HitTestResultCache {
-                    value: value,
+                    value,
                     // Only single touch points have a valid hit test result.
                     is_valid: sequence.touch_count() == 1,
                 });
+            }
+        }
+    }
+
+    pub(crate) fn set_hit_test_result_cache_invalid(&mut self, sequence_id: TouchSequenceId) {
+        if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
+            if let Some(ref mut hit_test_result_cache) = sequence.hit_test_result_cache {
+                hit_test_result_cache.is_valid = false;
             }
         }
     }
