@@ -3045,7 +3045,7 @@ class CGAbstractMethod(CGThing):
                  extra_decorators: list[str] = []) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
-        self.name = name
+        self.name = CGDictionary.makeMemberName(name)
         self.returnType = returnType
         self.args = args
         self.alwaysInline = alwaysInline
@@ -4805,7 +4805,7 @@ class CGMemberJITInfo(CGThing):
                     ),
                 }
                 """,
-                opValue=f"Some({opName}::<D>)",
+                opValue=f"Some({CGDictionary.makeMemberName(opName)}::<D>)",
                 name=self.descriptor.name,
                 depth=str(self.descriptor.interface.inheritanceDepth()),
                 opType=opType,
@@ -5137,7 +5137,7 @@ class CGStaticMethodJitinfo(CGGeneric):
             pub(crate) fn init_{method.identifier.name}_methodinfo<D: DomTypes>() {{
                 {method.identifier.name}_methodinfo.set(JSJitInfo {{
                     __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
-                        staticMethod: Some({method.identifier.name}::<D>)
+                        staticMethod: Some({CGDictionary.makeMemberName(method.identifier.name)}::<D>)
                     }},
                     __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {{
                         protoID: PrototypeList::ID::Last as u16,
