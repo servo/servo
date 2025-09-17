@@ -10,7 +10,6 @@ use base::Epoch;
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker, TouchEventResult};
-use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use smallvec::SmallVec;
@@ -126,7 +125,7 @@ pub enum CompositorMsg {
     GenerateFrame,
     /// Create a new image key. The result will be returned via the
     /// provided channel sender.
-    GenerateImageKey(IpcSender<ImageKey>),
+    GenerateImageKey(GenericSender<ImageKey>),
     /// The same as the above but it will be forwarded to the pipeline instead
     /// of send via a channel.
     GenerateImageKeysForPipeline(PipelineId),
@@ -286,7 +285,7 @@ impl CrossProcessCompositorApi {
 
     /// Create a new image key. Blocks until the key is available.
     pub fn generate_image_key_blocking(&self) -> Option<ImageKey> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.0.send(CompositorMsg::GenerateImageKey(sender)).ok()?;
         receiver.recv().ok()
     }
