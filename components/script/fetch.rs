@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 
 use base::id::WebViewId;
 use ipc_channel::ipc;
+use js::jsval::UndefinedValue;
+use js::rust::HandleValue;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
@@ -19,12 +21,14 @@ use net_traits::{
 };
 use servo_url::ServoUrl;
 
+use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
     RequestInfo, RequestInit, RequestMethods,
 };
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
@@ -139,6 +143,27 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
     }
 }
 
+/// <https://fetch.spec.whatwg.org/#abort-fetch>
+fn abort_fetch_call(
+    promise: Rc<Promise>,
+    _request: &NetTraitsRequest,
+    _response_object: Option<&Response>,
+    abort_reason: HandleValue,
+    cx: SafeJSContext,
+    can_gc: CanGc,
+) {
+    // Step 1. Reject promise with error.
+    promise.reject(cx, abort_reason, can_gc);
+    // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
+    // TODO
+    // Step 3. If responseObject is null, then return.
+    // TODO
+    // Step 4. Let response be responseObject’s response.
+    // TODO
+    // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
+    // TODO
+}
+
 /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
 #[allow(non_snake_case)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -151,6 +176,7 @@ pub(crate) fn Fetch(
 ) -> Rc<Promise> {
     // Step 1. Let p be a new promise.
     let promise = Promise::new_in_current_realm(comp, can_gc);
+    let cx = GlobalScope::get_cx();
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors
@@ -159,32 +185,41 @@ pub(crate) fn Fetch(
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
-    let request = match Request::Constructor(global, None, can_gc, input, init) {
+    let request_object = match Request::Constructor(global, None, can_gc, input, init) {
         Err(e) => {
             response.error_stream(e.clone(), can_gc);
             promise.reject_error(e, can_gc);
             return promise;
         },
-        Ok(r) => {
-            // Step 3. Let request be requestObject’s request.
-            r.get_request()
-        },
+        Ok(r) => r,
     };
+    // Step 3. Let request be requestObject’s request.
+    let request = request_object.get_request();
     let timing_type = request.timing_type();
 
-    let mut request_init = request_init_from_request(request);
-    request_init.policy_container =
-        RequestPolicyContainer::PolicyContainer(global.policy_container());
-
     // Step 4. If requestObject’s signal is aborted, then:
-    // TODO
-    // Step 4.1. Abort the fetch() call with p, request, null, and requestObject’s signal’s abort reason.
-    // TODO
-    // Step 4.2. Return p.
-    // TODO
+    let signal = request_object.Signal();
+    if signal.aborted() {
+        // Step 4.1. Abort the fetch() call with p, request, null, and requestObject’s signal’s abort reason.
+        rooted!(in(*cx) let mut abort_reason = UndefinedValue());
+        signal.Reason(cx, abort_reason.handle_mut());
+        abort_fetch_call(
+            promise.clone(),
+            &request,
+            None,
+            abort_reason.handle(),
+            cx,
+            can_gc,
+        );
+        // Step 4.2. Return p.
+        return promise;
+    }
 
     // Step 5. Let globalObject be request’s client’s global object.
     // NOTE:   We already get the global object as an argument
+    let mut request_init = request_init_from_request(request);
+    request_init.policy_container =
+        RequestPolicyContainer::PolicyContainer(global.policy_container());
 
     // Step 6. If globalObject is a ServiceWorkerGlobalScope object, then set request’s
     //         service-workers mode to "none".
