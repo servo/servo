@@ -151,12 +151,12 @@ impl DebugOptions {
                 "dump-flow-tree" => self.dump_flow_tree = true,
                 "dump-rule-tree" => self.dump_rule_tree = true,
                 "dump-style-tree" => self.dump_style_tree = true,
+                "dump-style-stats" => self.dump_style_statistics = true,
                 "dump-scroll-tree" => self.dump_scroll_tree = true,
                 "gc-profile" => self.gc_profile = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
                 "signpost" => self.signpost = true,
-                "dump-style-stats" => self.dump_style_statistics = true,
                 "" => {},
                 _ => return Err(String::from(option)),
             };
