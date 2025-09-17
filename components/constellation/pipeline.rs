@@ -12,7 +12,7 @@ use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
 use base::Epoch;
-use base::generic_channel::{GenericReceiver, GenericSender};
+use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, PipelineNamespaceId,
     PipelineNamespaceRequest, WebViewId,
@@ -144,7 +144,7 @@ pub struct InitialPipelineState {
     pub background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
 
     /// A channel for the background hang monitor to send messages to the constellation.
-    pub background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
+    pub background_hang_monitor_to_constellation_chan: GenericSender<HangMonitorAlert>,
 
     /// A fatory for creating layouts to be used by the ScriptThread.
     pub layout_factory: Arc<dyn LayoutFactory>,
@@ -219,7 +219,7 @@ pub struct InitialPipelineState {
 
 pub struct NewPipeline {
     pub pipeline: Pipeline,
-    pub bhm_control_chan: Option<IpcSender<BackgroundHangMonitorControlMsg>>,
+    pub bhm_control_chan: Option<GenericSender<BackgroundHangMonitorControlMsg>>,
     pub lifeline: Option<(IpcReceiver<()>, Process)>,
     pub join_handle: Option<JoinHandle<()>>,
 }
@@ -325,7 +325,7 @@ impl Pipeline {
                 // Yes, that's all there is to it!
                 let multiprocess_data = if opts::get().multiprocess {
                     let (bhm_control_chan, bhm_control_port) =
-                        ipc::channel().expect("Sampler chan");
+                        generic_channel::channel().expect("Sampler chan");
                     unprivileged_pipeline_content.bhm_control_port = Some(bhm_control_port);
                     let (sender, receiver) =
                         ipc::channel().expect("Failed to create lifeline channel");
@@ -487,8 +487,8 @@ pub struct UnprivilegedPipelineContent {
     namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
     script_to_constellation_chan: ScriptToConstellationChan,
     script_to_embedder_chan: ScriptToEmbedderChan,
-    background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
-    bhm_control_port: Option<IpcReceiver<BackgroundHangMonitorControlMsg>>,
+    background_hang_monitor_to_constellation_chan: GenericSender<HangMonitorAlert>,
+    bhm_control_port: Option<GenericReceiver<BackgroundHangMonitorControlMsg>>,
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     #[cfg(feature = "bluetooth")]
     bluetooth_thread: IpcSender<BluetoothRequest>,
