@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use ipc_channel::ipc::{self, IpcSender};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use style::values::computed::font::SingleFontFamily;
@@ -44,7 +44,7 @@ pub struct SystemFontServiceProxySender(pub IpcSender<SystemFontServiceMessage>)
 impl SystemFontServiceProxySender {
     pub fn to_proxy(&self) -> SystemFontServiceProxy {
         SystemFontServiceProxy {
-            sender: Mutex::new(self.0.clone()),
+            sender: self.0.clone(),
             templates: Default::default(),
         }
     }
@@ -60,7 +60,7 @@ struct FontTemplateCacheKey {
 /// `FontContext` instances.
 #[derive(Debug, MallocSizeOf)]
 pub struct SystemFontServiceProxy {
-    sender: Mutex<IpcSender<SystemFontServiceMessage>>,
+    sender: IpcSender<SystemFontServiceMessage>,
     templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
 }
 
@@ -68,7 +68,6 @@ impl SystemFontServiceProxy {
     pub fn exit(&self) {
         let (response_chan, response_port) = ipc::channel().unwrap();
         self.sender
-            .lock()
             .send(SystemFontServiceMessage::Exit(response_chan))
             .expect("Couldn't send SystemFontService exit message");
         response_port
@@ -77,7 +76,7 @@ impl SystemFontServiceProxy {
     }
 
     pub fn to_sender(&self) -> SystemFontServiceProxySender {
-        SystemFontServiceProxySender(self.sender.lock().clone())
+        SystemFontServiceProxySender(self.sender.clone())
     }
 
     pub fn get_system_font_instance(
@@ -89,7 +88,6 @@ impl SystemFontServiceProxy {
     ) -> FontInstanceKey {
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.sender
-            .lock()
             .send(SystemFontServiceMessage::GetFontInstance(
                 identifier,
                 size,
@@ -101,11 +99,7 @@ impl SystemFontServiceProxy {
 
         let instance_key = response_port.recv();
         if instance_key.is_err() {
-            let font_thread_has_closed = self
-                .sender
-                .lock()
-                .send(SystemFontServiceMessage::Ping)
-                .is_err();
+            let font_thread_has_closed = self.sender.send(SystemFontServiceMessage::Ping).is_err();
             assert!(
                 font_thread_has_closed,
                 "Failed to receive a response from live font cache"
@@ -135,7 +129,6 @@ impl SystemFontServiceProxy {
 
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.sender
-            .lock()
             .send(SystemFontServiceMessage::GetFontTemplates(
                 descriptor_to_match.cloned(),
                 family_descriptor.clone(),
@@ -144,11 +137,7 @@ impl SystemFontServiceProxy {
             .expect("failed to send message to system font service");
 
         let Ok(templates) = response_port.recv() else {
-            let font_thread_has_closed = self
-                .sender
-                .lock()
-                .send(SystemFontServiceMessage::Ping)
-                .is_err();
+            let font_thread_has_closed = self.sender.send(SystemFontServiceMessage::Ping).is_err();
             assert!(
                 font_thread_has_closed,
                 "Failed to receive a response from live font cache"
@@ -166,7 +155,6 @@ impl SystemFontServiceProxy {
         let (result_sender, result_receiver) =
             ipc::channel().expect("failed to create IPC channel");
         self.sender
-            .lock()
             .send(SystemFontServiceMessage::GetFontKey(result_sender))
             .expect("failed to send message to system font service");
         result_receiver
@@ -178,7 +166,6 @@ impl SystemFontServiceProxy {
         let (result_sender, result_receiver) =
             ipc::channel().expect("failed to create IPC channel");
         self.sender
-            .lock()
             .send(SystemFontServiceMessage::GetFontInstanceKey(result_sender))
             .expect("failed to send message to system font service");
         result_receiver
