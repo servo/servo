@@ -195,6 +195,12 @@ skip = [
 
     # duplicated by core-graphics
     "core-graphics-types",
+
+    # duplicated by winresource and proc-macro-crate. Once everything
+    # switches to the latest version of toml we can remove this. It's
+    # really just a build dep, so not a large problem.
+    "toml_datetime",
+    "toml_edit",
 ]
 
 # github.com organizations to allow git sources for
