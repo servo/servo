@@ -8,6 +8,7 @@ mod accelerated_gl_media;
 pub(crate) mod app;
 mod app_state;
 pub(crate) mod cli;
+mod context_menu;
 mod dialog;
 mod egui_glue;
 pub(crate) mod events_loop;

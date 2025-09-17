@@ -15,8 +15,8 @@ use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
     GamepadSupportedHapticEffects, GamepadUpdateType, ImeEvent, InputEvent,
     KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeftViewportEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId,
-    UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    MouseLeftViewportEvent, NativeContextMenu, ScrollEvent, TouchEvent as EmbedderTouchEvent,
+    TouchEventType, TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 use euclid::Point2D;
 use ipc_channel::ipc;
@@ -24,6 +24,7 @@ use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::node_id_from_scroll_id;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
+use script_bindings::codegen::GenericBindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
@@ -690,15 +691,20 @@ impl DocumentEventHandler {
 
         // Step 4. If result is true, then show the UA context menu
         if result {
+            let link = if let Some(anchor) = target.downcast::<HTMLAnchorElement>() {
+                Some(anchor.Href().0)
+            } else {
+                None
+            };
             let (sender, receiver) =
                 generic_channel::channel().expect("Failed to create IPC channel.");
-            self.window.send_to_embedder(EmbedderMsg::ShowContextMenu(
-                self.window.webview_id(),
-                sender,
-                None,
-                vec![],
-            ));
-            let _ = receiver.recv().unwrap();
+            self.window
+                .send_to_embedder(EmbedderMsg::ShowNativeContextMenu(
+                    self.window.webview_id(),
+                    sender,
+                    NativeContextMenu { link },
+                ));
+            let _ = receiver.recv();
         };
     }
 

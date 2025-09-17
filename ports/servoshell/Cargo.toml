@@ -70,6 +70,7 @@ libc = { workspace = true }
 libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"] }
 log = { workspace = true }
 mime_guess = { workspace = true }
+muda = "0.17.1"
 raw-window-handle = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 tokio = { workspace = true }

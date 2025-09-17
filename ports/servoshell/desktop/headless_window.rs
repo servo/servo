@@ -179,4 +179,8 @@ impl WindowPortsMethods for Window {
             self.screen_size.height as u32,
         ));
     }
+
+    fn show_context_menu(&self, _menu: muda::Menu) {
+        // Do nothing in headless mode.
+    }
 }
