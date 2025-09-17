@@ -463,25 +463,22 @@ impl Servo {
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
         let shutdown_state = Rc::new(Cell::new(ShutdownState::NotShuttingDown));
-        let compositor = IOCompositor::new(
-            InitialCompositorState {
-                sender: compositor_proxy,
-                receiver: compositor_receiver,
-                constellation_chan: constellation_chan.clone(),
-                time_profiler_chan,
-                mem_profiler_chan,
-                webrender,
-                webrender_document,
-                webrender_api,
-                rendering_context,
-                webrender_gl,
-                #[cfg(feature = "webxr")]
-                webxr_main_thread,
-                shutdown_state: shutdown_state.clone(),
-                event_loop_waker,
-            },
-            opts.debug.convert_mouse_to_touch,
-        );
+        let compositor = IOCompositor::new(InitialCompositorState {
+            sender: compositor_proxy,
+            receiver: compositor_receiver,
+            constellation_chan: constellation_chan.clone(),
+            time_profiler_chan,
+            mem_profiler_chan,
+            webrender,
+            webrender_document,
+            webrender_api,
+            rendering_context,
+            webrender_gl,
+            #[cfg(feature = "webxr")]
+            webxr_main_thread,
+            shutdown_state: shutdown_state.clone(),
+            event_loop_waker,
+        });
 
         let constellation_proxy = ConstellationProxy::new(constellation_chan);
         Self {

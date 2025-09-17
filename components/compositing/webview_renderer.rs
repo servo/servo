@@ -16,7 +16,7 @@ use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseMoveEvent, ScrollEvent as EmbedderScrollEvent, ShutdownState,
-    TouchEvent, TouchEventResult, TouchEventType, TouchId, ViewportDetails,
+    TouchEvent, TouchEventResult, TouchEventType, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, warn};
@@ -363,62 +363,6 @@ impl WebViewRenderer {
         if let InputEvent::Touch(event) = event {
             self.on_touch_event(event);
             return;
-        }
-
-        if self.global.borrow().convert_mouse_to_touch {
-            match event {
-                InputEvent::MouseButton(event) => {
-                    match (event.button, event.action) {
-                        (MouseButton::Left, MouseButtonAction::Down) => self.on_touch_down(
-                            TouchEvent::new(TouchEventType::Down, TouchId(0), event.point),
-                        ),
-                        (MouseButton::Left, MouseButtonAction::Up) => self.on_touch_up(
-                            TouchEvent::new(TouchEventType::Up, TouchId(0), event.point),
-                        ),
-                        _ => {},
-                    }
-                    return;
-                },
-                InputEvent::MouseMove(event) => {
-                    if let Some(state) = self.touch_handler.try_get_current_touch_sequence() {
-                        // We assume that the debug option `-Z convert-mouse-to-touch` will only
-                        // be used on devices without native touch input, so we can directly
-                        // reuse the touch handler for tracking the state of pressed buttons.
-                        match state.state {
-                            TouchSequenceState::Touching | TouchSequenceState::Panning { .. } => {
-                                self.on_touch_move(TouchEvent::new(
-                                    TouchEventType::Move,
-                                    TouchId(0),
-                                    event.point,
-                                ));
-                            },
-                            TouchSequenceState::MultiTouch => {
-                                // Multitouch simulation currently is not implemented.
-                                // Since we only get one mouse move event, we would need to
-                                // dispatch one mouse move event per currently pressed mouse button.
-                            },
-                            TouchSequenceState::Pinching => {
-                                // We only have one mouse button, so Pinching should be impossible.
-                                #[cfg(debug_assertions)]
-                                log::error!(
-                                    "Touch handler is in Pinching state, which should be unreachable with \
-                                -Z convert-mouse-to-touch debug option."
-                                );
-                            },
-                            TouchSequenceState::PendingFling { .. } |
-                            TouchSequenceState::Flinging { .. } |
-                            TouchSequenceState::PendingClick(_) |
-                            TouchSequenceState::Finished => {
-                                // Mouse movement without a button being pressed is not
-                                // translated to touch events.
-                            },
-                        }
-                    }
-                    // We don't want to (directly) dispatch mouse events when simulating touch input.
-                    return;
-                },
-                _ => {},
-            }
         }
 
         self.dispatch_input_event_with_hit_testing(event);

@@ -79,6 +79,9 @@ pub struct Window {
     /// the target of egui rendering and also where Servo rendering results are finally
     /// blitted.
     window_rendering_context: Rc<WindowRenderingContext>,
+    /// A helper that simulates touch events when the `--simulate-touch-events` flag
+    /// is enabled.
+    touch_event_simulator: Option<TouchEventSimulator>,
     // Keep this as the last field of the struct to ensure that the rendering context is
     // dropped first.
     // (https://github.com/servo/servo/issues/36711)
@@ -179,6 +182,9 @@ impl Window {
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
             window_rendering_context,
+            touch_event_simulator: servoshell_preferences
+                .simulate_touch_events
+                .then(Default::default),
             rendering_context,
         }
     }
@@ -275,7 +281,29 @@ impl Window {
     }
 
     /// Helper function to handle a click
-    fn handle_mouse(&self, webview: &WebView, button: MouseButton, action: ElementState) {
+    fn handle_mouse_button_event(
+        &self,
+        webview: &WebView,
+        button: MouseButton,
+        action: ElementState,
+    ) {
+        // `point` can be outside viewport, such as at toolbar with negative y-coordinate.
+        let point = self.webview_relative_mouse_point.get();
+        if !webview.rect().contains(point) {
+            return;
+        }
+
+        if self
+            .touch_event_simulator
+            .as_ref()
+            .is_some_and(|touch_event_simulator| {
+                touch_event_simulator
+                    .maybe_consume_move_button_event(webview, button, action, point)
+            })
+        {
+            return;
+        }
+
         let mouse_button = match &button {
             MouseButton::Left => ServoMouseButton::Left,
             MouseButton::Right => ServoMouseButton::Right,
@@ -285,11 +313,6 @@ impl Window {
             MouseButton::Other(value) => ServoMouseButton::Other(*value),
         };
 
-        let point = self.webview_relative_mouse_point.get();
-        // `point` can be outside viewport, such as at toolbar with negative y-coordinate.
-        if !webview.rect().contains(point) {
-            return;
-        }
         let action = match action {
             ElementState::Pressed => MouseButtonAction::Down,
             ElementState::Released => MouseButtonAction::Up,
@@ -300,6 +323,36 @@ impl Window {
             mouse_button,
             point,
         )));
+    }
+
+    /// Helper function to handle mouse move events.
+    fn handle_mouse_move_event(&self, webview: &WebView, position: PhysicalPosition<f64>) {
+        let mut point = winit_position_to_euclid_point(position).to_f32();
+        point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
+
+        let previous_point = self.webview_relative_mouse_point.get();
+        self.webview_relative_mouse_point.set(point);
+
+        if !webview.rect().contains(point) {
+            if webview.rect().contains(previous_point) {
+                webview.notify_input_event(InputEvent::MouseLeftViewport(
+                    MouseLeftViewportEvent::default(),
+                ));
+            }
+            return;
+        }
+
+        if self
+            .touch_event_simulator
+            .as_ref()
+            .is_some_and(|touch_event_simulator| {
+                touch_event_simulator.maybe_consume_mouse_move_event(webview, point)
+            })
+        {
+            return;
+        }
+
+        webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
     }
 
     /// Handle key events before sending them to Servo.
@@ -623,22 +676,10 @@ impl WindowPortsMethods for Window {
             WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(state, event),
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers_state.set(modifiers.state()),
             WindowEvent::MouseInput { state, button, .. } => {
-                self.handle_mouse(&webview, button, state);
+                self.handle_mouse_button_event(&webview, button, state);
             },
             WindowEvent::CursorMoved { position, .. } => {
-                let mut point = winit_position_to_euclid_point(position).to_f32();
-                point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
-
-                let previous_point = self.webview_relative_mouse_point.get();
-                if webview.rect().contains(point) {
-                    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-                } else if webview.rect().contains(previous_point) {
-                    webview.notify_input_event(InputEvent::MouseLeftViewport(
-                        MouseLeftViewportEvent::default(),
-                    ));
-                }
-
-                self.webview_relative_mouse_point.set(point);
+                self.handle_mouse_move_event(&webview, position);
             },
             WindowEvent::CursorLeft { .. } => {
                 if webview
@@ -965,5 +1006,59 @@ impl XRWindowPose {
         let y: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_y(Angle::degrees(y));
         let rotation = self.xr_rotation.get().then(&x).then(&y);
         self.xr_rotation.set(rotation);
+    }
+}
+
+#[derive(Default)]
+pub struct TouchEventSimulator {
+    pub left_mouse_button_down: Cell<bool>,
+}
+
+impl TouchEventSimulator {
+    fn maybe_consume_move_button_event(
+        &self,
+        webview: &WebView,
+        button: MouseButton,
+        action: ElementState,
+        point: Point2D<f32, DevicePixel>,
+    ) -> bool {
+        if button != MouseButton::Left {
+            return false;
+        }
+
+        if action == ElementState::Pressed && !self.left_mouse_button_down.get() {
+            webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Down,
+                TouchId(0),
+                point,
+            )));
+            self.left_mouse_button_down.set(true);
+        } else if action == ElementState::Released {
+            webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Up,
+                TouchId(0),
+                point,
+            )));
+            self.left_mouse_button_down.set(false);
+        }
+
+        true
+    }
+
+    fn maybe_consume_mouse_move_event(
+        &self,
+        webview: &WebView,
+        point: Point2D<f32, DevicePixel>,
+    ) -> bool {
+        if !self.left_mouse_button_down.get() {
+            return false;
+        }
+
+        webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
+            TouchEventType::Move,
+            TouchId(0),
+            point,
+        )));
+        true
     }
 }

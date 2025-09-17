@@ -71,6 +71,8 @@ pub(crate) struct ServoShellPreferences {
     /// An override for the screen resolution. This is useful for testing behavior on different screen sizes,
     /// such as the screen of a mobile device.
     pub screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
+    /// Whether or not to simulate touch events using mouse events.
+    pub simulate_touch_events: bool,
     /// If not-None, the path to a file to output the default WebView's rendered output
     /// after waiting for a stable image, this implies `Self::exit_after_load`.
     pub output_image_path: Option<String>,
@@ -82,15 +84,12 @@ pub(crate) struct ServoShellPreferences {
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
     /// remote WebDriver commands.
     pub webdriver_port: Option<u16>,
-
     /// Whether the CLI option to enable experimental prefs was present at startup.
     pub experimental_prefs_enabled: bool,
-
     /// Log filter given in the `log_filter` spec as a String, if any.
     /// If a filter is passed, the logger should adjust accordingly.
     #[cfg(target_env = "ohos")]
     pub log_filter: Option<String>,
-
     /// Log also to a file
     #[cfg(target_env = "ohos")]
     pub log_to_file: bool,
@@ -106,6 +105,7 @@ impl Default for ServoShellPreferences {
             initial_window_size: Size2D::new(1024, 740),
             no_native_titlebar: true,
             screen_size_override: None,
+            simulate_touch_events: false,
             searchpage: "https://duckduckgo.com/html/?q=%s".into(),
             tracing_filter: None,
             url: None,
@@ -505,6 +505,11 @@ struct CmdArgs {
         parse(parse_resolution_string), fallback(None))]
     screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
 
+    /// Use mouse events to simulate touch events. Left button presses will be converted to touch
+    /// and mouse movements while the left button is pressed will be converted to touch movements.
+    #[bpaf(long("simulate-touch-events"))]
+    simulate_touch_events: bool,
+
     /// Define a custom filter for traces. Overrides `SERVO_TRACING` if set.
     #[bpaf(long("tracing-filter"), argument("FILTER"))]
     tracing_filter: Option<String>,
@@ -663,6 +668,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         tracing_filter: cmd_args.tracing_filter,
         initial_window_size: cmd_args.window_size.unwrap_or(default_window_size),
         screen_size_override: cmd_args.screen_size_override,
+        simulate_touch_events: cmd_args.simulate_touch_events,
         webdriver_port: cmd_args.webdriver_port,
         output_image_path: cmd_args.output.map(|p| p.to_string_lossy().into_owned()),
         exit_after_stable_image: cmd_args.exit,
@@ -729,10 +735,6 @@ fn print_debug_options_usage(app: &str) {
     println!(
         "Usage: {} debug option,[options,...]\n\twhere options include\n\nOptions:",
         app
-    );
-    print_option(
-        "convert-mouse-to-touch",
-        "Send touch events instead of mouse events",
     );
     print_option(
         "disable-share-style-cache",
