@@ -315,12 +315,6 @@ impl Servo {
         };
 
         let (mut webrender, webrender_api_sender) = {
-            let mut debug_flags = webrender::DebugFlags::empty();
-            debug_flags.set(
-                webrender::DebugFlags::PROFILER_DBG,
-                opts.debug.webrender_stats,
-            );
-
             rendering_context.prepare_for_rendering();
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
             let clear_color = servo_config::pref!(shell_background_color_rgba);
@@ -359,7 +353,7 @@ impl Servo {
                     // See: https://github.com/servo/servo/issues/31726
                     use_optimized_shaders: true,
                     resource_override_path: opts.shaders_dir.clone(),
-                    debug_flags,
+                    debug_flags: webrender::DebugFlags::empty(),
                     precache_flags: if pref!(gfx_precache_shaders) {
                         ShaderPrecacheFlags::FULL_COMPILE
                     } else {

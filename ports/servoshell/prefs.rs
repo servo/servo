@@ -793,7 +793,6 @@ fn print_debug_options_usage(app: &str) {
         "signpost",
         "Emit native OS signposts for profile events (currently macOS only)",
     );
-    print_option("wr-stats", "Show WebRender profiler on screen.");
 
     println!();
 
