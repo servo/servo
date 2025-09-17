@@ -48,7 +48,7 @@ pub(crate) struct Response {
     body_stream: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "StreamConsumer"]
     stream_consumer: DomRefCell<Option<StreamConsumer>>,
-    redirected: DomRefCell<bool>,
+    redirected: Cell<bool>,
     is_body_empty: Cell<bool>,
 }
 
@@ -70,7 +70,7 @@ impl Response {
             url_list: DomRefCell::new(vec![]),
             body_stream: MutNullableDom::new(Some(&*stream)),
             stream_consumer: DomRefCell::new(None),
-            redirected: DomRefCell::new(false),
+            redirected: Cell::new(false),
             is_body_empty: Cell::new(true),
         }
     }
@@ -273,7 +273,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-response-redirected>
     fn Redirected(&self) -> bool {
-        return *self.redirected.borrow();
+        self.redirected.get()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-status>
@@ -487,7 +487,7 @@ impl Response {
     }
 
     pub(crate) fn set_redirected(&self, is_redirected: bool) {
-        *self.redirected.borrow_mut() = is_redirected;
+        self.redirected.set(is_redirected);
     }
 
     fn set_response_members_by_type(&self, response_type: DOMResponseType, can_gc: CanGc) {
