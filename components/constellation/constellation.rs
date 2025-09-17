@@ -317,7 +317,7 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
-    background_hang_monitor_receiver: Receiver<Result<HangMonitorAlert, IpcError>>,
+    background_hang_monitor_receiver: RoutedReceiver<HangMonitorAlert>,
 
     /// A factory for creating layouts. This allows customizing the kind
     /// of layout created for a [`Constellation`] and prevents a circular crate
