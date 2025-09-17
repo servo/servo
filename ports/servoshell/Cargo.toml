@@ -26,7 +26,7 @@ bench = false
 cc = "1.2"
 
 [target.'cfg(windows)'.build-dependencies]
-winres = "0.1"
+winresource = "0.1"
 
 [package.metadata.winres]
 FileDescription = "Servo"
