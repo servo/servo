@@ -5094,6 +5094,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "linebender_resource_handle"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4a5ff6bcca6c4867b1c4fd4ef63e4db7436ef363e0ad7531d1558856bae64f4"
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6376,13 +6382,14 @@ dependencies = [
 
 [[package]]
 name = "peniko"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f9529efd019889b2a205193c14ffb6e2839b54ed9d2720674f10f4b04d87ac9"
+checksum = "9b44f9ddd2f480176b34278eb653ec1c8062f3b143a4e16eeff5ffac3334e288"
 dependencies = [
  "bytemuck",
  "color",
  "kurbo",
+ "linebender_resource_handle",
  "smallvec",
 ]
 
