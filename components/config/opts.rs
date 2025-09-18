@@ -133,10 +133,6 @@ pub struct DebugOptions {
 
     /// Log GC passes and their durations.
     pub gc_profile: bool,
-
-    /// True to use OS native signposting facilities. This makes profiling events (script activity,
-    /// reflow, compositing, etc.) appear in Instruments.app on macOS.
-    pub signpost: bool,
 }
 
 impl DebugOptions {
@@ -156,7 +152,6 @@ impl DebugOptions {
                 "gc-profile" => self.gc_profile = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
-                "signpost" => self.signpost = true,
                 "" => {},
                 _ => return Err(String::from(option)),
             };
