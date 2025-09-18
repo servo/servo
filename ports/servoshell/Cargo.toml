@@ -28,7 +28,7 @@ cc = "1.2"
 [target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"
 
-[package.metadata.winres]
+[package.metadata.winresource]
 FileDescription = "Servo"
 LegalCopyright = "© The Servo Project Developers"
 OriginalFilename = "servo.exe"
