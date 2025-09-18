@@ -532,12 +532,6 @@ impl WindowPortsMethods for Window {
             .unwrap_or_else(|| self.device_hidpi_scale_factor())
     }
 
-    fn page_height(&self) -> f32 {
-        let dpr = self.hidpi_scale_factor();
-        let size = self.winit_window.inner_size();
-        size.height as f32 * dpr.get()
-    }
-
     fn set_title(&self, title: &str) {
         self.winit_window.set_title(title);
     }

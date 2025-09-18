@@ -25,7 +25,7 @@ use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_pr
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use layout_api::{LayoutDamage, ScrollContainerQueryType, ScrollContainerResponse};
+use layout_api::{LayoutDamage, ScrollContainerQueryFlags, ScrollContainerResponse};
 use net_traits::ReferrerPolicy;
 use net_traits::request::CorsSettings;
 use selectors::Element as SelectorsElement;
@@ -61,7 +61,7 @@ use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
-use webrender_api::units::{LayoutSize, LayoutVector2D};
+use webrender_api::units::LayoutVector2D;
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
@@ -166,6 +166,7 @@ use crate::dom::node::{
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::raredata::ElementRareData;
+use crate::dom::scrolling_box::{ScrollingBox, ScrollingBoxSource};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
@@ -270,60 +271,6 @@ impl FromStr for AdjacentPosition {
             "beforeend"   => Ok(AdjacentPosition::BeforeEnd),
             "afterend"    => Ok(AdjacentPosition::AfterEnd),
             _             => Err(Error::Syntax(None))
-        }
-    }
-}
-
-/// Represents a scrolling box that can be either an element or the viewport
-/// <https://drafts.csswg.org/cssom-view/#scrolling-box>
-enum ScrollingBox {
-    Element(DomRoot<Element>),
-    Viewport(DomRoot<Document>),
-}
-
-impl ScrollingBox {
-    fn scroll_position(&self) -> LayoutVector2D {
-        match self {
-            ScrollingBox::Element(element) => element
-                .owner_window()
-                .scroll_offset_query(element.upcast::<Node>()),
-            ScrollingBox::Viewport(document) => document.window().scroll_offset(),
-        }
-    }
-
-    fn size(&self) -> LayoutSize {
-        match self {
-            ScrollingBox::Element(element) => element.client_rect().size.to_f32().cast_unit(),
-            ScrollingBox::Viewport(document) => {
-                document.window().viewport_details().size.cast_unit()
-            },
-        }
-    }
-
-    fn parent(&self) -> Option<ScrollingBox> {
-        match self {
-            ScrollingBox::Element(element) => element.scrolling_box(),
-            ScrollingBox::Viewport(_) => None,
-        }
-    }
-
-    fn node(&self) -> &Node {
-        match self {
-            ScrollingBox::Element(element) => element.upcast(),
-            ScrollingBox::Viewport(document) => document.upcast(),
-        }
-    }
-
-    pub(crate) fn scroll_to(&self, position: LayoutVector2D, behavior: ScrollBehavior) {
-        match self {
-            ScrollingBox::Element(element) => {
-                element
-                    .owner_window()
-                    .scroll_an_element(element, position.x, position.y, behavior);
-            },
-            ScrollingBox::Viewport(document) => {
-                document.window().scroll(position.x, position.y, behavior);
-            },
         }
     }
 }
@@ -893,16 +840,19 @@ impl Element {
     }
 
     #[allow(unsafe_code)]
-    fn scrolling_box(&self) -> Option<ScrollingBox> {
+    pub(crate) fn scrolling_box(&self, flags: ScrollContainerQueryFlags) -> Option<ScrollingBox> {
         self.owner_window()
-            .scroll_container_query(self.upcast(), ScrollContainerQueryType::ForScrollIntoView)
+            .scroll_container_query(self.upcast(), flags)
             .and_then(|response| match response {
-                ScrollContainerResponse::Viewport => {
-                    Some(ScrollingBox::Viewport(self.owner_document()))
-                },
-                ScrollContainerResponse::Element(parent_node_address) => {
+                ScrollContainerResponse::Viewport => Some(ScrollingBox::new(
+                    ScrollingBoxSource::Viewport(self.owner_document()),
+                )),
+                ScrollContainerResponse::Element(parent_node_address, axes_overflow) => {
                     let node = unsafe { from_untrusted_node_address(parent_node_address) };
-                    Some(ScrollingBox::Element(DomRoot::downcast(node)?))
+                    Some(ScrollingBox::new(ScrollingBoxSource::Element(
+                        DomRoot::downcast(node)?,
+                        axes_overflow,
+                    )))
                 },
             })
     }
@@ -917,7 +867,7 @@ impl Element {
     ) {
         // Step 1: For each ancestor element or viewport that establishes a scrolling box `scrolling
         // box`, in order of innermost to outermost scrolling box, run these substeps:
-        let mut parent_scrolling_box = self.scrolling_box();
+        let mut parent_scrolling_box = self.scrolling_box(ScrollContainerQueryFlags::empty());
         while let Some(scrolling_box) = parent_scrolling_box {
             parent_scrolling_box = scrolling_box.parent();
 
@@ -991,21 +941,22 @@ impl Element {
         // to follow it using our own geometry types.
         //
         // TODO: This makes the code below wrong for the purposes of writing modes.
-        let (adjusted_element_top_left, adjusted_element_bottom_right) = match scrolling_box {
-            ScrollingBox::Viewport(_) => (target_top_left, target_bottom_right),
-            ScrollingBox::Element(scrolling_element) => {
-                let scrolling_padding_rect_top_left = scrolling_element
-                    .upcast::<Node>()
-                    .padding_box()
-                    .unwrap_or_default()
-                    .origin
-                    .map(to_pixel);
-                (
-                    target_top_left - scrolling_padding_rect_top_left.to_vector(),
-                    target_bottom_right - scrolling_padding_rect_top_left.to_vector(),
-                )
-            },
-        };
+        let (adjusted_element_top_left, adjusted_element_bottom_right) =
+            match scrolling_box.target() {
+                ScrollingBoxSource::Viewport(_) => (target_top_left, target_bottom_right),
+                ScrollingBoxSource::Element(scrolling_element, _) => {
+                    let scrolling_padding_rect_top_left = scrolling_element
+                        .upcast::<Node>()
+                        .padding_box()
+                        .unwrap_or_default()
+                        .origin
+                        .map(to_pixel);
+                    (
+                        target_top_left - scrolling_padding_rect_top_left.to_vector(),
+                        target_bottom_right - scrolling_padding_rect_top_left.to_vector(),
+                    )
+                },
+            };
 
         let scrolling_box_size = scrolling_box.size();
         let current_scroll_position = scrolling_box.scroll_position();
@@ -5066,7 +5017,7 @@ impl Element {
             .inspect(|states| states.for_each_state(callback));
     }
 
-    fn client_rect(&self) -> Rect<i32> {
+    pub(crate) fn client_rect(&self) -> Rect<i32> {
         let doc = self.node.owner_doc();
 
         if let Some(rect) = self

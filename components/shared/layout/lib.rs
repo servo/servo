@@ -50,10 +50,11 @@ use style::data::ElementData;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::Device;
-use style::properties::PropertyId;
 use style::properties::style_structs::Font;
+use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::{Stylesheet, UrlExtraData};
+use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
@@ -308,7 +309,7 @@ pub trait Layout {
     fn query_scroll_container(
         &self,
         node: TrustedNodeAddress,
-        query_type: ScrollContainerQueryType,
+        flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse>;
     fn query_resolved_style(
         &self,
@@ -366,16 +367,44 @@ pub struct OffsetParentResponse {
     pub rect: Rect<Au>,
 }
 
-#[derive(PartialEq)]
-pub enum ScrollContainerQueryType {
-    ForScrollParent,
-    ForScrollIntoView,
+bitflags! {
+    #[derive(PartialEq)]
+    pub struct ScrollContainerQueryFlags: u8 {
+        /// Whether or not this query is for the purposes of a `scrollParent` layout query.
+        const ForScrollParent = 1 << 0;
+        /// Whether or not to consider the original element's scroll box for the return value.
+        const Inclusive = 1 << 1;
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct AxesOverflow {
+    pub x: Overflow,
+    pub y: Overflow,
+}
+
+impl Default for AxesOverflow {
+    fn default() -> Self {
+        Self {
+            x: Overflow::Visible,
+            y: Overflow::Visible,
+        }
+    }
+}
+
+impl From<&ComputedValues> for AxesOverflow {
+    fn from(style: &ComputedValues) -> Self {
+        Self {
+            x: style.clone_overflow_x(),
+            y: style.clone_overflow_y(),
+        }
+    }
 }
 
 #[derive(Clone)]
 pub enum ScrollContainerResponse {
     Viewport,
-    Element(UntrustedNodeAddress),
+    Element(UntrustedNodeAddress, AxesOverflow),
 }
 
 #[derive(Debug, PartialEq)]

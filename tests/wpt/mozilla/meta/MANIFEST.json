@@ -12748,6 +12748,15 @@
       {}
      ]
     ],
+    "keyboard-scrolling.html": [
+     "2d9a0c40272d8af49f26de8dc49283df68b2d7b0",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "matchMedia.html": [
      "45a7ea268b1ebdba69e947b79d675cc9221428d4",
      [

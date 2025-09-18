@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use layout_api::AxesOverflow;
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::color::AbsoluteColor;
@@ -58,30 +59,6 @@ pub(crate) enum DisplayGeneratingBox {
     /// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
     LayoutInternal(DisplayLayoutInternal),
 }
-#[derive(Clone, Copy, Debug)]
-pub struct AxesOverflow {
-    pub x: Overflow,
-    pub y: Overflow,
-}
-
-impl Default for AxesOverflow {
-    fn default() -> Self {
-        Self {
-            x: Overflow::Visible,
-            y: Overflow::Visible,
-        }
-    }
-}
-
-impl From<&ComputedValues> for AxesOverflow {
-    fn from(style: &ComputedValues) -> Self {
-        Self {
-            x: style.clone_overflow_x(),
-            y: style.clone_overflow_y(),
-        }
-    }
-}
-
 impl DisplayGeneratingBox {
     pub(crate) fn display_inside(&self) -> DisplayInside {
         match *self {

@@ -8,7 +8,7 @@ use compositing_traits::display_list::AxesScrollSensitivity;
 use euclid::Rect;
 use euclid::default::Size2D as UntypedSize2D;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use layout_api::{LayoutElementType, LayoutNodeType};
+use layout_api::{AxesOverflow, LayoutElementType, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc;
@@ -31,7 +31,7 @@ use crate::fragment_tree::{FragmentFlags, FragmentTree};
 use crate::geom::{LogicalVec2, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContents;
-use crate::style_ext::{AxesOverflow, Display, DisplayGeneratingBox, DisplayInside};
+use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
 use crate::taffy::{TaffyItemBox, TaffyItemBoxInner};
 use crate::{DefiniteContainingBlock, PropagatedBoxTreeData};
 

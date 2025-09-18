@@ -9,7 +9,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
-use layout_api::{QueryMsg, ScrollContainerQueryType, ScrollContainerResponse};
+use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
@@ -450,10 +450,10 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     #[allow(unsafe_code)]
     fn GetScrollParent(&self) -> Option<DomRoot<Element>> {
         self.owner_window()
-            .scroll_container_query(self.upcast(), ScrollContainerQueryType::ForScrollParent)
+            .scroll_container_query(self.upcast(), ScrollContainerQueryFlags::ForScrollParent)
             .and_then(|response| match response {
                 ScrollContainerResponse::Viewport => self.owner_document().GetScrollingElement(),
-                ScrollContainerResponse::Element(parent_node_address) => {
+                ScrollContainerResponse::Element(parent_node_address, _) => {
                     let node = unsafe { from_untrusted_node_address(parent_node_address) };
                     DomRoot::downcast(node)
                 },
