@@ -66,7 +66,7 @@ fn root_transform_for_layout_node(
         .borrow();
     let scroll_tree_node_id = box_fragment.spatial_tree_node.borrow();
     let scroll_tree_node_id = (*scroll_tree_node_id)?;
-    Some(scroll_tree.cumulative_node_to_root_transform(&scroll_tree_node_id))
+    Some(scroll_tree.cumulative_node_to_root_transform(scroll_tree_node_id))
 }
 
 pub(crate) fn process_box_area_request(

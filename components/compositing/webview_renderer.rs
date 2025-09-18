@@ -851,7 +851,7 @@ impl WebViewRenderer {
                 Some(&hit_test_result.pipeline_id)
             {
                 let scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
-                    &hit_test_result.external_scroll_id,
+                    hit_test_result.external_scroll_id,
                     scroll_location,
                     ScrollType::InputEvents,
                 );

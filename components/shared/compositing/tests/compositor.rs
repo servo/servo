@@ -25,7 +25,7 @@ fn add_mock_scroll_node(tree: &mut ScrollTree) -> (ScrollTreeNodeId, ExternalScr
 
     let external_id = ExternalScrollId(num_nodes as u64, pipeline_id);
     let scroll_node_id = tree.add_scroll_tree_node(
-        parent.as_ref(),
+        parent,
         SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
             external_id,
             content_rect: Size2D::new(200.0, 200.0).into(),
@@ -48,7 +48,7 @@ fn test_scroll_tree_simple_scroll() {
 
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
-            &external_id,
+            external_id,
             ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
             ScrollType::Script,
         )
@@ -56,11 +56,11 @@ fn test_scroll_tree_simple_scroll() {
     let expected_offset = LayoutVector2D::new(20.0, 40.0);
     assert_eq!(scrolled_id, external_id);
     assert_eq!(offset, expected_offset);
-    assert_eq!(scroll_tree.get_node(&id).offset(), Some(expected_offset));
+    assert_eq!(scroll_tree.get_node(id).offset(), Some(expected_offset));
 
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
-            &external_id,
+            external_id,
             ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
             ScrollType::Script,
         )
@@ -68,17 +68,17 @@ fn test_scroll_tree_simple_scroll() {
     let expected_offset = LayoutVector2D::new(0.0, 0.0);
     assert_eq!(scrolled_id, external_id);
     assert_eq!(offset, expected_offset);
-    assert_eq!(scroll_tree.get_node(&id).offset(), Some(expected_offset));
+    assert_eq!(scroll_tree.get_node(id).offset(), Some(expected_offset));
 
     // Scroll offsets must be positive.
     let result = scroll_tree.scroll_node_or_ancestor(
-        &external_id,
+        external_id,
         ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
         ScrollType::Script,
     );
     assert!(result.is_none());
     assert_eq!(
-        scroll_tree.get_node(&id).offset(),
+        scroll_tree.get_node(id).offset(),
         Some(LayoutVector2D::new(0.0, 0.0))
     );
 }
@@ -92,7 +92,7 @@ fn test_scroll_tree_simple_scroll_chaining() {
 
     let unscrollable_external_id = ExternalScrollId(100 as u64, pipeline_id);
     let unscrollable_child_id = scroll_tree.add_scroll_tree_node(
-        Some(&parent_id),
+        Some(parent_id),
         SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
             external_id: unscrollable_external_id,
             content_rect: Size2D::new(100.0, 100.0).into(),
@@ -108,7 +108,7 @@ fn test_scroll_tree_simple_scroll_chaining() {
 
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
-            &unscrollable_external_id,
+            unscrollable_external_id,
             ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
             ScrollType::Script,
         )
@@ -117,13 +117,13 @@ fn test_scroll_tree_simple_scroll_chaining() {
     assert_eq!(scrolled_id, parent_external_id);
     assert_eq!(offset, expected_offset);
     assert_eq!(
-        scroll_tree.get_node(&parent_id).offset(),
+        scroll_tree.get_node(parent_id).offset(),
         Some(expected_offset)
     );
 
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
-            &unscrollable_external_id,
+            unscrollable_external_id,
             ScrollLocation::Delta(LayoutVector2D::new(10.0, 15.0)),
             ScrollType::Script,
         )
@@ -132,11 +132,11 @@ fn test_scroll_tree_simple_scroll_chaining() {
     assert_eq!(scrolled_id, parent_external_id);
     assert_eq!(offset, expected_offset);
     assert_eq!(
-        scroll_tree.get_node(&parent_id).offset(),
+        scroll_tree.get_node(parent_id).offset(),
         Some(expected_offset)
     );
     assert_eq!(
-        scroll_tree.get_node(&unscrollable_child_id).offset(),
+        scroll_tree.get_node(unscrollable_child_id).offset(),
         Some(LayoutVector2D::zero())
     );
 }
@@ -149,14 +149,14 @@ fn test_scroll_tree_chain_when_at_extent() {
     let (child_id, child_external_id) = add_mock_scroll_node(&mut scroll_tree);
 
     let (scrolled_id, offset) = scroll_tree
-        .scroll_node_or_ancestor(&child_external_id, ScrollLocation::End, ScrollType::Script)
+        .scroll_node_or_ancestor(child_external_id, ScrollLocation::End, ScrollType::Script)
         .unwrap();
 
     let expected_offset = LayoutVector2D::new(0.0, 100.0);
     assert_eq!(scrolled_id, child_external_id);
     assert_eq!(offset, expected_offset);
     assert_eq!(
-        scroll_tree.get_node(&child_id).offset(),
+        scroll_tree.get_node(child_id).offset(),
         Some(expected_offset)
     );
 
@@ -164,7 +164,7 @@ fn test_scroll_tree_chain_when_at_extent() {
     // of its scroll area in the y axis.
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
-            &child_external_id,
+            child_external_id,
             ScrollLocation::Delta(LayoutVector2D::new(0.0, 10.0)),
             ScrollType::Script,
         )
@@ -173,7 +173,7 @@ fn test_scroll_tree_chain_when_at_extent() {
     assert_eq!(scrolled_id, parent_external_id);
     assert_eq!(offset, expected_offset);
     assert_eq!(
-        scroll_tree.get_node(&parent_id).offset(),
+        scroll_tree.get_node(parent_id).offset(),
         Some(expected_offset)
     );
 }
@@ -186,7 +186,7 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
     // reflect `overflow: hidden` ie not responsive to non-script scroll events.
     let (parent_id, parent_external_id) = add_mock_scroll_node(&mut scroll_tree);
     let (overflow_hidden_id, overflow_hidden_external_id) = add_mock_scroll_node(&mut scroll_tree);
-    let node = scroll_tree.get_node_mut(&overflow_hidden_id);
+    let node = scroll_tree.get_node_mut(overflow_hidden_id);
 
     if let SpatialTreeNodeInfo::Scroll(ref mut scroll_node_info) = node.info {
         scroll_node_info.scroll_sensitivity = AxesScrollSensitivity {
@@ -197,7 +197,7 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
 
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
-            &overflow_hidden_external_id,
+            overflow_hidden_external_id,
             ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
             ScrollType::InputEvents,
         )
@@ -206,11 +206,11 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
     assert_eq!(scrolled_id, parent_external_id);
     assert_eq!(offset, expected_offset);
     assert_eq!(
-        scroll_tree.get_node(&parent_id).offset(),
+        scroll_tree.get_node(parent_id).offset(),
         Some(expected_offset)
     );
     assert_eq!(
-        scroll_tree.get_node(&overflow_hidden_id).offset(),
+        scroll_tree.get_node(overflow_hidden_id).offset(),
         Some(LayoutVector2D::new(0.0, 0.0))
     );
 }
