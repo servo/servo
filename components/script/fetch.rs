@@ -21,6 +21,8 @@ use net_traits::{
 };
 use servo_url::ServoUrl;
 
+use crate::body::BodyMixin;
+use crate::dom::abortsignal::AbortAlgorithm;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
     RequestInfo, RequestInit, RequestMethods,
@@ -45,12 +47,6 @@ use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener, submit_timing_data};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
-
-struct FetchContext {
-    fetch_promise: Option<TrustedPromise>,
-    response_object: Trusted<Response>,
-    resource_timing: ResourceFetchTiming,
-}
 
 /// RAII fetch canceller object.
 /// By default initialized to having a
@@ -146,22 +142,32 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
 /// <https://fetch.spec.whatwg.org/#abort-fetch>
 fn abort_fetch_call(
     promise: Rc<Promise>,
-    _request: &NetTraitsRequest,
-    _response_object: Option<&Response>,
+    request: &Request,
+    response_object: Option<&Response>,
     abort_reason: HandleValue,
+    global: &GlobalScope,
     cx: SafeJSContext,
     can_gc: CanGc,
 ) {
     // Step 1. Reject promise with error.
     promise.reject(cx, abort_reason, can_gc);
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
-    // TODO
+    if let Some(body) = request.body() {
+        if body.is_readable() {
+            body.cancel(cx, global, abort_reason, can_gc);
+        }
+    }
     // Step 3. If responseObject is null, then return.
-    // TODO
     // Step 4. Let response be responseObject’s response.
-    // TODO
+    let Some(response) = response_object else {
+        return;
+    };
     // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
-    // TODO
+    if let Some(body) = response.body() {
+        if body.is_readable() {
+            body.error(abort_reason, can_gc);
+        }
+    }
 }
 
 /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
@@ -196,6 +202,7 @@ pub(crate) fn Fetch(
     // Step 3. Let request be requestObject’s request.
     let request = request_object.get_request();
     let timing_type = request.timing_type();
+    let request_id = request.id;
 
     // Step 4. If requestObject’s signal is aborted, then:
     let signal = request_object.Signal();
@@ -205,9 +212,10 @@ pub(crate) fn Fetch(
         signal.Reason(cx, abort_reason.handle_mut());
         abort_fetch_call(
             promise.clone(),
-            &request,
+            &request_object,
             None,
             abort_reason.handle(),
+            global,
             cx,
             can_gc,
         );
@@ -232,43 +240,22 @@ pub(crate) fn Fetch(
     // Is `comp` as argument
 
     // Step 9. Let locallyAborted be false.
-    // TODO
     // Step 10. Let controller be null.
-    // TODO
-    // Step 11. Add the following abort steps to requestObject’s signal:
-    // TODO
-    // Step 11.1. Set locallyAborted to true.
-    // TODO
-    // Step 11.2. Assert: controller is non-null.
-    // TODO
-    // Step 11.3. Abort controller with requestObject’s signal’s abort reason.
-    // TODO
-    // Step 11.4. Abort the fetch() call with p, request, responseObject, and requestObject’s signal’s abort reason.
-    // TODO
-
-    // Step 12. Set controller to the result of calling fetch given request and
-    // processResponse given response being these steps:
     let fetch_context = Arc::new(Mutex::new(FetchContext {
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
+        request: Trusted::new(&*request_object),
+        global: Trusted::new(global),
         resource_timing: ResourceFetchTiming::new(timing_type),
+        locally_aborted: false,
+        canceller: FetchCanceller::new(request_id, global.core_resource_thread()),
     }));
 
-    // Step 12.1. If locallyAborted is true, then abort these steps.
-    // TODO
-    // Step 12.2. If response’s aborted flag is set, then:
-    // TODO
-    // Step 12.2.1. Let deserializedError be the result of deserialize a serialized
-    // abort reason given controller’s serialized abort reason and relevantRealm.
-    // TODO
-    // Step 12.2.2. Abort the fetch() call with p, request, responseObject, and deserializedError.
-    // TODO
-    // Step 12.2.3. Abort these steps.
-    // TODO
+    // Step 11. Add the following abort steps to requestObject’s signal:
+    signal.add(&AbortAlgorithm::Fetch(fetch_context.clone()));
 
-    // Step 12.3. If response is a network error, then reject p with a TypeError and abort these steps.
-    // Step 12.4. Set responseObject to the result of creating a Response object, given response, "immutable", and relevantRealm.
-    // Step 12.5. Resolve p with responseObject.
+    // Step 12. Set controller to the result of calling fetch given request and
+    // processResponse given response being these steps:
     global.fetch(
         request_init,
         fetch_context,
@@ -279,8 +266,58 @@ pub(crate) fn Fetch(
     promise
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct FetchContext {
+    #[ignore_malloc_size_of = "unclear ownership semantics"]
+    fetch_promise: Option<TrustedPromise>,
+    response_object: Trusted<Response>,
+    request: Trusted<Request>,
+    global: Trusted<GlobalScope>,
+    #[no_trace]
+    resource_timing: ResourceFetchTiming,
+    locally_aborted: bool,
+    canceller: FetchCanceller,
+}
+
 impl PreInvoke for FetchContext {}
 
+impl FetchContext {
+    /// Step 11 of <https://fetch.spec.whatwg.org/#dom-global-fetch>
+    pub(crate) fn abort_fetch(
+        &mut self,
+        abort_reason: HandleValue,
+        cx: SafeJSContext,
+        can_gc: CanGc,
+    ) {
+        // Step 11.1. Set locallyAborted to true.
+        self.locally_aborted = true;
+        // Step 11.2. Assert: controller is non-null.
+        //
+        // N/a, that's self
+
+        // Step 11.3. Abort controller with requestObject’s signal’s abort reason.
+        self.canceller.cancel();
+
+        // Step 11.4. Abort the fetch() call with p, request, responseObject,
+        // and requestObject’s signal’s abort reason.
+        let promise = self
+            .fetch_promise
+            .take()
+            .expect("fetch promise is missing")
+            .root();
+        abort_fetch_call(
+            promise,
+            &self.request.root(),
+            Some(&self.response_object.root()),
+            abort_reason,
+            &self.global.root(),
+            cx,
+            can_gc,
+        );
+    }
+}
+
+/// Step 12 of <https://fetch.spec.whatwg.org/#dom-global-fetch>
 impl FetchResponseListener for FetchContext {
     fn process_request_body(&mut self, _: RequestId) {
         // TODO
@@ -296,6 +333,10 @@ impl FetchResponseListener for FetchContext {
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
+        // Step 12.1. If locallyAborted is true, then abort these steps.
+        if self.locally_aborted {
+            return;
+        }
         let promise = self
             .fetch_promise
             .take()
@@ -304,7 +345,8 @@ impl FetchResponseListener for FetchContext {
 
         let _ac = enter_realm(&*promise);
         match fetch_metadata {
-            // Step 4.1
+            // Step 12.3. If response is a network error, then reject
+            // p with a TypeError and abort these steps.
             Err(_) => {
                 promise.reject_error(
                     Error::Type("Network error occurred".to_string()),
@@ -319,7 +361,8 @@ impl FetchResponseListener for FetchContext {
                 );
                 return;
             },
-            // Step 4.2
+            // Step 12.4. Set responseObject to the result of creating a Response object,
+            // given response, "immutable", and relevantRealm.
             Ok(metadata) => match metadata {
                 FetchMetadata::Unfiltered(m) => {
                     fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
@@ -354,7 +397,7 @@ impl FetchResponseListener for FetchContext {
             },
         }
 
-        // Step 4.3
+        // Step 12.5. Resolve p with responseObject.
         promise.resolve_native(&self.response_object.root(), CanGc::note());
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
