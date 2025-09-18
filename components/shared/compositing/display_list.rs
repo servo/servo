@@ -283,12 +283,14 @@ impl ScrollableNodeInfo {
 pub struct ScrollTreeNodeTransformationCache {
     node_to_root_transform: FastLayoutTransform,
     root_to_node_transform: Option<FastLayoutTransform>,
+    cumulative_sticky_offsets: LayoutVector2D,
 }
 
 #[derive(Default)]
 struct AncestorStickyInfo {
     nearest_scrolling_ancestor_offset: LayoutVector2D,
     nearest_scrolling_ancestor_viewport: LayoutRect,
+    cumulative_sticky_offsets: LayoutVector2D,
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -610,14 +612,8 @@ impl ScrollTree {
         &self,
         node_id: ScrollTreeNodeId,
     ) -> FastLayoutTransform {
-        let node = self.get_node(node_id);
-        if let Some(cached_transforms) = node.transformation_cache.get() {
-            return cached_transforms.node_to_root_transform;
-        }
-
-        let (transforms, _) = self.cumulative_node_transform_inner(node);
-        node.transformation_cache.set(Some(transforms));
-        transforms.node_to_root_transform
+        self.cumulative_node_transform(node_id)
+            .node_to_root_transform
     }
 
     /// Find a transformation that can convert a point in the root coordinate system to a
@@ -627,14 +623,29 @@ impl ScrollTree {
         &self,
         node_id: ScrollTreeNodeId,
     ) -> Option<FastLayoutTransform> {
+        self.cumulative_node_transform(node_id)
+            .root_to_node_transform
+    }
+
+    /// Find the cumulative offsets of sticky positioned boxes from the given node up to
+    /// the root.
+    pub fn cumulative_sticky_offsets(&self, node_id: ScrollTreeNodeId) -> LayoutVector2D {
+        self.cumulative_node_transform(node_id)
+            .cumulative_sticky_offsets
+    }
+
+    fn cumulative_node_transform(
+        &self,
+        node_id: ScrollTreeNodeId,
+    ) -> ScrollTreeNodeTransformationCache {
         let node = self.get_node(node_id);
         if let Some(cached_transforms) = node.transformation_cache.get() {
-            return cached_transforms.root_to_node_transform;
+            return cached_transforms;
         }
 
         let (transforms, _) = self.cumulative_node_transform_inner(node);
         node.transformation_cache.set(Some(transforms));
-        transforms.root_to_node_transform
+        transforms
     }
 
     /// Traverse a scroll node to its root to calculate the transform.
@@ -678,6 +689,7 @@ impl ScrollTree {
             SpatialTreeNodeInfo::Sticky(info) => {
                 let offset = info.calculate_sticky_offset(&sticky_info);
                 sticky_info.nearest_scrolling_ancestor_offset += offset;
+                sticky_info.cumulative_sticky_offsets += offset;
                 let offset_transform = FastLayoutTransform::Offset(offset);
                 (offset_transform, offset_transform.inverse())
             },
@@ -696,6 +708,7 @@ impl ScrollTree {
         let transforms = ScrollTreeNodeTransformationCache {
             node_to_root_transform,
             root_to_node_transform,
+            cumulative_sticky_offsets: sticky_info.cumulative_sticky_offsets,
         };
         (transforms, sticky_info)
     }

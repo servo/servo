@@ -64,8 +64,7 @@ fn root_transform_for_layout_node(
         .first()
         .and_then(Fragment::retrieve_box_fragment)?
         .borrow();
-    let scroll_tree_node_id = box_fragment.spatial_tree_node.borrow();
-    let scroll_tree_node_id = (*scroll_tree_node_id)?;
+    let scroll_tree_node_id = box_fragment.spatial_tree_node()?;
     Some(scroll_tree.cumulative_node_to_root_transform(scroll_tree_node_id))
 }
 
@@ -565,7 +564,10 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
 }
 
 #[inline]
-pub fn process_offset_parent_query(node: ServoLayoutNode<'_>) -> Option<OffsetParentResponse> {
+pub fn process_offset_parent_query(
+    scroll_tree: &ScrollTree,
+    node: ServoLayoutNode<'_>,
+) -> Option<OffsetParentResponse> {
     // Only consider the first fragment of the node found as per a
     // possible interpretation of the specification: "[...] return the
     // y-coordinate of the top border edge of the first CSS layout box
@@ -588,6 +590,16 @@ pub fn process_offset_parent_query(node: ServoLayoutNode<'_>) -> Option<OffsetPa
         .first()
         .cloned()?;
     let mut border_box = fragment.cumulative_box_area_rect(BoxAreaType::Border)?;
+    let cumulative_sticky_offsets = fragment
+        .retrieve_box_fragment()
+        .and_then(|box_fragment| box_fragment.borrow().spatial_tree_node())
+        .map(|node_id| {
+            scroll_tree
+                .cumulative_sticky_offsets(node_id)
+                .map(Au::from_f32_px)
+                .cast_unit()
+        });
+    border_box = border_box.translate(cumulative_sticky_offsets.unwrap_or_default());
 
     // 2.  If the offsetParent of the element is null return the x-coordinate of the left
     //     border edge of the first CSS layout box associated with the element, relative to
@@ -638,7 +650,18 @@ pub fn process_offset_parent_query(node: ServoLayoutNode<'_>) -> Option<OffsetPa
         }
     } else {
         parent_fragment.offset_by_containing_block(&parent_fragment.padding_rect())
-    };
+    }
+    .translate(
+        cumulative_sticky_offsets
+            .and_then(|_| parent_fragment.spatial_tree_node())
+            .map(|node_id| {
+                scroll_tree
+                    .cumulative_sticky_offsets(node_id)
+                    .map(Au::from_f32_px)
+                    .cast_unit()
+            })
+            .unwrap_or_default(),
+    );
 
     border_box = border_box.translate(-parent_offset_rect.origin.to_vector());
 
