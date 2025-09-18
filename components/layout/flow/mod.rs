@@ -1375,11 +1375,12 @@ impl IndependentFormattingContext {
         };
 
         let justify_self = resolve_justify_self(style, containing_block.style);
-        let is_replaced = self.is_replaced();
+        let automatic_inline_size =
+            automatic_inline_size(justify_self, is_table, self.is_replaced());
         let compute_inline_size = |stretch_size| {
             content_box_sizes.inline.resolve(
                 Direction::Inline,
-                automatic_inline_size(justify_self, is_table, is_replaced),
+                automatic_inline_size,
                 Au::zero,
                 Some(stretch_size),
                 get_inline_content_sizes,
