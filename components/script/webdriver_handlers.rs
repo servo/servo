@@ -1285,8 +1285,6 @@ pub(crate) fn handle_will_send_keys(
                     // run the focusing steps for the element.
                     if let Some(html_element) = element.downcast::<HTMLElement>() {
                         if !element.is_active_element() {
-                            // TODO: "Focusing steps" has a different meaning from the focus() method.
-                            // The actual focusing steps should be implemented
                             html_element.Focus(
                                 &FocusOptions {
                                     preventScroll: true,
@@ -1830,8 +1828,6 @@ fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), Er
     }
 
     // Step 3. Invoke the focusing steps for the element.
-    // TODO: "Focusing steps" has a different meaning from the focus() method.
-    // The actual focusing steps should be implemented
     html_element.Focus(
         &FocusOptions {
             preventScroll: true,
@@ -1989,8 +1985,6 @@ pub(crate) fn handle_element_click(
                         // Step 8.5
                         match container.downcast::<HTMLElement>() {
                             Some(html_element) => {
-                                // TODO: "Focusing steps" has a different meaning from the focus() method.
-                                // The actual focusing steps should be implemented
                                 html_element.Focus(
                                     &FocusOptions {
                                         preventScroll: true,
