@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use base::Epoch;
+use base::generic_channel::GenericSender;
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
     FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
@@ -23,7 +24,7 @@ use fonts::{
     ByteIndex, FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
     LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc;
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
@@ -193,9 +194,8 @@ impl CanvasContextState {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(super) struct CanvasState {
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
     #[no_trace]
-    ipc_renderer: IpcSender<CanvasMsg>,
+    ipc_renderer: GenericSender<CanvasMsg>,
     #[no_trace]
     canvas_id: CanvasId,
     #[no_trace]

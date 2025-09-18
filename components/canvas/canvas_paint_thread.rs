@@ -5,14 +5,13 @@
 use std::borrow::ToOwned;
 use std::{f32, thread};
 
-use base::Epoch;
+use base::generic_channel::GenericSender;
+use base::{Epoch, generic_channel};
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
 use compositing_traits::CrossProcessCompositorApi;
 use crossbeam_channel::{Sender, select, unbounded};
 use euclid::default::{Rect, Size2D, Transform2D};
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use log::warn;
 use pixels::Snapshot;
 use rustc_hash::FxHashMap;
@@ -39,9 +38,9 @@ impl CanvasPaintThread {
     /// communicate with it.
     pub fn start(
         compositor_api: CrossProcessCompositorApi,
-    ) -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
-        let (ipc_sender, ipc_receiver) = ipc::channel::<CanvasMsg>().unwrap();
-        let msg_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_receiver);
+    ) -> (Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>) {
+        let (ipc_sender, ipc_receiver) = generic_channel::channel::<CanvasMsg>().unwrap();
+        let msg_receiver = ipc_receiver.route_preserving_errors();
         let (create_sender, create_receiver) = unbounded();
         thread::Builder::new()
             .name("Canvas".to_owned())
@@ -52,17 +51,21 @@ impl CanvasPaintThread {
                     select! {
                         recv(msg_receiver) -> msg => {
                             match msg {
-                                Ok(CanvasMsg::Canvas2d(message, canvas_id)) => {
+                                Ok(Ok(CanvasMsg::Canvas2d(message, canvas_id))) => {
                                     canvas_paint_thread.process_canvas_2d_message(message, canvas_id);
                                 },
-                                Ok(CanvasMsg::Close(canvas_id)) => {
+                                Ok(Ok(CanvasMsg::Close(canvas_id))) => {
                                     canvas_paint_thread.canvases.remove(&canvas_id);
                                 },
-                                Ok(CanvasMsg::Recreate(size, canvas_id)) => {
+                                Ok(Ok(CanvasMsg::Recreate(size, canvas_id))) => {
                                     canvas_paint_thread.canvas(canvas_id).recreate(size);
                                 },
-                                Err(e) => {
-                                    warn!("Error on CanvasPaintThread receive ({})", e);
+                                Ok(Err(e)) => {
+                                    warn!("CanvasPaintThread message deserialization error: {e:?}");
+                                }
+                                Err(_disconnected) => {
+                                    warn!("CanvasMsg receiver disconnected");
+                                    break;
                                 },
                             }
                         }

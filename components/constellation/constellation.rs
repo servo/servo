@@ -451,7 +451,7 @@ pub struct Constellation<STF, SWF> {
     webxr_registry: Option<webxr_api::Registry>,
 
     /// Lazily initialized channels for canvas paint thread.
-    canvas: OnceCell<(Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>)>,
+    canvas: OnceCell<(Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>)>,
 
     /// Navigation requests from script awaiting approval from the embedder.
     pending_approval_navigations: PendingApprovalNavigations,
@@ -4495,7 +4495,7 @@ where
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
         size: UntypedSize2D<u64>,
-        response_sender: IpcSender<Option<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>>,
+        response_sender: IpcSender<Option<(GenericSender<CanvasMsg>, CanvasId, ImageKey)>>,
     ) {
         let (canvas_data_sender, canvas_data_receiver) = unbounded();
         let (canvas_sender, canvas_ipc_sender) = self
@@ -5648,7 +5648,9 @@ where
         }
     }
 
-    fn create_canvas_paint_thread(&self) -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
+    fn create_canvas_paint_thread(
+        &self,
+    ) -> (Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>) {
         CanvasPaintThread::start(self.compositor_proxy.cross_process_compositor_api.clone())
     }
 }
