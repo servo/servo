@@ -11,14 +11,12 @@ use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
 use embedder_traits::webdriver::WebDriverSenders;
-use euclid::Vector2D;
-use keyboard_types::{Key, Modifiers, NamedKey, ShortcutMatcher};
+use keyboard_types::ShortcutMatcher;
 use log::{error, info};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
@@ -32,7 +30,7 @@ use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
-use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
+use super::window_trait::WindowPortsMethods;
 use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
@@ -414,7 +412,6 @@ impl RunningAppState {
 
     /// Handle servoshell key bindings that may have been prevented by the page in the focused webview.
     fn handle_overridable_key_bindings(&self, webview: ::servo::WebView, event: KeyboardEvent) {
-        let origin = webview.rect().min.ceil().to_i32();
         ShortcutMatcher::from_event(event.event)
             .shortcut(CMD_OR_CONTROL, '=', || {
                 webview.set_zoom(1.1);
@@ -427,42 +424,6 @@ impl RunningAppState {
             })
             .shortcut(CMD_OR_CONTROL, '0', || {
                 webview.reset_zoom();
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageDown), || {
-                let scroll_location = ScrollLocation::Delta(Vector2D::new(
-                    0.0,
-                    self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
-                ));
-                webview.notify_scroll_event(scroll_location, origin);
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageUp), || {
-                let scroll_location = ScrollLocation::Delta(Vector2D::new(
-                    0.0,
-                    -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
-                ));
-                webview.notify_scroll_event(scroll_location, origin);
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Home), || {
-                webview.notify_scroll_event(ScrollLocation::Start, origin);
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::End), || {
-                webview.notify_scroll_event(ScrollLocation::End, origin);
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowUp), || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, -LINE_HEIGHT));
-                webview.notify_scroll_event(location, origin);
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowDown), || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, LINE_HEIGHT));
-                webview.notify_scroll_event(location, origin);
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowLeft), || {
-                let location = ScrollLocation::Delta(Vector2D::new(-LINE_WIDTH, 0.0));
-                webview.notify_scroll_event(location, origin);
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowRight), || {
-                let location = ScrollLocation::Delta(Vector2D::new(LINE_WIDTH, 0.0));
-                webview.notify_scroll_event(location, origin);
             });
     }
 

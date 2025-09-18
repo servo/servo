@@ -12,8 +12,8 @@ use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
-    BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse, ScrollContainerQueryType,
-    ScrollContainerResponse,
+    BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse,
+    ScrollContainerQueryFlags, ScrollContainerResponse,
 };
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
@@ -654,7 +654,7 @@ pub fn process_offset_parent_query(node: ServoLayoutNode<'_>) -> Option<OffsetPa
 #[inline]
 pub(crate) fn process_scroll_container_query(
     node: ServoLayoutNode<'_>,
-    query_type: ScrollContainerQueryType,
+    query_type: ScrollContainerQueryFlags,
 ) -> Option<ScrollContainerResponse> {
     let layout_data = node.to_threadsafe().inner_layout_data()?;
 
@@ -663,20 +663,26 @@ pub(crate) fn process_scroll_container_query(
     let layout_box = layout_data.self_box.borrow();
     let layout_box = layout_box.as_ref()?;
 
-    let (mut current_position_value, flags) = layout_box
-        .with_first_base(|base| (base.style.clone_position(), base.base_fragment_info.flags))?;
+    let (style, flags) =
+        layout_box.with_first_base(|base| (base.style.clone(), base.base_fragment_info.flags))?;
 
     // - The element is the root element.
     // - The element is the body element.
     //
     // Note: We only do this for `scrollParent`, which needs to be null. But `scrollIntoView` on the
     // `<body>` or root element should still bring it into view by scrolling the viewport.
-    if query_type == ScrollContainerQueryType::ForScrollParent &&
+    if query_type == ScrollContainerQueryFlags::ForScrollParent &&
         flags.intersects(
             FragmentFlags::IS_ROOT_ELEMENT | FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT,
         )
     {
         return None;
+    }
+
+    if query_type == ScrollContainerQueryFlags::Inclusive &&
+        style.establishes_scroll_container(flags)
+    {
+        return Some(ScrollContainerResponse::Element(node.opaque().into()));
     }
 
     // - The element’s computed value of the position property is fixed and no ancestor
@@ -698,6 +704,7 @@ pub(crate) fn process_scroll_container_query(
     // Notes: We don't follow the specification exactly below, but we follow the spirit.
     //
     // TODO: Handle the situation where the ancestor is "closed-shadow-hidden" from the element.
+    let mut current_position_value = style.clone_position();
     let mut current_ancestor = node.as_element()?;
     while let Some(ancestor) = current_ancestor.traversal_parent() {
         current_ancestor = ancestor;

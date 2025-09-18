@@ -308,7 +308,7 @@ pub trait Layout {
     fn query_scroll_container(
         &self,
         node: TrustedNodeAddress,
-        query_type: ScrollContainerQueryType,
+        flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse>;
     fn query_resolved_style(
         &self,
@@ -366,10 +366,14 @@ pub struct OffsetParentResponse {
     pub rect: Rect<Au>,
 }
 
-#[derive(PartialEq)]
-pub enum ScrollContainerQueryType {
-    ForScrollParent,
-    ForScrollIntoView,
+bitflags! {
+    #[derive(PartialEq)]
+    pub struct ScrollContainerQueryFlags: u8 {
+        /// Whether or not this query is for the purposes of a `scrollParent` layout query.
+        const ForScrollParent = 1 << 0;
+        /// Whether or not to consider the original element's scroll box for the return value.
+        const Inclusive = 1 << 1;
+    }
 }
 
 #[derive(Clone)]

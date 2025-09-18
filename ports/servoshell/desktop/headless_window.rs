@@ -118,12 +118,6 @@ impl WindowPortsMethods for Window {
             .unwrap_or_else(|| self.device_hidpi_scale_factor())
     }
 
-    fn page_height(&self) -> f32 {
-        let height = self.inner_size.get().height;
-        let dpr = self.hidpi_scale_factor();
-        height as f32 * dpr.get()
-    }
-
     fn set_fullscreen(&self, state: bool) {
         self.fullscreen.set(state);
     }

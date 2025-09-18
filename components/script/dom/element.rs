@@ -24,7 +24,7 @@ use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_pr
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use layout_api::{LayoutDamage, ScrollContainerQueryType, ScrollContainerResponse};
+use layout_api::{LayoutDamage, ScrollContainerQueryFlags, ScrollContainerResponse};
 use net_traits::ReferrerPolicy;
 use net_traits::request::CorsSettings;
 use selectors::Element as SelectorsElement;
@@ -61,7 +61,7 @@ use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
-use webrender_api::units::LayoutVector2D;
+use webrender_api::units::{LayoutSize, LayoutVector2D};
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
@@ -276,13 +276,13 @@ impl FromStr for AdjacentPosition {
 
 /// Represents a scrolling box that can be either an element or the viewport
 /// <https://drafts.csswg.org/cssom-view/#scrolling-box>
-enum ScrollingBox {
+pub(crate) enum ScrollingBox {
     Element(DomRoot<Element>),
     Viewport(DomRoot<Document>),
 }
 
 impl ScrollingBox {
-    fn scroll_position(&self) -> LayoutVector2D {
+    pub(crate) fn scroll_offset(&self) -> LayoutVector2D {
         match self {
             ScrollingBox::Element(element) => element
                 .owner_window()
@@ -291,9 +291,33 @@ impl ScrollingBox {
         }
     }
 
-    fn parent(&self) -> Option<ScrollingBox> {
+    pub(crate) fn content_size(&self) -> LayoutSize {
+        let (document, node_to_query) = match self {
+            ScrollingBox::Element(element) => (element.owner_document(), Some(element.upcast())),
+            ScrollingBox::Viewport(document) => (document.clone(), None),
+        };
+        document
+            .window()
+            .scrolling_area_query(node_to_query)
+            .size
+            .to_f32()
+            .cast_unit()
+    }
+
+    pub(crate) fn size(&self) -> LayoutSize {
         match self {
-            ScrollingBox::Element(element) => element.scrolling_box(),
+            ScrollingBox::Element(element) => element.client_rect().size.to_f32().cast_unit(),
+            ScrollingBox::Viewport(document) => {
+                document.window().viewport_details().size.cast_unit()
+            },
+        }
+    }
+
+    pub(crate) fn parent(&self) -> Option<ScrollingBox> {
+        match self {
+            ScrollingBox::Element(element) => {
+                element.scrolling_box(ScrollContainerQueryFlags::empty())
+            },
             ScrollingBox::Viewport(_) => None,
         }
     }
@@ -302,6 +326,19 @@ impl ScrollingBox {
         match self {
             ScrollingBox::Element(element) => element.upcast(),
             ScrollingBox::Viewport(document) => document.upcast(),
+        }
+    }
+
+    pub(crate) fn scroll_to(&self, x: f32, y: f32, behavior: ScrollBehavior) {
+        match self {
+            ScrollingBox::Element(element) => {
+                element
+                    .owner_window()
+                    .scroll_an_element(element, x, y, behavior);
+            },
+            ScrollingBox::Viewport(document) => {
+                document.window().scroll(x, y, behavior);
+            },
         }
     }
 }
@@ -871,9 +908,9 @@ impl Element {
     }
 
     #[allow(unsafe_code)]
-    fn scrolling_box(&self) -> Option<ScrollingBox> {
+    pub(crate) fn scrolling_box(&self, flags: ScrollContainerQueryFlags) -> Option<ScrollingBox> {
         self.owner_window()
-            .scroll_container_query(self.upcast(), ScrollContainerQueryType::ForScrollIntoView)
+            .scroll_container_query(self.upcast(), flags)
             .and_then(|response| match response {
                 ScrollContainerResponse::Viewport => {
                     Some(ScrollingBox::Viewport(self.owner_document()))
@@ -895,7 +932,7 @@ impl Element {
     ) {
         // Step 1: For each ancestor element or viewport that establishes a scrolling box `scrolling
         // box`, in order of innermost to outermost scrolling box, run these substeps:
-        let mut parent_scrolling_box = self.scrolling_box();
+        let mut parent_scrolling_box = self.scrolling_box(ScrollContainerQueryFlags::empty());
         while let Some(scrolling_box) = parent_scrolling_box {
             parent_scrolling_box = scrolling_box.parent();
 
@@ -915,27 +952,18 @@ impl Element {
             // `scrolling box` has an ongoing smooth scroll,
             //
             // TODO: Handle smooth scrolling.
-            if position != scrolling_box.scroll_position() {
-                match &scrolling_box {
-                    //  ↪ If `scrolling box` is associated with an element
-                    ScrollingBox::Element(element) => {
-                        // Perform a scroll of the element’s scrolling box to `position`,
-                        // with the `element` as the associated element and `behavior` as the
-                        // scroll behavior.
-                        element
-                            .owner_window()
-                            .scroll_an_element(element, position.x, position.y, behavior);
-                    },
-                    //  ↪ If `scrolling box` is associated with a viewport
-                    ScrollingBox::Viewport(document) => {
-                        // Step 1: Let `document` be the viewport’s associated Document.
-                        // Step 2: Let `root element` be document’s root element, if there is one, or
-                        // null otherwise.
-                        // Step 3: Perform a scroll of the viewport to `position`, with `root element`
-                        // as the associated element and `behavior` as the scroll behavior.
-                        document.window().scroll(position.x, position.y, behavior);
-                    },
-                }
+            if position != scrolling_box.scroll_offset() {
+                //  ↪ If `scrolling box` is associated with an element
+                //    Perform a scroll of the element’s scrolling box to `position`,
+                //    with the `element` as the associated element and `behavior` as the
+                //    scroll behavior.
+                //  ↪ If `scrolling box` is associated with a viewport
+                //    Step 1: Let `document` be the viewport’s associated Document.
+                //    Step 2: Let `root element` be document’s root element, if there is one, or
+                //    null otherwise.
+                //    Step 3: Perform a scroll of the viewport to `position`, with `root element`
+                //    as the associated element and `behavior` as the scroll behavior.
+                scrolling_box.scroll_to(position.x, position.y, behavior);
             }
 
             // Step 1.4: If `container` is not null and either `scrolling box` is a shadow-including
