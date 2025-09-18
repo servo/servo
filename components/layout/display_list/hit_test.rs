@@ -103,7 +103,7 @@ impl<'a> HitTest<'a> {
             .stacking_context_tree
             .compositor_info
             .scroll_tree
-            .cumulative_root_to_node_transform(&scroll_tree_node_id)?;
+            .cumulative_root_to_node_transform(scroll_tree_node_id)?;
 
         let projected_point = transform.project_point2d(self.point_to_test)?;
 

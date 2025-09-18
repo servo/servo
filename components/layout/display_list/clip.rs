@@ -69,8 +69,8 @@ impl StackingContextTreeClipStore {
     pub(super) fn add_for_clip_path(
         &mut self,
         clip_path: ClipPath,
-        parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_chain_id: &ClipId,
+        parent_scroll_node_id: ScrollTreeNodeId,
+        parent_clip_chain_id: ClipId,
         fragment_builder: BuilderForBoxFragment,
     ) -> Option<ClipId> {
         let geometry_box = match clip_path {
@@ -108,8 +108,8 @@ impl StackingContextTreeClipStore {
                     _ => fragment_builder.border_radius,
                 },
                 layout_rect,
-                *parent_scroll_node_id,
-                *parent_clip_chain_id,
+                parent_scroll_node_id,
+                parent_clip_chain_id,
             ))
         }
     }
@@ -119,8 +119,8 @@ impl StackingContextTreeClipStore {
         &mut self,
         shape: BasicShape,
         layout_box: LayoutRect,
-        parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_chain_id: &ClipId,
+        parent_scroll_node_id: ScrollTreeNodeId,
+        parent_clip_chain_id: ClipId,
     ) -> Option<ClipId> {
         match shape {
             BasicShape::Rect(rect) => {
@@ -159,8 +159,8 @@ impl StackingContextTreeClipStore {
                 Some(self.add(
                     radii,
                     shape_rect,
-                    *parent_scroll_node_id,
-                    *parent_clip_chain_id,
+                    parent_scroll_node_id,
+                    parent_clip_chain_id,
                 ))
             },
             BasicShape::Circle(circle) => {
@@ -207,7 +207,7 @@ impl StackingContextTreeClipStore {
                 let start = center.add_size(&-radius);
                 let rect = LayoutRect::from_origin_and_size(start, radius * 2.);
                 normalize_radii(&layout_box, &mut radii);
-                Some(self.add(radii, rect, *parent_scroll_node_id, *parent_clip_chain_id))
+                Some(self.add(radii, rect, parent_scroll_node_id, parent_clip_chain_id))
             },
             BasicShape::Ellipse(ellipse) => {
                 let center = match ellipse.position {
@@ -247,7 +247,7 @@ impl StackingContextTreeClipStore {
                 let start = center.add_size(&-size);
                 let rect = LayoutRect::from_origin_and_size(start, size * 2.);
                 normalize_radii(&rect, &mut radii);
-                Some(self.add(radii, rect, *parent_scroll_node_id, *parent_clip_chain_id))
+                Some(self.add(radii, rect, parent_scroll_node_id, parent_clip_chain_id))
             },
             _ => None,
         }

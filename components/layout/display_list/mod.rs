@@ -238,7 +238,7 @@ impl DisplayListBuilder<'_> {
     }
 
     fn spatial_id(&self, id: ScrollTreeNodeId) -> SpatialId {
-        self.compositor_info.scroll_tree.webrender_id(&id)
+        self.compositor_info.scroll_tree.webrender_id(id)
     }
 
     fn clip_chain_id(&self, id: ClipId) -> ClipChainId {

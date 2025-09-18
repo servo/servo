@@ -204,7 +204,7 @@ impl StackingContextTree {
         &mut self,
         origin: LayoutPoint,
         frame_origin_for_query: LayoutPoint,
-        parent_scroll_node_id: &ScrollTreeNodeId,
+        parent_scroll_node_id: ScrollTreeNodeId,
         transform_style: wr::TransformStyle,
         transform: LayoutTransform,
         kind: wr::ReferenceFrameKind,
@@ -223,7 +223,7 @@ impl StackingContextTree {
 
     fn define_scroll_frame(
         &mut self,
-        parent_scroll_node_id: &ScrollTreeNodeId,
+        parent_scroll_node_id: ScrollTreeNodeId,
         external_id: wr::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
@@ -244,7 +244,7 @@ impl StackingContextTree {
 
     fn define_sticky_frame(
         &mut self,
-        parent_scroll_node_id: &ScrollTreeNodeId,
+        parent_scroll_node_id: ScrollTreeNodeId,
         frame_rect: LayoutRect,
         margins: SideOffsets2D<Option<f32>, LayoutPixel>,
         vertical_offset_bounds: StickyOffsetBounds,
@@ -1018,7 +1018,7 @@ impl BoxFragment {
         let new_spatial_id = stacking_context_tree.push_reference_frame(
             reference_frame_data.origin.to_webrender(),
             frame_origin_for_query,
-            &containing_block.scroll_node_id,
+            containing_block.scroll_node_id,
             self.style.get_box().transform_style.to_webrender(),
             reference_frame_data.transform,
             reference_frame_data.kind,
@@ -1100,8 +1100,8 @@ impl BoxFragment {
             .clip_store
             .add_for_clip_path(
                 self.style.clone_clip_path(),
-                &containing_block.scroll_node_id,
-                &containing_block.clip_id,
+                containing_block.scroll_node_id,
+                containing_block.clip_id,
                 BuilderForBoxFragment::new(
                     self,
                     &containing_block.rect,
@@ -1166,7 +1166,7 @@ impl BoxFragment {
 
         if let Some(scroll_node_id) = self.build_sticky_frame_if_necessary(
             stacking_context_tree,
-            &new_scroll_node_id,
+            new_scroll_node_id,
             &containing_block.rect,
             &new_scroll_frame_size,
         ) {
@@ -1175,7 +1175,7 @@ impl BoxFragment {
 
         if let Some(clip_id) = self.build_clip_frame_if_necessary(
             stacking_context_tree,
-            &new_scroll_node_id,
+            new_scroll_node_id,
             new_clip_id,
             &containing_block.rect,
         ) {
@@ -1184,8 +1184,8 @@ impl BoxFragment {
 
         if let Some(clip_id) = stacking_context_tree.clip_store.add_for_clip_path(
             self.style.clone_clip_path(),
-            &new_scroll_node_id,
-            &new_clip_id,
+            new_scroll_node_id,
+            new_clip_id,
             BuilderForBoxFragment::new(
                 self,
                 &containing_block.rect,
@@ -1243,7 +1243,7 @@ impl BoxFragment {
         // they shouldn't scroll with the rest of the box content.
         if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
             stacking_context_tree,
-            &new_scroll_node_id,
+            new_scroll_node_id,
             new_clip_id,
             &containing_block.rect,
         ) {
@@ -1371,7 +1371,7 @@ impl BoxFragment {
     fn build_clip_frame_if_necessary(
         &self,
         stacking_context_tree: &mut StackingContextTree,
-        parent_scroll_node_id: &ScrollTreeNodeId,
+        parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_id: ClipId,
         containing_block_rect: &PhysicalRect<Au>,
     ) -> Option<ClipId> {
@@ -1396,7 +1396,7 @@ impl BoxFragment {
         Some(stacking_context_tree.clip_store.add(
             BorderRadius::zero(),
             clip_rect,
-            *parent_scroll_node_id,
+            parent_scroll_node_id,
             parent_clip_id,
         ))
     }
@@ -1404,7 +1404,7 @@ impl BoxFragment {
     fn build_overflow_frame_if_necessary(
         &self,
         stacking_context_tree: &mut StackingContextTree,
-        parent_scroll_node_id: &ScrollTreeNodeId,
+        parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_id: ClipId,
         containing_block_rect: &PhysicalRect<Au>,
     ) -> Option<OverflowFrameData> {
@@ -1448,7 +1448,7 @@ impl BoxFragment {
             let clip_id = stacking_context_tree.clip_store.add(
                 radii,
                 overflow_clip_rect,
-                *parent_scroll_node_id,
+                parent_scroll_node_id,
                 parent_clip_id,
             );
 
@@ -1466,7 +1466,7 @@ impl BoxFragment {
         let clip_id = stacking_context_tree.clip_store.add(
             BuilderForBoxFragment::new(self, containing_block_rect, false, false).border_radius,
             scroll_frame_rect,
-            *parent_scroll_node_id,
+            parent_scroll_node_id,
             parent_clip_id,
         );
 
@@ -1501,7 +1501,7 @@ impl BoxFragment {
     fn build_sticky_frame_if_necessary(
         &self,
         stacking_context_tree: &mut StackingContextTree,
-        parent_scroll_node_id: &ScrollTreeNodeId,
+        parent_scroll_node_id: ScrollTreeNodeId,
         containing_block_rect: &PhysicalRect<Au>,
         scroll_frame_size: &Option<LayoutSize>,
     ) -> Option<ScrollTreeNodeId> {
