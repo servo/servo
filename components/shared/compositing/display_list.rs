@@ -77,10 +77,11 @@ impl StickyNodeInfo {
     /// sticky positioning from its ancestors.
     ///
     /// This is originally taken from WebRender `SpatialTree` implementation.
-    fn calculate_sticky_offset(&self, ancestor_sticky_info: &AncestorStickyInfo) -> LayoutVector2D {
-        let viewport_scroll_offset = &ancestor_sticky_info.nearest_scrolling_ancestor_offset;
-        let viewport_rect = &ancestor_sticky_info.nearest_scrolling_ancestor_viewport;
-
+    fn calculate_sticky_offset(
+        &self,
+        viewport_scroll_offset: &LayoutVector2D,
+        viewport_rect: &LayoutRect,
+    ) -> LayoutVector2D {
         if self.margins.top.is_none() &&
             self.margins.bottom.is_none() &&
             self.margins.left.is_none() &&
@@ -283,11 +284,6 @@ impl ScrollableNodeInfo {
 pub struct ScrollTreeNodeTransformationCache {
     node_to_root_transform: FastLayoutTransform,
     root_to_node_transform: Option<FastLayoutTransform>,
-    cumulative_sticky_offsets: LayoutVector2D,
-}
-
-#[derive(Default)]
-struct AncestorStickyInfo {
     nearest_scrolling_ancestor_offset: LayoutVector2D,
     nearest_scrolling_ancestor_viewport: LayoutRect,
     cumulative_sticky_offsets: LayoutVector2D,
@@ -643,7 +639,7 @@ impl ScrollTree {
             return cached_transforms;
         }
 
-        let (transforms, _) = self.cumulative_node_transform_inner(node);
+        let transforms = self.cumulative_node_transform_inner(node);
         node.transformation_cache.set(Some(transforms));
         transforms
     }
@@ -652,65 +648,75 @@ impl ScrollTree {
     fn cumulative_node_transform_inner(
         &self,
         node: &ScrollTreeNode,
-    ) -> (ScrollTreeNodeTransformationCache, AncestorStickyInfo) {
-        let (parent_transforms, mut sticky_info) = match node.parent {
-            Some(parent_id) => self.cumulative_node_transform_inner(self.get_node(parent_id)),
-            None => (Default::default(), Default::default()),
+    ) -> ScrollTreeNodeTransformationCache {
+        let parent_transforms = node
+            .parent
+            .map(|parent_id| self.cumulative_node_transform(parent_id))
+            .unwrap_or_default();
+
+        let node_to_root_transform = |node_to_parent_transform: FastLayoutTransform| {
+            node_to_parent_transform.then(&parent_transforms.node_to_root_transform)
+        };
+        let root_to_node_transform = |parent_to_node_transform: FastLayoutTransform| {
+            parent_transforms
+                .root_to_node_transform
+                .map_or(parent_to_node_transform, |parent_transform| {
+                    parent_transform.then(&parent_to_node_transform)
+                })
         };
 
-        let (node_to_parent_transform, parent_to_node_transform) = match &node.info {
+        match &node.info {
             SpatialTreeNodeInfo::ReferenceFrame(info) => {
                 // To apply a transformation we need to make sure the rectangle's
                 // coordinate space is the same as reference frame's coordinate space.
                 let offset = info.frame_origin_for_query.to_vector();
                 let node_to_parent_transform =
                     info.transform.pre_translate(-offset).then_translate(offset);
-
-                let parent_to_node_transform =
-                    FastLayoutTransform::Offset(-info.origin.to_vector());
-                let parent_to_node_transform = info
-                    .transform
-                    .inverse()
-                    .map(|inverse_transform| parent_to_node_transform.then(&inverse_transform));
-
-                sticky_info.nearest_scrolling_ancestor_viewport = sticky_info
-                    .nearest_scrolling_ancestor_viewport
-                    .translate(-info.origin.to_vector());
-
-                (node_to_parent_transform, parent_to_node_transform)
+                let parent_to_node_transform = info.transform.inverse().map(|inverse_transform| {
+                    FastLayoutTransform::Offset(-info.origin.to_vector()).then(&inverse_transform)
+                });
+                ScrollTreeNodeTransformationCache {
+                    node_to_root_transform: node_to_root_transform(node_to_parent_transform),
+                    root_to_node_transform: parent_to_node_transform.map(root_to_node_transform),
+                    nearest_scrolling_ancestor_viewport: parent_transforms
+                        .nearest_scrolling_ancestor_viewport
+                        .translate(-info.origin.to_vector()),
+                    nearest_scrolling_ancestor_offset: parent_transforms
+                        .nearest_scrolling_ancestor_offset,
+                    cumulative_sticky_offsets: parent_transforms.cumulative_sticky_offsets,
+                }
             },
             SpatialTreeNodeInfo::Scroll(info) => {
-                sticky_info.nearest_scrolling_ancestor_viewport = info.clip_rect;
-                sticky_info.nearest_scrolling_ancestor_offset = -info.offset;
-                let offset_transform = FastLayoutTransform::Offset(-info.offset);
-                (offset_transform, offset_transform.inverse())
+                let node_to_parent_transform = FastLayoutTransform::Offset(-info.offset);
+                let parent_to_node_transform = node_to_parent_transform.inverse();
+                ScrollTreeNodeTransformationCache {
+                    node_to_root_transform: node_to_root_transform(node_to_parent_transform),
+                    root_to_node_transform: parent_to_node_transform.map(root_to_node_transform),
+                    nearest_scrolling_ancestor_viewport: info.clip_rect,
+                    nearest_scrolling_ancestor_offset: -info.offset,
+                    cumulative_sticky_offsets: parent_transforms.cumulative_sticky_offsets,
+                }
             },
 
             SpatialTreeNodeInfo::Sticky(info) => {
-                let offset = info.calculate_sticky_offset(&sticky_info);
-                sticky_info.nearest_scrolling_ancestor_offset += offset;
-                sticky_info.cumulative_sticky_offsets += offset;
-                let offset_transform = FastLayoutTransform::Offset(offset);
-                (offset_transform, offset_transform.inverse())
+                let offset = info.calculate_sticky_offset(
+                    &parent_transforms.nearest_scrolling_ancestor_offset,
+                    &parent_transforms.nearest_scrolling_ancestor_viewport,
+                );
+                let node_to_parent_transform = FastLayoutTransform::Offset(offset);
+                let parent_to_node_transform = node_to_parent_transform.inverse();
+                ScrollTreeNodeTransformationCache {
+                    node_to_root_transform: node_to_root_transform(node_to_parent_transform),
+                    root_to_node_transform: parent_to_node_transform.map(root_to_node_transform),
+                    nearest_scrolling_ancestor_viewport: parent_transforms
+                        .nearest_scrolling_ancestor_viewport,
+                    nearest_scrolling_ancestor_offset: parent_transforms
+                        .nearest_scrolling_ancestor_offset +
+                        offset,
+                    cumulative_sticky_offsets: parent_transforms.cumulative_sticky_offsets + offset,
+                }
             },
-        };
-
-        let node_to_root_transform =
-            node_to_parent_transform.then(&parent_transforms.node_to_root_transform);
-        let root_to_node_transform = parent_to_node_transform.map(|parent_to_node_transform| {
-            parent_transforms
-                .root_to_node_transform
-                .map_or(parent_to_node_transform, |parent_transform| {
-                    parent_transform.then(&parent_to_node_transform)
-                })
-        });
-
-        let transforms = ScrollTreeNodeTransformationCache {
-            node_to_root_transform,
-            root_to_node_transform,
-            cumulative_sticky_offsets: sticky_info.cumulative_sticky_offsets,
-        };
-        (transforms, sticky_info)
+        }
     }
 
     fn invalidate_cached_transforms(&self) {
