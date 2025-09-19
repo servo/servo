@@ -11,6 +11,7 @@ use atomic_refcell::AtomicRef;
 use log::warn;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
+use strum::{EnumIter, IntoEnumIterator};
 use style::Zero;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
@@ -1593,155 +1594,129 @@ impl<'a> TableLayout<'a> {
             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
         };
 
-        table_layout
-            .fragments
-            .extend(self.table.captions.iter().filter_map(|caption| {
-                let caption = caption.borrow();
-                if caption.context.style().clone_caption_side() != CaptionSide::Top {
-                    return None;
+        #[derive(EnumIter, PartialEq)]
+        enum TableWrapperSection {
+            TopCaptions,
+            Grid,
+            BottomCaptions,
+        }
+        impl TableWrapperSection {
+            fn accepts_caption(&self, caption: &TableCaption) -> bool {
+                match caption.context.style().clone_caption_side() {
+                    CaptionSide::Top => *self == TableWrapperSection::TopCaptions,
+                    CaptionSide::Bottom => *self == TableWrapperSection::BottomCaptions,
                 }
+            }
+        }
 
+        for section in TableWrapperSection::iter() {
+            if section == TableWrapperSection::Grid {
                 let original_positioning_context_length = positioning_context.len();
-                let mut caption_fragment =
-                    self.layout_caption(&caption, layout_context, positioning_context);
+                let mut grid_fragment = self.layout_grid(
+                    layout_context,
+                    positioning_context,
+                    &containing_block_for_logical_conversion,
+                    containing_block_for_children,
+                );
 
-                // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
-                // for the table children and only then convert the result to physical geometry.
-                let caption_pbm = caption_fragment
+                // Take the baseline of the grid fragment, after adjusting it to be in the coordinate system
+                // of the table wrapper.
+                let logical_grid_content_rect = grid_fragment
+                    .content_rect
+                    .to_logical(&containing_block_for_logical_conversion);
+                let grid_pbm = grid_fragment
                     .padding_border_margin()
                     .to_logical(table_writing_mode);
+                table_layout.baselines = grid_fragment.baselines(table_writing_mode).offset(
+                    current_block_offset +
+                        logical_grid_content_rect.start_corner.block +
+                        grid_pbm.block_start,
+                );
 
-                let caption_relative_offset = match caption_fragment.style.clone_position() {
-                    Position::Relative => {
-                        relative_adjustement(&caption_fragment.style, containing_block_for_children)
-                    },
-                    _ => LogicalVec2::zero(),
-                };
-
-                caption_fragment.content_rect = LogicalRect {
+                grid_fragment.content_rect = LogicalRect {
                     start_corner: LogicalVec2 {
-                        inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
-                        block: current_block_offset + caption_pbm.block_start,
-                    } + caption_relative_offset,
-                    size: caption_fragment
+                        inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
+                        block: current_block_offset + grid_pbm.block_start,
+                    },
+                    size: grid_fragment
                         .content_rect
                         .size
                         .to_logical(table_writing_mode),
                 }
                 .as_physical(Some(&containing_block_for_logical_conversion));
 
-                current_block_offset += caption_fragment
-                    .margin_rect()
+                current_block_offset += grid_fragment
+                    .border_rect()
                     .size
                     .to_logical(table_writing_mode)
                     .block;
-
-                let caption_fragment = Fragment::Box(ArcRefCell::new(caption_fragment));
-                positioning_context.adjust_static_position_of_hoisted_fragments(
-                    &caption_fragment,
-                    original_positioning_context_length,
-                );
-
-                caption.context.base.set_fragment(caption_fragment.clone());
-                Some(caption_fragment)
-            }));
-
-        let original_positioning_context_length = positioning_context.len();
-        let mut grid_fragment = self.layout_grid(
-            layout_context,
-            positioning_context,
-            &containing_block_for_logical_conversion,
-            containing_block_for_children,
-        );
-
-        // Take the baseline of the grid fragment, after adjusting it to be in the coordinate system
-        // of the table wrapper.
-        let logical_grid_content_rect = grid_fragment
-            .content_rect
-            .to_logical(&containing_block_for_logical_conversion);
-        let grid_pbm = grid_fragment
-            .padding_border_margin()
-            .to_logical(table_writing_mode);
-        table_layout.baselines = grid_fragment.baselines(table_writing_mode).offset(
-            current_block_offset +
-                logical_grid_content_rect.start_corner.block +
-                grid_pbm.block_start,
-        );
-
-        grid_fragment.content_rect = LogicalRect {
-            start_corner: LogicalVec2 {
-                inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
-                block: current_block_offset + grid_pbm.block_start,
-            },
-            size: grid_fragment
-                .content_rect
-                .size
-                .to_logical(table_writing_mode),
-        }
-        .as_physical(Some(&containing_block_for_logical_conversion));
-
-        current_block_offset += grid_fragment
-            .border_rect()
-            .size
-            .to_logical(table_writing_mode)
-            .block;
-        if logical_grid_content_rect.size.inline < self.table_width {
-            // This can happen when collapsing columns
-            table_layout.content_inline_size_for_table =
-                Some(logical_grid_content_rect.size.inline);
-        }
-
-        let grid_fragment = Fragment::Box(ArcRefCell::new(grid_fragment));
-        positioning_context.adjust_static_position_of_hoisted_fragments(
-            &grid_fragment,
-            original_positioning_context_length,
-        );
-        table_layout.fragments.push(grid_fragment);
-
-        table_layout
-            .fragments
-            .extend(self.table.captions.iter().filter_map(|caption| {
-                let caption = caption.borrow();
-                if caption.context.style().clone_caption_side() != CaptionSide::Bottom {
-                    return None;
+                if logical_grid_content_rect.size.inline < self.table_width {
+                    // This can happen when collapsing columns
+                    table_layout.content_inline_size_for_table =
+                        Some(logical_grid_content_rect.size.inline);
                 }
 
-                let original_positioning_context_length = positioning_context.len();
-                let mut caption_fragment =
-                    self.layout_caption(&caption, layout_context, positioning_context);
+                let grid_fragment = Fragment::Box(ArcRefCell::new(grid_fragment));
+                positioning_context.adjust_static_position_of_hoisted_fragments(
+                    &grid_fragment,
+                    original_positioning_context_length,
+                );
+                table_layout.fragments.push(grid_fragment);
+            } else {
+                let caption_fragments = self.table.captions.iter().filter_map(|caption| {
+                    let caption = caption.borrow();
+                    if !section.accepts_caption(&caption) {
+                        return None;
+                    }
 
-                // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
-                // for the table children and only then convert the result to physical geometry.
-                let caption_pbm = caption_fragment
-                    .padding_border_margin()
-                    .to_logical(table_writing_mode);
-                caption_fragment.content_rect = LogicalRect {
-                    start_corner: LogicalVec2 {
-                        inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
-                        block: current_block_offset + caption_pbm.block_start,
-                    },
-                    size: caption_fragment
-                        .content_rect
+                    let original_positioning_context_length = positioning_context.len();
+                    let mut caption_fragment =
+                        self.layout_caption(&caption, layout_context, positioning_context);
+
+                    // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
+                    // for the table children and only then convert the result to physical geometry.
+                    let caption_pbm = caption_fragment
+                        .padding_border_margin()
+                        .to_logical(table_writing_mode);
+
+                    let caption_relative_offset = match caption_fragment.style.clone_position() {
+                        Position::Relative => relative_adjustement(
+                            &caption_fragment.style,
+                            containing_block_for_children,
+                        ),
+                        _ => LogicalVec2::zero(),
+                    };
+
+                    caption_fragment.content_rect = LogicalRect {
+                        start_corner: LogicalVec2 {
+                            inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
+                            block: current_block_offset + caption_pbm.block_start,
+                        } + caption_relative_offset,
+                        size: caption_fragment
+                            .content_rect
+                            .size
+                            .to_logical(table_writing_mode),
+                    }
+                    .as_physical(Some(&containing_block_for_logical_conversion));
+
+                    current_block_offset += caption_fragment
+                        .margin_rect()
                         .size
-                        .to_logical(table_writing_mode),
-                }
-                .as_physical(Some(&containing_block_for_logical_conversion));
+                        .to_logical(table_writing_mode)
+                        .block;
 
-                current_block_offset += caption_fragment
-                    .margin_rect()
-                    .size
-                    .to_logical(table_writing_mode)
-                    .block;
+                    let caption_fragment = Fragment::Box(ArcRefCell::new(caption_fragment));
+                    positioning_context.adjust_static_position_of_hoisted_fragments(
+                        &caption_fragment,
+                        original_positioning_context_length,
+                    );
 
-                let caption_fragment = Fragment::Box(ArcRefCell::new(caption_fragment));
-                positioning_context.adjust_static_position_of_hoisted_fragments(
-                    &caption_fragment,
-                    original_positioning_context_length,
-                );
-
-                caption.context.base.set_fragment(caption_fragment.clone());
-                Some(caption_fragment)
-            }));
+                    caption.context.base.set_fragment(caption_fragment.clone());
+                    Some(caption_fragment)
+                });
+                table_layout.fragments.extend(caption_fragments);
+            }
+        }
 
         table_layout.content_block_size = current_block_offset + offset_from_wrapper.block_end;
         table_layout

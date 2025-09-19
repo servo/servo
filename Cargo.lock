@@ -4881,6 +4881,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "smallvec",
+ "strum",
  "stylo",
  "stylo_atoms",
  "stylo_traits",
