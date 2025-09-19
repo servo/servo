@@ -42,7 +42,7 @@ pub(crate) trait HyperlinkElementTraits {
     fn get_username(&self) -> USVString;
     fn set_url(&self);
     fn set_username(&self, value: USVString, can_gc: CanGc);
-    fn update_href(&self, url: DOMString, can_gc: CanGc);
+    fn update_href(&self, url: &ServoUrl, can_gc: CanGc);
     fn reinitialize_url(&self);
 }
 
@@ -75,23 +75,21 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         self.reinitialize_url();
 
         // Step 2. Let url be this's url.
-        let url = match self.get_url().borrow_mut().as_mut() {
-            // Step 3. If url is null, then return.
-            None => return,
-            // Step 4. If the given value is the empty string, set url's fragment to null.
-            // Note this step is taken care of by UrlHelper::SetHash when the value is Some
-            // Steps 5. Otherwise:
-            Some(url) => {
-                // Step 5.1. Let input be the given value with a single leading "#" removed, if any.
-                // Step 5.2. Set url's fragment to the empty string.
-                // Note these steps are taken care of by UrlHelper::SetHash
-                UrlHelper::SetHash(url, value);
-
-                // Step 5.4.  Basic URL parse input, with url as url and fragment state as state
-                // override.
-                DOMString::from(url.as_str())
-            },
+        // Step 3. If url is null, then return.
+        let mut url = self.get_url().borrow_mut();
+        let Some(url) = url.as_mut() else {
+            return;
         };
+
+        // Step 4. If the given value is the empty string, set url's fragment to null.
+        // Note this step is taken care of by UrlHelper::SetHash when the value is Some
+        // Steps 5. Otherwise:
+        // Step 5.1. Let input be the given value with a single leading "#" removed, if any.
+        // Step 5.2. Set url's fragment to the empty string.
+        // Note these steps are taken care of by UrlHelper::SetHash
+        // Step 5.4.  Basic URL parse input, with url as url and fragment state as state
+        // override.
+        UrlHelper::SetHash(url, value);
 
         // Step 6. Update href.
         self.update_href(url, can_gc);
@@ -125,17 +123,17 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         self.reinitialize_url();
 
         // Step 2. Let url be this's url.
-        let url = match self.get_url().borrow_mut().as_mut() {
+        let mut url = self.get_url().borrow_mut();
+        let url = match url.as_mut() {
             // Step 3. If url or url's host is null, return the empty string.
             Some(ref url) if url.cannot_be_a_base() => return,
             None => return,
-            // Step 4. Basic URL parse the given value, with url as url and host state as state
-            // override.
-            Some(url) => {
-                UrlHelper::SetHost(url, value);
-                DOMString::from(url.as_str())
-            },
+            Some(url) => url,
         };
+
+        // Step 4. Basic URL parse the given value, with url as url and host state as state
+        // override.
+        UrlHelper::SetHost(url, value);
 
         // Step 5. Update href.
         self.update_href(url, can_gc);
@@ -163,17 +161,17 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         self.reinitialize_url();
 
         // Step 2. Let url be this's url.
-        let url = match self.get_url().borrow_mut().as_mut() {
+        let mut url = self.get_url().borrow_mut();
+        let url = match url.as_mut() {
             // Step 3. If url is null or url has an opaque path, then return.
             None => return,
             Some(ref url) if url.cannot_be_a_base() => return,
-            // Step 4. Basic URL parse the given value, with url as url and hostname state as state
-            // override.
-            Some(url) => {
-                UrlHelper::SetHostname(url, value);
-                DOMString::from(url.as_str())
-            },
+            Some(url) => url,
         };
+
+        // Step 4. Basic URL parse the given value, with url as url and hostname state as state
+        // override.
+        UrlHelper::SetHostname(url, value);
 
         // Step 5. Update href.
         self.update_href(url, can_gc);
@@ -248,16 +246,16 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         self.reinitialize_url();
 
         // Step 2. Let url be this's url.
-        let url = match self.get_url().borrow_mut().as_mut() {
+        let mut url = self.get_url().borrow_mut();
+        let url = match url.as_mut() {
             // Step 3. If url is null or url cannot have a username/password/port, then return.
             None => return,
             Some(ref url) if url.host().is_none() || url.cannot_be_a_base() => return,
-            // Step 4. Set the password, given url and the given value.
-            Some(url) => {
-                UrlHelper::SetPassword(url, value);
-                DOMString::from(url.as_str())
-            },
+            Some(url) => url,
         };
+
+        // Step 4. Set the password, given url and the given value.
+        UrlHelper::SetPassword(url, value);
 
         // Step 5. Update href.
         self.update_href(url, can_gc);
@@ -283,17 +281,17 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         self.reinitialize_url();
 
         // Step 2. Let url be this's url.
-        let url = match self.get_url().borrow_mut().as_mut() {
+        let mut url = self.get_url().borrow_mut();
+        let url = match url.as_mut() {
             // Step 3. If url is null or url has an opaque path, then return.
             None => return,
             Some(ref url) if url.cannot_be_a_base() => return,
-            // Step 4. Set url's path to the empty list.
-            // Step 5. Basic URL parse the given value, with url as url and path start state as state override.
-            Some(url) => {
-                UrlHelper::SetPathname(url, value);
-                DOMString::from(url.as_str())
-            },
+            Some(url) => url,
         };
+
+        // Step 4. Set url's path to the empty list.
+        // Step 5. Basic URL parse the given value, with url as url and path start state as state override.
+        UrlHelper::SetPathname(url, value);
 
         // Step 6. Update href.
         self.update_href(url, can_gc);
@@ -319,7 +317,8 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         self.reinitialize_url();
 
         // Step 2. Let url be this's url.
-        let url = match self.get_url().borrow_mut().as_mut() {
+        let mut url = self.get_url().borrow_mut();
+        let url = match url.as_mut() {
             // Step 3. If url is null or url cannot have a username/password/port, then return.
             None => return,
             Some(ref url)
@@ -328,14 +327,13 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
             {
                 return;
             },
-            // Step 4. If the given value is the empty string, then set url's port to null.
-            // Step 5. Otherwise, basic URL parse the given value, with url as url and port state as
-            // state override.
-            Some(url) => {
-                UrlHelper::SetPort(url, value);
-                DOMString::from(url.as_str())
-            },
+            Some(url) => url,
         };
+
+        // Step 4. If the given value is the empty string, then set url's port to null.
+        // Step 5. Otherwise, basic URL parse the given value, with url as url and port state as
+        // state override.
+        UrlHelper::SetPort(url, value);
 
         // Step 6. Update href.
         self.update_href(url, can_gc);
@@ -359,16 +357,16 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
-        let url = match self.get_url().borrow_mut().as_mut() {
+        let mut url = self.get_url().borrow_mut();
+        let url = match url.as_mut() {
             // Step 2. If this's url is null, then return.
             None => return,
-            // Step 3. Basic URL parse the given value, followed by ":", with this's url as url and
-            // scheme start state as state override.
-            Some(url) => {
-                UrlHelper::SetProtocol(url, value);
-                DOMString::from(url.as_str())
-            },
+            Some(url) => url,
         };
+
+        // Step 3. Basic URL parse the given value, followed by ":", with this's url as url and
+        // scheme start state as state override.
+        UrlHelper::SetProtocol(url, value);
 
         // Step 4. Update href.
         self.update_href(url, can_gc);
@@ -396,17 +394,17 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         self.reinitialize_url();
 
         // Step 2. Let url be this's url.
-        let url = match self.get_url().borrow_mut().as_mut() {
+        let mut url = self.get_url().borrow_mut();
+        let url = match url.as_mut() {
             // Step 3. If url is null, terminate these steps.
             None => return,
-            // Step 4. If the given value is the empty string, set url's query to null.
-            // Step 5. Otherwise:
-            Some(url) => {
-                // Note: Inner steps are handled by UrlHelper::SetSearch
-                UrlHelper::SetSearch(url, value);
-                DOMString::from(url.as_str())
-            },
+            Some(url) => url,
         };
+
+        // Step 4. If the given value is the empty string, set url's query to null.
+        // Step 5. Otherwise:
+        // Note: Inner steps are handled by UrlHelper::SetSearch
+        UrlHelper::SetSearch(url, value);
 
         // Step 6. Update href.
         self.update_href(url, can_gc);
@@ -457,25 +455,28 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         self.reinitialize_url();
 
         // Step 2. Let url be this's url.
-        let url = match self.get_url().borrow_mut().as_mut() {
+        let mut url = self.get_url().borrow_mut();
+        let url = match url.as_mut() {
             // Step 3. If url is null or url cannot have a username/password/port, then return.
             None => return,
             Some(ref url) if url.host().is_none() || url.cannot_be_a_base() => return,
-            // Step 4. Set the username, given url and the given value.
-            Some(url) => {
-                UrlHelper::SetUsername(url, value);
-                DOMString::from(url.as_str())
-            },
+            Some(url) => url,
         };
+
+        // Step 4. Set the username, given url and the given value.
+        UrlHelper::SetUsername(url, value);
 
         // Step 5. Update href.
         self.update_href(url, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-href>
-    fn update_href(&self, url: DOMString, can_gc: CanGc) {
-        self.upcast::<Element>()
-            .set_string_attribute(&local_name!("href"), url, can_gc);
+    fn update_href(&self, url: &ServoUrl, can_gc: CanGc) {
+        self.upcast::<Element>().set_string_attribute(
+            &local_name!("href"),
+            DOMString::from(url.as_str()),
+            can_gc,
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reinitialise-url>
