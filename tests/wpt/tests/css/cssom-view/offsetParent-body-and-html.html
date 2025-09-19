@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM View: offsetParent</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-htmlelement-offsetparent">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12834">
+<meta name="assert" content="Checks offsetParent on <body> and <html> elements.">
+<style>html, body { position: relative }</style>
+
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const root = document.documentElement;
+const other_html = document.createElement("html");
+const other_body_1 = document.createElement("body");
+const other_body_2 = document.createElement("body");
+const other_body_3 = document.createElement("body");
+other_body_2.append(other_body_3);
+other_html.append(other_body_2);
+root.append(other_html, other_body_1);
+
+test(() => {
+  assert_equals(root.offsetParent, null);
+}, "The offsetParent of the root element is null");
+
+test(() => {
+  assert_equals(other_html.offsetParent, root);
+}, "The offsetParent of a <html> element which is not the root is computed normally");
+
+test(() => {
+  assert_equals(document.body.offsetParent, null);
+}, "The offsetParent of 'the body element' is null");
+
+test(() => {
+  assert_equals(other_body_1.offsetParent, null);
+}, "The offsetParent of a <body> element which has a previous <body> sibling is also null");
+
+test(() => {
+  assert_equals(other_body_2.offsetParent, null);
+}, "The offsetParent of a <body> element which is a child of a non-root <html> is also null");
+
+test(() => {
+  assert_equals(other_body_3.offsetParent, null);
+}, "The offsetParent of a <body> element which is a child of a non-<html> is also null");
+</script>
+</body>
