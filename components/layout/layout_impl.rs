@@ -1241,7 +1241,7 @@ impl LayoutThread {
         self.epoch.set(epoch);
         stacking_context_tree.compositor_info.epoch = epoch.into();
 
-        let (built_display_list, _lcp_candidate) = DisplayListBuilder::build(
+        let (built_display_list, lcp_candidate) = DisplayListBuilder::build(
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
@@ -1255,6 +1255,13 @@ impl LayoutThread {
             &stacking_context_tree.compositor_info,
             built_display_list,
         );
+
+        if let Some(lcp_candidate) = lcp_candidate {
+            self.compositor_api.send_lcp_candidate(
+                lcp_candidate,
+                stacking_context_tree.compositor_info.pipeline_id,
+            );
+        }
 
         let (keys, instance_keys) = self
             .font_context
