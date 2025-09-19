@@ -1546,8 +1546,21 @@ impl BoxFragment {
             return None;
         }
 
-        let frame_rect = self
-            .border_rect()
+        // https://drafts.csswg.org/css-position/#position-box
+        // > The *position box* is its margin box, except that for any side for which the distance
+        // > between its margin edge and the corresponding edge of its containing block is less
+        // > than its corresponding margin, that distance is used in place of that margin.
+        //
+        // Probably the spec means "border edge" instead of "margin edge"?
+        // https://github.com/w3c/csswg-drafts/issues/12833
+        let border_rect = self.border_rect();
+        let clamped_margins = PhysicalSides::new(
+            self.margin.top.min(border_rect.min_y()),
+            self.margin.right.min(containing_block_rect.width() - border_rect.max_x()),
+            self.margin.bottom.min(containing_block_rect.height() - border_rect.max_y()),
+            self.margin.left.min(border_rect.min_x())
+        );
+        let frame_rect = border_rect.outer_rect(clamped_margins)
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
 
