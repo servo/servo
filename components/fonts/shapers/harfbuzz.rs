@@ -209,7 +209,11 @@ impl Shaper {
     }
 
     /// Calculate the layout metrics associated with the given text with the [`Shaper`]s font.
-    fn shaped_glyph_data(&self, text: &str, options: &ShapingOptions) -> ShapedGlyphData {
+    pub(crate) fn shaped_glyph_data(
+        &self,
+        text: &str,
+        options: &ShapingOptions,
+    ) -> ShapedGlyphData {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
             hb_buffer_set_direction(
@@ -268,7 +272,7 @@ impl Shaper {
         }
     }
 
-    fn font(&self) -> &Font {
+    pub(crate) fn font(&self) -> &Font {
         unsafe { &(*self.font) }
     }
 
