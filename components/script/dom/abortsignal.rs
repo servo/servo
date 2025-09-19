@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
@@ -20,6 +21,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
+use crate::fetch::FetchContext;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -37,7 +39,11 @@ pub(crate) enum AbortAlgorithm {
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     StreamPiping(PipeTo),
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
-    Fetch,
+    Fetch(
+        #[no_trace]
+        #[conditional_malloc_size_of]
+        Arc<Mutex<FetchContext>>,
+    ),
 }
 
 /// <https://dom.spec.whatwg.org/#abortsignal>
@@ -161,6 +167,14 @@ impl AbortSignal {
                 rooted!(in(*cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
                 pipe.abort_with_reason(cx, global, reason.handle(), realm, can_gc);
+            },
+            AbortAlgorithm::Fetch(fetch_context) => {
+                rooted!(in(*cx) let mut reason = UndefinedValue());
+                reason.set(self.abort_reason.get());
+                fetch_context
+                    .lock()
+                    .unwrap()
+                    .abort_fetch(reason.handle(), cx, can_gc);
             },
             _ => {
                 // TODO: match on variant and implement algo steps.
