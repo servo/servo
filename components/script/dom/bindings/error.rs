@@ -101,7 +101,15 @@ pub(crate) fn create_dom_exception(
 ) -> Result<DomRoot<DOMException>, JsEngineError> {
     let code = match result {
         Error::IndexSize => DOMErrorName::IndexSizeError,
-        Error::NotFound => DOMErrorName::NotFoundError,
+        Error::NotFound(Some(custom_message)) => {
+            return Ok(DOMException::new_with_custom_message(
+                global,
+                DOMErrorName::NotFoundError,
+                custom_message,
+                can_gc,
+            ));
+        },
+        Error::NotFound(None) => DOMErrorName::NotFoundError,
         Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
         Error::WrongDocument => DOMErrorName::WrongDocumentError,
         Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,

@@ -309,7 +309,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .iter()
             .any(|store_name| store_name.to_string() == name.to_string())
         {
-            return Err(Error::NotFound);
+            return Err(Error::NotFound(None));
         }
 
         // Step 5

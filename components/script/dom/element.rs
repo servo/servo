@@ -3192,7 +3192,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-removeattributenode
     fn RemoveAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
         self.remove_first_matching_attribute(|a| a == attr, can_gc)
-            .ok_or(Error::NotFound)
+            .ok_or(Error::NotFound(None))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-hasattribute
