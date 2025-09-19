@@ -53,7 +53,7 @@ impl XPathExpression {
         &self,
         context_node: &Node,
         result_type_num: u16,
-        _result: Option<&XPathResult>,
+        result: Option<&XPathResult>,
         resolver: Option<Rc<XPathNSResolver>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathResult>> {
@@ -63,16 +63,23 @@ impl XPathExpression {
         let global = self.global();
         let window = global.as_window();
 
-        let result_value = evaluate_parsed_xpath(&self.parsed_expression, context_node, resolver)?;
+        let result_value =
+            evaluate_parsed_xpath(&self.parsed_expression, context_node, resolver)?.into();
 
-        // TODO(vlindhol): support putting results into mutable `_result` as per the spec
-        Ok(XPathResult::new(
-            window,
-            None,
-            can_gc,
-            result_type,
-            result_value.into(),
-        ))
+        if let Some(result) = result {
+            // According to https://www.w3.org/TR/DOM-Level-3-XPath/xpath.html#XPathEvaluator-evaluate, reusing
+            // the provided result object is optional. We choose to do it here because thats what other browsers do.
+            result.reinitialize_with(result_type, result_value);
+            Ok(DomRoot::from_ref(result))
+        } else {
+            Ok(XPathResult::new(
+                window,
+                None,
+                can_gc,
+                result_type,
+                result_value,
+            ))
+        }
     }
 }
 
